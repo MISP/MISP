@@ -54,7 +54,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
-| AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
+| AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13) | `[ ]` not started |
 | AD-W9 | Sightings rework | `DEFERRED` | — look-and-feel only; revisit post-build |
@@ -279,7 +279,26 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
   so filtering stays on the dashboard toolbar canonical bulk-edit (AD-08
   Fork B). Verified via runtime property dump (`cacheLifetime=false`, no
   `cache_duration` prop).
-- [ ] Visual verification on the live instance (real render path).
+- [x] Visual verification on the live instance (real render path).
+  *Done:* verified through the **real pipeline** in 3 layers. (1) REST
+  `renderWidget` → `renderer:EventCards` + the inherited `{data,fields}`
+  payload; the inherited `threat_level=[2]` filter correctly narrowed to
+  only Medium events through the subclass. (2) Web-UI POST + session →
+  real `EventCards.ctp` HTML, no PHP warnings: 4 cards with the correct
+  threat dots (tl 4→undefined, 2→medium, 3→low), `·`-separated org/time
+  (relative + ISO tooltip), right-aligned `#id` links to
+  `/events/view/<id>`, data-driven tag chips with **correct contrast**
+  (`tlp:amber` #FFC000→dark text, dark tags→white via `_idxContrastColour`),
+  `1 attr`/`15 attrs` singular/plural, and a 0-tag card cleanly showing
+  only the count. (3) Headless-chromium screenshot against the real CSS
+  confirmed the styled visual. Dev data has no event with >5 tags or long
+  info, so the **"+N more" overflow** (5 chips + "+2 more") and **160-char
+  info truncation** branches were covered by a focused renderer harness
+  (presentation logic only — the handler passthrough is proven by layers
+  1–2). Folded a 1-line CSS polish: `row3` `align-items: center`→`flex-start`
+  so the attr count anchors to the first tag line instead of floating at the
+  vertical centre when chips wrap. **Phase B3 (W6 event-stream rework)
+  COMPLETE.**
 
 ### Phase B4 — AD-W2 Trending Vulnerabilities dimension (DECIDED; needs B1 engine)
 

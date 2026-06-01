@@ -1096,10 +1096,12 @@ a.misp-eventcards-id:hover {
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
-/* Row 3 — tag chips (left, wrap) + attribute count (right). */
+/* Row 3 — tag chips (left, wrap) + attribute count (right). flex-start so
+   the attribute count anchors to the first tag line rather than floating at
+   the vertical centre when the chips wrap to several lines. */
 .misp-eventcards-row3 {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--misp-dash-space-2);
   margin-top: var(--misp-dash-space-1);
 }
