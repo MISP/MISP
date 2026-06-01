@@ -257,12 +257,28 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
   the flat card stream; distinct from SimpleList's bare rows and StatGrid's
   2×2 grid) — and registered it under `EventCards:` in `REGISTRY`.
   `node --check` clean.
-- [ ] `EventStreamCardsWidget extends EventStreamWidget` — override `$render` =
+- [x] `EventStreamCardsWidget extends EventStreamWidget` — override `$render` =
   `EventCards`, `$title`, `$description`; inherit the canonical-filter data
   layer + `$schema` verbatim (toolbar-bulk-editable). `handler()` untouched.
-- [ ] Read-only confirm: no in-body controls; filters via toolbar bulk-edit.
+  *Done:* `app/Lib/Dashboard/EventStreamCardsWidget.php` —
+  `require_once 'EventStreamWidget.php'` (same precedent as
+  `OrgsContributorLastMonthWidget`; resolves via the calling script's own
+  dir) + a 4-line subclass overriding only `$render`/`$title`
+  (`Event Card Stream`)/`$description`. Runtime check: `render=EventCards`,
+  inherits `handler()`, all 9 `params`, the 5-canonical `schema`
+  (threat_level/analysis/sharing_group/galaxy_cluster/orgs), `category=events`.
+  Lint clean.
+- [x] Read-only confirm: no in-body controls; filters via toolbar bulk-edit.
   Near-live (`autoRefreshDelay = 5` inherited); no cache (per-user ACL'd
   `fetchEvent`).
+  *Done (confirmed by design — same commit as the subclass):* the inherited
+  `autoRefreshDelay=5` and `cacheLifetime=false` carry over, and the subclass
+  declares **no** `cache_duration`/`cache_scope`, so `WidgetCache::remember`
+  runs `handler()` live (per-user ACL'd `fetchEvent`, never per-org cached).
+  `EventCards.ctp` renders static markup only — no forms/inputs/JS controls —
+  so filtering stays on the dashboard toolbar canonical bulk-edit (AD-08
+  Fork B). Verified via runtime property dump (`cacheLifetime=false`, no
+  `cache_duration` prop).
 - [ ] Visual verification on the live instance (real render path).
 
 ### Phase B4 — AD-W2 Trending Vulnerabilities dimension (DECIDED; needs B1 engine)
