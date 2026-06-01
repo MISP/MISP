@@ -20,8 +20,17 @@
  * (ACL-correct; AD-09, unlike the global scale-counts of AD-06). Window
  * anchor is Event.timestamp / Attribute.timestamp (AD-05).
  *
- * Momentum (AD-03) lands in B1.5; the per-org cache (AD-04) in B1.6 — until
- * then the widget computes live on every render.
+ * Momentum (AD-03): each row carries a ▲/▼ badge = the floored % change of
+ * its distinct-event count vs the immediately-preceding equal-length window
+ * (count the current window AND the prior window via the same count hook,
+ * with explicit [start, end] bounds). An eligibility floor (`min_count`)
+ * suppresses the badge for low-volume rows so a 1→4 spike doesn't read as
+ * "+300%". A value present now but absent in the prior window is flagged
+ * "NEW". All-time (time_window = -1) has no prior window → no momentum. No
+ * spike detection (deferred — AD-03).
+ *
+ * The per-org cache (AD-04) lands in B1.6 — until then the widget computes
+ * live on every render.
  */
 class TrendingWidget
 {
@@ -39,6 +48,9 @@ class TrendingWidget
         'time_window' => 'The time window, going back in seconds, to include '
             . '(e.g. "30d"; -1 = all historic data).',
         'threshold' => 'Limits the number of displayed rows. Default: 10.',
+        'min_count' => 'Minimum current-window distinct-event count before a '
+            . 'row may carry a rising/▲▼ momentum badge (kills small-N % '
+            . 'noise). Default: 3.',
     );
 
     public $schema = array(
@@ -53,13 +65,20 @@ class TrendingWidget
             'default' => 10,
             'help' => 'Limits the number of displayed rows.',
         ),
+        'min_count' => array(
+            'type' => 'int',
+            'default' => 3,
+            'help' => 'Minimum current-window count before a row is flagged '
+                . 'rising (kills small-N % noise).',
+        ),
     );
 
     public $placeholder =
 '{
     "dimension": "vulnerability",
     "time_window": "30d",
-    "threshold": 15
+    "threshold": 15,
+    "min_count": 3
 }';
 
     public $description = 'Parametrised trending widget: ranks the values '
@@ -71,7 +90,8 @@ class TrendingWidget
      * B4/B5/B6) adds one entry here plus its hook methods — purely additive.
      * Hooks:
      *   - title  : the dimension's human title (informational)
-     *   - count  : method($user, $windowSeconds) => [valueKey => distinctEvents]
+     *   - count  : method($user, $startTs, $endTs) => [valueKey => distinctEvents]
+     *              ($startTs/$endTs are unix seconds or null = unbounded)
      *   - labels : method(array $valueKeys, array $options) =>
      *              [valueKey => ['label' => , 'title' => ?, 'drilldown' => ?]]
      */
@@ -98,10 +118,29 @@ class TrendingWidget
         $threshold = (isset($options['threshold']) && (int)$options['threshold'] > 0)
             ? (int)$options['threshold']
             : 10;
+        $minCount = (isset($options['min_count']) && (int)$options['min_count'] >= 0)
+            ? (int)$options['min_count']
+            : 3;
         $windowSeconds = $this->parseWindow($options);
 
+        // The current window is [now - window, now]; the prior equal window
+        // (AD-03 momentum baseline) is [now - 2*window, now - window]. The two
+        // are non-overlapping (current uses `>=`, prior uses `<` the same
+        // boundary). All-time (-1) has no upper bound and no prior window.
+        $now = time();
+        $hasMomentum = ($windowSeconds !== -1);
+        if ($hasMomentum) {
+            $curStart = $now - $windowSeconds;
+            $curEnd = null;             // up to now
+            $priorStart = $now - (2 * $windowSeconds);
+            $priorEnd = $curStart;
+        } else {
+            $curStart = null;
+            $curEnd = null;
+        }
+
         // Current-window distinct-event counts per value (ACL-correct).
-        $counts = $this->{$dimension['count']}($user, $windowSeconds);
+        $counts = $this->{$dimension['count']}($user, $curStart, $curEnd);
         if (empty($counts)) {
             return array();
         }
@@ -110,17 +149,38 @@ class TrendingWidget
         arsort($counts);
         $counts = array_slice($counts, 0, $threshold, true);
 
+        // Prior-window counts for the momentum delta (whole set; looked up
+        // per row below). Skipped for all-time, which has no prior window.
+        $priorCounts = $hasMomentum
+            ? $this->{$dimension['count']}($user, $priorStart, $priorEnd)
+            : array();
+
         // Resolve display labels / links for the top-N only (avoids
         // resolving the whole set — matters for galaxy dimensions, B5/B6).
         $labels = $this->{$dimension['labels']}(array_keys($counts), $options);
 
         $rows = array();
         foreach ($counts as $valueKey => $count) {
+            $count = (int)$count;
             $meta = isset($labels[$valueKey]) ? $labels[$valueKey] : array();
             $row = array(
                 'label' => isset($meta['label']) ? $meta['label'] : (string)$valueKey,
-                'count' => (int)$count,
+                'count' => $count,
             );
+            // Momentum (AD-03): only flag rows that clear the eligibility
+            // floor, so a tiny-volume row never reads as a big mover.
+            if ($hasMomentum && $count >= $minCount) {
+                $prior = isset($priorCounts[$valueKey]) ? (int)$priorCounts[$valueKey] : 0;
+                if ($prior <= 0) {
+                    // Present now, absent in the prior window → surging.
+                    $row['badge'] = __('NEW');
+                } else {
+                    $deltaPct = (int)floor((($count - $prior) / $prior) * 100);
+                    if ($deltaPct !== 0) {
+                        $row['delta'] = $deltaPct;
+                    }
+                }
+            }
             if (!empty($meta['title'])) {
                 $row['title'] = $meta['title'];
             }
@@ -176,21 +236,26 @@ class TrendingWidget
     /**
      * COUNT(DISTINCT event_id) per `vulnerability` attribute value (CVE /
      * GCVE / GHSA — one identifier-agnostic attribute type), ACL-scoped and
-     * window-bounded by Attribute.timestamp (AD-05). Three narrow steps keep
-     * both the candidate set and the IN list bounded by the window:
+     * window-bounded by Attribute.timestamp (AD-05) between $startTs
+     * (inclusive) and $endTs (exclusive); either bound null = unbounded.
+     * Three narrow steps keep both the candidate set and the IN list bounded
+     * by the window:
      *   (1) distinct events carrying an in-window vulnerability attribute,
      *   (2) ACL-filter those to the viewer's visible subset,
      *   (3) distinct-event count per value over that visible subset.
      */
-    private function countVulnerability($user, $windowSeconds)
+    private function countVulnerability($user, $startTs, $endTs)
     {
         $attributeModel = ClassRegistry::init('MispAttribute');
         $base = array(
             'Attribute.type' => 'vulnerability',
             'Attribute.deleted' => 0,
         );
-        if ($windowSeconds !== -1) {
-            $base['Attribute.timestamp >='] = time() - $windowSeconds;
+        if ($startTs !== null) {
+            $base['Attribute.timestamp >='] = $startTs;
+        }
+        if ($endTs !== null) {
+            $base['Attribute.timestamp <'] = $endTs;
         }
 
         // (1) candidate events: those with an in-window vulnerability attr.

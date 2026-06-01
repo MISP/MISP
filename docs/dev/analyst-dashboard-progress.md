@@ -145,8 +145,15 @@ task starts until the user moves the track out of spec-first mode.
   AttributeTag) arrive with their galaxy dimensions in B5/B6 — additive count
   hooks on the same mechanism; do NOT reuse `*Tag::countForTags` (occurrence
   count + AttributeTag skips ACL — AD-10).
-- [ ] Momentum (AD-03): floored-% delta vs prior equal window; configurable
+- [x] Momentum (AD-03): floored-% delta vs prior equal window; configurable
   min current-window count before "rising" is flagged.
+  *Done:* count hook now takes explicit `[start, end]` bounds so `handler()`
+  counts the current window `[now-w, now]` AND the non-overlapping prior
+  window `[now-2w, now-w]` via the same hook. Per row (only if
+  `count >= min_count`, default 3): `prior<=0` → `NEW` badge; else
+  `delta = floor((cur-prior)/prior*100)` → ▲/▼ (0 → no badge). All-time
+  (`-1`) → no prior window → no momentum. Added `min_count` to params/schema.
+  Lint clean.
 - [ ] Cache/ACL (AD-04): per-org `cache_scope`, site-admin no-ACL bucket,
   lazy-load on render, ~15–30 min/org, source = all events incl. unpublished.
 - [ ] Visual verification on the live instance (real render path, not a
@@ -270,3 +277,12 @@ render kinds land.)*
   compute/storage for same-org users — contradicts AD-04's letter). *Where:*
   decide at **B1.6**; B1.3–B1.5 run the engine live (uncached) so this never
   blocks them.
+- **Dev-DB vulnerability data is stale vs the box clock — affects B1.7
+  verification.** Box clock = 2026-06-01; newest `vulnerability` attr =
+  2025-05-25 (~372d ago), oldest 2014. So finite 30d/365d windows render
+  "No data"; the 138 distinct events all sit in a single ~11y band ending
+  ~1y ago. *For B1.7:* verify the volume path with `time_window=-1` (all-time,
+  full ranked list, no momentum badges by design), and verify **momentum**
+  either with a large split window (e.g. ~2000d → two non-empty halves) or by
+  touching a few attrs' timestamps into a recent current/prior window. Not a
+  code bug.
