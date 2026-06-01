@@ -51,8 +51,8 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 |----|--------|------|-------|
 | AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[ ]` not started — **first build unit** |
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
-| AD-W3 | Trending threat actors (dim of W1) | `DISCUSSING` | — **next spec target** |
-| AD-W4 | Trending attack techniques (dim of W1) | `DISCUSSING` | — |
+| AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
+| AD-W4 | Trending attack techniques (dim of W1) | `DISCUSSING` | — **next spec target** |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
@@ -73,11 +73,14 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
   IDs (CVE/GCVE/GHSA), distinct-event count **ACL-scoped** (the watch-out;
   AD-06 skip-ACL applies only to scale-counts, never value-rankings), cveurl
   link-out (default corrected to `vulnerability.circl.lu/vuln/`). (AD-09.)
-- [ ] **AD-W3 spec** — Trending threat actors: attribute/object-level galaxy
-  tags (not just EventTag); cluster resolution (name/synonyms/icon vs raw tag
-  string). (Next spec target.)
+- [x] **AD-W3 spec → DECIDED** — Trending threat actors: `threat-actor` galaxy
+  only (sidesteps cross-galaxy identity merge); distinct-event count over
+  EventTag ∪ AttributeTag, **ACL-scoped** (note: `AttributeTag::countForTags`
+  skips ACL — unusable as-is); per-cluster resolved label (value+icon+synonyms),
+  link to /galaxy_clusters/view/<id>. (AD-10.)
 - [ ] **AD-W4 spec** — Trending attack techniques: keep DISTINCT from the
-  ATT&CK heatmap (W5) — ranked list + momentum vs spatial matrix.
+  ATT&CK heatmap (W5) — ranked list + momentum vs spatial matrix. (Next spec
+  target.)
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -147,7 +150,23 @@ widget. Depends on Phase B1.*
   value (`{cveurl}{value}`).
 - [ ] Visual verification on the live instance.
 
-*(Phases B5+ — W3/W4, W5, W8 — broken down when each reaches `DECIDED`.)*
+### Phase B5 — AD-W3 Trending Threat Actors dimension (DECIDED; needs B1 engine)
+
+*A `dimension` config + hooks on the built W1 engine. Depends on Phase B1.*
+
+- [ ] `threat-actor` dimension config: tag-id set = `tags WHERE is_galaxy=1 AND
+  name LIKE 'misp-galaxy:threat-actor="%'`.
+- [ ] **ACL-correct union-distinct count** (primary risk): `COUNT(DISTINCT
+  event_id)` over EventTag ∪ AttributeTag for those tag_ids, ACL-scoped to the
+  org's visible events — do NOT reuse `AttributeTag::countForTags` (skips ACL,
+  counts occurrences). Cache per-org; site-admin no-ACL bucket.
+- [ ] Anchors per AD-05 (event-tag→Event.timestamp, attr-tag→Attribute.timestamp);
+  momentum AD-03.
+- [ ] Label resolver: bulk-resolve top-N clusters → value + Galaxy.icon +
+  synonyms (avoid N+1). Link builder = /galaxy_clusters/view/<id>.
+- [ ] Visual verification on the live instance.
+
+*(Phases B6+ — W4, W5, W8 — broken down when each reaches `DECIDED`.)*
 
 ## Discovered work
 

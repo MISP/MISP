@@ -53,7 +53,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 |----|--------|-----|--------|------------------------|
 | AD-W1 | **Trending engine** (parametrised) | rising | DECIDED | engine/counting/momentum/cache locked (AD-01..04); per-dimension specifics → W2/W3 |
 | AD-W2 | Trending vulnerabilities (dim of W1) | rising | DECIDED | spec locked (AD-09): vuln-attr distinct-event count, **ACL-scoped**; cveurl link-out; all CVE/GCVE/GHSA |
-| AD-W3 | Trending threat actors (dim of W1) | rising | DISCUSSING | attribute/object-level galaxy tags; cluster resolution |
+| AD-W3 | Trending threat actors (dim of W1) | rising | DECIDED | spec locked (AD-10): `threat-actor` galaxy only; event∪attr-tag distinct-event count, **ACL-scoped**; per-cluster label |
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DISCUSSING | distinctness from the ATT&CK heatmap |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
@@ -178,6 +178,45 @@ identifier-agnostic attribute type; Fork: "all vulnerability IDs"). Title
 **Open at build (not blocking spec):** the exact lightweight ACL-count query
 (reuse `Attribute` ACL conditions vs a per-org visible-event-id set); whether
 to segment the label by identifier prefix (CVE vs GCVE vs GHSA).
+
+### AD-W3 — Trending Threat Actors  `DECIDED`
+
+**Locked (2026-06-01):** The second **dimension** of the W1 engine. Scope =
+**native `threat-actor` galaxy only** (Fork: chosen over the actor-galaxy union
+— a single galaxy means each actor is ~one cluster, so it sidesteps the
+no-canonical-UUID cross-galaxy identity-merge problem).
+
+- **Counting strategy hook** = `COUNT(DISTINCT event_id)` over the **union of
+  `EventTag` ∪ `AttributeTag`** rows whose `tag_id` ∈ the threat-actor cluster
+  tag-id set, deduped to distinct events. This is AD-02's **tag arms** (both
+  event- and attribute/object-level — the handoff's "not just EventTag"),
+  contrast W2's value arm. The tag-id set = `tags WHERE is_galaxy=1 AND name
+  LIKE 'misp-galaxy:threat-actor="%'`; clusters join via
+  `galaxy_clusters.tag_name = tags.name`. Indexes present (`event_tags.tag_id`,
+  `attribute_tags.tag_id` + `event_id`, `galaxy_clusters.tag_name`).
+- **⚠ ACL (AD-09 reinforced — concrete on the tag arms).** The in-tree
+  `AttributeTag::countForTags()` **skips ACL** ("ignored for performance") and
+  counts *occurrences*, not distinct events — so it is **unusable as-is**.
+  `EventTag::countForTags()` ACL-checks (via `createEventConditions`) but is
+  still per-tag occurrence. W3 therefore needs a **custom ACL-correct,
+  distinct-event count over the union**, cached per-org (AD-04); site-admins =
+  no-ACL bucket. (Same primary build risk as AD-09.)
+- **Window anchor** (AD-05, per-source): event-tag arm tests `Event.timestamp`
+  in window; attribute-tag arm tests `Attribute.timestamp` in window. A cluster
+  is "in window" if any such occurrence falls in the window; distinct events
+  among those = the count.
+- **Momentum** = AD-03 (floored-% delta vs prior equal window).
+- **Label resolver hook** (the crux for a galaxy dimension) = resolve cluster
+  tag → `GalaxyCluster.value` (display name) + `Galaxy.icon` (join `Galaxy`;
+  e.g. `user-secret`) + synonyms (`GalaxyElement` `key='synonyms'`, shown on
+  hover). **Per-cluster, no merge** (Fork chosen) — same-actor-across-galaxies
+  is moot at single-galaxy scope; synonym/relation merge deferred. Resolve the
+  top-N clusters' value/icon/synonyms in **one bulk query** (avoid N+1).
+- **Drill-down link builder hook** = `/galaxy_clusters/view/<cluster_id>`
+  (in-app cluster view; accepts id or uuid).
+
+**Open at build (not blocking spec):** the exact ACL-correct union-distinct
+count query; the bulk label-resolution query shape.
 
 ### AD-W6 — Event-stream rework  `DECIDED`
 
@@ -428,6 +467,22 @@ label = identifier verbatim; link-out = `MISP.cveurl` + value (`{cveurl}{value}`
 default corrected to `https://vulnerability.circl.lu/vuln/`, sibling `cweurl`
 out of scope). Generalises to the engine: **AD-06 (skip ACL) applies only to
 scale-counts, never to value-rankings (AD-04).**
+
+**AD-10 — 2026-06-01 — AD-W3 (Trending Threat Actors) DECIDED.** Refs:
+AD-01/02/03/04/05 (engine/anchor), AD-09 (ACL), user Forks (threat-actor only;
+per-cluster label). Second W1 dimension. Scope = native `threat-actor` galaxy
+only (chosen over the actor-galaxy union — sidesteps the no-canonical-UUID
+cross-galaxy identity-merge problem). Counting = `COUNT(DISTINCT event_id)`
+over `EventTag` ∪ `AttributeTag` for the threat-actor cluster tag-id set
+(AD-02's tag arms — event AND attribute/object level; contrast W2's value arm);
+indexes present. **ACL reinforced (AD-09):** the in-tree
+`AttributeTag::countForTags()` skips ACL and counts occurrences, so it's
+unusable as-is — W3 needs a custom ACL-correct distinct-event count over the
+union, cached per-org. Anchors per AD-05 (event-tag→`Event.timestamp`,
+attribute-tag→`Attribute.timestamp`); momentum AD-03. Label resolver =
+`GalaxyCluster.value` + `Galaxy.icon` + synonyms-on-hover (per-cluster, no
+merge; merge deferred), resolved bulk to avoid N+1. Link-out =
+`/galaxy_clusters/view/<id>`.
 
 ## 7. Open meta-questions (resolve early)
 

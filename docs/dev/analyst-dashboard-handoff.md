@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 (AD-05..07) + AD-W6 (AD-08) + AD-W2 (AD-09) DECIDED; progress tracker split out; next spec target = W3)
+# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W7 (AD-05..07) + AD-W6 (AD-08) + AD-W2 (AD-09) + AD-W3 (AD-10) DECIDED; progress tracker split out; next spec target = W4)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -25,10 +25,16 @@ builds the **analyst widget surface**. Authoritative state lives in:
   (CVE/GCVE/GHSA), distinct-event count, cveurl link-out. **Big clarification:
   trending value-rankings MUST be ACL-scoped** (AD-04 per-org) — AD-06's
   skip-ACL is only for *scale*-counts (W7), never value-rankings.
+- **AD-10** = the W3 spec (second W1 dimension): `threat-actor` galaxy only
+  (sidesteps cross-galaxy identity merge); distinct-event count over EventTag ∪
+  AttributeTag, ACL-scoped; per-cluster resolved label (value+icon+synonyms),
+  link to `/galaxy_clusters/view/<id>`. **Gotcha:** `AttributeTag::countForTags`
+  skips ACL + counts occurrences → unusable as-is; needs custom ACL-correct
+  union-distinct count.
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
 - Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  Spec done: W1, W7, W6, W2. **Next spec target = W3 (trending threat actors).**
-  First *build* unit (when building starts) = W1.
+  Spec done: W1, W7, W6, W2, W3. **Next spec target = W4 (trending attack
+  techniques).** First *build* unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -99,8 +105,9 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   distinct-event count on `vulnerability` values is right (CVEs aren't tags),
   ACL-scoped. All CVE/GCVE/GHSA. cveurl default corrected to
   `https://vulnerability.circl.lu/vuln/`, format `{cveurl}{value}`.
-- **W3 (threat actors):** attribute/object-level galaxy tags (not just
-  EventTag); cluster resolution (name/synonyms/icon vs raw tag string).
+- **W3 (threat actors): DECIDED (AD-10)** — see PRD §5. `threat-actor` galaxy
+  only; EventTag ∪ AttributeTag distinct-event count, ACL-scoped; per-cluster
+  label (value+icon+synonyms); `/galaxy_clusters/view/<id>`.
 - **W4 (techniques):** keep DISTINCT from the heatmap — ranked list + momentum
   vs the spatial matrix view.
 - **W5 (ATT&CK heatmap):** existing `AttackWidget` (`render=Attack`,
@@ -139,15 +146,17 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W6/W7, §6
-   AD-01..09) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1, W7, W6, W2 are all fully decided.** Next **spec** target is **W3
-   (trending threat actors)** — the second W1 dimension. Circle-backs:
-   attribute/object-level galaxy tags (not just EventTag); cluster resolution
-   (cluster name / synonyms / icon vs raw `misp-galaxy:…=` tag string). It's a
-   galaxy-cluster dimension (contrast W2's plain attribute values), so the
-   label resolver hook is the crux. *(Or, if the user flips to build mode, the
-   first build unit is **W1** engine-first — see progress §"Phase B1".)*
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W3/W6/W7, §6
+   AD-01..10) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1, W7, W6, W2, W3 are all fully decided.** Next **spec** target is **W4
+   (trending attack techniques)** — the third W1 dimension. Circle-back: keep
+   it DISTINCT from the W5 ATT&CK heatmap (ranked list + momentum vs the
+   spatial matrix). Likely an `attack-pattern` / `mitre-attack-pattern` galaxy
+   dimension — reuses W3's galaxy plumbing (EventTag ∪ AttributeTag, ACL-scoped
+   count, per-cluster label, `/galaxy_clusters/view/<id>`); the live fork is
+   scope (which ATT&CK galaxies) + how it differs from W5. *(Or, if the user
+   flips to build mode, the first build unit is **W1** — see progress
+   §"Phase B1".)*
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
    `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,
