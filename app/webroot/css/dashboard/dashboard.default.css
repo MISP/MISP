@@ -1015,6 +1015,133 @@ a.misp-trending-row:focus-visible {
 }
 
 /* ============================================================
+ * EventCards renderer (analyst track — AD-W6 / AD-08) — a flat,
+ * reverse-chronological stack of event cards for the analyst event
+ * stream. Each card has three rows: (1) threat-level dot + label · org ·
+ * relative time · #id, (2) truncated Event.info, (3) tag chips (capped)
+ * + attribute count. Read-only; filters live on the dashboard toolbar.
+ * Token-driven so the midnight theme retones by only redefining the
+ * --misp-dash-* tokens; the threat-dot colours map to MISP's threat-level
+ * palette through the semantic danger/info/success/muted tokens.
+ * ============================================================ */
+.misp-eventcards-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+.misp-eventcards-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Row 1 — threat dot + label · org · time, with #id pushed to the right. */
+.misp-eventcards-row1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-eventcards-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--misp-dash-text-muted);
+}
+.misp-eventcards-dot--high      { background: var(--misp-dash-danger); }
+.misp-eventcards-dot--medium    { background: var(--misp-dash-info); }
+.misp-eventcards-dot--low       { background: var(--misp-dash-success); }
+.misp-eventcards-dot--undefined { background: var(--misp-dash-text-muted); }
+.misp-eventcards-threat {
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+}
+.misp-eventcards-sep {
+  color: var(--misp-dash-border-strong);
+}
+.misp-eventcards-org {
+  color: var(--misp-dash-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-eventcards-time {
+  color: var(--misp-dash-text-muted);
+  white-space: nowrap;
+}
+.misp-eventcards-id {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--misp-dash-accent);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+a.misp-eventcards-id:hover {
+  border-bottom-color: currentColor;
+}
+/* Row 2 — the event title / info. */
+.misp-eventcards-info {
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+/* Row 3 — tag chips (left, wrap) + attribute count (right). */
+.misp-eventcards-row3 {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-eventcards-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.misp-eventcards-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.misp-eventcards-more {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+}
+.misp-eventcards-attrcount {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
  * Button renderer — link-styled tile that fills the widget body.
  * ButtonWidget is a 3×2 shortcut primitive; the button consumes the
  * full available space so a one-handed click target is huge. Anchor-

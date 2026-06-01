@@ -232,12 +232,24 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
   `events`/`attributes` global, `published:…:o1`, windowed by length not
   `now`. **Phase B2 (W7 new-data stats) COMPLETE.**
 
-### Phase B3 — AD-W6 Event-stream rework (DECIDED; build-deferred)
+### Phase B3 — AD-W6 Event-stream rework (DECIDED; building)
 
-- [ ] New render kind **`EventCards`** — `EventCards.ctp` flat reverse-chron
+- [x] New render kind **`EventCards`** — `EventCards.ctp` flat reverse-chron
   cards (threat dot · org · relative time · #id · info · tag chips · attr
   count) from the `fetchEvent` payload. Token-driven CSS, no inline styles;
   reuse `Index.ctp`'s tag-chip colour + contrast helper.
+  *Done:* added `app/View/Elements/dashboard/Widgets/EventCards.ctp` (reads
+  the inherited `{data:[...]}` payload; **ignores `fields`** — Index column
+  concept) + a `.misp-eventcards-*` block in `dashboard.default.css`. Threat
+  dot+label derived from `Event.threat_level_id` (no ThreatLevel-association
+  dependency); dot colour maps MISP's threat palette through semantic tokens
+  (High→danger, Medium→info, Low→success, Undefined→muted) so it stays
+  theme-independent. Relative time + 160-char info truncation + tag-chip cap
+  (5 + "+N more") are in-template helpers; reuses `Index.ctp`'s
+  `_idxContrastColour` (guard-defined identically so the card renders
+  standalone). Only inline value = data-driven chip colours (same posture as
+  Index chips). `php -l` clean, CSS braces balance (498/498). All consumed
+  paths confirmed against a live `EventStreamWidget` payload.
 - [ ] Glyph for `EventCards` in `render-thumbs.mjs` (stacked-cards shape;
   **CLAUDE.md rule**): `thumbEventCards()` + REGISTRY entry.
 - [ ] `EventStreamCardsWidget extends EventStreamWidget` — override `$render` =
