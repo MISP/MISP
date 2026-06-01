@@ -12,8 +12,10 @@ builds the **analyst widget surface**. Authoritative state lives in:
 - This file — ephemeral session bridge; replace as work progresses.
 
 ## TL;DR — this session (planning; no code; spec-first by user's choice)
-- **AD-W7 (AD-05/06/07) and AD-W6 (AD-08) both fully decided.** Stayed in
-  spec mode (user chose to spec ahead of building).
+- **Specced the ENTIRE roster this session: W2–W8 all reached DECIDED
+  (AD-05..13), joining the pre-existing W1 (AD-01..04); W9 stays deferred.**
+  Stayed in spec mode throughout (user chose to spec ahead of building).
+  Decisions in order below.
 - **AD-05** window anchor = `Event.timestamp` track-wide (resolves AD-W1's
   deferred anchor; `publish_timestamp` rejected — tracks sync-propagation to
   this instance, not newness). **AD-06** aggregate count metrics may skip ACL
@@ -185,8 +187,3 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
    everything else is additive.
 4. **Confirm with the user before starting build** (they may want to recompose
    the analyst `template.json` themselves first — that's their job).
-3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
-   aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
-   `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,
-   ship together, no separate branch.
-4. Watch context; refresh this handoff before wrapping.
