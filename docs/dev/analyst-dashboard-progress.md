@@ -176,14 +176,47 @@ task starts until the user moves the track out of spec-first mode.
   against the real CSS confirmed the styled visual (coloured ▲/▼/NEW badges,
   fill bars). **Phase B1 (W1 trending engine) COMPLETE.**
 
-### Phase B2 — AD-W7 New-data stats (DECIDED; build-deferred)
+### Phase B2 — AD-W7 New-data stats (DECIDED; building)
 
-- [ ] `NewDataStatsWidget` (`render = 'StatGrid'`) — 4 metrics, `value` =
+*B2.1–B2.4 built as one commit — `NewDataStatsWidget` is one indivisible
+additive class (the metrics, their scoping, the resolver and the per-metric
+cache are woven through one file; a partial split isn't independently
+meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
+
+- [x] `NewDataStatsWidget` (`render = 'StatGrid'`) — 4 metrics, `value` =
   window count, `change` = delta vs prior equal window (AD-07).
-- [ ] Metrics 1–2 global counts (no ACL, AD-06); metric 3 targeting waterfall
+  *Done:* `app/Lib/Dashboard/NewDataStatsWidget.php`. `render='StatGrid'`,
+  `time_window` canonical (default `P7D`, AD-12) parsed exactly like
+  `TrendingWidget` (adapter `P7D`→`7d`→seconds). Current window `[now-w, now]`
+  + prior `[now-2w, now-w]` (AD-03); all-time (`-1`) → no prior → no delta.
+  `deltaRow()` returns `title`/`icon`/`value`/`change`(+`drilldown`); StatGrid
+  renders >0 ▲, <0 ▼, 0 = no badge. No new render kind, no glyph.
+- [x] Metrics 1–2 global counts (no ACL, AD-06); metric 3 targeting waterfall
   (config → org meta → org-name ccTLD → N/A); metric 4 `orgc_id`+`published`.
-- [ ] ccTLD→country resolver from `country.json` (`meta.tld`/`ISO`).
-- [ ] Cache split (AD-06): global / `(country,sector)` / `orgc_id` keys.
+  *Done:* m1 `COUNT(Event)` `Event.timestamp` window (global); m2
+  `COUNT(Attribute)` `Attribute.timestamp` window `deleted=0` (global); m3
+  `COUNT(DISTINCT Event.id)` over `EventTag` for the resolved country∪sector
+  tag-ids, `Event.timestamp` window, **N/A when neither axis resolves**
+  (resolved-but-untagged = a genuine 0); m4 `COUNT(Event)` `orgc_id`=me +
+  `published=1` + `publish_timestamp` window (AD-05 exception — own-org publish
+  is a genuine local act). Drilldowns relative + DD-03-safe (events/attributes
+  index with `searchtimestamp`/`searchpublishtimestamp`/`searchorg`/`searchtag`).
+- [x] ccTLD→country resolver from `country.json` (`meta.tld`/`ISO`).
+  *Done:* reads `country.json`/`sector.json` `values` live (self-contained per
+  AD-07; no DB/galaxy-import dependency for the mapping, unlike
+  `AttributeGeoMapWidget`'s DB path), memoised. Country waterfall: config →
+  `org.nationality` (value/ISO/ISO3, case-folded) → org-name ccTLD (`.lu`→
+  cluster value) → null. Sector waterfall: config → `org.sector` → null.
+  Explicit config overrides win even for non-cluster values. Bad/missing file
+  degrades to the next tier.
+- [x] Cache split (AD-06): global / `(country,sector)` / `orgc_id` keys.
+  *Done:* **per-metric in-handler Redis cache, NOT the WidgetCache `org`
+  scope** — these counts aren't ACL-scoped (AD-06), and the `org` scope's
+  site-admin `sa:` no-ACL bucket would wrongly share metric 3/4 across
+  different-org site admins. m1/m2 keyed global (one compute per instance,
+  shared across orgs), m3 by `(country,sector)`, m4 by `o<orgc_id>`; keys
+  carry the window **length** not the drifting `now`, so hits work within the
+  ~5 min TTL (DD-19 posture). Degrades to live when Redis is absent.
 - [ ] Visual verification on the live instance.
 
 ### Phase B3 — AD-W6 Event-stream rework (DECIDED; build-deferred)
