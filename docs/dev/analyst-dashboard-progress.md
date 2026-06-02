@@ -50,7 +50,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | ID | Widget | Spec | Build |
 |----|--------|------|-------|
 | AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[x]` **BUILT** (Phase B1; vulnerability dim live) |
-| AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
+| AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[x]` **BUILT** (Phase B4; engine from B1 + cveurl drilldown) |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
@@ -329,7 +329,19 @@ widget. Depends on Phase B1.*
   being dropped (see the B4 Discovered-work entry — DD-03 relaxation, user
   signed off). Unit-probed: `CVE-2017-11882` → `http://cve.circl.lu/cve/CVE-2017-11882`,
   admitted by the validator.
-- [ ] Visual verification on the live instance.
+- [x] Visual verification on the live instance.
+  *Done:* verified the cveurl drilldown through the **real render path**
+  (flushed the per-org cache first; vuln data is ~372 d stale so used
+  `time_window=-1` all-time, like B1.7). (1) REST `renderWidget` →
+  `renderer:Trending`, every row carries
+  `drilldown=http://cve.circl.lu/cve/<CVE>` (the configured `MISP.cveurl`);
+  counts unchanged from B1.7 (CVE-2017-11882=13, CVE-2012-0158=11, …). (2)
+  Web-UI POST + session → all 5 rows render as **`<a class="misp-trending-row"
+  href="http://cve.circl.lu/cve/…">`** (0 fell back to `<div>`), i.e. the
+  relaxed DD-03 gate **admitted** every external link end-to-end — the exact
+  failure mode the relaxation fixes. No PHP warnings. No screenshot: `Trending`
+  is not a new render kind (visually proven in B1.7); only the `href` changed,
+  confirmed in the markup. **Phase B4 (W2 trending vulnerabilities) COMPLETE.**
 
 ### Phase B5 — AD-W3 Trending Threat Actors dimension (DECIDED; needs B1 engine)
 
