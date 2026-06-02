@@ -600,6 +600,50 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
   renders inline (threat dot · org · time · **overlaps N** · #id). Appended to
   user 1's dashboard as `w_15` (backup `/tmp/dash_backup.json`; 15 tiles).*
 
+### Phase B9 — widget settings canonization (NEXT; user-requested 2026-06-02)
+
+> **Goal (user):** the new free-form settings I added this track live only in
+> `$params` (raw "advanced" config JSON). Promote the ones that should be
+> first-class UI controls into `$schema` with a proper scalar type so the
+> **configure form's typed-fields tier** renders a real control — e.g.
+> `exclude_own_org` should be a **checkbox**, not an advanced JSON key.
+>
+> **Key finding (makes this trivial + additive):** `configure.module.mjs`
+> ALREADY renders the scalar types `string` / `int` / `bool` / `enum` as native
+> controls (`bool` → checkbox `misp-field-checkbox`; `enum` → `<select>` honouring
+> `enum`/`enum_labels`; `int` → number). `WidgetSchema` whitelists all four
+> (`int`/`bool`/`enum` + `string`). So each item below is a **pure `$schema`
+> addition — NO platform/JS change.** (The old "no `select` type → deferred" note
+> was about the *toolbar* tier; `TOOLBAR_ELIGIBLE_TYPES` excludes scalars, but the
+> *configure form* renders them — and that's the "settings part" the user means.)
+
+- [ ] **`OverlapWithMyOrgWidget` — `exclude_own_org` → `bool`.** Add to `$schema`:
+  `['type'=>'bool','default'=>true,'help'=>…]`. Keep the `$params` text (it
+  becomes the field help). Verify the configure-form checkbox posts a value the
+  existing `parseBool()` read-back accepts (check `data-type='bool'` readback).
+- [ ] **`TrendingWidget` — `dimension` → `enum`.** Add to `$schema`:
+  `['type'=>'enum','enum'=>['vulnerability','threat-actor','mitre-attack-pattern'],
+  'enum_labels'=>{…},'default'=>'vulnerability']`. Keep the enum list in sync with
+  the `dimensions()` registry (note the duplication; consider deriving). This is
+  the one the prior handoff wrongly deferred as "needs a new canonical type".
+- [ ] **`NewDataStatsWidget` — `country` / `sector` → `string`.** Optional
+  free-text overrides → `['type'=>'string','default'=>'','help'=>…]` each, so they
+  render as labelled text inputs instead of advanced JSON.
+- [ ] **`AttackWidget` — `filters` stays advanced.** A freeform restSearch filter
+  dict has no scalar type; it legitimately stays in the raw/advanced tier.
+  `time_window` already canonized (B7). No change — just confirm/note.
+- [ ] **Cross-check the whole track for leftover `$params`-only knobs** that
+  should be typed (sweep every analyst widget); confirm a key present in BOTH
+  `$params` and `$schema` renders ONCE (typed control), not duplicated (the
+  proven `time_window` pattern — verify, don't assume).
+- [ ] **Verify** each via the real configure-form render (open the widget config
+  UI / inspect the rendered form, or the configure.module.mjs path) — checkbox /
+  dropdown / number appear; defaults inject via `CanonicalTypeAdapter`; the
+  handler still reads the posted value. Screenshot the configure form for proof.
+- [ ] Additive posture holds — these are `$schema` additions only; **if** the
+  sweep turns up a setting whose ideal control needs a NEW canonical type or a
+  configure-form JS change, that's a platform touch → **stop and get sign-off**.
+
 *(W9 deferred — look-and-feel-only reskin of RecentSightingsWidget, after the
 render kinds land.)*
 

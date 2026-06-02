@@ -69,15 +69,42 @@ builds the **analyst widget surface**. Authoritative state lives in:
   `EventStreamCardsWidget`+`EventCards`, `OverlapWithMyOrgWidget` (W8),
   `AttackWidget`+`Attack` (W5). `DashboardURLValidator`, `WidgetCache` `'org'`.
 
-## NEXT — only W9 (DEFERRED) remains; needs a user scope steer
-The build backlog is **exhausted bar W9**. **W9 (AD-W9, sightings rework of
-`RecentSightingsWidget`)** is DEFERRED — first-pass steer "maybe just a
-look-and-feel rework" (sighting engine slow / unused by some communities; don't
-over-invest). **Discuss scope before building.** No other unblocked unit.
-Optional non-W9 follow-ups the user might want: clear `w_8`'s stale 2023
-`filters.timestamp`; recompose the analyst `template.json` (user's job); a
-default-width bump for the heatmap tile (labeled cells want more room than the
-3×4 gallery default — the user resizes the board, so left alone).
+## NEXT — Phase B9: canonize the new widget settings (user-requested 2026-06-02)
+The user's next focus (NOT W9): **the settings I added across this track live
+only in `$params` (raw "advanced" JSON). Promote the ones that should be
+first-class UI controls into `$schema` with a proper scalar type** so the
+configure form renders a real control — the worked example: `exclude_own_org`
+(OverlapWithMyOrgWidget) should be a **checkbox in the settings part**, not an
+advanced JSON key. Full task + checklist: tracker **Phase B9**.
+
+- **Why it's easy + additive (verified this session):** `configure.module.mjs`
+  ALREADY renders scalar `string`/`int`/`bool`/`enum` schema types as native
+  controls — `bool`→checkbox (`misp-field-checkbox`), `enum`→`<select>` (honours
+  `enum`/`enum_labels`), `int`→number. `WidgetSchema` whitelists all four. So
+  each promotion is a **pure `$schema` edit, no platform/JS change.** (The prior
+  handoff's "no `select` type → deferred" was about the *toolbar* tier — scalars
+  aren't in `TOOLBAR_ELIGIBLE_TYPES` — but the *configure form* renders them,
+  which is the "settings part" meant.)
+- **The promotions (each = one `$schema` entry; keep the `$params` text as help):**
+  - `OverlapWithMyOrgWidget`: `exclude_own_org` → `bool` (default true). Verify
+    the checkbox readback (`data-type='bool'`) feeds the handler's `parseBool()`.
+  - `TrendingWidget`: `dimension` → `enum` (vulnerability / threat-actor /
+    mitre-attack-pattern + `enum_labels`; default vulnerability). Keep the list
+    in sync with the `dimensions()` registry.
+  - `NewDataStatsWidget`: `country` / `sector` → `string` (optional overrides).
+  - `AttackWidget`: `filters` stays advanced (freeform dict, no scalar type);
+    `time_window` already canonized (B7).
+- **Sweep** every analyst widget for other `$params`-only knobs; confirm a key in
+  BOTH `$params` and `$schema` renders ONCE (typed control), not duplicated
+  (the proven `time_window` pattern — verify). Verify each via the real
+  configure-form render (screenshot). If any setting's ideal control needs a NEW
+  canonical type or a configure-form JS change → **platform touch, get sign-off.**
+
+**Also still open (lower priority):** **W9** (sightings rework) — DEFERRED, needs
+a scope steer ("look-and-feel only"? don't over-invest). Optional: clear `w_8`'s
+stale 2023 `filters.timestamp`; recompose the analyst `template.json` (user's
+job); a default-width bump for the heatmap tile (labeled cells want more room
+than the 3×4 gallery default — left to the user's board arrangement).
 
 ## Verifying a widget (recipe in memory)
 See [[reference-dashboard-widget-render-verification]]: `renderWidget` is
@@ -134,18 +161,16 @@ stale key, and a fresh render is live).
   `http://cve.circl.lu/cve/`. Branch: `dashboards` — both tracks ship together.
 
 ## Quick-start for next session
-1. Read this + tracker **Spec status** + **Phase B7 (BUILT)**.
-   **W1/W2/W3/W4/W5/W6/W7/W8 all BUILT; only W9 DEFERRED.** The build backlog is
-   exhausted bar W9.
-2. **There is no unblocked build unit.** The only remaining roster item is **W9**
-   (sightings rework) — **DEFERRED, blocked on a user scope steer**. Ask the user
-   whether to take it up and, if so, scope it first ("look-and-feel rework"? the
-   sighting engine is slow / unused by some — don't over-invest) before any code.
-3. If W9 is taken up: **additive posture** holds (new widget / render kind = pure
-   additions; existing-code touches need sign-off); verify via the real render
-   path (REST handler JSON + web-UI HTML, `-1` window;
-   [[reference-dashboard-widget-render-verification]]); add to user 1's test
-   dashboard ([[feedback_add_touched_widgets_to_dashboard]]).
-4. Optional non-W9 cleanups the user mentioned/left open: clear `w_8`'s stale
-   2023 `filters.timestamp` so the heatmap shows all-time; recompose the analyst
+1. Read this + tracker **Phase B9** (the next task) + **Phase B7 (BUILT)**.
+   **W1–W8 all BUILT (incl. W5 redesign); only W9 DEFERRED.**
+2. **Do Phase B9 — settings canonization** (the user's chosen next focus):
+   promote the `$params`-only knobs to typed `$schema` entries (`exclude_own_org`
+   →bool/checkbox, `dimension`→enum, `country`/`sector`→string). Pure additive
+   `$schema` edits — the configure form already renders scalar types (verified).
+   Sweep all analyst widgets; verify each control renders + the handler still
+   reads the value (screenshot the configure form). Commit per widget.
+3. **If a promotion needs a new canonical type or configure-form JS** → platform
+   touch, **stop and get sign-off** ([[feedback_additive_only_posture]]).
+4. Still open (lower priority): **W9** (sightings rework — DEFERRED, scope steer
+   first); clear `w_8`'s stale 2023 `filters.timestamp`; recompose the analyst
    `template.json` (user's job).
