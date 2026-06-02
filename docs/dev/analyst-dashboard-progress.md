@@ -52,7 +52,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[x]` **BUILT** (Phase B1; vulnerability dim live) |
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[x]` **BUILT** (Phase B4; engine from B1 + cveurl drilldown) |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
-| AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
+| AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[x]` **BUILT** (Phase B6; W3 count re-pointed + parent roll-up) |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` ⏸ **PARKED** — user reworking the heatmap (2026-06-02); B7 sign-off void until redesign settled |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
@@ -99,7 +99,7 @@ the user before starting (they may recompose the analyst `template.json` first).
 
 ## Build backlog (ordered by confirmed build order)
 
-Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → (W3/W4) → ~~W5~~ ⏸ → W8 → W9**.
+Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → W3 ✅ → W4 ✅ → ~~W5~~ ⏸ → W8 → W9**.
 Engine first (W2/W3/W4 are its dimensions); stats next (cheapest standalone
 win); then event-stream; dimensions; heatmap wiring; the hard/soft pair last.
 **W5 (heatmap wiring) is now PARKED** — the user is reworking the attack
@@ -391,7 +391,7 @@ widget. Depends on Phase B1.*
   `time_window=-1`; backup `/tmp/dash_backup.json`), smoke-tested.
   **Phase B5 (W3 trending threat actors) COMPLETE.**
 
-### Phase B6 — AD-W4 Trending Attack Techniques dimension (DECIDED; needs B1 engine)
+### Phase B6 — AD-W4 Trending Attack Techniques dimension (BUILT + verified 2026-06-02)
 
 *A `dimension` config on the W1 engine, reusing W3's count machinery. Depends
 on B1 (and shares B5's ACL-correct union-distinct count).*
@@ -440,7 +440,29 @@ on B1 (and shares B5's ACL-correct union-distinct count).*
   parent resolves even when only sub-techniques are tagged (it is its own
   cluster); orphan parent falls back to the bare technique id. Matched by
   `tag_name` (not a `tags` row) since only ~⅓ of clusters have one.
-- [ ] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
+- [x] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
+  **Done:** flushed the per-org `misp:trending_cache:*` bucket, verified through
+  the **real render path** (site-admin → ACL opens to all events, so the output
+  must equal a raw-SQL ground truth). (1) REST `renderWidget`
+  (dimension=mitre-attack-pattern, `time_window=-1`): all top-12 parent counts
+  match the SQL exactly — T1190=696, T1095=580, **T1566=101** (the roll-up:
+  distinct-event union of Phishing T1566=68 ∪ Spearphishing-Attachment
+  T1566.001=36 ∪ Spearphishing-Link T1566.002=34), T1094=80, T1059=63, …; labels
+  `Name (Txxxx)`, `icon=map`, drilldown to the correct parent cluster ids
+  (T1190→135240, T1566→136176). (2) Web-UI POST+session render = **15 `<a>` rows
+  / 0 `<div>` fallbacks** (every parent resolved a cluster; relative
+  `/galaxy_clusters/view/<id>` links all DD-03-admitted, no relaxation), 15
+  `fas fa-map` glyphs via the reused W3 `Trending.ctp` icon slot, bar fills
+  proportional (100% / 83.3%), no PHP warnings. (3) Momentum exercised on a
+  `1460d` split window — confirms the **string-keyed** prior-window lookup
+  (W4 keys are `T1566`, not ints): Phishing ▲34% (58 vs 43), Exploit
+  Public-Facing App ▼97% (26 vs 670), Command&Scripting ▼43%, … all correct
+  floored %. **DISTINCT from W5** confirmed: W4 `render='Trending'` (ranked
+  top-N + momentum), W5 `AttackWidget` `render='Attack'` (spatial matrix) — no
+  code overlap. Appended to user 1's dashboard as `w_14` (TrendingWidget,
+  mitre-attack-pattern, `time_window=-1`; backup `/tmp/dash_backup.json`),
+  read-back verified (14 tiles, all 3 Trending dimensions present).
+  **Phase B6 (W4 trending attack techniques) COMPLETE.**
 
 ### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (⏸ PARKED — user concern 2026-06-02)
 

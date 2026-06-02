@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-06-02 — BUILD: Phase B5 (W3 trending threat actors) COMPLETE + verified; next build unit = Phase B6 / AD-W4 trending ATT&CK techniques — reuses W3's union-distinct count, grouped by parent technique)
+# Analyst Dashboard — Session handoff (2026-06-02 — BUILD: Phase B6 (W4 trending ATT&CK techniques) COMPLETE + verified; next build unit = Phase B8 / AD-W8 overlap-with-my-org — W5/B7 is PARKED, so W8 is next; reuses the W6 EventCards render)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -11,26 +11,41 @@ builds the **analyst widget surface**. Authoritative state lives in:
 - This file — ephemeral session bridge; replace as work progresses.
 
 ## TL;DR — this session (BUILD)
-- **Built W3 (trending threat actors) — the engine's first tag-arm count;
-  verified live.** Build order: W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → **W3 ✅** →
-  **W4 (B6) next** (reuses W3's count) → **W5 ⏸ PARKED** (user reworking the
-  heatmap — see below) → W8 → (W9 deferred).
-  - 2 signed commits: `664266266` (B5 code — dimension + count + labels + icon)
-    and `5632a0f2e` (B5 verify + tracker/handoff). Earlier B1–B4 / W6 detail
-    lives in `git log` + the progress tracker's done-notes (trimmed from here).
-- **`TrendingWidget` now has TWO dimensions:** `vulnerability` (W2, value arm)
-  and `threat-actor` (W3, tag arm). The threat-actor count is the
-  **ACL-correct EventTag ∪ AttributeTag union-distinct** count — the primary
-  build risk AD-10 flagged — built parametrically so **W4 (B6) reuses it** for
-  ATT&CK techniques (just a different tag set + parent-technique rollup).
-- **`Trending` render kind gained a leading galaxy icon** (the W3/W4 extension
-  the renderer header anticipated): optional `icon` row field → FontAwesome
-  helper (`fas fa-user-secret`) + `.misp-trending-icon` token CSS. The value
-  arm (CVEs) carries none; nothing else changed for it.
+- **Built W4 (trending ATT&CK techniques) — W3's count machinery re-pointed +
+  sub-technique→parent roll-up; verified live.** Build order: W1 ✅ → W7 ✅ →
+  W6 ✅ → W2 ✅ → W3 ✅ → **W4 ✅** → **W5 ⏸ PARKED** (user reworking the
+  heatmap — see below) → **W8 (B8) next** (overlap; reuses W6 EventCards) →
+  (W9 deferred).
+  - 1 signed commit so far this session: `410b96d4a` (B6 code — dimension +
+    shared counter refactor + parent roll-up + label resolver); a verify +
+    tracker/handoff commit follows. Earlier B1–B5 detail lives in `git log` +
+    the progress tracker's done-notes (trimmed from here).
+- **`TrendingWidget` now has THREE dimensions:** `vulnerability` (W2, value
+  arm), `threat-actor` (W3, tag arm) and `mitre-attack-pattern` (W4, tag arm,
+  parent-technique roll-up). W3's count was **parametrised** into a shared
+  `countDistinctEventsByTag($user,$s,$e,$tagIds,$bucketMap=null)` — the
+  ACL-correct EventTag ∪ AttributeTag union-distinct counter — keyed by tag_id
+  (W3, `$bucketMap=null`) or by an arbitrary bucket (W4: a tag_id → parent
+  technique map, so sub-techniques fold into one parent row). No copy-paste.
+- **⚠ W4 build deviation from AD-11's *suggested* mechanism** (which AD-11
+  explicitly left "open at build"): the technique id is parsed from the tag /
+  cluster **NAME** (`… - T1566.001` → strip `.NNN` → `T1566`), **NOT** the
+  `galaxy_elements` `external_id` element — that element is unreliable on real
+  data (carries legacy `APP-NN` Mobile ids for mobile-derived techniques whose
+  name still bears the canonical `T<id>`; rows are also duplicated). 440/452
+  tags parse a `T<id>`; the 12 that don't are 5 tactic `TA00NN` + 7 deprecated
+  un-suffixed names — not techniques, correctly dropped. DECIDED spec (scope /
+  parent roll-up / reuse-W3-count) is unchanged — only the *how-to-get-the-id*
+  detail. Verified against a raw-SQL ground truth (T1190=696, T1095=580,
+  T1566=101 ← the roll-up).
+- **`Trending` galaxy-icon slot reused** (no change): W4 sets `icon='map'`
+  (the mitre-attack-pattern `Galaxy.icon`) → `fas fa-map`. No new render kind,
+  no glyph.
 - **Added to user 1's test dashboard** (standing preference): appended
-  `TrendingWidget` (`w_12`, `dimension=threat-actor`, `time_window=-1` for the
-  stale corpus) below the existing 11 tiles (layout untouched; backup
-  `/tmp/dash_backup.json`). Smoke-tested live.
+  `TrendingWidget` (`w_14`, `dimension=mitre-attack-pattern`, `time_window=-1`
+  for the stale corpus) at the bottom (layout untouched; backup
+  `/tmp/dash_backup.json`). Read-back verified — 14 tiles, all 3 Trending
+  dimensions present.
 
 ## ⏸ PARKED — attack heatmap (AD-W5 / AttackWidget), user concern (2026-06-02)
 **The user is NOT happy with the rework on the attack heatmap and wants to
@@ -45,27 +60,37 @@ when the user reopens the heatmap.
 
 ## What now exists in the tree (reuse it; don't re-derive)
 - **`TrendingWidget`** + **`Trending` render kind** (W1). The parametrised
-  "what's rising" engine, now with **TWO dimensions**:
+  "what's rising" engine, now with **THREE dimensions**:
   - `vulnerability` (W2, **value arm**): `countVulnerability` (ACL-scoped,
     `Attribute.timestamp`-windowed) + `labelsVulnerability` (verbatim label +
     cveurl drilldown).
-  - `threat-actor` (W3, **tag arm — THE union-distinct count now EXISTS**):
-    `threatActorTagIds()` (the `is_galaxy` + `threat-actor="%` tag set);
-    `countThreatActor()` = ACL-correct `COUNT(DISTINCT event_id)` over
-    **EventTag ∪ AttributeTag**, built parametrically — gather in-window
-    `(tag_id,event_id)` pairs from both arms → `aclVisibleEventIds()` →
-    per-tag event **set** (doubly-tagged event counts once). Row key = tag_id.
-    `labelsThreatActor()` bulk-resolves cluster value+icon+synonyms (2 queries),
-    dedupes the **non-1:1** tag→cluster mapping via `clusterOutranks()` (default
-    desc, version desc, id desc), links `/galaxy_clusters/view/<id>` (relative
-    → DD-03 admits, no relaxation). Orphan tags fall back to the bare name.
-  - **W4 (B6) must REUSE `countThreatActor`'s shape** — it's the same
-    union-distinct mechanism, just a different tag set (attack-pattern) rolled
-    up to the parent technique. Parametrise rather than copy.
-- **`Trending` render kind — leading galaxy icon** (W3 extension): optional
+  - `threat-actor` (W3, **tag arm**) + `mitre-attack-pattern` (W4, **tag arm,
+    parent roll-up**) both run on the **shared** ACL-correct union-distinct
+    counter: `countDistinctEventsByTag($user,$start,$end,$tagIds,$bucketMap=null)`
+    — gather in-window `(tag_id,event_id)` pairs from EventTag ∪ AttributeTag →
+    `aclVisibleEventIds()` → per-**bucket** event **set** (any event reached
+    more than once counts once). `$bucketMap=null` ⇒ bucket = tag_id (W3);
+    a `tag_id→bucket` map ⇒ W4's parent roll-up. `countThreatActor` /
+    `countAttackPattern` are thin delegations.
+    - W3 tag set = `threatActorTagIds()`; label = `labelsThreatActor()`
+      (cluster value+icon+synonyms, `clusterOutranks` dedup of the non-1:1
+      tag→cluster, link `/galaxy_clusters/view/<id>`).
+    - W4 tag set + bucket map = `attackPatternTagBuckets()` (the
+      `mitre-attack-pattern="%` tag set; `tag_id → parent technique id`).
+      **The technique id is parsed from the tag NAME** (`techniqueIdFromName()`
+      → `parentTechniqueId()` strips `.NNN`), NOT `galaxy_elements.external_id`
+      (unreliable — legacy `APP-NN` ids; see TL;DR ⚠). Label =
+      `labelsAttackPattern()` → parent cluster matched by
+      `galaxy_clusters.tag_name LIKE '% - T<id>"'` (resilient to no `tags` row;
+      only ~⅓ of clusters have one), `attackLabel()` formats `Name (Txxxx)`,
+      icon=`map`, link `/galaxy_clusters/view/<parent_cluster_id>`, same
+      `clusterOutranks` dedup. **If a future galaxy dimension needs the same
+      union-distinct count, call `countDistinctEventsByTag` — don't re-derive.**
+- **`Trending` render kind — leading galaxy icon** (W3/W4): optional
   `icon` row field (a FA icon NAME) → `Trending.ctp` renders it via the
   `FontAwesome` helper (`getClass()`), styled by `.misp-trending-icon` (token
-  CSS in `dashboard.default.css`). Absent for the value arm. W4 reuses it.
+  CSS in `dashboard.default.css`). Absent for the value arm. W3=`user-secret`,
+  W4=`map`.
 - **`DashboardURLValidator`** (`app/Lib/Dashboard/Tools/`) — now exposes
   `cveBaseUrl()` (public) and allowlists baseurl **+ the configured cveurl
   host**. `validate()` still drops arbitrary off-host links / dangerous
@@ -80,37 +105,28 @@ when the user reopens the heatmap.
   / no cache (per-user ACL'd).
 - **`NewDataStatsWidget`** (W7) — `StatGrid`, 4 metrics + prior-window deltas.
 
-## NEXT BUILD — Phase B6 = AD-W4 Trending ATT&CK Techniques (PRD §5 / AD-11)
-**Mostly a REUSE of W3** — a third `dimension` on the W1 engine (reuses
-`Trending` + the galaxy icon, no glyph), whose count is W3's union-distinct
-count pointed at a different tag set. NOT a new class/render kind. Read AD-11
-(PRD §6) + PRD §5 AD-W4 first.
-- **Dimension config:** `mitre-attack-pattern` (Enterprise) cluster tag set =
-  `tags WHERE is_galaxy=1 AND name LIKE 'misp-galaxy:mitre-attack-pattern="%'`
-  (confirm the exact namespace on the box — there are several attack galaxies;
-  AD-11 scopes to Enterprise attack-pattern, mirroring W3's native-galaxy-only).
-- **The twist vs W3 — roll up sub-techniques to the parent technique** (AD-11
-  Fork): `external_id` `T1566.001` → parent `T1566` (strip `.NNN`). So the
-  trended key is the **parent technique**, and several cluster tags can map to
-  one trended row. Cleanest path: resolve each attack tag_id → its cluster's
-  `external_id` (a `galaxy_elements` `key='external_id'`, like the synonyms
-  query), derive the parent id, then **group the per-tag distinct-event sets by
-  parent** before counting — i.e. reuse `countThreatActor`'s pair-gather +
-  ACL + set logic, but key the final event-set map by parent-technique instead
-  of raw tag_id. Parametrise `countThreatActor` (e.g. an optional tag→bucket
-  map) rather than copy-pasting it.
-- **Label resolver:** parent cluster `value` + `external_id` + `Galaxy.icon`
-  (bulk; same shape as `labelsThreatActor`); link =
-  `/galaxy_clusters/view/<parent_cluster_id>`. Watch the same **non-1:1
-  tag→cluster** dedup (`clusterOutranks`) W3 hit.
-- **Verify** it reads DISTINCT from the W5 ATT&CK heatmap on the board (AD-11).
-  Box clock caveat below ⇒ verify with `time_window=-1`.
-
-## Also still unblocked
-- **W8 (AD-W8 overlap-with-my-org, Phase B8)** — depends on `EventCards`
-  (exists). `OverlapWithMyOrgWidget` with `render='EventCards'` + overlap
-  badge; PRD §5 / AD-13. **The next widget after W4, since W5/B7 is parked**
-  (above) — or pull it forward if W4's parent-rollup needs a design pass.
+## NEXT BUILD — Phase B8 = AD-W8 Overlap-with-my-org (PRD §5 / AD-13)
+**A NEW widget that REUSES the W6 `EventCards` render kind** (no new render
+kind, no glyph). W5/B7 is PARKED (heatmap concern above), so W8 is next. Read
+AD-13 (PRD §6) + PRD §5 AD-W8 + the `analyst-dashboard-progress.md` Phase B8
+backlog first.
+- **`OverlapWithMyOrgWidget`** (`render='EventCards'`): candidate set =
+  ACL-visible window events (`Event.timestamp` in window), capped top-N recent
+  (`log()` if capped — no silent truncation).
+- **Overlap test (the crux):** for each candidate,
+  `Correlation->getRelatedEventIds($user, $id, $sgids)` (ACL-correct +
+  engine-agnostic — reuses the OnDemand path for free); keep the candidate iff
+  a related event's `orgc_id` = my org. Overlap strength = # of my-org events
+  it correlates to; rank desc then recency.
+- **Render:** reuse `EventCards` + an "overlaps N of your events" badge.
+  Per-org cache (AD-04 — the widget already has the `org` cache scope pattern
+  to copy from `TrendingWidget`). Window-anchored build — no `org_id` scan, no
+  schema change (AD-13).
+- **Verify** across correlation engines (Default at minimum). Box clock caveat
+  below ⇒ verify with `time_window=-1`.
+- If W8 stalls, the only remaining item is **W9** (DEFERRED — look-and-feel
+  reskin of `RecentSightingsWidget`), or reopen **W5/B7** once the user details
+  the heatmap rework.
 
 ## Verifying a widget (recipe in memory)
 See [[reference-dashboard-widget-render-verification]]: `renderWidget` is
@@ -118,14 +134,18 @@ CSRF-unlocked → REST+APIkey returns the JSON `data` (validates the handler);
 web-UI POST + session cookie returns the real `.ctp` HTML; snap-chromium
 screenshot needs inlined CSS in `$HOME`. **Screenshot only matters for a NEW
 render kind** (W6 needed one; W2/W3/W4 reuse `Trending` so the HTML grep for
-`<a>` vs `<div>` rows is the proof). **Session cookie expires** — re-mint
-`/tmp/cj_stat.txt` via [[reference-misp-login-dance]] if a web-UI render 302s
-(the full `_Token` set is required); it stayed valid through B5. **Clock
-caveat:** box clock is
-2026-06-02; newest event ~2026-05-29 but newest *vulnerability* attr ~372 d
-old, so verify trending with `time_window=-1` (all-time). **Flush per-org
-cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
-(TrendingWidget caches output per-org — a stale entry hides your change).
+`<a>` vs `<div>` rows + the icon/`href` is the proof). **Session cookie
+expires** — re-mint `/tmp/cj_stat.txt` via [[reference-misp-login-dance]] if a
+web-UI render 302s (the full `_Token` set is required); it stayed valid through
+B6. **Clock caveat:** box clock is
+2026-06-02; newest event ~2026-05-29 but the galaxy-tagged / vulnerability
+corpus is stale (newest *vulnerability* attr ~372 d old; newest attack-tagged
+event ~186 d old), so verify trending with `time_window=-1` (all-time); a
+`1460d` split window exercises momentum across two non-empty halves. **Flush
+the per-org cache between checks:**
+`redis-cli -n 13 --scan --pattern 'misp:trending_cache:*' | xargs -r redis-cli -n 13 del`
+(TrendingWidget caches output per-org under `misp:trending_cache:` — a stale
+entry hides your change; NewDataStats uses `misp:dashboard:*` instead).
 
 ## Conventions (carry)
 - **AD-NN** decision numbering, cross-linked to parent `DD-NN`.
@@ -134,9 +154,11 @@ cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
   granted so far: the **B4 DD-03 relaxation** (user chose it over an internal
   drilldown). B7 (AttackWidget `time_window`, AD-12) was signed off **but is
   now PARKED** (heatmap concern above) — that sign-off is void until the
-  redesign is settled. B5 shipped additively (new dimension hooks + the
-  `Trending.ctp` icon — all this track's own classes, no external touch); **B6
-  is the same posture** (new dimension hooks, parametrise `countThreatActor`).
+  redesign is settled. B5/B6 shipped additively (new dimension hooks + the
+  shared `countDistinctEventsByTag` refactor of this track's own
+  `countThreatActor` — all this track's own class, no external touch); **B8 is
+  the same posture** (a new widget reusing `EventCards` + the `org` cache
+  scope).
 - **Add built/touched widgets to user 1's test dashboard**
   ([[feedback_add_touched_widgets_to_dashboard]]): standing request — after
   building/touching a widget, append it to user 1's `dashboard` UserSetting if
@@ -173,20 +195,30 @@ cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
   `dashboards` — both tracks ship together next release.
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` §5 **AD-W4** (+ §6 AD-11) +
-   `analyst-dashboard-progress.md` (**Phase B6** backlog). W1+W2+W3+W6+W7 BUILT.
-2. **Start at Phase B6 = AD-W4 Trending ATT&CK Techniques** — a third
-   `dimension` on `TrendingWidget` (reuses `Trending` + the W3 galaxy icon, no
-   glyph). It's **W3's count machinery re-pointed**: `countThreatActor`'s
-   gather-pairs → `aclVisibleEventIds()` → per-key event-set logic, but over the
-   `mitre-attack-pattern` tag set and with the final event-set map **keyed by
-   parent technique** (sub-technique `T1566.001` → `T1566`, AD-11). Parametrise
-   `countThreatActor` (e.g. a tag→bucket map) rather than copy it. Label
-   resolver mirrors `labelsThreatActor` (value + `external_id` + icon, bulk;
-   same `clusterOutranks` dedup); link `/galaxy_clusters/view/<parent_id>`.
-3. **Cross-cutting:** flag the TrendingWidget edit (additive, this track's own
-   class). Verify via REST + web-UI HTML (`<a>` vs `<div>` rows), `-1` window,
-   flush the per-org cache. Confirm W4 reads DISTINCT from the W5 heatmap.
-   W8 (overlap) still unblocked (EventCards exists).
+1. Read this + `analyst-dashboard-prd.md` §5 **AD-W8** (+ §6 AD-13) +
+   `analyst-dashboard-progress.md` (**Phase B8** backlog).
+   W1+W2+W3+W4+W6+W7 BUILT; W5/B7 PARKED; W9 DEFERRED.
+2. **Start at Phase B8 = AD-W8 Overlap-with-my-org** — a NEW
+   `OverlapWithMyOrgWidget` (`render='EventCards'`, reuses the W6 render kind +
+   the `org` cache scope; no new render kind / glyph). Candidate set =
+   ACL-visible in-window events (top-N recent, `log()` if capped); for each,
+   `Correlation->getRelatedEventIds($user,$id,$sgids)` and keep iff a related
+   event's `orgc_id` = my org; overlap strength = # of my-org events it
+   correlates to (rank desc, then recency). Render = `EventCards` + an
+   "overlaps N of your events" badge. AD-13: correlation-based (ACL-correct,
+   engine-agnostic), window-anchored, no schema change.
+3. **Cross-cutting:** additive posture (a new class — no existing-code touch).
+   Verify via REST + web-UI HTML through the real render path, `-1` window
+   (stale corpus), flush `misp:trending_cache:*`/the widget's own cache. **A
+   NEW handler payload key must also be added to the `EventCards.ctp` shim if
+   the badge needs it** ([[project_dashboard_ctp_payload_passthrough]]) — the
+   overlap badge is the likely new key; wire it through the .ctp or it never
+   reaches the JS. Verify across correlation engines (Default at least).
 4. **Confirm with the user before large work** (they may recompose the analyst
    `template.json` themselves — their job).
+
+> **Last session (B6 / W4) note for the picker-upper:** W4's roll-up parses the
+> technique id from the tag **name**, not `galaxy_elements.external_id` (proven
+> unreliable — legacy `APP-NN` ids). If you extend the attack dimension, reuse
+> `techniqueIdFromName()` / `parentTechniqueId()` and the shared
+> `countDistinctEventsByTag()`; don't reach for `external_id`.
