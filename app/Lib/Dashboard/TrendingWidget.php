@@ -1,5 +1,7 @@
 <?php
 
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+
 /**
  * TrendingWidget — the analyst dashboard's parametrised "what is rising"
  * engine (AD-W1 / AD-01..04). ONE widget, many dimensions: a `dimension`
@@ -311,13 +313,24 @@ class TrendingWidget
     /**
      * Vulnerability label hook: the identifier verbatim (CVE-… / GCVE-… /
      * GHSA-…) — these are attribute values, not galaxy clusters, so no
-     * resolution is needed. The cveurl drill-down link is added in B4.
+     * resolution is needed. Each row deep-links to the configured CVE lookup
+     * (`MISP.cveurl`): the identifier is appended to the base directly, no
+     * separator, mirroring `value_field.ctp:94` ({cveurl}{value}). The base
+     * comes from `DashboardURLValidator::cveBaseUrl()` — the same value the
+     * DD-03 gate allowlists — so the link is admitted by `Trending.ctp`'s
+     * validator rather than silently dropped (analyst track AD-09; the
+     * external-link survival required the B4 DD-03 relaxation, user signed
+     * off 2026-06-02).
      */
     private function labelsVulnerability(array $valueKeys, array $options)
     {
+        $cveUrl = DashboardURLValidator::cveBaseUrl();
         $labels = array();
         foreach ($valueKeys as $v) {
-            $labels[$v] = array('label' => (string)$v);
+            $labels[$v] = array(
+                'label' => (string)$v,
+                'drilldown' => $cveUrl . (string)$v,
+            );
         }
         return $labels;
     }

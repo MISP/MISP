@@ -305,15 +305,30 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
 *A `dimension` config + per-dimension hooks on the built W1 engine — not a new
 widget. Depends on Phase B1.*
 
-- [ ] `vulnerability` dimension config: counting = `COUNT(DISTINCT event_id)`
+- [x] `vulnerability` dimension config: counting = `COUNT(DISTINCT event_id)`
   over `type='vulnerability' AND deleted=0` grouped by `value1` (attribute-value
   arm only; tag arms empty for CVEs).
-- [ ] **ACL-correct count** (primary risk): constrain to the org's visible
+  *Done (covered by B1.4):* `countVulnerability()` + the `dimensions()` entry
+  shipped with the W1 engine — exactly this query. No new work in B4.
+- [x] **ACL-correct count** (primary risk): constrain to the org's visible
   event set (reuse `Attribute` ACL conditions; no event hydration); cache
   per-org (AD-04); site-admin no-ACL bucket.
-- [ ] Window anchor `Attribute.timestamp` (AD-05); momentum AD-03.
-- [ ] Label resolver = identifier verbatim; link builder = `MISP.cveurl` +
+  *Done (covered by B1.4 + B1.6):* `aclVisibleEventIds()` scopes the count;
+  the per-org `WidgetCache` `org` scope + `sa:` bucket are on the widget. No
+  new work in B4.
+- [x] Window anchor `Attribute.timestamp` (AD-05); momentum AD-03.
+  *Done (covered by B1.4 + B1.5):* `countVulnerability` is `Attribute.timestamp`
+  window-bounded; `handler()` computes the prior-window delta. No new work in B4.
+- [x] Label resolver = identifier verbatim; link builder = `MISP.cveurl` +
   value (`{cveurl}{value}`).
+  *Done:* label resolver (identifier verbatim) shipped in B1; the **link
+  builder is the actual B4 work** — `labelsVulnerability()` now sets
+  `'drilldown' => DashboardURLValidator::cveBaseUrl() . $value` (mirrors
+  `value_field.ctp:94`, no separator). `cveBaseUrl()` is the shared resolver
+  the relaxed DD-03 gate allowlists, so the external link survives rather than
+  being dropped (see the B4 Discovered-work entry — DD-03 relaxation, user
+  signed off). Unit-probed: `CVE-2017-11882` → `http://cve.circl.lu/cve/CVE-2017-11882`,
+  admitted by the validator.
 - [ ] Visual verification on the live instance.
 
 ### Phase B5 — AD-W3 Trending Threat Actors dimension (DECIDED; needs B1 engine)
