@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-06-02 — SPEC: AD-W5 heatmap REDESIGN brief captured + locked as **AD-15**; **Phase B7 UN-PARKED** with a concrete renderer-redesign spec. No build code written yet this session — the next unit is **building B7**. The roster is otherwise complete: W1/W2/W3/W4/W6/W7/W8 BUILT; W9 DEFERRED.)
+# Analyst Dashboard — Session handoff (2026-06-02 — BUILD: AD-W5 heatmap REDESIGN (Phase B7) **BUILT + verified live** this session. Captured the rework brief → locked **AD-15** → built it end-to-end (time_window wiring + full Attack.ctp renderer rework). The roster is now **fully BUILT except W9 (DEFERRED)** — the only remaining unit, blocked on a user scope steer. Three signed commits this session: `8cd1dc7c2` (AD-15 spec), `87668cc1d` (B7 step 1 time_window), `efc0e1ae9` (B7 steps 2-6 renderer).)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -10,79 +10,74 @@ builds the **analyst widget surface**. Authoritative state lives in:
   **B1–B8 build backlog** (+ **B7 reopened**), and a **Discovered work** section.
 - This file — ephemeral session bridge; replace as work progresses.
 
-## TL;DR — this session (SPEC: reopened AD-W5 / Phase B7)
-- **Picked up W5 (ATT&CK heatmap)** per the prior handoff's "needs a user steer."
-  Captured the user's concrete dissatisfaction with the shipped static heatmap
-  and locked the redesign as **AD-15**. **No build code yet — spec only.**
-- **The brief (AD-15) — renderer redesign, 5 locked points:**
-  1. **Hide inactive techniques** (zero-score) + empty tactic columns.
-  2. **Larger, LABELED cells** — name + T-ID + count, readable without hover
-     (must work on a static wall display). Kills the 8px hover-only bars.
-  3. **Technique/sub-technique aggregation** — the shipped renderer flatly mixes
-     them (**confirmed from live data: all 526 sub-techniques carry `kill_chain`
-     → intermixed with the 673 techniques in tabs**). Group per tactic column by
-     parent T-ID off `external_id` (`^T\d+$` technique / `^T\d+\.\d+$`
-     sub-technique → strip `.\d+`). Parent cell = rolled-up aggregate; **click
-     unfolds sub-techniques on demand**. **Parent heat = SUM** of own + sub
-     counts (user fork: sum/max/true-distinct → chose SUM, renderer-only).
-  4. **Single red gradient + small legend/scale** — drop the export's multi-hue
-     `ColourGradientTool`; shade in-renderer from `score / max-parent-score`.
-  5. **Fold in AD-12 `time_window`** (user reaffirmed) — add the canonical to
-     `AttackWidget::$schema` + map to restSearch 'attack' `timestamp`. The only
-     `AttackWidget.php` change.
-- **Scope boundary (signed off):** **renderer + `AttackWidget` only — the data
-  layer (`AttackExport`, `Galaxy::getMatrix`) stays UNTOUCHED.** The
-  `tabs`+`scores` payload, with `external_id` already stamped on every cell
-  (`getMatrix` line ~1222), suffices. The renderer rewrite (`Attack.ctp`) +
-  `AttackWidget.php` edit are **beyond additive-only** and explicitly approved.
-  The platform **read-only render posture is deviated** for the click-to-unfold
-  (progressive disclosure of the widget's OWN data, not a filter/scope action —
-  user-requested).
-- **Docs updated + (to be) committed:** PRD roster row + §5 AD-W5 (redesign
-  block prepended, old static spec marked SUPERSEDED) + **AD-15** in §6; tracker
-  spec-status row, spec-log entry, build-order line, **Phase B7 rewritten with
-  6 build steps**. This handoff replaced.
+## TL;DR — this session (BUILD: AD-W5 heatmap REDESIGN, Phase B7 — COMPLETE)
+- **Picked up W5** per the prior handoff's "needs a user steer," captured the
+  dissatisfaction brief, locked it as **AD-15**, and **built + verified the whole
+  redesign** this session (spec → step 1 → steps 2-6 → live verify → dashboard).
+- **What shipped (AD-15, renderer-only + one AttackWidget.php add):**
+  1. **Hide inactive** — zero-score techniques and empty tactic columns omitted.
+  2. **Larger LABELED cells** — name + T-ID + count, readable without hover.
+     Label = strip trailing " - <external_id>" (authoritative; never mangles).
+  3. **Technique/sub-technique aggregation** — group per tactic column by parent
+     T-ID off `external_id`; parent cell = **SUM** of own + sub event-counts;
+     sub-techniques **unfold on click via native `<details>`/`<summary>` (NO JS)**
+     — multi-widget-safe, accessible, minimal read-only-posture deviation.
+     Orphan subs resolve via a global parent-name map; non-T ids → standalone.
+  4. **Single red ramp + legend** — dropped the export's multi-hue colours;
+     HSL(h=0) ramp **√-scaled** + normalised to the global max aggregate (the hit
+     distribution is heavily skewed — 696 vs median <10 — so linear would wash
+     out the mid-range); per-cell luminance-picked text (opaque ⇒
+     theme-independent); legend bar sampled from the same ramp.
+  5. **AD-12 `time_window` folded in** — `time_window` canonical on
+     `AttackWidget::$schema` (default `-1`=all-time, back-compat) → restSearch
+     `timestamp` lower bound; a finite window OVERRIDES a manual
+     `filters.timestamp`, `-1` preserves it.
+- **Verified live:** synthetic harness (all behaviours asserted) + real 34MB
+  payload render (15 cols, 84 `<details>`, 168 leaf + 190 sub, 0 un-stripped
+  labels) + **real web-UI POST render byte-identical (172692 B, http 200)** +
+  snap-chromium screenshots **light + midnight**. `time_window` proven monotonic
+  via REST probes (`30d`→0 / `3650d`→696 / `100000000s`→21 / `-1`→696).
+- **Files (signed commits):** `8cd1dc7c2` AD-15 spec (3 docs); `87668cc1d`
+  AttackWidget.php time_window + tracker; `efc0e1ae9` Attack.ctp +
+  dashboard.default.css + dashboard.midnight.css + tracker. Data layer
+  (`AttackExport`/`Galaxy::getMatrix`) **untouched** — the scope boundary held.
+- **Dashboard (standing pref):** AttackWidget already on user 1's board as `w_8`
+  (dedupe by class → no append); redesign verified in place. `w_8` carries a
+  stale 2023 `filters.timestamp` + `time_window:"-1"`, so it scopes to Q1 2023
+  (64 techniques) — left as-is (user's board), flagged for cleanup.
 
 ## What now exists in the tree (reuse it; don't re-derive)
 - **`AttackWidget`** (`app/Lib/Dashboard/AttackWidget.php`) — `render='Attack'`,
-  `$schema=[]` (only `filters` param), `cacheLifetime=1200`. `handler()` calls
-  `Event->restSearch($user, 'attack', $options['filters'])`. **B7 adds the
-  `time_window` canonical here** (the only data-side touch).
-- **`Attack` renderer** (`app/View/Elements/dashboard/Widgets/Attack.ctp`) — the
-  static heatmap **being redesigned in B7**. Today: tactic columns (110px), cells
-  = 8px coloured bars (hit + muted no-hit), hover-only tooltips, multi-hue. CSS
-  block "Attack renderer" in `dashboard.default.css` (~line 1716) + midnight.
-- **Data shape (untouched by B7):** `AttackExport` → `Galaxy::getMatrix($user,
-  $galaxy_id)` returns `tabs` (all clusters with `kill_chain`, organised
-  tactic→technique), `scores` (per-`tag_name` **distinct-event count**),
-  `colours` (multi-hue gradient — B7 IGNORES this), `maxScore`,
-  `defaultTabName='attack-enterprise'`, `removeTrailing=2` (strips the trailing
-  `- T####` from each cell `value` for display). **Each cell carries
-  `external_id`** (the authoritative T-ID — `getMatrix` stamps it from the
-  `external_id` GalaxyElement). The W4 "external_id is unreliable" caveat was
-  about counting legacy `APP-NN` tags across all events, NOT the current matrix
-  galaxy — for the matrix, `external_id` is clean (`T####` / `T####.##`).
-- **All the BUILT widgets** (reuse, don't re-derive): `TrendingWidget` (+`Trending`
-  render, 3 dims — see its `techniqueIdFromName()`/`parentTechniqueId()` for the
-  parent-T-ID idiom, though B7 uses `external_id` not the tag name),
-  `NewDataStatsWidget` (`StatGrid`), `EventStreamCardsWidget`+`EventCards`,
-  `OverlapWithMyOrgWidget` (W8). `DashboardURLValidator`, `WidgetCache` `'org'`
-  scope.
+  now declares the **`time_window` canonical** (`$schema`, default `-1`);
+  `resolveTimeWindow()` → restSearch 'attack' `timestamp` lower bound. Runs live
+  in v2 (legacy `cacheLifetime`, not `cache_duration` → `WidgetCache`
+  pass-through), so the window always drives; no stale-cache concern.
+- **`Attack` renderer** (`app/View/Elements/dashboard/Widgets/Attack.ctp`) —
+  REDESIGNED (AD-15): per-tactic columns of **labeled** technique cells on a
+  √-scaled single-red ramp, inactive hidden, sub-techniques rolled up + unfolded
+  via `<details>`, a legend. Works off `tabs`+`scores`+per-cell `external_id`.
+  CSS "Attack renderer" block in `dashboard.default.css` (~line 1715); the
+  midnight theme needs **no** heatmap rule (opaque cells are theme-independent;
+  chrome rides the `:root` token overrides).
+- **Data shape (UNTOUCHED):** `AttackExport` → `Galaxy::getMatrix` returns `tabs`
+  (all `kill_chain` clusters), `scores` (per-`tag_name` distinct-event count),
+  `colours` (multi-hue — IGNORED by the renderer now), `defaultTabName`,
+  `removeTrailing`. **Each cell carries `external_id`** (the authoritative T-ID,
+  `getMatrix` ~line 1222) — `T####` technique / `T####.##` sub-technique.
+- **All the BUILT widgets** (reuse, don't re-derive): `TrendingWidget`
+  (+`Trending`, 3 dims), `NewDataStatsWidget` (`StatGrid`),
+  `EventStreamCardsWidget`+`EventCards`, `OverlapWithMyOrgWidget` (W8),
+  `AttackWidget`+`Attack` (W5). `DashboardURLValidator`, `WidgetCache` `'org'`.
 
-## NEXT — build Phase B7 (AD-W5 redesign), one step at a time
-Spec is locked; the next unit is **building**. Tracker Phase B7 has 6 steps
-(sequential — [[feedback_sequential_implementation]]). Suggested order:
-1. **`time_window` wiring in `AttackWidget.php`** (smallest, self-contained;
-   re-confirm restSearch 'attack' accepts the timestamp form — reuse
-   `TrendingAttributesWidget`/`CanonicalTypeAdapter`).
-2. **Aggregation + hide-inactive in `Attack.ctp`** (the core data-shape rework;
-   group by parent T-ID, sum, drop zero-score groups/columns).
-3. **Labeled cells + red ramp + legend** (`Attack.ctp` + CSS default + midnight).
-4. **Unfold JS** (click parent → reveal sub-techniques; scope to widget
-   container — find where dashboard widget JS hooks in; multi-widget-safe).
-5. **Verify live** (real render path) + append to user 1's test dashboard.
-Commit per step ([[feedback_commit_per_task]]); the renderer + CSS + JS steps may
-share commits where tightly coupled (one done-note each).
+## NEXT — only W9 (DEFERRED) remains; needs a user scope steer
+The build backlog is **exhausted bar W9**. **W9 (AD-W9, sightings rework of
+`RecentSightingsWidget`)** is DEFERRED — first-pass steer "maybe just a
+look-and-feel rework" (sighting engine slow / unused by some communities; don't
+over-invest). **Discuss scope before building.** No other unblocked unit.
+Optional non-W9 follow-ups the user might want: clear `w_8`'s stale 2023
+`filters.timestamp`; recompose the analyst `template.json` (user's job); a
+default-width bump for the heatmap tile (labeled cells want more room than the
+3×4 gallery default — the user resizes the board, so left alone).
 
 ## Verifying a widget (recipe in memory)
 See [[reference-dashboard-widget-render-verification]]: `renderWidget` is
@@ -139,12 +134,18 @@ stale key, and a fresh render is live).
   `http://cve.circl.lu/cve/`. Branch: `dashboards` — both tracks ship together.
 
 ## Quick-start for next session
-1. Read this + PRD §5 **AD-W5 (redesign block)** + **AD-15** + tracker
-   **Phase B7**. W1/W2/W3/W4/W6/W7/W8 BUILT; **W5 = BUILDING (B7, spec locked)**;
-   W9 DEFERRED.
-2. **Build B7 step by step** (order above). Renderer-only + the one
-   `AttackWidget.php` `time_window` add; data layer untouched.
-3. Verify via the real render path (REST + web-UI HTML, `-1` window) — the
-   unfold needs JS present, so a real-browser/snap-chromium check, not a
-   hand-built payload ([[project_dashboard_ctp_payload_passthrough]]). Append to
-   user 1's test dashboard after.
+1. Read this + tracker **Spec status** + **Phase B7 (BUILT)**.
+   **W1/W2/W3/W4/W5/W6/W7/W8 all BUILT; only W9 DEFERRED.** The build backlog is
+   exhausted bar W9.
+2. **There is no unblocked build unit.** The only remaining roster item is **W9**
+   (sightings rework) — **DEFERRED, blocked on a user scope steer**. Ask the user
+   whether to take it up and, if so, scope it first ("look-and-feel rework"? the
+   sighting engine is slow / unused by some — don't over-invest) before any code.
+3. If W9 is taken up: **additive posture** holds (new widget / render kind = pure
+   additions; existing-code touches need sign-off); verify via the real render
+   path (REST handler JSON + web-UI HTML, `-1` window;
+   [[reference-dashboard-widget-render-verification]]); add to user 1's test
+   dashboard ([[feedback_add_touched_widgets_to_dashboard]]).
+4. Optional non-W9 cleanups the user mentioned/left open: clear `w_8`'s stale
+   2023 `filters.timestamp` so the heatmap shows all-time; recompose the analyst
+   `template.json` (user's job).

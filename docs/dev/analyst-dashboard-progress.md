@@ -53,7 +53,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[x]` **BUILT** (Phase B4; engine from B1 + cveurl drilldown) |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[x]` **BUILT** (Phase B6; W3 count re-pointed + parent roll-up) |
-| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED (REDESIGN)` (AD-15) | `[ ]` ▶ **BUILDING** (Phase B7 UN-PARKED 2026-06-02) — renderer redesign: hide inactive · labeled cells · technique/sub-technique aggregation + unfold · red ramp + legend · AD-12 time_window folded in |
+| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED (REDESIGN)` (AD-15) | `[x]` **BUILT** (Phase B7, 2026-06-02) — renderer redesign: hide inactive · labeled cells · technique/sub-technique aggregation + `<details>` unfold · √-scaled red ramp + legend · AD-12 time_window folded in; verified live (light + midnight) |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13, AD-14) | `[x]` **BUILT** (Phase B8; correlation-anchored, EventCards + overlap badge, `exclude_own_org` setting) |
@@ -105,11 +105,11 @@ the user before starting (they may recompose the analyst `template.json` first).
 
 ## Build backlog (ordered by confirmed build order)
 
-Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → W3 ✅ → W4 ✅ → W8 ✅ → W5 ▶ (B7
+Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → W3 ✅ → W4 ✅ → W8 ✅ → W5 ✅ (B7
 redesign) → W9**. Engine first (W2/W3/W4 are its dimensions); stats next; then
 event-stream; dimensions; the affects-me pair; **W5 reordered to last-but-W9**
 after the heatmap was parked then reopened as a renderer redesign (AD-15,
-2026-06-02; see Phase B7). After W5, only W9 (deferred) remains.
+2026-06-02; see Phase B7) — **now BUILT**. Only **W9 (DEFERRED)** remains.
 
 ### Phase B1 — AD-W1 Trending engine (on deck; fully DECIDED)
 
@@ -553,7 +553,19 @@ render kind ⇒ no new glyph (confirm the existing one).*
   (172692 B, http 200)** → the live pipeline delivers `$data` to `Attack.ctp`;
   (d) snap-chromium screenshots **light + midnight** confirm legend, red ramp,
   readable labels, and unfolded sub-techniques on both themes.
-  *Still TODO: append/confirm on user 1's test dashboard (standing pref).*
+- [x] **User 1 test dashboard (standing pref) — verified in place.** AttackWidget
+  is **already** on the board as `w_8` (dedupe by class → no append). It renders
+  the redesigned heatmap live (64 techniques on its config). **Finding (not a
+  bug):** `w_8`'s config carries `time_window:"-1"` **and** a stale manual
+  `filters.timestamp:["2023-01-01","2023-03-31"]` (the old AttackWidget
+  placeholder's dates) — per the documented rule, `-1` preserves the manual
+  timestamp, so `w_8` is scoped to Q1 2023. Left as-is (board config is the
+  user's to arrange); flagged so they can clear the stale timestamp for the
+  full all-time view if wanted.
+
+**Phase B7 (AD-W5 ATT&CK heatmap REDESIGN) COMPLETE + verified.** Renderer-only
+(Attack.ctp + CSS) + the one AttackWidget.php time_window add; data layer
+untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
 
 ### Phase B8 — AD-W8 Overlap-with-my-org (DECIDED; needs B1 + B3 EventCards)
 
