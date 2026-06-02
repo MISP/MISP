@@ -59,7 +59,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
-| AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | DEFERRED | look-and-feel only? (sighting engine is slow / unused by some) |
+| AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | **DECLINED** (AD-16) | dropped: the sighting ACL is a shitshow (widget-level `perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow / unused by some — not worth the untangling. Existing sightings widgets left as-is; analyst surface is complete at W1–W8 |
 
 ## 4. Cross-cutting decisions (first-pass; detail to follow)
 
@@ -504,11 +504,18 @@ ACL-visible) that **correlate with events my org created**.
 my-org events vs # correlating attributes); candidate cap N; whether to
 drill-down to *which* of my events overlap; the badge's exact text.
 
-### AD-W9 — Sightings rework
+### AD-W9 — Sightings rework — **DECLINED (AD-16)**
 First-pass (user): "definitely rework, but **maybe just a look-and-feel
 rework**" — the sighting engine is slow and some communities don't use it,
-so don't over-invest in a live "are my IOCs sighted?" engine. Discuss scope
-at W9 time.
+so don't over-invest in a live "are my IOCs sighted?" engine.
+**Resolution (2026-06-02, AD-16):** at W9 spec time the recon surfaced that both
+sightings widgets (`RecentSightingsWidget`, `ThresholdSightingsWidget`) are
+**`perm_site_admin`-gated** via `checkPermissions()`, while `Sighting->restSearch`
+is itself user-ACL-aware — an analyst rework would mean untangling that gate-vs-
+ACL conflict. The user reviewed the finding and **declined the rework** ("the ACL
+for that is indeed a shitshow"). W9 is **dropped from the roster**; the existing
+sightings widgets are left exactly as-is. The analyst widget surface is
+**complete at W1–W8**.
 
 ## 6. Decision log (AD-NN)
 
@@ -744,6 +751,21 @@ approved; data layer is the scope boundary (true-distinct-count declined). The
 read-only render posture is deviated for the click-to-unfold — progressive
 disclosure of the widget's own data, not a filter/scope action, user-requested.**
 B7 is **UN-PARKED** with this spec.
+
+**AD-16 — 2026-06-02 — AD-W9 (Sightings rework) DECLINED; roster closes at
+W1–W8.** Refs: PRD §3 AD-W9 row, the W9 spec-time recon (this session). At W9
+spec time the recon found both sightings widgets (`RecentSightingsWidget`,
+`ThresholdSightingsWidget`) gate on `perm_site_admin` in `checkPermissions()`,
+while `Sighting->restSearch($user, …)` already user-scopes results — so an
+analyst-facing rework would require reconciling a widget-level site-admin gate
+against `restSearch`'s per-user ACL (on top of the known engine slowness / patchy
+community use the first-pass steer already flagged). The user reviewed the
+finding and **declined**: "let's not touch the sighting one, the ACL for that is
+indeed a shitshow." **Decision:** W9 is dropped from the roster — no analyst
+sightings widget is built, and the existing `RecentSightingsWidget` /
+`ThresholdSightingsWidget` are left unchanged. The analyst widget surface is
+**COMPLETE at W1–W8** (all built + verified through Phases B1–B9). No further
+build phase; the track is done barring user-requested follow-ups.
 
 ## 7. Open meta-questions (resolve early)
 

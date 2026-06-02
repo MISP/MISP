@@ -1,19 +1,20 @@
 # Analyst Dashboard — Session handoff
 
-**State (2026-06-02):** the analyst roster is **fully BUILT + verified EXCEPT
-W9**. Last session closed **Phase B9** (widget settings canonization — four
-`$params`→typed-`$schema` promotions). **NEXT focus: W9 — the sightings rework**,
-which the user wants to tackle next. W9 is still **DEFERRED / un-spec'd** (the
-only roster unit without a spec), so the next session **starts with a spec pass**
-(scope steer → AD-16 → render decision) *before* building.
+**State (2026-06-02):** the analyst dashboard track is **COMPLETE**. W1–W8 are
+all BUILT + verified (Phases B1–B9); **W9 (sightings rework) is DECLINED
+(AD-16)** — dropped at spec time because the sighting ACL is intractable for an
+analyst widget (existing sightings widgets gate on `perm_site_admin` while
+`Sighting->restSearch` is user-scoped) and the engine is slow / patchily used;
+the user declined ("the ACL for that is indeed a shitshow"). **No active work
+remains** — anything further is user-requested follow-up only (see end).
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge is
 `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track builds
 the **analyst widget surface**. Authoritative state lives in:
 
 - `analyst-dashboard-prd.md` — the mini-PRD. §3 = 9-widget roster (status);
-  §5 = per-widget detail (incl. **AD-W9** §5 stub); §6 = **AD-NN** decision log
-  (AD-01..**15**; next = **AD-16**).
+  §5 = per-widget detail; §6 = **AD-NN** decision log (AD-01..**16**; W9 declined
+  at AD-16; next = **AD-17**).
 - `analyst-dashboard-progress.md` — the task tracker. Spec status, the
   **B1–B9 build backlog** (all done), and a **Discovered work** section.
 - This file — ephemeral session bridge; replace as work progresses.
@@ -56,60 +57,25 @@ promotions:
   the field help. Only freeform dicts/arrays (AttackWidget `filters`,
   EventStream `fields`) legitimately stay raw/advanced.
 
-## NEXT — W9: Sightings rework (spec FIRST, then build)
-The user wants this next. **PRD §3 row = DEFERRED; PRD §5 AD-W9** records the
-only steer so far: *"definitely rework, but maybe just a **look-and-feel**
-rework — the sighting engine is slow and some communities don't use it, so don't
-over-invest in a live 'are my IOCs sighted?' engine. Discuss scope at W9 time."*
-So **step 1 is a spec pass** (capture the scope steer → record **AD-16** → flip
-PRD §3 to DECIDED), then a build phase (**B10**).
+## TRACK COMPLETE — no active work
+W1–W8 are all BUILT + verified (Phases B1–B9). **W9 is DECLINED (AD-16):** the
+W9 spec-time recon surfaced that both existing sightings widgets
+(`RecentSightingsWidget`, `ThresholdSightingsWidget`) gate on `perm_site_admin`
+via `checkPermissions()`, while `Sighting->restSearch($user, …)` is itself
+user-ACL-aware — reconciling that gate-vs-ACL conflict for an analyst widget,
+on top of the slow / patchily-used engine, isn't worth it. **User declined.**
+The existing sightings widgets are left untouched. Full rationale: PRD §6 AD-16.
 
-### Recon already done (reuse — don't re-read from scratch)
-- **`RecentSightingsWidget`** (`app/Lib/Dashboard/RecentSightingsWidget.php`, the
-  PRD-named W9 target): `render='SimpleList'`, width 8/height 6. `handler()` calls
-  `Sighting->restSearch($user,'json',['last'=>…,'includeAttribute'=>true,
-  'includeEvent'=>true])` and emits raw string rows `value (id: X) in <info>
-  (id: Y)` + an Event link in `html`. Already has typed `$schema`
-  (`limit`:int=10, `last`:time_window=P1D). Sighting `type`: **0=Sighting,
-  1=False positive, 2=Expiration**.
-- **`ThresholdSightingsWidget`**: also `render='SimpleList'`, scores attributes
-  (sighting −1 / false-positive +1) and lists those `>= threshold`. `threshold`
-  is **`$params`-only** (empty `$schema`) — a leftover untyped knob if we touch it.
-- **⚠ CRUX — both sightings widgets are SITE-ADMIN-ONLY** via
-  `checkPermissions()` (`return false` unless `perm_site_admin`). An *analyst*-
-  facing widget must not require site-admin. `Sighting->restSearch($user, …)` is
-  **already ACL-aware** (user-scoped), so the site-admin gate looks vestigial /
-  over-restrictive. **This is the key spec/ACL decision** (see forks below).
-- **Dev-box data:** `sightings` table has **2849 rows** (2831 sightings / 18
-  false-positives / 0 expirations), newest **2026-03-24** (~70d before the box
-  clock 2026-06-02). So the default `last=1d` shows nothing — **verify W9 with a
-  wide window** (e.g. `last=90d`/`120d` or all-time).
-
-### Forks to put to the user at spec time (AskUserQuestion)
-1. **Scope** — (a) pure look-and-feel reskin of the existing data (recommended
-   per the steer; reuse `Sighting->restSearch`, no new engine); (b) a small
-   aggregate/KPI view; (c) deeper "are my IOCs sighted" signal (the steer warns
-   against over-investing here).
-2. **ACL / where the code lives** — additive-only posture says **don't edit the
-   site-admin-gated `RecentSightingsWidget`**; instead build a **NEW analyst
-   sibling** (the proven W6 pattern: `EventStreamCardsWidget extends
-   EventStreamWidget`). The new widget drops the site-admin gate and relies on
-   `restSearch`'s per-user ACL. Confirm: new sibling vs editing the original
-   (editing = existing-code touch → sign-off).
-3. **Render kind** — reuse `SimpleList` (status quo, ugly), `StatGrid` (KPI
-   counts: sightings / false-pos / expiration in window), `Trending` (most-sighted
-   IOCs ranked), or a **NEW** sightings-feed/cards kind (→ needs a glyph). Pick by
-   scope; "don't over-invest" favours reusing an existing kind.
-4. **Cache** — the engine is slow → cache. The data is ACL'd per user, so
-   `cache_scope='user'` (or none + a short `autoRefreshDelay`). NOT the `'org'`
-   scope (its site-admin `sa:` bucket would leak across orgs — same trap as
-   NewDataStats metrics 3/4).
-
-### Then build (Phase B10)
-Add the tracker spec-log entry (AD-16) + a Phase B10 build backlog, build per the
-usual sequence (one task = one commit), verify via the real render path (the data
-window must reach the 2026-03-24 sightings), append to user 1's board (standing
-pref), screenshot.
+### Follow-ups (user-requested only — none are queued)
+- Clear `w_8`'s stale 2023 `filters.timestamp` for a full all-time heatmap.
+- Heatmap-tile default-width bump (labeled cells want >3×4).
+- Richer `tags`→`tag_filter` chip picker on `EventStreamWidget` — would need a
+  handler change (the canonical translates to `include`/`exclude`, not the `tags`
+  comma-string fetchEvent reads) → main-track touch, **sign-off** first.
+- `ThresholdSightingsWidget.threshold` is an untyped `$params` knob — only worth a
+  B9-style promotion if that widget is ever touched (it's site-admin-only / main
+  track).
+- The user recomposes the analyst `template.json` (their job).
 
 ## Verifying a widget — recipe in [[reference-dashboard-widget-render-verification]]
 Two real paths: (1) **body render** — `renderWidget` is CSRF-unlocked → REST+APIkey
@@ -125,7 +91,7 @@ cookie** jar `/tmp/cj_stat.txt` (re-mint via [[reference-misp-login-dance]] if i
 newest 2026-03-24, events ~2026-05-29) — use wide / all-time windows.
 
 ## Conventions (carry)
-- **AD-NN** decision numbering (next = **AD-16**), cross-linked to parent `DD-NN`.
+- **AD-NN** decision numbering (next = **AD-17**), cross-linked to parent `DD-NN`.
 - **Additive-only** ([[feedback_additive_only_posture]]): new widgets + new render
   kinds = pure additions; existing-code touches need **sign-off**. Sign-offs
   granted so far: B4 DD-03 relaxation; B1.6 `WidgetCache` `'org'` scope; B7/AD-15
@@ -165,18 +131,10 @@ newest 2026-03-24, events ~2026-05-29) — use wide / all-time windows.
   tracks ship together.
 
 ## Quick-start for next session
-1. Read this + tracker (Phase B9 COMPLETE; B1–B8 BUILT) + **PRD §3 row AD-W9 +
-   §5 AD-W9** (the only existing steer). The whole roster is BUILT except W9.
-2. **W9 spec pass FIRST** — present the four forks above (scope / ACL-&-where /
-   render kind / cache) to the user, capture the steer, record **AD-16**, flip
-   PRD §3 W9 → DECIDED, add the Phase **B10** build backlog. The likely shape
-   (subject to the steer): a **new analyst sibling widget** (not editing the
-   site-admin-gated `RecentSightingsWidget`), reusing `Sighting->restSearch`
-   (ACL-aware), a presentation-light reskin via an existing render kind.
-3. **Then build B10** — sequential, commit-per-task, verify via the real render
-   path (use a wide window so the 2026-03-24 sightings show), append to user 1's
-   board, screenshot.
-4. **Open (lower priority, no sign-off):** clear `w_8`'s stale 2023
-   `filters.timestamp`; heatmap-tile width bump; `ThresholdSightingsWidget.threshold`
-   is another untyped `$params` knob (only if W9 touches that widget). The user
-   recomposes the analyst `template.json` (their job).
+**The track is done — there is no queued analyst-dashboard work.** W1–W8 BUILT +
+verified (B1–B9); W9 DECLINED (AD-16). If the user opens new analyst-dashboard
+work, it's a fresh request — read the tracker's "✅ ANALYST DASHBOARD TRACK
+COMPLETE" marker + PRD §3 roster for the as-built state, and the "Follow-ups"
+list above for the only loose ends (all user-requested, none queued). For
+anything new, carry the Conventions below (additive-only, commit-per-task signed,
+AD-NN numbering — next would be **AD-17**, verify via the real render path).

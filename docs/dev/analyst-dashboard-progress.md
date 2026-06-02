@@ -57,7 +57,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13, AD-14) | `[x]` **BUILT** (Phase B8; correlation-anchored, EventCards + overlap badge, `exclude_own_org` setting) |
-| AD-W9 | Sightings rework | `DEFERRED` | — look-and-feel only; revisit post-build |
+| AD-W9 | Sightings rework | `DECLINED` (AD-16) | **dropped** — sighting ACL shitshow (`perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow/unused; not built |
 
 ## Spec log (this track's planning tasks)
 
@@ -95,9 +95,13 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
   `getRelatedEventIds` — ACL-correct + engine-agnostic), reference set =
   events my org created (`orgc_id`); window-anchored build (no org_id scan, no
   schema change); render = reuse W6 EventCards + overlap badge. (AD-13.)
-- [ ] **AD-W9** — DEFERRED (look-and-feel-only rework of `RecentSightingsWidget`;
-  sighting engine slow/unused by some — revisit after the render kinds exist).
-  No spec needed now; the roster is otherwise fully DECIDED.
+- [x] **AD-W9 — DECLINED (AD-16, 2026-06-02).** At W9 spec time the recon found
+  both sightings widgets (`RecentSightingsWidget`/`ThresholdSightingsWidget`)
+  gate on `perm_site_admin` while `Sighting->restSearch` is user-ACL-aware — an
+  analyst rework would mean untangling that conflict, on top of the slow/patchy
+  engine. **User declined** ("the ACL for that is indeed a shitshow"). W9 dropped
+  from the roster; existing widgets left as-is. No build phase. The analyst
+  surface is **complete at W1–W8**.
 
 **✅ SPEC PHASE COMPLETE (2026-06-01)** — W1–W8 all DECIDED (AD-01..13); W9
 deferred. The work is now BUILD, starting at Phase B1 (W1 engine). Confirm with
@@ -742,11 +746,24 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
 (fixing W6 `EventStreamCardsWidget` via inheritance) — each promoting a
 `$params`-only "advanced" knob to a first-class typed control in the configure
 form's Settings tier, verified through the real `configure.module.mjs`. No
-platform/JS/handler change; additive posture held throughout. The whole analyst
-roster is now **fully BUILT except W9 (DEFERRED)**.
+platform/JS/handler change; additive posture held throughout.
 
-*(W9 deferred — look-and-feel-only reskin of RecentSightingsWidget, after the
-render kinds land.)*
+---
+
+## ✅ ANALYST DASHBOARD TRACK COMPLETE (2026-06-02)
+
+**W1–W8 all BUILT + verified (Phases B1–B9); W9 DECLINED (AD-16).** There is no
+remaining build phase. W9 (sightings rework) was dropped at spec time because the
+sighting ACL is intractable for an analyst-facing widget (the existing widgets
+gate on `perm_site_admin` while `Sighting->restSearch` is user-scoped) and the
+engine is slow / patchily used — user-declined. The existing sightings widgets
+are left untouched.
+
+Anything further is **user-requested follow-up only**, e.g.: clear `w_8`'s stale
+2023 `filters.timestamp`; a heatmap-tile default-width bump; the richer
+`tags`→`tag_filter` chip picker on EventStreamWidget (needs a handler change —
+main-track touch, sign-off); the user recomposes the analyst `template.json`
+(their job).
 
 ## Discovered work
 
