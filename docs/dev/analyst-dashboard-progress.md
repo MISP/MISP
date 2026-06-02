@@ -662,13 +662,32 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
   and **on** for a user-set value. Both keys are now schema-handled → filtered
   from the Advanced tier (render once as labelled text inputs). Lint clean.
   Browser screenshot deferred to the B9 verification task (item 6).
-- [ ] **`AttackWidget` — `filters` stays advanced.** A freeform restSearch filter
+- [x] **`AttackWidget` — `filters` stays advanced.** A freeform restSearch filter
   dict has no scalar type; it legitimately stays in the raw/advanced tier.
   `time_window` already canonized (B7). No change — just confirm/note.
-- [ ] **Cross-check the whole track for leftover `$params`-only knobs** that
+  *Done:* confirmed via the sweep — `AttackWidget` `$params` = `filters`,
+  `time_window`; `$schema` types only `time_window`. `filters` (a freeform
+  restsearch dict, `!`-negation values) has no scalar/canonical type that fits,
+  so it correctly stays in the Advanced (raw JSON) tier. No code change.
+- [x] **Cross-check the whole track for leftover `$params`-only knobs** that
   should be typed (sweep every analyst widget); confirm a key present in BOTH
   `$params` and `$schema` renders ONCE (typed control), not duplicated (the
   proven `time_window` pattern — verify, don't assume).
+  *Done:* swept all 5 analyst widgets (`/tmp/b9_sweep.php`, `$params` keys vs
+  `$schema` types). **Analyst-authored knobs are now all typed** —
+  TrendingWidget (dimension:enum, time_window, threshold:int, min_count:int),
+  NewDataStatsWidget (time_window, country:string, sector:string),
+  OverlapWithMyOrgWidget (time_window, exclude_own_org:bool); AttackWidget's only
+  leftover is the freeform `filters` (intentional, above). **No-duplication
+  confirmed**: every key in BOTH `$params` and `$schema` renders once — the
+  configure form's `handledKeys` filters the typed key out of the Advanced tier
+  (the `time_window` pattern verified, not assumed). **Finding (out of B9
+  scope):** `EventStreamCardsWidget` (W6) shows leftovers `tags`/`published`/
+  `limit`/`fields`, but these are **inherited verbatim from the pre-existing
+  main-track `EventStreamWidget`** (B3 inherits `$schema` verbatim by design) —
+  NOT analyst-track-authored. Promoting them = editing a main-track widget =
+  platform touch beyond B9's "settings I added this track" scope → left as-is,
+  flagged in Discovered work (sign-off needed; see entry below).
 - [ ] **Verify** each via the real configure-form render (open the widget config
   UI / inspect the rendered form, or the configure.module.mjs path) — checkbox /
   dropdown / number appear; defaults inject via `CanonicalTypeAdapter`; the
@@ -681,6 +700,24 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
 render kinds land.)*
 
 ## Discovered work
+
+- **[OPEN — surfaced at B9 sweep 2026-06-02, NEEDS SIGN-OFF]** `EventStreamWidget`
+  (main track) leaves `tags` / `published` / `limit` / `fields` as `$params`-only
+  knobs, despite `tag_filter` already being a canonical type and `published`/
+  `limit` being trivial `bool`/`int` scalars. `EventStreamCardsWidget` (W6 / the
+  analyst-track Event Card Stream) inherits these verbatim (B3 design:
+  `$schema` inherited unchanged), so its configure form shows them only in the
+  Advanced (raw JSON) tier. *Why it's parked:* promoting them on the parent
+  `EventStreamWidget` is a **main-track / platform touch** (outside B9's "settings
+  I added this track" scope and the analyst track's additive boundary); promoting
+  them only on the analyst subclass would **diverge** its `$schema` from the
+  parent it deliberately mirrors (B3). Either path needs a steer. *Fork (for the
+  user):* (a) leave as-is — out of analyst-track scope [conservative];
+  (b) promote on the parent `EventStreamWidget` (richer config form for both the
+  original stream and the W6 cards — main-track touch, sign-off);
+  (c) promote only on the analyst subclass (additive, but breaks B3's verbatim
+  inheritance). The `tags`→`tag_filter` gap in the parent looks like a main-track
+  Phase 2/3 schema-backfill omission worth raising on that track regardless.
 
 - **[RESOLVED — B4, user signed off 2026-06-02]** AD-09's external **cveurl
   link-out collides with the dashboard's own DD-03 URL-safety contract.**
