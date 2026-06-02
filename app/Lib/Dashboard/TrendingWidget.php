@@ -47,9 +47,10 @@ class TrendingWidget
 
     public $params = array(
         'dimension' => 'Which dimension to trend. Currently: "vulnerability" '
-            . '(CVE / GCVE / GHSA attribute identifiers). Further dimensions '
-            . '(threat-actor, mitre-attack-pattern) are added by later build '
-            . 'phases. Default: vulnerability.',
+            . '(CVE / GCVE / GHSA attribute identifiers) and "threat-actor" '
+            . '(misp-galaxy threat-actor clusters, by distinct events carrying '
+            . 'the cluster tag at event or attribute level). "mitre-attack-'
+            . 'pattern" is added by a later build phase. Default: vulnerability.',
         'time_window' => 'The time window, going back in seconds, to include '
             . '(e.g. "30d"; -1 = all historic data).',
         'threshold' => 'Limits the number of displayed rows. Default: 10.',
@@ -114,6 +115,11 @@ class TrendingWidget
                 'title' => 'Trending Vulnerabilities',
                 'count' => 'countVulnerability',
                 'labels' => 'labelsVulnerability',
+            ),
+            'threat-actor' => array(
+                'title' => 'Trending Threat Actors',
+                'count' => 'countThreatActor',
+                'labels' => 'labelsThreatActor',
             ),
         );
     }
@@ -198,6 +204,12 @@ class TrendingWidget
             }
             if (!empty($meta['drilldown'])) {
                 $row['drilldown'] = $meta['drilldown'];
+            }
+            // Optional leading glyph (galaxy dimensions resolve a Galaxy.icon
+            // FA name; the value arm has none). Trending.ctp renders it via
+            // the FontAwesome helper, falling back to no glyph when absent.
+            if (!empty($meta['icon'])) {
+                $row['icon'] = $meta['icon'];
             }
             $rows[] = $row;
         }
@@ -333,5 +345,302 @@ class TrendingWidget
             );
         }
         return $labels;
+    }
+
+    // ---- dimension: threat-actor (galaxy tag arm; AD-W3 / AD-10) ----
+
+    /**
+     * The threat-actor cluster tag-id set: galaxy tags in the native
+     * `misp-galaxy:threat-actor="…"` namespace (AD-10 — single galaxy, so an
+     * actor is ~one cluster, sidestepping cross-galaxy identity merge). The
+     * key per trended row IS the tag_id (not a cluster id), which keeps the
+     * count robust to the tag_name → cluster row being non-1:1 (local forks /
+     * duplicate galaxy imports — resolved to one cluster only at label time).
+     *
+     * @return int[]
+     */
+    private function threatActorTagIds()
+    {
+        $tagModel = ClassRegistry::init('Tag');
+        return $tagModel->find('column', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'Tag.is_galaxy' => 1,
+                'Tag.name LIKE' => 'misp-galaxy:threat-actor="%',
+            ),
+            'fields' => array('Tag.id'),
+        ));
+    }
+
+    /**
+     * COUNT(DISTINCT event_id) per threat-actor cluster tag, over the UNION of
+     * the two tag arms (AD-02 / AD-10): events carrying the cluster tag at the
+     * event level (EventTag) OR on one of their attributes (AttributeTag).
+     * ACL-scoped (AD-09) and window-bounded per-source (AD-05): the event-tag
+     * arm anchors on Event.timestamp, the attribute-tag arm on
+     * Attribute.timestamp. Either $startTs (inclusive) / $endTs (exclusive)
+     * bound null = unbounded.
+     *
+     * Why a custom count and not the in-tree `*Tag::countForTags()`:
+     * `AttributeTag::countForTags()` skips ACL ("ignored for performance") and
+     * counts occurrences, not distinct events — unusable here (AD-10). Instead
+     * the same mechanism countVulnerability uses:
+     *   (1) gather in-window (tag_id, event_id) occurrence pairs from both arms,
+     *   (2) ACL-filter the union of their candidate events to the viewer's
+     *       visible subset,
+     *   (3) distinct-event count per tag over that subset — a per-tag event
+     *       set dedupes an event tagged at BOTH levels to one (union-distinct).
+     */
+    private function countThreatActor($user, $startTs, $endTs)
+    {
+        $tagIds = $this->threatActorTagIds();
+        if (empty($tagIds)) {
+            return array();
+        }
+
+        // (1) in-window (tag_id, event_id) pairs from each arm. The narrow
+        // connector tables are joined only to their anchor table to apply the
+        // window (and Attribute.deleted) — no event/attribute hydration.
+        $pairs = array();           // [ [tag_id, event_id], … ]
+        $candidateIds = array();    // event_id => true (union over both arms)
+
+        $eventTagModel = ClassRegistry::init('EventTag');
+        $etConditions = array('EventTag.tag_id' => $tagIds);
+        if ($startTs !== null) {
+            $etConditions['Event.timestamp >='] = $startTs;
+        }
+        if ($endTs !== null) {
+            $etConditions['Event.timestamp <'] = $endTs;
+        }
+        $etRows = $eventTagModel->find('all', array(
+            'recursive' => -1,
+            'fields' => array('EventTag.tag_id', 'EventTag.event_id'),
+            'joins' => array(array(
+                'table' => 'events',
+                'alias' => 'Event',
+                'type' => 'INNER',
+                'conditions' => array('Event.id = EventTag.event_id'),
+            )),
+            'conditions' => $etConditions,
+        ));
+        foreach ($etRows as $r) {
+            $tid = (int)$r['EventTag']['tag_id'];
+            $eid = (int)$r['EventTag']['event_id'];
+            $pairs[] = array($tid, $eid);
+            $candidateIds[$eid] = true;
+        }
+
+        $attributeTagModel = ClassRegistry::init('AttributeTag');
+        $atConditions = array(
+            'AttributeTag.tag_id' => $tagIds,
+            'Attribute.deleted' => 0,
+        );
+        if ($startTs !== null) {
+            $atConditions['Attribute.timestamp >='] = $startTs;
+        }
+        if ($endTs !== null) {
+            $atConditions['Attribute.timestamp <'] = $endTs;
+        }
+        $atRows = $attributeTagModel->find('all', array(
+            'recursive' => -1,
+            'fields' => array('AttributeTag.tag_id', 'AttributeTag.event_id'),
+            'joins' => array(array(
+                'table' => 'attributes',
+                'alias' => 'Attribute',
+                'type' => 'INNER',
+                'conditions' => array('Attribute.id = AttributeTag.attribute_id'),
+            )),
+            'conditions' => $atConditions,
+        ));
+        foreach ($atRows as $r) {
+            $tid = (int)$r['AttributeTag']['tag_id'];
+            $eid = (int)$r['AttributeTag']['event_id'];
+            $pairs[] = array($tid, $eid);
+            $candidateIds[$eid] = true;
+        }
+
+        if (empty($pairs)) {
+            return array();
+        }
+
+        // (2) ACL-filter the union of candidate events (AD-09; same mechanism
+        // as the vulnerability arm).
+        $visibleIds = $this->aclVisibleEventIds($user, array_keys($candidateIds));
+        if (empty($visibleIds)) {
+            return array();
+        }
+        $visible = array_fill_keys(array_map('intval', $visibleIds), true);
+
+        // (3) distinct-event count per tag over the visible subset; a per-tag
+        // event set unions the two arms so a doubly-tagged event counts once.
+        $eventsPerTag = array();    // tag_id => [event_id => true]
+        foreach ($pairs as $pair) {
+            list($tid, $eid) = $pair;
+            if (isset($visible[$eid])) {
+                $eventsPerTag[$tid][$eid] = true;
+            }
+        }
+        $counts = array();
+        foreach ($eventsPerTag as $tid => $eventSet) {
+            $counts[$tid] = count($eventSet);
+        }
+        return $counts;
+    }
+
+    /**
+     * Threat-actor label hook (the crux of a galaxy dimension): resolve each
+     * trended tag_id to its galaxy cluster's display name + icon + synonyms,
+     * and a drill-down to the in-app cluster view (AD-10). All bulk-resolved
+     * (two queries total, top-N only) to avoid N+1.
+     *
+     * A tag_name maps to 1..N `galaxy_clusters` rows (local forks / duplicate
+     * imports — 80/118 here do); pick ONE deterministically — shipped default
+     * first, then newest version, then highest id — so the label and link are
+     * stable. Counting is keyed by tag_id, so this pick affects only the
+     * display, never the volume. Link = `/galaxy_clusters/view/<cluster_id>`
+     * (relative, on-host → admitted by DD-03 with no relaxation, unlike W2's
+     * external cveurl).
+     */
+    private function labelsThreatActor(array $valueKeys, array $options)
+    {
+        if (empty($valueKeys)) {
+            return array();
+        }
+
+        // Bulk cluster resolve: tag_id → value + icon, via
+        // galaxy_clusters.tag_name = tags.name (+ galaxies for the icon).
+        $galaxyClusterModel = ClassRegistry::init('GalaxyCluster');
+        $rows = $galaxyClusterModel->find('all', array(
+            'recursive' => -1,
+            'fields' => array(
+                'Tag.id',
+                'GalaxyCluster.id',
+                'GalaxyCluster.value',
+                'GalaxyCluster.default',
+                'GalaxyCluster.version',
+                'Galaxy.icon',
+            ),
+            'joins' => array(
+                array(
+                    'table' => 'tags',
+                    'alias' => 'Tag',
+                    'type' => 'INNER',
+                    'conditions' => array(
+                        'Tag.name = GalaxyCluster.tag_name',
+                        'Tag.id' => $valueKeys,
+                    ),
+                ),
+                array(
+                    'table' => 'galaxies',
+                    'alias' => 'Galaxy',
+                    'type' => 'LEFT',
+                    'conditions' => array('Galaxy.id = GalaxyCluster.galaxy_id'),
+                ),
+            ),
+        ));
+
+        // Keep the best cluster per tag_id (default desc, version desc, id
+        // desc) — done in PHP to avoid ORDER BY on the reserved word `default`.
+        $best = array();        // tag_id => [cluster_id, value, icon, rank tuple]
+        foreach ($rows as $r) {
+            $tagId = (int)$r['Tag']['id'];
+            $cand = array(
+                'cluster_id' => (int)$r['GalaxyCluster']['id'],
+                'value' => (string)$r['GalaxyCluster']['value'],
+                'icon' => isset($r['Galaxy']['icon']) ? (string)$r['Galaxy']['icon'] : '',
+                'default' => (int)$r['GalaxyCluster']['default'],
+                'version' => (int)$r['GalaxyCluster']['version'],
+            );
+            if (!isset($best[$tagId]) || $this->clusterOutranks($cand, $best[$tagId])) {
+                $best[$tagId] = $cand;
+            }
+        }
+
+        // Bulk synonyms for the chosen clusters (one query; hover tooltip).
+        $clusterIds = array();
+        foreach ($best as $c) {
+            $clusterIds[$c['cluster_id']] = true;
+        }
+        $synonymsByCluster = array();
+        if (!empty($clusterIds)) {
+            $galaxyElementModel = ClassRegistry::init('GalaxyElement');
+            $elements = $galaxyElementModel->find('all', array(
+                'recursive' => -1,
+                'fields' => array(
+                    'GalaxyElement.galaxy_cluster_id',
+                    'GalaxyElement.value',
+                ),
+                'conditions' => array(
+                    'GalaxyElement.galaxy_cluster_id' => array_keys($clusterIds),
+                    'GalaxyElement.key' => 'synonyms',
+                ),
+            ));
+            foreach ($elements as $e) {
+                $cid = (int)$e['GalaxyElement']['galaxy_cluster_id'];
+                $synonymsByCluster[$cid][] = (string)$e['GalaxyElement']['value'];
+            }
+        }
+
+        $labels = array();
+        foreach ($valueKeys as $tagId) {
+            $tagId = (int)$tagId;
+            if (!isset($best[$tagId])) {
+                // No cluster row (orphan tag) — fall back to the bare actor
+                // name parsed out of the tag, so the row is never blank.
+                $labels[$tagId] = array('label' => $this->actorNameFromTagId($tagId));
+                continue;
+            }
+            $c = $best[$tagId];
+            $meta = array(
+                'label' => $c['value'] !== '' ? $c['value'] : $this->actorNameFromTagId($tagId),
+                'drilldown' => '/galaxy_clusters/view/' . $c['cluster_id'],
+            );
+            if ($c['icon'] !== '') {
+                $meta['icon'] = $c['icon'];
+            }
+            if (!empty($synonymsByCluster[$c['cluster_id']])) {
+                // Dedupe: duplicate galaxy imports can leave repeated synonym
+                // elements on one cluster, which would double the tooltip.
+                $syn = array_values(array_unique($synonymsByCluster[$c['cluster_id']]));
+                $meta['title'] = __('Synonyms: %s', implode(', ', $syn));
+            }
+            $labels[$tagId] = $meta;
+        }
+        return $labels;
+    }
+
+    /**
+     * Deterministic cluster preference: shipped default over a fork, then the
+     * newest version, then the highest id. True iff $a outranks $b.
+     */
+    private function clusterOutranks(array $a, array $b)
+    {
+        if ($a['default'] !== $b['default']) {
+            return $a['default'] > $b['default'];
+        }
+        if ($a['version'] !== $b['version']) {
+            return $a['version'] > $b['version'];
+        }
+        return $a['cluster_id'] > $b['cluster_id'];
+    }
+
+    /**
+     * Last-ditch display name for a threat-actor tag with no resolvable
+     * cluster: the value inside `misp-galaxy:threat-actor="<name>"`, or the
+     * raw tag name if it doesn't parse.
+     */
+    private function actorNameFromTagId($tagId)
+    {
+        $tagModel = ClassRegistry::init('Tag');
+        $name = $tagModel->find('column', array(
+            'recursive' => -1,
+            'conditions' => array('Tag.id' => (int)$tagId),
+            'fields' => array('Tag.name'),
+        ));
+        $name = !empty($name) ? (string)$name[0] : (string)$tagId;
+        if (preg_match('/="(.*)"$/', $name, $m)) {
+            return $m[1];
+        }
+        return $name;
     }
 }

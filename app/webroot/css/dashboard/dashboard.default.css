@@ -903,6 +903,20 @@ a.misp-trending-row:focus-visible {
   z-index: 0;
   pointer-events: none;
 }
+/* Leading galaxy glyph (galaxy dimensions — W3/W4). Above the fill bar
+   (z-index) and muted so the label/count stay the focus; sized off the
+   small font token so it tracks the row's type scale. */
+.misp-trending-icon {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
 .misp-trending-label {
   position: relative;
   z-index: 1;

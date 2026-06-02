@@ -34,12 +34,18 @@
  *       'drilldown' => string|null,  // optional link-out (whole row becomes a
  *                                    //   link); gated by DashboardURLValidator
  *       'title'     => string|null,  // optional hover tooltip (e.g. synonyms)
+ *       'icon'      => string|null,  // optional leading glyph — a FontAwesome
+ *                                    //   icon NAME (e.g. 'user-secret'), as
+ *                                    //   stored on a galaxy; namespaced via
+ *                                    //   the FontAwesome helper. Absent for
+ *                                    //   non-galaxy dimensions (e.g. CVEs).
  *     ],
  *     ...
  *   ];
  *
- * (A leading per-row galaxy icon glyph is a planned additive extension for
- * the galaxy dimensions W3/W4 — not part of this first cut.)
+ * The leading per-row icon (above) is the galaxy-dimension extension (W3/W4):
+ * the value arm (vulnerabilities) carries none, the galaxy arms (threat
+ * actors, ATT&CK techniques) resolve a Galaxy.icon into it.
  *
  * URL safety for `drilldown` is gated by DashboardURLValidator (DD-03) —
  * an unsafe URL is dropped and the row renders as plain (non-link) markup.
@@ -98,12 +104,25 @@ foreach ($data as $row) {
         );
     }
 
+    // Optional leading glyph (galaxy dimensions): an icon NAME resolved to a
+    // namespaced FA class by the helper (getClass() h-escapes its output) —
+    // the same path core uses for galaxy icons. Empty for the value arm.
+    $iconHtml = '';
+    if (!empty($row['icon'])) {
+        $iconHtml = sprintf(
+            '<span class="misp-trending-icon"><i class="%s" aria-hidden="true"></i></span>',
+            $this->FontAwesome->getClass((string)$row['icon'])
+        );
+    }
+
     $inner = sprintf(
         '<span class="misp-trending-bar" style="--misp-trending-fill:%s"></span>'
+        . '%s'
         . '<span class="misp-trending-label">%s</span>'
         . '<span class="misp-trending-meta">'
         . '<span class="misp-trending-count">%s</span>%s</span>',
         h($fillStr),
+        $iconHtml,
         h($label),
         number_format($count),
         $badge
