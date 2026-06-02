@@ -505,28 +505,55 @@ render kind ⇒ no new glyph (confirm the existing one).*
   original behaviour). **No cache concern:** AttackWidget declares legacy
   `cacheLifetime` not `cache_duration`, so `WidgetCache::remember` is a
   pass-through → runs live; the window always drives.
-- [ ] **`Attack.ctp` — technique/sub-technique aggregation (AD-15 pt3).** Group
+- [x] **`Attack.ctp` — technique/sub-technique aggregation (AD-15 pt3).** Group
   each tactic column's cells by parent T-ID off `external_id` (`^T\d+$` =
   technique; `^T\d+\.\d+$` = sub-technique → parent = strip `.\d+`). Parent cell
   = rolled-up group; **parent heat = SUM** of own + sub event-counts. Orphan
   sub-technique (no parent cell in column) → synthesise header from the parent
   T-ID. Non-`T####` id (43 legacy clusters) → standalone top-level group.
-- [ ] **`Attack.ctp` — hide inactive (AD-15 pt1).** Render only groups whose
-  aggregate score > 0; drop tactic columns with no active group.
-- [ ] **`Attack.ctp` + CSS — larger labeled cells (AD-15 pt2).** Each cell shows
+  *Done (with the steps below — one renderer rewrite):* pass-0 builds a global
+  parent-name map (resolves the 7/195 orphan subs to real names, e.g.
+  T1574→"Hijack Execution Flow"); pass-1 groups per column, SUM aggregate,
+  active subs sorted desc, groups sorted by aggregate desc. Non-T ids fall to a
+  standalone leaf group. Label = strip trailing " - <external_id>" suffix
+  (authoritative; never mangles — replaced the blind `removeTrailing` strip).
+- [x] **`Attack.ctp` — hide inactive (AD-15 pt1).** Render only groups whose
+  aggregate score > 0; drop tactic columns with no active group. *Done:* groups
+  with agg ≤ 0 skipped; columns with no surviving group skipped; empty-matrix
+  guard message added. Verified live: 15 active columns (of 16+), inactive
+  techniques absent.
+- [x] **`Attack.ctp` + CSS — larger labeled cells (AD-15 pt2).** Each cell shows
   technique name + T-ID + count, readable without hover (wall-display usable);
   replaces the 8px hover-only bars. Token-driven CSS (default + midnight).
-- [ ] **`Attack.ctp` + CSS — single red gradient + legend (AD-15 pt4).** Drop the
+  *Done:* flex cells (name 2-line clamp · T-ID · bold count), 168px columns,
+  active-group count badge in the header. All chrome token-driven.
+- [x] **`Attack.ctp` + CSS — single red gradient + legend (AD-15 pt4).** Drop the
   export's multi-hue `colours`; shade each cell in-renderer from
   `score / max-parent-score` on a single-hue red ramp; render a small
-  legend/scale.
-- [ ] **Unfold JS (AD-15 pt3).** Click a parent cell → reveal its sub-techniques
-  on demand; **scope to the widget container** (multi-widget pages). Find/confirm
-  where dashboard widget JS hooks in.
-- [ ] Confirm `time_window` cache key + toolbar bulk-edit drives the heatmap.
-- [ ] Visual verification on the live instance (real render path): inactive
+  legend/scale. *Done:* HSL(h=0) ramp, **√-scaled** + normalised to the global
+  max aggregate (the hit distribution is heavily skewed — max 696 vs median <10
+  — so a linear ramp would wash out the mid-range); per-cell luminance-picked
+  text colour (opaque ⇒ theme-independent); legend bar gradient sampled from the
+  exact same ramp at 5 stops, min 0 / max = global aggregate.
+- [x] **Unfold (AD-15 pt3) — native `<details>`/`<summary>`, NO JS.** Parents
+  with active subs render as `<details>` (summary = parent cell + rotating
+  caret; sub-cells inside, hidden until opened). Multi-widget-safe, accessible,
+  and keeps the read-only posture deviation minimal (HTML disclosure, not
+  scripting). *Supersedes the "unfold JS" step — no JS file touched.*
+- [x] Confirm `time_window` cache key + toolbar bulk-edit drives the heatmap.
+  *Done:* AttackWidget runs live in v2 (legacy `cacheLifetime`, not
+  `cache_duration` → `WidgetCache` pass-through), so the window always drives;
+  no stale-cache concern (verified in step 1).
+- [x] Visual verification on the live instance (real render path): inactive
   hidden, labels readable, parent cells fold/unfold, red ramp + legend, re-scopes
-  with the board. Then append to user 1's test dashboard (standing pref).
+  with the board. *Done:* (a) deterministic synthetic harness (aggregation/
+  hide-inactive/orphan-fallback/labels/legend all asserted); (b) real 34MB
+  payload rendered offline — 15 cols, 84 `<details>`, 168 leaf + 190 sub cells,
+  0 un-stripped labels; (c) **real web-UI POST render = byte-identical
+  (172692 B, http 200)** → the live pipeline delivers `$data` to `Attack.ctp`;
+  (d) snap-chromium screenshots **light + midnight** confirm legend, red ramp,
+  readable labels, and unfolded sub-techniques on both themes.
+  *Still TODO: append/confirm on user 1's test dashboard (standing pref).*
 
 ### Phase B8 — AD-W8 Overlap-with-my-org (DECIDED; needs B1 + B3 EventCards)
 

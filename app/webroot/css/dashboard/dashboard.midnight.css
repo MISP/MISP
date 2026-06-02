@@ -73,7 +73,8 @@
   /* Light overlay instead of the light theme's rgba(0, 0, 0, 0.20). */
   background: rgba(255, 255, 255, 0.16);
 }
-:root[data-theme="midnight"] .misp-attack-cell--hit {
-  /* Subtle light border instead of the light theme's rgba(0, 0, 0, 0.12). */
-  border-color: rgba(255, 255, 255, 0.14);
-}
+/* Attack renderer (AD-15 redesign): cells are opaque computed reds with a
+ * luminance-picked text colour — theme-independent by construction — and the
+ * column/legend chrome rides the midnight token overrides at :root, so no
+ * heatmap-specific midnight rule is needed. (The old `.misp-attack-cell--hit`
+ * border retone was dropped with the thin-bar markup.) */

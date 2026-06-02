@@ -1713,16 +1713,41 @@ a.misp-eventcards-id:hover {
 }
 
 /* ============================================================
- * Attack renderer — static MITRE ATT&CK heatmap (default tab only).
- * Columns = tactics; cells = techniques stacked vertically as thin
- * coloured bars. Wide matrices overflow horizontally — the widget
- * is a glanceable density map, not a navigable surface.
+ * Attack renderer — MITRE ATT&CK heatmap (default tab only).
+ * Columns = tactics; cells = LABELED technique blocks shaded on a
+ * single red ramp (√-scaled, computed per-cell inline — opaque, so
+ * theme-independent; text colour is luminance-picked per cell).
+ * Inactive techniques are omitted; sub-techniques roll up into their
+ * parent and unfold on click (native <details>/<summary>, no JS).
+ * A legend keys the shading. Wide matrices overflow horizontally.
  * ============================================================ */
 .misp-attack {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-attack-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  flex: 0 0 auto;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+.misp-attack-legend-cap {
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-attack-legend-bar {
+  flex: 0 1 120px;
+  height: 8px;
+  border-radius: var(--misp-dash-radius-sm);
+  border: 1px solid var(--misp-dash-border);
+}
+.misp-attack-legend-min,
+.misp-attack-legend-max {
+  font-variant-numeric: tabular-nums;
 }
 .misp-attack-scroll {
   flex: 1 1 auto;
@@ -1736,7 +1761,7 @@ a.misp-eventcards-id:hover {
   min-width: 100%;
 }
 .misp-attack-col {
-  flex: 0 0 110px;
+  flex: 0 0 168px;
   display: flex;
   flex-direction: column;
   gap: var(--misp-dash-space-1);
@@ -1780,24 +1805,82 @@ a.misp-eventcards-id:hover {
 .misp-attack-col-cells {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
+/* Labeled heat cell — background-color + text colour are set inline
+ * per-cell (opaque red ramp); everything else is token-driven. */
 .misp-attack-cell {
-  display: block;
-  height: 8px;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  min-height: 22px;
+  padding: 2px 6px;
   border-radius: var(--misp-dash-radius-sm);
-  background: var(--misp-dash-surface-sunken);
-  border: 1px solid transparent;
-  cursor: help;
-  transition: transform var(--misp-dash-transition-fast),
-              box-shadow var(--misp-dash-transition-fast);
+  line-height: 1.15;
+  overflow: hidden;
+  transition: box-shadow var(--misp-dash-transition-fast);
 }
-.misp-attack-cell--hit {
-  border-color: rgba(0, 0, 0, 0.12);
+.misp-attack-cell-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.misp-attack-cell-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+.misp-attack-cell-tid {
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.misp-attack-cell-count {
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
 }
 .misp-attack-cell:hover {
-  transform: scaleX(1.02);
   box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Unfoldable parent group (native <details>) — strip the default marker,
+ * add a rotating caret on the parent cell. */
+.misp-attack-group {
+  display: block;
+}
+.misp-attack-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: block;
+}
+.misp-attack-group > summary::-webkit-details-marker {
+  display: none;
+}
+.misp-attack-cell--parent::after {
+  content: "\25B8"; /* ▸ */
+  flex: 0 0 auto;
+  font-size: 9px;
+  opacity: 0.85;
+  transition: transform var(--misp-dash-transition-fast);
+}
+.misp-attack-group[open] > summary .misp-attack-cell--parent::after {
+  transform: rotate(90deg);
+}
+.misp-attack-subs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 0 8px;
+  padding-left: 6px;
+  border-left: 2px solid var(--misp-dash-border);
+}
+.misp-attack-cell--sub {
+  min-height: 18px;
 }
 
 /* ============================================================
