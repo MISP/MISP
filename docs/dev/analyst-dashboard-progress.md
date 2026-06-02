@@ -344,21 +344,52 @@ widget. Depends on Phase B1.*
   is not a new render kind (visually proven in B1.7); only the `href` changed,
   confirmed in the markup. **Phase B4 (W2 trending vulnerabilities) COMPLETE.**
 
-### Phase B5 — AD-W3 Trending Threat Actors dimension (DECIDED; needs B1 engine)
+### Phase B5 — AD-W3 Trending Threat Actors dimension (BUILT + verified 2026-06-02)
 
 *A `dimension` config + hooks on the built W1 engine. Depends on Phase B1.*
 
-- [ ] `threat-actor` dimension config: tag-id set = `tags WHERE is_galaxy=1 AND
+- [x] `threat-actor` dimension config: tag-id set = `tags WHERE is_galaxy=1 AND
   name LIKE 'misp-galaxy:threat-actor="%'`.
-- [ ] **ACL-correct union-distinct count** (primary risk): `COUNT(DISTINCT
+  **Done:** `dimensions()` gains a `threat-actor` entry (→ `countThreatActor` /
+  `labelsThreatActor`); `threatActorTagIds()` is the tag-id query. Row key = the
+  **tag_id** (not a cluster id) so the count is immune to tag_name→cluster being
+  non-1:1 (see label note). 118 such tags on the dev box.
+- [x] **ACL-correct union-distinct count** (primary risk): `COUNT(DISTINCT
   event_id)` over EventTag ∪ AttributeTag for those tag_ids, ACL-scoped to the
   org's visible events — do NOT reuse `AttributeTag::countForTags` (skips ACL,
   counts occurrences). Cache per-org; site-admin no-ACL bucket.
-- [ ] Anchors per AD-05 (event-tag→Event.timestamp, attr-tag→Attribute.timestamp);
+  **Done:** `countThreatActor()` gathers in-window `(tag_id, event_id)` pairs
+  from both arms, ACL-filters the union of candidate events via the SAME
+  `aclVisibleEventIds()` the vulnerability arm uses (AD-09), then counts
+  distinct events per tag over the visible subset — a per-tag event **set**
+  unions the two arms so a doubly-tagged event counts once. Per-org cache is
+  inherited from the widget (`cache_scope='org'`). Live counts match a raw-SQL
+  probe exactly (Sofacy 47, Lazarus 29, Turla 19, Anunak 12, TA505 11…).
+- [x] Anchors per AD-05 (event-tag→Event.timestamp, attr-tag→Attribute.timestamp);
   momentum AD-03.
-- [ ] Label resolver: bulk-resolve top-N clusters → value + Galaxy.icon +
+  **Done:** the event-tag arm joins `events` and bounds on `Event.timestamp`;
+  the attribute-tag arm joins `attributes` (+`deleted=0`) and bounds on
+  `Attribute.timestamp`. Momentum is the engine's existing AD-03 path (prior
+  equal window via a second count call); `-1`/all-time has none, as designed.
+- [x] Label resolver: bulk-resolve top-N clusters → value + Galaxy.icon +
   synonyms (avoid N+1). Link builder = /galaxy_clusters/view/<id>.
-- [ ] Visual verification on the live instance.
+  **Done:** `labelsThreatActor()` = 2 bulk queries (cluster value+icon via
+  `galaxy_clusters.tag_name=tags.name`+`galaxies`; synonyms via
+  `galaxy_elements`). **80/118 tag_names map to >1 cluster row** (local forks /
+  duplicate imports) → `clusterOutranks()` picks one deterministically (default
+  desc, version desc, id desc). Synonyms deduped (duplicate imports doubled
+  them). `Trending.ctp` gains an optional leading **galaxy icon** (FontAwesome
+  helper → `fas fa-user-secret`) + `.misp-trending-icon` token CSS — the W3/W4
+  extension the renderer's header anticipated. Orphan tags (no cluster row, e.g.
+  Hafnium/COVELLITE) fall back to the bare actor name, no link/icon.
+- [x] Visual verification on the live instance.
+  **Done:** REST `renderWidget` (dimension=threat-actor, `time_window=-1`) =
+  counts above; web-UI POST+session render = **8 `<a>` rows** (icon +
+  `href="/galaxy_clusters/view/<id>"`, DD-03 admits the relative link with no
+  relaxation) + **2 plain `<div>` rows** (orphan fallback), no PHP warnings.
+  Appended to user 1's dashboard as `w_12` (TrendingWidget, threat-actor,
+  `time_window=-1`; backup `/tmp/dash_backup.json`), smoke-tested.
+  **Phase B5 (W3 trending threat actors) COMPLETE.**
 
 ### Phase B6 — AD-W4 Trending Attack Techniques dimension (DECIDED; needs B1 engine)
 
