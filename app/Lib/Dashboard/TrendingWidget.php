@@ -47,10 +47,12 @@ class TrendingWidget
 
     public $params = array(
         'dimension' => 'Which dimension to trend. Currently: "vulnerability" '
-            . '(CVE / GCVE / GHSA attribute identifiers) and "threat-actor" '
-            . '(misp-galaxy threat-actor clusters, by distinct events carrying '
-            . 'the cluster tag at event or attribute level). "mitre-attack-'
-            . 'pattern" is added by a later build phase. Default: vulnerability.',
+            . '(CVE / GCVE / GHSA attribute identifiers), "threat-actor" '
+            . '(misp-galaxy threat-actor clusters) and "mitre-attack-pattern" '
+            . '(Enterprise ATT&CK techniques, sub-techniques rolled up to their '
+            . 'parent) — the galaxy dimensions count distinct events carrying '
+            . 'the cluster tag at event or attribute level. Default: '
+            . 'vulnerability.',
         'time_window' => 'The time window, going back in seconds, to include '
             . '(e.g. "30d"; -1 = all historic data).',
         'threshold' => 'Limits the number of displayed rows. Default: 10.',
@@ -120,6 +122,11 @@ class TrendingWidget
                 'title' => 'Trending Threat Actors',
                 'count' => 'countThreatActor',
                 'labels' => 'labelsThreatActor',
+            ),
+            'mitre-attack-pattern' => array(
+                'title' => 'Trending Attack Techniques',
+                'count' => 'countAttackPattern',
+                'labels' => 'labelsAttackPattern',
             ),
         );
     }
@@ -373,9 +380,25 @@ class TrendingWidget
     }
 
     /**
-     * COUNT(DISTINCT event_id) per threat-actor cluster tag, over the UNION of
-     * the two tag arms (AD-02 / AD-10): events carrying the cluster tag at the
-     * event level (EventTag) OR on one of their attributes (AttributeTag).
+     * COUNT(DISTINCT event_id) per threat-actor cluster tag (AD-W3 / AD-10) —
+     * a thin wrapper over the shared tag-arm counter with the default identity
+     * bucketing (one row per tag_id). See countDistinctEventsByTag() for the
+     * ACL / window / union-distinct mechanism.
+     */
+    private function countThreatActor($user, $startTs, $endTs)
+    {
+        return $this->countDistinctEventsByTag(
+            $user, $startTs, $endTs, $this->threatActorTagIds()
+        );
+    }
+
+    /**
+     * The shared ACL-correct, distinct-event count over the UNION of the two
+     * tag arms (AD-02): events carrying one of $tagIds at the event level
+     * (EventTag) OR on one of their attributes (AttributeTag). Used by every
+     * galaxy dimension — threat actors (W3, one row per tag) and ATT&CK
+     * techniques (W4, sub-techniques rolled up to a parent via $bucketMap).
+     *
      * ACL-scoped (AD-09) and window-bounded per-source (AD-05): the event-tag
      * arm anchors on Event.timestamp, the attribute-tag arm on
      * Attribute.timestamp. Either $startTs (inclusive) / $endTs (exclusive)
@@ -388,12 +411,22 @@ class TrendingWidget
      *   (1) gather in-window (tag_id, event_id) occurrence pairs from both arms,
      *   (2) ACL-filter the union of their candidate events to the viewer's
      *       visible subset,
-     *   (3) distinct-event count per tag over that subset — a per-tag event
-     *       set dedupes an event tagged at BOTH levels to one (union-distinct).
+     *   (3) distinct-event count per BUCKET over that subset — a per-bucket
+     *       event set dedupes an event reached via several tags (or tagged at
+     *       BOTH levels) to one (union-distinct).
+     *
+     * @param array      $tagIds    the cluster tag-id set to gather over.
+     * @param array|null $bucketMap tag_id => bucket key. null = identity, i.e.
+     *                              bucket = tag_id (the W3 shape). W4 passes a
+     *                              tag_id => parent-technique map so sub-
+     *                              techniques fold into one parent row; a tag
+     *                              absent from a non-null map is skipped (it has
+     *                              no resolvable bucket — see attackPatternTag-
+     *                              Buckets()).
+     * @return array bucket key => distinct-event count
      */
-    private function countThreatActor($user, $startTs, $endTs)
+    private function countDistinctEventsByTag($user, $startTs, $endTs, array $tagIds, $bucketMap = null)
     {
-        $tagIds = $this->threatActorTagIds();
         if (empty($tagIds)) {
             return array();
         }
@@ -471,18 +504,29 @@ class TrendingWidget
         }
         $visible = array_fill_keys(array_map('intval', $visibleIds), true);
 
-        // (3) distinct-event count per tag over the visible subset; a per-tag
-        // event set unions the two arms so a doubly-tagged event counts once.
-        $eventsPerTag = array();    // tag_id => [event_id => true]
+        // (3) distinct-event count per bucket over the visible subset; a
+        // per-bucket event set unions every contributing tag and both arms, so
+        // an event reached more than once (e.g. tagged with a technique AND its
+        // sub-technique, W4) counts once. Bucket = $bucketMap[tag] when a map
+        // is given (W4 parent roll-up), else the tag_id itself (W3).
+        $eventsPerBucket = array();     // bucket => [event_id => true]
         foreach ($pairs as $pair) {
             list($tid, $eid) = $pair;
-            if (isset($visible[$eid])) {
-                $eventsPerTag[$tid][$eid] = true;
+            if (!isset($visible[$eid])) {
+                continue;
             }
+            if ($bucketMap === null) {
+                $bucket = $tid;
+            } elseif (isset($bucketMap[$tid])) {
+                $bucket = $bucketMap[$tid];
+            } else {
+                continue;               // tag with no resolvable bucket
+            }
+            $eventsPerBucket[$bucket][$eid] = true;
         }
         $counts = array();
-        foreach ($eventsPerTag as $tid => $eventSet) {
-            $counts[$tid] = count($eventSet);
+        foreach ($eventsPerBucket as $bucket => $eventSet) {
+            $counts[$bucket] = count($eventSet);
         }
         return $counts;
     }
@@ -642,5 +686,203 @@ class TrendingWidget
             return $m[1];
         }
         return $name;
+    }
+
+    // ---- dimension: mitre-attack-pattern (ATT&CK techniques; AD-W4 / AD-11) ----
+
+    /**
+     * The Enterprise ATT&CK technique tag set and its sub-technique→parent
+     * roll-up map (AD-11). Scope = the native `misp-galaxy:mitre-attack-
+     * pattern="…"` namespace (galaxy type `mitre-attack-pattern`, the
+     * Enterprise matrix — the mobile / ICS / ATLAS / pre / cmtmf attack-pattern
+     * galaxies are separate namespaces and excluded, mirroring W3's single-
+     * galaxy scope).
+     *
+     * The technique id is parsed from the tag NAME — every such tag is named
+     * `<value> - T<id>` (e.g. `… - T1566.001`) — and NOT from a galaxy_elements
+     * `external_id` element: on real data that element is unreliable for this
+     * roll-up (it carries legacy ids such as `APP-19` for mobile-derived
+     * techniques whose name still bears the canonical `T<id>`). AD-11 left the
+     * exact mapping "open at build"; the name suffix is the consistent source.
+     * The parent is the id with any `.NNN` sub-technique suffix stripped
+     * (`T1566.001` → `T1566`), so several sub-technique tags fold into one
+     * parent row (AD-11 Fork). Tags whose name yields no `T<id>` (the tactic
+     * `TA00NN` tags + a few deprecated un-suffixed legacy names) are not
+     * techniques and have nothing to roll up, so they are dropped.
+     *
+     * @return array [0 => int[] tagIds, 1 => array<int,string> tag_id => parentId]
+     */
+    private function attackPatternTagBuckets()
+    {
+        $tagModel = ClassRegistry::init('Tag');
+        $rows = $tagModel->find('all', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'Tag.is_galaxy' => 1,
+                'Tag.name LIKE' => 'misp-galaxy:mitre-attack-pattern="%',
+            ),
+            'fields' => array('Tag.id', 'Tag.name'),
+        ));
+        $bucketMap = array();
+        foreach ($rows as $r) {
+            $techId = $this->techniqueIdFromName($r['Tag']['name']);
+            if ($techId === null) {
+                continue;           // tactic / un-suffixed legacy name — skip
+            }
+            $bucketMap[(int)$r['Tag']['id']] = $this->parentTechniqueId($techId);
+        }
+        return array(array_keys($bucketMap), $bucketMap);
+    }
+
+    /**
+     * COUNT(DISTINCT event_id) per ATT&CK *parent* technique (AD-W4 / AD-11):
+     * reuses the shared union-distinct tag counter with the sub-technique→
+     * parent bucket map, so an event tagged with a technique AND one of its
+     * sub-techniques counts once for the parent.
+     */
+    private function countAttackPattern($user, $startTs, $endTs)
+    {
+        list($tagIds, $bucketMap) = $this->attackPatternTagBuckets();
+        return $this->countDistinctEventsByTag($user, $startTs, $endTs, $tagIds, $bucketMap);
+    }
+
+    /**
+     * Attack-technique label hook: resolve each trended *parent* technique id
+     * (e.g. `T1566`) to its parent cluster — display `value` + `external_id`
+     * ("Phishing (T1566)"), the galaxy `icon` (`map`) and a drill-down to the
+     * in-app cluster view (AD-11). Bulk-resolved (one query, top-N only) to
+     * avoid N+1.
+     *
+     * The parent cluster is matched by the technique id embedded in its
+     * `galaxy_clusters.tag_name` (`… - T1566"`) — the same canonical source as
+     * the roll-up, and resilient to the parent cluster having NO `tags` row
+     * (only ~a third of clusters here do). A parent maps to 1..N cluster rows
+     * (local forks); clusterOutranks() picks one deterministically (default
+     * desc, version desc, id desc) — display-only, the count is keyed by the
+     * parent id. The parent cluster resolves even when only sub-techniques were
+     * tagged (AD-11), because the parent technique is itself a cluster. Link =
+     * `/galaxy_clusters/view/<parent_cluster_id>` (relative, on-host → admitted
+     * by DD-03 with no relaxation). A parent with no cluster row falls back to
+     * the bare technique id, so the row is never blank.
+     */
+    private function labelsAttackPattern(array $valueKeys, array $options)
+    {
+        if (empty($valueKeys)) {
+            return array();
+        }
+
+        // Match parent clusters by the `- T<id>"` suffix of their tag_name,
+        // OR'd over the top-N parent ids (bounded by `threshold`). The closing
+        // quote pins the match to the exact parent (a sub-technique tag_name
+        // ends `…T1566.001"`, so `% - T1566"` never matches it).
+        $suffixConds = array();
+        foreach ($valueKeys as $pid) {
+            $suffixConds[] = array('GalaxyCluster.tag_name LIKE' => '% - ' . $pid . '"');
+        }
+        $galaxyClusterModel = ClassRegistry::init('GalaxyCluster');
+        $rows = $galaxyClusterModel->find('all', array(
+            'recursive' => -1,
+            'fields' => array(
+                'GalaxyCluster.id',
+                'GalaxyCluster.tag_name',
+                'GalaxyCluster.value',
+                'GalaxyCluster.default',
+                'GalaxyCluster.version',
+                'Galaxy.icon',
+            ),
+            'joins' => array(array(
+                'table' => 'galaxies',
+                'alias' => 'Galaxy',
+                'type' => 'INNER',
+                'conditions' => array(
+                    'Galaxy.id = GalaxyCluster.galaxy_id',
+                    'Galaxy.type' => 'mitre-attack-pattern',
+                ),
+            )),
+            'conditions' => array('OR' => $suffixConds),
+        ));
+
+        // Keep the best cluster per parent id (default desc, version desc, id
+        // desc), re-deriving the parent from each row's tag_name to bucket it.
+        $best = array();        // parentId => [cluster_id, value, icon, rank…]
+        foreach ($rows as $r) {
+            $techId = $this->techniqueIdFromName($r['GalaxyCluster']['tag_name']);
+            if ($techId === null) {
+                continue;
+            }
+            $parentId = $this->parentTechniqueId($techId);
+            $cand = array(
+                'cluster_id' => (int)$r['GalaxyCluster']['id'],
+                'value' => (string)$r['GalaxyCluster']['value'],
+                'icon' => isset($r['Galaxy']['icon']) ? (string)$r['Galaxy']['icon'] : '',
+                'default' => (int)$r['GalaxyCluster']['default'],
+                'version' => (int)$r['GalaxyCluster']['version'],
+            );
+            if (!isset($best[$parentId]) || $this->clusterOutranks($cand, $best[$parentId])) {
+                $best[$parentId] = $cand;
+            }
+        }
+
+        $labels = array();
+        foreach ($valueKeys as $pid) {
+            if (!isset($best[$pid])) {
+                // No parent cluster row — show the bare technique id.
+                $labels[$pid] = array('label' => (string)$pid);
+                continue;
+            }
+            $c = $best[$pid];
+            $meta = array(
+                'label' => $this->attackLabel($c['value'], $pid),
+                'drilldown' => '/galaxy_clusters/view/' . $c['cluster_id'],
+            );
+            if ($c['icon'] !== '') {
+                $meta['icon'] = $c['icon'];
+            }
+            $labels[$pid] = $meta;
+        }
+        return $labels;
+    }
+
+    /**
+     * Parse the ATT&CK technique id (`T1566` / `T1566.001`) out of an attack-
+     * pattern tag or cluster name (`misp-galaxy:mitre-attack-pattern="<value> -
+     * T1566.001"`). The trailing-quote / end-of-string anchor pins the match to
+     * the id at the very end of the name, so a stray `T<n>` inside the value
+     * can't be mistaken for it. Returns null when there is no `T<id>` suffix
+     * (tactic `TA00NN` — the `A` breaks `T\d` — or a deprecated un-suffixed
+     * name).
+     */
+    private function techniqueIdFromName($name)
+    {
+        if (preg_match('/T(\d+(?:\.\d+)?)(?:"|$)/', (string)$name, $m)) {
+            return 'T' . $m[1];
+        }
+        return null;
+    }
+
+    /**
+     * The parent technique id of a (possibly sub-) technique id: strip a
+     * trailing `.NNN` sub-technique suffix (`T1566.001` → `T1566`); a parent id
+     * is returned unchanged.
+     */
+    private function parentTechniqueId($techId)
+    {
+        $dot = strpos($techId, '.');
+        return $dot === false ? $techId : substr($techId, 0, $dot);
+    }
+
+    /**
+     * Format a parent technique's display label as "<name> (<id>)" (AD-11),
+     * deriving <name> from the cluster value by stripping its own trailing
+     * ` - T<id>` suffix (cluster values are stored as "Phishing - T1566").
+     * Falls back to the raw value, then the id, if the suffix isn't present.
+     */
+    private function attackLabel($clusterValue, $parentId)
+    {
+        $name = trim(preg_replace('/\s*-\s*T\d+(?:\.\d+)?$/', '', (string)$clusterValue));
+        if ($name === '') {
+            $name = (string)$clusterValue !== '' ? (string)$clusterValue : (string)$parentId;
+        }
+        return $name . ' (' . $parentId . ')';
     }
 }

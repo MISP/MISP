@@ -396,14 +396,50 @@ widget. Depends on Phase B1.*
 *A `dimension` config on the W1 engine, reusing W3's count machinery. Depends
 on B1 (and shares B5's ACL-correct union-distinct count).*
 
-- [ ] `mitre-attack-pattern` dimension config: tag-id set = Enterprise
+- [x] `mitre-attack-pattern` dimension config: tag-id set = Enterprise
   attack-pattern cluster tags, **grouped by parent technique** (sub-technique
   external_id `T1566.001` → parent `T1566`, ".NNN" stripped).
-- [ ] ACL-correct distinct-event count at the parent-technique level (reuse the
+  **Done:** `dimensions()` gains a `mitre-attack-pattern` entry (→
+  `countAttackPattern` / `labelsAttackPattern`); `attackPatternTagBuckets()` is
+  the tag set (`is_galaxy=1 AND name LIKE 'misp-galaxy:mitre-attack-pattern="%'`
+  — galaxy type `mitre-attack-pattern`, the Enterprise matrix; mobile/ICS/ATLAS/
+  pre/cmtmf are separate namespaces, excluded) + the `tag_id → parentId` roll-up
+  map. **Build deviation from AD-11's *suggested* mechanism (which it left "open
+  at build"):** the technique id is parsed from the tag **NAME** (`… - T1566.001`
+  → strip `.NNN` → `T1566`), NOT the `galaxy_elements` `external_id` element —
+  that element is unreliable on real data (`Capture Camera - T1512` carries
+  `external_id=APP-19`, a legacy Mobile id; rows are also duplicated). 440/452
+  tags parse a `T<id>`; the 12 that don't are 5 tactic `TA00NN` tags + 7
+  deprecated un-suffixed names — not techniques, correctly dropped. DECIDED spec
+  (scope, parent roll-up, reuse W3 count) unchanged. Helpers unit-tested
+  (sub-technique roll-up, tactic rejection, dashes-in-value).
+- [x] ACL-correct distinct-event count at the parent-technique level (reuse the
   B5 union-distinct count); cache per-org.
-- [ ] Anchors AD-05; momentum AD-03.
-- [ ] Label resolver: parent cluster `value` + `external_id` + Galaxy.icon
+  **Done:** `countThreatActor` refactored into a shared
+  `countDistinctEventsByTag($user,$start,$end,$tagIds,$bucketMap=null)` — the
+  same gather-pairs → `aclVisibleEventIds()` → per-bucket event-**set** logic,
+  but the final map keys by `$bucketMap[tag_id]` when a map is given (W4 parent
+  roll-up) else the tag_id itself (W3, behaviour preserved). `countAttackPattern`
+  delegates with the parent bucket map, so an event tagged with both a technique
+  and its sub-technique counts **once** for the parent. Per-org cache inherited
+  from the widget (`cache_scope='org'`). Matches the raw-SQL ground truth
+  (verified at B6.5).
+- [x] Anchors AD-05; momentum AD-03.
+  **Done:** inherited from the shared counter (event-tag arm bounds on
+  `Event.timestamp`, attribute-tag arm on `Attribute.timestamp`+`deleted=0`) and
+  the engine's existing AD-03 prior-window path — no W4-specific work.
+- [x] Label resolver: parent cluster `value` + `external_id` + Galaxy.icon
   (`map`), bulk-resolved; link = /galaxy_clusters/view/<parent_id>.
+  **Done:** `labelsAttackPattern()` resolves each top-N parent id → its parent
+  cluster via `galaxy_clusters.tag_name LIKE '% - T<id>"'` (one OR'd query; the
+  closing-quote anchor pins to the exact parent, never a `.NNN` sub-technique).
+  Label = `value (external_id)` ("Phishing (T1566)") via `attackLabel()`, icon =
+  `Galaxy.icon` (`map`) into the W3 `Trending.ctp` icon slot (reused, no glyph),
+  link `/galaxy_clusters/view/<parent_cluster_id>` (relative → DD-03 admits, no
+  relaxation). Non-1:1 tag→cluster deduped via the existing `clusterOutranks()`;
+  parent resolves even when only sub-techniques are tagged (it is its own
+  cluster); orphan parent falls back to the bare technique id. Matched by
+  `tag_name` (not a `tags` row) since only ~⅓ of clusters have one.
 - [ ] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
 
 ### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (⏸ PARKED — user concern 2026-06-02)
