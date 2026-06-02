@@ -1103,6 +1103,23 @@ a.misp-trending-row:focus-visible {
 a.misp-eventcards-id:hover {
   border-bottom-color: currentColor;
 }
+/* Overlap badge (analyst track — AD-W8 / OverlapWithMyOrgWidget). Present
+   only on cards carrying the optional `_analyst_overlap` payload key; absent
+   on the plain Event Card Stream (W6). Token-driven accent pill, mirroring
+   .misp-trending-delta so the two analyst surfaces read consistently. */
+.misp-eventcards-overlap {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--misp-dash-accent);
+  background: var(--misp-dash-accent-muted);
+  border-radius: var(--misp-dash-radius-sm);
+  white-space: nowrap;
+}
 /* Row 2 — the event title / info. */
 .misp-eventcards-info {
   color: var(--misp-dash-text);

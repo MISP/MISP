@@ -159,6 +159,20 @@ foreach ($rows as $ev) {
                 h($timeTitle), h($timeText));
     }
 
+    // Optional overlap badge (analyst track — AD-W8 / OverlapWithMyOrgWidget).
+    // Present only when the handler set the `_analyst_overlap` per-record key
+    // (the count of the viewer's-org events this candidate correlates to);
+    // absent on the plain Event Card Stream (W6), so this card stays
+    // unchanged there. The badge text is the AD-W8 wording.
+    $overlap = isset($ev['_analyst_overlap']) ? (int)$ev['_analyst_overlap'] : 0;
+    if ($overlap > 0) {
+        $left .= sprintf(
+            '<span class="misp-eventcards-overlap" title="%s">%s</span>',
+            h(__('This event correlates with events your organisation created')),
+            h(sprintf(__('overlaps %d of your events'), $overlap))
+        );
+    }
+
     $idHtml = '';
     if ($id !== '') {
         $eventUrl = $baseurl . '/events/view/' . rawurlencode($id);
