@@ -856,20 +856,45 @@ existing widget or handler touched. Ready for the three consumers (B11–B13).
   `time_window=-1`, `limit=10`; backup `/tmp/dash_backup.json`); persisted +
   read-back verified (12 tiles). **Phase B11 (W10 recent event reports) COMPLETE.**
 
-### Phase B12 — AD-W11 Recent Analyst Data (DECIDED, re-scoped; needs B10)
+### Phase B12 — AD-W11 Recent Analyst Data (BUILT + verified 2026-06-02)
 
-- [ ] `RecentAnalystDataWidget` (`render='FeedList'`) — two ACL'd queries (`Note`,
+- [x] `RecentAnalystDataWidget` (`render='FeedList'`) — two ACL'd queries (`Note`,
   `Opinion`) via `AnalystData::buildConditions($user)`, each `order modified DESC
-  limit N` + `contain ['Org','Orgc']`; merge + sort `modified` DESC + top-N in
-  PHP. Map to FeedList rows (type glyph · note text / opinion comment · **target
-  `object_type` chip** · org · relative `modified` · best-effort target drilldown).
-  `limit` + `time_window` settings.
-- [ ] Confirm the `perm_analyst_data` view gate (gate the widget only if viewing
-  requires it; else rely on `buildConditions`). Resolve per-target-type drilldown
-  (Event `object_uuid`→id bulk; GalaxyCluster→view; else type chip, no link).
-- [ ] Visual verification on the live instance (real render path; all-time window —
-  analyst data is ~2025-06 stale; 13 notes + 2 opinions on org-1 events but the
-  widget shows ALL visible, so ~53+27). Append to user 1's dashboard, smoke-test.
+  limit N`; merge + sort `modified` DESC + top-N in PHP. Map to FeedList rows
+  (sticky-note / balance-scale glyph · note text / opinion comment as title ·
+  **type chip + humanized target `object_type` chip** · author org · relative
+  `modified` · best-effort target drilldown). Opinion: comment → title, score →
+  `Opinion score: N/100` subtitle (or score as title when no comment).
+  `limit` (int 10, 1–50) + `time_window` (default `-1`) typed `$schema`; no cache.
+  Shared markdown-cleaner (same as W10) tidies note/opinion text. *Build note:*
+  the model's `Org`/`Orgc` belongsTo is a **uuid-keyed `foreignKey=false`** custom
+  association that does NOT hydrate reliably through Containable here, so the
+  author org is resolved by an explicit **bulk `Organisation.find('list',
+  uuid=>name)`** (deterministic, one extra query) instead of `contain`. `modified`
+  (UTC) → epoch via `strtotime(... ' UTC')`; window bound via `gmdate`. `php -l`
+  clean.
+- [x] Confirm the `perm_analyst_data` view gate + resolve drilldown. *Done:*
+  viewing is **NOT** gated by `perm_analyst_data` — `AnalystDataController::index()`
+  gates only via `buildConditions` (distribution ACL); the `perm_analyst_data`
+  check in that controller is on a **sync** action, not viewing. So the widget
+  matches controller parity with no extra perm gate. Drilldown: **Event** targets
+  → `/events/view/<object_uuid>` (`Events::view` resolves a uuid — confirmed in
+  code AND click-tested live: `http=200`); all other target types show the
+  humanized type chip with **no link** (richer per-type linking is a noted
+  follow-up). All DD-03-gated.
+- [x] Visual verification on the live instance (real render path) + board append.
+  *Done:* (1) REST `renderWidget` (`time_window=-1`; data ~2025-06 stale) →
+  `renderer:FeedList`, 8 rows; **org resolves to `Iglocska`** (the bulk-lookup fix
+  — was empty with the broken Containable join), **merge correct** (note 2025-06-21
+  → opinion 2025-06-11 → notes, all by `modified` desc), Opinion shows
+  `Opinion score: 80/100`. (2) Web-UI POST+session → real `FeedList.ctp` HTML,
+  http 200, **0 PHP errors**: 8 items, 16 chips (type + target each), 7
+  `fas fa-sticky-note` + 1 `fas fa-balance-scale` (live FontAwesome), 1 `→` (only
+  the Event-targeted row), 8 resolved orgs. (3) Screenshot on the real CSS
+  (`/home/iglocska/b12_analyst.png`) confirms the visual. Appended to user 1's
+  dashboard as **`w_17`**; persisted + read-back verified (13 tiles). **Phase B12
+  (W11 recent analyst data) COMPLETE.** (Dev corpus is test junk — "test"/"aaaa" —
+  rendered faithfully; not a widget issue.)
 
 ### Phase B13 — AD-W12 Recently Added Galaxy Clusters (DECIDED; needs B10)
 
