@@ -60,6 +60,17 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | **DECLINED** (AD-16) | dropped: the sighting ACL is a shitshow (widget-level `perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow / unused by some — not worth the untangling. Existing sightings widgets left as-is; analyst surface is complete at W1–W8 |
+| AD-W10 | **Recent Event Reports** (feed) | new | DECIDED | spec locked (AD-18): N newest visible Event Reports via `fetchReports`, reverse-chron, `FeedList` render; recency = `EventReport.timestamp` |
+| AD-W11 | **Recent Analyst Data** (feed) | new | DECIDED | spec locked (AD-19, re-scoped): newest visible **Notes + Opinions** (any target type, target type **shown**), `buildConditions` ACL, `modified` recency, `FeedList` render. No my-org-events filter (drops the IN-list trap) |
+| AD-W12 | **Recently Added Galaxy Clusters** (feed) | new | DECIDED | spec locked (AD-20): N newest **local** clusters (`default=0`) via `fetchGalaxyClusters`, recency = `version` (add-or-update), `FeedList` render + Galaxy.icon |
+
+> **⤳ TRACK REOPENED (2026-06-02).** After the W1–W8 surface shipped, the user
+> requested **three new feed-style widgets** — W10 (new reports), W11 (analyst
+> data visible to me), W12 (new local galaxy clusters) — all serving job 1
+> ("what's new"), all on a single **new shared render kind `FeedList`** (AD-17;
+> the user explicitly opened "new UI" as in-scope). Pure additions (new widget
+> classes + one new render template/CSS/glyph; no existing widget or handler
+> touched). AD-W9 stays DECLINED. Decision log resumes at **AD-17**.
 
 ## 4. Cross-cutting decisions (first-pass; detail to follow)
 
@@ -517,6 +528,149 @@ for that is indeed a shitshow"). W9 is **dropped from the roster**; the existing
 sightings widgets are left exactly as-is. The analyst widget surface is
 **complete at W1–W8**.
 
+### Shared render kind — `FeedList`  `DECIDED` (AD-17)
+
+A **new read-only render kind** serving all three of W10/W11/W12 (the user
+chose it over reusing Index/SimpleList — see AD-17). Output shape = a
+**reverse-chronological feed of "recently added" items**, each row:
+
+```
+[icon]  TITLE                                  → (whole row links if drilldown)
+        org · relative-time · context     [chip] [chip]
+        "optional snippet / subtitle, truncated"
+```
+
+- **Payload contract** = a **flat list of row dicts** (bare handler return, no
+  `{data:}` wrapper — same posture as `Trending.ctp` / `StatGrid.ctp`). Per row
+  (all optional except `title`):
+  - `title` (string, **required**) — primary line.
+  - `icon` (string) — FontAwesome name, rendered via the FontAwesome helper
+    (reuse the `Trending.ctp` icon slot pattern).
+  - `org` (string) — author/owner org name → first meta segment.
+  - `timestamp` (int, epoch) — rendered as relative time ("5w ago") in the
+    meta line (template computes; tooltip = ISO).
+  - `context` (string) — a context descriptor in the meta line (e.g.
+    "Event #1842", "on Attribute").
+  - `chips` (string[]) — small muted pills (e.g. analyst-data type / target
+    object type / galaxy type). The W11 "show the target object type"
+    requirement rides here.
+  - `subtitle` (string) — snippet / secondary text, template-truncated.
+  - `drilldown` (string) — makes the whole row a link (shows the `→` affordance);
+    **DD-03-gated** via `DashboardURLValidator` exactly like `Trending.ctp`.
+- **Token-driven CSS, no inline styles** (mirror `EventCards.ctp` /
+  `StatGrid.ctp`); reuse existing semantic tokens so the global midnight overlay
+  themes it for free (no overlay edit — [[project_misp_dark_theme_sequencing]]).
+- **New render kind ⇒ a glyph** in `render-thumbs.mjs` (CLAUDE.md rule):
+  `thumbFeedList()` — a stack of feed rows (leading dot/icon + a title line + a
+  shorter meta line), distinct from `EventCards` (receding cards), `SimpleList`
+  (bare rows), `StatGrid` (2×2 grid).
+- **Shared widget settings** (all three): `limit` (int, default 10 — the feed is
+  **N-newest-bounded**, so it always shows content regardless of corpus age) and
+  `time_window` (the track-wide canonical, default **`-1` = no time filter**;
+  set it to scope the feed to a recent window). Read-only (no in-body controls);
+  filters/scope ride the toolbar like the rest of the track.
+
+### AD-W10 — Recent Event Reports  `DECIDED`
+
+**Locked (2026-06-02):** A new widget (`RecentEventReportsWidget`,
+`render=FeedList`) listing the **N newest Event Reports visible to the viewer**,
+reverse-chronological. Serves job 1 ("what's new").
+
+- **Fetch** = `EventReport->fetchReports($user, ['conditions' => ['EventReport.deleted' => 0
+  (+ optional `EventReport.timestamp >=` when a finite `time_window` is set)],
+  'order' => ['EventReport.timestamp' => 'DESC'], 'limit' => N])`. ACL is **inside
+  `fetchReports` → `buildACLConditions($user)`** (reuses `Event::createEventConditions`
+  + the report's own distribution / sharing-group; site-admin sees all) — clean,
+  not a W9 trap. `contain` the parent `Event` + `Orgc` for the org/event display.
+- **Recency anchor** = `EventReport.timestamp` (epoch; set on create, bumped on
+  edit → honestly "recently created or updated").
+- **Row mapping** → `icon` = a report/document glyph (`file-text-o`-ish);
+  `title` = `EventReport.name`; `subtitle` = a stripped/truncated `content`
+  snippet; `org` = `Orgc.name`; `timestamp` = `EventReport.timestamp`; `context`
+  = "Event #<event_id>"; `drilldown` = `/eventReports/view/<id>` (relative →
+  DD-03 admits, no relaxation).
+- **No per-org cache** — like W6 this is a per-user ACL'd fetch (`fetchReports`
+  enforces ACL per caller); it re-fetches live. (Cheap: indexed `timestamp` +
+  `LIMIT N`.)
+
+**Open at build (not blocking spec):** the exact content-snippet strip/length;
+whether the card links to the report (`/eventReports/view`) or the parent event
+(chosen: the report — it's the "new thing"); the report glyph name.
+
+### AD-W11 — Recent Analyst Data  `DECIDED`
+
+**Locked (2026-06-02) — RE-SCOPED from the original "on my org's events" brief.**
+The user dropped the my-org-events filter (it would need a child-UUID `IN` list
+— a feasibility/perf risk, W9-adjacent) in favour of the simpler, strictly safe
+**"newest analyst data the current user can view."** New widget
+(`RecentAnalystDataWidget`, `render=FeedList`).
+
+- **Scope** = **Notes + Opinions only** (Relationships dropped — they're
+  object-to-object structural links, not commentary, and sparse), **any target
+  object type** (Event / Attribute / Object / GalaxyCluster / …), with the
+  **target object type shown on every row** (user's explicit requirement).
+- **Fetch** = two ACL'd queries — `Note` and `Opinion` — each
+  `find('all', ['conditions' => $Model->buildConditions($user) (+ optional
+  `modified >=` window), 'order' => ['modified' => 'DESC'], 'limit' => N,
+  'contain' => ['Org','Orgc']])`, then **merge + sort by `modified` DESC + take
+  top N** in PHP. `buildConditions` (`AnalystData` base) applies org_uuid +
+  distribution + sharing-group ACL; site-admin sees all. **No event-UUID
+  pre-filter, no transitive child mapping** — the re-scope's whole point.
+- **Recency anchor** = `modified` (datetime; the base recency field).
+- **Row mapping** → `icon` = type glyph (Note → `sticky-note`/`comment`,
+  Opinion → `balance-scale`/`thumbs`); `title` = the note text (Note) or the
+  opinion `comment` (Opinion), stripped/truncated; `subtitle` = for Opinion, the
+  `opinion` value (0–100) rendered (e.g. "Opinion: 76/100"); `chips` = the
+  **target `object_type`** label (+ the analyst-data type Note/Opinion if not in
+  the icon); `org` = `Orgc.name`; `timestamp` = `modified`; `drilldown` =
+  best-effort to the target (Event → `/events/view/<id>` resolved from
+  `object_uuid`; GalaxyCluster → `/galaxy_clusters/view`; else the analyst-data
+  item view or no link), DD-03-gated.
+- **Permission gate** — confirm at build whether viewing requires
+  `perm_analyst_data` (the recon flagged it as the analyst-data perm) or whether
+  the distribution ACL (`buildConditions`) suffices; gate the widget only if
+  required.
+- **No per-org cache** — per-user ACL'd fetch, re-fetched live.
+
+**Open at build (not blocking spec):** the exact per-target-type drilldown
+resolution (which types get a link vs a bare type chip); the Opinion-value
+rendering; whether to resolve Event `object_uuid` → id for the link in one bulk
+query; the `perm_analyst_data` gate question above.
+
+### AD-W12 — Recently Added Galaxy Clusters  `DECIDED`
+
+**Locked (2026-06-02):** A new widget (`RecentGalaxyClustersWidget`,
+`render=FeedList`) listing the **N newest LOCAL galaxy clusters** (`default=0`)
+visible to the viewer, reverse-chronological. Serves job 1 ("what's new").
+
+- **Population = local clusters only (`default=0`)** (user fork): the shipped
+  `default=1` clusters (63k on the dev box) are bulk-imported with batch
+  `version` dates, so including them would flood the feed with "new" clusters on
+  every sync/import — noise. `default=0` (locally created / forked) is the
+  genuinely user-"added" set.
+- **Fetch** = `GalaxyCluster->fetchGalaxyClusters($user, ['conditions' =>
+  ['GalaxyCluster.default' => 0, 'GalaxyCluster.deleted' => 0 (+ optional
+  `GalaxyCluster.version >=` window)], 'order' => ['GalaxyCluster.version' =>
+  'DESC'], 'limit' => N], $full=false)` with the parent `Galaxy` joined for
+  `icon`/`type` (the `TrendingWidget` threat-actor label hook already does this
+  join — reuse the pattern). ACL is inside `fetchGalaxyClusters →
+  buildConditions` (org / distribution / sharing-group + parent-galaxy access).
+- **Recency anchor** = `version` (epoch — the **only** timestamp on the table;
+  set on create **and** edit, so the widget is honestly "recently added or
+  updated"; label the time accordingly). A few legacy rows carry `version≈0` →
+  they sort to the bottom and a finite window drops them.
+- **Row mapping** → `icon` = `Galaxy.icon` (FA, via the helper); `title` =
+  `GalaxyCluster.value`; `subtitle` = the galaxy name + (optional) a short
+  `description` snippet; `chips` = the galaxy `type` (e.g. "threat-actor");
+  `org` = `Orgc.name`; `timestamp` = `version`; `drilldown` =
+  `/galaxy_clusters/view/<id>` (relative → DD-03 admits).
+- **No per-org cache** — per-user ACL'd fetch, re-fetched live.
+
+**Open at build (not blocking spec):** whether to expose an optional
+`galaxy_type` filter (deferred — keep v1 minimal); the description-snippet
+length; confirming `fetchGalaxyClusters` returns `Galaxy.icon`/`Orgc.name` at
+`$full=false` (else bump to a targeted contain/join).
+
 ## 6. Decision log (AD-NN)
 
 **AD-01 — 2026-05-31 — One parametrised `Trending` widget + a new
@@ -766,6 +920,62 @@ sightings widget is built, and the existing `RecentSightingsWidget` /
 `ThresholdSightingsWidget` are left unchanged. The analyst widget surface is
 **COMPLETE at W1–W8** (all built + verified through Phases B1–B9). No further
 build phase; the track is done barring user-requested follow-ups.
+
+**AD-17 — 2026-06-02 — TRACK REOPENED: three new feed widgets (W10/W11/W12) on
+one new shared render kind `FeedList`.** Refs: user request (this session),
+CLAUDE.md glyph rule, [[feedback_additive_only_posture]], the AskUserQuestion
+render fork. After W1–W8 shipped, the user asked for three "what's new" widgets —
+new reports, analyst data they can see, new galaxy clusters — and explicitly put
+"new UI" in scope. All three are the **same output shape**: a reverse-chron feed
+of recently-added items (icon · title · org·time·context meta · optional snippet ·
+optional chips). The existing render kinds don't fit cleanly (SimpleList too thin;
+Index a dense table; EventCards event-specific), so the **user chose a new shared
+`FeedList` render kind** over reuse — one new render template + CSS block + one
+gallery glyph, serving all three cohesively (more economical and consistent than
+three mismatched reuses). **Pure additive:** three new widget classes + the new
+render kind; **no existing widget or handler is touched** (CSS-append +
+render-thumbs glyph are the established additive track patterns from B1/B3/B8). All
+three are **per-user ACL'd live fetches** (no per-org cache — like W6) and
+**N-newest-bounded** (`limit`, default 10) with an optional `time_window` filter
+(default `-1`). Full contract in §5 "Shared render kind — `FeedList`".
+
+**AD-18 — 2026-06-02 — AD-W10 (Recent Event Reports) DECIDED.** Refs: AD-17
+(FeedList), EventReport recon. `RecentEventReportsWidget` (`render=FeedList`)
+lists the N newest visible Event Reports, reverse-chron by `EventReport.timestamp`.
+Fetch via `EventReport->fetchReports($user, …)` whose `buildACLConditions` reuses
+`Event::createEventConditions` + the report distribution/SG (clean ACL, not a W9
+trap); `deleted=0`; optional `timestamp` window bound. Row = report glyph · name ·
+content snippet · `Orgc.name` · relative time · "Event #<id>" context · drilldown
+`/eventReports/view/<id>` (DD-03-admitted relative link). No cache (per-user
+ACL'd, cheap indexed `LIMIT N`). Full spec §5 AD-W10.
+
+**AD-19 — 2026-06-02 — AD-W11 (Recent Analyst Data) DECIDED — RE-SCOPED.** Refs:
+AD-17, AnalystData recon, user re-scope. The original brief ("analyst data on my
+org's events") would need a child-UUID `IN` list to catch notes on attributes/
+objects inside my events — a feasibility/perf risk the user flagged ("I am indeed
+worried about the child UUID in list"). The user **re-scoped to "the newest analyst
+data the current user can view"** — no my-org filter, **Notes + Opinions only**
+(Relationships dropped as structural/sparse), **any target object type with the
+target type displayed**. Fetch = two ACL'd queries (`Note`, `Opinion`) via
+`AnalystData::buildConditions($user)` (org_uuid + distribution + SG), ordered by
+`modified` DESC, merged + top-N in PHP. This is **strictly simpler and safer** than
+the original (one of the rare cases where the re-scope removes risk rather than
+adding it). Row = type glyph · note text / opinion comment · target-type chip ·
+`Orgc.name` · relative `modified` · best-effort target drilldown. Confirm the
+`perm_analyst_data` view gate at build. No cache. Full spec §5 AD-W11.
+
+**AD-20 — 2026-06-02 — AD-W12 (Recently Added Galaxy Clusters) DECIDED.** Refs:
+AD-17, GalaxyCluster recon, user fork (local only). `RecentGalaxyClustersWidget`
+(`render=FeedList`) lists the N newest **local** clusters (`default=0`) visible to
+the viewer, reverse-chron by `version`. **Local-only** because the 63k shipped
+(`default=1`) clusters carry batch import `version` dates → including them would
+flood the feed on every sync (user chose local). `version` is the only timestamp
+(set on create AND edit) → labeled "added or updated". Fetch via
+`GalaxyCluster->fetchGalaxyClusters($user, …)` (`buildConditions` ACL + parent-
+galaxy access), parent `Galaxy` joined for `icon`/`type` (reuse the TrendingWidget
+threat-actor join). Row = `Galaxy.icon` · `value` · galaxy name/type chip ·
+`Orgc.name` · relative `version` · drilldown `/galaxy_clusters/view/<id>`. No
+cache. Full spec §5 AD-W12.
 
 ## 7. Open meta-questions (resolve early)
 

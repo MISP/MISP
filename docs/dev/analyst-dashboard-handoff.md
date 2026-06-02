@@ -1,12 +1,24 @@
 # Analyst Dashboard — Session handoff
 
-**State (2026-06-02):** the analyst dashboard track is **COMPLETE**. W1–W8 are
-all BUILT + verified (Phases B1–B9); **W9 (sightings rework) is DECLINED
-(AD-16)** — dropped at spec time because the sighting ACL is intractable for an
-analyst widget (existing sightings widgets gate on `perm_site_admin` while
-`Sighting->restSearch` is user-scoped) and the engine is slow / patchily used;
-the user declined ("the ACL for that is indeed a shitshow"). **No active work
-remains** — anything further is user-requested follow-up only (see end).
+**State (2026-06-02):** core surface W1–W8 is COMPLETE (Phases B1–B9); **W9 is
+DECLINED (AD-16)**. The track is **REOPENED (AD-17)** for a **new feed-widget
+batch W10–W12** — three "what's new" widgets (new reports · analyst data the
+viewer can see · new local galaxy clusters) on a **new shared render kind
+`FeedList`**. **Specs DECIDED (AD-17..20); BUILD is the active work**, phases
+**B10 (FeedList render) → B11 (W10) → B12 (W11) → B13 (W12)** — see the tracker's
+"Feed-widget batch" section. FeedList first (the three widgets render it).
+
+**Why these / how scoped (the forks, all via AskUserQuestion):** render = a new
+`FeedList` kind, not Index/SimpleList reuse (user chose new UI). **W11 was
+RE-SCOPED** off the original "analyst data on my org's events" brief — that needed
+a child-UUID `IN` list (perf/feasibility risk the user flagged) → now just "newest
+analyst data the viewer can see", **Notes+Opinions only**, any target type with
+the **target type shown**. **W12 = local clusters only** (`default=0`; shipped
+clusters carry batch import dates → noise). All three are per-user ACL'd live
+fetches (no per-org cache), N-newest-bounded (`limit`, default 10) + optional
+`time_window`. None is a W9-style ACL trap (recon-verified). **Additive** — three
+new widget classes + one new render kind (template + CSS-append + glyph); no
+existing widget/handler touched.
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge is
 `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track builds
@@ -57,8 +69,10 @@ promotions:
   the field help. Only freeform dicts/arrays (AttackWidget `filters`,
   EventStream `fields`) legitimately stay raw/advanced.
 
-## TRACK COMPLETE — no active work
-W1–W8 are all BUILT + verified (Phases B1–B9). **W9 is DECLINED (AD-16):** the
+## Core W1–W8 done · W9 declined · feed batch W10–W12 active
+W1–W8 are all BUILT + verified (Phases B1–B9); the feed-widget batch W10–W12
+(Phases B10–B13) is the active work (see the top of this file + the tracker).
+**W9 is DECLINED (AD-16):** the
 W9 spec-time recon surfaced that both existing sightings widgets
 (`RecentSightingsWidget`, `ThresholdSightingsWidget`) gate on `perm_site_admin`
 via `checkPermissions()`, while `Sighting->restSearch($user, …)` is itself
@@ -131,10 +145,14 @@ newest 2026-03-24, events ~2026-05-29) — use wide / all-time windows.
   tracks ship together.
 
 ## Quick-start for next session
-**The track is done — there is no queued analyst-dashboard work.** W1–W8 BUILT +
-verified (B1–B9); W9 DECLINED (AD-16). If the user opens new analyst-dashboard
-work, it's a fresh request — read the tracker's "✅ ANALYST DASHBOARD TRACK
-COMPLETE" marker + PRD §3 roster for the as-built state, and the "Follow-ups"
-list above for the only loose ends (all user-requested, none queued). For
-anything new, carry the Conventions below (additive-only, commit-per-task signed,
-AD-NN numbering — next would be **AD-17**, verify via the real render path).
+**Active work = the feed-widget batch W10–W12 (AD-17..20).** Next build task =
+**Phase B10**: the new shared **`FeedList`** render kind (`FeedList.ctp` + a
+`.misp-feedlist-*` CSS block in `dashboard.default.css` + a `thumbFeedList()` glyph
+in `render-thumbs.mjs` — new render kind ⇒ glyph, CLAUDE.md). Contract in PRD §5
+"Shared render kind — `FeedList`" (bare flat row-list, like Trending/StatGrid).
+Then B11 (`RecentEventReportsWidget`) → B12 (`RecentAnalystDataWidget`, re-scoped)
+→ B13 (`RecentGalaxyClustersWidget`), each `render='FeedList'`. See the tracker's
+"Feed-widget batch (W10/W11/W12)" section for the task list + dev-corpus windows.
+Carry the Conventions below (additive-only, commit-per-task signed, AD-NN — next
+free = **AD-21**, verify via the real render path). Core W1–W8 is done (B1–B9); W9
+DECLINED (AD-16).

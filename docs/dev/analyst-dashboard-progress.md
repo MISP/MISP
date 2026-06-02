@@ -58,6 +58,15 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13, AD-14) | `[x]` **BUILT** (Phase B8; correlation-anchored, EventCards + overlap badge, `exclude_own_org` setting) |
 | AD-W9 | Sightings rework | `DECLINED` (AD-16) | **dropped** — sighting ACL shitshow (`perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow/unused; not built |
+| AD-W10 | Recent Event Reports (feed) | `DECIDED` (AD-18) | `[ ]` not started (Phase B11; needs B10 FeedList) |
+| AD-W11 | Recent Analyst Data (feed) | `DECIDED` (AD-19, re-scoped) | `[ ]` not started (Phase B12; needs B10 FeedList) |
+| AD-W12 | Recently Added Galaxy Clusters (feed) | `DECIDED` (AD-20) | `[ ]` not started (Phase B13; needs B10 FeedList) |
+
+**⤳ TRACK REOPENED (2026-06-02, AD-17):** the user requested **three new
+feed-style widgets** (W10 reports · W11 analyst data I can see · W12 new local
+clusters), all on a **new shared `FeedList` render kind**. New build phases
+**B10 (FeedList render) → B11 → B12 → B13** (FeedList first; the three widgets
+depend on it). Build order below.
 
 ## Spec log (this track's planning tasks)
 
@@ -106,6 +115,18 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 **✅ SPEC PHASE COMPLETE (2026-06-01)** — W1–W8 all DECIDED (AD-01..13); W9
 deferred. The work is now BUILD, starting at Phase B1 (W1 engine). Confirm with
 the user before starting (they may recompose the analyst `template.json` first).
+
+- [x] **W10/W11/W12 batch spec → DECIDED (2026-06-02, AD-17..20).** Track
+  reopened on user request: three new "what's new" feed widgets on a **new shared
+  `FeedList` render kind** (user chose new UI over reusing Index/SimpleList).
+  Forks resolved via AskUserQuestion: render = new `FeedList` (AD-17); **W11
+  re-scoped** — newest analyst data the viewer can see, **Notes+Opinions**, any
+  target type, target type shown (drops the my-org-events child-UUID `IN`-list
+  risk, AD-19); **W12 local clusters only** `default=0` (AD-20). Dev-corpus reality
+  check (verify with wide windows): 437 reports (newest 2026-04-26); 53 notes /
+  27 opinions visible; 445 local clusters (newest 2026-04-14). All three are
+  per-user ACL'd live fetches, N-newest-bounded. New build phases B10–B13. Full
+  spec PRD §5 (AD-W10/11/12 + "Shared render kind — FeedList") + §6 AD-17..20.
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -750,17 +771,93 @@ platform/JS/handler change; additive posture held throughout.
 
 ---
 
-## ✅ ANALYST DASHBOARD TRACK COMPLETE (2026-06-02)
+## Feed-widget batch (W10/W11/W12) — REOPENED 2026-06-02 (AD-17..20)
 
-**W1–W8 all BUILT + verified (Phases B1–B9); W9 DECLINED (AD-16).** There is no
-remaining build phase. W9 (sightings rework) was dropped at spec time because the
-sighting ACL is intractable for an analyst-facing widget (the existing widgets
-gate on `perm_site_admin` while `Sighting->restSearch` is user-scoped) and the
-engine is slow / patchily used — user-declined. The existing sightings widgets
+Build order: **B10 (FeedList render) → B11 (W10 reports) → B12 (W11 analyst
+data) → B13 (W12 clusters)**. FeedList first (the three widgets all render it).
+All three: new widget class + `render='FeedList'`, per-user ACL'd live fetch (no
+per-org cache — like W6), N-newest-bounded (`limit`, default 10) with an optional
+`time_window` filter (default `-1`). **Additive** — no existing widget/handler
+touched (CSS-append + render-thumbs glyph are the established B1/B3/B8 patterns).
+**Dev-corpus is stale vs the 2026-06-02 box clock** → verify with wide/all-time
+windows (reports newest 2026-04-26; analyst data ~2025-06; local clusters newest
+2026-04-14).
+
+### Phase B10 — `FeedList` render kind (NEXT; shared infra, AD-17)
+
+- [ ] New render kind **`FeedList`** — `FeedList.ctp`: reverse-chron feed rows
+  (`icon` · `title` · meta line `org · relative-time · context` · optional
+  `chips[]` pills · optional `subtitle` snippet · whole-row `drilldown`). Bare
+  handler return = flat row list (no `{data:}` wrapper, like Trending/StatGrid).
+  Token-driven CSS `.misp-feedlist-*` appended to `dashboard.default.css` (reuse
+  existing semantic tokens so the midnight overlay themes it for free); reuse the
+  `Trending.ctp` FontAwesome icon-slot helper + the DD-03 `drilldown` gate.
+- [ ] Glyph for `FeedList` in `render-thumbs.mjs` (**CLAUDE.md rule** — new render
+  kind ⇒ glyph): `thumbFeedList()` (stacked feed rows: leading dot + title line +
+  shorter meta line) + REGISTRY entry under `FeedList:`. `node --check` clean.
+- [ ] Verify the render contract end-to-end with a synthetic FeedList payload
+  through the real render path (renderWidget → render_widget.ctp → FeedList.ctp):
+  all row keys consumed, DD-03 gate admits relative / drops off-host, missing
+  optional keys degrade gracefully. Screenshot against the real CSS (light +
+  midnight). (Real-widget data lands in B11–B13.)
+
+### Phase B11 — AD-W10 Recent Event Reports (DECIDED; needs B10)
+
+- [ ] `RecentEventReportsWidget` (`render='FeedList'`) — fetch the N newest visible
+  reports via `EventReport->fetchReports($user, ['conditions'=>['EventReport.deleted'=>0
+  (+ optional `timestamp >=` window)], 'order'=>['EventReport.timestamp'=>'DESC'],
+  'limit'=>N])` (ACL inside `buildACLConditions`); `contain` Event + Orgc. Map to
+  FeedList rows (report glyph · name · content snippet · org · relative time ·
+  "Event #<id>" context · `/eventReports/view/<id>` drilldown). `limit` +
+  `time_window` settings (typed `$schema`, B9 convention).
+- [ ] Visual verification on the live instance (real render path; wide window —
+  newest report is 2026-04-26). Append to user 1's dashboard (standing pref;
+  back up `/tmp/dash_backup.json` first), smoke-test.
+
+### Phase B12 — AD-W11 Recent Analyst Data (DECIDED, re-scoped; needs B10)
+
+- [ ] `RecentAnalystDataWidget` (`render='FeedList'`) — two ACL'd queries (`Note`,
+  `Opinion`) via `AnalystData::buildConditions($user)`, each `order modified DESC
+  limit N` + `contain ['Org','Orgc']`; merge + sort `modified` DESC + top-N in
+  PHP. Map to FeedList rows (type glyph · note text / opinion comment · **target
+  `object_type` chip** · org · relative `modified` · best-effort target drilldown).
+  `limit` + `time_window` settings.
+- [ ] Confirm the `perm_analyst_data` view gate (gate the widget only if viewing
+  requires it; else rely on `buildConditions`). Resolve per-target-type drilldown
+  (Event `object_uuid`→id bulk; GalaxyCluster→view; else type chip, no link).
+- [ ] Visual verification on the live instance (real render path; all-time window —
+  analyst data is ~2025-06 stale; 13 notes + 2 opinions on org-1 events but the
+  widget shows ALL visible, so ~53+27). Append to user 1's dashboard, smoke-test.
+
+### Phase B13 — AD-W12 Recently Added Galaxy Clusters (DECIDED; needs B10)
+
+- [ ] `RecentGalaxyClustersWidget` (`render='FeedList'`) — fetch N newest **local**
+  clusters via `GalaxyCluster->fetchGalaxyClusters($user, ['conditions'=>
+  ['GalaxyCluster.default'=>0,'GalaxyCluster.deleted'=>0 (+ optional `version >=`
+  window)], 'order'=>['GalaxyCluster.version'=>'DESC'], 'limit'=>N], false)` with
+  parent `Galaxy` joined for `icon`/`type` (reuse the TrendingWidget threat-actor
+  join). Map to FeedList rows (`Galaxy.icon` · value · galaxy type chip · org ·
+  relative `version` · `/galaxy_clusters/view/<id>` drilldown). `limit` +
+  `time_window` settings.
+- [ ] Confirm `fetchGalaxyClusters($full=false)` returns `Galaxy.icon`/`Orgc.name`
+  (else add a targeted contain/join). Visual verification (real render path;
+  all-time/365d window — newest local cluster 2026-04-14). Append to user 1's
+  dashboard, smoke-test.
+
+---
+
+## ✅ ANALYST DASHBOARD CORE COMPLETE (W1–W8, 2026-06-02) · feed batch W10–W12 in progress
+
+**W1–W8 all BUILT + verified (Phases B1–B9); W9 DECLINED (AD-16).** The original
+analyst surface is complete. **Reopened 2026-06-02 (AD-17):** a feed-widget batch
+W10–W12 (Phases B10–B13 above) is the active work. W9 (sightings rework) stays
+dropped — the sighting ACL is intractable for an analyst-facing widget (existing
+widgets gate on `perm_site_admin` while `Sighting->restSearch` is user-scoped) and
+the engine is slow / patchily used; user-declined. The existing sightings widgets
 are left untouched.
 
-Anything further is **user-requested follow-up only**, e.g.: clear `w_8`'s stale
-2023 `filters.timestamp`; a heatmap-tile default-width bump; the richer
+Other user-requested follow-ups (none queued): clear `w_8`'s stale 2023
+`filters.timestamp`; a heatmap-tile default-width bump; the richer
 `tags`→`tag_filter` chip picker on EventStreamWidget (needs a handler change —
 main-track touch, sign-off); the user recomposes the analyst `template.json`
 (their job).
