@@ -60,9 +60,9 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | **DECLINED** (AD-16) | dropped: the sighting ACL is a shitshow (widget-level `perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow / unused by some — not worth the untangling. Existing sightings widgets left as-is; analyst surface is complete at W1–W8 |
-| AD-W10 | **Recent Event Reports** (feed) | new | DECIDED | spec locked (AD-18): N newest visible Event Reports via `fetchReports`, reverse-chron, `FeedList` render; recency = `EventReport.timestamp` |
-| AD-W11 | **Recent Analyst Data** (feed) | new | DECIDED | spec locked (AD-19, re-scoped): newest visible **Notes + Opinions** (any target type, target type **shown**), `buildConditions` ACL, `modified` recency, `FeedList` render. No my-org-events filter (drops the IN-list trap) |
-| AD-W12 | **Recently Added Galaxy Clusters** (feed) | new | DECIDED | spec locked (AD-20): N newest **local** clusters (`default=0`) via `fetchGalaxyClusters`, recency = `version` (add-or-update), `FeedList` render + Galaxy.icon |
+| AD-W10 | **Recent Event Reports** (feed) | new | **BUILT** (B11) | AD-18: N newest visible Event Reports (direct ACL find reusing `buildACLConditions`), reverse-chron by `EventReport.timestamp`, `FeedList` render. `w_16` |
+| AD-W11 | **Recent Analyst Data** (feed) | new | **BUILT** (B12) | AD-19 (re-scoped): newest visible **Notes + Opinions** (any target type, target type **shown** as a chip), `buildConditions` ACL, `modified` recency, `FeedList`; org via bulk lookup. `w_17` |
+| AD-W12 | **Recently Added Galaxy Clusters** (feed) | new | **BUILT** (B13) | AD-20: N newest **local** clusters (`default=0`), direct ACL find (not `fetchGalaxyClusters` — dropped order/hydration), recency = `version`, `FeedList` + Galaxy.icon; XSS-safe. `w_18` |
 
 > **⤳ TRACK REOPENED (2026-06-02).** After the W1–W8 surface shipped, the user
 > requested **three new feed-style widgets** — W10 (new reports), W11 (analyst

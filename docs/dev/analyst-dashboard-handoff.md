@@ -1,12 +1,13 @@
 # Analyst Dashboard — Session handoff
 
-**State (2026-06-02):** core surface W1–W8 is COMPLETE (Phases B1–B9); **W9 is
-DECLINED (AD-16)**. The track is **REOPENED (AD-17)** for a **new feed-widget
-batch W10–W12** — three "what's new" widgets (new reports · analyst data the
+**State (2026-06-02):** core surface W1–W8 COMPLETE (B1–B9); **W9 DECLINED
+(AD-16)**. The **feed-widget batch W10–W12 (AD-17..20) is now BUILT + verified**
+(Phases B10–B13) — three "what's new" widgets (new reports · analyst data the
 viewer can see · new local galaxy clusters) on a **new shared render kind
-`FeedList`**. **Specs DECIDED (AD-17..20); BUILD is the active work**, phases
-**B10 (FeedList render) → B11 (W10) → B12 (W11) → B13 (W12)** — see the tracker's
-"Feed-widget batch" section. FeedList first (the three widgets render it).
+`FeedList`**. All on user 1's board (`w_16`/`w_17`/`w_18`). **No active build work
+remains** — the analyst surface now spans W1–W8 + W10–W12. Anything further is
+user-requested follow-up. Commits: spec `ab2129be6`; B10 `d3c5352b6`; B11
+`849786854`; B12 `4986ef9ad`; B13 `400ac0f10`.
 
 **Why these / how scoped (the forks, all via AskUserQuestion):** render = a new
 `FeedList` kind, not Index/SimpleList reuse (user chose new UI). **W11 was
@@ -145,14 +146,16 @@ newest 2026-03-24, events ~2026-05-29) — use wide / all-time windows.
   tracks ship together.
 
 ## Quick-start for next session
-**Active work = the feed-widget batch W10–W12 (AD-17..20).** Next build task =
-**Phase B10**: the new shared **`FeedList`** render kind (`FeedList.ctp` + a
-`.misp-feedlist-*` CSS block in `dashboard.default.css` + a `thumbFeedList()` glyph
-in `render-thumbs.mjs` — new render kind ⇒ glyph, CLAUDE.md). Contract in PRD §5
-"Shared render kind — `FeedList`" (bare flat row-list, like Trending/StatGrid).
-Then B11 (`RecentEventReportsWidget`) → B12 (`RecentAnalystDataWidget`, re-scoped)
-→ B13 (`RecentGalaxyClustersWidget`), each `render='FeedList'`. See the tracker's
-"Feed-widget batch (W10/W11/W12)" section for the task list + dev-corpus windows.
-Carry the Conventions below (additive-only, commit-per-task signed, AD-NN — next
-free = **AD-21**, verify via the real render path). Core W1–W8 is done (B1–B9); W9
-DECLINED (AD-16).
+**No queued analyst-dashboard work.** The feed-widget batch W10–W12 (Phases
+B10–B13) is **BUILT + verified** and on user 1's board (`w_16`/`w_17`/`w_18`),
+alongside the W1–W8 core (B1–B9); W9 DECLINED (AD-16). The reusable `FeedList`
+render kind (bare flat row-list — icon · title · org·time·context meta · chips ·
+snippet · DD-03-gated drilldown; contract in PRD §5 "Shared render kind —
+`FeedList`") now backs any future "recent items" feed. If the user opens new
+analyst-dashboard work it's a fresh request — read PRD §3 roster for the as-built
+state and carry the Conventions below (additive-only, commit-per-task signed,
+**AD-NN next free = AD-21**, verify via the real render path).
+
+**Noted follow-ups (none queued):** richer per-target-type drilldowns on W11
+(only Event is linked today; Attribute→parent-event, GalaxyCluster, etc. would be
+additive); a `galaxy_type` filter on W12; plus the older loose ends below.
