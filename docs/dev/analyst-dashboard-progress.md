@@ -650,9 +650,18 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
   duplication is documented in a code comment (deriving deferred — would need a
   public dimensions() accessor; not worth a refactor for 3 stable values).
   Browser screenshot deferred to the B9 verification task (item 6).
-- [ ] **`NewDataStatsWidget` — `country` / `sector` → `string`.** Optional
+- [x] **`NewDataStatsWidget` — `country` / `sector` → `string`.** Optional
   free-text overrides → `['type'=>'string','default'=>'','help'=>…]` each, so they
   render as labelled text inputs instead of advanced JSON.
+  *Done:* added `country` + `sector` `string` schema entries (`default=>''`, help
+  from `$params`); `$params` text + `$placeholder` keys kept. PHP harness proved:
+  `WidgetSchema::validate` well-formed; `CanonicalTypeAdapter` injects `''` when
+  absent and passes a user value through; the handler's `!empty($options[...])`
+  override gate stays **off** for the `''` default (so the org-meta / ccTLD
+  auto-detect waterfall engages — no behaviour change for existing instances)
+  and **on** for a user-set value. Both keys are now schema-handled → filtered
+  from the Advanced tier (render once as labelled text inputs). Lint clean.
+  Browser screenshot deferred to the B9 verification task (item 6).
 - [ ] **`AttackWidget` — `filters` stays advanced.** A freeform restSearch filter
   dict has no scalar type; it legitimately stays in the raw/advanced tier.
   `time_window` already canonized (B7). No change — just confirm/note.

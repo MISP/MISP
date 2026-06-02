@@ -73,10 +73,31 @@ class NewDataStatsWidget
             'help' => 'Time window over which to count new data (last N '
                 . 'days/hours, or all time). Driven by the dashboard toolbar.',
         ),
-        // `country` / `sector` are plain config keys (optional overrides),
-        // not canonicals — no canonical type fits and adding one would touch
-        // CanonicalTypeAdapter (deferred, same posture as TrendingWidget's
-        // `dimension`). They flow through the adapter untouched.
+        // B9: `country` / `sector` promoted from `$params`-only knobs to typed
+        // `string` scalars so the configure form renders labelled text inputs
+        // instead of advanced JSON keys. `string` is a WidgetSchema scalar
+        // type; the configure form's readback posts the text verbatim and the
+        // handler reads it via `!empty($options[...])` (an empty string ⇒ the
+        // override is skipped and the org-meta / ccTLD waterfall engages). The
+        // `default=>''` flows through CanonicalTypeAdapter untouched (no scalar
+        // switch case) and preserves that no-override behaviour. Pure additive
+        // `$schema` edit — no platform/JS change. The `$params` text below
+        // stays as the field help.
+        'country' => array(
+            'type' => 'string',
+            'default' => '',
+            'help' => 'Optional: explicit country for the "targeting my org" '
+                . 'metric (overrides the org-meta / org-name heuristics). A '
+                . 'country galaxy value (e.g. "luxembourg"), ISO code or ccTLD. '
+                . 'Leave blank to auto-detect.',
+        ),
+        'sector' => array(
+            'type' => 'string',
+            'default' => '',
+            'help' => 'Optional: explicit sector for the "targeting my org" '
+                . 'metric (overrides the org-meta heuristic). A sector galaxy '
+                . 'value (e.g. "Bank"). Leave blank to auto-detect.',
+        ),
     );
 
     public $placeholder =
