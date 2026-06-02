@@ -61,6 +61,21 @@ class OverlapWithMyOrgWidget
             'help' => 'Window over which an event counts as "new" (last N '
                 . 'days/hours, or all time). Driven by the dashboard toolbar.',
         ),
+        // B9: promoted from a `$params`-only knob to a typed scalar so the
+        // configure form renders a real checkbox (misp-field-checkbox) instead
+        // of an advanced JSON key. `bool` is a WidgetSchema scalar type; the
+        // configure form's readback posts a JSON bool that handler()'s
+        // parseBool() accepts, and CanonicalTypeAdapter injects this `default`
+        // when the key is absent (matching parseBool's own true default — no
+        // behaviour change for existing instances). Pure additive `$schema`
+        // edit; the `$params` text below stays as the field help.
+        'exclude_own_org' => array(
+            'type' => 'bool',
+            'default' => true,
+            'help' => 'Drop candidate events your OWN org created (orgc) so the '
+                . 'widget surfaces only other orgs\' new events that overlap '
+                . 'yours — a pure "external affects-me" signal. Default: on.',
+        ),
     );
 
     public $placeholder =

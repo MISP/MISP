@@ -617,10 +617,21 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
 > was about the *toolbar* tier; `TOOLBAR_ELIGIBLE_TYPES` excludes scalars, but the
 > *configure form* renders them — and that's the "settings part" the user means.)
 
-- [ ] **`OverlapWithMyOrgWidget` — `exclude_own_org` → `bool`.** Add to `$schema`:
+- [x] **`OverlapWithMyOrgWidget` — `exclude_own_org` → `bool`.** Add to `$schema`:
   `['type'=>'bool','default'=>true,'help'=>…]`. Keep the `$params` text (it
   becomes the field help). Verify the configure-form checkbox posts a value the
   existing `parseBool()` read-back accepts (check `data-type='bool'` readback).
+  *Done:* added the `exclude_own_org` `bool` schema entry (`default=>true`, help
+  carried from `$params`); `$params` text + `$placeholder` key kept. PHP harness
+  proved the full round-trip: `WidgetSchema::validate` = well-formed;
+  `CanonicalTypeAdapter::translate([])` injects `exclude_own_org=true` (matches
+  `parseBool`'s own true default → no behaviour change for existing instances)
+  and passes a user-set `false` through unchanged (no scalar switch case);
+  `parseBool` reflection accepts every wire form (true/false, "true"/"false",
+  "0"→false, 1→true, null→default). `exclude_own_org` is now schema-handled, so
+  the configure form's `handledKeys` filters it out of the Advanced tier — the
+  placeholder key renders ONCE as the typed checkbox, not duplicated. Lint
+  clean. Browser-screenshot proof deferred to the B9 verification task (item 6).
 - [ ] **`TrendingWidget` — `dimension` → `enum`.** Add to `$schema`:
   `['type'=>'enum','enum'=>['vulnerability','threat-actor','mitre-attack-pattern'],
   'enum_labels'=>{…},'default'=>'vulnerability']`. Keep the enum list in sync with
