@@ -828,18 +828,33 @@ windows (reports newest 2026-04-26; analyst data ~2025-06; local clusters newest
 render template + a token-driven CSS block + the mandated gallery glyph; no
 existing widget or handler touched. Ready for the three consumers (B11–B13).
 
-### Phase B11 — AD-W10 Recent Event Reports (DECIDED; needs B10)
+### Phase B11 — AD-W10 Recent Event Reports (BUILT + verified 2026-06-02)
 
-- [ ] `RecentEventReportsWidget` (`render='FeedList'`) — fetch the N newest visible
-  reports via `EventReport->fetchReports($user, ['conditions'=>['EventReport.deleted'=>0
-  (+ optional `timestamp >=` window)], 'order'=>['EventReport.timestamp'=>'DESC'],
-  'limit'=>N])` (ACL inside `buildACLConditions`); `contain` Event + Orgc. Map to
-  FeedList rows (report glyph · name · content snippet · org · relative time ·
-  "Event #<id>" context · `/eventReports/view/<id>` drilldown). `limit` +
-  `time_window` settings (typed `$schema`, B9 convention).
-- [ ] Visual verification on the live instance (real render path; wide window —
-  newest report is 2026-04-26). Append to user 1's dashboard (standing pref;
-  back up `/tmp/dash_backup.json` first), smoke-test.
+- [x] `RecentEventReportsWidget` (`render='FeedList'`) — fetch the N newest visible
+  reports. **Build note:** `EventReport->fetchReports()` applies the right ACL but
+  **ignores `order`/`limit`**, so the widget calls the SAME public
+  `buildACLConditions()` + `DEFAULT_CONTAIN` const in a direct `find('all', …)`
+  with `order ['EventReport.timestamp'=>'DESC']` + `limit` (ACL-identical, still
+  additive — no model code touched). `deleted=0`; optional `timestamp >=` window.
+  Maps each report to a FeedList row (`file-alt` glyph · name · cleaned content
+  snippet · `Orgc.name` · relative `timestamp` · "Event #<id>" context · `Report`
+  chip · `/eventReports/view/<id>` drilldown). `limit` (int, 10, clamp 1–50) +
+  `time_window` (default `-1` = no time filter) typed `$schema`. No cache
+  (per-user ACL'd live fetch). The snippet cleaner strips report-markdown noise
+  (`## headings`, `**bold**`, `` `code` ``, and MISP `@[attribute](uuid)` embeds →
+  readable prose; `_` left alone). `php -l` clean.
+- [x] Visual verification on the live instance (real render path) + board append.
+  *Done:* (1) REST `renderWidget` (`time_window=-1`, newest reports are 2026-04-26)
+  → `renderer:FeedList`, 6 rows newest-first; **DB cross-check exact** (ids
+  477/478/479/464/465/458, event_ids 6787/6787/6787/6778/6778/6773, names + ts all
+  match). (2) Web-UI POST+session → real `FeedList.ctp` HTML, http 200, full
+  `misp-feedlist-*` markup with the **live FontAwesome** `fas fa-file-alt` icon, 6
+  items, **0 PHP errors / 0 empty/login markers**. (3) Headless-chromium screenshot
+  on the real CSS (`/home/iglocska/b11_report.png`) confirms the visual — name ·
+  `Iglocska · 1mo ago · Event #6787` · Report chip · clean prose snippet · accent
+  `→`. Appended to user 1's dashboard as **`w_16`** (RecentEventReportsWidget,
+  `time_window=-1`, `limit=10`; backup `/tmp/dash_backup.json`); persisted +
+  read-back verified (12 tiles). **Phase B11 (W10 recent event reports) COMPLETE.**
 
 ### Phase B12 — AD-W11 Recent Analyst Data (DECIDED, re-scoped; needs B10)
 
