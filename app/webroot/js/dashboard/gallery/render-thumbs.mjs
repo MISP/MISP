@@ -312,6 +312,23 @@ function thumbEventCards() {
   ]);
 }
 
+function thumbFeedList() {
+  // Reverse-chronological feed (analyst track, AD-17 / W10–W12): stacked
+  // items, each a leading glyph dot + a title line with a shorter meta line
+  // below — evokes the "icon · title · meta" feed, distinct from
+  // EventCards' bordered cards, SimpleList's equal single rows and
+  // StatGrid's 2×2 grid.
+  const item = (y, op) => [
+    shape('circle', { cx: 22, cy: y + 2, r: 2.2, fill: 'currentColor', stroke: 'none', opacity: op }),
+    shape('rect', { x: 29, y, width: 31, height: 3.6, rx: 1.6, fill: 'currentColor', stroke: 'none', opacity: op }),
+    shape('rect', { x: 29, y: y + 6, width: 19, height: 2.6, rx: 1.3, fill: 'currentColor', stroke: 'none', opacity: op * 0.55 }),
+  ];
+  return svg([
+    ...item(11, 1),
+    ...item(26, 0.7),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -335,6 +352,7 @@ const REGISTRY = {
   StatGrid:       thumbStatGrid,
   Trending:       thumbTrending,
   EventCards:     thumbEventCards,
+  FeedList:       thumbFeedList,
   NetworkGraph:   thumbNetworkGraph,
   UserList:       thumbUserList,
   QueueList:      thumbQueueList,

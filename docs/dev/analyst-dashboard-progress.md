@@ -783,23 +783,50 @@ touched (CSS-append + render-thumbs glyph are the established B1/B3/B8 patterns)
 windows (reports newest 2026-04-26; analyst data ~2025-06; local clusters newest
 2026-04-14).
 
-### Phase B10 — `FeedList` render kind (NEXT; shared infra, AD-17)
+### Phase B10 — `FeedList` render kind (BUILT + verified 2026-06-02, AD-17)
 
-- [ ] New render kind **`FeedList`** — `FeedList.ctp`: reverse-chron feed rows
+- [x] New render kind **`FeedList`** — `FeedList.ctp`: reverse-chron feed rows
   (`icon` · `title` · meta line `org · relative-time · context` · optional
   `chips[]` pills · optional `subtitle` snippet · whole-row `drilldown`). Bare
   handler return = flat row list (no `{data:}` wrapper, like Trending/StatGrid).
   Token-driven CSS `.misp-feedlist-*` appended to `dashboard.default.css` (reuse
   existing semantic tokens so the midnight overlay themes it for free); reuse the
   `Trending.ctp` FontAwesome icon-slot helper + the DD-03 `drilldown` gate.
-- [ ] Glyph for `FeedList` in `render-thumbs.mjs` (**CLAUDE.md rule** — new render
+  *Done:* added `app/View/Elements/dashboard/Widgets/FeedList.ctp` (row contract
+  documented in the header; required `title`, all else optional — `title`-less
+  rows skipped; `relativeTime`/`truncate` closures mirror EventCards) + the
+  `.misp-feedlist-*` block in `dashboard.default.css`. The only framework
+  touch-points are `DashboardURLValidator::validate` (DD-03 whole-row gate) and
+  `$this->FontAwesome->getClass` (icon slot) — same as Trending. `php -l` clean;
+  CSS braces balance (530/530).
+- [x] Glyph for `FeedList` in `render-thumbs.mjs` (**CLAUDE.md rule** — new render
   kind ⇒ glyph): `thumbFeedList()` (stacked feed rows: leading dot + title line +
   shorter meta line) + REGISTRY entry under `FeedList:`. `node --check` clean.
-- [ ] Verify the render contract end-to-end with a synthetic FeedList payload
-  through the real render path (renderWidget → render_widget.ctp → FeedList.ctp):
-  all row keys consumed, DD-03 gate admits relative / drops off-host, missing
-  optional keys degrade gracefully. Screenshot against the real CSS (light +
-  midnight). (Real-widget data lands in B11–B13.)
+  *Done:* added `thumbFeedList()` — two stacked items, each a leading
+  `currentColor` dot + a title rect + a shorter, fainter meta rect (op×0.55) —
+  evoking "icon · title · meta", distinct from EventCards' bordered cards /
+  SimpleList's equal rows / StatGrid's grid; registered under `FeedList:`.
+  `node --check` clean.
+- [x] Verify the render contract end-to-end with a synthetic FeedList payload
+  through the real render path. *Done:* since a render kind has no `renderWidget`
+  entry until a widget declares it (first consumer = B11), verified via a focused
+  harness rendering the **real `FeedList.ctp`** (real `DashboardURLValidator`;
+  faithful `FontAwesome::getClass`/`h`/`__` shims) — **21/21 contract checks
+  PASS**: DD-03 admits relative + baseurl-absolute, DROPS off-host +
+  `javascript:`; `→` affordance only on the 2 linked rows; FA-class parity
+  (`fas fa-<name>`); `·`-separated meta; relative-time weeks/days/hours buckets +
+  ISO tooltip; 140-char snippet truncation; `chips[]` pills; title-only row
+  degrades to just the title; empty-title row skipped; empty `$data` →
+  `misp-list-empty`. Headless-chromium screenshots **light + midnight** against
+  the real (inlined — snap-chrome is `$HOME`-confined, can't read `/var/www`) CSS
+  confirm bordered cards, chips, accent `→`, snippet ellipsis, and that **midnight
+  retones via tokens with no FeedList-specific midnight rule**
+  (`/home/iglocska/feedlist_b10_{light,midnight}.png`). **Full renderWidget
+  pipeline (+ live FontAwesome helper) is exercised with REAL data at B11.**
+
+**Phase B10 (`FeedList` render kind) COMPLETE + verified.** Pure addition — new
+render template + a token-driven CSS block + the mandated gallery glyph; no
+existing widget or handler touched. Ready for the three consumers (B11–B13).
 
 ### Phase B11 — AD-W10 Recent Event Reports (DECIDED; needs B10)
 
