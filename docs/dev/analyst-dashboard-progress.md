@@ -486,11 +486,25 @@ User-signed-off (beyond additive). Read-only posture deviated for click-to-unfol
 (progressive disclosure of own data — user-requested). `Attack` is an existing
 render kind ⇒ no new glyph (confirm the existing one).*
 
-- [ ] **`AttackWidget.php` — `time_window` wiring (AD-12/AD-15 pt5).** Add the
+- [x] **`AttackWidget.php` — `time_window` wiring (AD-12/AD-15 pt5).** Add the
   `time_window` canonical to `$schema` (currently `[]`); map it → restSearch
   'attack' `timestamp` filter (reuse the in-tree translation; `-1` ⇒ no bound);
   merge without clobbering manual `attackGalaxy`/`published`; cache key includes
   the window. *(The only data-side touch; everything else is the renderer.)*
+  *Done:* added the `time_window` canonical (`'type'=>'time_window'`,
+  `default => -1` = all-time, so existing instances are unaffected) +
+  `resolveTimeWindow()` (mirrors `AttributeGeoMapWidget::resolveSince`; "Nd"
+  string OR seconds int → epoch lower bound; ≤0/-1 → null = no bound). `handler()`
+  now drives `filters['timestamp']` from the window (OVERRIDES a manual
+  `filters.timestamp` only when a finite window is set; -1 preserves it). Lint
+  clean. **Verified live (REST render path):** `"30d"`→0 (no recent attack-tagged
+  events on the stale corpus), `"3650d"`→696 = all-time, `100000000`s (~3.17y)→21
+  (intermediate, monotonic; proves the seconds-int form), `-1`/none→696 (schema
+  default injected); manual future-range `filters.timestamp` w/o window → 0
+  (preserved, not clobbered); empty config → null ("No filter configured",
+  original behaviour). **No cache concern:** AttackWidget declares legacy
+  `cacheLifetime` not `cache_duration`, so `WidgetCache::remember` is a
+  pass-through → runs live; the window always drives.
 - [ ] **`Attack.ctp` — technique/sub-technique aggregation (AD-15 pt3).** Group
   each tactic column's cells by parent T-ID off `external_id` (`^T\d+$` =
   technique; `^T\d+\.\d+$` = sub-technique → parent = strip `.\d+`). Parent cell
