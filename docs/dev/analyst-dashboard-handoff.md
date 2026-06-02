@@ -44,8 +44,9 @@ builds the **analyst widget surface**. Authoritative state lives in:
   untouched; backup `/tmp/dash_backup.json`). Read-back verified — 15 tiles.
 - Files touched (all additive): **new** `OverlapWithMyOrgWidget.php`; **edited**
   `EventCards.ctp` (optional badge) + `dashboard.default.css` (one pill rule).
-  All `chgrp www-data`. One signed commit expected for the code, a second for
-  the tracker/PRD/handoff.
+  All `chgrp www-data`. **Committed (both signed, `%G?`=U):** `e634224ec`
+  (code) + `178422e7c` (tracker/PRD/handoff). Working tree clean for this
+  track — nothing left uncommitted from B8.
 
 ## ⏸ PARKED — attack heatmap (AD-W5 / AttackWidget), user concern (2026-06-02)
 **The user is NOT happy with the rework on the attack heatmap and wants to
