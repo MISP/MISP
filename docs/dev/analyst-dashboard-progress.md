@@ -53,7 +53,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[x]` **BUILT** (Phase B4; engine from B1 + cveurl drilldown) |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
-| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
+| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` ⏸ **PARKED** — user reworking the heatmap (2026-06-02); B7 sign-off void until redesign settled |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13) | `[ ]` not started |
@@ -99,10 +99,11 @@ the user before starting (they may recompose the analyst `template.json` first).
 
 ## Build backlog (ordered by confirmed build order)
 
-Build order: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**. Engine first
-(W2/W3/W4 are its dimensions); stats next (cheapest standalone win); then
-event-stream; dimensions; heatmap wiring; the hard/soft pair last. No build
-task starts until the user moves the track out of spec-first mode.
+Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → (W3/W4) → ~~W5~~ ⏸ → W8 → W9**.
+Engine first (W2/W3/W4 are its dimensions); stats next (cheapest standalone
+win); then event-stream; dimensions; heatmap wiring; the hard/soft pair last.
+**W5 (heatmap wiring) is now PARKED** — the user is reworking the attack
+heatmap (2026-06-02; see Phase B7), so after W3/W4 the next widget is **W8**.
 
 ### Phase B1 — AD-W1 Trending engine (on deck; fully DECIDED)
 
@@ -374,9 +375,18 @@ on B1 (and shares B5's ACL-correct union-distinct count).*
   (`map`), bulk-resolved; link = /galaxy_clusters/view/<parent_id>.
 - [ ] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
 
-### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (DECIDED; in-place edit)
+### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (⏸ PARKED — user concern 2026-06-02)
 
-*Touches existing `AttackWidget` — additive-only sign-off granted (AD-12).*
+> **⏸ PARKED — do NOT build.** The user is not happy with the rework on the
+> attack heatmap and wants to address it in the future (2026-06-02). The AD-12
+> sign-off for the in-place `AttackWidget` edit is **void until the redesign is
+> settled** — the specific dissatisfaction wasn't detailed, so capture what the
+> user wants changed (and re-confirm whether the `time_window` wiring below is
+> even still the plan) BEFORE touching `AttackWidget`. Build order skips W5:
+> after W3/W4, go to W8.
+
+*Touches existing `AttackWidget` — additive-only sign-off granted (AD-12), now
+parked (above).*
 
 - [ ] Add `time_window` canonical to `AttackWidget::$schema` (currently `[]`).
 - [ ] In `handler()`, map `time_window` → restSearch 'attack' `timestamp`

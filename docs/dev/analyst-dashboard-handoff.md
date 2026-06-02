@@ -13,7 +13,25 @@ builds the **analyst widget surface**. Authoritative state lives in:
 ## TL;DR — this session (BUILD)
 - **Built W6 (event-stream rework) AND W2 (trending vulnerabilities); both
   verified live.** Build order: W1 ✅ → W7 ✅ → W6 ✅ → **W2 ✅** →
-  (W3/W4) next → W5 → W8 → (W9 deferred).
+  (W3/W4) next → **W5 ⏸ PARKED** (user reworking the heatmap — see below) →
+  W8 → (W9 deferred).
+- **Added the built widgets to user 1's test dashboard** (post-B4, at the
+  user's request — now a **standing preference**, see Conventions): appended
+  `TrendingWidget` (`w_9`, `dimension=vulnerability`, `time_window=-1` so it
+  shows the stale-vuln data), `NewDataStatsWidget` (`w_10`),
+  `EventStreamCardsWidget` (`w_11`) below the existing 8 tiles (original layout
+  untouched; backup `/tmp/dash_backup.json`). All three smoke-tested live.
+
+## ⏸ PARKED — attack heatmap (AD-W5 / AttackWidget), user concern (2026-06-02)
+**The user is NOT happy with the rework on the attack heatmap and wants to
+address it in the future.** Consequence for this track: **Phase B7 (AD-W5 —
+wire `AttackWidget`'s `time_window`, AD-12) is PARKED** — do **not** pick it up
+in the normal build order. The heatmap needs a redesign discussion first; the
+specific dissatisfaction wasn't detailed, so **capture what the user wants
+changed before touching `AttackWidget`** (and re-confirm whether AD-12's
+in-place `time_window` wiring is even still the plan). The build order skips
+W5 for now: after W3/W4, go to **W8** (overlap, unblocked). Revisit W5/B7 only
+when the user reopens the heatmap.
 - **W6 (Phase B3)** — 4 commits (`90b420fd6`/`002438ce3`/`cb2f37bad`/
   `8f07c679f`): new **`EventCards`** render kind (+ glyph) + new
   **`EventStreamCardsWidget extends EventStreamWidget`** (inherits the whole
@@ -82,7 +100,8 @@ engine — NOT a new widget, NOT a new render kind (reuses `Trending`, no glyph)
 ## Also still unblocked
 - **W8 (AD-W8 overlap-with-my-org, Phase B8)** — depends on `EventCards`
   (exists). `OverlapWithMyOrgWidget` with `render='EventCards'` + overlap
-  badge; PRD §5 / AD-13. Build whenever the order reaches it (after W5).
+  badge; PRD §5 / AD-13. Build whenever the order reaches it — **now the next
+  widget after W3/W4, since W5/B7 is parked** (above).
 
 ## Verifying a widget (recipe in memory)
 See [[reference-dashboard-widget-render-verification]]: `renderWidget` is
@@ -102,10 +121,16 @@ cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
 - **AD-NN** decision numbering, cross-linked to parent `DD-NN`.
 - **Additive-only** ([[feedback_additive_only_posture]]): new widgets + new
   render kinds = pure additions. Existing-code touches need **sign-off** —
-  granted so far: B7 (AttackWidget `time_window`, AD-12) and the **B4 DD-03
-  relaxation** (user chose it over an internal drilldown). B5 is additive (new
-  dimension hooks on TrendingWidget — same as B4's link builder, this track's
-  own class; flag it but it's low-risk).
+  granted so far: the **B4 DD-03 relaxation** (user chose it over an internal
+  drilldown). B7 (AttackWidget `time_window`, AD-12) was signed off **but is
+  now PARKED** (heatmap concern above) — that sign-off is void until the
+  redesign is settled. B5 is additive (new dimension hooks on TrendingWidget —
+  same as B4's link builder, this track's own class; flag it but low-risk).
+- **Add built/touched widgets to user 1's test dashboard**
+  ([[feedback_add_touched_widgets_to_dashboard]]): standing request — after
+  building/touching a widget, append it to user 1's `dashboard` UserSetting if
+  not present (dedupe by class; back up first; never replace the layout), then
+  smoke-test it. Recipe + storage shape in that memory.
 - **Sequential** ([[feedback_sequential_implementation]]): one task at a time;
   research may parallelise, code never.
 - **Commit per task** ([[feedback_commit_per_task]]); **never `git add -A`** —
