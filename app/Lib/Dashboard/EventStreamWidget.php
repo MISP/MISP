@@ -39,6 +39,34 @@ class EventStreamWidget
             'type' => 'org_filter',
             'help' => 'Filter events by organisation. Pick match style (orgc / sharing_group / any), then add orgs via the typeahead. Click a chip to toggle exclude (!) state. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ],
+        // B9: the three remaining handler-consumed knobs (tags / published /
+        // limit — see handler() lines ~96-130) promoted from $params-only to
+        // typed scalars so the configure form renders real controls instead of
+        // raw-JSON Advanced keys. Pure additive $schema entries — the handler
+        // is UNCHANGED (it reads $options['tags'] as a comma-separated string,
+        // $options['published'] / $options['limit'] via !empty()). Inherited
+        // verbatim by EventStreamCardsWidget (W6), so both widgets gain the
+        // controls. `tags` stays the legacy comma-string text input (a richer
+        // `tag_filter` chip picker would need a handler change to read the
+        // translated include/exclude shape — deferred, not additive).
+        // `fields` is NOT promoted: it is an ARRAY of column names with no
+        // scalar type that fits (same rationale as AttackWidget's freeform
+        // `filters`), and the EventCards renderer ignores it entirely.
+        'tags' => [
+            'type' => 'string',
+            'default' => '',
+            'help' => 'Filter to events carrying these tags. Comma-separated list; prefix a tag with ! to negate (e.g. "tlp:red,!tlp:white"). Leave blank for no tag filter.',
+        ],
+        'published' => [
+            'type' => 'bool',
+            'default' => false,
+            'help' => 'When on, show only published events. Off (default) shows both published and unpublished.',
+        ],
+        'limit' => [
+            'type' => 'int',
+            'default' => 5,
+            'help' => 'How many events to list. Default: 5.',
+        ],
     ];
     public $description = 'Monitor incoming events based on your own filters.';
     public $cacheLifetime = false;

@@ -688,36 +688,88 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
   NOT analyst-track-authored. Promoting them = editing a main-track widget =
   platform touch beyond B9's "settings I added this track" scope → left as-is,
   flagged in Discovered work (sign-off needed; see entry below).
-- [ ] **Verify** each via the real configure-form render (open the widget config
+- [x] **Verify** each via the real configure-form render (open the widget config
   UI / inspect the rendered form, or the configure.module.mjs path) — checkbox /
   dropdown / number appear; defaults inject via `CanonicalTypeAdapter`; the
   handler still reads the posted value. Screenshot the configure form for proof.
-- [ ] Additive posture holds — these are `$schema` additions only; **if** the
+  *Done:* verified through the **real `configure.module.mjs`** (served the real
+  webroot over http so the module + its relative imports resolve; fed each
+  widget its real `data-widget-schema` JSON — byte-identical to `wrapper.ctp`'s
+  `json_encode($widget->schema)` — with `config={}` = the fresh "add widget"
+  path). Headless `--dump-dom` asserts the exact controls: `exclude_own_org` →
+  `<input type=checkbox data-type=bool ... checked>` (default true injected);
+  `dimension` → `<select data-type=enum>` with the 3 `enum_labels` options,
+  `vulnerability` selected (default); `country`/`sector` → `<input type=text
+  data-type=string value="">`; `threshold`/`min_count` → number inputs (10/3).
+  **No duplication:** each Advanced tier has exactly 1 empty kv-row — every
+  placeholder key is schema-handled (`handledKeys`) and filtered out. Screenshots
+  (light theme): `/home/iglocska/b9_configure_{overlap,trending,stats}.png` —
+  Settings tier shows the typed control + help, Advanced tier the single blank
+  row. Readback/handler-reads-value proven at the PHP layer in items 1-3
+  (parseBool, dimension `isset`, `!empty` gate) + the JS `readBack()` coercion
+  (checkbox→bool, number→int, select/text→string) read in source.
+- [x] Additive posture holds — these are `$schema` additions only; **if** the
   sweep turns up a setting whose ideal control needs a NEW canonical type or a
   configure-form JS change, that's a platform touch → **stop and get sign-off**.
+  *Done:* all three core promotions are pure `$schema` additions (`bool`/`enum`/
+  `string` — all already-whitelisted `WidgetSchema` scalar types the configure
+  form already renders); **zero** platform/JS/adapter changes. The sweep's one
+  platform-touch candidate (`EventStreamWidget`'s inherited knobs) was flagged
+  with a fork — and the **user then signed off the fix** (next task below), which
+  also stayed pure-`$schema`/handler-unchanged, so posture held throughout.
+- [x] **`EventStreamWidget` — `tags`/`published`/`limit` → typed scalars
+  (user-requested 2026-06-02, sign-off granted).** Re-verified the inherited
+  `handler()` genuinely consumes these on `EventStreamCardsWidget` (W6), so they
+  were real functional knobs only rendering as raw JSON. *Done:* promoted on the
+  **parent** `EventStreamWidget::$schema` (fixes both the original stream + the
+  W6 cards via verbatim inheritance — no subclass divergence): `tags`→`string`
+  (comma list w/ `!` negation), `published`→`bool` (default false), `limit`→`int`
+  (default 5). `handler()` **UNCHANGED** (already reads those keys); pure additive
+  `$schema`. `fields` left `$params`-only (array of column names — no scalar type
+  fits, like AttackWidget `filters`; the cards renderer ignores it). `tag_filter`
+  chip-picker NOT taken (needs a handler change → not additive). Verified: lint
+  clean; `WidgetSchema::validate` OK; adapter injects defaults (empty config →
+  handler sees `{limit:5}` only = current behaviour) + passes user values; real
+  `configure.module.mjs` `--dump-dom` shows tags=text / published=checkbox /
+  limit=number(5), all 8 schema keys typed, `fields` 0 typed controls, 1 empty
+  Advanced row; screenshot `/home/iglocska/b9_configure_eventstream.png`. See the
+  RESOLVED Discovered-work entry.
+
+**Phase B9 (widget settings canonization) COMPLETE + verified.** Four pure
+`$schema` additions — `OverlapWithMyOrgWidget.exclude_own_org`→bool,
+`TrendingWidget.dimension`→enum, `NewDataStatsWidget.country`/`sector`→string, and
+(under sign-off) `EventStreamWidget.tags`→string / `published`→bool / `limit`→int
+(fixing W6 `EventStreamCardsWidget` via inheritance) — each promoting a
+`$params`-only "advanced" knob to a first-class typed control in the configure
+form's Settings tier, verified through the real `configure.module.mjs`. No
+platform/JS/handler change; additive posture held throughout. The whole analyst
+roster is now **fully BUILT except W9 (DEFERRED)**.
 
 *(W9 deferred — look-and-feel-only reskin of RecentSightingsWidget, after the
 render kinds land.)*
 
 ## Discovered work
 
-- **[OPEN — surfaced at B9 sweep 2026-06-02, NEEDS SIGN-OFF]** `EventStreamWidget`
-  (main track) leaves `tags` / `published` / `limit` / `fields` as `$params`-only
-  knobs, despite `tag_filter` already being a canonical type and `published`/
-  `limit` being trivial `bool`/`int` scalars. `EventStreamCardsWidget` (W6 / the
-  analyst-track Event Card Stream) inherits these verbatim (B3 design:
-  `$schema` inherited unchanged), so its configure form shows them only in the
-  Advanced (raw JSON) tier. *Why it's parked:* promoting them on the parent
-  `EventStreamWidget` is a **main-track / platform touch** (outside B9's "settings
-  I added this track" scope and the analyst track's additive boundary); promoting
-  them only on the analyst subclass would **diverge** its `$schema` from the
-  parent it deliberately mirrors (B3). Either path needs a steer. *Fork (for the
-  user):* (a) leave as-is — out of analyst-track scope [conservative];
-  (b) promote on the parent `EventStreamWidget` (richer config form for both the
-  original stream and the W6 cards — main-track touch, sign-off);
-  (c) promote only on the analyst subclass (additive, but breaks B3's verbatim
-  inheritance). The `tags`→`tag_filter` gap in the parent looks like a main-track
-  Phase 2/3 schema-backfill omission worth raising on that track regardless.
+- **[RESOLVED — B9, user signed off 2026-06-02]** `EventStreamWidget` (main
+  track) left `tags` / `published` / `limit` / `fields` as `$params`-only knobs,
+  and `EventStreamCardsWidget` (W6) inherits them verbatim (B3). *Re-verified on
+  the user's prompt:* `tags` / `published` / `limit` are **genuinely consumed by
+  the inherited `handler()`** (lines ~96-130 — `tags`→fetchEvent filter,
+  `published`/`limit` via `!empty()` / `$rawLimit`), so they are real functional
+  knobs on the cards widget, not dead config — the "out of scope" framing was too
+  conservative. **User said "fix it."** *Resolution:* promoted `tags`→`string`,
+  `published`→`bool`, `limit`→`int` on the **parent** `EventStreamWidget::$schema`
+  (the DRY place — fixes both the original Event Stream AND the W6 cards via the
+  verbatim inheritance, no subclass divergence). Pure additive `$schema` edit;
+  the `handler()` is **UNCHANGED** (it already reads those keys). `fields` stays
+  `$params`-only — it is an ARRAY of column names (no scalar type fits, same as
+  AttackWidget's freeform `filters`) and the `EventCards` renderer ignores it.
+  A richer `tags`→`tag_filter` chip picker was the one option NOT taken: it would
+  need a handler change (the canonical translates to `include`/`exclude`, not the
+  `tags` comma-string fetchEvent reads) → beyond additive, deferred. Verified
+  through the real `configure.module.mjs` (`--dump-dom`: tags=text, published=
+  checkbox, limit=number(5); all 8 schema keys typed; `fields` 0 typed controls;
+  1 empty Advanced row) + screenshot `/home/iglocska/b9_configure_eventstream.png`.
 
 - **[RESOLVED — B4, user signed off 2026-06-02]** AD-09's external **cveurl
   link-out collides with the dashboard's own DD-03 URL-safety contract.**

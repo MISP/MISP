@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-06-02 — BUILD: AD-W5 heatmap REDESIGN (Phase B7) **BUILT + verified live** this session. Captured the rework brief → locked **AD-15** → built it end-to-end (time_window wiring + full Attack.ctp renderer rework). The roster is now **fully BUILT except W9 (DEFERRED)** — the only remaining unit, blocked on a user scope steer. Three signed commits this session: `8cd1dc7c2` (AD-15 spec), `87668cc1d` (B7 step 1 time_window), `efc0e1ae9` (B7 steps 2-6 renderer).)
+# Analyst Dashboard — Session handoff (2026-06-02 — **Phase B9 (widget settings canonization) COMPLETE + verified** this session. Promoted the three `$params`-only "advanced" knobs the track added to first-class typed `$schema` controls: `OverlapWithMyOrgWidget.exclude_own_org`→**bool/checkbox**, `TrendingWidget.dimension`→**enum/`<select>`**, `NewDataStatsWidget.country`/`sector`→**string/text**. Pure additive `$schema` edits — zero platform/JS/adapter change. Verified through the real `configure.module.mjs` (dump-dom + 3 screenshots). Commits: `055449873` (exclude_own_org), `9aef5a133` (dimension), `aed57a35e` (country/sector), `2189bd0f3` (sweep) + this session's finalize/verify commit and a **4th promotion under sign-off** — `EventStreamWidget.tags`/`published`/`limit` (fixing W6 `EventStreamCardsWidget` via verbatim inheritance; handler unchanged). The roster is **fully BUILT except W9 (DEFERRED)**.)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -10,41 +10,56 @@ builds the **analyst widget surface**. Authoritative state lives in:
   **B1–B8 build backlog** (+ **B7 reopened**), and a **Discovered work** section.
 - This file — ephemeral session bridge; replace as work progresses.
 
-## TL;DR — this session (BUILD: AD-W5 heatmap REDESIGN, Phase B7 — COMPLETE)
-- **Picked up W5** per the prior handoff's "needs a user steer," captured the
-  dissatisfaction brief, locked it as **AD-15**, and **built + verified the whole
-  redesign** this session (spec → step 1 → steps 2-6 → live verify → dashboard).
-- **What shipped (AD-15, renderer-only + one AttackWidget.php add):**
-  1. **Hide inactive** — zero-score techniques and empty tactic columns omitted.
-  2. **Larger LABELED cells** — name + T-ID + count, readable without hover.
-     Label = strip trailing " - <external_id>" (authoritative; never mangles).
-  3. **Technique/sub-technique aggregation** — group per tactic column by parent
-     T-ID off `external_id`; parent cell = **SUM** of own + sub event-counts;
-     sub-techniques **unfold on click via native `<details>`/`<summary>` (NO JS)**
-     — multi-widget-safe, accessible, minimal read-only-posture deviation.
-     Orphan subs resolve via a global parent-name map; non-T ids → standalone.
-  4. **Single red ramp + legend** — dropped the export's multi-hue colours;
-     HSL(h=0) ramp **√-scaled** + normalised to the global max aggregate (the hit
-     distribution is heavily skewed — 696 vs median <10 — so linear would wash
-     out the mid-range); per-cell luminance-picked text (opaque ⇒
-     theme-independent); legend bar sampled from the same ramp.
-  5. **AD-12 `time_window` folded in** — `time_window` canonical on
-     `AttackWidget::$schema` (default `-1`=all-time, back-compat) → restSearch
-     `timestamp` lower bound; a finite window OVERRIDES a manual
-     `filters.timestamp`, `-1` preserves it.
-- **Verified live:** synthetic harness (all behaviours asserted) + real 34MB
-  payload render (15 cols, 84 `<details>`, 168 leaf + 190 sub, 0 un-stripped
-  labels) + **real web-UI POST render byte-identical (172692 B, http 200)** +
-  snap-chromium screenshots **light + midnight**. `time_window` proven monotonic
-  via REST probes (`30d`→0 / `3650d`→696 / `100000000s`→21 / `-1`→696).
-- **Files (signed commits):** `8cd1dc7c2` AD-15 spec (3 docs); `87668cc1d`
-  AttackWidget.php time_window + tracker; `efc0e1ae9` Attack.ctp +
-  dashboard.default.css + dashboard.midnight.css + tracker. Data layer
-  (`AttackExport`/`Galaxy::getMatrix`) **untouched** — the scope boundary held.
-- **Dashboard (standing pref):** AttackWidget already on user 1's board as `w_8`
-  (dedupe by class → no append); redesign verified in place. `w_8` carries a
-  stale 2023 `filters.timestamp` + `time_window:"-1"`, so it scopes to Q1 2023
-  (64 techniques) — left as-is (user's board), flagged for cleanup.
+## TL;DR — this session (Phase B9: widget settings canonization — COMPLETE)
+- **Did Phase B9** per the prior handoff: promoted the three `$params`-only
+  "advanced" knobs the track added into first-class **typed `$schema`** entries
+  so the configure form's **Settings tier** renders real controls instead of
+  raw-JSON keys. Pure additive `$schema` edits — **no platform/JS/adapter
+  change** (the configure form already renders scalar types; `WidgetSchema`
+  already whitelists them).
+- **What shipped (3 promotions, one commit each):**
+  1. `OverlapWithMyOrgWidget.exclude_own_org` → **`bool`** (default true) →
+     a **checkbox** (`misp-field-checkbox`). `055449873`.
+  2. `TrendingWidget.dimension` → **`enum`** (vulnerability / threat-actor /
+     mitre-attack-pattern + `enum_labels`, default vulnerability) → a
+     **`<select>`**. Enum values kept in lock-step with the `dimensions()`
+     registry (reflection-asserted, no drift). `9aef5a133`.
+  3. `NewDataStatsWidget.country` / `sector` → **`string`** (default `''`) →
+     **labelled text inputs**; the `''` default keeps the `!empty()` override
+     gate off → the auto-detect waterfall still engages. `aed57a35e`.
+- **Sweep + posture (`2189bd0f3`):** all analyst-authored knobs now typed;
+  `AttackWidget.filters` correctly **stays advanced** (freeform restsearch dict,
+  no scalar type fits). **No-duplication** confirmed — a key in BOTH `$params`
+  and `$schema` renders ONCE (the configure form's `handledKeys` filters the
+  typed key out of the Advanced tier). **Posture held**: zero platform touches.
+- **Verified through the real `configure.module.mjs`:** served the real webroot
+  over http (so the module + relative imports resolve), fed each widget its real
+  `data-widget-schema` JSON (byte-identical to `wrapper.ctp`'s `json_encode`).
+  `--dump-dom` asserts the exact controls + attributes (checkbox `checked`,
+  `<select>` w/ 3 `enum_labels` options + `vulnerability` selected, text inputs,
+  number inputs) and **1 empty Advanced kv-row each** (no dup). Screenshots:
+  `/home/iglocska/b9_configure_{overlap,trending,stats}.png`. Readback proven at
+  the PHP layer (parseBool / dimension `isset` / `!empty` gate) + adapter
+  default-injection + the JS `readBack()` coercion read in source.
+- **Dashboard (standing pref):** all 4 touched widgets already on user 1's board
+  (AttackWidget #7, TrendingWidget ×3 #8/#11/#13, NewDataStatsWidget #9,
+  EventStreamCardsWidget #10, OverlapWithMyOrgWidget #14) — dedupe by class →
+  verified in place, nothing to append. (Config-form-only change; widget bodies
+  unchanged.)
+- **4th promotion — `EventStreamWidget` inherited knobs (user signed off this
+  session):** the B9 sweep flagged that W6 (`EventStreamCardsWidget`) inherits
+  `tags`/`published`/`limit`/`fields` as `$params`-only from the main-track
+  `EventStreamWidget`. **Re-verified the inherited `handler()` genuinely consumes
+  `tags`/`published`/`limit`** (so they're real functional knobs, not dead
+  config — my first "out of scope" read was too conservative); the user said
+  "fix it." Promoted them on the **parent** `EventStreamWidget::$schema`
+  (`tags`→string, `published`→bool default false, `limit`→int default 5) — fixes
+  BOTH the original stream and the W6 cards via the verbatim inheritance, no
+  subclass divergence. **`handler()` UNCHANGED** (already reads those keys) →
+  pure additive. `fields` left advanced (array of column names, no scalar type;
+  cards renderer ignores it); `tag_filter` chip-picker NOT taken (needs a handler
+  change). Verified through the real `configure.module.mjs` (dump-dom +
+  `/home/iglocska/b9_configure_eventstream.png`).
 
 ## What now exists in the tree (reuse it; don't re-derive)
 - **`AttackWidget`** (`app/Lib/Dashboard/AttackWidget.php`) — `render='Attack'`,
@@ -68,43 +83,33 @@ builds the **analyst widget surface**. Authoritative state lives in:
   (+`Trending`, 3 dims), `NewDataStatsWidget` (`StatGrid`),
   `EventStreamCardsWidget`+`EventCards`, `OverlapWithMyOrgWidget` (W8),
   `AttackWidget`+`Attack` (W5). `DashboardURLValidator`, `WidgetCache` `'org'`.
+- **Typed settings (B9):** the analyst widgets' configurable knobs are now
+  first-class `$schema` scalars rendered in the configure form's **Settings**
+  tier — `exclude_own_org`(bool), `dimension`(enum), `country`/`sector`(string),
+  plus the pre-existing `time_window`/`threshold`/`min_count`. To add a new knob,
+  prefer a typed `$schema` entry (`bool`/`int`/`enum`/`string`) over a
+  `$params`-only key; keep `$params` as the field help. Only `filters`
+  (AttackWidget, freeform restsearch dict) legitimately stays raw/advanced.
 
-## NEXT — Phase B9: canonize the new widget settings (user-requested 2026-06-02)
-The user's next focus (NOT W9): **the settings I added across this track live
-only in `$params` (raw "advanced" JSON). Promote the ones that should be
-first-class UI controls into `$schema` with a proper scalar type** so the
-configure form renders a real control — the worked example: `exclude_own_org`
-(OverlapWithMyOrgWidget) should be a **checkbox in the settings part**, not an
-advanced JSON key. Full task + checklist: tracker **Phase B9**.
+## NEXT — the roster is fully BUILT except W9; pick from the open items below
+**Phase B9 is COMPLETE** (this session — see TL;DR + tracker Phase B9). With B9
+done, **every analyst widget W1–W8 is BUILT and verified**; the only roster unit
+left is **W9 (DEFERRED)**. Choose with the user:
 
-- **Why it's easy + additive (verified this session):** `configure.module.mjs`
-  ALREADY renders scalar `string`/`int`/`bool`/`enum` schema types as native
-  controls — `bool`→checkbox (`misp-field-checkbox`), `enum`→`<select>` (honours
-  `enum`/`enum_labels`), `int`→number. `WidgetSchema` whitelists all four. So
-  each promotion is a **pure `$schema` edit, no platform/JS change.** (The prior
-  handoff's "no `select` type → deferred" was about the *toolbar* tier — scalars
-  aren't in `TOOLBAR_ELIGIBLE_TYPES` — but the *configure form* renders them,
-  which is the "settings part" meant.)
-- **The promotions (each = one `$schema` entry; keep the `$params` text as help):**
-  - `OverlapWithMyOrgWidget`: `exclude_own_org` → `bool` (default true). Verify
-    the checkbox readback (`data-type='bool'`) feeds the handler's `parseBool()`.
-  - `TrendingWidget`: `dimension` → `enum` (vulnerability / threat-actor /
-    mitre-attack-pattern + `enum_labels`; default vulnerability). Keep the list
-    in sync with the `dimensions()` registry.
-  - `NewDataStatsWidget`: `country` / `sector` → `string` (optional overrides).
-  - `AttackWidget`: `filters` stays advanced (freeform dict, no scalar type);
-    `time_window` already canonized (B7).
-- **Sweep** every analyst widget for other `$params`-only knobs; confirm a key in
-  BOTH `$params` and `$schema` renders ONCE (typed control), not duplicated
-  (the proven `time_window` pattern — verify). Verify each via the real
-  configure-form render (screenshot). If any setting's ideal control needs a NEW
-  canonical type or a configure-form JS change → **platform touch, get sign-off.**
-
-**Also still open (lower priority):** **W9** (sightings rework) — DEFERRED, needs
-a scope steer ("look-and-feel only"? don't over-invest). Optional: clear `w_8`'s
-stale 2023 `filters.timestamp`; recompose the analyst `template.json` (user's
-job); a default-width bump for the heatmap tile (labeled cells want more room
-than the 3×4 gallery default — left to the user's board arrangement).
+1. **W9 — Sightings rework (DEFERRED, needs a scope steer FIRST).** Look-and-feel
+   reskin of `RecentSightingsWidget` (the sighting engine is slow / unused by
+   some). Before any build: get the user's steer — "look-and-feel only" vs a
+   deeper rework — so we don't over-invest. No spec exists yet (PRD §3 row =
+   `DEFERRED`); this is the one widget still needing a spec pass.
+2. **(DONE this session) `EventStreamWidget` inherited knobs** — promoted
+   `tags`/`published`/`limit` to typed scalars on the parent (fixes W6 too); see
+   the RESOLVED Discovered-work entry. A richer `tags`→`tag_filter` chip picker
+   remains possible but needs a handler change (not additive) — raise on the main
+   track if wanted.
+3. **Optional housekeeping (no sign-off needed):** clear `w_8`'s stale 2023
+   `filters.timestamp` for a full all-time heatmap; a default-width bump for the
+   heatmap tile (labeled cells want >3×4); recompose the analyst `template.json`
+   (**the USER's job** — we build widgets, the user arranges the board).
 
 ## Verifying a widget (recipe in memory)
 See [[reference-dashboard-widget-render-verification]]: `renderWidget` is
@@ -161,16 +166,24 @@ stale key, and a fresh render is live).
   `http://cve.circl.lu/cve/`. Branch: `dashboards` — both tracks ship together.
 
 ## Quick-start for next session
-1. Read this + tracker **Phase B9** (the next task) + **Phase B7 (BUILT)**.
-   **W1–W8 all BUILT (incl. W5 redesign); only W9 DEFERRED.**
-2. **Do Phase B9 — settings canonization** (the user's chosen next focus):
-   promote the `$params`-only knobs to typed `$schema` entries (`exclude_own_org`
-   →bool/checkbox, `dimension`→enum, `country`/`sector`→string). Pure additive
-   `$schema` edits — the configure form already renders scalar types (verified).
-   Sweep all analyst widgets; verify each control renders + the handler still
-   reads the value (screenshot the configure form). Commit per widget.
-3. **If a promotion needs a new canonical type or configure-form JS** → platform
-   touch, **stop and get sign-off** ([[feedback_additive_only_posture]]).
-4. Still open (lower priority): **W9** (sightings rework — DEFERRED, scope steer
-   first); clear `w_8`'s stale 2023 `filters.timestamp`; recompose the analyst
-   `template.json` (user's job).
+1. Read this + tracker **Phase B9 (COMPLETE)** + **Phase B7 (BUILT)**.
+   **W1–W8 all BUILT + verified (incl. W5 redesign + B9 typed settings); only
+   W9 DEFERRED.** Spec phase is closed; build phase is one widget from done.
+2. **Decide with the user what's next** (the roster is fully built bar W9):
+   - **W9 (sightings rework)** — get a **scope steer first** ("look-and-feel
+     only"? deeper?); it's the only widget still needing a spec pass (PRD §3 =
+     `DEFERRED`). Then spec → build like the others.
+   - **`EventStreamWidget` inherited-knob promotion** — a flagged cross-track
+     follow-up (Discovered work) that **needs sign-off** (main-track touch).
+     Present the fork before touching it ([[feedback_additive_only_posture]]).
+3. **Lower-priority housekeeping** (no sign-off): clear `w_8`'s stale 2023
+   `filters.timestamp`; heatmap-tile width bump; the user recomposes the analyst
+   `template.json` (their job).
+4. **B9 verification recipe (reuse for any configure-form check):** serve the
+   real webroot over http (`python3 -m http.server` rooted at `app/webroot`) so
+   `configure.module.mjs` + its relative imports resolve; a tiny harness HTML
+   under `app/webroot/js/dashboard/` (DELETE after) feeds a widget element its
+   real `data-widget-schema` JSON and calls `openConfigure()`; headless chromium
+   `--dump-dom` asserts the controls, `--screenshot` (write under `$HOME`) is the
+   visual. The schema JSON is byte-identical to `wrapper.ctp`'s
+   `json_encode($widget->schema, JSON_UNESCAPED_SLASHES)`.
