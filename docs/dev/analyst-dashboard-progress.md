@@ -56,7 +56,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` ⏸ **PARKED** — user reworking the heatmap (2026-06-02); B7 sign-off void until redesign settled |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
-| AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13) | `[ ]` not started |
+| AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13, AD-14) | `[x]` **BUILT** (Phase B8; correlation-anchored, EventCards + overlap badge, `exclude_own_org` setting) |
 | AD-W9 | Sightings rework | `DEFERRED` | — look-and-feel only; revisit post-build |
 
 ## Spec log (this track's planning tasks)
@@ -488,16 +488,34 @@ parked (above).*
 
 *New widget; reuses the W6 `EventCards` render. Depends on B3 (EventCards).*
 
-- [ ] `OverlapWithMyOrgWidget` (`render = 'EventCards'`): candidate set =
+- [x] `OverlapWithMyOrgWidget` (`render = 'EventCards'`): candidate set =
   ACL-visible window events (`Event.timestamp` in window), capped top-N recent
-  (`log()` if capped).
-- [ ] For each candidate, `Correlation->getRelatedEventIds($user, id, sgids)`;
+  (`log()` if capped). *Done: new class; fetch top-200 by `Event.timestamp
+  DESC` then window-filter (= top-N recent in-window, dense or sparse);
+  `CANDIDATE_CAP=200`; `CakeLog::write('info', …)` when the fetch hits the cap
+  (no existing widget `log()` idiom — MISP log is the honest channel).*
+- [x] For each candidate, `Correlation->getRelatedEventIds($user, id, sgids)`;
   keep iff a related event's `orgc_id` = my org. Overlap strength = # of my-org
-  events it correlates to; rank desc then recency.
-- [ ] EventCards + "overlaps N of your events" badge; per-org cache (AD-04).
-- [ ] Verify across correlation engines (Default at minimum; note OnDemand path
-  is reused for free via getRelatedEventIds).
-- [ ] Visual verification on the live instance.
+  events it correlates to; rank desc then recency. *Done: `sgids` via
+  `SharingGroup->authorizedIds`; self-id filtered; one batched
+  `Event->find('list', [id, orgc_id])` over all related ids; `usort` strength
+  desc → `Event.timestamp` desc. **AD-14:** `exclude_own_org` config (default
+  true) drops my-own-org candidates for a pure external "affects-me" signal.*
+- [x] EventCards + "overlaps N of your events" badge; per-org cache (AD-04).
+  *Done: additive per-record `_analyst_overlap` payload key →
+  `EventCards.ctp` renders the badge only when present (W6 stream unaffected) +
+  `.misp-eventcards-overlap` token pill in `dashboard.default.css` (mirrors
+  `.misp-trending-delta`); `cache_scope='org'`, `cache_duration=1200`.*
+- [x] Verify across correlation engines (Default at minimum; note OnDemand path
+  is reused for free via getRelatedEventIds). *Done: live REST + web-UI HTML on
+  the **Default** engine (configured) — `exclude_own_org` false→44 / true→25
+  events, orgc=1 (admin's org) correctly excluded, strengths 1/2/5 ranked
+  correctly, 25/25 cards badged. Engine-agnostic by construction: all three
+  behaviours implement `fetchRelatedEventIds`.*
+- [x] Visual verification on the live instance. *Done: snap-chromium screenshot
+  of the rendered `.ctp` through `dashboard.default.css` — accent badge pill
+  renders inline (threat dot · org · time · **overlaps N** · #id). Appended to
+  user 1's dashboard as `w_15` (backup `/tmp/dash_backup.json`; 15 tiles).*
 
 *(W9 deferred — look-and-feel-only reskin of RecentSightingsWidget, after the
 render kinds land.)*

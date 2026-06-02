@@ -58,7 +58,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DECIDED | spec locked (AD-12): wire `time_window` canonical **in-place** (additive sign-off granted) |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
-| AD-W8 | Overlap-with-my-org (correlation) | affects-me | DECIDED | spec locked (AD-13): correlation-based (reuse `getRelatedEventIds`), my-org-created ref set, window-anchored |
+| AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | DEFERRED | look-and-feel only? (sighting engine is slow / unused by some) |
 
 ## 4. Cross-cutting decisions (first-pass; detail to follow)
@@ -634,6 +634,20 @@ no schema change. Render = reuse the W6 `EventCards` kind with an "overlaps N of
 your events" badge, ranked by overlap strength. Per-org cache (AD-04). Cost
 guard = cap candidate window events (top-N recent), `log()` if capped. Rejected
 raw attribute-value intersection (expensive, redundant, re-implements ACL).
+
+**AD-14 — 2026-06-02 — AD-W8 `exclude_own_org` setting (build refinement).**
+Refs: AD-13, user fork ("can you make it a setting?"). The locked AD-W8
+candidate set is *every* ACL-visible window event; only the *related* set is
+restricted to my-org-created. That admits a self-referential case — my org's
+own new event surfacing because it correlates with my org's older events —
+which dilutes the "external affects-me" signal the widget is for. Rather than
+hard-pick exclude-vs-keep, exposed it as a boolean config **`exclude_own_org`
+(default `true`)**: true drops candidates whose `orgc_id` is my org (pure
+external signal); false honours the literal AD-13 candidate-set definition.
+Default true because the widget's framing ("what just landed that affects me")
+is external situational awareness. Built into `OverlapWithMyOrgWidget`
+(`$params` doc + lenient bool coercion); verified live (false→44 / true→25
+candidates on the dev corpus, admin org 1 correctly dropped).
 
 ## 7. Open meta-questions (resolve early)
 
