@@ -55,7 +55,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W2 | Trending vulnerabilities (dim of W1) | rising | DECIDED | spec locked (AD-09): vuln-attr distinct-event count, **ACL-scoped**; cveurl link-out; all CVE/GCVE/GHSA |
 | AD-W3 | Trending threat actors (dim of W1) | rising | DECIDED | spec locked (AD-10): `threat-actor` galaxy only; event∪attr-tag distinct-event count, **ACL-scoped**; per-cluster label |
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DECIDED | spec locked (AD-11): `mitre-attack-pattern`, parent roll-up; reuses W3 ACL count; distinct from W5 |
-| AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DECIDED | spec locked (AD-12): wire `time_window` canonical **in-place** (additive sign-off granted) |
+| AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | **DECIDED (REDESIGN)** | renderer redesign locked (AD-15): hide inactive · labeled cells · technique/sub-technique aggregation w/ click-to-unfold · single red ramp + legend; + AD-12 `time_window` folded in. Renderer-only; data layer untouched |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
@@ -253,7 +253,76 @@ cmtmf excluded — say so to widen).
 tag_ids → parent `external_id`/cluster); confirm the parent label resolves from
 the parent cluster record even when only sub-techniques are tagged.
 
-### AD-W5 — ATT&CK matrix heatmap  `DECIDED`
+### AD-W5 — ATT&CK matrix heatmap  `DECIDED (REDESIGN)`
+
+**⤳ REDESIGN (2026-06-02, AD-15) — supersedes the static thin-bar renderer.**
+The user reviewed the shipped v2 `Attack.ctp` (thin 8px **unlabeled** bars, all
+techniques incl. no-hits shown, multi-hue gradient, hover-only) and reworked the
+brief. **Appetite = redesign the renderer** (not a reskin). **Renderer-only**:
+`Attack.ctp` + dashboard CSS (default + midnight) + a small unfold JS; the data
+layer (`AttackExport`, `Galaxy::getMatrix`) stays **untouched** — the
+`tabs`+`scores` payload, with `external_id` already stamped on every cell, carries
+everything the redesign needs. Five locked points:
+
+1. **Hide inactive techniques** — render only technique groups whose aggregate
+   score > 0; tactic columns with no active group are hidden entirely (kills the
+   muted-bar noise; the board's "what's hot" signal only).
+2. **Larger, labeled cells** — each cell shows the technique name + T-ID + count,
+   **readable without hover** (must work on a static wall display). Replaces the
+   8px hover-only bars.
+3. **Technique / sub-technique aggregation** — the shipped renderer flatly mixes
+   them. *(CONFIRMED from live galaxy data: 526 sub-techniques all carry
+   `kill_chain`, so they land in `tabs` intermixed with the 673 techniques in the
+   same tactic columns.)* Group per tactic column by **parent T-ID** off
+   `external_id` (`^T\d+$` = technique; `^T\d+\.\d+$` = sub-technique, parent =
+   strip the `.\d+`). The parent cell shows the rolled-up aggregate; **click
+   unfolds its sub-techniques on demand** (progressive disclosure). Parent heat =
+   **SUM** of own + sub-technique event-counts (AD-15 fork; renderer-only;
+   overcounts events hitting multiple sub-techniques of one parent — acceptable
+   for a relative density ramp; "broader family coverage = hotter" reads right).
+4. **Single red gradient + legend** — drop the export's multi-hue
+   `ColourGradientTool` colours; compute each cell's shade in-renderer from
+   `score / max-parent-score` on a single-hue red ramp; render a small
+   legend/scale so intensity is interpretable.
+5. **`time_window` wiring (AD-12, REAFFIRMED 2026-06-02)** — folded into this
+   pass: add the `time_window` canonical to `AttackWidget::$schema`, map it to the
+   restSearch 'attack' `timestamp` filter (`-1` ⇒ no bound), cache key includes
+   the window. So the heatmap re-scopes with the board's toolbar like every other
+   analyst widget. This is the only `AttackWidget.php` change.
+
+**⚠ Sign-off (user, 2026-06-02).** The redesign **rewrites `Attack.ctp`**
+(existing code, originally from the main dashboard-v2 track) + adds CSS/JS + edits
+`AttackWidget.php` — beyond additive-only ([[feedback_additive_only_posture]]).
+The user signed off **both** ("redesign the renderer" + "fold in `time_window`").
+**Scope boundary: renderer + `AttackWidget` only — the data layer stays
+untouched** (the "true distinct-event parent count" option was offered and
+**declined** in favour of the renderer-only SUM). The platform **read-only render
+posture is deviated** for the click-to-unfold — that's progressive disclosure of
+the widget's *own* data, NOT a filter/scope action, and is explicitly
+user-requested.
+
+**Open at build (not blocking spec):**
+- **Orphan sub-technique** — a sub-technique present in a column whose parent
+  technique cell is absent (parent mapped to a different tactic, or parent lacks
+  `kill_chain`): synthesise a group header from the parent T-ID (name fallback =
+  the T-ID itself).
+- **Non-`T####` `external_id`** — 43 clusters carry a non-T id
+  (legacy/pre-attack): treat each as its own standalone top-level group (no
+  sub-folding).
+- A technique mapped to multiple tactics appears in multiple columns (existing
+  matrix behaviour); aggregation is **per-column**.
+- Unfold JS must **scope to the widget container** (multi-widget dashboard pages).
+- `Attack` is an **existing** render kind → no new glyph needed (the CLAUDE.md
+  glyph rule is for NEW kinds only); confirm the `Attack` glyph already exists in
+  `render-thumbs.mjs`.
+- Exact `time_window`→restSearch `timestamp` mapping (does 'attack' accept the
+  relative "30d" form directly? reuse `TrendingAttributesWidget` /
+  `CanonicalTypeAdapter`); confirm the `time_window` merge doesn't clobber the
+  manual `attackGalaxy` / `published` filters.
+
+---
+
+**⚠ SUPERSEDED by the 2026-06-02 redesign above — kept for the audit trail.**
 
 **Locked (2026-06-01):** The existing `AttackWidget` (`render=Attack`,
 `restSearch 'attack'`, manual `filters`, `cacheLifetime=1200`). It is the only
@@ -648,6 +717,33 @@ Default true because the widget's framing ("what just landed that affects me")
 is external situational awareness. Built into `OverlapWithMyOrgWidget`
 (`$params` doc + lenient bool coercion); verified live (false→44 / true→25
 candidates on the dev corpus, admin org 1 correctly dropped).
+
+**AD-15 — 2026-06-02 — AD-W5 (ATT&CK heatmap) REDESIGN; supersedes the static
+thin-bar renderer; AD-12 `time_window` reaffirmed + folded in.** Refs: AD-12
+(parked; sign-off was void), the shipped v2 `Attack.ctp` (main dashboard-v2
+track, commit `01feda2b0`), user rework brief + appetite ("redesign the
+renderer"), live galaxy-data feasibility check. The user was dissatisfied with
+the shipped static heatmap; the concrete brief is **renderer-only** (`Attack.ctp`
++ dashboard CSS + small unfold JS — data layer `AttackExport`/`Galaxy::getMatrix`
+**untouched**, since the `tabs`+`scores`+per-cell `external_id` payload already
+suffices): **(1)** hide inactive (zero-score) techniques and empty tactic
+columns; **(2)** larger **labeled** cells (name + T-ID + count, readable without
+hover — wall-display usable); **(3)** **technique/sub-technique aggregation** —
+the shipped renderer flatly mixes them (confirmed: all 526 sub-techniques carry
+`kill_chain` → intermixed with the 673 techniques in tabs); group per tactic
+column by parent T-ID off `external_id` (`^T\d+$` technique / `^T\d+\.\d+$`
+sub-technique → strip `.\d+`); parent cell = rolled-up aggregate, **click unfolds
+sub-techniques on demand**; **parent heat = SUM of own + sub counts** (fork:
+sum/max/true-distinct → user chose SUM, renderer-only, overcount-tolerant);
+**(4)** **single red gradient + legend** (drop the export's multi-hue
+`ColourGradientTool`; shade in-renderer from `score/max-parent-score`); **(5)**
+**fold in AD-12** — wire the `time_window` canonical into `AttackWidget::$schema`
++ restSearch `timestamp` (the only `AttackWidget.php` change). **Sign-off (user):
+renderer rewrite + `AttackWidget` edit are beyond additive-only and explicitly
+approved; data layer is the scope boundary (true-distinct-count declined). The
+read-only render posture is deviated for the click-to-unfold — progressive
+disclosure of the widget's own data, not a filter/scope action, user-requested.**
+B7 is **UN-PARKED** with this spec.
 
 ## 7. Open meta-questions (resolve early)
 

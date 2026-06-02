@@ -53,7 +53,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[x]` **BUILT** (Phase B4; engine from B1 + cveurl drilldown) |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[x]` **BUILT** (Phase B6; W3 count re-pointed + parent roll-up) |
-| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` ⏸ **PARKED** — user reworking the heatmap (2026-06-02); B7 sign-off void until redesign settled |
+| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED (REDESIGN)` (AD-15) | `[ ]` ▶ **BUILDING** (Phase B7 UN-PARKED 2026-06-02) — renderer redesign: hide inactive · labeled cells · technique/sub-technique aggregation + unfold · red ramp + legend · AD-12 time_window folded in |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[x]` **BUILT** (Phase B3; EventCards render kind + subclass live) |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13, AD-14) | `[x]` **BUILT** (Phase B8; correlation-anchored, EventCards + overlap badge, `exclude_own_org` setting) |
@@ -85,6 +85,12 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 - [x] **AD-W5 spec → DECIDED** — wire AttackWidget to the global `time_window`
   canonical **in-place** (first additive-only sign-off granted); map it into
   the restSearch 'attack' timestamp filter; manual filters preserved. (AD-12.)
+- [x] **AD-W5 spec → REDESIGN (supersedes AD-12)** — user reviewed the shipped
+  static heatmap and chose "redesign the renderer": (1) hide inactive, (2)
+  larger labeled cells, (3) technique/sub-technique aggregation w/ click-to-
+  unfold (parent heat = SUM), (4) single red ramp + legend, (5) AD-12
+  `time_window` folded in. **Renderer-only** (data layer untouched);
+  renderer-rewrite + AttackWidget edit signed off. (AD-15; B7 un-parked.)
 - [x] **AD-W8 spec → DECIDED** — Overlap-with-my-org: correlation-based (reuse
   `getRelatedEventIds` — ACL-correct + engine-agnostic), reference set =
   events my org created (`orgc_id`); window-anchored build (no org_id scan, no
@@ -99,11 +105,11 @@ the user before starting (they may recompose the analyst `template.json` first).
 
 ## Build backlog (ordered by confirmed build order)
 
-Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → W3 ✅ → W4 ✅ → ~~W5~~ ⏸ → W8 → W9**.
-Engine first (W2/W3/W4 are its dimensions); stats next (cheapest standalone
-win); then event-stream; dimensions; heatmap wiring; the hard/soft pair last.
-**W5 (heatmap wiring) is now PARKED** — the user is reworking the attack
-heatmap (2026-06-02; see Phase B7), so after W3/W4 the next widget is **W8**.
+Build order: **W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → W3 ✅ → W4 ✅ → W8 ✅ → W5 ▶ (B7
+redesign) → W9**. Engine first (W2/W3/W4 are its dimensions); stats next; then
+event-stream; dimensions; the affects-me pair; **W5 reordered to last-but-W9**
+after the heatmap was parked then reopened as a renderer redesign (AD-15,
+2026-06-02; see Phase B7). After W5, only W9 (deferred) remains.
 
 ### Phase B1 — AD-W1 Trending engine (on deck; fully DECIDED)
 
@@ -464,25 +470,49 @@ on B1 (and shares B5's ACL-correct union-distinct count).*
   read-back verified (14 tiles, all 3 Trending dimensions present).
   **Phase B6 (W4 trending attack techniques) COMPLETE.**
 
-### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (⏸ PARKED — user concern 2026-06-02)
+### Phase B7 — AD-W5 ATT&CK heatmap REDESIGN (✅ UN-PARKED 2026-06-02; spec AD-15)
 
-> **⏸ PARKED — do NOT build.** The user is not happy with the rework on the
-> attack heatmap and wants to address it in the future (2026-06-02). The AD-12
-> sign-off for the in-place `AttackWidget` edit is **void until the redesign is
-> settled** — the specific dissatisfaction wasn't detailed, so capture what the
-> user wants changed (and re-confirm whether the `time_window` wiring below is
-> even still the plan) BEFORE touching `AttackWidget`. Build order skips W5:
-> after W3/W4, go to W8.
+> **✅ UN-PARKED — spec locked (AD-15, 2026-06-02).** The user briefed the
+> concrete dissatisfaction and chose **"redesign the renderer."** Both forks
+> resolved: **fold in AD-12 `time_window`**; **parent heat = SUM of counts**
+> (renderer-only). **Scope = renderer + `AttackWidget` only; the data layer
+> (`AttackExport`, `Galaxy::getMatrix`) stays UNTOUCHED.** Sign-off granted for
+> the `Attack.ctp` rewrite + `AttackWidget.php` edit (beyond additive-only).
+> Full spec: PRD §5 AD-W5 + AD-15.
 
-*Touches existing `AttackWidget` — additive-only sign-off granted (AD-12), now
-parked (above).*
+*Renderer redesign: rewrites `Attack.ctp` (existing) + dashboard CSS (default +
+midnight) + small unfold JS; edits `AttackWidget.php` (time_window only).
+User-signed-off (beyond additive). Read-only posture deviated for click-to-unfold
+(progressive disclosure of own data — user-requested). `Attack` is an existing
+render kind ⇒ no new glyph (confirm the existing one).*
 
-- [ ] Add `time_window` canonical to `AttackWidget::$schema` (currently `[]`).
-- [ ] In `handler()`, map `time_window` → restSearch 'attack' `timestamp`
-  filter (reuse the in-tree translation; `-1` ⇒ no bound); merge without
-  clobbering manual `attackGalaxy`/`published`.
-- [ ] Confirm cache key includes the window; verify toolbar bulk-edit drives it.
-- [ ] Visual verification on the live instance (heatmap re-scopes with board).
+- [ ] **`AttackWidget.php` — `time_window` wiring (AD-12/AD-15 pt5).** Add the
+  `time_window` canonical to `$schema` (currently `[]`); map it → restSearch
+  'attack' `timestamp` filter (reuse the in-tree translation; `-1` ⇒ no bound);
+  merge without clobbering manual `attackGalaxy`/`published`; cache key includes
+  the window. *(The only data-side touch; everything else is the renderer.)*
+- [ ] **`Attack.ctp` — technique/sub-technique aggregation (AD-15 pt3).** Group
+  each tactic column's cells by parent T-ID off `external_id` (`^T\d+$` =
+  technique; `^T\d+\.\d+$` = sub-technique → parent = strip `.\d+`). Parent cell
+  = rolled-up group; **parent heat = SUM** of own + sub event-counts. Orphan
+  sub-technique (no parent cell in column) → synthesise header from the parent
+  T-ID. Non-`T####` id (43 legacy clusters) → standalone top-level group.
+- [ ] **`Attack.ctp` — hide inactive (AD-15 pt1).** Render only groups whose
+  aggregate score > 0; drop tactic columns with no active group.
+- [ ] **`Attack.ctp` + CSS — larger labeled cells (AD-15 pt2).** Each cell shows
+  technique name + T-ID + count, readable without hover (wall-display usable);
+  replaces the 8px hover-only bars. Token-driven CSS (default + midnight).
+- [ ] **`Attack.ctp` + CSS — single red gradient + legend (AD-15 pt4).** Drop the
+  export's multi-hue `colours`; shade each cell in-renderer from
+  `score / max-parent-score` on a single-hue red ramp; render a small
+  legend/scale.
+- [ ] **Unfold JS (AD-15 pt3).** Click a parent cell → reveal its sub-techniques
+  on demand; **scope to the widget container** (multi-widget pages). Find/confirm
+  where dashboard widget JS hooks in.
+- [ ] Confirm `time_window` cache key + toolbar bulk-edit drives the heatmap.
+- [ ] Visual verification on the live instance (real render path): inactive
+  hidden, labels readable, parent cells fold/unfold, red ramp + legend, re-scopes
+  with the board. Then append to user 1's test dashboard (standing pref).
 
 ### Phase B8 — AD-W8 Overlap-with-my-org (DECIDED; needs B1 + B3 EventCards)
 
