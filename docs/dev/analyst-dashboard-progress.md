@@ -378,6 +378,26 @@ render kinds land.)*
 
 ## Discovered work
 
+- **[RESOLVED — B4, user signed off 2026-06-02]** AD-09's external **cveurl
+  link-out collides with the dashboard's own DD-03 URL-safety contract.**
+  *Finding:* `DashboardURLValidator::validate()` (used by `Trending.ctp` to
+  gate `drilldown`) rejects every off-host absolute URL — and `MISP.cveurl`
+  (`http://cve.circl.lu/cve/` on this box; default
+  `https://vulnerability.circl.lu/vuln/`) is external — so a literal AD-09
+  `{cveurl}{value}` drilldown would be **silently dropped** and the row would
+  render as plain text. Never hit in B1.7 because the link was deferred to B4.
+  *Fork surfaced (AskUserQuestion):* (1) internal event-search drilldown
+  (additive, amends AD-09), (2) **relax DD-03 to allowlist the configured
+  cveurl host** (honours AD-09, touches platform code), (3) both. **User chose
+  (2).** *Resolution:* `DashboardURLValidator` now allowlists the trusted CVE
+  base alongside `MISP.baseurl` — a shared `cveBaseUrl()` resolver
+  (`MISP.cveurl` ?: documented default) feeds BOTH the gate's allowlist and
+  the widget's link builder so the emitted URL and the gate that admits it
+  can't drift; arbitrary off-host links are still dropped (scheme+host+port
+  match required). Test suite extended to **29 tests / 42 assertions green**
+  (all original DD-03 cases preserved + cveurl host/scheme/port, off-host
+  still rejected, default-trust, `cveBaseUrl`).
+
 - **[RESOLVED — B1.6, Option A, user signed off 2026-06-01]** `WidgetCache`
   gained an additive `'org'` scope; `TrendingWidget` uses it. *(Original
   finding below kept for the audit trail.)* **`WidgetCache` has no `'org'`

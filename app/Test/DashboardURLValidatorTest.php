@@ -157,6 +157,74 @@ class DashboardURLValidatorTest extends TestCase
         );
     }
 
+    // -------- cveurl allowlist (DD-03 + AD-09 relaxation) --------
+
+    public function testCveurlHostAllowedWhenConfigured(): void
+    {
+        // Admin-configured external CVE lookup (this dev box's value).
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $url = 'http://cve.circl.lu/cve/CVE-2024-1234';
+        $this->assertSame($url, DashboardURLValidator::validate($url));
+    }
+
+    public function testCveurlSchemeMustMatch(): void
+    {
+        // cveurl is http://; an https:// link to the same host is a
+        // different origin and must be dropped (no silent scheme swap).
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $this->assertNull(
+            DashboardURLValidator::validate('https://cve.circl.lu/cve/CVE-2024-1234')
+        );
+    }
+
+    public function testCveurlPortMustMatch(): void
+    {
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $this->assertNull(
+            DashboardURLValidator::validate('http://cve.circl.lu:8080/cve/CVE-2024-1234')
+        );
+    }
+
+    public function testOffHostStillRejectedWithCveurlConfigured(): void
+    {
+        // The relaxation admits ONLY the cveurl host — every other off-host
+        // link is still dropped.
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $this->assertNull(
+            DashboardURLValidator::validate('https://evil.example.com/cve/CVE-2024-1234')
+        );
+    }
+
+    public function testDefaultCveHostAllowedWhenCveurlUnset(): void
+    {
+        // With MISP.cveurl unset, the gate resolves to MISP's documented
+        // default (vulnerability.circl.lu) — the same base the emitter uses
+        // via cveBaseUrl() — so a default-base CVE link is admitted.
+        // (setUp configured only the baseurl; no cveurl.)
+        $url = 'https://vulnerability.circl.lu/vuln/CVE-2024-1234';
+        $this->assertSame($url, DashboardURLValidator::validate($url));
+    }
+
+    public function testBaseurlStillAllowedAlongsideCveurl(): void
+    {
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $this->assertSame(
+            'https://misp.example.com/events/index',
+            DashboardURLValidator::validate('https://misp.example.com/events/index')
+        );
+    }
+
+    public function testCveBaseUrlResolvesConfiguredThenDefault(): void
+    {
+        Configure::write('MISP.cveurl', 'http://cve.circl.lu/cve/');
+        $this->assertSame('http://cve.circl.lu/cve/', DashboardURLValidator::cveBaseUrl());
+        Configure::reset();
+        $this->assertSame(
+            DashboardURLValidator::DEFAULT_CVEURL,
+            DashboardURLValidator::cveBaseUrl()
+        );
+    }
+
     // -------- dangerous schemes --------
 
     public function testJavascriptSchemeRejected(): void

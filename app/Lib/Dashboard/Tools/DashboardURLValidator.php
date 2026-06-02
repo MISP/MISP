@@ -27,9 +27,16 @@
  *     gate "absolute" on the presence of `://`, not the parser's
  *     verdict)
  *   - Protocol-relative `//host/...`      → allowed iff host matches
- *     the host of Configure::read('MISP.baseurl')
+ *     the host of an allowed origin (see below)
  *   - Absolute `scheme://host[:port]/...` → allowed iff scheme, host,
- *     and port all match the baseurl's
+ *     and port all match an allowed origin's
+ *
+ * Allowed origins (DD-03 + analyst-track AD-09 relaxation): MISP's own
+ * `MISP.baseurl`, PLUS the admin-configured external reference database the
+ * dashboard is permitted to deep-link to — today `MISP.cveurl` (the CVE
+ * lookup the trending-vulnerability widget links each identifier to,
+ * resolved with MISP's documented default). Only these specific admin-set
+ * hosts are allowed off-baseurl; arbitrary off-host links are still dropped.
  *
  * Anything else → null.
  *
@@ -38,6 +45,57 @@
  */
 class DashboardURLValidator
 {
+    /**
+     * MISP's documented default CVE lookup base (config.default.php:41,
+     * Server.php:5862, value_field.ctp:94). Used when MISP.cveurl is unset
+     * so the emitter (TrendingWidget) and this gate resolve the SAME base.
+     */
+    const DEFAULT_CVEURL = 'https://vulnerability.circl.lu/vuln/';
+
+    /**
+     * The CVE lookup base URL the dashboard trusts for deep-links: the
+     * admin-configured MISP.cveurl, or MISP's documented default when unset.
+     * Single source of truth shared by validate()'s allowlist and the
+     * trending-vulnerability widget's link builder, so the emitted link and
+     * the gate that admits it can never drift (mirrors value_field.ctp:94).
+     *
+     * @return string
+     */
+    public static function cveBaseUrl()
+    {
+        $cveurl = Configure::read('MISP.cveurl');
+        return (is_string($cveurl) && $cveurl !== '') ? $cveurl : self::DEFAULT_CVEURL;
+    }
+
+    /**
+     * The set of origins an absolute / protocol-relative drilldown may point
+     * at: MISP's own baseurl plus the trusted CVE lookup base (above). Each
+     * entry is a parse_url() array; unparseable / host-less candidates are
+     * skipped. An empty result means nothing is configured → all absolute
+     * URLs are dropped (fail-safe).
+     *
+     * @return array<int, array>
+     */
+    private static function allowedOrigins()
+    {
+        $origins = array();
+        $candidates = array(
+            Configure::read('MISP.baseurl'),
+            self::cveBaseUrl(),
+        );
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate) || $candidate === '') {
+                continue;
+            }
+            $parts = @parse_url($candidate);
+            if ($parts === false || empty($parts['host'])) {
+                continue;
+            }
+            $origins[] = $parts;
+        }
+        return $origins;
+    }
+
     /**
      * @param mixed $url
      * @return string|null  The URL to emit, or null if it must be dropped.
@@ -70,38 +128,36 @@ class DashboardURLValidator
         if (!$isAbsolute && !$isProtocolRelative) {
             return $url; // relative — allowed
         }
-        // Absolute: host must match MISP.baseurl's.
-        $baseurl = Configure::read('MISP.baseurl');
-        if (empty($baseurl) || !is_string($baseurl)) {
-            return null;
-        }
-        $baseParts = @parse_url($baseurl);
-        if ($baseParts === false || empty($baseParts['host'])) {
-            return null;
-        }
+        // Absolute / protocol-relative: scheme (absolute only), host and
+        // port must all match one of the allowed origins.
         $parts = @parse_url($url);
         if ($parts === false || empty($parts['host'])) {
             return null;
         }
-        if (strcasecmp($parts['host'], $baseParts['host']) !== 0) {
-            return null;
-        }
-        // Strict port match — http://host:8080 is a different
-        // service from http://host:80, even though both share the
-        // host. Treat missing ports as equal (both default).
+        // Strict port match — http://host:8080 is a different service from
+        // http://host:80, even though both share the host. Treat missing
+        // ports as equal (both default).
         $candidatePort = isset($parts['port']) ? (int) $parts['port'] : null;
-        $basePort      = isset($baseParts['port']) ? (int) $baseParts['port'] : null;
-        if ($candidatePort !== $basePort) {
-            return null;
-        }
-        // Scheme match. Skipped for protocol-relative inputs (they
-        // have no scheme); for those the request's own scheme will
-        // be used by the browser, which is what we want.
-        if ($isAbsolute && !empty($baseParts['scheme'])) {
-            if (strcasecmp($parts['scheme'], $baseParts['scheme']) !== 0) {
-                return null;
+        foreach (self::allowedOrigins() as $origin) {
+            if (strcasecmp($parts['host'], $origin['host']) !== 0) {
+                continue;
             }
+            $originPort = isset($origin['port']) ? (int) $origin['port'] : null;
+            if ($candidatePort !== $originPort) {
+                continue;
+            }
+            // Scheme match for absolute URLs (no http→https swap). Skipped
+            // for protocol-relative inputs (no scheme — the browser uses the
+            // page's, which is what we want).
+            if ($isAbsolute) {
+                if (empty($origin['scheme'])
+                    || empty($parts['scheme'])
+                    || strcasecmp($parts['scheme'], $origin['scheme']) !== 0) {
+                    continue;
+                }
+            }
+            return $url;
         }
-        return $url;
+        return null;
     }
 }
