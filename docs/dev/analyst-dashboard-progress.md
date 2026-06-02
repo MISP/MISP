@@ -632,11 +632,24 @@ untouched. The roster is now fully BUILT except **W9 (DEFERRED)**.
   the configure form's `handledKeys` filters it out of the Advanced tier — the
   placeholder key renders ONCE as the typed checkbox, not duplicated. Lint
   clean. Browser-screenshot proof deferred to the B9 verification task (item 6).
-- [ ] **`TrendingWidget` — `dimension` → `enum`.** Add to `$schema`:
+- [x] **`TrendingWidget` — `dimension` → `enum`.** Add to `$schema`:
   `['type'=>'enum','enum'=>['vulnerability','threat-actor','mitre-attack-pattern'],
   'enum_labels'=>{…},'default'=>'vulnerability']`. Keep the enum list in sync with
   the `dimensions()` registry (note the duplication; consider deriving). This is
   the one the prior handoff wrongly deferred as "needs a new canonical type".
+  *Done:* added the `dimension` `enum` schema entry (3 values + `enum_labels` +
+  `default=>'vulnerability'`); `$params` text + `$placeholder` key kept. PHP
+  harness proved: `WidgetSchema::validate` well-formed; **enum values EXACTLY
+  match the `dimensions()` registry keys** (reflection-compared — no drift) and
+  every value carries an `enum_label`; `CanonicalTypeAdapter` injects
+  `vulnerability` when absent and passes a chosen value through; the handler's
+  dimension-selection (`!empty && isset(registry[...])`) picks the
+  default-injected value, a chosen value, and falls back to `vulnerability` for
+  a bogus value. `dimension` is now schema-handled → filtered from the Advanced
+  tier (renders once as the `<select>`). Lint clean. The enum<->registry
+  duplication is documented in a code comment (deriving deferred — would need a
+  public dimensions() accessor; not worth a refactor for 3 stable values).
+  Browser screenshot deferred to the B9 verification task (item 6).
 - [ ] **`NewDataStatsWidget` — `country` / `sector` → `string`.** Optional
   free-text overrides → `['type'=>'string','default'=>'','help'=>…]` each, so they
   render as labelled text inputs instead of advanced JSON.

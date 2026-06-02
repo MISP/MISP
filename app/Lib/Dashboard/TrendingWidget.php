@@ -62,6 +62,25 @@ class TrendingWidget
     );
 
     public $schema = array(
+        // B9: promoted from a `$params`-only knob to a typed `enum` so the
+        // configure form renders a native <select> (honouring `enum_labels`)
+        // instead of an advanced JSON key. `enum` is a WidgetSchema scalar
+        // type; CanonicalTypeAdapter injects this `default` when the key is
+        // absent and passes the chosen value through unchanged. Pure additive
+        // `$schema` edit — no platform/JS change. The option list MUST stay in
+        // sync with the dimensions() registry below (a new dimension = a new
+        // registry entry AND a new `enum`/`enum_labels` value here).
+        'dimension' => array(
+            'type' => 'enum',
+            'enum' => array('vulnerability', 'threat-actor', 'mitre-attack-pattern'),
+            'enum_labels' => array(
+                'vulnerability' => 'Vulnerabilities (CVE / GCVE / GHSA)',
+                'threat-actor' => 'Threat actors',
+                'mitre-attack-pattern' => 'ATT&CK techniques',
+            ),
+            'default' => 'vulnerability',
+            'help' => 'Which dimension to trend by distinct-event count.',
+        ),
         'time_window' => array(
             'type' => 'time_window',
             'default' => 'P7D',
