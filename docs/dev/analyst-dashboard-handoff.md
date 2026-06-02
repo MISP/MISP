@@ -15,6 +15,9 @@ builds the **analyst widget surface**. Authoritative state lives in:
   verified live.** Build order: W1 ✅ → W7 ✅ → W6 ✅ → W2 ✅ → **W3 ✅** →
   **W4 (B6) next** (reuses W3's count) → **W5 ⏸ PARKED** (user reworking the
   heatmap — see below) → W8 → (W9 deferred).
+  - 2 signed commits: `664266266` (B5 code — dimension + count + labels + icon)
+    and `5632a0f2e` (B5 verify + tracker/handoff). Earlier B1–B4 / W6 detail
+    lives in `git log` + the progress tracker's done-notes (trimmed from here).
 - **`TrendingWidget` now has TWO dimensions:** `vulnerability` (W2, value arm)
   and `threat-actor` (W3, tag arm). The threat-actor count is the
   **ACL-correct EventTag ∪ AttributeTag union-distinct** count — the primary
@@ -39,26 +42,6 @@ changed before touching `AttackWidget`** (and re-confirm whether AD-12's
 in-place `time_window` wiring is even still the plan). The build order skips
 W5 for now: after W3/W4, go to **W8** (overlap, unblocked). Revisit W5/B7 only
 when the user reopens the heatmap.
-- **W6 (Phase B3)** — 4 commits (`90b420fd6`/`002438ce3`/`cb2f37bad`/
-  `8f07c679f`): new **`EventCards`** render kind (+ glyph) + new
-  **`EventStreamCardsWidget extends EventStreamWidget`** (inherits the whole
-  data layer; read-only/no-cache). Verified via REST + web-UI HTML + headless
-  screenshot.
-- **W2 (Phase B4)** — most of it already shipped in B1 (count/ACL/window/
-  momentum/verbatim-label). The remaining piece — the **cveurl drill-down
-  link** — surfaced a **conflict**: AD-09's external `{cveurl}{value}` link vs
-  the dashboard's on-host-only DD-03 URL validator (it would silently drop the
-  link). Surfaced the fork via AskUserQuestion; **user chose to relax DD-03**.
-  2 commits:
-  - `693222957` B4-a — `DashboardURLValidator` now allowlists the trusted CVE
-    base alongside `MISP.baseurl`, via a shared `cveBaseUrl()` resolver
-    (`MISP.cveurl` ?: documented default) so the emitter and the gate can't
-    drift. Test suite → **29 tests / 42 assertions** (all original DD-03 cases
-    preserved + cveurl host/scheme/port, off-host-still-rejected, default-trust).
-  - `d479d45c4` B4-b — `labelsVulnerability()` sets
-    `'drilldown' => DashboardURLValidator::cveBaseUrl() . $value`.
-  - `b/handoff` B4-c — live verify: all rows render as `<a href="http://
-    cve.circl.lu/cve/…">` (validator admits them end-to-end). AD-W2 → BUILT.
 
 ## What now exists in the tree (reuse it; don't re-derive)
 - **`TrendingWidget`** + **`Trending` render kind** (W1). The parametrised
@@ -136,8 +119,9 @@ web-UI POST + session cookie returns the real `.ctp` HTML; snap-chromium
 screenshot needs inlined CSS in `$HOME`. **Screenshot only matters for a NEW
 render kind** (W6 needed one; W2/W3/W4 reuse `Trending` so the HTML grep for
 `<a>` vs `<div>` rows is the proof). **Session cookie expires** — re-mint
-`/tmp/cj_stat.txt` via [[reference-misp-login-dance]] (it lapsed mid-session
-this time; the full `_Token` set is required). **Clock caveat:** box clock is
+`/tmp/cj_stat.txt` via [[reference-misp-login-dance]] if a web-UI render 302s
+(the full `_Token` set is required); it stayed valid through B5. **Clock
+caveat:** box clock is
 2026-06-02; newest event ~2026-05-29 but newest *vulnerability* attr ~372 d
 old, so verify trending with `time_window=-1` (all-time). **Flush per-org
 cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
@@ -150,13 +134,17 @@ cache between checks:** `redis-cli -n 13 --scan --pattern 'misp:dashboard:*'`
   granted so far: the **B4 DD-03 relaxation** (user chose it over an internal
   drilldown). B7 (AttackWidget `time_window`, AD-12) was signed off **but is
   now PARKED** (heatmap concern above) — that sign-off is void until the
-  redesign is settled. B5 is additive (new dimension hooks on TrendingWidget —
-  same as B4's link builder, this track's own class; flag it but low-risk).
+  redesign is settled. B5 shipped additively (new dimension hooks + the
+  `Trending.ctp` icon — all this track's own classes, no external touch); **B6
+  is the same posture** (new dimension hooks, parametrise `countThreatActor`).
 - **Add built/touched widgets to user 1's test dashboard**
   ([[feedback_add_touched_widgets_to_dashboard]]): standing request — after
   building/touching a widget, append it to user 1's `dashboard` UserSetting if
-  not present (dedupe by class; back up first; never replace the layout), then
-  smoke-test it. Recipe + storage shape in that memory.
+  not present (back up first; never replace the layout), then smoke-test it.
+  **Nuance for `TrendingWidget`:** dedupe by **(class + dimension)**, not class
+  alone — multiple dimensions share the one class, so a vulnerability tile must
+  not block adding a threat-actor tile (B5 added `w_12` alongside `w_9`). Recipe
+  + storage shape in that memory.
 - **Sequential** ([[feedback_sequential_implementation]]): one task at a time;
   research may parallelise, code never.
 - **Commit per task** ([[feedback_commit_per_task]]); **never `git add -A`** —
