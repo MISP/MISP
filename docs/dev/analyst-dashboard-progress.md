@@ -896,20 +896,44 @@ existing widget or handler touched. Ready for the three consumers (B11–B13).
   (W11 recent analyst data) COMPLETE.** (Dev corpus is test junk — "test"/"aaaa" —
   rendered faithfully; not a widget issue.)
 
-### Phase B13 — AD-W12 Recently Added Galaxy Clusters (DECIDED; needs B10)
+### Phase B13 — AD-W12 Recently Added Galaxy Clusters (BUILT + verified 2026-06-02)
 
-- [ ] `RecentGalaxyClustersWidget` (`render='FeedList'`) — fetch N newest **local**
-  clusters via `GalaxyCluster->fetchGalaxyClusters($user, ['conditions'=>
-  ['GalaxyCluster.default'=>0,'GalaxyCluster.deleted'=>0 (+ optional `version >=`
-  window)], 'order'=>['GalaxyCluster.version'=>'DESC'], 'limit'=>N], false)` with
-  parent `Galaxy` joined for `icon`/`type` (reuse the TrendingWidget threat-actor
-  join). Map to FeedList rows (`Galaxy.icon` · value · galaxy type chip · org ·
-  relative `version` · `/galaxy_clusters/view/<id>` drilldown). `limit` +
-  `time_window` settings.
-- [ ] Confirm `fetchGalaxyClusters($full=false)` returns `Galaxy.icon`/`Orgc.name`
-  (else add a targeted contain/join). Visual verification (real render path;
-  all-time/365d window — newest local cluster 2026-04-14). Append to user 1's
-  dashboard, smoke-test.
+- [x] `RecentGalaxyClustersWidget` (`render='FeedList'`) — fetch N newest **local**
+  clusters (`default=0`, `deleted=0`, optional `version >=` window), newest-first
+  by `version`. Map to FeedList rows (`Galaxy.icon` glyph · cluster `value` ·
+  description snippet · author `Orgc.name` · relative `version` · galaxy-name chip
+  · `/galaxy_clusters/view/<id>` drilldown). `limit` (int 10, 1–50) + `time_window`
+  (default `-1`) typed `$schema`; no cache. *Build pivot (important):* the first
+  cut used `fetchGalaxyClusters()` but it **(a) dropped my aliased `order`** (its
+  `findOrder` whitelist wants the bare field; rows came back oldest-by-`id`) and
+  **(b) didn't hydrate `Galaxy`/`Orgc`** through its post-processing — so it was
+  replaced with a **direct `find('all', …)` reusing the public
+  `GalaxyCluster::buildConditions($user)`** ACL + `contain ['Galaxy','Orgc']`
+  (both standard-FK belongsTo → Containable hydrates them) + explicit
+  `order version DESC` + `limit`. ACL-identical, still additive. `php -l` clean.
+- [x] Visual verification (real render path) + XSS-safety + board append. *Done:*
+  (1) REST `renderWidget` (`time_window=-1`) → `renderer:FeedList`, 8 rows in
+  **correct `version` DESC order** (newest = "hackathon2026" 2026-04-14, matching
+  the DB recon; was wrong/oldest-by-id pre-pivot); org (`Iglocska`/`komplett.no`),
+  `Galaxy.icon` (`user-secret`/`map`/`virus`), galaxy-name chips
+  (`Threat Actor`/`Attack Pattern`), and `/galaxy_clusters/view/<id>` all resolve.
+  (2) **Stored-XSS safety**: the dev corpus has test clusters (`xsstest`/`testxss`)
+  whose galaxy `icon` is an HTML-injection payload — confirmed via the **rendered
+  HTML** that FeedList neutralizes it: **0 raw `<img … onerror=…>`**; the payload
+  appears only fully escaped inside the FA `class="…"` attribute
+  (`fa-&quot;&gt;&lt;img …&#039;…&gt;`) — `FontAwesome::getClass()` `h()`-escapes,
+  and chips/value/org go through `h()`. Cannot break out. (3) Web-UI POST+session →
+  real `FeedList.ctp` HTML, http 200, **0 PHP errors**, 8 items, 7 icons
+  (hackathon2026 has none), galaxy-name chips, drilldowns. (4) Screenshot on the
+  real CSS (`/home/iglocska/b13_clusters.png`). Appended to user 1's dashboard as
+  **`w_18`**; persisted + read-back verified (**14 tiles; all three feed widgets
+  present**). **Phase B13 (W12 recently added galaxy clusters) COMPLETE.**
+
+**Phases B10–B13 (the W10–W12 feed-widget batch) COMPLETE + verified.** New shared
+`FeedList` render kind + three widgets (RecentEventReports, RecentAnalystData,
+RecentGalaxyClusters), all per-user ACL'd live fetches on the bare FeedList
+row-list contract; all on user 1's board (`w_16`/`w_17`/`w_18`). Pure additions —
+no existing widget/handler/model behaviour changed.
 
 ---
 
