@@ -161,6 +161,9 @@ class UsersController extends AppController
             if (empty($this->request->data['User'])) {
                 $this->request->data = array('User' => $this->request->data);
             }
+            if (isset($this->request->data['User']['id'])) {
+                unset($this->request->data['User']['id']);
+            }
             $abortPost = false;
             if (!empty($this->request->data['User']['email']) && !$this->_isSiteAdmin()) {
                 $organisation = $this->User->Organisation->find('first', array(
