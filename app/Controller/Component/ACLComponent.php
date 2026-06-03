@@ -191,6 +191,8 @@ class ACLComponent extends Component
             'listGalaxyTypes' => array('*'),
             'searchGalaxyClusters' => array('*'),
             'searchOrganisations' => array('*'),
+            'updateTheme' => ['*'],
+            'resetFromTemplate' => ['*']
         ),
         'decayingModel' => array(
             "update" => array(),
