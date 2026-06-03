@@ -840,8 +840,8 @@ class ACLComponent extends Component
             'import' => [],
             'export' => ['*'],
             'view' => array('*'),
-            'unhideTag' => array('perm_tagger'),
-            'hideTag' => array('perm_tagger'),
+            'unhideTag' => array('perm_tag_editor'),
+            'hideTag' => array('perm_tag_editor'),
             'normalizeCustomTagsToTaxonomyFormat' => [],
         ),
         'taxiiServers' => [
