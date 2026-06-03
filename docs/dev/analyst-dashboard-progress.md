@@ -1022,12 +1022,28 @@ widget-only). Build order: New-data rename → New-data N/A tooltip → W11 dril
   *Done:* edited `app/Lib/Dashboard/NewDataStatsWidget.php` — `targetingMetric()`
   `$title` → `__('Targeting similar orgs')`, plus every user-facing "targeting my
   org" string. `php -l` clean; no leftover "targeting my org" refs.
-- [ ] **NewDataStatsWidget — N/A unset-meta tooltip (AD-22).** When neither
+- [x] **NewDataStatsWidget — N/A unset-meta tooltip (AD-22).** When neither
   country nor sector resolves (card shows `N/A`), add a hover tooltip explaining
   the org's country/sector are unset and how to enable the metric. Add an opt-in
   `tooltip` row key to the shared `StatGrid.ctp` (sets the card `title`
   attribute when present, overriding the field-name fallback) — additive,
   signed off; set it on the N/A row.
+  *Done:* `StatGrid.ctp` now reads an optional `tooltip` row key (documented in
+  the data contract) — `$tooltipText = !empty($row['tooltip']) ? … : $titleText`
+  feeds the card `title` attr, so a row can explain its value while every other
+  consumer (no `tooltip` key) keeps the field-name fallback unchanged.
+  `NewDataStatsWidget::targetingMetric()` sets it on the N/A early-return.
+  **Verified two layers:** (1) real `StatGrid.ctp` render harness
+  (`/home/iglocska/statgrid_tooltip_harness.php`) — 5/5 PASS: N/A card
+  `title="<tooltip>"` (escaped), tooltip overrides the field-name title, a
+  no-tooltip row falls back to its field name (backward compat), labeled variant
+  intact. (2) Real REST `renderWidget` pipeline — temporarily blanked org-1's
+  `nationality`/`sector` → targeting row returned `value:"N/A"` + the full
+  `tooltip` string, then **restored org-1 meta exactly** (Luxembourg /
+  Government). `php -l` clean both files. **Data note:** org-1 now carries
+  `nationality=Luxembourg`/`sector=Government` (set since the B2/B14 "N/A" notes),
+  so the targeting metric normally resolves (tag 1645, count 5) — the B14 "N/A"
+  observation is stale, not a regression.
 - [ ] **RecentAnalystDataWidget (W11) — richer per-target-type drilldowns
   (AD-23).** Link each note/opinion to its target by `object_uuid` for the seven
   UUID-resolvable target types (Event, Attribute, Object, GalaxyCluster, Galaxy,

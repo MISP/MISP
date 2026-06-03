@@ -15,6 +15,9 @@
  *   $data = [
  *     ['title' => '...', 'value' => mixed, 'drilldown' => '/url' (optional),
  *      'change' => int (optional, growth delta → ▲/▼ badge),
+ *      'tooltip' => '...' (optional → the card's hover `title` attribute;
+ *                overrides the default field-name tooltip — e.g. to explain
+ *                why a value reads "N/A"),
  *      'type' => 'gap' (optional → full-width section break; its `title`,
  *                if present, becomes the section heading),
  *      'html_title' => 'raw html' (optional, replaces the label),
@@ -155,9 +158,12 @@ foreach ($data as $row) {
         $legacyHtml
     );
 
-    // Full field name on the card so it surfaces as a hover tooltip
-    // (and an accessible name) now that the visible label is a glyph.
-    $titleAttr = $titleText !== '' ? ' title="' . h($titleText) . '"' : '';
+    // Card tooltip: an explicit `tooltip` row key wins (a widget can explain a
+    // value — e.g. why a metric reads "N/A"); otherwise fall back to the full
+    // field name, which surfaces the label as a hover tooltip (and an
+    // accessible name) now that the visible header may be a glyph.
+    $tooltipText = !empty($row['tooltip']) ? trim((string)$row['tooltip']) : $titleText;
+    $titleAttr = $tooltipText !== '' ? ' title="' . h($tooltipText) . '"' : '';
 
     // Whole card is a link when a safe drilldown URL is present (DD-03).
     $href = null;

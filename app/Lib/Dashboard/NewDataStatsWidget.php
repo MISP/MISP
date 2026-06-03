@@ -345,9 +345,22 @@ class NewDataStatsWidget
         $sector = $this->resolveSector($options, $org);
         $title = __('Targeting similar orgs');
 
-        // Neither axis resolved → the metric is not applicable (AD-07).
+        // Neither axis resolved → the metric is not applicable (AD-07). Surface
+        // *why* via a hover tooltip (AD-22): the org's country/sector are unset,
+        // so "similar orgs" can't be determined — and how to fix it.
         if ($country === null && $sector === null) {
-            return array('title' => $title, 'icon_class' => 'organisation', 'value' => __('N/A'));
+            return array(
+                'title' => $title,
+                'icon_class' => 'organisation',
+                'value' => __('N/A'),
+                'tooltip' => __(
+                    'Your organisation\'s country and sector are currently '
+                    . 'unset, so events targeting similar organisations can\'t '
+                    . 'be determined. Set your organisation\'s nationality and '
+                    . 'sector (or configure this widget\'s country/sector) to '
+                    . 'enable this metric.'
+                ),
+            );
         }
 
         $tagIds = $this->targetingTagIds($country, $sector);
