@@ -1,39 +1,44 @@
 # Analyst Dashboard — Session handoff
 
 **State (2026-06-03, eod):** analyst surface **W1–W8 + W10–W12 BUILT + verified**;
-**W9 DECLINED (AD-16)**. This session opened **Phase B15 — loose-end polish**
-(the items the user chose to "finish up" the track) and completed **2 of 4**
-tasks. **Two tasks remain queued and fully specced — see "Next session" below.**
-Authoritative state: `analyst-dashboard-prd.md` (roster §3 · per-widget §5 ·
-AD-NN log §6, now **AD-01..24**) + `analyst-dashboard-progress.md`
-(**Phase B15** section, tasks 1–2 ticked, 3–4 open). This file = the ephemeral
-bridge. **Next free decision id = AD-25** (AD-23/AD-24 are allocated + specced
-but not yet built).
+**W9 DECLINED (AD-16)**. **Phase B15 — loose-end polish is now COMPLETE: all 4
+tasks built, verified, committed (signed, `%G?`=U) on branch `dashboards`.** No
+queued analyst-dashboard work remains. Authoritative state:
+`analyst-dashboard-prd.md` (roster §3 · per-widget §5 · AD-NN log §6, now
+**AD-01..24, all built**) + `analyst-dashboard-progress.md` (**Phase B15**
+section, all 4 tasks ticked, header = COMPLETE). This file = the ephemeral
+bridge. **Next free decision id = AD-25.**
 
-## TL;DR — this session (2026-06-03, Phase B15)
+## TL;DR — Phase B15 (2026-06-03) — COMPLETE
 
 User picked **"W11/W12 feature polish"** + two New-data-stats targeting-card
-tweaks to finish the track. Build order: New-data rename → N/A tooltip → W11
-drilldowns → W12 filter. **Tasks 1–2 done + committed (signed, `%G?`=U)** on
+tweaks to finish the track. Build order ran: New-data rename → N/A tooltip → W11
+drilldowns → W12 filter. **All 4 tasks done + committed (signed, `%G?`=U)** on
 branch `dashboards`:
 
 - `7c20e86c8` **AD-22 pt1 — rename "Targeting my org" → "Targeting similar
-  orgs".** The metric counts events tagged with my org's country ∪ sector =
-  events targeting *organisations like mine*, not my org literally → the new
-  label is accurate. User-facing strings only (card label, `$params`/`$schema`
-  help, docblocks, `$description`); cache keys / method names / `organisation`
-  icon unchanged. REST-verified the live label.
-- `f076251c0` **AD-22 pt2 — N/A unset-meta tooltip.** Added an additive opt-in
-  **`tooltip` row key to the shared `StatGrid.ctp`** (sets the card `title`
-  attr, overriding the field-name fallback when present — signed-off platform
-  touch, same posture as AD-21's `statGridLabels`/`icon_class`).
-  `NewDataStatsWidget` sets it on the targeting N/A early-return, explaining the
-  org's country/sector are unset + how to enable the metric. **Verified two
-  layers** (real `StatGrid.ctp` harness 5/5 PASS + real REST `renderWidget`
-  pipeline with a blank-then-restore of org-1 meta).
+  orgs".** User-facing strings only; cache keys / method names / icon unchanged.
+- `f076251c0` **AD-22 pt2 — N/A unset-meta tooltip.** Additive opt-in `tooltip`
+  row key on the shared `StatGrid.ctp` (signed-off platform touch); set on the
+  targeting N/A early-return. Verified two layers (`.ctp` harness + REST).
+- `a9b239ae4` **AD-23 — W11 per-target-type drilldowns.** ⚠ **Scope grew from
+  the queued spec's 7 → all 11 target types** (user confirmed "link all 11"):
+  re-verification on build found BOTH the spec's exclusion premises were false —
+  EventReport resolves a uuid (`simpleFetchById`:424 → `/eventReports/view/`),
+  and Note/Opinion/Relationship DO have a standalone view
+  (`AnalystDataController::view` → `/analystData/view/<Type>/<uuid>`). Const
+  `VIEW_PATHS` map in `mapRow()`. REST-verified 6 corpus target types (incl. the
+  2 new two-segment analyst-data links) each emit + resolve (HTTP 200) the right
+  drilldown; bogus uuid fails closed. PRD AD-23 + the §5 open item updated.
+- `6fa662c99` **AD-24 — W12 `galaxy_type` filter.** Optional typed `string`
+  knob; case-insensitive match on galaxy `type` OR `name`; ids resolved in PHP
+  off the 140-row `galaxies` table → `galaxy_id IN (…)`; blank = all. REST-
+  verified 4 cases (type / name+case variants → 3 rows; bogus → empty; blank →
+  all). Configure-form text input traced in source (B9 generic control).
 
-**Both remaining tasks are still QUEUED** (user had to reboot): W11 per-target
-drilldowns (AD-23), W12 `galaxy_type` filter (AD-24).
+**No queued analyst-dashboard tasks remain.** See "Open loose ends" for the
+non-queued backlog (screenshots, CSS automation, UI nits) — none are committed
+work.
 
 ## ⚠ Data note (carry forward — corrects a stale B14 observation)
 - **Org-1 (`Iglocska`, the admin org) now has `nationality=Luxembourg`,
@@ -44,88 +49,23 @@ drilldowns (AD-23), W12 `galaxy_type` filter (AD-24).
   them — Luxembourg/Government) as this session did, or use a user whose org has
   no country/sector + a non-ccTLD name.
 
-## ▶ Next session — TWO queued tasks, fully specced + turnkey
+## ✓ Phase B15 done — both queued tasks built this session
 
-Both are **pure additive widget changes** (no shared-renderer touch), specs
-locked in PRD §6 (AD-23, AD-24) + `analyst-dashboard-progress.md` Phase B15.
-Sequential, **one task = one commit (signed)**, tick the tracker + Done note,
-verify on the real render path, then update this handoff.
+Tasks 3 (AD-23) + 4 (AD-24) are built, verified, and committed
+(`a9b239ae4`, `6fa662c99`; signed, `%G?`=U). Full per-task detail in the TL;DR
+above + the PRD AD-NN log + `analyst-dashboard-progress.md` Phase B15 (all 4
+ticked). The three feed widgets were already on user-1's board (`w_16/17/18`)
+and W11/W12 were in-place edits, so **no dashboard append was needed**
+([[feedback_add_touched_widgets_to_dashboard]] satisfied).
 
-### Task 3 — W11 richer per-target-type drilldowns (AD-23)
-**File:** `app/Lib/Dashboard/RecentAnalystDataWidget.php` (only).
-Today only `Event`-targeted notes/opinions link (`/events/view/<uuid>`); every
-other target type is a bare chip. **Recon done this session** — of
-`AnalystData::valid_targets` (Attribute, Event, EventReport, GalaxyCluster,
-Galaxy, Object, Note, Opinion, Relationship, Organisation, SharingGroup),
-**seven** controllers' `view($id)` resolve a **UUID** (`Validation::uuid` /
-`Toolbox::findIdByUuid`), and `object_uuid` is always a UUID string. **Plan:**
-- Add a const map and use it in `mapRow()`:
-  ```php
-  const VIEW_PATHS = array(
-      'Event'         => '/events/view/',
-      'Attribute'     => '/attributes/view/',
-      'Object'        => '/objects/view/',
-      'GalaxyCluster' => '/galaxy_clusters/view/',
-      'Galaxy'        => '/galaxies/view/',
-      'Organisation'  => '/organisations/view/',
-      'SharingGroup'  => '/sharing_groups/view/',
-  );
-  // in mapRow(), replacing the Event-only $drilldown:
-  $drilldown = ($objUuid !== '' && isset(self::VIEW_PATHS[$objType]))
-      ? self::VIEW_PATHS[$objType] . $objUuid : null;
-  ```
-- **Stay chip-only:** `EventReport` (its `view` takes a numeric id only, we have
-  only the uuid), `Note`/`Opinion`/`Relationship` (no standalone view). Leaving
-  them out of the map handles this automatically.
-- All links relative → **DD-03 admits with no validator change** (same as the
-  existing Event link). No uuid pre-validation needed (`h()`-escaped in FeedList;
-  bad uuid 404s like the current Event link — matched posture).
-- **Verify:** REST `renderWidget` (`time_window=-1`) → confirm rows of varied
-  target types now carry the right `/{controller}/view/<uuid>` drilldown; the
-  dev corpus is mostly Event-targeted + junk, so seed/locate a non-Event target
-  (or assert the map in a focused harness for the types absent from the corpus).
-  Close the PRD §5 AD-W11 "exact per-target-type drilldown" open item.
-
-### Task 4 — W12 `galaxy_type` filter (AD-24)
-**File:** `app/Lib/Dashboard/RecentGalaxyClustersWidget.php` (only).
-Un-defers the PRD §5 AD-W12 "optional `galaxy_type` filter (deferred)" item.
-**Plan:**
-- Add `galaxy_type` to `$params` (help) + `$schema` as a **typed `string`**
-  (`default => ''`) — configure-form text input, exactly the B9 country/sector
-  precedent (renders in the Settings tier, not advanced JSON).
-- In `handler()`, when set, scope the feed to one galaxy, matching the value
-  **case-insensitively against `Galaxy.type` OR `Galaxy.name`** (so the user can
-  type `threat-actor` *or* `Threat Actor`). Resolve galaxy ids **in PHP** off the
-  small `galaxies` table (collation-independent, dodges SQL-function quoting):
-  ```php
-  $galaxyType = isset($options['galaxy_type']) ? trim((string)$options['galaxy_type']) : '';
-  if ($galaxyType !== '') {
-      $lc = strtolower($galaxyType);
-      $Galaxy = ClassRegistry::init('Galaxy');
-      $all = $Galaxy->find('all', array('recursive' => -1,
-          'fields' => array('Galaxy.id','Galaxy.type','Galaxy.name')));
-      $ids = array();
-      foreach ($all as $g) {
-          if (strtolower((string)$g['Galaxy']['type']) === $lc
-              || strtolower((string)$g['Galaxy']['name']) === $lc) {
-              $ids[] = (int)$g['Galaxy']['id'];
-          }
-      }
-      if (empty($ids)) { return array(); }   // filter matched no galaxy → empty feed (honest)
-      $conditions['GalaxyCluster.galaxy_id'] = $ids;
-  }
-  ```
-  (Add this **after** the existing `$conditions = $GalaxyCluster->buildConditions(...)`
-  + `default=0`/`deleted=0`/window lines, before the `find('all', …)`.)
-- Blank = all galaxies (no behaviour change for existing instances).
-- **Verify:** REST `renderWidget` with `galaxy_type` set to a known type (e.g.
-  `threat-actor`) → only that galaxy's clusters; with a bogus value → empty feed;
-  blank → unchanged. Confirm the configure-form text input renders
-  (`configure.module.mjs --dump-dom`, B9 recipe). Close the PRD §5 open item.
-
-After both: flip the Phase B15 header to COMPLETE, refresh this handoff, and
-(standing pref) the three feed widgets are already on user-1's board
-(`w_16/17/18`) so no append needed — W11/W12 are in-place edits.
+**One divergence from the queued spec worth flagging:** Task 3 (AD-23) was
+specced to link **7** target types and leave 4 chip-only. On build,
+re-verifying the spec's stated premises ([[feedback_question_stated_premises]])
+showed **both exclusion reasons were factually wrong** — all 11
+`AnalystData::valid_targets` resolve a uuid in their `view()`. The user
+confirmed **"link all 11"**, so the const map carries every type (the four
+formerly-excluded ones are EventReport + Note/Opinion/Relationship). The PRD
+AD-23 entry + §5 open item were rewritten to record the correction.
 
 ## What exists in the tree (reuse it; don't re-derive)
 - **Analyst widgets (W1–W8, W10–W12):** `TrendingWidget` (3 dims),
