@@ -1058,9 +1058,9 @@ class EventTemplatesController extends AppController
                 'type' => 'json',
             ));
         }
-        $this->set('message', $message);
+        $this->set('headerDescription', $message);
         $this->set('missing', $missing);
-        $this->set('title_for_layout', __('Event templating unavailable'));
+        $this->set('headerTitle', __('Event templating unavailable'));
         return $this->render('dependency_missing');
     }
 }

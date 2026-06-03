@@ -25,6 +25,7 @@
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+            ['controller' => 'CollectionElements', 'action' => 'index'],
 
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
@@ -198,8 +199,9 @@
             'js' => $js,
         ]);
     ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
+<body class="bg-light" data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div class="main-wrapper">
         <!-- Navbar -->
         <header>
@@ -297,6 +299,9 @@
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
                         'headerActions' => $headerActions ?? [],
+                        'headerTitle' => $headerTitle ?? null,
+                        'headerDescription' => $headerDescription ?? null,
+                        'headerStats' => $headerStats ?? [],
                     ]);
                 }
                 ?>

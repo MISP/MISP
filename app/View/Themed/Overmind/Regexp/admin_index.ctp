@@ -1,4 +1,35 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('regexp', 'admin_clean')) {
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Perform on existing'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/admin/regexp/clean'
+    ];
+}
+
+if ($this->Acl->canAccess('regexp', 'admin_add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Regexp'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/admin/regexp/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -31,26 +62,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Regexp.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/admin/regexp/edit/%id%',
-                'requirement' => $me['Role']['perm_regexp_access']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/admin/regexp/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_regexp_access']
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -80,29 +94,32 @@ $fields = [
         'element' => 'type',
         'card_section' => 'attribute',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Regexp.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/admin/regexp/edit/%id%',
+                'requirement' => $me['Role']['perm_regexp_access']
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/admin/regexp/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_regexp_access']
+            ]
+        ]
     ]
 ];
 
-
-$headerActions = [];
-if ($this->Acl->canAccess('regexp', 'admin_clean')) {
-    $headerActions[] = [
-        'type' => 'post',
-        'label' => __('Perform on existing'),
-        'icon' => 'sync',
-        'url' => $baseurl . '/admin/regexp/clean'
-    ];
-}
-
-if ($this->Acl->canAccess('regexp', 'admin_add')) {
-    $headerActions[] = [
-        'type' => 'ajax',
-        'label' => __('Add Regexp'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/admin/regexp/add'
-    ];
-}
-$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================

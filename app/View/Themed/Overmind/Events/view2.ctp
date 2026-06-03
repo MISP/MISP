@@ -1,24 +1,7 @@
 <?php
-    echo $this->element('genericElements/assetLoader', [
-        'css' => ['attack_matrix', 'analyst-data'],
-        'js' => [
-            'doT', 'd3', 'd3.custom',
-            'network-distribution-graph',
-        ],
-    ]);
-    $eventId = $event['Event']['id'];
-    $pageTitle = h($event['Event']['info']);
-    $mayModify = (
-        $this->Acl->canAccess('events', 'edit') &&
-        (
-            $isSiteAdmin ||
-            $event['Event']['orgc_id'] == $me['org_id']
-        )
-    );
-
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
-        'title' => $pageTitle,
+
         'data' => $event,
         'tabs' => [
             [
@@ -52,7 +35,7 @@
                         //     'action' => 'viewObjects',
                         //     $eventId
                         // ])
-                        'ajax' => sprintf('/events/viewObjects/%s',h($eventId))
+                        'ajax' => sprintf('/events/viewObjects/%s',h($event['Event']['id']))
                     ]
                 ],
             ],
@@ -70,7 +53,7 @@
                         //     'action' => 'viewAttributes',
                         //     $eventId
                         // ])
-                        'ajax' => sprintf('/events/viewAttributes/%s',h($eventId))
+                        'ajax' => sprintf('/events/viewAttributes/%s',h($event['Event']['id']))
                     ]
                 ],
             ],

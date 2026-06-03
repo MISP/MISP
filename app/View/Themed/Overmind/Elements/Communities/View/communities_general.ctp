@@ -155,13 +155,13 @@
             <div class="border rounded overflow-hidden">
 
                 <!-- Header bar -->
-                <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-dark">
-                    <div class="d-flex align-items-center gap-2 text-light">
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light">
+                    <div class="d-flex align-items-center gap-2 text-dark">
                         <i class="fas fa-key text-warning"></i>
                         <span class="small fw-semibold"><?= __('Public PGP Key') ?></span>
                     </div>
                     <button
-                        class="btn btn-sm btn-outline-light py-0 px-2 d-flex align-items-center gap-1"
+                        class="btn btn-sm btn-outline-dark py-0 px-2 d-flex align-items-center gap-1"
                         onclick="copyToClipboard(this, this.dataset.pgpKey)"
                         data-pgp-key="<?= h($data['pgp_key']) ?>"
                         data-bs-toggle="tooltip"
@@ -173,7 +173,7 @@
                 </div>
 
                 <!-- Key content -->
-                <pre class="mb-0 p-3 bg-black text-primary small" style="max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-break: break-all;"><?= h($data['pgp_key']) ?></pre>
+                <pre class="mb-0 p-3 text-primary small" style="max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-break: break-all;"><?= h($data['pgp_key']) ?></pre>
 
             </div>
         </div>

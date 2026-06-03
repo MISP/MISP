@@ -152,7 +152,9 @@ class AuditLog extends AppModel
      */
     private function encodeChange($change)
     {
-        $change = JsonTool::encode($change);
+        // Substitute invalid UTF-8 bytes with U+FFFD instead of throwing — the change array may carry
+        // arbitrary attribute values (e.g. half UTF-16 surrogates, mojibake) that would otherwise abort the save.
+        $change = JsonTool::encode($change, false, false, true);
         if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
             return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
         }

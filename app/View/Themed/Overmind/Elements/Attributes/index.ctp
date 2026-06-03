@@ -1,4 +1,18 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 // Temporary fix to avoid errors as these variables are defined in AttributesController
 $categoryOptions = isset($categoryOptions) ? $categoryOptions : null;
 $typeOptions = isset($typeOptions) ? $typeOptions : null;
@@ -51,34 +65,9 @@ $path = function($field) use ($model) {
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Attribute.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/attributes/edit/%id%',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Soft Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%',
-                'class' => 'text-warning',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%/true',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ]
-        ]
     ]
 ];
 
@@ -105,7 +94,7 @@ $fields = array_merge($fields, [
     [
         'name' => __('Value'),
         'data_path' => $path(''),
-        'element' => 'value',
+        'element' => 'attribute_value',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
@@ -186,6 +175,37 @@ $fields = array_merge($fields, [
         'mode' => 'modified',
         'card_section' => 'top',
         'display_in' => ['card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Attribute.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/attributes/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Soft Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%',
+                'class' => 'text-warning',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%/true',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ]
+        ]
     ]
 ]);
 

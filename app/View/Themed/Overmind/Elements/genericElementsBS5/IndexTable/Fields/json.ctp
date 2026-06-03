@@ -15,7 +15,7 @@ $collapseId = 'json_' . uniqid();
 ?>
 <div class="json-viewer">
     <pre id="<?= $collapseId ?>"
-         class="bg-dark text-light p-3 rounded small mb-2"
+         class="bg-white border p-3 rounded small mb-2"
          style="<?= $needsCollapse ? 'max-height: 4.5em; overflow: hidden;' : '' ?> transition: max-height 0.3s ease;"
     ><?= h($jsonPretty) ?></pre>
 

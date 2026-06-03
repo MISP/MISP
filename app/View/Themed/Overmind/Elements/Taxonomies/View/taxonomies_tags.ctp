@@ -8,7 +8,7 @@ if ($taxonomy['enabled']) {
             'card_section' => 'selector',
             'actions' => [
                 [
-                    'type' => 'ajax',
+                    'type' => 'modal',
                     'label' => __('Create Tag'),
                     'icon' => 'plus',
                     'url' => $baseurl . '/taxonomies/addTag/taxonomy_id:' . $taxonomy['id'] . '/name:%tag%',
@@ -18,7 +18,7 @@ if ($taxonomy['enabled']) {
                     }
                 ],
                 [
-                    'type' => 'link',
+                    'type' => 'navigate',
                     'label' => __('View graph'),
                     'icon' => 'eye',
                     'url' => $baseurl . '/tags/viewGraph/%id%',
@@ -27,7 +27,7 @@ if ($taxonomy['enabled']) {
                     }
                 ],
                 [
-                    'type' => 'ajax',
+                    'type' => 'modal',
                     'label' => __('Update'),
                     'icon' => 'sync',
                     'url' => $baseurl . '/taxonomies/addTag/taxonomy_id:' . $taxonomy['id'] . '/update:1/name:%tag%',
@@ -37,7 +37,7 @@ if ($taxonomy['enabled']) {
                     }
                 ],
                 [
-                    'type' => 'ajax',
+                    'type' => 'modal',
                     'label' => __('Enable'),
                     'icon' => 'play text-success',
                     'url' => $baseurl . '/taxonomies/addTag/taxonomy_id:' .  $taxonomy['id'] . '/enable:1/name:%tag%',
@@ -47,7 +47,7 @@ if ($taxonomy['enabled']) {
                     }
                 ],
                 [
-                    'type' => 'ajax',
+                    'type' => 'modal',
                     'label' => __('Disable'),
                     'icon' => 'stop text-danger',
                     'url' => $baseurl . '/taxonomies/disableTag/taxonomy_id:' .  $taxonomy['id'] . '/name:%tag%',

@@ -136,13 +136,14 @@ class UserSetting extends AppModel
 
     public static function validate_homepage($value, $user)
     {
-        $path = json_decode($value, true);
+        // If it's already an array, use it. Otherwise, decode the string.
+        $path = is_string($value) ? json_decode($value, true) : $value;
+        
         if (empty($path['path'])) {
             return false;
         }
         return str_starts_with($path['path'], '/');
     }
-
     public static function validate_theme($value, $user)
     {
         if (empty($value)) {

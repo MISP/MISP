@@ -15,10 +15,10 @@ $full = $full ?? true;
 <div class="d-flex align-items-center">
     <?php if ($full): ?>
         <div class="position-relative w-100">
-            <div class="bg-dark rounded-3 p-3 shadow-inner">
-                <pre class="mb-0 text-info small" style="overflow-x: auto;"><code><?= h($formattedJson) ?></code></pre>
-                
-                <button class="btn btn-sm btn-outline-light border-0 position-absolute top-0 end-0 m-2 opacity-50 hover-opacity-100 copy-json-btn"
+            <div class="bg-white border p-3 rounded small mb-2">
+                <pre class="mb-0 small" style="overflow-x: auto;"><code><?= h($formattedJson) ?></code></pre>
+
+                <button class="btn btn-sm btn-outline-dark border-0 position-absolute top-0 end-0 m-2 opacity-50 hover-opacity-100 copy-json-btn"
                     data-json="<?= h($formattedJson) ?>"
                     title="<?= __('Copy JSON') ?>">
                     <i class="fas fa-copy"></i>

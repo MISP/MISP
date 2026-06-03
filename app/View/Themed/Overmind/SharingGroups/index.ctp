@@ -1,32 +1,31 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('SharingGroups', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add SharingGroups'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/SharingGroups/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'SharingGroup.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/SharingGroups/view/%id%',
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/SharingGroups/edit/%id%',
-                'requirement' => $me['Role']['perm_sharing_group']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/SharingGroups/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_sharing_group']
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -120,22 +119,40 @@ $fields = [
         'sort' => 'SharingGroup.org_count',
         'data_path' => 'SharingGroup.org_count',
         'element' => 'count',
-        'card_section' => 'extra',
+        'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'SharingGroup.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/SharingGroups/view/%id%',
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/SharingGroups/edit/%id%',
+                'requirement' => $me['Role']['perm_sharing_group']
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/SharingGroups/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_sharing_group']
+            ]
+        ]
     ]
 
 ];
-
-if ($this->Acl->canAccess('SharingGroups', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add SharingGroups'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/SharingGroups/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
@@ -155,6 +172,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'SharingGroup.id',
+            'row_dblclick_url' => $baseurl . '/SharingGroups/view/%id%',
         ]
     ],
     'item_url' => '/SharingGroups'
