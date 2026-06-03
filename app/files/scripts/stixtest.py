@@ -3,22 +3,6 @@ import sys
 import json
 import importlib
 from pathlib import Path
-MODULE_TO_DIRECTORY = {
-    "stix2": "cti-python-stix2",
-    "stix": "python-stix",
-    "cybox": "python-cybox",
-    "mixbox": "mixbox",
-    "misp-stix": "misp-stix",
-    "maec": "python-maec",
-}
-_CURRENT_PATH = Path(__file__).resolve().parent
-_CURRENT_PATH_IDX = 0
-for module_name, dir_path in MODULE_TO_DIRECTORY.items():
-    try:
-        importlib.import_module(module_name)
-    except ImportError:
-        sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
-        _CURRENT_PATH_IDX += 1
 
 results = {
     'success': 1,
@@ -32,12 +16,12 @@ results = {
 }
 
 MODULE_TO_DIRECTORY = {
+    "misp_stix_converter": "misp-stix",
     "stix2": "cti-python-stix2",
     "stix": "python-stix",
     "cybox": "python-cybox",
     "mixbox": "mixbox",
-    "misp_stix_converter": "misp-stix",
-    "maec": "python-maec",
+    "maec": "python-maec"
 }
 # Load module from system package and if not found use local version
 _CURRENT_PATH = Path(__file__).resolve().parent
