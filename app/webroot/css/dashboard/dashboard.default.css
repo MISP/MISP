@@ -3153,17 +3153,20 @@ a.misp-feedlist-item:focus-visible {
  * column. Shared across both themes via this sheet. */
 .misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer,
 .misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-footer,
-.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-footer {
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-footer {
   display: none;
 }
 .misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-preview,
 .misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-preview,
-.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-preview {
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-preview {
   display: none;
 }
 .misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-body,
 .misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-body,
-.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body {
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-body {
   flex: 1 1 auto;
   border-right: none;
 }
@@ -3227,6 +3230,21 @@ a.misp-feedlist-item:focus-visible {
   justify-content: flex-end;
   gap: var(--misp-dash-space-2);
   flex: 0 0 auto;
+}
+
+/* Save-as-template panel (save-template.module.mjs): the success
+ * confirmation shown in place of the form after a save, so the user stays
+ * on the dashboard. Tokens keep it in step with both themes. */
+.misp-template-saved {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+}
+.misp-template-saved-msg {
+  margin: 0;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
 }
 
 /* ============================================================

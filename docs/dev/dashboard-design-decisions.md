@@ -4554,3 +4554,65 @@ here blocks that. To retire: drop the button + `theme_boot.ctp` include +
 `_toggleTheme`/`_saveThemePref` + `updateTheme` + the `dashboard_theme`
 key; the midnight overlay (now token-complete) is exactly what such a
 global theme would reuse, so Task C's completeness work is not wasted.
+
+---
+
+## DD-52 — "Save as template" moves from a full-page redirect to the shared slide-in panel (2026-06-03)
+
+**Context.** Every dashboard surface (Configure widget, Add-widget gallery,
+Export/Import config) opens in-place in the shared configure side panel
+(`[data-misp-configure-root]`) and never leaves the board — except the ⋯ More →
+"Save as template…" item, which was a plain `<a href>` navigating to the
+full-page `save_template.ctp` form, then redirecting to the gallery on save.
+User asked to make it a slide-in like the others.
+
+**Decision.** Reuse the shared panel in a new mode `save-template`, mirroring
+`config-io.module.mjs` (export/import). New `save-template.module.mjs`:
+`openSaveTemplate()` opens the panel, **fetches the action's server-rendered
+form via an XHR GET**, injects it, and on submit **POSTs the form with
+`Accept: application/json`** so the action's existing REST branch returns a
+clean saved/failed JSON (the HTML branch redirects to the gallery on *both*
+outcomes — `saveTemplate` line 1142 — so it can't signal failure). On success
+the panel shows an inline "✓ Saved" confirmation and **stays on the dashboard**
+(saving a template doesn't change the current board, so no reload — user
+choice). Trigger becomes `data-misp-board-action="save-as-template"`, wired in
+`board.module.mjs` next to export/import-config; the `href` stays as a no-JS
+fallback.
+
+**Why fetch the server form (not build it client-side).** The form has
+site-admin-gated fields (`default` + the `restrict_to_*` dropdowns) and
+org/role/permission option lists resolved server-side. Fetching the rendered
+form reuses *all* of that verbatim (extracted into
+`Elements/dashboard/save_template_form.ctp`, now the single source shared by the
+full-page view + the new AJAX partial `save_template_form_ajax.ctp`), and the
+form carries its CakePHP `_Token`.
+
+**Security — no posture change.** `saveTemplate` is deliberately **not** added
+to `beforeFilter`'s `unlockedActions` (unlike updateSettings/renderWidget): it
+stays CSRF-protected. The round-tripped `_Token` from the fetched form validates
+the POST (the documented session-login pattern). Because the token is single-use
+(`Security::$csrfUseOnce` inherits Cake's `true`), a failed submit re-fetches the
+form to re-mint it before the user retries. The only PHP change is an
+**additive** `if ($this->request->is('ajax'))` render branch that emits the
+form-only partial (`layout = false`); POST handling, the full-page GET, and
+`beforeFilter` are untouched.
+
+**Verification.** Offline render harness for the shared element (the analyst
+track's accepted method, since the curl session-login dance 400s) — 28/28 PASS
+across non-admin create / site-admin create / site-admin edit: form id + name
+(required, maxlength 191) + description + selectable, admin-only fields present
+iff site-admin, edit pre-fill + `/saveTemplate/<id>` action + "Save changes"
+label, and the submit/cancel JS hooks. The AJAX branch is confirmed reached
+(error-log trace at `DashboardsController.php:1187`). `php -l` clean (5 files) +
+`node --check` clean (2 modules). The save POST reuses the identical shipping
+form + endpoint, so the CSRF round-trip is already exercised by the existing
+full-page flow. **Open (blocked):** the live in-browser slide-in render +
+fetch/inject/submit round-trip — blocked on the same session-cookie CSRF issue
+that blocks the analyst track's live screenshot; the layered evidence above
+stands in.
+
+**To retire / revert.** Remove `save-template.module.mjs` + its
+`board.module.mjs` import/case, restore the trigger to a plain `href` (drop the
+`data-misp-board-action`), drop the `data-misp-board-savetemplate-url` board-root
+attr + the `save-template` CSS mode rules + the AJAX branch + `save_template_form
+_ajax.ctp`. The shared element + the full-page view keep working untouched.

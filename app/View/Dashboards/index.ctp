@@ -188,6 +188,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 <a role="menuitem"
                    tabindex="-1"
                    class="misp-dashboard-menuitem"
+                   data-misp-board-action="save-as-template"
                    href="<?= h($baseurl) ?>/dashboards/saveTemplate">
                     <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -224,6 +225,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets"
       data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper"
       data-misp-board-export-url="<?= h($baseurl) ?>/dashboards/export"
+      data-misp-board-savetemplate-url="<?= h($baseurl) ?>/dashboards/saveTemplate"
       data-misp-board-session-action-url="<?= h($baseurl) ?>/dashboards/invalidateUserSessions"
       data-misp-board-theme-url="<?= h($baseurl) ?>/dashboards/updateTheme">
 

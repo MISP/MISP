@@ -48,6 +48,7 @@ import { initChartsIn, disposeChartsIn, rethemeChartsIn } from './charts/charts.
 import { openConfigure } from './configure.module.mjs';
 import { openGallery }   from './gallery.module.mjs';
 import { openExportConfig, openImportConfig } from './config-io.module.mjs';
+import { openSaveTemplate } from './save-template.module.mjs';
 import { initUserList } from './user-list.module.mjs';
 import {
   initToolbar,
@@ -758,6 +759,14 @@ class Board {
           e.preventDefault();
           this._closeContainingMenu(trigger);
           openImportConfig();
+          break;
+        case 'save-as-template':
+          // "⋯ More" → Save as template. Opens the template form in the
+          // dashboard's own slide-in panel (save-template.module) instead of
+          // navigating to the full-page form; mirrors export/import-config.
+          e.preventDefault();
+          this._closeContainingMenu(trigger);
+          openSaveTemplate();
           break;
       }
     });
