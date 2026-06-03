@@ -78,3 +78,19 @@
  * column/legend chrome rides the midnight token overrides at :root, so no
  * heatmap-specific midnight rule is needed. (The old `.misp-attack-cell--hit`
  * border retone was dropped with the thin-bar markup.) */
+
+/* Native-scrollbar fixup (DD-51, same class as the chip-remove fixup above).
+ * The thin token-tinted scrollbar from dashboard.default.css colours the
+ * track + thumb, but the scrollbar's NATIVE parts the browser draws itself
+ * — the stepper-arrow glyph, and on platforms with an opaque track the
+ * track band — still follow the OS light theme, so they read light on the
+ * midnight surface (the "light scrollbar in dark mode" the tokens can't
+ * reach). `color-scheme: dark` tells the browser this subtree is dark, so
+ * those native parts render in their dark variant; the token scrollbar-color
+ * still applies on top. Scoped to the widget grid (not :root) so the
+ * surrounding MISP chrome — still light in this stopgap — keeps its light
+ * viewport scrollbar; the configure panel's native form controls are left
+ * untouched (a global MISP dark theme is the right owner of those). */
+:root[data-theme="midnight"] .misp-dashboard-main {
+  color-scheme: dark;
+}

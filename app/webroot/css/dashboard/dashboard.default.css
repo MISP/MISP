@@ -130,6 +130,27 @@ body.misp-dashboard-page {
   line-height: 1.5;
 }
 
+/* Scrollbars. The dashboard's scroll containers (widget bodies, the
+ * Attack matrix, list widgets, the configure panel) get a thin,
+ * token-driven scrollbar so it retones with the theme — otherwise the
+ * browser-default scrollbar renders light against the midnight dark
+ * surface. `scrollbar-width`/`scrollbar-color` are INHERITED standard
+ * props, so setting them on the content surfaces cascades into every
+ * scroll container; the tokens mean the midnight overlay retones them
+ * for free (no midnight.css rule). Scoped to the dashboard's own
+ * surfaces (NOT body) for the same reason the typography above is — a
+ * body-level rule would leak into the MISP chrome's scrollbar + the main
+ * viewport. Standard props only (no `::-webkit-scrollbar` pseudo): same
+ * browser vintage as the `:has()` this sheet already relies on, they
+ * render a clean button-less thin bar shared across Chromium/Firefox/
+ * Safari; older engines just keep the default scrollbar (no worse than
+ * before). */
+.misp-dashboard-main,
+.misp-configure-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--misp-dash-border-strong) transparent;
+}
+
 .misp-dashboard-header {
   display: flex;
   align-items: center;
