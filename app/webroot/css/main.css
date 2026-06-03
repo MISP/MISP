@@ -2749,25 +2749,6 @@ ul.correlations li .popover span {
     min-height: 0 !important;
 }
 
-.grid-stack-item-content {
-    overflow: hidden !important;
-}
-
-.grid-stack-item .grid-stack-item-content {
-    height: 100%;
-}
-
-.grid-stack-item .widget-wrapper {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.grid-stack-item .widgetContent {
-    flex: 1 1 auto;
-    height: 100%;
-}
-
 /* Threat levels */
 .threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
     font-family: 'Font Awesome 5 Free';

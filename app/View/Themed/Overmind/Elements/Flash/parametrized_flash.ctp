@@ -7,7 +7,7 @@ $header = $params['toast_header'];
 $body = $params['toast_body'];
 ?>
 
-<div class="alert alert-<?= h($bootstrap_variant); ?> alert-dismissible fade show m-3">
+<div class="alert alert-<?= h($bootstrap_variant); ?> alert-dismissible fade show m-2">
     <h4 class="alert-heading"><?= h($header); ?></h4>
     <p><?= h($body) ?></p>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

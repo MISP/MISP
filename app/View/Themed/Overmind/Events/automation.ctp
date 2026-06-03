@@ -1,7 +1,20 @@
 <?php
+    // Title of the index displayed in the header section, leaving it empty will fallback to controller name
+    $headerTitle = __('Automation API');
+
+    // Description displayed under the title in the header section, leave empty if not needed
+    $headerDescription = __('');
+
+    // Actions displayed as buttons in the header section, leave empty if not needed
+    $headerActions = [];
+
+    $this->set('headerTitle', $headerTitle);
+    $this->set('headerDescription', $headerDescription);
+    $this->set('headerActions', $headerActions);
+
     $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $authkey : 'YOUR_API_KEY';
 ?>
-<div class="container-fluid p-5">
+<div class="container-fluid">
     
     <div class="mb-4">
         <p class="lead fw-bold">
@@ -199,7 +212,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <span class="badge bg-warning text-dark">Body</span>
-                                    <pre class="bg-dark text-warning p-2 rounded border mt-1 mb-0"><code><?php echo $body; ?></code></pre>
+                                    <pre class="bg-light p-2 rounded border mt-1 mb-0"><code><?php echo $body; ?></code></pre>
                                 </div>
                             </div>
                         </div>
@@ -780,13 +793,13 @@
                             </div>
 
                             <p class="small"><?php echo __('Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)');?>:</p>
-                            <div class="bg-dark text-warning p-2 rounded mb-3">
-                                <code class="small text-warning">{"event":228, "tag":8}</code>
+                            <div class="bg-light p-2 rounded mb-3">
+                                <code class="small">{"event":228, "tag":8}</code>
                             </div>
 
                             <p class="small"><?php echo __('Where "tag" is the ID of the tag. You can also use a tag name the following way');?>:</p>
-                            <div class="bg-dark text-warning p-2 rounded">
-                                <code class="small text-warning">{"event":228, "tag":"OSINT"}</code>
+                            <div class="bg-light p-2 rounded">
+                                <code class="small">{"event":228, "tag":"OSINT"}</code>
                             </div>
                         </div>
                     </div>
@@ -956,8 +969,8 @@
                             <p><?= __('The %s functionality takes care of sending daily, weekly and monthly summaries. As this process is resource intensive, it\'s heavily recommended to run it once per day. But more importantly, spamming recipients\' mailbox will undermine their trust and willingness to participate in the community. As such, in order for site-admins to keep running a thriving community, they are advised to make sure their system configuration and behaviours stays inclusive, open, collaborative and enjoyable to all members.', sprintf('<code>%s</code>', 'sendPeriodicSummaryToUsers')) ?></p>
 
                             <p class="fw-bold mt-4"><?= __('The command below is a recommendation on how the CRON entry should look like. This entry executes the command each day at 06:00 AM. Daily mails will be sent. Weekly mails are sent on Mondays. Monthly mails are sent on the 1st of each month.') ?></p>
-                            <div class="bg-dark text-light p-3 rounded mb-4">
-                                <code class="text-info text-break" style="white-space: pre-wrap;">0 6 * * * /var/www/MISP/app/Console/cake Server sendPeriodicSummaryToUsers >/dev/null 2>&1 # Send daily, weekly and monthly summary when appropriate</code>
+                            <div class="bg-light p-3 rounded mb-4">
+                                <code class="text-break" style="white-space: pre-wrap;">0 6 * * * /var/www/MISP/app/Console/cake Server sendPeriodicSummaryToUsers >/dev/null 2>&1 # Send daily, weekly and monthly summary when appropriate</code>
                             </div>
 
                             <ul class="list-group list-group-flush mb-0 border rounded">

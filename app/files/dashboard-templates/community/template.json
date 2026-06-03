@@ -1,0 +1,47 @@
+{
+    "uuid": "2b50c003-c475-4c9c-ac90-0a177b44e565",
+    "name": "Community",
+    "description": "A sharing-community overview: where the member organisations are, who contributes most (orgs and users), how the community has grown, overall usage, and the sharing relationships between organisations.",
+    "selectable": true,
+    "restrict_to_org_id": 0,
+    "restrict_to_role_id": 0,
+    "restrict_to_permission_flag": "",
+    "value": [
+        {
+            "instance_id": "w_1",
+            "widget": "OrganisationMapWidget",
+            "config": { "alias": "Organisations by country" },
+            "position": { "x": 0, "y": 0, "w": 8, "h": 5 }
+        },
+        {
+            "instance_id": "w_2",
+            "widget": "UsageDataWidget",
+            "config": { "alias": "Usage" },
+            "position": { "x": 8, "y": 0, "w": 4, "h": 5 }
+        },
+        {
+            "instance_id": "w_3",
+            "widget": "OrgContributionToplistWidget",
+            "config": { "alias": "Top contributing organisations" },
+            "position": { "x": 0, "y": 5, "w": 6, "h": 4 }
+        },
+        {
+            "instance_id": "w_4",
+            "widget": "UserContributionToplistWidget",
+            "config": { "alias": "Top contributing users" },
+            "position": { "x": 6, "y": 5, "w": 6, "h": 4 }
+        },
+        {
+            "instance_id": "w_5",
+            "widget": "OrgsEvolutionWidget",
+            "config": { "alias": "Organisation growth" },
+            "position": { "x": 0, "y": 9, "w": 6, "h": 6 }
+        },
+        {
+            "instance_id": "w_6",
+            "widget": "SharingGraphWidget",
+            "config": { "alias": "Sharing relationships" },
+            "position": { "x": 6, "y": 9, "w": 6, "h": 6 }
+        }
+    ]
+}

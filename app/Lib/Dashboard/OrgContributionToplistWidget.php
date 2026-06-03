@@ -2,6 +2,7 @@
 class OrgContributionToplistWidget
 {
     public $title = 'Contributor Top List (Orgs)';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The top contributors (orgs) in a selected time frame.';
     public $width = 3;
@@ -18,8 +19,18 @@ class OrgContributionToplistWidget
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+    ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() never touches $user; counts
+    // events grouped by orgc_id across the instance. Config-only key safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'nationality',
         'sector',
@@ -114,8 +125,16 @@ class OrgContributionToplistWidget
             'fields' => ['Organisation.id', 'Organisation.name'],
             'conditions' => $params['conditions']
         ]);
+        // When a filter is set but matches zero orgs, array_keys($org_ids)
+        // is empty and `Event.orgc_id IN ()` blows up as malformed SQL.
+        // Sentinel `[-1]` matches nothing cleanly — same pattern
+        // TrendingAttributesWidget uses for the equivalent case.
+        $orgcIdList = array_keys($org_ids);
+        if (empty($orgcIdList)) {
+            $orgcIdList = [-1];
+        }
         $conditions = [];
-        $conditions['AND'][] = ['Event.orgc_id IN' => array_keys($org_ids)];
+        $conditions['AND'][] = ['Event.orgc_id IN' => $orgcIdList];
         $timeConditions = $this->timeConditions($options);
         if ($timeConditions) {
             $conditions['AND'][]['AND'] = $timeConditions;

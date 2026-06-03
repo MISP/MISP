@@ -1,34 +1,32 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('tags', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Tag'),
+        'url' => $baseurl . '/tags/add',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Tag.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View graph'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/tags/viewGraph/%id%'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/tags/edit/%id%',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/tags/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'Tag.id',
@@ -83,26 +81,38 @@ $fields = [
         'element' => 'tag_restriction',
         'card_section' => 'meta',
         'display_in' => ['table','card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Tag.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View graph'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/tags/viewGraph/%id%'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/tags/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/tags/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ]
+        ]
     ]
 ];
 
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('tags', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Tag'),
-            'url' => $baseurl . '/tags/add',
-            'icon' => 'plus'
-        ]
-    ]);
-}
-
-/**
- * Scaffold
- */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -137,6 +147,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Tag.id',
+            'row_dblclick_url' => $baseurl . '/tags/viewGraph/%id%',
         ]
     ],
     'item_url' => '/tags'

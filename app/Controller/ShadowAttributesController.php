@@ -229,6 +229,7 @@ class ShadowAttributesController extends AppController
                 $this->Flash->error(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
             }
+            unset($this->request->data['ShadowAttribute']['id']);
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
             //
             // multiple attributes in batch import

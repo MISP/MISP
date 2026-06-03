@@ -3094,7 +3094,7 @@ class MispAttribute extends AppModel
         }
         foreach ($result['Object'] as $k => $object) {
             $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
-            $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
+            $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['sharing_group_id']) ? $attribute_settings['sharing_group_id'] : 0;
             if (!empty($result['Object'][$k]['Attribute'])) {
                 foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
                     if ($attribute['value'] == $tmpfile->name) {

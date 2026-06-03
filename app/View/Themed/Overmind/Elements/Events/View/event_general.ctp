@@ -1,6 +1,9 @@
 <?php
 
 $content = '
+<p><strong>'.__('Event Name').'</strong><br>
+'.h($data['Event']['info']).'</p>
+
 <p><strong>'.__('Event ID').'</strong><br>
 '.h($data['Event']['id']).'</p>
 

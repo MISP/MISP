@@ -140,6 +140,60 @@ if ($field['data_path'] === 'ObjectTemplate.id') {
 }
 
 
+if ($field['data_path'] === 'Sightingdb.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
+if ($field['data_path'] === 'TaxiiServer.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Cerebrate.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'SharingGroup.id') {
+    if (!isset($mayModify)){
+        $mayModify = $row['editable'];
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($row['deletable']) ? '1' : '0';
+}
+
+
+if ($field['data_path'] === 'SharingGroupBlueprint.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
+if ($field['data_path'] === 'Server.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
+
+
 if ($field['data_path'] === 'id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;

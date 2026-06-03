@@ -310,8 +310,7 @@ class ComplexTypeTool
     {
         // convert non breaking space to normal space and all unicode chars from "other" category
         $input = preg_replace("/\p{C}+|\xc2\xa0/u", ' ', $input);
-        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|<|>|;/", $input);
-
+        $iocArray = preg_split("/\r\n|\n|\r|\s|\p{Z}+|,|<|>|;/u", $input);
         preg_match_all('/\"([^\"]+)\"/', $input, $matches);
         array_push($iocArray, ...$matches[1]);
 

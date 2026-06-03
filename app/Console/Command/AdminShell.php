@@ -117,6 +117,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('dumpCurrentDatabaseSchema', [
             'help' => __('Dump current database schema to JSON file.'),
         ]);
+        $parser->addSubcommand('updateAsnCountryMap', [
+            'help' => __('Regenerate app/files/geo-open/asn-country.json from the GeoOpen-Country-ASN mmdb (requires the python maxminddb package). Run after the mmdb is updated; also part of preRelease.'),
+        ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
         ]);
@@ -682,6 +685,7 @@ class AdminShell extends AppShell
     public function runUpdates()
     {
         $whoami = ProcessTool::whoami();
+        $this->AdminSetting->resetUpdateFailNumber();
         if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
             $this->out('Executing all updates to bring the database up to date with the current version.');
             $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
@@ -689,7 +693,7 @@ class AdminShell extends AppShell
                 $this->AdminSetting->delete($lock['AdminSetting']['id']);
             }
             $processId = empty($this->args[0]) ? false : $this->args[0];
-            $this->Server->runUpdates(true, false, $processId);
+            $this->Server->runUpdates(true, false, $processId, true);
             $this->Server->cleanCacheFiles();
             $this->out('All updates completed.');
         } else {
@@ -1007,12 +1011,26 @@ class AdminShell extends AppShell
         $this->out(__("> describeTypes.json dumped to disk"));
     }
 
+    public function updateAsnCountryMap()
+    {
+        $script = APP . 'files' . DS . 'scripts' . DS . 'generate_asn_country_map.py';
+        try {
+            $output = ProcessTool::execute([ProcessTool::pythonBin(), $script]);
+            $this->out(__('> %s', trim($output)));
+        } catch (Exception $e) {
+            $this->err(__('> Could not regenerate asn-country.json: %s', $e->getMessage()));
+            $this->err(__('> The shipped asn-country.json may be stale. Ensure the python maxminddb package is installed and GeoOpen-Country-ASN.mmdb is present.'));
+        }
+    }
+
     public function preRelease()
     {
         $this->out(__("Dumping database schema to disk"));
         $this->dumpCurrentDatabaseSchema();
         $this->out(__("Dumping describeTypes.json to disk"));
         $this->dumpDescribeTypes();
+        $this->out(__("Regenerating asn-country.json from the GeoOpen-Country-ASN mmdb"));
+        $this->updateAsnCountryMap();
     }
 
     /**

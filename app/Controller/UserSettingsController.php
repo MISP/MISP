@@ -33,6 +33,7 @@ class UserSettingsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
         $this->Security->unlockedActions[] = 'setTheme';
+        $this->Security->unlockedActions[] = 'setHomePage';
         if ($this->action === 'setSetting') {
             $this->Security->unlockedFields = array('value', 'value_select');
         }
@@ -376,14 +377,22 @@ class UserSettingsController extends AppController
             if (empty($this->request->data['path'])) {
                 throw new InvalidArgumentException(__('No path POSTed.'));
             }
-            $setting = array(
-                'UserSetting' => array(
-                    'user_id' => $this->Auth->user('id'),
-                    'setting' => 'homepage',
-                    'value' => ['path' => $this->request->data['path']],
-                )
-            );
-            $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
+            if ($this->theme === "Overmind") {
+                $result = $this->UserSetting->setSettingInternal(
+                    $this->Auth->user('id'),
+                    'homepage',
+                    ['path' => $this->request->data['path']]
+                );
+            } else {
+                $setting = array(
+                    'UserSetting' => array(
+                        'user_id' => $this->Auth->user('id'),
+                        'setting' => 'homepage',
+                        'value' => ['path' => $this->request->data['path']],
+                    )
+                );
+                $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
+            }
             return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
         } else {
             $this->layout = false;

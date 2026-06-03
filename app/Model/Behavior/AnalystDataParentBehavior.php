@@ -82,7 +82,9 @@ class AnalystDataParentBehavior extends ModelBehavior
     }
 
     public function fetchAnalystDataBulk(Model $model, array $uuids, array $types = ['Note', 'Opinion', 'Relationship']) {
-        $uuids = array_chunk($uuids, 100000);
+        // Keep the per-query IN-list bounded so the optimizer stays on the object_uuid index
+        // and parse cost stays low. 1000 is comfortable for MySQL/MariaDB defaults.
+        $uuids = array_chunk($uuids, 1000);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');
@@ -104,8 +106,9 @@ class AnalystDataParentBehavior extends ModelBehavior
 
     public function attachAnalystDataBulk(Model $model, array $objects, array $types = ['Note', 'Opinion', 'Relationship'])
     {
-        $uuids = [];
-        $objects = array_chunk($objects, 100000, true);
+        // Keep the per-query IN-list bounded so the optimizer stays on the object_uuid index
+        // and parse cost stays low. 1000 is comfortable for MySQL/MariaDB defaults.
+        $objects = array_chunk($objects, 1000, true);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');
@@ -114,6 +117,9 @@ class AnalystDataParentBehavior extends ModelBehavior
             }
         }
         foreach ($objects as $chunk => $chunked_objects) {
+            // Reset per chunk — previously $uuids was declared outside the loop and accumulated
+            // across iterations, growing the IN list on every chunk.
+            $uuids = [];
             foreach ($chunked_objects as $k => $object) {
                 if (!empty($object['uuid'])) {
                     $uuids[] = $object['uuid'];

@@ -4,6 +4,7 @@ class AchievementsWidget
 
     public $render = 'Achievements';
     public $title = 'Achievements of my organization';
+    public $category = 'status';
     public $description = 'Earn badges and improve your usage of MISP.';
     public $width = 4;
     public $height = 10;
@@ -12,6 +13,7 @@ class AchievementsWidget
     public $params = array(
             'past_days' => 'The past number of days considered to look for criteria satisfaction (default 180)'
     );
+    public $schema = array();
     public $placeholder =
 '{
     "past_days": "180"

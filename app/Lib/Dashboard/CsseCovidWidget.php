@@ -3,6 +3,7 @@
 class CsseCovidWidget
 {
     public $title = 'CSSE Covid-19 data';
+    public $category = 'custom';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;
@@ -12,6 +13,7 @@ class CsseCovidWidget
         'logarithmic' => 'Use a log10 scale for the graph (set via 0/1).',
         'relative' => 'Take the country\'s population size into account (count / 10M)'
     );
+    public $schema = array();
     public $description = 'Widget visualising the countries ranked by highest count in the chosen category.';
     public $placeholder =
 '{

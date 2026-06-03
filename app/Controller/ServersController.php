@@ -307,6 +307,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('pull_rules' => $error_msg), $this->response->type());
                 } else {
                     $this->Flash->error($error_msg);
+                    if($this->theme === "Overmind"){
+                        $this->redirect(['action' => 'index']);
+                    }
                 }
             }
 
@@ -317,12 +320,15 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('push_rules' => $error_msg), $this->response->type());
                 } else {
                     $this->Flash->error($error_msg);
+                    if($this->theme === "Overmind"){
+                        $this->redirect(['action' => 'index']);
+                    }
                 }
             }
             if (!$fail) {
+                $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
+                $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "type_attributes" => ["NOT" => []], "type_objects" => ["NOT" => []], "url_params" => ""]);
                 if ($this->_isRest()) {
-                    $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
-                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "type_attributes" => ["NOT" => []], "type_objects" => ["NOT" => []], "url_params" => ""]);
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
@@ -362,7 +368,14 @@ class ServersController extends AppController
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
                     }
                 } else {
-                    if ($this->request->data['Server']['organisation_type'] < 2) {
+                    if ($this->request->data['Server']['organisation_type'] === ""){
+                        $fail = true;
+                        $this->Flash->error(__('No organisation type provided'));
+                        if($this->theme === "Overmind"){
+                            $this->redirect(['action' => 'index']);
+                        }
+                    }
+                    elseif ($this->request->data['Server']['organisation_type'] < 2) {
                         $this->request->data['Server']['remote_org_id'] = $json['id'];
                     } else {
                         $existingOrgs = $this->Server->Organisation->find('first', array(
@@ -370,9 +383,12 @@ class ServersController extends AppController
                                 'recursive' => -1,
                                 'fields' => array('id', 'uuid')
                         ));
-                        if (!empty($existingOrgs)) {
+                         if (!empty($existingOrgs)) {
                             $fail = true;
                             $this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
+                            if($this->theme === "Overmind"){
+                                $this->redirect(['action' => 'index']);
+                            }
                         }
                         if (!$fail) {
                             $this->Server->Organisation->create();
@@ -386,6 +402,9 @@ class ServersController extends AppController
                             if (!$orgSave) {
                                 $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation\'s name doesn\'t clash with an existing one.'));
                                 $fail = true;
+                                if($this->theme === "Overmind"){
+                                    $this->redirect(['action' => 'index']);
+                                }
                                 $this->request->data['Server']['external_name'] = $json['name'];
                                 $this->request->data['Server']['external_uuid'] = $json['uuid'];
                             } else {
@@ -428,6 +447,9 @@ class ServersController extends AppController
                             return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationErrors, $this->response->type());
                         } else {
                             $this->Flash->error(__('The server could not be saved. Please, try again.'));
+                            if($this->theme === "Overmind"){
+                                $this->redirect(['action' => 'index']);
+                            }
                         }
                     }
                 }
@@ -453,7 +475,9 @@ class ServersController extends AppController
                 }
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
-
+            if($this->theme === "Overmind"){
+                $this->layout = false;
+            }
             $allTypes = $this->Server->getAllTypes();
 
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -502,6 +526,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('pull_rules' => $error_msg), $this->response->type());
                 } else {
                     $this->Flash->error($error_msg);
+                    if($this->theme === "Overmind"){
+                        $this->redirect(['action' => 'index']);
+                    }
                 }
             }
             if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
@@ -511,6 +538,9 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('push_rules' => $error_msg), $this->response->type());
                 } else {
                     $this->Flash->error($error_msg);
+                    if($this->theme === "Overmind"){
+                        $this->redirect(['action' => 'index']);
+                    }
                 }
             }
             if (!$fail && !empty($this->request->data['Server']['push_rules'])) {
@@ -552,6 +582,9 @@ class ServersController extends AppController
                                 return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
                             } else {
                                 $this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
+                                if($this->theme === "Overmind"){
+                                    $this->redirect(['action' => 'index']);
+                                }
                             }
                         }
 
@@ -569,6 +602,9 @@ class ServersController extends AppController
                                     return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationErrors, $this->response->type());
                                 } else {
                                     $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+                                    if($this->theme === "Overmind"){
+                                        $this->redirect(['action' => 'index']);
+                                    }
                                 }
                                 $fail = true;
                                 $this->request->data['Server']['external_name'] = $json['name'];
@@ -615,6 +651,9 @@ class ServersController extends AppController
                         return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationErrors, $this->response->type());
                     } else {
                         $this->Flash->error(__('The server could not be saved. Please, try again.'));
+                        if($this->theme === "Overmind"){
+                            $this->redirect(['action' => 'index']);
+                        }
                     }
                 }
             }
@@ -649,6 +688,9 @@ class ServersController extends AppController
             $oldRemoteSetting = 0;
             if (!$this->Server->data['RemoteOrg']['local']) {
                 $oldRemoteSetting = 1;
+            }
+            if($this->theme === "Overmind"){
+                $this->layout = false;
             }
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('oldRemoteSetting', $oldRemoteSetting);
@@ -697,6 +739,23 @@ class ServersController extends AppController
             $this->redirect(array('action' => 'index'));
         }
     }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Server',
+            'restName' => 'Servers',
+            'itemName' => 'Server',
+            'view' => 'ajax/serverDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_sharing_group'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s server deleted.', '%s servers deleted.', $count, $count);
+            }
+        ]);
+    }
+
 
     public function eventBlockRule()
     {
@@ -2330,8 +2389,8 @@ class ServersController extends AppController
             $message .= ' from IP ' . $remoteIp;
         }
         $report = JsonTool::encode($report['csp-report'], true);
-        if (strlen($report) > 1024 * 1024) { // limit report to 1 kB
-            $report = substr($report, 0, 1024 * 1024) . '...';
+        if (strlen($report) > 1024) { // limit report to 1 kB
+            $report = substr($report, 0, 1024) . '...';
         }
         $this->log("$message: $report");
 

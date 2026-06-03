@@ -115,6 +115,7 @@ class ACLComponent extends Component
         'cerebrates' => [
             'add' => [],
             'delete' => [],
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'download_org' => [],
             'download_sg' => [],
             'edit' => [],
@@ -173,16 +174,25 @@ class ACLComponent extends Component
             'view' => ['*']
         ],
         'dashboards' => array(
-            'getForm' => array('*'),
             'index' => array('*'),
+            'widgets' => array('*'),
             'updateSettings' => array('*'),
-            'getEmptyWidget' => array('*'),
+            'updateWidgetSettings' => array('*'),
             'renderWidget' => array('*'),
-            'listTemplates' => array('*'),
-            'saveTemplate' => array('*'),
-            'export' => array('*'),
+            'renderWrapper' => array('*'),
             'import' => array('*'),
-            'deleteTemplate' => array('*')
+            'export' => array('*'),
+            'saveTemplate' => array('*'),
+            'listTemplates' => array('*'),
+            'deleteTemplate' => array('*'),
+            'importDefaultTemplates' => array(),
+            'invalidateUserSessions' => array(),
+            'listSharingGroups' => array('*'),
+            'listGalaxyTypes' => array('*'),
+            'searchGalaxyClusters' => array('*'),
+            'searchOrganisations' => array('*'),
+            'updateTheme' => ['*'],
+            'resetFromTemplate' => ['*']
         ),
         'decayingModel' => array(
             "update" => array(),
@@ -453,7 +463,7 @@ class ACLComponent extends Component
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
             'index' => array('*'),
-            'publish' => array('perm_galaxy_editor'),
+            'publish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
             'search' => array('*'),
@@ -642,6 +652,7 @@ class ACLComponent extends Component
             'clearWorkerQueue' => array(),
             'createSync' => array('perm_sync'),
             'delete' => array(),
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'deleteFile' => array(),
             'edit' => array(),
             'eventBlockRule' => array(),
@@ -717,6 +728,7 @@ class ACLComponent extends Component
         'sharingGroupBlueprints' => array(
             'add' => array('perm_sharing_group'),
             'delete' => array('perm_sharing_group'),
+            'deleteSelection' => ['AND'=> ['perm_sharing_group', 'theming_enabled']],
             'detach' => array('perm_sharing_group'),
             'edit' => array('perm_sharing_group'),
             'encodeSyncRule' => ['perm_site_admin'],
@@ -731,6 +743,7 @@ class ACLComponent extends Component
             'addServer' => array('perm_sharing_group'),
             'addOrg' => array('perm_sharing_group'),
             'delete' => array('perm_sharing_group'),
+            'deleteSelection' => ['AND'=> ['perm_sharing_group', 'theming_enabled']],
             'edit' => array('perm_sharing_group'),
             'index' => array('*'),
             'removeServer' => array('perm_sharing_group'),
@@ -748,6 +761,7 @@ class ACLComponent extends Component
             'restSearch' => array('*'),
             'advanced' => array('perm_sighting'),
             'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'index' => array('*'),
             'view' => array('*'),
             'listSightings' => array('*'),
@@ -761,6 +775,7 @@ class ACLComponent extends Component
             'add' => array(),
             'edit' => array(),
             'delete' => array(),
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'index' => array(),
             'requestStatus' => array(),
             'search' => array()
@@ -834,8 +849,8 @@ class ACLComponent extends Component
             'import' => [],
             'export' => ['*'],
             'view' => array('*'),
-            'unhideTag' => array('perm_tagger'),
-            'hideTag' => array('perm_tagger'),
+            'unhideTag' => array('perm_tag_editor'),
+            'hideTag' => array('perm_tag_editor'),
             'normalizeCustomTagsToTaxonomyFormat' => [],
         ),
         'taxiiServers' => [
@@ -846,6 +861,7 @@ class ACLComponent extends Component
             'objectsIndex' => ['perm_site_admin'],
             'objectView' => ['perm_site_admin'],
             'delete' => ['perm_site_admin'],
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'view' => ['perm_site_admin'],
             'push' => ['perm_site_admin'],
             'getRoot' => ['perm_site_admin'],
@@ -1349,8 +1365,8 @@ class ACLComponent extends Component
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
-        if (!$user['Role']['perm_warninglist']) {
-            return false;
+        if (!empty($user['Role']['perm_warninglist'])) {
+            return true;
         }
         return false;
     }

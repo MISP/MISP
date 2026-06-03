@@ -1010,11 +1010,22 @@ class EventTemplatesController extends AppController
             );
         }
         $this->set('taxonomiesAvailable', $taxonomies);
+        $orgCondition = $this->_isSiteAdmin()
+            ? array()
+            : array(
+                'OR' => array(
+                    'Galaxy.org_id' => (int)$this->Auth->user('org_id'),
+                    'Galaxy.distribution' > 0,
+                ),
+            );
 
         $this->loadModel('Galaxy');
         $galaxyRows = $this->Galaxy->find('all', array(
             'recursive' => -1,
-            'conditions' => array('Galaxy.enabled' => true),
+            'conditions' => array(
+                'Galaxy.enabled' => true,
+                $orgCondition,
+            ),
             'fields' => array(
                 'Galaxy.type',
                 'Galaxy.description',
@@ -1058,9 +1069,9 @@ class EventTemplatesController extends AppController
                 'type' => 'json',
             ));
         }
-        $this->set('message', $message);
+        $this->set('headerDescription', $message);
         $this->set('missing', $missing);
-        $this->set('title_for_layout', __('Event templating unavailable'));
+        $this->set('headerTitle', __('Event templating unavailable'));
         return $this->render('dependency_missing');
     }
 }

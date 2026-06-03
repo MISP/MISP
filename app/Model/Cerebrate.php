@@ -23,7 +23,7 @@ class Cerebrate extends AppModel
 
     public function beforeSave($options = array())
     {
-        $cerebrate = &$this->data['Server'];
+        $cerebrate = &$this->data['Cerebrate'];
         // Encrypt authkey if plain key provided and encryption is enabled
         if (!empty($cerebrate['authkey']) && strlen($cerebrate['authkey']) === 40) {
             $cerebrate['authkey'] = EncryptedValue::encryptIfEnabled($cerebrate['authkey']);
