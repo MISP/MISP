@@ -48,6 +48,12 @@
             ['fontawesome7.min', ['preload' => true]],
             ['dashboard/dashboard.default', ['preload' => true]],
             ['dashboard/dashboard.midnight'],
+            // misp-iconify icon set (generated CSS copied from the
+            // app/files/misp-iconify submodule; self-contained masked SVGs,
+            // currentColor). Lives in the main webroot — Cake's theme-aware
+            // resolver falls back to it like it does for dashboard.default
+            // above. Used by StatGrid's misp-icon glyphs (AD-21).
+            ['misp-iconify'],
             // Loaded last so its rules win where they overlap with
             // dashboard.default.css. Cake's Helper::webroot() is
             // theme-aware and resolves this against

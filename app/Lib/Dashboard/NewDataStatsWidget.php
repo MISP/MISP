@@ -174,7 +174,7 @@ class NewDataStatsWidget
         // --- Metric 1: new events (global; Event.timestamp) -----------------
         $rows[] = $this->deltaRow(
             __('Events'),
-            'calendar',
+            'event',
             'events:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -191,7 +191,7 @@ class NewDataStatsWidget
         // --- Metric 2: new attributes (global; Attribute.timestamp) ---------
         $rows[] = $this->deltaRow(
             __('Attributes'),
-            'tag',
+            'attribute',
             'attributes:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -210,7 +210,7 @@ class NewDataStatsWidget
         // --- Metric 3: new objects (global; Object.timestamp) ---------------
         $rows[] = $this->deltaRow(
             __('Objects'),
-            'layers',
+            'object',
             'objects:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -225,7 +225,7 @@ class NewDataStatsWidget
         // --- Metric 4: new event reports (global; EventReport.timestamp) ----
         $rows[] = $this->deltaRow(
             __('Event reports'),
-            'pencil',
+            'report',
             'reports:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -243,7 +243,7 @@ class NewDataStatsWidget
         // batch import dates and would flood the count on every sync.
         $rows[] = $this->deltaRow(
             __('Galaxy clusters'),
-            'sitemap',
+            'galaxy',
             'clusters:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -261,7 +261,7 @@ class NewDataStatsWidget
         // `deleted` column — use the datetime window helper, no delete filter.
         $rows[] = $this->deltaRow(
             __('Notes'),
-            'chat',
+            'analyst-note',
             'notes:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -277,7 +277,7 @@ class NewDataStatsWidget
         // --- Metric 7: new analyst opinions (global; Opinion.modified) ------
         $rows[] = $this->deltaRow(
             __('Opinions'),
-            'chat-lines',
+            'analyst-opinion',
             'opinions:' . $windowSeconds,
             $hasPrior,
             $curBounds,
@@ -304,7 +304,7 @@ class NewDataStatsWidget
             : null;
         $rows[] = $this->deltaRow(
             __('Published by my org'),
-            'building',
+            'sharing-group',
             'published:' . $windowSeconds . ':o' . $myOrgId,
             $hasPrior,
             $curBounds,
@@ -344,7 +344,7 @@ class NewDataStatsWidget
 
         // Neither axis resolved → the metric is not applicable (AD-07).
         if ($country === null && $sector === null) {
-            return array('title' => $title, 'icon' => 'shield', 'value' => __('N/A'));
+            return array('title' => $title, 'icon_class' => 'organisation', 'value' => __('N/A'));
         }
 
         $tagIds = $this->targetingTagIds($country, $sector);
@@ -364,7 +364,7 @@ class NewDataStatsWidget
             ? $this->indexDrilldown('/events/index/searchtag:' . (int)$tagIds[0], $windowSeconds, 'searchtimestamp')
             : null;
 
-        return $this->deltaRow($title, 'shield', $contextKey, $hasPrior, $curBounds, $priorBounds, $count, $drilldown);
+        return $this->deltaRow($title, 'organisation', $contextKey, $hasPrior, $curBounds, $priorBounds, $count, $drilldown);
     }
 
     /**
@@ -614,12 +614,14 @@ class NewDataStatsWidget
      * (StatGrid renders >0 as ▲, <0 as ▼, 0 as no badge). Each window count
      * is cached per metric (AD-06) under CACHE_PREFIX:<base>:cur|prior.
      */
-    private function deltaRow($title, $icon, $cacheBase, $hasPrior, array $curBounds, array $priorBounds, callable $count, $drilldown = null)
+    private function deltaRow($title, $iconClass, $cacheBase, $hasPrior, array $curBounds, array $priorBounds, callable $count, $drilldown = null)
     {
         $current = $this->cachedCount($cacheBase . ':cur', function () use ($count, $curBounds) {
             return $count($curBounds[0], $curBounds[1]);
         });
-        $row = array('title' => $title, 'icon' => $icon, 'value' => $current);
+        // `icon_class` = a misp-iconify icon NAME (StatGrid renders the masked
+        // misp-icon glyph, currentColor); see AD-21.
+        $row = array('title' => $title, 'icon_class' => $iconClass, 'value' => $current);
         if ($hasPrior) {
             $prior = $this->cachedCount($cacheBase . ':prior', function () use ($count, $priorBounds) {
                 return $count($priorBounds[0], $priorBounds[1]);

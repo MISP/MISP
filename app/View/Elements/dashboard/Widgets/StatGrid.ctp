@@ -38,6 +38,11 @@
  * UsageDataWidget leaves it unset and is unchanged; the analyst New-data
  * widget opts in so each KPI card is self-labelled, not glyph-only.
  *
+ * misp-iconify glyphs (AD-21): a row's `icon_class` (a misp-icon name, e.g.
+ * 'event') renders the masked-SVG misp-iconify glyph from misp-iconify.css
+ * (currentColor → themes for free) instead of a StatGlyph inline SVG;
+ * StatGlyph `icon` stays the path for the admin UsageDataWidget.
+ *
  * No inline styles / hardcoded colours: visuals come from the token-driven
  * .misp-stat-* rules in dashboard.default.css, so themes (midnight) that
  * only redefine the --misp-dash-* tokens retone this for free.
@@ -95,12 +100,24 @@ foreach ($data as $row) {
     // (DD-32) — unless the widget opted into labels ($statGridLabels,
     // AD-21), in which case the glyph and label render together. A row
     // without a (resolvable) icon always keeps the text label.
-    $glyph = StatGlyph::get($row['icon'] ?? null);
+    // A row may carry a misp-iconify icon (`icon_class` = a misp-icon NAME,
+    // rendered as a masked-SVG <span> from misp-iconify.css — currentColor, so
+    // it themes for free) or a StatGlyph inline-SVG (`icon` = a StatGlyph NAME,
+    // the admin UsageDataWidget's path). icon_class wins when both are set.
+    $glyphMarkup = '';
+    if (!empty($row['icon_class'])) {
+        $cls = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)$row['icon_class']));
+        if ($cls !== '') {
+            $glyphMarkup = '<span class="misp-stat-glyph"><span class="misp-icon misp-icon-'
+                . $cls . ' misp-simple" aria-hidden="true"></span></span>';
+        }
+    } elseif (($glyph = StatGlyph::get($row['icon'] ?? null)) !== '') {
+        $glyphMarkup = '<span class="misp-stat-glyph">' . $glyph . '</span>';
+    }
     $labelMarkup = '<span class="misp-stat-label">'
         . (isset($row['html_title']) ? $row['html_title'] : h($titleText))
         . '</span>';
-    if ($glyph !== '') {
-        $glyphMarkup = '<span class="misp-stat-glyph">' . $glyph . '</span>';
+    if ($glyphMarkup !== '') {
         $header = $statLabels
             ? '<span class="misp-stat-head">' . $glyphMarkup . $labelMarkup . '</span>'
             : $glyphMarkup;

@@ -66,3 +66,6 @@
 	path = app/files/misp-event-templates
 	url = https://github.com/MISP/misp-event-templates
 	branch = main
+[submodule "app/files/misp-iconify"]
+	path = app/files/misp-iconify
+	url = https://github.com/MISP/misp-iconify.git

@@ -811,6 +811,12 @@ a.misp-stat-card:hover {
   height: 22px;
   display: block;
 }
+/* misp-iconify glyph (AD-21): .misp-icon is a 1em masked-SVG square coloured
+   by currentColor, so it inherits the .misp-stat-glyph muted/accent colour;
+   size it to match the 22px inline-SVG glyph. */
+.misp-stat-glyph .misp-icon {
+  font-size: 22px;
+}
 .misp-stat-card:hover .misp-stat-glyph,
 a.misp-stat-card:hover .misp-stat-glyph {
   color: var(--misp-dash-accent);

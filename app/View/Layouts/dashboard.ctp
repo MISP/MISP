@@ -31,6 +31,11 @@
             ['main', ['preload' => true]],
             ['dashboard/dashboard.default', ['preload' => true]],
             ['dashboard/dashboard.midnight'],
+            // misp-iconify icon set (generated CSS copied from the
+            // app/files/misp-iconify submodule's exports/css/icons.css —
+            // self-contained masked SVGs, currentColor). Used by StatGrid's
+            // misp-icon glyphs (AD-21).
+            ['misp-iconify'],
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {

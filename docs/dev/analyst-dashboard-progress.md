@@ -981,11 +981,27 @@ misp-iconify CSS-class delivery).
   propagation is direct (`render_widget.ctp` passes `$widget`, StatGrid reads the
   public property). `php -l` clean. (Live web-UI screenshot deferred — session
   re-mint hit the Cake CSRF dance; REST-exact + harness cover handler + render.)
-- [ ] **Glyph swap → misp-iconify** (GATED on the colleague's CSS-class delivery).
-  Swap StatGlyph names for the misp-iconify set (event/attribute/object/report/
-  galaxy/analyst-note/analyst-opinion/organisation, 1:1 with the metrics). Fork
-  pending: inline the available 24×24 currentColor SVGs now vs wait for the
-  official CSS classes.
+- [x] **Glyph swap → misp-iconify.** Added `MISP/misp-iconify` as a submodule at
+  `app/files/misp-iconify` (`.gitignore`-whitelisted like the sibling submodules);
+  copied its generated `exports/css/icons.css` → `app/webroot/css/misp-iconify.css`
+  (self-contained masked-SVG classes, `background-color: currentColor`) and loaded
+  it in BOTH dashboard layouts (default + Overmind — Cake's theme resolver falls
+  back to the main webroot, same precedent as `dashboard.default.css`). `StatGrid.ctp`
+  gained `icon_class` support (a row's misp-icon NAME → `<span class="misp-icon
+  misp-icon-<name> misp-simple">`; the StatGlyph `icon` key stays the admin path) +
+  `.misp-stat-glyph .misp-icon{font-size:22px}`. `NewDataStatsWidget` switched all 9
+  rows to `icon_class`: event/attribute/object/report/galaxy/analyst-note/
+  analyst-opinion/organisation (targeting)/sharing-group (published).
+  *Verified:* CSS servable (`/css/misp-iconify.css` → 200); REST payload carries the
+  `icon_class` for all 9; the real `misp-iconify.css` + `StatGrid.ctp` paint the
+  masked icons (muted, `currentColor` → themed) in light + midnight
+  (`/home/iglocska/statgrid_labels_{light,midnight}.png`). `php -l` clean; CSS braces
+  535/535. *Caveat:* the webroot CSS is a copy of the submodule export — re-copy when
+  the submodule bumps (a Makefile target would automate it; noted follow-up).
+
+**Phase B14 (AD-W7 New-data stats REWORK) COMPLETE + verified.** 4→9 labelled
+KPI cards on misp-iconify glyphs; StatGrid gained an opt-in glyph+label header and
+`icon_class` support (both additive; admin UsageDataWidget unchanged).
 
 ## ✅ ANALYST DASHBOARD CORE COMPLETE (W1–W8, 2026-06-02) · feed batch W10–W12 in progress
 
