@@ -152,24 +152,26 @@ class NewUsersWidget
         if ($timeConditions) {
             $params['conditions']['AND'][] = $timeConditions;
         }
+        
+        // redact e-mails for non site admins unless specifically allowed
+        if (
+            empty($user['Role']['perm_site_admin']) &&
+            !Configure::read('Security.disclose_user_emails')
+        ) {
+                unset($field_options['email']);
+        }
+
+        $fields = [];
         if (isset($options['fields'])) {
-            $fields = [];
             foreach ($options['fields'] as $field) {
                 if (isset($field_options[$field])) {
                     $fields[$field] = $field_options[$field];
                 }
             }
-        } else {
-            $fields = $field_options;
         }
 
-        // redact e-mails for non site admins unless specifically allowed
-        if (
-            empty($user['Role']['perm_site_admin']) &&
-            !Configure::read('Security.disclose_user_emails') &&
-            isset($fields['email'])
-        ) {
-                unset($fields['email']);
+        if (empty($fields)) {
+            $fields = $field_options;
         }
         $data = $this->User->find('all', [
             'recursive' => -1,
