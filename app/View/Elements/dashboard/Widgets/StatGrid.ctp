@@ -32,6 +32,12 @@
  * the card's `title` hover tooltip. A row without a (resolvable) icon keeps
  * the text label, so StatGrid stays a drop-in for icon-less widgets.
  *
+ * Opt-in labels (AD-21): a widget can set a public `$statGridLabels = true`
+ * to render the glyph AND the text label together (glyph left, uppercase
+ * label beside it) instead of the glyph-only default. The dense admin
+ * UsageDataWidget leaves it unset and is unchanged; the analyst New-data
+ * widget opts in so each KPI card is self-labelled, not glyph-only.
+ *
  * No inline styles / hardcoded colours: visuals come from the token-driven
  * .misp-stat-* rules in dashboard.default.css, so themes (midnight) that
  * only redefine the --misp-dash-* tokens retone this for free.
@@ -64,7 +70,10 @@ $formatValue = function ($raw) {
     return h($raw);
 };
 
-echo '<div class="misp-stat-grid">';
+// Opt-in labels (AD-21): hoisted once so it also picks the grid variant
+// (labeled cards get wider columns + 2-line labels; glyph-only stays dense).
+$statLabels = isset($widget) && !empty($widget->statGridLabels);
+echo '<div class="misp-stat-grid' . ($statLabels ? ' misp-stat-grid-labeled' : '') . '">';
 foreach ($data as $row) {
     // A gap row becomes a full-width section break; its title (if any)
     // labels the break.
@@ -82,14 +91,22 @@ foreach ($data as $row) {
         ? trim(strip_tags($row['html_title']))
         : (string)($row['title'] ?? '');
 
-    // Glyph replaces the text label when a resolvable icon is given;
-    // otherwise fall back to the (possibly creator-HTML) text label.
+    // Glyph replaces the text label when a resolvable icon is given
+    // (DD-32) — unless the widget opted into labels ($statGridLabels,
+    // AD-21), in which case the glyph and label render together. A row
+    // without a (resolvable) icon always keeps the text label.
     $glyph = StatGlyph::get($row['icon'] ?? null);
-    $header = $glyph !== ''
-        ? '<span class="misp-stat-glyph">' . $glyph . '</span>'
-        : '<span class="misp-stat-label">'
-            . (isset($row['html_title']) ? $row['html_title'] : h($titleText))
-            . '</span>';
+    $labelMarkup = '<span class="misp-stat-label">'
+        . (isset($row['html_title']) ? $row['html_title'] : h($titleText))
+        . '</span>';
+    if ($glyph !== '') {
+        $glyphMarkup = '<span class="misp-stat-glyph">' . $glyph . '</span>';
+        $header = $statLabels
+            ? '<span class="misp-stat-head">' . $glyphMarkup . $labelMarkup . '</span>'
+            : $glyphMarkup;
+    } else {
+        $header = $labelMarkup;
+    }
 
     $value = isset($row['value']) ? $formatValue($row['value']) : '';
 

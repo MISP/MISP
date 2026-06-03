@@ -815,6 +815,28 @@ a.misp-stat-card:hover {
 a.misp-stat-card:hover .misp-stat-glyph {
   color: var(--misp-dash-accent);
 }
+/* Opt-in glyph + label header (AD-21): glyph left, uppercase label beside
+   it. min-width:0 lets the label wrap/ellipsis instead of overflowing the
+   card. Used only when a widget sets $statGridLabels. */
+.misp-stat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  min-width: 0;
+}
+/* In labeled mode the label is the card's primary text, so give it room:
+   the grid uses wider columns and the label wraps to 2 lines (then
+   ellipsis) rather than the dense glyph-only grid's hard single-line clip. */
+.misp-stat-grid-labeled {
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+}
+.misp-stat-head .misp-stat-label {
+  margin: 0;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 .misp-stat-valuerow {
   display: flex;
   align-items: baseline;

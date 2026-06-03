@@ -937,6 +937,39 @@ no existing widget/handler/model behaviour changed.
 
 ---
 
+### Phase B14 — AD-W7 New-data stats REWORK (AD-21, 2026-06-03; IN PROGRESS)
+
+Track re-reopened (AD-21): rework the shipped W7 on three axes — **+5 metrics**,
+**opt-in StatGrid labels**, **misp-iconify glyphs**. Build order: StatGrid labels
+(platform, signed off) → widget +5 metrics → glyph swap (gated on the colleague's
+misp-iconify CSS-class delivery).
+
+- [x] **StatGrid opt-in labels** (platform StatGrid touch — signed off). A widget
+  sets `public $statGridLabels = true`; `StatGrid.ctp` then renders glyph + label
+  together (`.misp-stat-head`, wider `.misp-stat-grid-labeled` columns, 2-line
+  label) instead of the glyph-only DD-32 default. The admin `UsageDataWidget`
+  leaves it unset → unchanged. Pure-additive opt-in; no behaviour change for
+  existing consumers.
+  *Done:* `StatGrid.ctp` (hoisted `$statLabels`, grid modifier, glyph+label
+  header) + `.misp-stat-head` / `.misp-stat-grid-labeled` CSS in
+  `dashboard.default.css`. Verified via the **real `StatGrid.ctp`** (real
+  `StatGlyph`) rendered with the flag ON and OFF, light + midnight
+  (`/home/iglocska/statgrid_labels_{light,midnight}.png`,
+  `statgrid_nolabels_light.png`): labeled cards = glyph + full label + value +
+  ▲/▼ ("PUBLISHED BY MY ORG" wraps to 2 lines, no truncation); the no-flag
+  control is glyph-only (admin widget unchanged). `php -l` clean; CSS braces
+  534/534.
+- [ ] **NewDataStatsWidget — +5 metrics + set `$statGridLabels` + bump height.**
+  Add objects / event reports / local galaxy clusters (`default=0`) / notes /
+  opinions as global scale-counts (AD-06), windowed + prior-window delta; concise
+  titles (drop the redundant "New" prefix). Verify via the real render path +
+  board.
+- [ ] **Glyph swap → misp-iconify** (GATED on the colleague's CSS-class delivery).
+  Swap StatGlyph names for the misp-iconify set (event/attribute/object/report/
+  galaxy/analyst-note/analyst-opinion/organisation, 1:1 with the metrics). Fork
+  pending: inline the available 24×24 currentColor SVGs now vs wait for the
+  official CSS classes.
+
 ## ✅ ANALYST DASHBOARD CORE COMPLETE (W1–W8, 2026-06-02) · feed batch W10–W12 in progress
 
 **W1–W8 all BUILT + verified (Phases B1–B9); W9 DECLINED (AD-16).** The original

@@ -57,7 +57,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DECIDED | spec locked (AD-11): `mitre-attack-pattern`, parent roll-up; reuses W3 ACL count; distinct from W5 |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | **DECIDED (REDESIGN)** | renderer redesign locked (AD-15): hide inactive · labeled cells · technique/sub-technique aggregation w/ click-to-unfold · single red ramp + legend; + AD-12 `time_window` folded in. Renderer-only; data layer untouched |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
-| AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (Phase B2) | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
+| AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (B2) · **REWORK** B14 (AD-21) | AD-05..07: `timestamp` anchor · targeting waterfall · global-count ACL relaxation. **AD-21 rework:** +5 metrics (9 total), opt-in StatGrid labels, misp-iconify glyphs |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | **DECLINED** (AD-16) | dropped: the sighting ACL is a shitshow (widget-level `perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow / unused by some — not worth the untangling. Existing sightings widgets left as-is; analyst surface is complete at W1–W8 |
 | AD-W10 | **Recent Event Reports** (feed) | new | **BUILT** (B11) | AD-18: N newest visible Event Reports (direct ACL find reusing `buildACLConditions`), reverse-chron by `EventReport.timestamp`, `FeedList` render. `w_16` |
@@ -976,6 +976,31 @@ galaxy access), parent `Galaxy` joined for `icon`/`type` (reuse the TrendingWidg
 threat-actor join). Row = `Galaxy.icon` · `value` · galaxy name/type chip ·
 `Orgc.name` · relative `version` · drilldown `/galaxy_clusters/view/<id>`. No
 cache. Full spec §5 AD-W12.
+
+**AD-21 — 2026-06-03 — AD-W7 (New-data stats) REWORK: +5 metrics, opt-in
+StatGrid labels, misp-iconify glyphs.** Refs: AD-05/06/07 (the widget's
+window/ACL/metric design), DD-31/32 (StatGrid glyph-vs-label), user rework brief
+(this session). The shipped W7 showed **4 glyph-only cards** — DD-32 hides the
+text label behind a hover tooltip, a choice made for the *dense admin
+`UsageDataWidget`*. User reworked it on three axes:
+1. **+5 metrics** — new objects, event reports, **local** galaxy clusters
+   (`default=0`, like W12), notes, opinions — all **GLOBAL scale-counts** (AD-06,
+   like the existing events/attributes counts: a volume count leaks no specific
+   intel), windowed + prior-window delta (AD-03), so **9 cards** total. (Notes/
+   opinions as a global count was a considered choice — could be ACL-scoped, but
+   AD-06 holds for a pure scale-count and it stays cheap.)
+2. **Opt-in labels** (user fork, chosen over a new render kind): a widget sets
+   `public $statGridLabels = true` and `StatGrid.ctp` renders **glyph AND label**
+   (wider `.misp-stat-grid-labeled` columns + 2-line label) instead of the
+   glyph-only DD-32 default. The admin `UsageDataWidget` leaves it unset →
+   unchanged. **Touching the shared StatGrid is signed off**; the opt-in keeps it
+   additive for every other consumer.
+3. **Glyphs → [MISP/misp-iconify](https://github.com/MISP/misp-iconify)** (user
+   fork over custom-SVG / FontAwesome): a 24×24 `currentColor` set whose names map
+   **1:1** to the metrics (`event`/`attribute`/`object`/`report`/`galaxy`/
+   `analyst-note`/`analyst-opinion`/`organisation`). Delivered as **CSS classes a
+   colleague is still uploading**, so the glyph swap is the one task **gated** on
+   that delivery — metrics + labels ship first. Build = Phase B14.
 
 ## 7. Open meta-questions (resolve early)
 
