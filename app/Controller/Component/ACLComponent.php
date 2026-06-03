@@ -454,7 +454,7 @@ class ACLComponent extends Component
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
             'index' => array('*'),
-            'publish' => array('perm_galaxy_editor'),
+            'publish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
             'search' => array('*'),
