@@ -25,8 +25,11 @@ echo $this->element('Attributes/index', [
 
         var href = link.getAttribute('href');
         var match = href.match(/page[:\-](\d+)/);
-        if (!match) return;
-        var page = match[1];
+
+        // CakePHP omits the page param for page 1 (it's the default)
+        var page = match ? match[1] : '1';
+
+        e.preventDefault();
 
         var url = baseurl + '/events/viewAttributes/' + eventId + '/page:' + page;
 

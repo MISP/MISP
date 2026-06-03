@@ -7,7 +7,7 @@ $containerId = empty($scaffold_data['containerId'])
 echo '<div id="' . $containerId . '_content">';
 ?>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid">
 
     <!-- CARD 1 : FILTERS -->
     <?php if (!empty($scaffold_data['data']['filter_bar'])): ?>

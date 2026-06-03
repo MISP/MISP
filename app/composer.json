@@ -62,7 +62,8 @@
         "vendor-dir": "Vendor",
         "optimize-autoloader": true,
         "allow-plugins": {
-            "composer/installers": true
+            "composer/installers": true,
+            "php-http/discovery": true
         }
     }
 }

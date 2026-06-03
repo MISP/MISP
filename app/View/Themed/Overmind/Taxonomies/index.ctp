@@ -1,55 +1,31 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('taxonomies', 'add')) {
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Update Taxonomies'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/taxonomies/update'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Taxonomy.id',
-        'enable_path' => 'Taxonomy.enabled',
-        'require_path' => 'Taxonomy.required',
-        'highlight_path' => 'Taxonomy.highlighted',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/taxonomies/view/%id%'
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Disable'),
-                'label_off' => __('Enable'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
-                'url' => '/taxonomies/%action%/%id%',
-                'enable_path' => 'Taxonomy.enabled',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Optional'),
-                'label_off' => __('Require'),
-                'icon_on' => 'question text-dark',
-                'icon_off' => 'asterisk text-dark',
-                'url' => '/taxonomies/%action%/%id%',
-                'require_path' => 'Taxonomy.required',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Remove Highlight'),
-                'label_off' => __('Highlight'),
-                'icon_on' => 'down-long text-primary',
-                'icon_off' => 'highlighter text-primary',
-                'url' => '/taxonomies/%action%/%id%',
-                'highlight_path' => 'Taxonomy.highlighted',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -103,6 +79,7 @@ $fields = [
         'name' => __('Active Tags'),
         'element' => 'custom',
         'class' => 'shortish',
+        'card_section' => 'top',
         'function' => function (array $item) use ($isSiteAdmin) {
             $content = '<strong>' . h($item['current_count']) . '</strong> / ' . h($item['total_count']);
             if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) {
@@ -110,19 +87,60 @@ $fields = [
             }
             return $content;
         }
-    ]
-];
-
-if ($this->Acl->canAccess('taxonomies', 'update')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'post',
-            'label' => __('Update Taxonomies'),
-            'icon' => 'sync',
-            'url' => $baseurl . '/taxonomies/update'
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Taxonomy.id',
+        'enable_path' => 'Taxonomy.enabled',
+        'require_path' => 'Taxonomy.required',
+        'highlight_path' => 'Taxonomy.highlighted',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/taxonomies/view/%id%'
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Disable'),
+                'label_off' => __('Enable'),
+                'icon_on' => 'stop text-danger',
+                'icon_off' => 'play text-success',
+                'url' => '/taxonomies/%action%/%id%',
+                'enable_path' => 'Taxonomy.enabled',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Optional'),
+                'label_off' => __('Require'),
+                'icon_on' => 'question text-dark',
+                'icon_off' => 'asterisk text-dark',
+                'url' => '/taxonomies/%action%/%id%',
+                'require_path' => 'Taxonomy.required',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Remove Highlight'),
+                'label_off' => __('Highlight'),
+                'icon_on' => 'down-long text-primary',
+                'icon_off' => 'highlighter text-primary',
+                'url' => '/taxonomies/%action%/%id%',
+                'highlight_path' => 'Taxonomy.highlighted',
+                'requirement' => $isSiteAdmin
+            ]
         ]
-    ]);
-}
+    ],
+];
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
@@ -145,6 +163,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'highlight' => 1,
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Taxonomy.id',
+            'row_dblclick_url' => $baseurl . '/taxonomies/view/%id%',
         ]
     ],
     'item_url' => '/taxonomies'

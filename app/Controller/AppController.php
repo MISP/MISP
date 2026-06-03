@@ -1403,12 +1403,66 @@ class AppController extends Controller
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {
+                // A user authenticated by an authentication plugin (e.g. LDAP) gets
+                // logged in here, during beforeFilter, before UsersController::login()
+                // runs. If the user has OTP enabled we must enforce the OTP challenge at
+                // this point too, otherwise the OTP step shown at /users/otp could be
+                // bypassed by simply browsing to another URL with the already
+                // authenticated session.
+                if ($this->__pluginLoginRequiresOtp($user)) {
+                    return;
+                }
                 $this->User->updateLoginTimes($user);
                 // User found in the db, add the user info to the session
                 $this->Session->renew();
                 $this->Session->write(AuthComponent::$sessionKey, $user);
             }
         }
+    }
+
+    /**
+     * Enforce the OTP challenge for a user that was authenticated by an
+     * authentication plugin (e.g. LDAP) during beforeFilter.
+     *
+     * @param array $user The user record returned by the authentication plugin
+     * @return bool True if the user still needs to pass an OTP challenge (the
+     *     caller must not establish the session); false otherwise.
+     */
+    private function __pluginLoginRequiresOtp(array $user)
+    {
+        if (!empty($user['disabled'])) {
+            return false;
+        }
+
+        $otpAction = null;
+        // TOTP / HOTP
+        if (
+            !Configure::read('Security.otp_disabled') &&
+            !empty($user['totp']) &&
+            class_exists('\OTPHP\TOTP')
+        ) {
+            $this->Session->write('otp_user', $user);
+            $otpAction = 'otp';
+        // E-mail OTP
+        } elseif (Configure::read('Security.email_otp_enabled')) {
+            $this->Session->write('email_otp_user', $user);
+            $otpAction = 'email_otp';
+        }
+
+        if ($otpAction === null) {
+            return false;
+        }
+
+        // Avoid a redirect loop for session/header based auth plugins that
+        // re-authenticate on every request: when we are already on an OTP
+        // action just refuse to establish the session and let that action
+        // handle the challenge.
+        $currentAction = isset($this->request->params['action']) ?
+            $this->request->params['action'] : null;
+        if (!in_array($currentAction, ['otp', 'email_otp'], true)) {
+            $this->redirect(['controller' => 'users', 'action' => $otpAction]);
+        }
+        return true;
     }
 
     protected function _legacyAPIRemap($options = array())

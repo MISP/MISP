@@ -1,35 +1,31 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('templates', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Template'),
+        'url' => $baseurl . '/templates/add',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Template.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/templates/view/%id%'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/templates/edit/%id%',
-                'requirement' => $me['Role']['perm_template']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/templates/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_template']
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'Template.id',
@@ -62,26 +58,38 @@ $fields = [
         'element' => 'organisation',
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Template.id',
+        'card_section' => 'selector',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/templates/view/%id%'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/templates/edit/%id%',
+                'requirement' => $me['Role']['perm_template']
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/templates/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_template']
+            ]
+        ]
     ]
 ];
 
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('templates', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Template'),
-            'url' => $baseurl . '/templates/add',
-            'icon' => 'plus'
-        ]
-    ]);
-}
-
-/**
- * Scaffold
- */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -93,6 +101,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Template.id',
+            'row_dblclick_url' => $baseurl . '/templates/view/%id%',
         ]
     ],
     'item_url' => '/templates'

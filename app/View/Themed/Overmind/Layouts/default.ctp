@@ -25,6 +25,7 @@
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+            ['controller' => 'CollectionElements', 'action' => 'index'],
 
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
@@ -79,6 +80,55 @@
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 
+            ['controller' => 'servers', 'action' => 'index'],
+            ['controller' => 'servers', 'action' => 'add'],
+            ['controller' => 'servers', 'action' => 'edit'],
+            ['controller' => 'servers', 'action' => 'delete'],
+            // ['controller' => 'servers', 'action' => 'cache'],
+            // ['controller' => 'servers', 'action' => 'pull'],
+            // ['controller' => 'servers', 'action' => 'push'],
+            // ['controller' => 'servers', 'action' => 'testConnection'],
+            // ['controller' => 'servers', 'action' => 'getRemoteSyncUser'],
+
+            ['controller' => 'sightingdb', 'action' => 'index'],
+            ['controller' => 'sightingdb', 'action' => 'add'],
+            ['controller' => 'sightingdb', 'action' => 'edit'],
+            ['controller' => 'sightingdb', 'action' => 'delete'],
+
+            ['controller' => 'taxiiServers', 'action' => 'index'],
+            ['controller' => 'taxiiServers', 'action' => 'add'],
+            ['controller' => 'taxiiServers', 'action' => 'edit'],
+            ['controller' => 'taxiiServers', 'action' => 'delete'],
+            ['controller' => 'taxiiServers', 'action' => 'view'],
+
+            ['controller' => 'cerebrates', 'action' => 'index'],
+            ['controller' => 'cerebrates', 'action' => 'add'],
+            ['controller' => 'cerebrates', 'action' => 'edit'],
+            ['controller' => 'cerebrates', 'action' => 'delete'],
+            ['controller' => 'cerebrates', 'action' => 'view'],
+            ['controller' => 'cerebrates', 'action' => 'pull_sgs'],
+            ['controller' => 'cerebrates', 'action' => 'pull_orgs'],
+
+            ['controller' => 'communities', 'action' => 'index'],
+            ['controller' => 'communities', 'action' => 'view'],
+            ['controller' => 'communities', 'action' => 'requestAccess'],
+
+            ['controller' => 'SharingGroups', 'action' => 'index'],
+            ['controller' => 'SharingGroups', 'action' => 'add'],
+            ['controller' => 'SharingGroups', 'action' => 'edit'],
+            ['controller' => 'SharingGroups', 'action' => 'delete'],
+            ['controller' => 'SharingGroups', 'action' => 'view'],
+
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'index'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'add'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'edit'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'delete'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'view'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'detach'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'execute'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'encodeSyncRule'],
+
+            ['controller' => 'servers', 'action' => 'idTranslator'],
             ['controller' => 'event_templates', 'action' => 'index'],
             ['controller' => 'event_templates', 'action' => 'view'],
             ['controller' => 'event_templates', 'action' => 'import'],
@@ -149,8 +199,9 @@
             'js' => $js,
         ]);
     ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
+<body class="bg-light" data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div class="main-wrapper">
         <!-- Navbar -->
         <header>
@@ -248,6 +299,9 @@
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
                         'headerActions' => $headerActions ?? [],
+                        'headerTitle' => $headerTitle ?? null,
+                        'headerDescription' => $headerDescription ?? null,
+                        'headerStats' => $headerStats ?? [],
                     ]);
                 }
                 ?>

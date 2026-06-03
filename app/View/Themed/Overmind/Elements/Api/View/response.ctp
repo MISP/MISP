@@ -61,10 +61,20 @@ if ($responseCode !== null) {
             <?php endif; ?>
 
             <div class="d-flex gap-2">
-                <button class="btn btn-sm text-secondary p-0 border-0 shadow-none hover-dark" onclick="copyCode('response-body-code')" title="Copier">
+                <button
+                    class="text-muted border-0 bg-white"
+                    onclick="copyToClipboard(this, document.getElementById('response-body-code').innerText)"
+                    data-bs-toggle="tooltip"
+                    title="<?= __('Copy Response') ?>"
+                    aria-label="<?= __('Copy Response') ?>">
                     <i class="fas fa-copy"></i>
                 </button>
-                <button class="btn btn-sm text-secondary p-0 border-0 shadow-none hover-dark" onclick="downloadResponse()" title="Télécharger">
+                <button
+                    class="text-muted border-0 bg-white"
+                    onclick="downloadResponse(this)"
+                    data-bs-toggle="tooltip"
+                    title="<?= __('Download Response') ?>"
+                    aria-label="<?= __('Download Response') ?>">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -74,7 +84,7 @@ if ($responseCode !== null) {
     <div class="card-body p-0 border-0">
         <div class="tab-content">
             <div class="tab-pane fade show active" id="response-body">
-                <pre id="response-body-code" class="bg-dark p-3 m-0 font-monospace overflow-auto rounded-bottom custom-code-text"><?= h($responseBody) ?></pre>
+                <pre id="response-body-code" class="p-3 m-0 font-monospace overflow-auto rounded-bottom custom-code-text"><?= h($responseBody) ?></pre>
             </div>
 
             <div class="tab-pane fade p-3" id="response-headers">
