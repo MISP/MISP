@@ -109,7 +109,7 @@ foreach ($data as $row) {
         $cls = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)$row['icon_class']));
         if ($cls !== '') {
             $glyphMarkup = '<span class="misp-stat-glyph"><span class="misp-icon misp-icon-'
-                . $cls . ' misp-hexagone" aria-hidden="true"></span></span>';
+                . $cls . ' misp-simple" aria-hidden="true"></span></span>';
         }
     } elseif (($glyph = StatGlyph::get($row['icon'] ?? null)) !== '') {
         $glyphMarkup = '<span class="misp-stat-glyph">' . $glyph . '</span>';

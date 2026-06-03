@@ -988,7 +988,7 @@ misp-iconify CSS-class delivery).
   it in BOTH dashboard layouts (default + Overmind — Cake's theme resolver falls
   back to the main webroot, same precedent as `dashboard.default.css`). `StatGrid.ctp`
   gained `icon_class` support (a row's misp-icon NAME → `<span class="misp-icon
-  misp-icon-<name> misp-hexagone">`; the StatGlyph `icon` key stays the admin path) +
+  misp-icon-<name> misp-simple">`; the StatGlyph `icon` key stays the admin path) +
   `.misp-stat-glyph .misp-icon{font-size:22px}`. `NewDataStatsWidget` switched all 9
   rows to `icon_class`: event/attribute/object/report/galaxy/analyst-note/
   analyst-opinion/organisation (both targeting & published).
