@@ -1,0 +1,42 @@
+{
+    "uuid": "0c6b496d-b6e7-43f3-be7f-2f30215c568c",
+    "name": "Analyst",
+    "description": "A threat-analyst starting point: trending attribute values and tags, the geographic spread of recent indicators and of known threat actors, and the latest sightings.",
+    "selectable": true,
+    "default_fallback": true,
+    "restrict_to_org_id": 0,
+    "restrict_to_role_id": 0,
+    "restrict_to_permission_flag": "",
+    "value": [
+        {
+            "instance_id": "w_1",
+            "widget": "TrendingAttributesWidget",
+            "config": { "alias": "Trending attribute values" },
+            "position": { "x": 0, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+            "instance_id": "w_2",
+            "widget": "TrendingTagsWidget",
+            "config": { "alias": "Trending tags" },
+            "position": { "x": 6, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+            "instance_id": "w_3",
+            "widget": "AttributeGeoMapWidget",
+            "config": { "alias": "Recent indicators by country" },
+            "position": { "x": 0, "y": 4, "w": 6, "h": 5 }
+        },
+        {
+            "instance_id": "w_4",
+            "widget": "ThreatActorCountryMapWidget",
+            "config": { "alias": "Threat actor origins" },
+            "position": { "x": 6, "y": 4, "w": 6, "h": 5 }
+        },
+        {
+            "instance_id": "w_5",
+            "widget": "RecentSightingsWidget",
+            "config": { "alias": "Recent sightings" },
+            "position": { "x": 0, "y": 9, "w": 12, "h": 6 }
+        }
+    ]
+}
