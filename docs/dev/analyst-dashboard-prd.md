@@ -57,7 +57,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DECIDED | spec locked (AD-11): `mitre-attack-pattern`, parent roll-up; reuses W3 ACL count; distinct from W5 |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | **DECIDED (REDESIGN)** | renderer redesign locked (AD-15): hide inactive · labeled cells · technique/sub-technique aggregation w/ click-to-unfold · single red ramp + legend; + AD-12 `time_window` folded in. Renderer-only; data layer untouched |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
-| AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (B2) · **REWORK** B14 (AD-21) | AD-05..07: `timestamp` anchor · targeting waterfall · global-count ACL relaxation. **AD-21 rework:** +5 metrics (9 total), opt-in StatGrid labels, misp-iconify glyphs |
+| AD-W7 | **New-data stats** (StatGrid + deltas) | new | **BUILT** (B2) · **REWORK** B14 (AD-21) · **B15** (AD-22) | AD-05..07: `timestamp` anchor · targeting waterfall · global-count ACL relaxation. **AD-21 rework:** +5 metrics (9 total), opt-in StatGrid labels, misp-iconify glyphs. **AD-22:** targeting card → "Targeting similar orgs" + N/A unset-meta tooltip |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | **BUILT** (B8) | AD-13 + AD-14: correlation-anchored (`getRelatedEventIds`), my-org-created ref set, window-anchored; reuses W6 EventCards + overlap badge; `exclude_own_org` setting (default true) |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | **DECLINED** (AD-16) | dropped: the sighting ACL is a shitshow (widget-level `perm_site_admin` gate vs `Sighting->restSearch` user-scoping), engine slow / unused by some — not worth the untangling. Existing sightings widgets left as-is; analyst surface is complete at W1–W8 |
 | AD-W10 | **Recent Event Reports** (feed) | new | **BUILT** (B11) | AD-18: N newest visible Event Reports (direct ACL find reusing `buildACLConditions`), reverse-chron by `EventReport.timestamp`, `FeedList` render. `w_16` |
@@ -431,11 +431,13 @@ prior-window baseline (AD-03). Window anchor = **`Event.timestamp`** (AD-05).
 2. **New attributes** — `COUNT(Attribute)` with `Attribute.timestamp` in
    window, `deleted = 0`. Global count, no ACL filter (AD-06). (Metric 2 is
    *new attributes in window*, not corpus size.)
-3. **Events targeting my org's country/sector** — distinct events in window
-   carrying `misp-galaxy:country="<c>"` ∪ `misp-galaxy:sector="<s>"`, with
-   `<c>`/`<s>` resolved by the **targeting waterfall** (below). Shows **N/A**
-   (not `0`) when neither resolves. Cached by the resolved `(country, sector)`
-   tuple + window.
+3. **Events targeting similar orgs** (card label "Targeting similar orgs",
+   AD-22; was "Targeting my org") — distinct events in window carrying
+   `misp-galaxy:country="<c>"` ∪ `misp-galaxy:sector="<s>"` (events targeting
+   organisations in my org's country or sector), with `<c>`/`<s>` resolved by
+   the **targeting waterfall** (below). Shows **N/A** (not `0`) when neither
+   resolves — with a hover tooltip explaining the org's country/sector are
+   unset (AD-22). Cached by the resolved `(country, sector)` tuple + window.
 4. **New events published by my org** — `Event.orgc_id = <my org>` AND
    `published = 1` AND `publish_timestamp` in window. Anchored on
    `publish_timestamp` **here only**: for an org's *own* events that stamp is
@@ -1001,6 +1003,50 @@ text label behind a hover tooltip, a choice made for the *dense admin
    `analyst-note`/`analyst-opinion`/`organisation`). Delivered as **CSS classes a
    colleague is still uploading**, so the glyph swap is the one task **gated** on
    that delivery — metrics + labels ship first. Build = Phase B14.
+
+**AD-22 — 2026-06-03 — AD-W7 targeting card: rename + N/A unset-meta tooltip.**
+Refs: AD-07 (the targeting metric), AD-21 (the labelled StatGrid). User polish:
+1. **Rename "Targeting my org" → "Targeting similar orgs".** The metric counts
+   events tagged with my org's country ∪ sector — i.e. events targeting
+   *organisations like mine* (same country / sector), not my org literally. The
+   new label is more accurate. User-facing strings only (label, help, docblock);
+   internal cache keys / method names unchanged. (Icon stays `organisation`.)
+2. **N/A explanatory tooltip.** When neither country nor sector resolves the card
+   shows `N/A` (AD-07) — opaque on its own. Add a hover tooltip telling the user
+   *why*: their org's country and sector are unset; set them on the org (or
+   configure this widget) to enable the metric. Delivered via a **new opt-in
+   `tooltip` row key on the shared `StatGrid.ctp`** (sets the card `title`
+   attribute, overriding the field-name fallback when present) — strictly
+   additive, no behaviour change for any other StatGrid consumer (same posture as
+   AD-21's `statGridLabels` / `icon_class`). **StatGrid touch signed off** (the
+   user requested the tooltip; the row key is the minimal additive way). Build =
+   Phase B15.
+
+**AD-23 — 2026-06-03 — AD-W11 richer per-target-type drilldowns.** Refs: AD-19
+(W11 spec; "exact per-target-type drilldown resolution" was left open at build).
+W11 originally linked **only** Event-targeted notes/opinions (`/events/view/
+<uuid>`); every other target type rendered a bare type chip. Recon of the
+`AnalystData::valid_targets` (Attribute, Event, EventReport, GalaxyCluster,
+Galaxy, Object, Note, Opinion, Relationship, Organisation, SharingGroup) against
+each controller's `view()` found **seven** types whose `view($id)` resolves a
+**UUID** (`Validation::uuid` / `Toolbox::findIdByUuid`): Event, Attribute,
+Object, GalaxyCluster, Galaxy, Organisation, SharingGroup. `object_uuid` is
+always a UUID string, so each links by `/{controller}/view/<object_uuid>`.
+**EventReport** (`view` takes a numeric id only) and **Note / Opinion /
+Relationship** (no standalone view) stay chip-only. All links relative →
+DD-03-admitted (no validator change). Pure additive widget change. Build = B15.
+
+**AD-24 — 2026-06-03 — AD-W12 optional `galaxy_type` filter.** Refs: AD-20 (W12
+spec; the optional `galaxy_type` filter was deferred "keep v1 minimal" — now
+un-deferred on the user's polish request). Add an optional, typed `string`
+`$schema` knob (configure-form text input, like W7's country/sector — B9
+precedent): when set, scope the local-cluster feed to one galaxy, matching the
+typed value **case-insensitively against the galaxy `type` OR `name`** (so the
+user can type either `threat-actor` or `Threat Actor`). Resolution reads the
+small `galaxies` table and filters in PHP (collation-independent, avoids
+SQL-function quoting), then adds `GalaxyCluster.galaxy_id IN (<ids>)`; a filter
+that matches no galaxy yields an empty feed (honest). Blank = all galaxies (no
+behaviour change for existing instances). Pure additive widget change. Build = B15.
 
 ## 7. Open meta-questions (resolve early)
 

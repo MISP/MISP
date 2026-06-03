@@ -1003,6 +1003,43 @@ misp-iconify CSS-class delivery).
 KPI cards on misp-iconify glyphs; StatGrid gained an opt-in glyph+label header and
 `icon_class` support (both additive; admin UsageDataWidget unchanged).
 
+---
+
+### Phase B15 — Loose-end polish (AD-22..24, 2026-06-03; IN PROGRESS)
+
+Post-completion polish: the loose ends the user picked to "finish up" the track —
+W11/W12 feature polish + two New-data-stats targeting-card tweaks. All **additive**
+(one signed-off shared-StatGrid opt-in key for the tooltip; everything else is
+widget-only). Build order: New-data rename → New-data N/A tooltip → W11 drilldowns
+→ W12 galaxy_type filter.
+
+- [x] **NewDataStatsWidget — rename "Targeting my org" → "Targeting similar
+  orgs" (AD-22).** The metric counts events tagged with my org's country ∪
+  sector — events targeting *organisations like mine*, not my org literally — so
+  the new label is more accurate. User-facing strings only (card label, `$params`/
+  `$schema` help, class + method docblocks, `$description`); internal cache keys
+  (`targeting:`) and method names unchanged; icon stays `organisation`.
+  *Done:* edited `app/Lib/Dashboard/NewDataStatsWidget.php` — `targetingMetric()`
+  `$title` → `__('Targeting similar orgs')`, plus every user-facing "targeting my
+  org" string. `php -l` clean; no leftover "targeting my org" refs.
+- [ ] **NewDataStatsWidget — N/A unset-meta tooltip (AD-22).** When neither
+  country nor sector resolves (card shows `N/A`), add a hover tooltip explaining
+  the org's country/sector are unset and how to enable the metric. Add an opt-in
+  `tooltip` row key to the shared `StatGrid.ctp` (sets the card `title`
+  attribute when present, overriding the field-name fallback) — additive,
+  signed off; set it on the N/A row.
+- [ ] **RecentAnalystDataWidget (W11) — richer per-target-type drilldowns
+  (AD-23).** Link each note/opinion to its target by `object_uuid` for the seven
+  UUID-resolvable target types (Event, Attribute, Object, GalaxyCluster, Galaxy,
+  Organisation, SharingGroup) via `/{controller}/view/<uuid>`. EventReport
+  (numeric-id view only) + Note/Opinion/Relationship (no standalone view) stay
+  chip-only. All DD-03-gated; no validator change.
+- [ ] **RecentGalaxyClustersWidget (W12) — `galaxy_type` filter (AD-24).** Add an
+  optional typed `string` `$schema` knob scoping the feed to one galaxy, matched
+  case-insensitively against galaxy `type` OR `name`; resolve galaxy ids in PHP
+  off the small `galaxies` table, then `GalaxyCluster.galaxy_id IN (<ids>)`. Blank
+  = all (no behaviour change). Verify on the live render path.
+
 ## ✅ ANALYST DASHBOARD CORE COMPLETE (W1–W8, 2026-06-02) · feed batch W10–W12 in progress
 
 **W1–W8 all BUILT + verified (Phases B1–B9); W9 DECLINED (AD-16).** The original

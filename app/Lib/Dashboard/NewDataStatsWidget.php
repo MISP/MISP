@@ -16,12 +16,13 @@ App::uses('RedisTool', 'Tools');
  *                         GLOBAL scale-count, no ACL filter (AD-06).
  *   2. New attributes   — COUNT(Attribute) with Attribute.timestamp in
  *                         window and deleted = 0. GLOBAL, no ACL (AD-06).
- *   3. Targeting my org — distinct events in window carrying
- *                         misp-galaxy:country="<c>" ∪ sector="<s>", with
- *                         <c>/<s> resolved by the targeting waterfall
- *                         (config → org meta → org-name ccTLD → N/A).
- *                         Org-CONTEXTUAL, not ACL-scoped — shows N/A (not
- *                         0) when neither country nor sector resolves.
+ *   3. Targeting similar orgs — distinct events in window carrying
+ *                         misp-galaxy:country="<c>" ∪ sector="<s>" (i.e.
+ *                         events targeting organisations in my org's country
+ *                         or sector), with <c>/<s> resolved by the targeting
+ *                         waterfall (config → org meta → org-name ccTLD →
+ *                         N/A). Org-CONTEXTUAL, not ACL-scoped — shows N/A
+ *                         (not 0) when neither country nor sector resolves.
  *   4. Published by my org — Event.orgc_id = my org AND published = 1 AND
  *                         publish_timestamp in window. publish_timestamp is
  *                         OK *here only*: for an org's OWN events it is a
@@ -71,11 +72,12 @@ class NewDataStatsWidget
             . '(e.g. "30d"; -1 = all historic data). Drives both the '
             . 'current-window count and the prior-window delta.',
         'country' => 'Optional: explicitly set the country for the "targeting '
-            . 'my org" metric (overrides the org-meta / org-name heuristics). '
-            . 'A country galaxy value (e.g. "luxembourg"), ISO code or ccTLD.',
-        'sector' => 'Optional: explicitly set the sector for the "targeting my '
-            . 'org" metric (overrides the org-meta heuristic). A sector galaxy '
-            . 'value (e.g. "Bank").',
+            . 'similar orgs" metric (overrides the org-meta / org-name '
+            . 'heuristics). A country galaxy value (e.g. "luxembourg"), ISO '
+            . 'code or ccTLD.',
+        'sector' => 'Optional: explicitly set the sector for the "targeting '
+            . 'similar orgs" metric (overrides the org-meta heuristic). A '
+            . 'sector galaxy value (e.g. "Bank").',
     );
 
     public $schema = array(
@@ -98,17 +100,17 @@ class NewDataStatsWidget
         'country' => array(
             'type' => 'string',
             'default' => '',
-            'help' => 'Optional: explicit country for the "targeting my org" '
-                . 'metric (overrides the org-meta / org-name heuristics). A '
-                . 'country galaxy value (e.g. "luxembourg"), ISO code or ccTLD. '
-                . 'Leave blank to auto-detect.',
+            'help' => 'Optional: explicit country for the "targeting similar '
+                . 'orgs" metric (overrides the org-meta / org-name heuristics). '
+                . 'A country galaxy value (e.g. "luxembourg"), ISO code or '
+                . 'ccTLD. Leave blank to auto-detect.',
         ),
         'sector' => array(
             'type' => 'string',
             'default' => '',
-            'help' => 'Optional: explicit sector for the "targeting my org" '
-                . 'metric (overrides the org-meta heuristic). A sector galaxy '
-                . 'value (e.g. "Bank"). Leave blank to auto-detect.',
+            'help' => 'Optional: explicit sector for the "targeting similar '
+                . 'orgs" metric (overrides the org-meta heuristic). A sector '
+                . 'galaxy value (e.g. "Bank"). Leave blank to auto-detect.',
         ),
     );
 
@@ -122,8 +124,8 @@ class NewDataStatsWidget
     public $description = 'New-data pulse: windowed counts (each with a ▲/▼ '
         . 'delta vs the previous equal-length window) of new events, '
         . 'attributes, objects, event reports, local galaxy clusters, analyst '
-        . 'notes & opinions, plus events targeting my org\'s country/sector and '
-        . 'events my org published.';
+        . 'notes & opinions, plus events targeting organisations in my org\'s '
+        . 'country/sector and events my org published.';
 
     // No whole-payload WidgetCache (see the class docblock): the metrics span
     // three cache scopes and the `org` scope's site-admin bucket is wrong for
@@ -290,7 +292,7 @@ class NewDataStatsWidget
             }
         );
 
-        // --- Metric 8: events targeting my org (org-contextual) -------------
+        // --- Metric 8: events targeting similar orgs (org-contextual) -------
         $rows[] = $this->targetingMetric($user, $options, $windowSeconds, $hasPrior, $curBounds, $priorBounds, $eventModel);
 
         // --- Metric 9: events published by my org ---------------------------
@@ -330,9 +332,10 @@ class NewDataStatsWidget
     // ---- metric 3 (targeting waterfall) -----------------------------------
 
     /**
-     * Build the "events targeting my org" StatGrid row. Resolves the org's
-     * country and sector via the AD-07 waterfall, then counts distinct events
-     * carrying misp-galaxy:country="<c>" ∪ sector="<s>". N/A (not 0) when
+     * Build the "events targeting similar orgs" StatGrid row. Resolves the
+     * org's country and sector via the AD-07 waterfall, then counts distinct
+     * events carrying misp-galaxy:country="<c>" ∪ sector="<s>" (events
+     * targeting organisations in my org's country or sector). N/A (not 0) when
      * neither resolves; a resolved-but-untagged context is a genuine 0.
      */
     private function targetingMetric($user, $options, $windowSeconds, $hasPrior, $curBounds, $priorBounds, $eventModel)
@@ -340,7 +343,7 @@ class NewDataStatsWidget
         $org = $this->myOrg($user);
         $country = $this->resolveCountry($options, $org);
         $sector = $this->resolveSector($options, $org);
-        $title = __('Targeting my org');
+        $title = __('Targeting similar orgs');
 
         // Neither axis resolved → the metric is not applicable (AD-07).
         if ($country === null && $sector === null) {
