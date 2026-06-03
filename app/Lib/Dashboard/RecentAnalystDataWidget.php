@@ -31,12 +31,12 @@
  * Recency anchor = `modified` (datetime, UTC). Cache: NONE — per-user ACL'd
  * live fetch (like the W6 event stream).
  *
- * Drilldown (AD-23): each row links to its TARGET by `object_uuid`. All
- * eleven `AnalystData::valid_targets` resolve a uuid in their `view()`, so
- * every target type links — `/{controller}/view/<uuid>` for the seven core
- * models, `/eventReports/view/<uuid>` for Event Reports, and
- * `/analystData/view/<Type>/<uuid>` for Note/Opinion/Relationship targets
- * (see self::VIEW_PATHS). All relative → DD-03-gated, no validator change.
+ * Drilldown (AD-25): each row links to the note/opinion ITSELF —
+ * `/analystData/view/<Type>/<id>` (Type = Note|Opinion) — so the click opens
+ * the commentary record (which surfaces its own target context), not the
+ * target object. The target type is still shown as a chip. Relative →
+ * DD-03-gated. (Supersedes AD-23's link-to-target approach on the user's
+ * preference; every row is now clickable.)
  *
  * Additive-only: a new widget class, render = the existing FeedList kind.
  */
@@ -81,37 +81,6 @@ class RecentAnalystDataWidget
 
     const MAX_LIMIT = 50;
     const TITLE_CHARS = 110;
-
-    /**
-     * Per-target-type drilldown (AD-23). Every `AnalystData::valid_targets`
-     * type whose `view()` resolves a bare UUID maps to its `view/<uuid>` path
-     * prefix; the row links to `<prefix> . object_uuid`. ALL eleven valid
-     * targets qualify:
-     *   - Event/Attribute/Object/GalaxyCluster/Organisation/SharingGroup —
-     *     `Validation::uuid()` in their controller's view().
-     *   - Galaxy — `Toolbox::findIdByUuid()` in GalaxiesController::view().
-     *   - EventReport — `EventReport::simpleFetchById()` resolves the uuid
-     *     (the earlier "numeric-id-only" read was wrong, AD-23).
-     *   - Note/Opinion/Relationship — `AnalystDataController::view($type,$id)`
-     *     resolves the uuid via `getIDFromUUID()`; the type lives in the path
-     *     (`/analystData/view/<Type>/<uuid>`), so it still fits this prefix map
-     *     (the earlier "no standalone view" read was wrong, AD-23).
-     * All paths are relative → DD-03 admits them with no validator change; a
-     * stale uuid 404s exactly like the original Event link.
-     */
-    const VIEW_PATHS = array(
-        'Event'         => '/events/view/',
-        'Attribute'     => '/attributes/view/',
-        'Object'        => '/objects/view/',
-        'GalaxyCluster' => '/galaxy_clusters/view/',
-        'Galaxy'        => '/galaxies/view/',
-        'Organisation'  => '/organisations/view/',
-        'SharingGroup'  => '/sharing_groups/view/',
-        'EventReport'   => '/eventReports/view/',
-        'Note'          => '/analystData/view/Note/',
-        'Opinion'       => '/analystData/view/Opinion/',
-        'Relationship'  => '/analystData/view/Relationship/',
-    );
 
     /** type => [FontAwesome icon, text column]. */
     private $sources = array(
@@ -197,7 +166,6 @@ class RecentAnalystDataWidget
         }
 
         $objType = isset($d['object_type']) ? (string)$d['object_type'] : '';
-        $objUuid = isset($d['object_uuid']) ? (string)$d['object_uuid'] : '';
         $orgcUuid = isset($d['orgc_uuid']) ? (string)$d['orgc_uuid'] : '';
         $org = ($orgcUuid !== '' && isset($orgMap[$orgcUuid])) ? (string)$orgMap[$orgcUuid] : '';
         $ts = isset($d['modified']) ? (int)strtotime($d['modified'] . ' UTC') : 0;
@@ -233,12 +201,15 @@ class RecentAnalystDataWidget
             $chips[] = $this->humanize($objType);
         }
 
-        // Drilldown: every valid target type whose view() resolves a uuid
-        // links by `<view-path> . object_uuid` (see self::VIEW_PATHS — all 11
-        // valid_targets qualify, AD-23). A target type absent from the map (or
-        // a row with no uuid) stays chip-only. DD-03-gated.
-        $drilldown = ($objUuid !== '' && isset(self::VIEW_PATHS[$objType]))
-            ? self::VIEW_PATHS[$objType] . $objUuid
+        // Drilldown → the note/opinion ITSELF (AD-25, user pref): the row links
+        // to its own analyst-data view, `/analystData/view/<Type>/<id>`, where
+        // <Type> is this row's type (Note|Opinion). Clicking opens the
+        // commentary record — which itself surfaces its target context — rather
+        // than the target object. `AnalystDataController::view` resolves the
+        // numeric id directly. Relative → DD-03-gated. Every row is clickable.
+        $id = isset($d['id']) ? (int)$d['id'] : 0;
+        $drilldown = ($id > 0)
+            ? '/analystData/view/' . $type . '/' . $id
             : null;
 
         return array(

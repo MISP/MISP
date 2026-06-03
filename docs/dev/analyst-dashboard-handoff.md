@@ -5,9 +5,11 @@
 tasks built, verified, committed (signed, `%G?`=U) on branch `dashboards`.** No
 queued analyst-dashboard work remains. Authoritative state:
 `analyst-dashboard-prd.md` (roster §3 · per-widget §5 · AD-NN log §6, now
-**AD-01..24, all built**) + `analyst-dashboard-progress.md` (**Phase B15**
+**AD-01..25, all built**) + `analyst-dashboard-progress.md` (**Phase B15**
 section, all 4 tasks ticked, header = COMPLETE). This file = the ephemeral
-bridge. **Next free decision id = AD-25.**
+bridge. **Next free decision id = AD-26.** (AD-25 = post-B15 user tweak: W11
+drilldown re-pointed to the note/opinion itself, superseding AD-23's
+link-to-target.)
 
 ## TL;DR — Phase B15 (2026-06-03) — COMPLETE
 
@@ -21,15 +23,20 @@ branch `dashboards`:
 - `f076251c0` **AD-22 pt2 — N/A unset-meta tooltip.** Additive opt-in `tooltip`
   row key on the shared `StatGrid.ctp` (signed-off platform touch); set on the
   targeting N/A early-return. Verified two layers (`.ctp` harness + REST).
-- `a9b239ae4` **AD-23 — W11 per-target-type drilldowns.** ⚠ **Scope grew from
-  the queued spec's 7 → all 11 target types** (user confirmed "link all 11"):
-  re-verification on build found BOTH the spec's exclusion premises were false —
-  EventReport resolves a uuid (`simpleFetchById`:424 → `/eventReports/view/`),
-  and Note/Opinion/Relationship DO have a standalone view
-  (`AnalystDataController::view` → `/analystData/view/<Type>/<uuid>`). Const
-  `VIEW_PATHS` map in `mapRow()`. REST-verified 6 corpus target types (incl. the
-  2 new two-segment analyst-data links) each emit + resolve (HTTP 200) the right
-  drilldown; bogus uuid fails closed. PRD AD-23 + the §5 open item updated.
+- `a9b239ae4` **AD-23 — W11 per-target-type drilldowns** (later superseded by
+  AD-25, see below). Scope grew from the queued spec's 7 → all 11 target types
+  (user confirmed "link all 11"): re-verification on build found BOTH the spec's
+  exclusion premises were false — EventReport resolves a uuid (`simpleFetchById`
+  :424), and Note/Opinion/Relationship DO have a standalone view
+  (`AnalystDataController::view`). Const `VIEW_PATHS` map in `mapRow()`.
+- **AD-25 (post-B15, user pref — not yet committed when this was written)**
+  **W11 drilldown re-pointed to the note/opinion ITSELF.** The user preferred
+  the row to open its own commentary record, so `mapRow()` now links to
+  `/analystData/view/<Type>/<id>` (the row's own Note/Opinion id), not the
+  target. The target type stays a chip. AD-23's `VIEW_PATHS` map + `$objUuid`
+  removed (dead). Every row is now clickable. REST-verified: all rows emit
+  `/analystData/view/{Note|Opinion}/<id>`, each resolves HTTP 200, bad id 404s.
+  PRD AD-25 + AD-23-superseded note + §5 drilldown bullet + tracker updated.
 - `6fa662c99` **AD-24 — W12 `galaxy_type` filter.** Optional typed `string`
   knob; case-insensitive match on galaxy `type` OR `name`; ids resolved in PHP
   off the 140-row `galaxies` table → `galaxy_id IN (…)`; blank = all. REST-
@@ -58,14 +65,17 @@ ticked). The three feed widgets were already on user-1's board (`w_16/17/18`)
 and W11/W12 were in-place edits, so **no dashboard append was needed**
 ([[feedback_add_touched_widgets_to_dashboard]] satisfied).
 
-**One divergence from the queued spec worth flagging:** Task 3 (AD-23) was
-specced to link **7** target types and leave 4 chip-only. On build,
-re-verifying the spec's stated premises ([[feedback_question_stated_premises]])
-showed **both exclusion reasons were factually wrong** — all 11
-`AnalystData::valid_targets` resolve a uuid in their `view()`. The user
-confirmed **"link all 11"**, so the const map carries every type (the four
-formerly-excluded ones are EventReport + Note/Opinion/Relationship). The PRD
-AD-23 entry + §5 open item were rewritten to record the correction.
+**W11 drilldown — two design moves this session (both flagged in the AD log):**
+1. Task 3 (AD-23) was specced to link **7** target types and leave 4 chip-only.
+   On build, re-verifying the spec's premises ([[feedback_question_stated_premises]])
+   showed **both exclusion reasons were factually wrong** — all 11
+   `AnalystData::valid_targets` resolve a uuid in their `view()`; the user
+   confirmed "link all 11".
+2. **AD-25 (user follow-up): the drilldown was then re-pointed to the
+   note/opinion ITSELF** (`/analystData/view/<Type>/<id>`), not the target —
+   so the const map from move 1 was removed. Net result: every row links to its
+   own commentary record; the target type stays a chip. The AD-23 recon record
+   is kept (it documents *why* the targets were linkable) but its code is gone.
 
 ## What exists in the tree (reuse it; don't re-derive)
 - **Analyst widgets (W1–W8, W10–W12):** `TrendingWidget` (3 dims),

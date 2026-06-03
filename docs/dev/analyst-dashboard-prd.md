@@ -625,9 +625,9 @@ The user dropped the my-org-events filter (it would need a child-UUID `IN` list
   `opinion` value (0–100) rendered (e.g. "Opinion: 76/100"); `chips` = the
   **target `object_type`** label (+ the analyst-data type Note/Opinion if not in
   the icon); `org` = `Orgc.name`; `timestamp` = `modified`; `drilldown` =
-  best-effort to the target (Event → `/events/view/<id>` resolved from
-  `object_uuid`; GalaxyCluster → `/galaxy_clusters/view`; else the analyst-data
-  item view or no link), DD-03-gated.
+  **the note/opinion ITSELF** — `/analystData/view/<Type>/<id>` (AD-25, user
+  pref; supersedes the link-to-target approach). The target type stays a chip.
+  DD-03-gated; every row clickable.
 - **Permission gate** — confirm at build whether viewing requires
   `perm_analyst_data` (the recon flagged it as the analyst-data perm) or whether
   the distribution ACL (`buildConditions`) suffices; gate the widget only if
@@ -635,12 +635,14 @@ The user dropped the my-org-events filter (it would need a child-UUID `IN` list
 - **No per-org cache** — per-user ACL'd fetch, re-fetched live.
 
 **Open at build (not blocking spec):** ~~the exact per-target-type drilldown
-resolution (which types get a link vs a bare type chip)~~ **RESOLVED — AD-23
-(B15):** ALL eleven `valid_targets` resolve a uuid in their `view()`, so every
-target type links (`self::VIEW_PATHS` map); no type is chip-only. The
-Opinion-value rendering; whether to resolve Event `object_uuid` → id for the
-link in one bulk query (moot — `object_uuid` links directly, no id resolution
-needed); the `perm_analyst_data` gate question above.
+resolution (which types get a link vs a bare type chip)~~ **RESOLVED — AD-25
+(B15):** the drilldown links to **the note/opinion itself**
+(`/analystData/view/<Type>/<id>`), not the target object, on the user's
+preference. (AD-23 first made every target type linkable via a `VIEW_PATHS`
+map; AD-25 then superseded that — the map was removed, every row links to its
+own record. The target type remains a chip.) The Opinion-value rendering;
+whether to resolve Event `object_uuid` → id for the link (moot — no longer
+linking the target); the `perm_analyst_data` gate question above.
 
 ### AD-W12 — Recently Added Galaxy Clusters  `DECIDED`
 
@@ -1028,7 +1030,11 @@ Refs: AD-07 (the targeting metric), AD-21 (the labelled StatGrid). User polish:
    user requested the tooltip; the row key is the minimal additive way). Build =
    Phase B15.
 
-**AD-23 — 2026-06-03 — AD-W11 richer per-target-type drilldowns. BUILT (B15).**
+**AD-23 — 2026-06-03 — AD-W11 richer per-target-type drilldowns. BUILT (B15),
+then SUPERSEDED same day by AD-25** (drilldown now points to the note/opinion
+itself, not the target — the `VIEW_PATHS` map was removed; the premise-
+correction recon below stands as the record of why all 11 targets *were*
+linkable).
 Refs: AD-19 (W11 spec; "exact per-target-type drilldown resolution" was left
 open at build). W11 originally linked **only** Event-targeted notes/opinions
 (`/events/view/<uuid>`); every other target type rendered a bare type chip.
@@ -1079,6 +1085,24 @@ galaxies (unchanged). Configure-form text input traced end-to-end in source:
 `buildScalarField` renders `type:'string'` as `<input type=text
 data-schema-key=galaxy_type>` (the generic string→text control was
 visually proven in B9, so the chain is closed by source-trace, not a re-render).
+
+**AD-25 — 2026-06-03 — AD-W11 drilldown → the note/opinion itself (supersedes
+AD-23's link-to-target). BUILT (B15).** User preference: a Recent-Analyst-Data
+row should open the **commentary record it represents**, not the object that
+record comments on. So `mapRow()`'s `drilldown` now links to
+`/analystData/view/<Type>/<id>` where `<Type>` is the row's own type
+(`Note`|`Opinion`) and `<id>` its own numeric id —
+`AnalystDataController::view($type,$id)` resolves the numeric id directly. The
+**target** `object_type` stays a chip (the user's original "show the target
+type" requirement is untouched). Removed the now-dead `VIEW_PATHS` const +
+`$objUuid` local (AD-23's per-target map). Relative → DD-03-gated; every row is
+now clickable (vs AD-23, where a row whose target wasn't uuid-linkable had no
+link). Rationale: the note view itself surfaces its target context, so the
+self-link loses nothing and is the more natural "read this note" affordance.
+Pure additive widget change. **Verified:** REST `renderWidget`
+(`time_window=-1`) — every row emits `/analystData/view/{Note|Opinion}/<id>`
+(0 rows without a drilldown); each REST-GETs HTTP 200 + uuid body; a
+nonexistent id 404s (fails closed).
 
 ## 7. Open meta-questions (resolve early)
 

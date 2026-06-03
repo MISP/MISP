@@ -1063,6 +1063,13 @@ widget-only). Build order: New-data rename → New-data N/A tooltip → W11 dril
   closed. Five absent-from-corpus types asserted by the map + per-controller
   code-read. Closes the PRD §5 AD-W11 "exact per-target-type drilldown" open
   item. (PRD AD-23 entry rewritten to record the premise correction.)
+  **↳ AD-25 (same day, user pref) — drilldown re-pointed to the note/opinion
+  ITSELF.** The row now links to `/analystData/view/<Type>/<id>` (its own
+  Note/Opinion record), not the target object; the target type stays a chip.
+  Removed the now-dead `VIEW_PATHS` map + `$objUuid` local. Every row is now
+  clickable. `php -l` clean. Verified: REST `renderWidget` — all rows emit
+  `/analystData/view/{Note|Opinion}/<id>`, each REST-GETs HTTP 200, bad id
+  404s. (PRD AD-25 + AD-23-superseded note + §5 drilldown bullet updated.)
 - [x] **RecentGalaxyClustersWidget (W12) — `galaxy_type` filter (AD-24).** Add an
   optional typed `string` `$schema` knob scoping the feed to one galaxy, matched
   case-insensitively against galaxy `type` OR `name`; resolve galaxy ids in PHP
