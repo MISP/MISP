@@ -76,16 +76,16 @@
               aria-live="polite"
               aria-atomic="true"></span>
         <span class="misp-widget-actions">
-            <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="refresh"   title="<?= __('Refresh') ?>"   aria-label="<?= __('Refresh') ?>">↻</button>
-            <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="configure" title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>">⚙</button>
+            <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="refresh"   title="<?= __('Refresh') ?>"   aria-label="<?= __('Refresh') ?>"><i class="fas fa-sync" aria-hidden="true"></i></button>
+            <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="configure" title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>"><i class="fas fa-cog" aria-hidden="true"></i></button>
             <span class="misp-widget-export" data-misp-menubutton>
-                <button type="button" class="misp-widget-iconbtn" data-misp-menubutton-trigger aria-haspopup="menu" aria-expanded="false" title="<?= __('Export raw data') ?>" aria-label="<?= __('Export raw data') ?>">⬇</button>
+                <button type="button" class="misp-widget-iconbtn" data-misp-menubutton-trigger aria-haspopup="menu" aria-expanded="false" title="<?= __('Export raw data') ?>" aria-label="<?= __('Export raw data') ?>"><i class="fas fa-download" aria-hidden="true"></i></button>
                 <span class="misp-widget-menu" role="menu" data-misp-menubutton-menu hidden>
                     <button type="button" class="misp-widget-menuitem" role="menuitem" data-misp-widget-action="export-json"><?= __('Export as JSON') ?></button>
                     <button type="button" class="misp-widget-menuitem" role="menuitem" data-misp-widget-action="export-csv"><?= __('Export as CSV') ?></button>
                 </span>
             </span>
-            <button type="button" class="misp-widget-iconbtn misp-widget-iconbtn-edit-only" data-misp-widget-action="remove" title="<?= __('Remove') ?>" aria-label="<?= __('Remove') ?>">✕</button>
+            <button type="button" class="misp-widget-iconbtn misp-widget-iconbtn-edit-only" data-misp-widget-action="remove" title="<?= __('Remove') ?>" aria-label="<?= __('Remove') ?>"><i class="fas fa-times" aria-hidden="true"></i></button>
         </span>
     </header>
     <div class="misp-widget-body" data-misp-widget-content>
