@@ -1,161 +1,169 @@
 # Analyst Dashboard — Session handoff
 
-**State (2026-06-02):** core surface W1–W8 COMPLETE (B1–B9); **W9 DECLINED
-(AD-16)**. The **feed-widget batch W10–W12 (AD-17..20) is now BUILT + verified**
-(Phases B10–B13) — three "what's new" widgets (new reports · analyst data the
-viewer can see · new local galaxy clusters) on a **new shared render kind
-`FeedList`**. All on user 1's board (`w_16`/`w_17`/`w_18`). **No active build work
-remains** — the analyst surface now spans W1–W8 + W10–W12. Anything further is
-user-requested follow-up. Commits: spec `ab2129be6`; B10 `d3c5352b6`; B11
-`849786854`; B12 `4986ef9ad`; B13 `400ac0f10`.
+**State (2026-06-03):** analyst surface **W1–W8 + W10–W12 BUILT + verified**;
+**W9 DECLINED (AD-16)**. This session completed the **AD-W7 rework (Phase B14,
+AD-21)** — the New-data `StatGrid` widget went **4 → 9 labelled KPI cards** on
+the **misp-iconify** icon set — plus three **platform-polish** items on the
+shared dashboard chrome. **No analyst-dashboard build work is queued.** Next
+free decision id = **AD-22**. Authoritative state: `analyst-dashboard-prd.md`
+(roster §3 · per-widget §5 · AD-NN log §6, now AD-01..21) +
+`analyst-dashboard-progress.md` (Phase B14 closed). This file = the ephemeral
+bridge; replace as work progresses.
 
-**Why these / how scoped (the forks, all via AskUserQuestion):** render = a new
-`FeedList` kind, not Index/SimpleList reuse (user chose new UI). **W11 was
-RE-SCOPED** off the original "analyst data on my org's events" brief — that needed
-a child-UUID `IN` list (perf/feasibility risk the user flagged) → now just "newest
-analyst data the viewer can see", **Notes+Opinions only**, any target type with
-the **target type shown**. **W12 = local clusters only** (`default=0`; shipped
-clusters carry batch import dates → noise). All three are per-user ACL'd live
-fetches (no per-org cache), N-newest-bounded (`limit`, default 10) + optional
-`time_window`. None is a W9-style ACL trap (recon-verified). **Additive** — three
-new widget classes + one new render kind (template + CSS-append + glyph); no
-existing widget/handler touched.
+## TL;DR — this session (2026-06-03)
 
-**This is a NEW, SEPARATE track** from the main dashboard work (whose bridge is
-`dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track builds
-the **analyst widget surface**. Authoritative state lives in:
+Two threads, all committed on branch `dashboards` (signed, `%G?`=U):
 
-- `analyst-dashboard-prd.md` — the mini-PRD. §3 = 9-widget roster (status);
-  §5 = per-widget detail; §6 = **AD-NN** decision log (AD-01..**16**; W9 declined
-  at AD-16; next = **AD-17**).
-- `analyst-dashboard-progress.md` — the task tracker. Spec status, the
-  **B1–B9 build backlog** (all done), and a **Discovered work** section.
-- This file — ephemeral session bridge; replace as work progresses.
+**A. AD-W7 rework — Phase B14 (AD-21), COMPLETE + verified:**
+- `dcee94143` **StatGrid opt-in labels.** A widget sets `public
+  $statGridLabels = true` → `StatGrid.ctp` renders **glyph + label** together
+  (`.misp-stat-head`, wider `.misp-stat-grid-labeled` columns, 2-line label)
+  instead of the glyph-only DD-32 default. Admin `UsageDataWidget` leaves it
+  unset → unchanged. Platform touch of the shared renderer, **signed off**.
+- `76d2525b2` **+5 metrics → 9 cards.** `NewDataStatsWidget` added objects,
+  event reports, **local** galaxy clusters (`default=0`), notes, opinions — all
+  GLOBAL scale-counts (AD-06), windowed + prior-window delta like the original
+  four. Dropped the "New " title prefix; default tile 3×4 → **4×6**. Notes/
+  opinions use `Note`/`Opinion.modified` (a UTC datetime, no `deleted` col) via
+  a new `timeConditionsDatetime()` gmdate helper. **REST-verified exact vs DB**
+  (objects 48 697 · reports 435 · local clusters 441 · notes 53 · opinions 27 ·
+  events 6088 · attributes 1 919 285 · targeting N/A · published 52).
+- `06ced2bf7` **misp-iconify glyphs.** Added `MISP/misp-iconify` submodule (see
+  "Infra" below); `StatGrid` gained `icon_class` support; all 9 cards use it.
+- `6769590ae`→`29adfb379` hexagon variant, then **reverted to plain
+  (`misp-simple`)** per the user (they changed their mind).
+- `297bcfcf1` **Published-by-my-org reuses the `organisation` icon** (same as
+  Targeting my org), was `sharing-group`.
 
-## TL;DR — last session (Phase B9: widget settings canonization — COMPLETE)
-Promoted every `$params`-only "advanced" knob the track added into a first-class
-**typed `$schema`** entry, so the configure form's **Settings tier** renders a
-real control instead of a raw-JSON key. **Pure additive `$schema` edits — zero
-platform/JS/adapter/handler change** (the configure form already renders scalar
-types; `WidgetSchema` already whitelists `bool`/`int`/`enum`/`string`). Four
-promotions:
-- `OverlapWithMyOrgWidget.exclude_own_org` → **bool** (checkbox). `055449873`
-- `TrendingWidget.dimension` → **enum** `<select>` (3 values + `enum_labels`,
-  kept in lock-step with the `dimensions()` registry). `9aef5a133`
-- `NewDataStatsWidget.country`/`sector` → **string** text inputs (`''` default
-  keeps the auto-detect waterfall). `aed57a35e`
-- `EventStreamWidget.tags`/`published`/`limit` → **string/bool/int** (user
-  signed off; re-verified the inherited `handler()` genuinely consumes them, so
-  W6 `EventStreamCardsWidget` gains the controls via verbatim inheritance;
-  handler unchanged; `fields` stays advanced). `9815d5f7c`
-- Sweep + posture commit `2189bd0f3`. **No duplication** (a key in both `$params`
-  and `$schema` renders once — the form's `handledKeys` filters it from the
-  Advanced tier). Verified through the **real `configure.module.mjs`**
-  (`--dump-dom` + screenshots `/home/iglocska/b9_configure_*.png`). Recipe now in
-  [[reference-dashboard-widget-render-verification]] (configure-form path).
+**B. Platform polish (shared dashboard chrome — NOT analyst-specific, but ships
+on `dashboards`):**
+- `2a864d53a` **fix: dark-mode scrollbars.** Token `scrollbar-width:thin` +
+  `scrollbar-color` on `.misp-dashboard-main`/`.misp-configure-panel` in
+  `dashboard.default.css` (both themes) + `color-scheme:dark` scoped to
+  `.misp-dashboard-main` in `dashboard.midnight.css` (so native scrollbar parts
+  incl. the stepper arrow render dark). Verified light+midnight harness.
+- `de27c10c7` **chg: tighter filter-bar padding.** `.misp-dashboard-header`
+  block-padding space-3→space-2 (12→8px); `.misp-dashboard-toolbar`
+  space-2→space-1 (8→4px). (User may want it tighter — easy tune.)
+- `dfca61dd5` **chg: FontAwesome widget action icons.** The titlebar buttons
+  (`↻ ⚙ ⬇ ✕`) → `fas fa-sync / fa-cog / fa-download / fa-times` in
+  `widget/wrapper.ctp`. **Deliberate user-approved §G11 deviation** (chrome is
+  otherwise inline SVG; see [[feedback_dashboard_chrome_icons]] — exception
+  recorded there). FA5 names confirmed present in BOTH `font-awesome.css`
+  (FA5/6) and `fontawesome7.min.css` (FA7, `--fa` codepoints + the
+  `:is(.fas,…)::before{content:var(--fa)}` rule).
+
+## ⚠ Verification caveats (carry forward)
+- **Headless chromium can't paint FA7 webfont icons.** The snap
+  `--headless=new` rig renders inline SVG + misp-iconify masked SVGs fine, but
+  does NOT paint `fontawesome7.min.css`'s `content:var(--fa)/""` glyph syntax
+  (font serves 200, budget 6s, still blank). So **verify FA chrome icons on the
+  live board / a modern browser, not the offline harness.** The `dfca61dd5` FA
+  action icons were verified by CSS-mechanism + codepoint existence + the
+  identical `fas fa-<name>` markup already backing live Trending/FeedList — NOT
+  a fresh screenshot. Worth an eyeball on the live board.
+- **W7 live web-UI screenshot deferred.** The session re-mint of the dashboard
+  cookie hit the **Cake SecurityComponent CSRF dance (400)** — login-dance
+  recipe needs the exact `_Token` set and isn't reproducing here. B14 was
+  verified via **REST `renderWidget` (exact DB match)** + the **real
+  `StatGrid.ctp` harness** (real CSS + StatGlyph + misp-iconify CSS, light +
+  midnight) instead. A live on-board screenshot is the one open confirmation.
+
+## Infra added this session
+- **`app/files/misp-iconify`** — new git submodule (`MISP/misp-iconify`),
+  `.gitignore`-whitelisted like the sibling submodules. Its generated CSS
+  (`exports/css/icons.css`) was **copied** to **`app/webroot/css/misp-iconify.css`**
+  (app/files isn't web-served) and loaded in BOTH dashboard layouts
+  (`app/View/Layouts/dashboard.ctp` + `Themed/Overmind/Layouts/dashboard.ctp`;
+  Cake's theme resolver falls back to the main webroot, same as
+  `dashboard.default.css`). **The webroot copy is a COPY — re-copy when the
+  submodule bumps** (a Makefile target would automate it = noted follow-up).
+- **Icon set:** 24×24 `currentColor` masked-SVG classes,
+  `<span class="misp-icon misp-icon-<name> misp-simple">` (variants:
+  `misp-simple` [in use] + `misp-hexagone`). Names: event, attribute, object,
+  report, galaxy, analyst-note, analyst-opinion, organisation, sharing-group,
+  sighting, tag, taxonomy, user1/2/3, misp.
 
 ## What now exists in the tree (reuse it; don't re-derive)
-- **Built analyst widgets** (W1–W8): `TrendingWidget` (+`Trending` render, 3
-  dims), `NewDataStatsWidget` (`StatGrid`), `EventStreamCardsWidget`
-  (+`EventCards` render), `OverlapWithMyOrgWidget` (W8, EventCards + overlap
-  badge), `AttackWidget` (+`Attack` render, AD-15 heatmap redesign).
-  Infra: `DashboardURLValidator`, `WidgetCache` `'org'` scope.
-- **Render kinds available** (`app/View/Elements/dashboard/Widgets/`): Achievements,
-  Attack, BarChart, Button, **EventCards**, HealthList, Index, MonitorLineChart,
-  MultiLineChart, NetworkGraph, OrgsPictures, PewPewMap, PieChart, QueueList,
-  **SimpleList**, **StatGrid**, **Trending**, UserList, WorldMap. A NEW render
-  kind ⇒ a matching glyph in `render-thumbs.mjs` (CLAUDE.md rule).
-- **Typed-settings convention (B9):** prefer a typed `$schema` entry
-  (`bool`/`int`/`enum`/`string`) over a `$params`-only knob; keep `$params` as
-  the field help. Only freeform dicts/arrays (AttackWidget `filters`,
-  EventStream `fields`) legitimately stay raw/advanced.
-
-## Core W1–W8 done · W9 declined · feed batch W10–W12 active
-W1–W8 are all BUILT + verified (Phases B1–B9); the feed-widget batch W10–W12
-(Phases B10–B13) is the active work (see the top of this file + the tracker).
-**W9 is DECLINED (AD-16):** the
-W9 spec-time recon surfaced that both existing sightings widgets
-(`RecentSightingsWidget`, `ThresholdSightingsWidget`) gate on `perm_site_admin`
-via `checkPermissions()`, while `Sighting->restSearch($user, …)` is itself
-user-ACL-aware — reconciling that gate-vs-ACL conflict for an analyst widget,
-on top of the slow / patchily-used engine, isn't worth it. **User declined.**
-The existing sightings widgets are left untouched. Full rationale: PRD §6 AD-16.
-
-### Follow-ups (user-requested only — none are queued)
-- Clear `w_8`'s stale 2023 `filters.timestamp` for a full all-time heatmap.
-- Heatmap-tile default-width bump (labeled cells want >3×4).
-- Richer `tags`→`tag_filter` chip picker on `EventStreamWidget` — would need a
-  handler change (the canonical translates to `include`/`exclude`, not the `tags`
-  comma-string fetchEvent reads) → main-track touch, **sign-off** first.
-- `ThresholdSightingsWidget.threshold` is an untyped `$params` knob — only worth a
-  B9-style promotion if that widget is ever touched (it's site-admin-only / main
-  track).
-- The user recomposes the analyst `template.json` (their job).
+- **Analyst widgets (W1–W8, W10–W12):** `TrendingWidget` (+`Trending`, 3 dims),
+  `NewDataStatsWidget` (`StatGrid`, **9 metrics**, labels-on, misp-iconify),
+  `EventStreamCardsWidget` (+`EventCards`), `OverlapWithMyOrgWidget` (W8),
+  `AttackWidget` (`Attack` heatmap, AD-15 redesign), `RecentEventReportsWidget`
+  /`RecentAnalystDataWidget`/`RecentGalaxyClustersWidget` (W10–12, `FeedList`).
+- **`StatGrid` platform capabilities (NEW, shared):**
+  - `$widget->statGridLabels = true` → glyph **+** label header (else glyph-only
+    DD-32). Admin `UsageDataWidget` opts out by omission.
+  - row `icon_class` (a misp-icon name) → misp-iconify masked-SVG glyph; the
+    StatGlyph `icon` key remains the inline-SVG path (admin widget).
+- **Render kinds** (`app/View/Elements/dashboard/Widgets/`): Achievements,
+  Attack, BarChart, Button, EventCards, FeedList, HealthList, Index,
+  MonitorLineChart, MultiLineChart, NetworkGraph, OrgsPictures, PewPewMap,
+  PieChart, QueueList, SimpleList, StatGrid, Trending, UserList, WorldMap.
+  A NEW render kind ⇒ a matching glyph in `render-thumbs.mjs` (CLAUDE.md).
 
 ## Verifying a widget — recipe in [[reference-dashboard-widget-render-verification]]
-Two real paths: (1) **body render** — `renderWidget` is CSRF-unlocked → REST+APIkey
-returns the JSON `data` (validates the handler); web-UI POST + session cookie
-returns the real `.ctp` HTML; snap-chromium screenshot (the chrome is
-**`$HOME`-confined** — stage harness + screenshots under `/home/iglocska/`, NOT
-`/tmp`; inline/serve `dashboard.default.css` for tokens). (2) **configure-form
-render** (a `$schema`→controls check) — serve the real webroot over http so
-`configure.module.mjs` + its relative imports resolve; feed a synthetic widget el
-the real `data-widget-schema` JSON; `--dump-dom` asserts the controls. **Session
-cookie** jar `/tmp/cj_stat.txt` (re-mint via [[reference-misp-login-dance]] if it
-302s). **Clock/data caveat:** box clock 2026-06-02; corpus is stale (sightings
-newest 2026-03-24, events ~2026-05-29) — use wide / all-time windows.
+- **Handler/data:** REST `renderWidget` (CSRF-unlocked) — POST `widget=` +
+  `config=` (JSON string) + `Authorization: <APIkey>` + `Accept: json` → the
+  bare `data` rows; cross-check vs the DB. (`exportjson=1` for the raw export.)
+- **HTML render:** web-UI POST + **session cookie** (jar `/tmp/cj_stat.txt`) →
+  real `.ctp` HTML. **Session re-mint currently 400s on the CSRF dance** — see
+  caveat above; use the REST + offline-harness path when it does.
+- **Offline harness:** render the real `.ctp` with faithful shims + the real
+  CSS (inline it; snap-chrome is `$HOME`-confined, can't read `/var/www`),
+  `--headless=new` screenshot under `/home/iglocska/`. Good for inline-SVG +
+  misp-iconify masked SVGs; **NOT FA7 webfont glyphs** (caveat above).
+- **Clock/data:** box clock 2026-06-03; corpus stale (events ~2026-05, reports
+  newest 2026-04-26, analyst data ~2025-06, local clusters ~2026-04-14) — use
+  wide / all-time (`time_window=-1`) windows.
 
 ## Conventions (carry)
-- **AD-NN** decision numbering (next = **AD-17**), cross-linked to parent `DD-NN`.
-- **Additive-only** ([[feedback_additive_only_posture]]): new widgets + new render
-  kinds = pure additions; existing-code touches need **sign-off**. Sign-offs
-  granted so far: B4 DD-03 relaxation; B1.6 `WidgetCache` `'org'` scope; B7/AD-15
-  `Attack.ctp` rewrite + `AttackWidget` `time_window`; B9 `EventStreamWidget`
-  schema. **For W9, prefer a new analyst sibling over editing the site-admin-gated
-  `RecentSightingsWidget`** (avoids an existing-code touch).
-- **Add built/touched widgets to user 1's test dashboard**
-  ([[feedback_add_touched_widgets_to_dashboard]]): append (back up the layout
-  first; never replace), dedupe by class, then smoke-test. Board backup convention:
-  `/tmp/dash_backup.json`.
-- **Sequential** ([[feedback_sequential_implementation]]): one task at a time;
-  research may parallelise, code never.
-- **Commit per task** ([[feedback_commit_per_task]]); **never `git add -A`** —
-  explicit `git add` + `git status --short`; **sign** (`git commit -S`, `%G?`=U).
-  If signing times out, the GPG passphrase lapsed — ask the user to run
-  `! echo x | gpg --clearsign -o /dev/null`, then retry.
+- **AD-NN** decision numbering (next free = **AD-22**), cross-linked to `DD-NN`.
+- **Additive-only** ([[feedback_additive_only_posture]]): new widgets + render
+  kinds = pure additions; existing-code touches need **sign-off**. This session's
+  signed-off touches: B14 StatGrid `statGridLabels` + `icon_class`; the platform
+  polish trio (scrollbars / filter padding / FA action icons) were explicit user
+  requests.
+- **Add built/touched widgets to user 1's board** ([[feedback_add_touched_widgets_to_dashboard]]):
+  append, dedupe by class, back up `/tmp/dash_backup.json` first. (NewDataStats
+  is already on the board — the user reported issues with it — so the rework
+  auto-applies; no append was needed.)
+- **Sequential** ([[feedback_sequential_implementation]]); **commit per task**
+  ([[feedback_commit_per_task]]), **never `git add -A`**, **sign** (`-S`,
+  `%G?`=U). If signing times out, GPG passphrase lapsed → ask the user to run
+  `! echo x | gpg --clearsign -o /dev/null`, retry.
 - **chgrp www-data** every edited web-served/app file incl. docs.
-- A **NEW render kind ⇒ a matching glyph** in `render-thumbs.mjs` (CLAUDE.md).
-  Reusing an existing kind ⇒ no glyph.
-- One task close = tick the tracker checkbox + a 1–3 line **Done note**; commit
-  body references the tracker task.
-- User wants **rigorous pushback + genuine forks via AskUserQuestion**, and to
-  **re-verify rather than defend** when a premise is questioned
-  ([[feedback_question_stated_premises]]). (B9's EventStreamWidget fix came from
-  exactly this — the user questioned "out of scope" and the re-verify proved the
-  filters were live.)
-- **Recomposing the analyst `template.json` is the USER's job** — we build
-  widgets; the user arranges the board.
+- A **NEW render kind ⇒ a glyph** in `render-thumbs.mjs`; reusing a kind ⇒ none.
+- One task close = tick the tracker checkbox + a 1–3 line Done note; commit body
+  references the tracker task.
+- **Rigorous pushback + genuine forks** ([[feedback_rigorous_pushback]]);
+  **re-verify, don't defend**, when a premise is questioned
+  ([[feedback_question_stated_premises]]). This session: surfaced the §G11
+  inline-SVG-vs-FA conflict before the action-icon swap; the user chose FA.
+- **Recomposing the analyst `template.json` is the USER's job.**
 
 ## Live test instance (shared with the main track)
 - `http://localhost:5007/dashboards` (302 w/o session, 200 with). Admin user 1
-  `admin@admin.test` / `Password12345` (**org_id = 1**, site-admin), API key
-  `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`, Overmind theme. Cookie jar
-  `/tmp/cj_stat.txt` (re-mint via [[reference-misp-login-dance]] if it 302s).
-- DB `mysql -u misp -pPassword1234 misp`; Redis `redis-cli -n 13` (data),
-  db0 sessions. Correlation engine = **Default**. Branch: `dashboards` — both
-  tracks ship together.
+  `admin@admin.test` / `Password12345` (**org_id = 1**, site-admin, has a logo
+  at `app/files/img/orgs/1.png`), API key
+  `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`, **Overmind theme (FA7)**. Cookie
+  jar `/tmp/cj_stat.txt` (re-mint via [[reference-misp-login-dance]] — currently
+  400s; needs the exact `_Token` CSRF set).
+- DB `mysql -u misp -pPassword1234 misp`; Redis `redis-cli -n 13` (data), db0
+  sessions. Correlation engine = Default. Branch `dashboards` — both tracks ship
+  together.
 
 ## Quick-start for next session
-**No queued analyst-dashboard work.** The feed-widget batch W10–W12 (Phases
-B10–B13) is **BUILT + verified** and on user 1's board (`w_16`/`w_17`/`w_18`),
-alongside the W1–W8 core (B1–B9); W9 DECLINED (AD-16). The reusable `FeedList`
-render kind (bare flat row-list — icon · title · org·time·context meta · chips ·
-snippet · DD-03-gated drilldown; contract in PRD §5 "Shared render kind —
-`FeedList`") now backs any future "recent items" feed. If the user opens new
-analyst-dashboard work it's a fresh request — read PRD §3 roster for the as-built
-state and carry the Conventions below (additive-only, commit-per-task signed,
-**AD-NN next free = AD-21**, verify via the real render path).
+**No queued analyst-dashboard work.** W1–W8 + W10–W12 built; W9 declined; the
+W7 rework (B14/AD-21) is **done + committed**. Any new request is fresh — read
+PRD §3 roster for as-built state, carry the Conventions above (additive-only,
+commit-per-task signed, verify via the real render path, **AD-NN next = AD-22**).
 
-**Noted follow-ups (none queued):** richer per-target-type drilldowns on W11
-(only Event is linked today; Attribute→parent-event, GalaxyCluster, etc. would be
-additive); a `galaxy_type` filter on W12; plus the older loose ends below.
+**Open loose ends (none queued):**
+1. **Live on-board screenshot** of the reworked New-data widget + the FA action
+   icons (blocked on the session-cookie CSRF 400 + the headless-FA7 caveat).
+2. **misp-iconify CSS re-copy** automation — the webroot copy drifts from the
+   submodule on bump; a Makefile target would fix it.
+3. Filter-bar padding can go tighter if the user wants.
+4. Older follow-ups (still none queued): clear `w_8`'s stale 2023 heatmap
+   `filters.timestamp`; heatmap-tile width bump; richer per-target-type
+   drilldowns on W11; a `galaxy_type` filter on W12.
