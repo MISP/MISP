@@ -155,7 +155,9 @@ body.misp-dashboard-page {
   display: flex;
   align-items: center;
   gap: var(--misp-dash-space-4);
-  padding: var(--misp-dash-space-3) var(--misp-dash-space-5);
+  /* Compact top bar: space-2 (8px) block padding, down from space-3 (12px),
+     to tighten the vertical space above/below the global filter area. */
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-5);
   background: var(--misp-dash-surface-raised);
   border-bottom: 1px solid var(--misp-dash-border);
   position: sticky;
@@ -189,7 +191,9 @@ body.misp-dashboard-page {
   display: flex;
   align-items: center;
   gap: var(--misp-dash-space-3);
-  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  /* space-1 (4px) block padding, down from space-2 (8px) — trims the filter
+     box's own height to match the tighter header padding above. */
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-3);
   background: var(--misp-dash-surface-sunken);
   border: 1px solid var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-md);
