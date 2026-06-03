@@ -165,14 +165,15 @@ class NewOrgsWidget
         if ($timeConditions) {
             $params['conditions']['AND'][]['AND'] = $timeConditions;
         }
+        $fields = [];
         if (isset($options['fields'])) {
-            $fields = [];
             foreach ($options['fields'] as $field) {
                 if (isset($field_options[$field])) {
                     $fields[$field] = $field_options[$field];
                 }
             }
-        } else {
+        }
+        if (empty($fields)) {
             $fields = $field_options;
         }
         $data = $this->Organisation->find('all', [
