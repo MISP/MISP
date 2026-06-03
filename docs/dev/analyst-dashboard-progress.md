@@ -1005,7 +1005,7 @@ KPI cards on misp-iconify glyphs; StatGrid gained an opt-in glyph+label header a
 
 ---
 
-### Phase B15 — Loose-end polish (AD-22..24, 2026-06-03; IN PROGRESS)
+### Phase B15 — Loose-end polish (AD-22..24, 2026-06-03; COMPLETE)
 
 Post-completion polish: the loose ends the user picked to "finish up" the track —
 W11/W12 feature polish + two New-data-stats targeting-card tweaks. All **additive**
@@ -1063,11 +1063,23 @@ widget-only). Build order: New-data rename → New-data N/A tooltip → W11 dril
   closed. Five absent-from-corpus types asserted by the map + per-controller
   code-read. Closes the PRD §5 AD-W11 "exact per-target-type drilldown" open
   item. (PRD AD-23 entry rewritten to record the premise correction.)
-- [ ] **RecentGalaxyClustersWidget (W12) — `galaxy_type` filter (AD-24).** Add an
+- [x] **RecentGalaxyClustersWidget (W12) — `galaxy_type` filter (AD-24).** Add an
   optional typed `string` `$schema` knob scoping the feed to one galaxy, matched
   case-insensitively against galaxy `type` OR `name`; resolve galaxy ids in PHP
   off the small `galaxies` table, then `GalaxyCluster.galaxy_id IN (<ids>)`. Blank
   = all (no behaviour change). Verify on the live render path.
+  *Done:* added `galaxy_type` to `$params` + `$schema` (typed `string`,
+  `default ''`) + the placeholder; in `handler()`, after the existing
+  `default/deleted/window` conditions, resolve matching galaxy ids in PHP off
+  the 140-row `galaxies` table (`strtolower` match on `type` OR `name`) →
+  `$conditions['GalaxyCluster.galaxy_id'] = $ids` (empty match → `return
+  array()`); refreshed the class docblock. `php -l` clean. **Verified on the
+  real render path:** REST `renderWidget` (`time_window=-1`) — `threat-actor` →
+  only the 3 threat-actor clusters; `Threat Actor`/`THREAT-ACTOR`/`threat actor`
+  (name + case variants) → same 3; bogus → empty feed; blank → all 50 galaxies
+  (unchanged). Configure-form text input traced in source (`getSchema` serves
+  `$schema` verbatim → `buildScalarField` string→text input; generic control
+  proven in B9). Closes the PRD §5 AD-W12 deferred `galaxy_type` item.
 
 ## ✅ ANALYST DASHBOARD CORE COMPLETE (W1–W8, 2026-06-02) · feed batch W10–W12 in progress
 

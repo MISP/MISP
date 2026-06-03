@@ -671,10 +671,13 @@ visible to the viewer, reverse-chronological. Serves job 1 ("what's new").
   `/galaxy_clusters/view/<id>` (relative → DD-03 admits).
 - **No per-org cache** — per-user ACL'd fetch, re-fetched live.
 
-**Open at build (not blocking spec):** whether to expose an optional
-`galaxy_type` filter (deferred — keep v1 minimal); the description-snippet
-length; confirming `fetchGalaxyClusters` returns `Galaxy.icon`/`Orgc.name` at
-`$full=false` (else bump to a targeted contain/join).
+**Open at build (not blocking spec):** ~~whether to expose an optional
+`galaxy_type` filter (deferred — keep v1 minimal)~~ **DONE — AD-24 (B15):**
+optional typed `string` `galaxy_type` knob, case-insensitive match on galaxy
+`type` OR `name`, ids resolved in PHP → `galaxy_id IN (…)`, blank = all; the
+description-snippet length; confirming `fetchGalaxyClusters` returns
+`Galaxy.icon`/`Orgc.name` at `$full=false` (moot — B13 switched to a direct
+`find` with `contain ['Galaxy','Orgc']`, which hydrates both).
 
 ## 6. Decision log (AD-NN)
 
@@ -1056,17 +1059,26 @@ absent from the corpus (Galaxy, Organisation, SharingGroup, EventReport,
 Relationship) are asserted by the const map + per-controller code-read of their
 uuid resolution.
 
-**AD-24 — 2026-06-03 — AD-W12 optional `galaxy_type` filter.** Refs: AD-20 (W12
-spec; the optional `galaxy_type` filter was deferred "keep v1 minimal" — now
-un-deferred on the user's polish request). Add an optional, typed `string`
-`$schema` knob (configure-form text input, like W7's country/sector — B9
-precedent): when set, scope the local-cluster feed to one galaxy, matching the
-typed value **case-insensitively against the galaxy `type` OR `name`** (so the
-user can type either `threat-actor` or `Threat Actor`). Resolution reads the
-small `galaxies` table and filters in PHP (collation-independent, avoids
-SQL-function quoting), then adds `GalaxyCluster.galaxy_id IN (<ids>)`; a filter
-that matches no galaxy yields an empty feed (honest). Blank = all galaxies (no
-behaviour change for existing instances). Pure additive widget change. Build = B15.
+**AD-24 — 2026-06-03 — AD-W12 optional `galaxy_type` filter. BUILT (B15).**
+Refs: AD-20 (W12 spec; the optional `galaxy_type` filter was deferred "keep v1
+minimal" — now un-deferred on the user's polish request). Added an optional,
+typed `string` `$schema` knob (configure-form text input, like W7's
+country/sector — B9 precedent): when set, scopes the local-cluster feed to one
+galaxy, matching the typed value **case-insensitively against the galaxy `type`
+OR `name`** (so the user can type either `threat-actor` or `Threat Actor`).
+Resolution reads the small `galaxies` table (~140 rows) and filters in PHP
+(collation-independent, avoids SQL-function quoting), then adds
+`GalaxyCluster.galaxy_id IN (<ids>)`; a filter that matches no galaxy yields an
+empty feed (honest). Blank = all galaxies (no behaviour change for existing
+instances). Pure additive widget change. **Verified:** live REST `renderWidget`
+(`time_window=-1`) — `threat-actor` → only the 3 threat-actor local clusters;
+`Threat Actor` / `THREAT-ACTOR` / `threat actor` (name + case variants) → same 3
+(case-insensitive type-OR-name match); bogus value → empty feed; blank → all 50
+galaxies (unchanged). Configure-form text input traced end-to-end in source:
+`WidgetSchema::getSchema()` serves `$schema` verbatim → `configure.module.mjs`
+`buildScalarField` renders `type:'string'` as `<input type=text
+data-schema-key=galaxy_type>` (the generic string→text control was
+visually proven in B9, so the chain is closed by source-trace, not a re-render).
 
 ## 7. Open meta-questions (resolve early)
 

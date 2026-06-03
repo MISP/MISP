@@ -27,6 +27,11 @@
  * galaxy access; site-admin sees all) and honours order/limit/conditions;
  * `contain ['Galaxy','Orgc']` hydrates the galaxy icon/name + author org.
  *
+ * Optional `galaxy_type` filter (AD-24): when set, scopes the feed to a single
+ * galaxy, matched case-insensitively against the galaxy `type` OR `name`
+ * (resolved in PHP off the small `galaxies` table → `galaxy_id IN (…)`); a
+ * value matching no galaxy yields an empty feed, blank = all galaxies.
+ *
  * Cache: NONE — per-user ACL'd live fetch (like the W6 event stream).
  *
  * Additive-only: a new widget class, render = the existing FeedList kind.
@@ -44,6 +49,10 @@ class RecentGalaxyClustersWidget
             . '(added/updated time) falls in this window, going back in seconds '
             . '(e.g. "30d"); -1 = no time filter (just the newest N). Default: -1.',
         'limit' => 'How many clusters to show (newest first). Default: 10.',
+        'galaxy_type' => 'Optional: restrict the feed to a single galaxy, '
+            . 'matched case-insensitively against the galaxy type (e.g. '
+            . '"threat-actor") OR its display name (e.g. "Threat Actor"). '
+            . 'Blank = all galaxies.',
     );
 
     public $schema = array(
@@ -58,12 +67,20 @@ class RecentGalaxyClustersWidget
             'default' => 10,
             'help' => 'Number of recent local clusters to list (newest first).',
         ),
+        'galaxy_type' => array(
+            'type' => 'string',
+            'default' => '',
+            'help' => 'Restrict to one galaxy — type its machine type '
+                . '(e.g. "threat-actor") or display name (e.g. "Threat Actor"), '
+                . 'case-insensitive. Blank = all galaxies.',
+        ),
     );
 
     public $placeholder =
 '{
     "time_window": -1,
-    "limit": 10
+    "limit": 10,
+    "galaxy_type": ""
 }';
 
     public $description = 'A feed of the most recently added or updated local '
@@ -93,6 +110,34 @@ class RecentGalaxyClustersWidget
         $conditions['GalaxyCluster.deleted'] = 0;
         if ($since !== null) {
             $conditions['GalaxyCluster.version >='] = $since;
+        }
+
+        // Optional galaxy_type filter (AD-24): scope the feed to one galaxy.
+        // Match the typed value case-insensitively against Galaxy.type OR
+        // Galaxy.name (so "threat-actor" or "Threat Actor" both work), resolving
+        // the matching galaxy ids in PHP off the small `galaxies` table (~140
+        // rows) — collation-independent and dodging SQL-function quoting. A
+        // value that matches no galaxy yields an empty feed (honest); blank =
+        // all galaxies (no behaviour change for existing instances).
+        $galaxyType = isset($options['galaxy_type']) ? trim((string)$options['galaxy_type']) : '';
+        if ($galaxyType !== '') {
+            $lc = strtolower($galaxyType);
+            $Galaxy = ClassRegistry::init('Galaxy');
+            $all = $Galaxy->find('all', array(
+                'recursive' => -1,
+                'fields' => array('Galaxy.id', 'Galaxy.type', 'Galaxy.name'),
+            ));
+            $ids = array();
+            foreach ($all as $g) {
+                if (strtolower((string)$g['Galaxy']['type']) === $lc
+                    || strtolower((string)$g['Galaxy']['name']) === $lc) {
+                    $ids[] = (int)$g['Galaxy']['id'];
+                }
+            }
+            if (empty($ids)) {
+                return array();
+            }
+            $conditions['GalaxyCluster.galaxy_id'] = $ids;
         }
 
         $clusters = $GalaxyCluster->find('all', array(
