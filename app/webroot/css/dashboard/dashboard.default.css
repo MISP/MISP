@@ -244,6 +244,26 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   border-color: var(--misp-dash-accent);
   color: var(--misp-dash-text-on-accent);
 }
+/* When a .misp-dashboard-btn is an <a> (e.g. the template-gallery header
+ * actions: "Back to dashboard", "Save current dashboard as template",
+ * "Import starter templates"), suppress the host theme's global link styling
+ * — these read as buttons, not links, so they must never underline nor adopt
+ * the link / link-hover colour. Anchor-scoped so the <button> toggles'
+ * aria-pressed colours are untouched; the primary override follows so its
+ * on-accent text wins by source order. */
+a.misp-dashboard-btn,
+a.misp-dashboard-btn:hover,
+a.misp-dashboard-btn:focus,
+a.misp-dashboard-btn:visited {
+  color: var(--misp-dash-text);
+  text-decoration: none;
+}
+a.misp-dashboard-btn-primary,
+a.misp-dashboard-btn-primary:hover,
+a.misp-dashboard-btn-primary:focus,
+a.misp-dashboard-btn-primary:visited {
+  color: var(--misp-dash-text-on-accent);
+}
 
 /* Icon-only button flavour (e.g. the "⋯ More" trigger): square,
  * larger glyph, same hover/focus posture as the regular dashboard
