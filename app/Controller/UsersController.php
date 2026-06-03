@@ -87,7 +87,9 @@ class UsersController extends AppController
      */
     private function __massageUserObject(array $user)
     {
-        $user['UserSetting'] = array_column($user['UserSetting'], 'value', 'setting');
+        $user['UserSetting'] = array_column($user['UserSetting'] ?? [], 'value', 'setting');
+        // OIDC stores the user's access/refresh tokens in this setting - never expose it via the API
+        unset($user['UserSetting']['oidc']);
         unset($user['User']['server_id']);
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             unset($user['User']['authkey']);
