@@ -4,13 +4,14 @@ App::uses('RedisTool', 'Tools');
 
 /**
  * NewDataStatsWidget — the analyst dashboard's "what's new" pulse
- * (AD-W7 / AD-05..07). A standalone StatGrid widget (no dependency on the
- * Trending engine, no new render kind): four KPI cards, each showing the
- * metric's count in the current time window and a ▲/▼ delta vs the
- * immediately-preceding equal-length window (the AD-03 prior-window
- * baseline, shared with the Trending engine).
+ * (AD-W7 / AD-05..07; reworked AD-21). A standalone StatGrid widget (no
+ * dependency on the Trending engine, no new render kind): nine KPI cards,
+ * each showing the metric's count in the current time window and a ▲/▼ delta
+ * vs the immediately-preceding equal-length window (the AD-03 prior-window
+ * baseline, shared with the Trending engine). Opts into StatGrid's glyph +
+ * label header (AD-21 `$statGridLabels`) so each card is self-labelled.
  *
- * The four metrics (AD-07):
+ * The original four metrics (AD-07):
  *   1. New events       — COUNT(Event) with Event.timestamp in window.
  *                         GLOBAL scale-count, no ACL filter (AD-06).
  *   2. New attributes   — COUNT(Attribute) with Attribute.timestamp in
@@ -27,6 +28,12 @@ App::uses('RedisTool', 'Tools');
  *                         genuine local publish act, not a sync import, so
  *                         the AD-05 objection to publish_timestamp does not
  *                         apply (AD-05 exception).
+ *
+ * The AD-21 rework adds five more GLOBAL scale-counts (AD-06), windowed +
+ * delta like the above: new objects (Object.timestamp), event reports
+ * (EventReport.timestamp), LOCAL galaxy clusters (GalaxyCluster.version,
+ * default=0 — shipped clusters carry batch import dates), and analyst notes &
+ * opinions (Note/Opinion.modified, a UTC datetime, not an epoch).
  *
  * Window anchor (AD-05): Event.timestamp for metrics 1/3, Attribute.timestamp
  * for metric 2, publish_timestamp for metric 4. The window is driven by the
@@ -51,8 +58,13 @@ class NewDataStatsWidget
     public $title = 'New data';
     public $category = 'events';
     public $render = 'StatGrid';
-    public $width = 3;
-    public $height = 4;
+    public $width = 4;
+    public $height = 6;
+
+    // AD-21: opt into StatGrid's glyph+label header (vs the glyph-only
+    // DD-32 default) so each of the 9 KPI cards is self-labelled, not a
+    // bare glyph. StatGrid reads this flag; no other consumer is affected.
+    public $statGridLabels = true;
 
     public $params = array(
         'time_window' => 'The time window, going back in seconds, to include '
@@ -107,10 +119,11 @@ class NewDataStatsWidget
     "sector": "Bank"
 }';
 
-    public $description = 'New-data pulse: counts of new events, new '
-        . 'attributes, events targeting my org\'s country/sector, and events '
-        . 'my org published — each over a time window with a ▲/▼ delta vs the '
-        . 'previous equal-length window.';
+    public $description = 'New-data pulse: windowed counts (each with a ▲/▼ '
+        . 'delta vs the previous equal-length window) of new events, '
+        . 'attributes, objects, event reports, local galaxy clusters, analyst '
+        . 'notes & opinions, plus events targeting my org\'s country/sector and '
+        . 'events my org published.';
 
     // No whole-payload WidgetCache (see the class docblock): the metrics span
     // three cache scopes and the `org` scope's site-admin bucket is wrong for
@@ -150,12 +163,17 @@ class NewDataStatsWidget
 
         $eventModel = ClassRegistry::init('Event');
         $attributeModel = ClassRegistry::init('MispAttribute');
+        $objectModel = ClassRegistry::init('MispObject');
+        $reportModel = ClassRegistry::init('EventReport');
+        $clusterModel = ClassRegistry::init('GalaxyCluster');
+        $noteModel = ClassRegistry::init('Note');
+        $opinionModel = ClassRegistry::init('Opinion');
 
         $rows = array();
 
         // --- Metric 1: new events (global; Event.timestamp) -----------------
         $rows[] = $this->deltaRow(
-            __('New events'),
+            __('Events'),
             'calendar',
             'events:' . $windowSeconds,
             $hasPrior,
@@ -172,7 +190,7 @@ class NewDataStatsWidget
 
         // --- Metric 2: new attributes (global; Attribute.timestamp) ---------
         $rows[] = $this->deltaRow(
-            __('New attributes'),
+            __('Attributes'),
             'tag',
             'attributes:' . $windowSeconds,
             $hasPrior,
@@ -189,10 +207,93 @@ class NewDataStatsWidget
             '/attributes/index'
         );
 
-        // --- Metric 3: events targeting my org (org-contextual) -------------
+        // --- Metric 3: new objects (global; Object.timestamp) ---------------
+        $rows[] = $this->deltaRow(
+            __('Objects'),
+            'layers',
+            'objects:' . $windowSeconds,
+            $hasPrior,
+            $curBounds,
+            $priorBounds,
+            function ($start, $end) use ($objectModel) {
+                $conditions = $this->timeConditions('Object.timestamp', $start, $end);
+                $conditions['Object.deleted'] = 0;
+                return $objectModel->find('count', array('recursive' => -1, 'conditions' => $conditions));
+            }
+        );
+
+        // --- Metric 4: new event reports (global; EventReport.timestamp) ----
+        $rows[] = $this->deltaRow(
+            __('Event reports'),
+            'pencil',
+            'reports:' . $windowSeconds,
+            $hasPrior,
+            $curBounds,
+            $priorBounds,
+            function ($start, $end) use ($reportModel) {
+                $conditions = $this->timeConditions('EventReport.timestamp', $start, $end);
+                $conditions['EventReport.deleted'] = 0;
+                return $reportModel->find('count', array('recursive' => -1, 'conditions' => $conditions));
+            }
+        );
+
+        // --- Metric 5: new LOCAL galaxy clusters (global) -------------------
+        // GalaxyCluster.version is the only timestamp (set on create AND edit).
+        // default=0 (local) only — like W12: shipped (default=1) clusters carry
+        // batch import dates and would flood the count on every sync.
+        $rows[] = $this->deltaRow(
+            __('Galaxy clusters'),
+            'sitemap',
+            'clusters:' . $windowSeconds,
+            $hasPrior,
+            $curBounds,
+            $priorBounds,
+            function ($start, $end) use ($clusterModel) {
+                $conditions = $this->timeConditions('GalaxyCluster.version', $start, $end);
+                $conditions['GalaxyCluster.default'] = 0;
+                $conditions['GalaxyCluster.deleted'] = 0;
+                return $clusterModel->find('count', array('recursive' => -1, 'conditions' => $conditions));
+            }
+        );
+
+        // --- Metric 6: new analyst notes (global; Note.modified) ------------
+        // modified is a UTC datetime (not an epoch) and the table has no
+        // `deleted` column — use the datetime window helper, no delete filter.
+        $rows[] = $this->deltaRow(
+            __('Notes'),
+            'chat',
+            'notes:' . $windowSeconds,
+            $hasPrior,
+            $curBounds,
+            $priorBounds,
+            function ($start, $end) use ($noteModel) {
+                return $noteModel->find('count', array(
+                    'recursive' => -1,
+                    'conditions' => $this->timeConditionsDatetime('Note.modified', $start, $end),
+                ));
+            }
+        );
+
+        // --- Metric 7: new analyst opinions (global; Opinion.modified) ------
+        $rows[] = $this->deltaRow(
+            __('Opinions'),
+            'chat-lines',
+            'opinions:' . $windowSeconds,
+            $hasPrior,
+            $curBounds,
+            $priorBounds,
+            function ($start, $end) use ($opinionModel) {
+                return $opinionModel->find('count', array(
+                    'recursive' => -1,
+                    'conditions' => $this->timeConditionsDatetime('Opinion.modified', $start, $end),
+                ));
+            }
+        );
+
+        // --- Metric 8: events targeting my org (org-contextual) -------------
         $rows[] = $this->targetingMetric($user, $options, $windowSeconds, $hasPrior, $curBounds, $priorBounds, $eventModel);
 
-        // --- Metric 4: events published by my org ---------------------------
+        // --- Metric 9: events published by my org ---------------------------
         $myOrgId = isset($user['org_id']) ? (int)$user['org_id'] : 0;
         $publishedDrilldown = $myOrgId
             ? $this->indexDrilldown(
@@ -573,6 +674,24 @@ class NewDataStatsWidget
         }
         if ($end !== null) {
             $conditions[$field . ' <'] = $end;
+        }
+        return $conditions;
+    }
+
+    /**
+     * Like timeConditions, but for a UTC DATETIME column (analyst-data
+     * `modified`) rather than an epoch int — converts the unix-second bounds
+     * to 'Y-m-d H:i:s' UTC strings via gmdate (the AnalystData modified field
+     * is stored UTC; same convention as the W11 feed widget).
+     */
+    private function timeConditionsDatetime($field, $start, $end)
+    {
+        $conditions = array();
+        if ($start !== null) {
+            $conditions[$field . ' >='] = gmdate('Y-m-d H:i:s', $start);
+        }
+        if ($end !== null) {
+            $conditions[$field . ' <'] = gmdate('Y-m-d H:i:s', $end);
         }
         return $conditions;
     }

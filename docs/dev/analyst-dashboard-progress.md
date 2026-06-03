@@ -959,11 +959,28 @@ misp-iconify CSS-class delivery).
   ▲/▼ ("PUBLISHED BY MY ORG" wraps to 2 lines, no truncation); the no-flag
   control is glyph-only (admin widget unchanged). `php -l` clean; CSS braces
   534/534.
-- [ ] **NewDataStatsWidget — +5 metrics + set `$statGridLabels` + bump height.**
+- [x] **NewDataStatsWidget — +5 metrics + set `$statGridLabels` + bump height.**
   Add objects / event reports / local galaxy clusters (`default=0`) / notes /
   opinions as global scale-counts (AD-06), windowed + prior-window delta; concise
-  titles (drop the redundant "New" prefix). Verify via the real render path +
-  board.
+  titles (drop the redundant "New" prefix).
+  *Done:* added objects (`Object.timestamp`, `deleted=0`), event reports
+  (`EventReport.timestamp`, `deleted=0`), LOCAL galaxy clusters
+  (`GalaxyCluster.version`, `default=0`/`deleted=0`), notes & opinions
+  (`Note`/`Opinion.modified` — a UTC datetime, so a new `timeConditionsDatetime()`
+  gmdate helper; the tables have no `deleted` col) — all GLOBAL scale-counts
+  (AD-06), each windowed + prior-window delta + per-metric Redis cache like the
+  original four. Dropped the "New " title prefix (the widget *is* "New data");
+  set `public $statGridLabels = true`; bumped default size 3×4 → 4×6. Interim
+  StatGlyph icons (layers/pencil/sitemap/chat/chat-lines) pending the
+  misp-iconify swap. **Verified at runtime via the real REST renderWidget
+  pipeline** (`time_window=-1`): all 9 metrics EXACT vs DB ground truth — objects
+  48 697, reports 435, local clusters 441, notes 53, opinions 27 (+ events 6088,
+  attributes 1 919 285, targeting N/A, published 52), `renderer=StatGrid`. The
+  labeled StatGrid render was proven in the task-1 harness (real `.ctp` + CSS +
+  StatGlyph, identical 9 titles/icons + flag); `$widget->statGridLabels`
+  propagation is direct (`render_widget.ctp` passes `$widget`, StatGrid reads the
+  public property). `php -l` clean. (Live web-UI screenshot deferred — session
+  re-mint hit the Cake CSRF dance; REST-exact + harness cover handler + render.)
 - [ ] **Glyph swap → misp-iconify** (GATED on the colleague's CSS-class delivery).
   Swap StatGlyph names for the misp-iconify set (event/attribute/object/report/
   galaxy/analyst-note/analyst-opinion/organisation, 1:1 with the metrics). Fork
