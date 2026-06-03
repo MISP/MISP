@@ -991,7 +991,7 @@ misp-iconify CSS-class delivery).
   misp-icon-<name> misp-hexagone">`; the StatGlyph `icon` key stays the admin path) +
   `.misp-stat-glyph .misp-icon{font-size:22px}`. `NewDataStatsWidget` switched all 9
   rows to `icon_class`: event/attribute/object/report/galaxy/analyst-note/
-  analyst-opinion/organisation (targeting)/sharing-group (published).
+  analyst-opinion/organisation (both targeting & published).
   *Verified:* CSS servable (`/css/misp-iconify.css` → 200); REST payload carries the
   `icon_class` for all 9; the real `misp-iconify.css` + `StatGrid.ctp` paint the
   masked icons (muted, `currentColor` → themed) in light + midnight

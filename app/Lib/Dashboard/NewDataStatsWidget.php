@@ -304,7 +304,7 @@ class NewDataStatsWidget
             : null;
         $rows[] = $this->deltaRow(
             __('Published by my org'),
-            'sharing-group',
+            'organisation',
             'published:' . $windowSeconds . ':o' . $myOrgId,
             $hasPrior,
             $curBounds,
