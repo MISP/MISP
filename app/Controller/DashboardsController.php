@@ -1173,6 +1173,20 @@ class DashboardsController extends AppController
         if (!empty($update)) {
             $this->request->data = $existingDashboard;
         }
+        $this->set('options', $options);
+        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
+        $this->set('isUpdate', !empty($update));
+        $this->set('updateRef', $update);
+        // Slide-in panel path: an XHR GET wants just the form (no page
+        // chrome) to inject into the dashboard's shared configure panel
+        // (save-template.module.mjs). Additive — the POST handling, the
+        // full-page GET below, and beforeFilter's CSRF posture are
+        // unchanged; the rendered form still carries its Security token.
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+            $this->render('save_template_form_ajax');
+            return;
+        }
         // Phase 4 task 5: in-page form under the dashboard layout
         // (DD-08; no side menu rail). The action's wire shape (URL,
         // POST body field names, REST response shape) is unchanged;
@@ -1181,10 +1195,6 @@ class DashboardsController extends AppController
         $this->set('title_for_layout', empty($update)
             ? __('Save dashboard template')
             : __('Edit dashboard template'));
-        $this->set('options', $options);
-        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
-        $this->set('isUpdate', !empty($update));
-        $this->set('updateRef', $update);
     }
 
     public function listTemplates()
