@@ -207,6 +207,10 @@ class WorkflowBaseModule
             return is_array($data) && in_array($value, $data);
         } elseif ($operator == 'not_in') {
             return is_array($data) && !in_array($value, $data);
+        } elseif ($operator == 'str_contains') {
+            return is_string($data) && str_contains($data, $value);
+        } elseif ($operator == 'str_not_contains') {
+            return is_string($data) && !str_contains($data, $value);
         } elseif ($operator == 'equals') {
             return !is_array($data) && $data == $value;
         } elseif ($operator == 'not_equals') {

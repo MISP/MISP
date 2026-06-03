@@ -94,11 +94,11 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-	        147 => false, 148 => false, 149 => false, 150 => false
-	    );
+        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
+        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+        147 => false, 148 => false, 149 => false, 150 => false, 151 => false,
+    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
@@ -2632,6 +2632,9 @@ class AppModel extends Model
             case 149:
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
+            case 151:
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3080,7 +3083,7 @@ class AppModel extends Model
         }
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false)
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -3124,6 +3127,9 @@ class AppModel extends Model
                 // get played multiple time. The purpose of this lightweight lock
                 // is only to limit the load.
                 if ($this->isUpdateLocked()) { // prevent creation of useless workers
+                    if ($avoidSilentFail) {
+                        throw new Exception(__('Database updates are locked. Make sure that you have an update worker running. If you do, it might be related to an update\'s execution repeatedly failing or still being in progress.'));
+                    }
                     $this->Log->create();
                     $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',

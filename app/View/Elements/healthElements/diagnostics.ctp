@@ -433,7 +433,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </div>
 
     <h3><?= __('STIX libraries');?></h3>
-    <p><?= __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX 1 export to work. For STIX 2, make sure both stix2 and misp-stix libraries installed');?><br />
+    <p><?= __('The libraries listed below are required for MISP\'s STIX 1 and STIX 2 import and export to work. Installing the misp-stix library pulls in all the other STIX-related libraries automatically, as they are declared as its dependencies.');?><br />
     <?= __('If you run into any issues here, make sure to check how libraries are installed in the INSTALL.txt file.');?><br>
 
     <?php if ($stix['operational'] === -1): ?>
