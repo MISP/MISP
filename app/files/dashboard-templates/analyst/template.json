@@ -1,7 +1,7 @@
 {
     "uuid": "0c6b496d-b6e7-43f3-be7f-2f30215c568c",
     "name": "Analyst",
-    "description": "A threat-analyst starting point: trending attribute values and tags, the geographic spread of recent indicators and of known threat actors, and the latest sightings.",
+    "description": "A threat-analyst starting point: the geographic spread of recent indicators and of threat-actor origins, a live attack map, ATT&CK technique coverage, trending vulnerabilities and threat actors, new-data stats for your time window, overlap with your organisation's data, and the latest analyst notes, opinions, and event reports.",
     "selectable": true,
     "default_fallback": true,
     "restrict_to_org_id": 0,
@@ -9,34 +9,173 @@
     "restrict_to_permission_flag": "",
     "value": [
         {
-            "instance_id": "w_1",
-            "widget": "TrendingAttributesWidget",
-            "config": { "alias": "Trending attribute values" },
-            "position": { "x": 0, "y": 0, "w": 6, "h": 4 }
-        },
-        {
-            "instance_id": "w_2",
-            "widget": "TrendingTagsWidget",
-            "config": { "alias": "Trending tags" },
-            "position": { "x": 6, "y": 0, "w": 6, "h": 4 }
-        },
-        {
             "instance_id": "w_3",
             "widget": "AttributeGeoMapWidget",
-            "config": { "alias": "Recent indicators by country" },
-            "position": { "x": 0, "y": 4, "w": 6, "h": 5 }
+            "config": {
+                "alias": "Recent geolocated indicators by country",
+                "time_window": "7d",
+                "limit": 10000,
+                "palette": "danger",
+                "projection": "naturalEarth",
+                "sources": [
+                    "ip",
+                    "domain_tld",
+                    "asn",
+                    "country_galaxy",
+                    "threat_actor"
+                ]
+            },
+            "position": {
+                "x": 0,
+                "y": 7,
+                "w": 3,
+                "h": 4
+            }
         },
         {
             "instance_id": "w_4",
             "widget": "ThreatActorCountryMapWidget",
-            "config": { "alias": "Threat actor origins" },
-            "position": { "x": 6, "y": 4, "w": 6, "h": 5 }
+            "config": {
+                "alias": "Threat actor origins"
+            },
+            "position": {
+                "x": 3,
+                "y": 7,
+                "w": 3,
+                "h": 4
+            }
         },
         {
-            "instance_id": "w_5",
-            "widget": "RecentSightingsWidget",
-            "config": { "alias": "Recent sightings" },
-            "position": { "x": 0, "y": 9, "w": 12, "h": 6 }
+            "instance_id": "w_8",
+            "widget": "AttackWidget",
+            "config": {
+                "alias": "",
+                "time_window": "7d",
+                "filters": {
+                    "attackGalaxy": "mitre-attack-pattern",
+                    "published": [
+                        0,
+                        1
+                    ]
+                }
+            },
+            "position": {
+                "x": 0,
+                "y": 11,
+                "w": 12,
+                "h": 6
+            }
+        },
+        {
+            "instance_id": "w_9",
+            "widget": "TrendingWidget",
+            "config": {
+                "alias": "Trending vulnerabilities",
+                "dimension": "vulnerability",
+                "time_window": "7d",
+                "threshold": 10,
+                "min_count": 3
+            },
+            "position": {
+                "x": 10,
+                "y": 2,
+                "w": 2,
+                "h": 5
+            }
+        },
+        {
+            "instance_id": "w_10",
+            "widget": "NewDataStatsWidget",
+            "config": {
+                "alias": "New data within time window",
+                "time_window": "7d",
+                "country": "",
+                "sector": ""
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "w": 12,
+                "h": 2
+            }
+        },
+        {
+            "instance_id": "w_12",
+            "widget": "TrendingWidget",
+            "config": {
+                "alias": "Trending threat actors",
+                "dimension": "threat-actor",
+                "time_window": "7d",
+                "threshold": 10,
+                "min_count": 3
+            },
+            "position": {
+                "x": 8,
+                "y": 2,
+                "w": 2,
+                "h": 5
+            }
+        },
+        {
+            "instance_id": "w_13",
+            "widget": "PewPewMapWidget",
+            "config": {
+                "alias": "",
+                "time_window": "7d",
+                "mode": "webgl-globe",
+                "skin": "day",
+                "max_arcs": 500
+            },
+            "position": {
+                "x": 6,
+                "y": 7,
+                "w": 2,
+                "h": 4
+            }
+        },
+        {
+            "instance_id": "w_15",
+            "widget": "OverlapWithMyOrgWidget",
+            "config": {
+                "alias": "Correlations to my org's data",
+                "time_window": "7d",
+                "exclude_own_org": true
+            },
+            "position": {
+                "x": 8,
+                "y": 7,
+                "w": 4,
+                "h": 4
+            }
+        },
+        {
+            "instance_id": "w_19",
+            "widget": "RecentAnalystDataWidget",
+            "config": {
+                "alias": "Notes and Opinions",
+                "time_window": "7d",
+                "limit": 10
+            },
+            "position": {
+                "x": 0,
+                "y": 2,
+                "w": 4,
+                "h": 5
+            }
+        },
+        {
+            "instance_id": "w_20",
+            "widget": "RecentEventReportsWidget",
+            "config": {
+                "time_window": "7d",
+                "limit": 10
+            },
+            "position": {
+                "x": 4,
+                "y": 2,
+                "w": 4,
+                "h": 5
+            }
         }
     ]
 }
