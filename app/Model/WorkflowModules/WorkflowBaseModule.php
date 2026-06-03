@@ -204,19 +204,13 @@ class WorkflowBaseModule
     protected function evaluateCondition($data, $operator, $value): bool
     {
         if ($operator == 'in') {
-            if (is_array($data)) {
-                return in_array($value, $data);
-            } elseif (is_string($data)) {
-                return str_contains($data, $value);
-            }
-            return false;
+            return is_array($data) && in_array($value, $data);
         } elseif ($operator == 'not_in') {
-            if (is_array($data)) {
-                return !in_array($value, $data);
-            } elseif (is_string($data)) {
-                return !str_contains($data, $value);
-            }
-            return false;
+            return is_array($data) && !in_array($value, $data);
+        } elseif ($operator == 'str_contains') {
+            return is_string($data) && str_contains($data, $value);
+        } elseif ($operator == 'str_not_contains') {
+            return is_string($data) && !str_contains($data, $value);
         } elseif ($operator == 'equals') {
             return !is_array($data) && $data == $value;
         } elseif ($operator == 'not_equals') {
