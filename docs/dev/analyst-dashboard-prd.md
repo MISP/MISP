@@ -634,10 +634,13 @@ The user dropped the my-org-events filter (it would need a child-UUID `IN` list
   required.
 - **No per-org cache** — per-user ACL'd fetch, re-fetched live.
 
-**Open at build (not blocking spec):** the exact per-target-type drilldown
-resolution (which types get a link vs a bare type chip); the Opinion-value
-rendering; whether to resolve Event `object_uuid` → id for the link in one bulk
-query; the `perm_analyst_data` gate question above.
+**Open at build (not blocking spec):** ~~the exact per-target-type drilldown
+resolution (which types get a link vs a bare type chip)~~ **RESOLVED — AD-23
+(B15):** ALL eleven `valid_targets` resolve a uuid in their `view()`, so every
+target type links (`self::VIEW_PATHS` map); no type is chip-only. The
+Opinion-value rendering; whether to resolve Event `object_uuid` → id for the
+link in one bulk query (moot — `object_uuid` links directly, no id resolution
+needed); the `perm_analyst_data` gate question above.
 
 ### AD-W12 — Recently Added Galaxy Clusters  `DECIDED`
 
@@ -1022,19 +1025,36 @@ Refs: AD-07 (the targeting metric), AD-21 (the labelled StatGrid). User polish:
    user requested the tooltip; the row key is the minimal additive way). Build =
    Phase B15.
 
-**AD-23 — 2026-06-03 — AD-W11 richer per-target-type drilldowns.** Refs: AD-19
-(W11 spec; "exact per-target-type drilldown resolution" was left open at build).
-W11 originally linked **only** Event-targeted notes/opinions (`/events/view/
-<uuid>`); every other target type rendered a bare type chip. Recon of the
-`AnalystData::valid_targets` (Attribute, Event, EventReport, GalaxyCluster,
-Galaxy, Object, Note, Opinion, Relationship, Organisation, SharingGroup) against
-each controller's `view()` found **seven** types whose `view($id)` resolves a
-**UUID** (`Validation::uuid` / `Toolbox::findIdByUuid`): Event, Attribute,
-Object, GalaxyCluster, Galaxy, Organisation, SharingGroup. `object_uuid` is
-always a UUID string, so each links by `/{controller}/view/<object_uuid>`.
-**EventReport** (`view` takes a numeric id only) and **Note / Opinion /
-Relationship** (no standalone view) stay chip-only. All links relative →
-DD-03-admitted (no validator change). Pure additive widget change. Build = B15.
+**AD-23 — 2026-06-03 — AD-W11 richer per-target-type drilldowns. BUILT (B15).**
+Refs: AD-19 (W11 spec; "exact per-target-type drilldown resolution" was left
+open at build). W11 originally linked **only** Event-targeted notes/opinions
+(`/events/view/<uuid>`); every other target type rendered a bare type chip.
+**Re-verification on build (user-confirmed "link all 11") corrected the initial
+recon, which had undercounted at seven** by excluding four types on two false
+premises: (1) **EventReport** was thought "numeric-id-only" — wrong:
+`EventReport::simpleFetchById()` resolves `Validation::uuid` (Model/EventReport
+.php:424) → `/eventReports/view/<uuid>`; (2) **Note / Opinion / Relationship**
+were thought to have "no standalone view" — wrong:
+`AnalystDataController::view($type,$id)` resolves the uuid via
+`getIDFromUUID()` (`__valid_types` = Opinion/Note/Relationship) →
+`/analystData/view/<Type>/<uuid>`. So **all eleven** `AnalystData::valid_targets`
+resolve a uuid in their `view()` and link: the seven core models
+(`/{controller}/view/<uuid>` — Event, Attribute, Object, GalaxyCluster, Galaxy,
+Organisation, SharingGroup, via `Validation::uuid` / `Toolbox::findIdByUuid`),
+EventReport, and the three analyst-data types (the type rides the path, so the
+two-segment form still fits the prefix map). `object_uuid` is always a UUID
+string. Implemented as a `const VIEW_PATHS` (objType → view-path prefix) used in
+`mapRow()`: `$drilldown = (uuid && isset(VIEW_PATHS[objType])) ? prefix.uuid :
+null`. All links relative → DD-03-admitted (no validator change; FeedList.ctp
+routes `drilldown` through `DashboardURLValidator::validate`). Pure additive
+widget change. **Verified:** REST `renderWidget` (`time_window=-1`) — six target
+types present in the dev corpus (Attribute, Event, Object, GalaxyCluster, **Note,
+Opinion** — incl. both new two-segment analyst-data links) all emit the right
+`view/<uuid>` drilldown; each real link REST-GETs to HTTP 200 with a uuid body;
+bogus uuid fails closed (non-200 dead link, matched posture). The five types
+absent from the corpus (Galaxy, Organisation, SharingGroup, EventReport,
+Relationship) are asserted by the const map + per-controller code-read of their
+uuid resolution.
 
 **AD-24 — 2026-06-03 — AD-W12 optional `galaxy_type` filter.** Refs: AD-20 (W12
 spec; the optional `galaxy_type` filter was deferred "keep v1 minimal" — now

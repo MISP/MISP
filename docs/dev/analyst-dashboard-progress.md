@@ -1044,12 +1044,25 @@ widget-only). Build order: New-data rename → New-data N/A tooltip → W11 dril
   `nationality=Luxembourg`/`sector=Government` (set since the B2/B14 "N/A" notes),
   so the targeting metric normally resolves (tag 1645, count 5) — the B14 "N/A"
   observation is stale, not a regression.
-- [ ] **RecentAnalystDataWidget (W11) — richer per-target-type drilldowns
-  (AD-23).** Link each note/opinion to its target by `object_uuid` for the seven
-  UUID-resolvable target types (Event, Attribute, Object, GalaxyCluster, Galaxy,
-  Organisation, SharingGroup) via `/{controller}/view/<uuid>`. EventReport
-  (numeric-id view only) + Note/Opinion/Relationship (no standalone view) stay
-  chip-only. All DD-03-gated; no validator change.
+- [x] **RecentAnalystDataWidget (W11) — richer per-target-type drilldowns
+  (AD-23).** Link each note/opinion to its target by `object_uuid`. **Re-verify
+  on build corrected the spec's undercount of seven → all ELEVEN
+  `valid_targets`** (user-confirmed "link all 11"): the prior exclusions were
+  two false premises — EventReport is NOT numeric-id-only
+  (`simpleFetchById` resolves the uuid → `/eventReports/view/<uuid>`), and
+  Note/Opinion/Relationship DO have a standalone view
+  (`AnalystDataController::view` resolves the uuid → `/analystData/view/<Type>/
+  <uuid>`). All DD-03-gated; no validator change.
+  *Done:* added `const VIEW_PATHS` (objType → view-path prefix, all 11) +
+  `$drilldown = (uuid && isset(VIEW_PATHS[objType])) ? prefix.uuid : null` in
+  `mapRow()`; refreshed the class + drilldown docblocks. `php -l` clean.
+  **Verified on the real render path:** REST `renderWidget` (`time_window=-1`)
+  — six corpus target types (Attribute/Event/Object/GalaxyCluster/**Note**/
+  **Opinion**, incl. both new two-segment analyst-data links) emit the right
+  `view/<uuid>`; each real link REST-GETs HTTP 200 + uuid body; bogus uuid fails
+  closed. Five absent-from-corpus types asserted by the map + per-controller
+  code-read. Closes the PRD §5 AD-W11 "exact per-target-type drilldown" open
+  item. (PRD AD-23 entry rewritten to record the premise correction.)
 - [ ] **RecentGalaxyClustersWidget (W12) — `galaxy_type` filter (AD-24).** Add an
   optional typed `string` `$schema` knob scoping the feed to one galaxy, matched
   case-insensitively against galaxy `type` OR `name`; resolve galaxy ids in PHP

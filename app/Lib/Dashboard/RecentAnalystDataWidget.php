@@ -31,9 +31,12 @@
  * Recency anchor = `modified` (datetime, UTC). Cache: NONE — per-user ACL'd
  * live fetch (like the W6 event stream).
  *
- * Drilldown: Event targets link to `/events/view/<uuid>` (Events::view
- * resolves a uuid); other target types show the type chip without a link
- * (richer per-type linking is a noted follow-up). All DD-03-gated.
+ * Drilldown (AD-23): each row links to its TARGET by `object_uuid`. All
+ * eleven `AnalystData::valid_targets` resolve a uuid in their `view()`, so
+ * every target type links — `/{controller}/view/<uuid>` for the seven core
+ * models, `/eventReports/view/<uuid>` for Event Reports, and
+ * `/analystData/view/<Type>/<uuid>` for Note/Opinion/Relationship targets
+ * (see self::VIEW_PATHS). All relative → DD-03-gated, no validator change.
  *
  * Additive-only: a new widget class, render = the existing FeedList kind.
  */
@@ -78,6 +81,37 @@ class RecentAnalystDataWidget
 
     const MAX_LIMIT = 50;
     const TITLE_CHARS = 110;
+
+    /**
+     * Per-target-type drilldown (AD-23). Every `AnalystData::valid_targets`
+     * type whose `view()` resolves a bare UUID maps to its `view/<uuid>` path
+     * prefix; the row links to `<prefix> . object_uuid`. ALL eleven valid
+     * targets qualify:
+     *   - Event/Attribute/Object/GalaxyCluster/Organisation/SharingGroup —
+     *     `Validation::uuid()` in their controller's view().
+     *   - Galaxy — `Toolbox::findIdByUuid()` in GalaxiesController::view().
+     *   - EventReport — `EventReport::simpleFetchById()` resolves the uuid
+     *     (the earlier "numeric-id-only" read was wrong, AD-23).
+     *   - Note/Opinion/Relationship — `AnalystDataController::view($type,$id)`
+     *     resolves the uuid via `getIDFromUUID()`; the type lives in the path
+     *     (`/analystData/view/<Type>/<uuid>`), so it still fits this prefix map
+     *     (the earlier "no standalone view" read was wrong, AD-23).
+     * All paths are relative → DD-03 admits them with no validator change; a
+     * stale uuid 404s exactly like the original Event link.
+     */
+    const VIEW_PATHS = array(
+        'Event'         => '/events/view/',
+        'Attribute'     => '/attributes/view/',
+        'Object'        => '/objects/view/',
+        'GalaxyCluster' => '/galaxy_clusters/view/',
+        'Galaxy'        => '/galaxies/view/',
+        'Organisation'  => '/organisations/view/',
+        'SharingGroup'  => '/sharing_groups/view/',
+        'EventReport'   => '/eventReports/view/',
+        'Note'          => '/analystData/view/Note/',
+        'Opinion'       => '/analystData/view/Opinion/',
+        'Relationship'  => '/analystData/view/Relationship/',
+    );
 
     /** type => [FontAwesome icon, text column]. */
     private $sources = array(
@@ -199,10 +233,12 @@ class RecentAnalystDataWidget
             $chips[] = $this->humanize($objType);
         }
 
-        // Drilldown: Event targets are viewable by uuid; others show the type
-        // chip only (richer per-type linking is a follow-up). DD-03-gated.
-        $drilldown = ($objType === 'Event' && $objUuid !== '')
-            ? '/events/view/' . $objUuid
+        // Drilldown: every valid target type whose view() resolves a uuid
+        // links by `<view-path> . object_uuid` (see self::VIEW_PATHS — all 11
+        // valid_targets qualify, AD-23). A target type absent from the map (or
+        // a row with no uuid) stays chip-only. DD-03-gated.
+        $drilldown = ($objUuid !== '' && isset(self::VIEW_PATHS[$objType]))
+            ? self::VIEW_PATHS[$objType] . $objUuid
             : null;
 
         return array(
