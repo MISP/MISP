@@ -237,6 +237,11 @@ done
 
 print_ok "MISP database.php file rewritten."
 
+print_status "Running MISP updates"
+
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
+error_check "MISP schema updates"
+
 print_status "Setting up background workers"
 
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>> $logfile
