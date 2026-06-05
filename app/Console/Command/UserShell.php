@@ -28,7 +28,7 @@ class UserShell extends AppShell
             'parser' => [
                 'arguments' => [
                     'email' => ['help' => __('E-mail address (also used as the username.'), 'required' => true],
-                    'role_id' => ['help' => __('Role ID of the user. For a list of available roles, use `cake Roles list`.'), 'required' => true],
+                    'role_id' => ['help' => __('Role ID of the user. For a list of available roles, use `cake Role list`.'), 'required' => true],
                     'org_id' => ['help' => __('Organisation under which the user should be created'), 'required' => true],
                     'password' => ['help' => __('Enter a password to assign to the user (optional) - if none is set, the user will receive a temporary password.')]
                 ],
