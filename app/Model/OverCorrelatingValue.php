@@ -8,12 +8,14 @@ class OverCorrelatingValue extends AppModel
     /** @var array */
     private $blockedValues = [];
 
-    public static function truncate(string $value): string
+    public static function truncate(?string $value): string
     {
+        if ($value === null) {
+            return '';
+        }
         $value = mb_strtolower($value);
         return mb_substr($value, 0, 191);
     }
-
     public static function truncateValues(array $values): array
     {
         return array_map(function(string $value) {
