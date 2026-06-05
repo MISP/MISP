@@ -26,7 +26,7 @@
  * (matches on name + description + uuid via the data-template-
  * search-text attribute the view inlines per card).
  */
-$baseurl = Configure::read('MISP.baseurl') ?: '';
+$baseurl = Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/');
 
 /**
  * Render one card. Inline closure so the per-section loops below

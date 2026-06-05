@@ -15,7 +15,7 @@
  *   - data-misp-widget-action="*" — clickable widget controls
  *   - data-misp-board-action="*"  — board-level toolbar controls
  */
-$baseurl = Configure::read('MISP.baseurl') ?: '';
+$baseurl = Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/');
 ?>
 <header class="misp-dashboard-header">
     <h1 class="misp-dashboard-title"><?= __('Dashboard') ?></h1>
