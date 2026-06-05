@@ -2692,7 +2692,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
             case 151:
-                $sqlArray[] = "ALTER TABLE `galaxies` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxies` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
