@@ -947,9 +947,6 @@ th .sort-icon::before {
     z-index: 1;
 }
 
-.breadcrumb-controller-link {
-    color: inherit;
-}
 .breadcrumb-controller-link:hover {
     color: var(--primary) !important;
     text-decoration: underline !important;
