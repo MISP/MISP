@@ -157,6 +157,9 @@ class SightingsController extends AppController
         }
         $this->set('context', $context);
         $this->set('id', $input_id);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('/Sightings/ajax/advanced');
     }
 
