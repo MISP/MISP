@@ -1,234 +1,1067 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('SessionStore', 'Lib/Dashboard/Tools');
 
 /**
+ * Dashboard controller (v2). Mounted at /dashboards/* via CakePHP's
+ * default routing.
+ *
  * @property Dashboard $Dashboard
  */
 class DashboardsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
-    public $helpers = array('ScopedCSS');
+    public $uses = array('Dashboard', 'User');
 
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions[] = 'renderWidget';
-        $this->Security->unlockedActions[] = 'getForm';
-        if ($this->request->action === 'renderWidget') {
+        // POSTs carry widget data in their body — same CSRF posture
+        // as the v1 dashboards endpoints.
+        $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings', 'updateTheme');
+        foreach ($bodyPostActions as $a) {
+            $this->Security->unlockedActions[] = $a;
+        }
+        if (in_array($this->request->action, $bodyPostActions, true)) {
             $this->Security->doNotGenerateToken = true;
         }
     }
 
-    public $paginate = array(
-        'limit' => 60,
-        'maxLimit' => 9999
-    );
-
-    public function index($template_id = false)
+    public function index()
     {
-        if (empty($template_id)) {
-            $params = array(
-                'conditions' => array(
-                    'UserSetting.user_id' => $this->Auth->user('id'),
-                    'UserSetting.setting' => 'dashboard'
-                )
-            );
-            $userSettings = $this->User->UserSetting->find('first', $params);
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+        // Layout priority chain:
+        //   1. If the user has a UserSetting:dashboard row (even with
+        //      an empty array as the value), use that — a user who
+        //      explicitly cleared their dashboard should NOT have a
+        //      default template silently re-imposed on next visit.
+        //   2. Else look up the org/role/permission-restricted default
+        //      template via Dashboard::getDashboardTemplate, json_decode
+        //      its `value` field, and use that.
+        //   3. Else hand the view an empty array — the view renders
+        //      the empty-state element ("No widgets yet").
+        // On-read fix-ups (DD-05) normalise per-widget shape regardless
+        // of source: width/height → w/h, instance_id minted if missing.
+        // updateSettings writes go through the same path so persisted
+        // shape is canonical. Top-level stays bare-array (DD-05).
+        $user = $this->Auth->user();
+        // getValueForUser distinguishes "row exists with empty value"
+        // (returns []) from "no row at all" (returns null). getSetting
+        // collapses both to [] which would silently re-impose the
+        // default template on a user who'd cleared their dashboard.
+        $saved = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        if (is_array($saved)) {
+            $widgets = LayoutFixup::applyReadFixups($saved);
         } else {
-            $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user(), $template_id);
-            if (empty($dashboardTemplate)) {
-                throw new NotFoundException(__('Invalid dashboard template.'));
+            $widgets = array();
+            $template = $this->Dashboard->getDashboardTemplate($user);
+            if (!empty($template['Dashboard']['value'])) {
+                $decoded = json_decode($template['Dashboard']['value'], true);
+                if (is_array($decoded)) {
+                    $widgets = LayoutFixup::applyReadFixups($decoded);
+                }
             }
         }
-        if (empty($userSettings) && empty($dashboardTemplate)) {
-            $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user());
+
+        // REST clients get the layout payload as JSON via the
+        // RestResponse component. Web UI falls through to
+        // View/Dashboards/index.ctp under Layouts/dashboard.ctp.
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($widgets, $this->response->type());
         }
-        if (empty($userSettings)) {
-            if (empty($dashboardTemplate)) {
-                $value = array(
-                    array(
-                        'widget' => 'MispStatusWidget',
-                        'config' => array(
+
+        // Enrich each widget with its declared $schema (PRD §5.7) and
+        // $placeholder (DD-06 bottom-tier seeding) so the wrapper can
+        // emit data-widget-schema + data-widget-placeholder and the
+        // client-side configure form renders the typed-fields tier from
+        // the contract while seeding the bottom-tier kv list from the
+        // widget's example payload. Unknown widget classes resolve to an
+        // empty schema and an empty placeholder — the configure form
+        // then collapses to a single-empty-row kv tier (DD-06 custom-
+        // widgets path). $placeholder ships raw (not server-parsed) so
+        // the client owns the JSON.parse-and-fallback path — some legacy
+        // placeholders carry trailing commas and similar malformations.
+        foreach ($widgets as &$w) {
+            $w['schema'] = [];
+            $w['placeholder'] = '';
+            $w['autoRefreshDelay'] = 0;
+            // Human-readable title surfaced to the wrapper so an
+            // un-aliased widget shows its real name, not the class name
+            // (DD-18); overridden with the loaded class title below.
+            $w['title'] = isset($w['widget']) ? $w['widget'] : '';
+            if (!empty($w['widget']) && is_string($w['widget'])) {
+                $instance = $this->Dashboard->loadWidget($user, $w['widget'], true);
+                if ($instance !== false) {
+                    $w['schema'] = WidgetSchema::getSchema($instance);
+                    // Per-instance display name (alias, DD-18). Surface
+                    // the class title so the wrapper can default the
+                    // label to the widget's real name; the alias itself
+                    // rides config.alias, edited via the string schema
+                    // field prepended here (so it leads the configure
+                    // form). No `default` — blank means "use the
+                    // widget's name", resolved at render time.
+                    if (isset($instance->title) && is_string($instance->title)) {
+                        $w['title'] = $instance->title;
+                    }
+                    if (!is_array($w['schema'])) {
+                        $w['schema'] = [];
+                    }
+                    $w['schema'] = array('alias' => array(
+                        'type' => 'string',
+                        'help' => sprintf(
+                            __('Display name for this widget. Leave blank to use the widget\'s name (%s).'),
+                            $w['title']
                         ),
-                        'position' => array(
-                            'x' => 0,
-                            'y' => 0,
-                            'width' => 2,
-                            'height' => 2
-                        )
-                    )
-                );
-            } else {
-                $value = $dashboardTemplate['Dashboard']['value'];
-                if (!is_array($value)) {
-                    $value = json_decode($value, true);
+                    )) + $w['schema'];
+                    if (isset($instance->placeholder) && is_string($instance->placeholder)) {
+                        $w['placeholder'] = $instance->placeholder;
+                    }
+                    // Phase 5 scheduler — wrapper.ctp emits this as
+                    // data-widget-refresh-delay (omitted on zero). This
+                    // is the CLASS DEFAULT only; per-instance override
+                    // resolution happens client-side at enqueue time
+                    // (scheduler reads config.refresh_delay first, falls
+                    // back to this attribute). Keeping the attribute
+                    // immutable per page-load means configure-save
+                    // doesn't need to mutate it — just calling
+                    // scheduler.enqueueWidget after the save picks up
+                    // the new config from data-widget-config naturally.
+                    if (!empty($instance->autoRefreshDelay)
+                            && is_numeric($instance->autoRefreshDelay)) {
+                        $w['autoRefreshDelay'] = (int)$instance->autoRefreshDelay;
+                    }
+                    // F2.5 per-instance override picker — only surface
+                    // the configure-form field when the class declares
+                    // auto-refresh, otherwise the field would imply
+                    // behaviour the widget never had. Help text shows
+                    // the class default so the user knows what blank
+                    // means. No `default` on the schema entry — the
+                    // form renders blank for users with no override,
+                    // populated only if they've saved one.
+                    if ($w['autoRefreshDelay'] > 0) {
+                        if (!is_array($w['schema'])) {
+                            $w['schema'] = [];
+                        }
+                        $w['schema']['refresh_delay'] = array(
+                            'type' => 'int',
+                            'help' => sprintf(
+                                __('Override the auto-refresh interval (seconds). Leave blank to use the widget default (%ds). Set to 0 to disable auto-refresh for this tile.'),
+                                $w['autoRefreshDelay']
+                            ),
+                        );
+                    }
                 }
             }
-            $userSettings = array(
-                'UserSetting' => array(
-                    'setting' => 'dashboard',
-                    'value' => $value
-                )
-            );
         }
-        $widgets = array();
-        foreach ($userSettings['UserSetting']['value'] as $widget) {
-            try {
-                $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget['widget']);
-                $widget['width'] = $dashboardWidget->width;
-                $widget['height'] = $dashboardWidget->height;
-                $widget['title'] = $dashboardWidget->title;
-                $widgets[] = $widget;
-            } catch (Exception $e) {
-                // continue, we just don't load the widget
-            }
+        unset($w);
+
+        // DD-51 — light/dark appearance preference (a stopgap
+        // dashboard-local toggle until a global MISP dark theme ships).
+        // Read the per-user setting and hand it to the view so
+        // theme_boot.ctp can seed data-theme before first paint (no FOUC).
+        // Values: 'auto' (follow the browser's prefers-color-scheme),
+        // 'light', 'dark'. No row / a legacy or empty value normalises to
+        // 'auto'. Resolved here (after the REST early-return) so REST
+        // clients don't pay for the extra read.
+        $themePref = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard_theme');
+        if (!in_array($themePref, array('auto', 'light', 'dark'), true)) {
+            $themePref = 'auto';
         }
+
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', __('Dashboard'));
         $this->set('widgets', $widgets);
+        $this->set('dashboardThemePref', $themePref);
     }
 
-    public function getForm($action = 'edit')
-    {
-        if ($this->request->is(['post', 'put'])) {
-            $data = $this->request->data;
-            if (empty($data['config'])) {
-                $data['config'] = '';
-            }
-            if (!empty($data['id']) && !preg_match('/^[\w\d_]+$/i', $data['id'])) {
-                throw new BadRequestException(__('Invalid widget id provided.'));
-            }
-            if ($action === 'add') {
-                $data['widget_options'] = $this->Dashboard->loadAllWidgets($this->Auth->user());
-            } else if ($action === 'edit') {
-                if (!isset($data['widget'])) {
-                    throw new BadRequestException(__('No widget name passed.'));
-                }
-                $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $data['widget']);
-                $data['description'] = empty($dashboardWidget->description) ? '' : $dashboardWidget->description;
-                $data['params'] = empty($dashboardWidget->params) ? array() : $dashboardWidget->params;
-                $data['params'] = array_merge($data['params'], array('widget_config' => __('Configuration of the widget that will be passed to the render. Check the view for more information')));
-                $data['params'] = array_merge(array('alias' => __('Alias to use as the title of the widget')), $data['params']);
-            } else {
-                throw new BadRequestException(__('Invalid action provided, just add or edit is supported.'));
-            }
-            $this->set('data', $data);
-            $this->layout = false;
-            $this->render($action);
-        }
-    }
-
+    /**
+     * Persist the user's dashboard layout. Mirrors v1's
+     * `DashboardsController::updateSettings` contract so REST clients
+     * written against v1 keep working: `POST {Dashboard: {value:
+     * [...widgets]}}`. Top-level shape stays a bare array; per-widget
+     * fix-ups apply on write so the saved shape is canonical.
+     */
     public function updateSettings()
     {
-        if ($this->request->is('post')) {
-            if (!isset($this->request->data['Dashboard']['value'])) {
-                throw new InvalidArgumentException(__('No setting data found.'));
-            }
-            $data = array(
-                'UserSetting' => array(
-                    'setting' => 'dashboard',
-                    'value' => $this->request->data['Dashboard']['value']
-                )
-            );
-            $result = $this->User->UserSetting->setSetting($this->Auth->user(), $data);
-            if ($result) {
-                return $this->RestResponse->saveSuccessResponse('Dashboard', 'updateSettings', false, false, __('Settings updated.'));
-            }
-            return $this->RestResponse->saveFailResponse('Dashboard', 'updateSettings', false, $this->User->UserSetting->validationErrors, $this->response->type());
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
         }
-    }
+        if (!isset($this->request->data['Dashboard']['value'])) {
+            throw new BadRequestException(__('No setting data found.'));
+        }
+        $widgets = $this->request->data['Dashboard']['value'];
+        if (is_string($widgets)) {
+            $decoded = json_decode($widgets, true);
+            $widgets = is_array($decoded) ? $decoded : array();
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($widgets);
 
-    public function getEmptyWidget($widget, $k = 1)
-    {
-        $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $widget);
-        if (empty($dashboardWidget)) {
-            throw new NotFoundException(__('Invalid widget.'));
-        }
-        $this->layout = false;
-        $widget = array(
-            'config' => isset($dashboardWidget->config) ? $dashboardWidget->height : '',
-            'title' => $dashboardWidget->title,
-            'alias' => isset($dashboardWidget->alias) ? $dashboardWidget->alias : $dashboardWidget->title,
-            'widget' => $widget
+        // UserSetting's validate_json hook expects the value as a JSON
+        // string (matches v1's wire form: Dashboard[value]=<encoded>);
+        // passing a nested array trips a json_validate type check on
+        // PHP 8.3. Encode here so the model's beforeSave passes it
+        // through unmodified.
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard',
+                'value'   => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
         );
-        $this->set('k', $k);
-        $this->set('widget', $widget);
+        $result = $this->User->UserSetting->setSetting(
+            $this->Auth->user(),
+            $data
+        );
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateSettings',
+                false,
+                false,
+                __('Settings updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateSettings',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
     }
 
-    public function renderWidget($widget_id, $force = false)
+    /**
+     * Persist the user's dashboard light/dark appearance preference
+     * (DD-51). POST-only, REST-style like updateSettings — the client
+     * posts with `Accept: application/json`, so AppController disables
+     * csrfCheck, and `updateTheme` is in beforeFilter's unlockedActions
+     * so the Security component's body-tampering check is skipped (the
+     * POST carries no `_Token` fields, mirroring updateSettings).
+     *
+     * The toggle button only ever commits an explicit 'light' or 'dark';
+     * 'auto' is the *absence* of an explicit choice (resolved client-side
+     * from prefers-color-scheme at boot), so it is never written back
+     * here. UserSetting::validate_dashboard_theme is the final gate.
+     */
+    public function updateTheme()
     {
-        $user = $this->_closeSession();
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $theme = isset($this->request->data['theme'])
+            ? $this->request->data['theme']
+            : null;
+        if (!in_array($theme, array('light', 'dark'), true)) {
+            throw new BadRequestException(
+                __('Invalid theme; expected "light" or "dark".')
+            );
+        }
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard_theme',
+                'value'   => $theme,
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting(
+            $this->Auth->user(),
+            $data
+        );
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateTheme',
+                false,
+                false,
+                __('Dashboard theme updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateTheme',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
+    }
+
+    /**
+     * Invalidate (immediately purge) all active sessions for one user —
+     * the destructive companion to LoggedInUsersWidget (DD-36).
+     *
+     * Site-admin only. Follows MISP's modal-form CSRF pattern: a GET
+     * returns a confirm form carrying a freshly-minted Security token,
+     * and the form POSTs back to THIS same action, which BetterSecurity
+     * validates before the purge — so a stale page-load token can't be
+     * the failure mode.
+     *
+     * Deliberately NOT a JSON/REST request (no `application/json` Accept,
+     * no `.json` URL): an isJson()→isRest() request would make
+     * AppController disable csrfCheck, bypassing the very token this
+     * pattern depends on. The POST therefore stays a normal request (so
+     * the token is enforced) and returns JSON explicitly.
+     *
+     * Immediate purge of the Redis session keys, NOT MISP's lazy
+     * `force_logout` flag (which only fires on the user's next request
+     * and never clears abandoned sessions). Engine scope is the
+     * SessionStore tool's: PHP→Redis only. Only the user id flows in;
+     * no session token/payload is read.
+     */
+    public function invalidateUserSessions($userId = null)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+        }
+        $userId = (int)$userId;
+        if ($userId < 1) {
+            throw new NotFoundException(__('Invalid user.'));
+        }
+
+        // Resolve the target for the confirm copy + audit log (may be a
+        // removed account that still holds fossil sessions).
+        $target = $this->User->find('first', array(
+            'recursive' => -1,
+            'fields' => array('User.id', 'User.email'),
+            'conditions' => array('User.id' => $userId),
+        ));
+        $email = !empty($target['User']['email'])
+            ? $target['User']['email']
+            : sprintf(__('User #%d'), $userId);
+        $supported = SessionStore::isSupported();
 
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This endpoint can only be reached via POST requests.'));
-        }
-
-        if (empty($this->request->data['data'])) {
-            $this->request->data = array('data' => $this->request->data);
-        }
-        if (empty($this->request->data['data'])) {
-            throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
-        }
-        $value = $this->request->data['data'];
-        $valueConfig = $this->_jsonDecode($value['config']);
-        $dashboardWidget = $this->Dashboard->loadWidget($user, $value['widget']);
-
-        $cacheLifetime = $dashboardWidget->cacheLifetime ?? false;
-        if ($cacheLifetime !== false) {
-            $orgScope = $this->_isSiteAdmin() ? 0 : $user['org_id'];
-            $lookupHash = sha1($value['widget'] . $value['config'], true);
-            $cacheKey = "misp:dashboard:$orgScope:$lookupHash";
-
-            $redis = RedisTool::init();
-            $data = $redis->get($cacheKey);
-            if (!empty($data)) {
-                $data = RedisTool::deserialize($data);
-            } else {
-                $data = $dashboardWidget->handler($user, $valueConfig);
-                $redis->setex($cacheKey, $cacheLifetime, RedisTool::serialize($data));
-            }
-        } else {
-            $data = $dashboardWidget->handler($user, $valueConfig);
-        }
-        $renderer = method_exists($dashboardWidget, 'getRenderer') ? $dashboardWidget->getRenderer($valueConfig) : $dashboardWidget->render;
-        $config = array(
-            'render' => $renderer,
-            'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
-            'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
-        );
-
-        if (!empty($this->request->params['named']['exportjson'])) {
-            return $this->RestResponse->viewData($data);
-        } else if (!empty($this->request->params['named']['exportcsv'])) {
-            $csv = '';
-            $toConvert = !empty($data) ? (!empty($data['data']) ? $data['data'] : $data) : [];
-            if (!empty($toConvert)) {
-                $firstElement = key($toConvert);
-                if (is_string($firstElement)) {
-                    foreach ($toConvert as $key => $value) {
-                        $csv .= sprintf('%s,%s', $key, json_encode($value)) . PHP_EOL;
-                    }
-                } else { // second element is an array
-                    $csv = array_map(function($row) {
-                        $flattened = array_values(Hash::flatten($row));
-                        $stringified = array_map('strval', $flattened);
-                        $quoted = array_map(function($item) { return sprintf('"%s"', $item); }, $stringified);
-                        return implode(',', $quoted);
-                    }, $toConvert);
-                    $rowKey = implode(',', array_map(function ($item) {
-                        return sprintf('"%s"', $item);
-                    }, array_map('strval', array_keys(Hash::flatten($toConvert[0])))));
-                    $csv = $rowKey . PHP_EOL .  implode(PHP_EOL, array_values($csv));
+            // GET → confirm form fragment. Form->create() mints the
+            // CSRF token; show how many sessions the purge will end.
+            $count = 0;
+            if ($supported) {
+                $store = new SessionStore();
+                if ($store->connect()) {
+                    $count = count($store->keysForUser($userId));
                 }
             }
-            return $this->RestResponse->viewData($csv, 'text/csv', false, true);
+            $this->layout = false;
+            $this->set(compact('userId', 'email', 'count', 'supported'));
+            $this->render('invalidate_user_sessions');
+            return;
         }
 
-        $this->layout = false;
-        $this->set('title', $dashboardWidget->title);
-        $this->set('widget_id', $widget_id);
-        $this->set('data', $data);
-        $this->set('config', $config);
-        $this->render('widget_loader');
+        // POST → BetterSecurity has already validated the token. Purge.
+        $this->autoRender = false;
+        $this->response->type('json');
+        if (!$supported) {
+            $this->response->statusCode(409);
+            $this->response->body(json_encode(array(
+                'saved' => false,
+                'errors' => __('Unsupported session engine (PHP → Redis only).'),
+            )));
+            return $this->response;
+        }
+        $store = new SessionStore();
+        if (!$store->connect()) {
+            $this->response->statusCode(502);
+            $this->response->body(json_encode(array(
+                'saved' => false,
+                'errors' => __('Could not connect to the session store.'),
+            )));
+            return $this->response;
+        }
+        $killed = $store->destroy($store->keysForUser($userId));
+
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => $this->Auth->user('Organisation')['name'],
+            'model' => 'User',
+            'model_id' => $userId,
+            'email' => $this->Auth->user('email'),
+            'action' => 'logout',
+            'user_id' => $this->Auth->user('id'),
+            'title' => sprintf(__('Invalidated %d active session(s) for user %s (#%d)'), $killed, $email, $userId),
+            'change' => __('Sessions purged from the dashboard logged-in-users widget.'),
+        ));
+
+        $this->response->body(json_encode(array(
+            'saved' => true,
+            'killed' => $killed,
+            'message' => sprintf(
+                __('Ended %d session%s for %s.'),
+                $killed,
+                $killed === 1 ? '' : 's',
+                $email
+            ),
+        )));
+        return $this->response;
     }
+
+    /**
+     * Per-widget config patch (DD-05): persist a config change for one
+     * or more widgets without touching the rest of the saved layout.
+     * The configure-form Save and the toolbar's bulk-edit both POST
+     * here so neither path commits staged layout edits sitting in the
+     * client during edit mode.
+     *
+     * Wire shape:
+     *   POST data[patches]=<JSON array of {instance_id, config}>
+     *
+     * Single-widget callers (configure form) send a one-entry array;
+     * bulk callers (toolbar) send N entries — the server applies all
+     * patches in a single setSetting write so partial failures don't
+     * leave the blob in a mixed state.
+     *
+     * 404 on no saved blob (the client falls back to a full
+     * `updateSettings` so first-save users aren't stuck) or on an
+     * unknown instance_id (likely concurrent removal in another tab).
+     */
+    public function updateWidgetSettings()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $rawPatches = isset($this->request->data['patches'])
+            ? $this->request->data['patches']
+            : null;
+        if ($rawPatches === null) {
+            throw new BadRequestException(__('No patches provided.'));
+        }
+        $patches = is_string($rawPatches)
+            ? json_decode($rawPatches, true)
+            : $rawPatches;
+        if (!is_array($patches) || empty($patches)) {
+            throw new BadRequestException(__('Malformed or empty patches.'));
+        }
+
+        // Normalise + validate each patch entry up front so a malformed
+        // entry can't half-apply.
+        $normalised = array();
+        foreach ($patches as $patch) {
+            if (!is_array($patch)) {
+                throw new BadRequestException(__('Patch entry must be an object.'));
+            }
+            if (empty($patch['instance_id']) || !is_string($patch['instance_id'])) {
+                throw new BadRequestException(__('Patch entry missing instance_id.'));
+            }
+            if (!array_key_exists('config', $patch)) {
+                throw new BadRequestException(__('Patch entry missing config.'));
+            }
+            $cfg = $patch['config'];
+            if (is_string($cfg)) {
+                $cfg = json_decode($cfg, true);
+            }
+            if (!is_array($cfg)) {
+                $cfg = array();
+            }
+            $normalised[] = array(
+                'instance_id' => $patch['instance_id'],
+                'config'      => $cfg,
+            );
+        }
+
+        $user = $this->Auth->user();
+        $saved = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        if (!is_array($saved)) {
+            throw new NotFoundException(__('No saved dashboard layout.'));
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($saved);
+
+        // Index widgets by instance_id once; patches touching the same
+        // instance more than once apply in order (last write wins).
+        $index = array();
+        foreach ($widgets as $i => $w) {
+            if (!empty($w['instance_id'])) {
+                $index[$w['instance_id']] = $i;
+            }
+        }
+        // PRD §5.5 — validate canonical-typed slots before applying any
+        // patch. Catches malformed shapes (e.g. tag_filter as a scalar,
+        // threat_level as a non-numeric string) loudly at save time
+        // rather than letting them silently coerce to empty filters at
+        // render time. Validators accept both canonical and legacy
+        // shapes; a layout-drag re-POST of an un-edited legacy config
+        // passes through unchanged.
+        $validationErrors = array();
+        foreach ($normalised as $p) {
+            if (!isset($index[$p['instance_id']])) {
+                throw new NotFoundException(__('Widget instance not found in saved layout.'));
+            }
+            $className = $widgets[$index[$p['instance_id']]]['widget'];
+            try {
+                $widget = $this->Dashboard->loadWidget($user, $className);
+            } catch (Exception $e) {
+                // Widget class missing or ACL-blocked — skip validation
+                // for this patch and let the save proceed. The render-
+                // time path will surface the underlying error.
+                $widget = null;
+            }
+            if ($widget !== null) {
+                $errs = CanonicalTypeAdapter::validate($widget, $p['config']);
+                if ($errs !== null) {
+                    $validationErrors[$p['instance_id']] = $errs;
+                }
+            }
+        }
+        if (!empty($validationErrors)) {
+            throw new BadRequestException(__(
+                'Canonical-type validation failed: %s',
+                json_encode($validationErrors, JSON_UNESCAPED_SLASHES)
+            ));
+        }
+        foreach ($normalised as $p) {
+            $widgets[$index[$p['instance_id']]]['config'] = $p['config'];
+        }
+
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard',
+                'value'   => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting($user, $data);
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateWidgetSettings',
+                false,
+                false,
+                __('Widget settings updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateWidgetSettings',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
+    }
+
+    public function renderWidget($instance_id = null)
+    {
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
+        App::uses('WidgetCache', 'Lib/Dashboard/Tools');
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $widgetName = isset($this->request->data['widget']) ? $this->request->data['widget'] : null;
+        $rawConfig  = isset($this->request->data['config']) ? $this->request->data['config'] : '[]';
+        $config = is_string($rawConfig)
+            ? (json_decode($rawConfig, true) ?: array())
+            : (array)$rawConfig;
+        if (empty($widgetName) || !preg_match('/^[A-Za-z0-9_]+Widget$/', $widgetName)) {
+            throw new BadRequestException(__('Missing or malformed widget name.'));
+        }
+
+        $widget = $this->Dashboard->loadWidget($this->Auth->user(), $widgetName);
+        // PRD §5.5 keystone — translate canonical wire shapes (ISO 8601
+        // durations, etc.) into the legacy shapes each widget's handler()
+        // parses, driven off $widget->$schema. Also injects schema-
+        // declared defaults for missing keys. Legacy values (existing
+        // saved configs) and keys without a schema entry pass through
+        // unchanged.
+        $config = CanonicalTypeAdapter::translate($widget, $config);
+        // Generic per-widget cache (DD-20): widgets that declare
+        // $cache_duration (and optionally $cache_path) have their whole
+        // handler() payload cached in Redis, keyed by config. Widgets
+        // without those properties run live — remember() is a transparent
+        // pass-through then. A widget that declares cache_scope = 'user'
+        // (DD-21) additionally keys by the requesting user, so $user is
+        // passed through for the per-user key segment.
+        $user = $this->Auth->user();
+        $data = WidgetCache::remember($widget, $config, function () use ($widget, $user, $config) {
+            return $widget->handler($user, $config);
+        }, $user);
+        $renderer = method_exists($widget, 'getRenderer')
+            ? $widget->getRenderer($config)
+            : $widget->render;
+
+        // Per-widget raw-data export (the toolbar download button) +
+        // the REST render payload. Mirrors the v1 dashboards renderWidget
+        // named-param contract:
+        //   exportjson → the BARE handler output ($data) — same bytes
+        //                v1 emitted, so saved files + REST clients match.
+        //   exportcsv  → the flattened CSV (see _dataToCsv).
+        //   plain _isRest() (no export param) → the v2 wrapped render
+        //                payload (instance_id/widget/config/renderer/data)
+        //                that programmatic render clients consume.
+        // exportjson must stay SEPARATE from the wrapped branch: the
+        // download is "give me the data", not "give me the render
+        // envelope".
+        $named = isset($this->request->params['named']) ? $this->request->params['named'] : array();
+        if (!empty($named['exportjson'])) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        }
+        if (!empty($named['exportcsv'])) {
+            return $this->RestResponse->viewData(
+                $this->_dataToCsv($data),
+                'text/csv',
+                false,
+                true
+            );
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array(
+                'instance_id' => $instance_id,
+                'widget'      => $widgetName,
+                'config'      => $config,
+                'renderer'    => $renderer,
+                'data'        => $data,
+            ), $this->response->type());
+        }
+
+        // Web UI: render the widget body HTML via the renderer dispatcher.
+        $this->layout = false;
+        $this->set('widget', $widget);
+        $this->set('data', $data);
+        $this->set('instance_id', $instance_id);
+        $this->set('renderer', $renderer);
+        $this->set('config', $config);
+        $this->render('render_widget');
+    }
+
+    /**
+     * Flatten a widget's `handler()` return into a CSV string.
+     * Mirrors the v1 dashboards renderWidget exportcsv branch closely
+     * enough that REST clients written against v1 keep working.
+     */
+    private function _dataToCsv($data)
+    {
+        $toConvert = !empty($data) ? (!empty($data['data']) ? $data['data'] : $data) : array();
+        if (empty($toConvert)) {
+            return '';
+        }
+        $firstKey = key($toConvert);
+        if (is_string($firstKey)) {
+            $rows = array();
+            foreach ($toConvert as $k => $v) {
+                $rows[] = sprintf('%s,%s', $k, json_encode($v));
+            }
+            return implode(PHP_EOL, $rows) . PHP_EOL;
+        }
+        $headerKeys = array_keys(Hash::flatten($toConvert[0]));
+        $header = implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, array_map('strval', $headerKeys)));
+        $rows = array_map(function ($row) {
+            $flat = array_values(Hash::flatten($row));
+            $strs = array_map('strval', $flat);
+            return implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, $strs));
+        }, $toConvert);
+        return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
+    }
+
+    /**
+     * v2 widget metadata endpoint (PRD §5.8). Lists every widget the
+     * calling user is eligible for (per each widget's optional
+     * checkPermissions hook), with the v2-additional metadata that
+     * the Add Widget gallery needs: $schema (typed-fields contract,
+     * PRD §5.7), $category (gallery grouping bucket, status / events
+     * / tags / orgs / system / custom), and $thumbnail (relative URL
+     * to a static preview image, optional).
+     *
+     * Wire shape is JSON-only — the gallery is XHR-driven and the
+     * dashboard's HTML view path has no template for this endpoint.
+     * Returns a flat list ordered by class name (the existing
+     * `ksort` in `Dashboard::loadAllWidgets`); the client groups by
+     * category at render time.
+     *
+     * The legacy `Dashboard::loadAllWidgets` enumeration is kept
+     * untouched (additive-only posture); v2 keys are enriched here
+     * by re-loading each widget via `loadWidget` so we have an
+     * instance to read the new optional properties off. The
+     * double-instantiation cost (~38 widgets) is acceptable for an
+     * on-demand gallery open; if it ever surfaces as a hot path the
+     * natural cleanup is to fold the enrichment into
+     * `Dashboard::__extractMeta` directly.
+     */
+    public function widgets()
+    {
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+        $user = $this->Auth->user();
+        $widgets = $this->Dashboard->loadAllWidgets($user);
+        $out = [];
+        foreach ($widgets as $className => $meta) {
+            $instance = $this->Dashboard->loadWidget($user, $className, true);
+            if ($instance === false) {
+                // Race: checkPermissions flipped between the
+                // enumeration and the re-load. Skip silently.
+                continue;
+            }
+            $meta['schema'] = WidgetSchema::getSchema($instance);
+            $meta['category'] = isset($instance->category)
+                && is_string($instance->category)
+                ? $instance->category
+                : '';
+            $meta['thumbnail'] = isset($instance->thumbnail)
+                && is_string($instance->thumbnail)
+                ? $instance->thumbnail
+                : '';
+            $out[] = $meta;
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * List sharing groups visible to the current user, in a
+     * lightweight `[{id, name}]` shape suitable for the
+     * sharing_group_filter canonical picker.
+     *
+     * The canonical-typed sharing_group_filter slot's JS picker
+     * needs a list of options to render. Unlike the int-enum
+     * canonicals (distribution / threat_level / analysis) whose
+     * valid range is a fixed global enum, sharing groups are
+     * user-specific — admin sees every SG, regular users see
+     * only the SGs they're members of (or whose org is a member).
+     * Embedding a static enum on the client side is impossible.
+     *
+     * Why a dedicated dashboard endpoint vs.
+     * `/sharing_groups/index.json`:
+     *   The standard SG index returns the full
+     *   {SharingGroup, Organisation, SharingGroupOrg, SharingGroup-
+     *   Server, editable, deletable} blob — ~1KB per SG, designed
+     *   for the SG browse page. A picker for 50 SGs would download
+     *   ~50KB of mostly-irrelevant data. This endpoint trims to
+     *   {id, name} per SG (typically <50 bytes), suitable for the
+     *   minimal picker UX. Same ACL semantics as the canonical SG
+     *   index — `SharingGroup::fetchAllAuthorised` with `scope=name`
+     *   delegates the visibility check to the existing model layer.
+     *
+     * Sorted by name ASC (the `fetchAllAuthorised` 'name' scope
+     * returns `[id => name, ...]`; we transform to a list of
+     * `{id: int, name: string}` records to make the JS-side
+     * consumption an array iteration rather than a Map walk).
+     */
+    public function listSharingGroups()
+    {
+        $this->loadModel('SharingGroup');
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
+        $out = [];
+        foreach ($sgs as $id => $name) {
+            $out[] = [
+                'id'   => (int)$id,
+                'name' => (string)$name,
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * List galaxy types for the galaxy_cluster_filter canonical
+     * picker's scope dropdown. Returns one entry per enabled galaxy:
+     *
+     *   [{ type: string,         // galaxies.type (e.g.
+     *      name: string,         // galaxies.name
+     *      description: string,  // optional
+     *      cluster_count: int }, // # of non-deleted clusters
+     *    ...]
+     *
+     * Sorted by cluster_count DESC so high-volume galaxies (mitre-
+     * attack-pattern, threat-actor, sigma-rules) surface first in the
+     * picker.
+     *
+     * Read-only public endpoint; same '*' ACL policy as the other
+     * dashboard read endpoints. Galaxies are non-sensitive metadata
+     * (the catalogue is shared across the public MISP-galaxy repo)
+     * — no per-user ACL on the type list. Per-cluster visibility is
+     * gated by event ACL on the consumer's query path.
+     */
+    public function listGalaxyTypes()
+    {
+        $this->loadModel('Galaxy');
+        // One row per galaxy.type via the join + GROUP BY on type.
+        // Cake's `find('all')` with joins + group is the standard
+        // tool here; the result is post-processed below into the
+        // picker's flat shape.
+        $rows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields' => [
+                'Galaxy.type',
+                'Galaxy.name',
+                'Galaxy.description',
+                'COUNT(DISTINCT GalaxyCluster.id) AS cluster_count',
+            ],
+            'joins' => [[
+                'table' => 'galaxy_clusters',
+                'alias' => 'GalaxyCluster',
+                'type'  => 'LEFT',
+                'conditions' => [
+                    'GalaxyCluster.galaxy_id = Galaxy.id',
+                    'GalaxyCluster.deleted = 0',
+                ],
+            ]],
+            'conditions' => ['Galaxy.enabled' => 1],
+            'group' => ['Galaxy.type', 'Galaxy.name', 'Galaxy.description'],
+            'order' => ['cluster_count DESC', 'Galaxy.name ASC'],
+        ]);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'type'          => (string)$row['Galaxy']['type'],
+                'name'          => (string)$row['Galaxy']['name'],
+                'description'   => (string)$row['Galaxy']['description'],
+                'cluster_count' => (int)$row[0]['cluster_count'],
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Typeahead-style search for galaxy clusters, scoped by galaxy
+     * type. Returns up to 50 matching clusters per query, ordered
+     * alphabetically by value.
+     *
+     * Query parameters:
+     *   - galaxy_type (required): galaxies.type value
+     *     (e.g. 'mitre-attack-pattern')
+     *   - q          (optional):  case-insensitive substring match
+     *     on the cluster's value. Empty / unset = return the first
+     *     50 clusters of the type, unfiltered.
+     *
+     * Response:
+     *   [{ tag_name: string, value: string, uuid: string }, ...]
+     *
+     * Why typeahead vs. exhaustive list: the test instance has
+     * 55,036 clusters across 121 galaxy types. Returning all
+     * clusters for a single popular type (e.g. mitre-attack-pattern
+     * = 1,296 clusters) is still ~150KB of JSON; for sigma-rules
+     * (6,961 clusters) it's ~800KB. Substring search caps the
+     * payload at the 50-result limit (~5KB typical) and matches the
+     * UX pattern users expect from a search-as-you-type input.
+     *
+     * Read-only public endpoint; same '*' ACL policy as the other
+     * dashboard read endpoints.
+     */
+    /**
+     * Typeahead search for the `org_filter` canonical picker. Returns
+     * up to 50 organisations matching the optional `q` substring query
+     * (matched against `Organisation.name`).
+     *
+     *   [{ id:   int,
+     *      uuid: string,
+     *      name: string }, ...]
+     *
+     * Read-only; same '*' ACL policy as the other dashboard picker
+     * endpoints. Organisation names + UUIDs are not sensitive (any
+     * MISP user can already see them via the org index page); per-
+     * org event/attribute ACL is enforced downstream by the
+     * consumer widget's query path against an already-ACL-filtered
+     * base set. Result order: name ASC for deterministic UX.
+     */
+    public function searchOrganisations()
+    {
+        $named = isset($this->request->params['named']) ? $this->request->params['named'] : [];
+        $query = isset($this->request->query) ? $this->request->query : [];
+        $q = isset($query['q'])
+            ? (string)$query['q']
+            : (isset($named['q']) ? (string)$named['q'] : '');
+        $this->loadModel('Organisation');
+        $conditions = [];
+        if ($q !== '') {
+            // Same LIKE-wildcard scrub as the galaxy cluster search.
+            $cleanQ = str_replace(['%', '_'], '', $q);
+            $conditions['Organisation.name LIKE'] = '%' . $cleanQ . '%';
+        }
+        $rows = $this->Organisation->find('all', [
+            'recursive'  => -1,
+            'fields'     => ['Organisation.id', 'Organisation.uuid', 'Organisation.name'],
+            'conditions' => $conditions,
+            'order'      => 'Organisation.name ASC',
+            'limit'      => 50,
+        ]);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'id'   => (int)$row['Organisation']['id'],
+                'uuid' => (string)$row['Organisation']['uuid'],
+                'name' => (string)$row['Organisation']['name'],
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    public function searchGalaxyClusters()
+    {
+        $named = isset($this->request->params['named']) ? $this->request->params['named'] : [];
+        $query = isset($this->request->query) ? $this->request->query : [];
+        $galaxyType = isset($query['galaxy_type']) ? (string)$query['galaxy_type'] : (isset($named['galaxy_type']) ? (string)$named['galaxy_type'] : '');
+        $q          = isset($query['q'])          ? (string)$query['q']          : (isset($named['q'])          ? (string)$named['q']          : '');
+        if ($galaxyType === '' || !preg_match('/^[A-Za-z0-9_\-]+$/', $galaxyType)) {
+            throw new BadRequestException(__('Missing or malformed `galaxy_type` parameter.'));
+        }
+        $this->loadModel('GalaxyCluster');
+        $conditions = [
+            'GalaxyCluster.type'    => $galaxyType,
+            'GalaxyCluster.deleted' => 0,
+        ];
+        if ($q !== '') {
+            // LIKE with %wrapped% substring match. CakePHP escapes
+            // the right-hand value, but `%` and `_` are LIKE wildcards
+            // — strip them from user input so the search behaves as
+            // a plain substring lookup, not a pattern match.
+            $cleanQ = str_replace(['%', '_'], '', $q);
+            $conditions['GalaxyCluster.value LIKE'] = '%' . $cleanQ . '%';
+        }
+        $rows = $this->GalaxyCluster->find('all', [
+            'recursive' => -1,
+            'fields' => ['GalaxyCluster.tag_name', 'GalaxyCluster.value', 'GalaxyCluster.uuid'],
+            'conditions' => $conditions,
+            'order' => 'GalaxyCluster.value ASC',
+            'limit' => 50,
+        ]);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'tag_name' => (string)$row['GalaxyCluster']['tag_name'],
+                'value'    => (string)$row['GalaxyCluster']['value'],
+                'uuid'     => (string)$row['GalaxyCluster']['uuid'],
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Render the widget wrapper element (PRD §8.3) for a new tile
+     * just placed by the Add Widget flow. The wrapper carries every
+     * §8.5 hook attribute (data-misp-widget, data-widget-*, data-
+     * position-*, data-drag-handle, data-misp-widget-content, data-
+     * misp-widget-action, data-resize-handle) and resolves through
+     * Cake's themed view path, so an Overmind dashboard gets the
+     * Overmind-shaped card and a default dashboard gets the default
+     * <article>. The widget body stays a "Loading…" placeholder
+     * until the client kicks off the usual renderWidget POST.
+     *
+     * Wire contract:
+     *   POST /dashboards/renderWrapper/<instance_id>
+     *     widget   class name (validated, regex-gated)
+     *     config   JSON-encoded user config (post-form-save)
+     *     w, h     grid footprint (cell count); x, y placement
+     *
+     * ACL posture (per user direction during the placement design):
+     *   `loadWidget` enforces `checkPermissions($user)` and throws
+     *   `NotFoundException` on failure with the same error shape as
+     *   an unknown widget class, so the endpoint cannot be probed
+     *   for the existence of admin-only widgets. The gate is
+     *   bit-for-bit identical to what `renderWidget` enforces —
+     *   add and render paths share the same permission check.
+     */
+    public function renderWrapper($instance_id = null)
+    {
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $widgetName = isset($this->request->data['widget']) ? $this->request->data['widget'] : null;
+        if (empty($widgetName) || !preg_match('/^[A-Za-z0-9_]+Widget$/', $widgetName)) {
+            throw new BadRequestException(__('Missing or malformed widget name.'));
+        }
+        if (empty($instance_id) || !preg_match('/^w_[A-Za-z0-9_]+$/', $instance_id)) {
+            throw new BadRequestException(__('Missing or malformed instance id.'));
+        }
+        // Same gate as renderWidget — checkPermissions is the
+        // authoritative ACL hook; a 404 here is indistinguishable
+        // from an unknown widget class, so this endpoint cannot leak
+        // the existence of admin-only widgets to a non-admin probe.
+        $user = $this->Auth->user();
+        $widget = $this->Dashboard->loadWidget($user, $widgetName);
+
+        $rawConfig = isset($this->request->data['config']) ? $this->request->data['config'] : '{}';
+        $config = is_string($rawConfig)
+            ? (json_decode($rawConfig, true) ?: array())
+            : (array)$rawConfig;
+        if (!is_array($config)) {
+            $config = array();
+        }
+        // Position falls back to the widget's declared default size if
+        // the client didn't send one (defensive — placement always
+        // sends, but mis-wired callers shouldn't crash the wrapper).
+        $declaredW = isset($widget->width)  && is_numeric($widget->width)  ? (int)$widget->width  : 4;
+        $declaredH = isset($widget->height) && is_numeric($widget->height) ? (int)$widget->height : 3;
+        $w = isset($this->request->data['w']) ? (int)$this->request->data['w'] : $declaredW;
+        $h = isset($this->request->data['h']) ? (int)$this->request->data['h'] : $declaredH;
+        $x = isset($this->request->data['x']) ? (int)$this->request->data['x'] : 0;
+        $y = isset($this->request->data['y']) ? (int)$this->request->data['y'] : 0;
+
+        // Enrich with $schema + $placeholder so the wrapper emits the
+        // attributes the configure form reads on the next Edit cycle
+        // (mirrors the index() enrichment loop, kept inline rather
+        // than factored so the index() path stays additive-only).
+        $schema = WidgetSchema::getSchema($widget);
+        if (!is_array($schema)) {
+            $schema = array();
+        }
+        // Per-instance display name (alias, DD-18) — mirrors index().
+        // Surface the class title for the wrapper's default label and
+        // prepend a string schema field so the configure form offers
+        // the alias on the next Edit. No `default` (blank = use name).
+        $title = (isset($widget->title) && is_string($widget->title))
+            ? $widget->title
+            : $widgetName;
+        $schema = array('alias' => array(
+            'type' => 'string',
+            'help' => sprintf(
+                __('Display name for this widget. Leave blank to use the widget\'s name (%s).'),
+                $title
+            ),
+        )) + $schema;
+        $placeholder = isset($widget->placeholder) && is_string($widget->placeholder)
+            ? $widget->placeholder
+            : '';
+        // Phase 5 scheduler — wrapper.ctp emits data-widget-refresh-delay
+        // from this value (only when > 0). CLASS DEFAULT only; client-
+        // side enqueue handles config.refresh_delay override resolution
+        // (see index() rationale).
+        $autoRefreshDelay = 0;
+        if (!empty($widget->autoRefreshDelay)
+                && is_numeric($widget->autoRefreshDelay)) {
+            $autoRefreshDelay = (int)$widget->autoRefreshDelay;
+        }
+        // F2.5 schema injection — mirrors index(); see commentary
+        // there for the no-`default` rationale.
+        if ($autoRefreshDelay > 0) {
+            if (!is_array($schema)) {
+                $schema = array();
+            }
+            $schema['refresh_delay'] = array(
+                'type' => 'int',
+                'help' => sprintf(
+                    __('Override the auto-refresh interval (seconds). Leave blank to use the widget default (%ds). Set to 0 to disable auto-refresh for this tile.'),
+                    $autoRefreshDelay
+                ),
+            );
+        }
+
+        $widgetData = array(
+            'widget'           => $widgetName,
+            'instance_id'      => $instance_id,
+            'config'           => $config,
+            'schema'           => $schema,
+            'placeholder'      => $placeholder,
+            'autoRefreshDelay' => $autoRefreshDelay,
+            'title'            => $title,
+            'position'         => array('x' => $x, 'y' => $y, 'w' => $w, 'h' => $h),
+        );
+
+        // Cake's themed view resolver picks Themed/<Theme>/Elements/
+        // dashboard/widget/wrapper.ctp when a theme is active, falls
+        // back to the default Elements/dashboard/widget/wrapper.ctp
+        // otherwise. AppController::beforeFilter sets $this->theme
+        // off UserSetting:ui_theme for non-REST requests; our XHR is
+        // not REST (sends Accept: text/html, no auth-key) so the
+        // active theme propagates here without extra wiring. The
+        // render_wrapper.ctp view file just dispatches to the
+        // themed-resolved element — mirrors render_widget.ctp's
+        // structure.
+        $this->layout = false;
+        $this->set('widget', $widgetData);
+        $this->render('render_wrapper');
+    }
+
+    /* ============================================================
+     * Phase 1 v1 carryover (per audit Done note in
+     * dashboard-progress.md). The five template / import / export
+     * actions live here verbatim during Phase 1 so the dashboard
+     * header's "⋯ More" dropdown (DD-08) keeps its URLs working.
+     * Phase 4 reimplements each v2-native; until then, no edits
+     * other than what the rename pass mechanically rewrites.
+     * ============================================================ */
 
     public function import()
     {
@@ -308,8 +1141,6 @@ class DashboardsController extends AppController
                 }
                 $this->redirect($this->baseurl . '/dashboards/listTemplates');
             }
-        } else {
-            $this->layout = false;
         }
         $permFlags = array(0 => __('Unrestricted'));
         foreach ($this->User->Role->permFlags as $perm_flag => $perm_data) {
@@ -343,12 +1174,42 @@ class DashboardsController extends AppController
             $this->request->data = $existingDashboard;
         }
         $this->set('options', $options);
+        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
+        $this->set('isUpdate', !empty($update));
+        $this->set('updateRef', $update);
+        // Slide-in panel path: an XHR GET wants just the form (no page
+        // chrome) to inject into the dashboard's shared configure panel
+        // (save-template.module.mjs). Additive — the POST handling, the
+        // full-page GET below, and beforeFilter's CSRF posture are
+        // unchanged; the rendered form still carries its Security token.
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+            $this->render('save_template_form_ajax');
+            return;
+        }
+        // Phase 4 task 5: in-page form under the dashboard layout
+        // (DD-08; no side menu rail). The action's wire shape (URL,
+        // POST body field names, REST response shape) is unchanged;
+        // only the GET render path is reworked.
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', empty($update)
+            ? __('Save dashboard template')
+            : __('Edit dashboard template'));
     }
 
     public function listTemplates()
     {
+        App::uses('TemplatePreview', 'Lib/Dashboard/Tools');
         $conditions = [];
-        $accessible_widgets = array_keys($this->Dashboard->loadAllWidgets($this->Auth->user()));
+        $allWidgets = $this->Dashboard->loadAllWidgets($this->Auth->user());
+        $accessible_widgets = array_keys($allWidgets);
+        // Title map for the SVG miniature renderer — each rect's
+        // label comes from the widget class's $title (set at the
+        // class level; the v2 fallback transforms the class name).
+        $widgetTitleMap = array();
+        foreach ($allWidgets as $cls => $meta) {
+            $widgetTitleMap[$cls] = isset($meta['title']) ? $meta['title'] : $cls;
+        }
 
         if (!$this->_isSiteAdmin()) {
             $permission_flags = [];
@@ -420,14 +1281,184 @@ class DashboardsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('passedArgs', json_encode($this->passedArgs));
-        $this->set('data', $this->viewVars['data']);
+
+        // ------------------------------------------------------------
+        // Phase 4 — template gallery view (PRD §5.4 / DD-08).
+        // The data-fetching path above stays verbatim so REST output
+        // is unchanged (preserves the "endpoints unchanged on the
+        // wire" tracker promise). HTML rendering switches from the
+        // generic IndexTable view to a server-rendered gallery
+        // grouped by ownership: My / Featured / Shared with me.
+        // ------------------------------------------------------------
+        $rows = $this->viewVars['data'];
+        $mine = [];
+        $featured = [];
+        $shared = [];
+        $starter = [];
+        foreach ($rows as $row) {
+            $dash = $row['Dashboard'];
+            // Built-in starter templates ship with MISP (DD-22): owned by
+            // the system (user_id 0), they get their own gallery bucket
+            // rather than landing in "Shared with me".
+            if ((int)$dash['user_id'] === 0) {
+                $starter[] = $row;
+            } elseif (!empty($dash['default'])) {
+                $featured[] = $row;
+            } elseif ((int)$dash['user_id'] === (int)$currentUserId) {
+                $mine[] = $row;
+            } else {
+                $shared[] = $row;
+            }
+        }
+
+        // Lookup maps so the view can render restrict_to_* badges
+        // with human-readable labels rather than raw ids.
+        $orgMap = $this->User->Organisation->find('list', array(
+            'fields' => array('Organisation.id', 'Organisation.name'),
+            'conditions' => array('Organisation.local' => 1),
+        ));
+        $roleMap = $this->User->Role->find('list', array(
+            'fields' => array('Role.id', 'Role.name'),
+        ));
+        $permFlagLabels = array();
+        foreach ($this->User->Role->permFlags as $flag => $meta) {
+            $permFlagLabels[$flag] = isset($meta['text']) ? $meta['text'] : $flag;
+        }
+
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', __('Dashboard templates'));
+        $this->set('data', $rows);
+        $this->set('mineTemplates', $mine);
+        $this->set('featuredTemplates', $featured);
+        $this->set('sharedTemplates', $shared);
+        $this->set('starterTemplates', $starter);
+        $this->set('currentUserId', (int)$currentUserId);
+        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
+        $this->set('orgMap', $orgMap);
+        $this->set('roleMap', $roleMap);
+        $this->set('permFlagLabels', $permFlagLabels);
+        $this->set('widgetTitleMap', $widgetTitleMap);
+    }
+
+    /**
+     * Import the built-in dashboard templates shipped under
+     * app/files/dashboard-templates/ into the gallery (DD-22). Mirrors
+     * the warninglist/taxonomy "update from files" admin action:
+     * site-admin only (ACL), POST only, idempotent re-ingest. Each
+     * imported template appears in the gallery's "Starter templates"
+     * bucket for every permitted user.
+     */
+    public function importDefaultTemplates()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This action is only accessible via POST requests.'));
+        }
+        $result = $this->Dashboard->importTemplatesFromDirectory(null, true);
+        $successes = count($result['success']);
+        $fails = count($result['fails']);
+        $pruned = isset($result['pruned']) ? $result['pruned'] : array();
+        $this->Log = ClassRegistry::init('Log');
+        $orgName = $this->Auth->user('Organisation')['name'];
+        foreach ($result['success'] as $id => $success) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Built-in dashboard template imported'),
+                'change' => __('Imported starter template "%s".', $success['name']),
+            ));
+        }
+        foreach ($result['fails'] as $slug => $message) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => 0,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Built-in dashboard template import failed'),
+                'change' => __('Template "%s" failed: %s', $slug, $message),
+            ));
+        }
+        foreach ($pruned as $id => $name) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'delete',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Orphaned built-in dashboard template pruned'),
+                'change' => __('Pruned starter template "%s" (no longer shipped).', $name),
+            ));
+        }
+        $promoted = isset($result['promoted_default']) ? $result['promoted_default'] : array();
+        foreach ($promoted as $id => $name) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Fallback dashboard default promoted'),
+                'change' => __('Promoted starter template "%s" to the global default (instance had none).', $name),
+            ));
+        }
+        $message = __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails);
+        if (!empty($pruned)) {
+            $message .= ' ' . __('%s orphaned pruned.', count($pruned));
+        }
+        if (!empty($promoted)) {
+            $message .= ' ' . __('Set "%s" as the default.', implode(', ', $promoted));
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'importDefaultTemplates',
+                false,
+                false,
+                $message
+            );
+        }
+        if ($fails > 0) {
+            $this->Flash->error($message);
+        } else {
+            $this->Flash->success($message);
+        }
+        $this->redirect($this->baseurl . '/dashboards/listTemplates');
     }
 
     public function deleteTemplate($id)
     {
+        // The gallery's per-card Delete button posts the template's
+        // UUID. CRUDComponent::delete typehints int and ANDs in
+        // Dashboard.id = $id under the hood, so a UUID would never
+        // resolve. Translate UUID → int id up front; preserve the
+        // non-site-admin user_id scope on the lookup so a user can't
+        // delete a peer's template by guessing its UUID.
         $conditions = [];
         if (Validation::uuid($id)) {
-            $conditions['Dashboard.uuid'] = $id;
+            $lookupConditions = ['Dashboard.uuid' => $id];
+            if (!$this->_isSiteAdmin()) {
+                $lookupConditions['Dashboard.user_id'] = $this->Auth->user('id');
+            }
+            $row = $this->Dashboard->find('first', [
+                'recursive' => -1,
+                'conditions' => $lookupConditions,
+                'fields' => ['Dashboard.id'],
+            ]);
+            if (empty($row)) {
+                throw new NotFoundException(__('Invalid dashboard template.'));
+            }
+            $id = (int)$row['Dashboard']['id'];
         }
         if (!$this->_isSiteAdmin()) {
             $conditions['Dashboard.user_id'] = $this->Auth->user('id');
@@ -440,5 +1471,89 @@ class DashboardsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    /**
+     * Reset the current user's dashboard from a template (PRD F1.5,
+     * Phase 4 task 6). POST-only — the template body overwrites the
+     * user's `UserSetting:dashboard` row. The gallery view's "Use
+     * this template" card action calls this via a postLink with a
+     * confirmation prompt (CSRF-protected).
+     *
+     * Access control: `Dashboard::getDashboardTemplate($user, $uuid)`
+     * already enforces ownership OR (selectable + restrict_to_*
+     * gates) for non-site-admins. An empty return = the user can't
+     * see this template; surface as 404 to mirror the gallery's
+     * "doesn't exist for you" stance.
+     *
+     * Per DD-05 (supersedes DD-04 in part): the template's
+     * per-widget configs become the user's configs verbatim — no
+     * "Also apply default filters" checkbox, no separate scope
+     * envelope. `LayoutFixup::applyReadFixups()` canonicalises legacy
+     * template payloads (no `instance_id`, v1 `width/height` keys)
+     * into v2 shape on the way in so the user's first read of the
+     * fresh dashboard sees DD-01 shape.
+     */
+    public function resetFromTemplate($uuid = null)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST required.'));
+        }
+        if (empty($uuid)) {
+            throw new BadRequestException(__('Missing template UUID.'));
+        }
+        $user = $this->Auth->user();
+        $template = $this->Dashboard->getDashboardTemplate($user, $uuid);
+        if (empty($template)) {
+            throw new NotFoundException(__('Template not found.'));
+        }
+        $decoded = json_decode($template['Dashboard']['value'], true);
+        if (!is_array($decoded)) {
+            $decoded = array();
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($decoded);
+        // JSON-encode before handing to setSetting — the model's
+        // validate_json runs *before* beforeValidate's array→string
+        // coercion, and JsonTool::isValid (PHP 8.3 simdjson /
+        // json_validate) chokes on PHP arrays. Mirrors the encode
+        // step at updateSettings (line ~170).
+        $data = array(
+            'UserSetting' => array(
+                'user_id' => $user['id'],
+                'setting' => 'dashboard',
+                'value' => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting($user, $data);
+        $templateName = $template['Dashboard']['name'];
+        if ($this->_isRest()) {
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse(
+                    'Dashboard',
+                    'resetFromTemplate',
+                    false,
+                    false,
+                    __('Dashboard reset from template "%s".', $templateName)
+                );
+            }
+            return $this->RestResponse->saveFailResponse(
+                'Dashboard',
+                'resetFromTemplate',
+                false,
+                __('Could not reset dashboard from template.'),
+                $this->response->type()
+            );
+        }
+        if ($result) {
+            $this->Flash->success(
+                __('Dashboard reset from template "%s".', $templateName)
+            );
+        } else {
+            $this->Flash->error(
+                __('Could not reset dashboard from template "%s".', $templateName)
+            );
+        }
+        $this->redirect($this->baseurl . '/dashboards');
     }
 }

@@ -1,15 +1,10 @@
-cybox>=2.1.0.21
 jsonschema>=4.19.1
 lief>=0.13.1
-maec>=4.1.0.17
-misp-lib-stix2>=3.0.2
-misp-stix>=2026.4.28
-mixbox>=1.0.5
+misp-stix>=2026.6.3
 plyara>=2.1.1
 pydeep2>=0.5.1
 pymisp==2.5.34.1
 python-magic>=0.4.27
 pyzmq>=25.1.1
 redis>=5.0.1
-stix>=1.2.0.11
 taxii2-client>=2.3.0

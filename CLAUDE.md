@@ -140,6 +140,13 @@ Recommended: gd, redis, openssl, apcu, ssdeep, bcmath
 
 When working with CakePHP (MISP), always verify query result structures before assuming array shapes. CakePHP find() returns vary by type (first/all/list) and version.
 
+### Dashboard v2 — widget render kinds
+
+When adding a new widget render kind (any new value for `public $render` on a class under `app/Lib/Dashboard/`, or a new template under `app/View/Elements/dashboard/Widgets/`), you must also add a matching glyph to `app/webroot/js/dashboard/gallery/render-thumbs.mjs`. The Add Widget gallery uses these glyphs as fallback thumbnails for any widget that doesn't declare `$thumbnail`, so a new render kind without a glyph ships as a generic block in every gallery card that uses it. Steps:
+1. Add a `thumb<Name>()` builder following the existing pattern (single-color SVG, 80×45 viewBox, `currentColor` strokes/fills).
+2. Register it in the `REGISTRY` object at the bottom of the file under the exact `$render` string.
+3. The glyph should visually evoke the widget's output shape, not its data domain — a bar chart is bars regardless of whether it's counting events or orgs.
+
 ## Debugging
 
 When fixing bugs, always verify the root cause by comparing git blame/diff of the specific change before proposing a fix. Do not conclude old and new code are equivalent without tracing actual execution paths.

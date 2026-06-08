@@ -4,6 +4,7 @@ require_once 'OrgsContributorsGeneric.php';
 class OrgsContributorLastMonthWidget extends OrgsContributorsGeneric
 {
     public $title = 'Active Contributors in the last 30 days';
+    public $category = 'orgs';
     public $description = 'Display the logos of all organisations having shared at least one event in the past month.';
 
     protected function filter($user, $org, $start_timestamp) {

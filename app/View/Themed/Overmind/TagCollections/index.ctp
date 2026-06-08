@@ -1,36 +1,32 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('tagCollections', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Tag Collections'),
+        'url' => $baseurl . '/tagCollections/addWithTags',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'TagCollection.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('Download configuration'),
-                'icon' => 'cloud-arrow-down',
-                'url' => $baseurl . '/tagCollections/view/%id%.json',
-                'download' => true
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/tagCollections/editWithTags/%id%',
-                'requirement' => $me['Role']['perm_tag_editor']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/tagCollections/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_tag_editor']
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'TagCollection.id',
@@ -93,26 +89,39 @@ $fields = [
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table','card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'TagCollection.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('Download configuration'),
+                'icon' => 'cloud-arrow-down',
+                'url' => $baseurl . '/tagCollections/view/%id%.json',
+                'download' => true
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/tagCollections/editWithTags/%id%',
+                'requirement' => $me['Role']['perm_tag_editor']
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/tagCollections/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_tag_editor']
+            ]
+        ]
     ]
 ];
 
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('tagCollections', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Tag Collections'),
-            'url' => $baseurl . '/tagCollections/addWithTags',
-            'icon' => 'plus'
-        ]
-    ]);
-}
-
-/**
- * Scaffold
- */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [

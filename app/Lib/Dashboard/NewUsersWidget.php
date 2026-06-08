@@ -3,6 +3,7 @@
 class NewUsersWidget
 {
     public $title = 'New users';
+    public $category = 'system';
     public $render = 'Index';
     public $width = 7;
     public $height = 6;
@@ -10,6 +11,14 @@ class NewUsersWidget
     private $tableDescription = null;
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() redacts the email field unless the viewer is a site-admin
+    // (or Security.disclose_user_emails is set), so the payload depends on
+    // the viewer's role. cache_scope='user' keys by user id so a payload
+    // built for one viewer (with/without emails) is never served to
+    // another.
+    public $cache_duration = false;
+    public $cache_scope = 'user';
     public $params = [
         'limit' => 'Maximum number of joining users shown. (integer, defaults to 10 if not set)',
         'filter' => 'A list of filters for the organisations (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
@@ -20,6 +29,16 @@ class NewUsersWidget
         'start_date' => 'The ISO 8601 date format at which to start',
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, email, Organisation.name, Role.name, date_created]'
+    ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (nationality, sector, type, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Date range covering the user-joined window. Canonical 1-to-N expansion writes top-level start_date / end_date keys at translate time — legacy configs with those keys keep working unchanged.',
+        ],
     ];
     private $validFilterKeys = [
         'id',
@@ -152,24 +171,26 @@ class NewUsersWidget
         if ($timeConditions) {
             $params['conditions']['AND'][] = $timeConditions;
         }
+        
+        // redact e-mails for non site admins unless specifically allowed
+        if (
+            empty($user['Role']['perm_site_admin']) &&
+            !Configure::read('Security.disclose_user_emails')
+        ) {
+                unset($field_options['email']);
+        }
+
+        $fields = [];
         if (isset($options['fields'])) {
-            $fields = [];
             foreach ($options['fields'] as $field) {
                 if (isset($field_options[$field])) {
                     $fields[$field] = $field_options[$field];
                 }
             }
-        } else {
-            $fields = $field_options;
         }
 
-        // redact e-mails for non site admins unless specifically allowed
-        if (
-            empty($user['Role']['perm_site_admin']) &&
-            !Configure::read('Security.disclose_user_emails') &&
-            isset($fields['email'])
-        ) {
-                unset($fields['email']);
+        if (empty($fields)) {
+            $fields = $field_options;
         }
         $data = $this->User->find('all', [
             'recursive' => -1,

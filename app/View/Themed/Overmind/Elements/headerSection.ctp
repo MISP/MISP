@@ -1,64 +1,130 @@
-<div class="bg-primary text-white py-5 shadow-sm">
-    <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center">
+<?php
+$breadcrumb = '';
+if (!empty($currentController)) {
+    $breadcrumb = ucfirst(h($currentController));
+    if (!empty($currentAction)) {
+        $breadcrumb .= ' > ' . ucfirst(h($currentAction));
+    }
+}
+$title = isset($headerTitle)
+    ? h($headerTitle)
+    : (isset($currentController) ? ucfirst(h($currentController)) : '');
+?>
 
-            <h2 class="fw-semibold mb-0 d-flex align-items-center">
-                <?php if (isset($currentController)): ?>
-                    <?php if (isset($currentAction)): ?>
-                        <span class="text-white-50 text-capitalize">
-                            <?= h($currentController) ?>
-                        </span>
+<div class="container-fluid py-3">
 
-                        <span class="mx-2 text-white-50">></span>
+    <div class="d-flex justify-content-between align-items-center">
 
-                        <span class="text-white text-capitalize">
-                            <?= h($currentAction) ?>
-                        </span>
-                    <?php else: ?>
-                        <span class="text-white text-capitalize">
-                            <?= h($currentController) ?>
-                        </span>
-                    <?php endif; ?>
-                <?php endif; ?>
-            </h2>
-            <?php if (!empty($headerActions)): ?>
-                <div class="d-flex gap-2">
-                    <?php foreach ($headerActions as $action): ?>
-                        <?php if ($action['type'] === 'link'): ?>
-                            <a href="<?= h($action['url']) ?>"
+        <div class="d-flex flex-column">
+            <?php if ($breadcrumb): ?>
+                <span class="text-muted text-uppercase fw-semibold mb-1"
+                        style="font-size:0.68rem; letter-spacing:0.07em;">
+                    <?= $breadcrumb ?>
+                </span>
+            <?php endif; ?>
+
+            <h1 class="mb-0 fw-bold lh-1" style="font-size:2rem;">
+                <?= $title ?>
+            </h1>
+
+            <?php if (!empty($headerDescription)): ?>
+                <p class="text-muted mb-0 mt-1" style="font-size:0.85rem;">
+                    <?= h($headerDescription) ?>
+                </p>
+            <?php else: //small space, just to match the size of the Flash messages ?>
+                <div style="height: 0.5rem;"></div>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($headerActions)): ?>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <?php foreach ($headerActions as $action): ?>
+
+                    <?php if ($action['type'] === 'navigate'): ?>
+                        <a href="<?= h($action['url']) ?>"
                             <?php if (!empty($action['onClick'])): ?>
                                 onclick="event.preventDefault(); <?= h($action['onClick']) ?>();"
                             <?php endif; ?>
                             <?php if (!empty($action['id'])): ?>
                                 id="<?= h($action['id']) ?>"
                             <?php endif; ?>
-                            class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2">
-                                <i class="fas fa-<?= h($action['icon']) ?>"></i>
-                                <?= h($action['label']) ?>
-                            </a>
-                        <?php elseif ($action['type'] === 'post'): ?>
-                            <?php
-                                echo $this->Form->postLink(
-                                    '<i class="fas fa-' . h($action['icon']) . '"></i> ' . h($action['label']),
-                                    $action['url'],
-                                    [
-                                        'class' => 'btn btn-outline-light shadow-sm fw-semibold d-flex align-items-center gap-2',
-                                        'escape' => false,
-                                    ]
-                                );
-                            ?>
-                        <?php elseif ($action['type'] === 'ajax'): ?>
-                            <a class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2"
-                            href="<?= h($action['url']) ?>"
-                            onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');">
-                                <i class="fas fa-<?= h($action['icon']) ?>"></i>
-                                <?= h($action['label']) ?>
-                            </a>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                            class="btn btn-outline-dark fw-semibold d-flex align-items-center gap-2">
+                            <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                            <?= h($action['label']) ?>
+                        </a>
 
-        </div>
+                    <?php elseif ($action['type'] === 'action'): ?>
+                        <?php
+                            echo $this->Form->postLink(
+                                '<i class="fas fa-' . h($action['icon']) . '"></i> '
+                                    . h($action['label']),
+                                $action['url'],
+                                [
+                                    'class' => 'btn btn-outline-primary fw-semibold'
+                                        . ' d-flex align-items-center gap-2',
+                                    'escape' => false,
+                                ]
+                            );
+                        ?>
+
+                    <?php elseif ($action['type'] === 'modal'): ?>
+                        <a href="<?= h($action['url']) ?>"
+                            onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');"
+                            class="btn btn-primary fw-semibold d-flex align-items-center gap-2">
+                            <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                            <?= h($action['label']) ?>
+                        </a>
+
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
     </div>
+
+    <?php if (!empty($headerStats)): ?>
+        <div class="row g-3 mt-2">
+            <?php foreach ($headerStats as $stat): ?>
+                <?php
+                    $color = h($stat['color'] ?? 'secondary');
+                    $subtitleColor = h($stat['subtitleColor'] ?? 'muted');
+                ?>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 border-start border-4
+                                border-<?= $color ?>"
+                            style="background:var(--bs-body-secondary-bg,
+                                var(--bs-secondary-bg));">
+                        <div class="card-body p-3 d-flex
+                                    justify-content-between align-items-start">
+                            <div>
+                                <div class="text-uppercase fw-semibold text-secondary mb-1"
+                                        style="font-size:0.65rem; letter-spacing:0.08em;">
+                                    <?= h($stat['label']) ?>
+                                </div>
+                                <div class="fw-bold lh-1 mb-1"
+                                        style="font-size:1.75rem;">
+                                    <?= h($stat['value']) ?>
+                                </div>
+                                <?php if (!empty($stat['subtitle'])): ?>
+                                    <div class="text-<?= $subtitleColor ?>"
+                                            style="font-size:0.75rem;">
+                                        <?php if (!empty($stat['subtitleIcon'])): ?>
+                                            <i class="fas fa-<?= h($stat['subtitleIcon']) ?> me-1"></i>
+                                        <?php endif; ?>
+                                        <?= h($stat['subtitle']) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!empty($stat['icon'])): ?>
+                                <i class="fas fa-<?= h($stat['icon']) ?> text-<?= $color ?> opacity-25 fa-xl"></i>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
 </div>
+

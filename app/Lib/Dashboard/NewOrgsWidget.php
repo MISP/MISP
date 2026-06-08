@@ -3,6 +3,7 @@
 class NewOrgsWidget
 {
     public $title = 'New organisations';
+    public $category = 'orgs';
     public $render = 'Index';
     public $width = 7;
     public $height = 6;
@@ -23,6 +24,12 @@ class NewOrgsWidget
         'year' => 'Which organisations have been added this year? (boolean)',
         'local' => 'Should the list only show local organisations? (boolean or list of booleans, defaults to 1. To get both sets, use [0,1])',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, uuid, name, sector, type, nationality, creation_date]'
+    ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
     ];
     private $validFilterKeys = [
         'nationality',
@@ -165,14 +172,15 @@ class NewOrgsWidget
         if ($timeConditions) {
             $params['conditions']['AND'][]['AND'] = $timeConditions;
         }
+        $fields = [];
         if (isset($options['fields'])) {
-            $fields = [];
             foreach ($options['fields'] as $field) {
                 if (isset($field_options[$field])) {
                     $fields[$field] = $field_options[$field];
                 }
             }
-        } else {
+        }
+        if (empty($fields)) {
             $fields = $field_options;
         }
         $data = $this->Organisation->find('all', [

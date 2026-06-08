@@ -6,6 +6,79 @@ class NavbarHelper extends AppHelper {
 
     public $helpers = ['Acl', 'UserName', 'Html', 'OrgImg'];
 
+    // Maps controller (lowercased) → menu id.
+    // Use a nested array to override by action: ['default' => id, 'action' => id].
+    private const ACTIVE_MENU_MAP = [
+        // Data points
+        'events'            => ['default' => 'datapoints', 'automation' => 'api', 'export' => 'api'],
+        'attributes'        => 'datapoints',
+        'shadow_attributes' => 'datapoints',
+        'event_delegations' => 'datapoints',
+        'collections'       => 'datapoints',
+        'event_reports'     => 'datapoints',
+        'analystdata'       => 'datapoints',
+        'dashboards'        => 'datapoints',
+        // Data models
+        'tags'                     => 'datamodels',
+        'tagcollections'           => 'datamodels',
+        'taxonomies'               => 'datamodels',
+        'galaxies'                 => 'datamodels',
+        'galaxy_cluster_relations' => 'datamodels',
+        'decayingmodel'            => 'datamodels',
+        'objecttemplates'          => 'datamodels',
+        'object_relationships'     => 'datamodels',
+        'event_templates'          => 'datamodels',
+        'warninglists'             => 'datamodels',
+        'noticelists'              => 'datamodels',
+        'regexp'                   => 'datamodels',
+        'allowedlists'             => 'datamodels',
+        'correlation_exclusions'   => 'datamodels',
+        // Sync
+        'syncconfigs'            => 'sync',
+        'feeds'                  => 'sync',
+        'sharinggroups'          => 'sync',
+        'sharinggroupblueprints' => 'sync',
+        'communities'            => 'sync',
+        'cerebrates'             => 'sync',
+        'taxiiservers'           => 'sync',
+        'sightingdb'             => 'sync',
+        'servers'                => ['default' => 'sync', 'serversettings' => 'administration'],
+        // Administration
+        'organisations'      => 'administration',
+        'roles'              => 'administration',
+        'auth_keys'          => 'administration',
+        'workflows'          => 'administration',
+        'jobs'               => 'administration',
+        'tasks'              => 'administration',
+        'benchmarks'         => 'administration',
+        'eventblocklists'    => 'administration',
+        'orgblocklists'      => 'administration',
+        'sightingblocklists' => 'administration',
+        'correlationrules'   => 'administration',
+        'correlations'       => 'administration',
+        'user_settings'      => 'administration',
+        'users'              => [
+            'default'    => 'account',
+            'statistics' => 'datapoints',
+            'add'        => 'administration',
+            'index'      => 'administration',
+            'email'      => 'administration',
+            'terms'      => 'resources',
+        ],
+        // Logs
+        'logs'        => 'logs',
+        'audit_logs'  => 'logs',
+        'access_logs' => 'logs',
+        // API
+        'api' => 'api',
+        // Resources
+        'news'  => 'resources',
+        'doc'   => 'resources',
+        'pages' => 'resources',
+        // Bookmarks
+        'bookmarks' => 'bookmarks',
+    ];
+
 
     public function build(array $context = [])
     {
@@ -38,8 +111,9 @@ class NavbarHelper extends AppHelper {
         $right = $this->filterMenu($right);
 
         // Highlight the menu of the current page
-        $left = $this->markActive($left, $currentController);
-        $right = $this->markActive($right, $currentController);
+        $activeMenuId = $this->resolveActiveMenu($currentController, $currentAction);
+        $left = $this->markActive($left, $activeMenuId);
+        $right = $this->markActive($right, $activeMenuId);
 
         return compact('left', 'right');
     }
@@ -190,6 +264,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
+            'id'   => 'datapoints',
             'label' => __('Data points'),
             'icon' => 'fas fa-clipboard-list',
             'children' => $eventsChildren
@@ -375,6 +450,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
+            'id'   => 'datamodels',
             'label' => __('Data models'),
             'icon' => 'fas fa-database',
             'children' => $dataChildren
@@ -423,35 +499,35 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Sharing Groups'),
                 'icon' => 'fas fa-users-rays',
                 'children' => [
-                    [
-                        'label' => __('Add Sharing Group'),
-                        'url' => $baseurl . '/sharingGroups/add',
-                        'controller' => 'sharingGroups',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add Sharing Group'),
+                    //     'url' => $baseurl . '/SharingGroups/add',
+                    //     'controller' => 'SharingGroups',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('SharingGroups', 'add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Sharing Groups'),
-                        'url' => $baseurl . '/sharingGroups/index',
-                        'controller' => 'sharingGroups',
+                        'url' => $baseurl . '/SharingGroups/index',
+                        'controller' => 'SharingGroups',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
                     ],
-                    [
-                        'label' => __('Add Sharing Group Blueprint'),
-                        'url' => $baseurl . '/sharingGroupBlueprints/add',
-                        'controller' => 'sharingGroupBlueprints',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add Sharing Group Blueprint'),
+                    //     'url' => $baseurl . '/SharingGroupBlueprints/add',
+                    //     'controller' => 'SharingGroupBlueprints',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'index'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Sharing Group Blueprints'),
-                        'url' => $baseurl . '/sharingGroupBlueprints/index',
-                        'controller' => 'sharingGroupBlueprints',
+                        'url' => $baseurl . '/SharingGroupBlueprints/index',
+                        'controller' => 'SharingGroupBlueprints',
                         'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
+                        'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'add'),
                         'icon' => 'fas fa-drafting-compass'
                     ]
                 ]
@@ -463,7 +539,7 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-plug',
                 'children' => [
                     [
-                        'label' => __('Comunities'),
+                        'label' => __('Communities'),
                         'url' => $baseurl . '/communities/index',
                         'controller' => 'communities',
                         'action' => 'index',
@@ -480,8 +556,8 @@ class NavbarHelper extends AppHelper {
                     ],
                     [
                         'label' => __('TAXII Servers'),
-                        'url' => $baseurl . '/TaxiiServers/index',
-                        'controller' => 'TaxiiServers',
+                        'url' => $baseurl . '/taxiiServers/index',
+                        'controller' => 'taxiiServers',
                         'action' => 'index',
                         'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
                         'icon' => 'fas fa-cloud'
@@ -508,6 +584,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
+            'id'   => 'sync',
             'label' => __('Sync'),
             'requirement' =>  $isAclSync || $isAdmin || $hostOrgUser,
             'icon' => 'fas fa-rotate',
@@ -671,9 +748,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Top correlations'),
-                        'url' => $baseurl . '/workflows/triggers',
-                        'controller' => 'workflows',
-                        'action' => 'triggers',
+                        'url' => $baseurl . '/correlations/top',
+                        'controller' => 'correlations',
+                        'action' => 'top',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-ranking-star'
                     ],
@@ -721,6 +798,7 @@ class NavbarHelper extends AppHelper {
         ];
         return [
             'type' => 'root',
+            'id'   => 'administration',
             'label' => __('Administration'),
             'icon' => 'fas fa-tools',
             'requirement' => $isAdmin,
@@ -775,6 +853,7 @@ class NavbarHelper extends AppHelper {
         ];
         return [
                 'type' => 'root',
+                'id'   => 'logs',
                 'label' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'icon' => 'fas fa-history',
@@ -826,6 +905,7 @@ class NavbarHelper extends AppHelper {
 
         return [
                 'type' => 'root',
+                'id'   => 'api',
                 'label' => __('API'),
                 'icon' => 'fas fa-code',
                 'children' => $automationChildren
@@ -881,6 +961,7 @@ class NavbarHelper extends AppHelper {
         ];
         return [
                 'type' => 'root',
+                'id'   => 'resources',
                 'label' => __('Resources'),
                 'icon' => 'fas fa-circle-info',
                 'children' => $resourcesChildren
@@ -935,10 +1016,9 @@ class NavbarHelper extends AppHelper {
             $bookmarksChildren[] = ['divider' => true];
         }
 
-        //TO DO
         $bookmarksChildren[] = [
+            'type' => 'setHomepage',
             'label' => __('Set this page as homepage'),
-            'url' => '',
             'icon' => 'fas fa-home'
         ];
 
@@ -959,6 +1039,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
+            'id'   => 'bookmarks',
             'label' => __('Bookmarks'),
             'icon' => 'fas fa-star',
             'children' => $bookmarksChildren
@@ -971,6 +1052,12 @@ class NavbarHelper extends AppHelper {
         extract($context);
 
         $profileChildren = [
+            [
+                'type' => 'darkMode',
+                'label' => __('Dark mode'),
+                'icon'  => 'fas fa-moon',
+            ],
+            ['divider' => true],
             [
                 'label' => __('My Profile'),
                 'url' => $baseurl . '/users/view/me',
@@ -994,6 +1081,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
+            'id'   => 'account',
             'label' => h($this->UserName->convertEmailToName($me['email'])),
             'image' => $orgLogo,
             'children' => $profileChildren
@@ -1069,38 +1157,26 @@ class NavbarHelper extends AppHelper {
         return $result;
     }
 
-    /**
-    * Recursively mark active menu items (robust controller/action matching)
-    */
-    private function markActive(array $items, $currentController)
+    private function resolveActiveMenu(string $controller, string $action): ?string
     {
-        foreach ($items as &$item) {
-
-            $item['active'] = false;
-
-            // Direct match on controller
-            if (!empty($item['controller'])) {
-                if (strtolower($item['controller']) === strtolower($currentController)) {
-                    $item['active'] = true;
-                }
-            }
-
-            // Recursive children check
-            if (!empty($item['children'])) {
-                $item['children'] = $this->markActive(
-                    $item['children'],
-                    $currentController,
-                );
-
-                foreach ($item['children'] as $child) {
-                    if (!empty($child['active'])) {
-                        $item['active'] = true;
-                        break;
-                    }
-                }
-            }
+        $entry = self::ACTIVE_MENU_MAP[strtolower($controller)] ?? null;
+        if ($entry === null) {
+            return null;
         }
+        if (is_string($entry)) {
+            return $entry;
+        }
+        return $entry[strtolower($action)] ?? $entry['default'] ?? null;
+    }
 
+    private function markActive(array $items, ?string $activeMenuId): array
+    {
+        if ($activeMenuId === null) {
+            return $items;
+        }
+        foreach ($items as &$item) {
+            $item['active'] = !empty($item['id']) && $item['id'] === $activeMenuId;
+        }
         return $items;
     }
 
