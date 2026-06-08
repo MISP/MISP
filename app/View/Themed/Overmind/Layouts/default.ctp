@@ -319,6 +319,7 @@
                         'headerTitle' => $headerTitle ?? null,
                         'headerDescription' => $headerDescription ?? null,
                         'headerStats' => $headerStats ?? [],
+                        'headerCount' => $headerCount ?? null,
                     ]);
                 }
                 ?>

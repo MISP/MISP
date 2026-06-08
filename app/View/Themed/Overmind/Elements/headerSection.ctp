@@ -12,6 +12,17 @@ if (!empty($currentController)) {
 $title = isset($headerTitle)
     ? h($headerTitle)
     : (isset($currentController) ? ucfirst(h($currentController)) : '');
+
+$paginatorCount = null;
+try {
+    $paginatorParams = $this->Paginator->params();
+    if (isset($paginatorParams['count'])) {
+        $paginatorCount = (int)$paginatorParams['count'];
+    }
+} catch (Exception $e) {
+    // no paginator on this page
+}
+$totalCount = $headerCount ?? $paginatorCount;
 ?>
 
 <div class="container-fluid py-3">
@@ -25,13 +36,19 @@ $title = isset($headerTitle)
                     <?= $breadcrumb ?>
                 </span>
             <?php endif; ?>
-
-            <h1 class="mb-0 fw-bold lh-1" style="font-size:2rem;">
-                <?= $title ?>
-            </h1>
+            <div class="d-flex align-items-center gap-2 ">
+                <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem;">
+                    <?= $title ?>
+                </h1>
+                <?php if ($totalCount !== null): ?>
+                    <span class="badge rounded-pill bg-primary fw-semibold px-3">
+                        <?= number_format($totalCount) ?>
+                    </span>
+                <?php endif; ?>
+            </div>
 
             <?php if (!empty($headerDescription)): ?>
-                <p class="text-muted mb-0 mt-1" style="font-size:0.85rem;">
+                <p class="text-muted text-center" style="font-size:0.85rem;">
                     <?= $headerDescription ?>
                 </p>
             <?php else: //small space, just to match the size of the Flash messages ?>
