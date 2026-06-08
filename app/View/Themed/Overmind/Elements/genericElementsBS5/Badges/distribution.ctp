@@ -66,7 +66,7 @@ $config = $map[$distribution] ?? [
       "
       title="<?= h($config['label']) ?>">
 
-    <i class="fas <?= h($config['icon']) ?> me-1"></i>
+    <i class="fas <?= h($config['icon']) ?>"></i>
 
     <?php if ($full): ?>
         <?= h($config['label']) ?>
