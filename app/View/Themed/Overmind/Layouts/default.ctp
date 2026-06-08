@@ -11,14 +11,21 @@
             ['controller' => 'users', 'action' => 'login'],
 
             ['controller' => 'events', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'add'],
+            ['controller' => 'events', 'action' => 'edit'],
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
+            ['controller' => 'events', 'action' => 'getEventInfoById'],
 
             ['controller' => 'attributes', 'action' => 'index'],
+            ['controller' => 'attributes', 'action' => 'add'],
+            ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'sightings', 'action' => 'advanced'],
 
             ['controller' => 'collections', 'action' => 'index'],
             ['controller' => 'collections', 'action' => 'view'],

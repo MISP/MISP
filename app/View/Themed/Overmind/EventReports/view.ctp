@@ -8,8 +8,7 @@
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it'],
-        'css' => ['analyst-data'],
+        'js'  => ['markdown-it']
     ]);
 
     echo $this->element('genericElementsBS5/Layout/view_layout',

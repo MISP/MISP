@@ -6,7 +6,11 @@ if (empty($data)) {
 }
 
 $maxVisible = 4;
-$totalTags = count($data);
+// Count only real tags, not galaxy-tags
+$realTags = array_filter($data, function($t) {
+    return !empty($t['Tag']) && empty($t['Tag']['is_galaxy']);
+});
+$totalTags   = count($realTags);
 $hiddenCount = max(0, $totalTags - $maxVisible);
 
 ?>
@@ -18,6 +22,10 @@ $visibleIndex = 0;
 
 foreach ($data as $tagWrapper) {
     if (empty($tagWrapper['Tag'])) {
+        continue;
+    }
+    // Galaxy-tags live in AttributeTag too
+    if (!empty($tagWrapper['Tag']['is_galaxy'])) {
         continue;
     }
 

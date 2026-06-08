@@ -1,30 +1,23 @@
 <?php
 $eventId  = h($data['Event']['id'] ?? '');
-$uid      = 'evt-wl-' . $eventId;
-$fetchUrl = h($baseurl . '/events/viewWarninglistHits/' . $eventId);
+$uid      = 'evt-related-' . $eventId;
+$fetchUrl = h($baseurl . '/events/viewRelatedEvents/' . $eventId);
 ?>
 
-<div class="card shadow-sm mb-3" id="warninglist-card">
+<div class="card shadow-sm mb-3" id="related-card">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#fce7f3;">
-                <i class="fas fa-exclamation-triangle"
-                   style="color:#9d174d;font-size:1rem;"></i>
+                 style="width:36px;height:36px;background:#fbffc8;">
+                <i class="fas fa-link" style="color:#848b1b;font-size:1rem;"></i>
             </div>
             <div class="me-auto">
-                <div class="fw-bold lh-1"><?= __('Warning Lists') ?></div>
+                <div class="fw-bold lh-1"><?= __('Related Events') ?></div>
                 <div class="small text-muted mt-1"
                      id="<?= $uid ?>-count">…</div>
             </div>
-            <a href="<?= h($baseurl) ?>/warninglists/index"
-               class="btn btn-sm btn-outline-secondary d-flex
-                      align-items-center gap-1"
-               title="<?= __('Manage warning lists') ?>">
-                <i class="fas fa-external-link-alt"></i>
-            </a>
         </div>
     </div>
 
@@ -51,17 +44,17 @@ $fetchUrl = h($baseurl . '/events/viewWarninglistHits/' . $eventId);
         .then(function (html) {
             document.getElementById(uid + '-body').innerHTML = html;
             var root = document.getElementById(uid + '-body')
-                .querySelector('[data-wl-count]');
+                .querySelector('[data-related-count]');
             if (root && countEl) {
                 var total = parseInt(
-                    root.getAttribute('data-wl-count'), 10
+                    root.getAttribute('data-related-count'), 10
                 );
                 countEl.textContent = total === 0
-                    ? <?= json_encode(__('No hits')) ?>
+                    ? <?= json_encode(__('No correlations')) ?>
                     : total + ' ' + (
                         total === 1
-                            ? <?= json_encode(__('list hit')) ?>
-                            : <?= json_encode(__('list hits')) ?>
+                            ? <?= json_encode(__('related event')) ?>
+                            : <?= json_encode(__('related events')) ?>
                     );
             }
         })
@@ -69,7 +62,7 @@ $fetchUrl = h($baseurl . '/events/viewWarninglistHits/' . $eventId);
             document.getElementById(uid + '-body').innerHTML =
                 '<div class="text-center text-muted py-4 small">'
                 + '<i class="fas fa-exclamation-triangle me-2"></i>'
-                + <?= json_encode(__('Could not load warning list hits.')) ?>
+                + <?= json_encode(__('Could not load related events.')) ?>
                 + '</div>';
             if (countEl) { countEl.textContent = ''; }
         });

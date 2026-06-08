@@ -6,6 +6,10 @@ if (empty($attribute)) {
 }
 
 $isCard = isset($viewMode) && $viewMode === 'card';
+
+if(isset($row['Attribute'])) {
+    $row = $row['Attribute'];
+}
 ?>
 
 <div class="d-flex flex-column gap-1">
@@ -16,7 +20,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                     [
                         'row' => $row,
                         'field' => [
-                            'data_path' => 'Attribute.distribution',
+                            'data_path' => 'distribution',
                             'display' =>'short'
                         ]
                     ]
