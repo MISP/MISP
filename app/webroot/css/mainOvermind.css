@@ -946,3 +946,11 @@ th .sort-icon::before {
     box-shadow: 0 0 0 2px currentColor;
     z-index: 1;
 }
+
+.breadcrumb-controller-link {
+    color: inherit;
+}
+.breadcrumb-controller-link:hover {
+    color: var(--primary) !important;
+    text-decoration: underline !important;
+}

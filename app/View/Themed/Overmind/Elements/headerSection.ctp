@@ -1,7 +1,10 @@
 <?php
 $breadcrumb = '';
 if (!empty($currentController)) {
-    $breadcrumb = ucfirst(h($currentController));
+    $controllerUrl = $this->Html->url('/' . $currentController);
+    $breadcrumb = '<a href="' . $controllerUrl . '" '
+        . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
+        . ucfirst(h($currentController)) . '</a>';
     if (!empty($currentAction)) {
         $breadcrumb .= ' > ' . ucfirst(h($currentAction));
     }
