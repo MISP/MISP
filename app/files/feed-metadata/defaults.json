@@ -2064,7 +2064,7 @@
   "Feed": {
     "name": "Rösti - Repackaged Öpen Source Threat Intelligence",
     "provider": "bin.re",
-    "url": "https://rosti.64617461.xyz/downloads/misp/",
+    "url": "https://misp.rosti.dev",
     "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
     "enabled": true,
     "distribution": "3",

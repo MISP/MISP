@@ -3,12 +3,14 @@
 class MispSystemResourceWidget
 {
     public $title = 'MISP System Resource Usage';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 3;
     public $height = 3;
     public $params = array(
         'threshold' => 'Threshold for disk space'
     );
+    public $schema = array();
     public $description = 'Basic widget showing some system server statistics.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;

@@ -87,7 +87,9 @@ class UsersController extends AppController
      */
     private function __massageUserObject(array $user)
     {
-        $user['UserSetting'] = array_column($user['UserSetting'], 'value', 'setting');
+        $user['UserSetting'] = array_column($user['UserSetting'] ?? [], 'value', 'setting');
+        // OIDC stores the user's access/refresh tokens in this setting - never expose it via the API
+        unset($user['UserSetting']['oidc']);
         unset($user['User']['server_id']);
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             unset($user['User']['authkey']);
@@ -160,6 +162,9 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             if (empty($this->request->data['User'])) {
                 $this->request->data = array('User' => $this->request->data);
+            }
+            if (isset($this->request->data['User']['id'])) {
+                unset($this->request->data['User']['id']);
             }
             $abortPost = false;
             if (!empty($this->request->data['User']['email']) && !$this->_isSiteAdmin()) {
@@ -1349,7 +1354,29 @@ class UsersController extends AppController
     public function routeafterlogin()
     {
         // Events list
-        $url = $this->Session->consume('pre_login_requested_url');
+        $url = $this->Session->consume('pre_login_requested_url') ?? '';
+
+        $url = rawurldecode($url);
+        $parts = parse_url($url);
+
+        if (
+            $url === '' ||
+            $parts === false ||
+            isset($parts['host']) ||
+            isset($parts['scheme']) ||
+            isset($parts['user']) ||
+            !isset($parts['path']) ||
+            $parts['path'][0] !== '/' ||
+            // reject "//x" and "/\x" - both resolve to a protocol-relative (off-site) URL
+            (isset($parts['path'][1]) && ($parts['path'][1] === '/' || $parts['path'][1] === '\\'))
+        ) {
+            $url = '';
+        } else {
+            $url = $parts['path']
+                . (isset($parts['query']) ? '?' . $parts['query'] : '')
+                . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+        }
+        
         if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
             if (substr($url, 0, 7) === "http://") {
                 $url = sprintf('https://%s', substr($url, 7));

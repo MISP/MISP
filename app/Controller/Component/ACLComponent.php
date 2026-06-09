@@ -174,16 +174,25 @@ class ACLComponent extends Component
             'view' => ['*']
         ],
         'dashboards' => array(
-            'getForm' => array('*'),
             'index' => array('*'),
+            'widgets' => array('*'),
             'updateSettings' => array('*'),
-            'getEmptyWidget' => array('*'),
+            'updateWidgetSettings' => array('*'),
             'renderWidget' => array('*'),
-            'listTemplates' => array('*'),
-            'saveTemplate' => array('*'),
-            'export' => array('*'),
+            'renderWrapper' => array('*'),
             'import' => array('*'),
-            'deleteTemplate' => array('*')
+            'export' => array('*'),
+            'saveTemplate' => array('*'),
+            'listTemplates' => array('*'),
+            'deleteTemplate' => array('*'),
+            'importDefaultTemplates' => array(),
+            'invalidateUserSessions' => array(),
+            'listSharingGroups' => array('*'),
+            'listGalaxyTypes' => array('*'),
+            'searchGalaxyClusters' => array('*'),
+            'searchOrganisations' => array('*'),
+            'updateTheme' => ['*'],
+            'resetFromTemplate' => ['*']
         ),
         'decayingModel' => array(
             "update" => array(),
@@ -462,7 +471,7 @@ class ACLComponent extends Component
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
             'index' => array('*'),
-            'publish' => array('perm_galaxy_editor'),
+            'publish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
             'search' => array('*'),
@@ -849,8 +858,8 @@ class ACLComponent extends Component
             'import' => [],
             'export' => ['*'],
             'view' => array('*'),
-            'unhideTag' => array('perm_tagger'),
-            'hideTag' => array('perm_tagger'),
+            'unhideTag' => array('perm_tag_editor'),
+            'hideTag' => array('perm_tag_editor'),
             'normalizeCustomTagsToTaxonomyFormat' => [],
         ),
         'taxiiServers' => [
@@ -1365,8 +1374,8 @@ class ACLComponent extends Component
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
-        if (!$user['Role']['perm_warninglist']) {
-            return false;
+        if (!empty($user['Role']['perm_warninglist'])) {
+            return true;
         }
         return false;
     }

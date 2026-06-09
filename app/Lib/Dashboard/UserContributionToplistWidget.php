@@ -2,6 +2,7 @@
 class UserContributionToplistWidget
 {
     public $title = 'Contributor Top List (Users)';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The top contributors (users) in a selected time frame.';
     public $width = 3;
@@ -16,8 +17,20 @@ class UserContributionToplistWidget
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+    ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() never scopes by $user; the
+    // checkPermissions() below gates *visibility* (enforced in loadWidget
+    // before the cache), and the content is the same global toplist for
+    // every permitted viewer. Config-only key is therefore safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'nationality',
         'sector',

@@ -22,6 +22,8 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
  *  - OidcAuth.disable_request_object (boolean, default: false) Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers.
  *  - OidcAuth.skipProxy (boolean, default: true) - if enabled, MISP will disable global proxy settings for OIDC requests
+ *  - OidcAuth.allow_email_linking (boolean, default: false) - allow OIDC to link to an existing local user (sub IS NULL) by matching the `email` claim. Off by default; enable only when the IdP is trusted to assert ownership of the email claim, otherwise a token holder may take over any local account sharing the email.
+ *  - OidcAuth.require_email_verified (boolean, default: true) - when linking is allowed, also require the token's `email_verified` claim to be true. Disable only on IdPs that do not issue the claim and where ownership of the email is enforced by other means.
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

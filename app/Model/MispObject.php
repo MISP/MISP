@@ -637,6 +637,9 @@ class MispObject extends AppModel
             } else {
                 $fields = array_merge($fields, array('Event.distribution', 'Event.id', 'Event.user_id', 'Event.orgc_id', 'Event.org_id'));
             }
+            if (!empty($options['includeEventUuid']) && !in_array('Event.uuid', $fields)) {
+                $fields[] = 'Event.uuid';
+            }
             $params = array(
                 'fields' => $fields,
                 'conditions' => $this->buildConditions($user),
@@ -662,12 +665,18 @@ class MispObject extends AppModel
                 ),
             );
         } else {
+            $eventFields = isset($options['contain']['Event']['fields'])
+                ? $options['contain']['Event']['fields']
+                : array('id', 'info', 'org_id', 'orgc_id');
+            if (!empty($options['includeEventUuid']) && !in_array('uuid', $eventFields)) {
+                $eventFields[] = 'uuid';
+            }
             $params = array(
                 'conditions' => $this->buildConditions($user),
                 'recursive' => -1,
                 'contain' => array(
                     'Event' => array(
-                        'fields' => isset($options['contain']['Event']['fields']) ? $options['contain']['Event']['fields'] : array('id', 'info', 'org_id', 'orgc_id'),
+                        'fields' => $eventFields,
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
@@ -744,6 +753,11 @@ class MispObject extends AppModel
         $results = $this->find('all', $params);
         if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
+        }
+        if (!empty($options['includeEventUuid'])) {
+            foreach ($results as $key => $object) {
+                $results[$key]['Object']['event_uuid'] = $object['Event']['uuid'];
+            }
         }
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {

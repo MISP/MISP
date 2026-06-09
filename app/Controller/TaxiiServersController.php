@@ -5,7 +5,6 @@ class TaxiiServersController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
-
     public function beforeFilter()
     {
         // No need for CSRF tokens for a search
@@ -92,7 +91,6 @@ class TaxiiServersController extends AppController
         ]);
     }
 
-
     public function view($id)
     {
         $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'view_taxii']);
@@ -115,7 +113,7 @@ class TaxiiServersController extends AppController
         }
 
         if ($this->request->is('post')) {
-            $result = $this->TaxiiServer->pushRouter($taxii_server['TaxiiServer']['id'],  $this->Auth->user());
+            $result = $this->TaxiiServer->pushRouter($taxii_server['TaxiiServer']['id'], $this->Auth->user());
             $message = __('Taxii push initiated.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('TaxiiServers', 'push', $id, false, $message);
@@ -139,47 +137,106 @@ class TaxiiServersController extends AppController
 
     public function getRoot()
     {
-        if (empty($this->request->data['baseurl'])) {
+        if (empty($this->request->data['discovery_url'])) {
             return $this->RestResponse->saveFailResponse(
-                'TaxiiServers', 'getRoot', null, __('No baseurl set.'), $this->response->type()
+                'TaxiiServers', 'getRoot', null, __('No discovery url set.'), $this->response->type()
             );
         } else {
-            $this->request->data['uri'] = '/taxii2/';
-            $result = $this->TaxiiServer->queryInstance(
-                [
-                    'TaxiiServer' => $this->request->data,
-                    'type' => 'get'
+            $discovery_url = $this->request->data['discovery_url'];
+
+            // 1. Strict Protocol Validation
+            if (!preg_match('/^https?:\/\//i', $discovery_url)) {
+                return $this->RestResponse->saveFailResponse(
+                    'TaxiiServers', 'getRoot', null, __('Invalid URL scheme. Only HTTP and HTTPS are supported.'), $this->response->type()
+                );
+            }
+
+            // 2. Host Resolution and Banned IP Checking (Loopback & Metadata)
+            $host = parse_url($discovery_url, PHP_URL_HOST);
+            if ($host) {
+                $resolvedIp = gethostbyname($host);
+                if (strpos($resolvedIp, '127.') === 0 || $resolvedIp === '169.254.169.254' || $resolvedIp === '0.0.0.0') {
+                    throw new ForbiddenException(__('The provided discovery URL points to a restricted network block.'));
+                }
+            }
+
+            App::uses('HttpSocket', 'Network/Http');
+            $HttpSocket = new HttpSocket();
+            $caPath = Configure::read('MISP.ca_path');
+            if (!empty($caPath)) {
+                $HttpSocket->config['ssl_cafile'] = $caPath;
+            }
+            if (!$this->request->data['skip_proxy']) {
+                $proxy = Configure::read('Proxy');
+                if (isset($proxy['host']) && !empty($proxy['host'])) {
+                    $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+                }
+            }
+            $request = [
+                'header' => [
+                    'Accept' => 'application/taxii+json;version=2.1',
+                    'Content-type' => 'application/taxii+json;version=2.1'
                 ]
-            );
-            if (is_array($result)) {
+            ];
+            $caPath = Configure::read('MISP.ca_path');
+            if (!empty($caPath)) {
+                $request['ssl_cafile'] = $caPath;
+            }
+            if (!empty($this->request->data['api_key'])) {
+                $request['header']['Authorization'] = 'Basic ' . $this->request->data['api_key'];
+            }
+            
+            // 3. Unified Error Handling to prevent differential responses
+            $genericError = __('TAXII connection failed or returned invalid data. Please verify the URL.');
+
+            try {
+                $response = $HttpSocket->get($this->request->data['discovery_url'], null, $request);
+            } catch (SocketException $e) {
+                // Log the real connection error internally, return generic error to user
+                $this->log("TAXII connection error to " . $this->request->data['discovery_url'] . ": " . $e->getMessage(), 'error');
+                return $this->RestResponse->saveFailResponse('TaxiiServers', 'getRoot', null, $genericError, $this->response->type());
+            }
+
+            if (!($response->isOk())) {
+                $this->log("TAXII HTTP error to " . $this->request->data['discovery_url'] . ": Code " . $response->code, 'error');
+                return $this->RestResponse->saveFailResponse('TaxiiServers', 'getRoot', null, $genericError, $this->response->type());
+            }
+
+            $result = json_decode($response->body, true);
+            
+            // Ensure valid JSON was parsed before proceeding
+            if (is_array($result) && isset($result['api_roots'])) {
                 $results = [];
+                $discovery_host = parse_url($this->request->data['discovery_url'], PHP_URL_HOST);
+                $discovery_port = parse_url($this->request->data['discovery_url'], PHP_URL_PORT);
+                if (empty($discovery_port)) {
+                    $discovery_host = 'https://' . $discovery_host;
+                } else {
+                    $discovery_root = 'https://' . $discovery_host . ':' . $discovery_port;
+                }
                 foreach ($result['api_roots'] as $api_root) {
-                    $api_root = explode('/', trim($api_root, '/'));
-                    $api_root = end($api_root);
-                    $results[$api_root] = $this->request->data['baseurl'] . '/' . $api_root . '/';
+                    if (str_starts_with($api_root, '/')) {
+                        $api_root = $discovery_root . $api_root;
+                    }
+                    $results[$api_root] = $api_root;
                 }
                 return $this->RestResponse->viewData($results, 'json');
             } else {
-                return $this->RestResponse->saveFailResponse(
-                    'TaxiiServers', 'getRoot', null, $result, $this->response->type()
-                );  
+                // Catch cases where an open port returns non-JSON data (e.g., HTML directory listings)
+                $this->log("TAXII JSON parsing error from " . $this->request->data['discovery_url'], 'error');
+                return $this->RestResponse->saveFailResponse('TaxiiServers', 'getRoot', null, $genericError, $this->response->type());
             }
         }
     }
 
     public function getCollections()
     {
-        if (empty($this->request->data['baseurl'])) {
-            return $this->RestResponse->saveFailResponse(
-                'TaxiiServers', 'getCollections', null, __('No baseurl set.'), $this->response->type()
-            );
-        }
         if (empty($this->request->data['api_root'])) {
             return $this->RestResponse->saveFailResponse(
                 'TaxiiServers', 'getCollections', null, __('No api_root set.'), $this->response->type()
             );
         }
-        $this->request->data['uri'] = '/' . $this->request->data['api_root'] . '/collections/';
+        $this->request->data['path'] = '/collections/';
         $result = $this->TaxiiServer->queryInstance(
             [
                 'TaxiiServer' => $this->request->data,
@@ -211,7 +268,7 @@ class TaxiiServersController extends AppController
         } else {
             return $this->RestResponse->saveFailResponse(
                 'TaxiiServers', 'getCollections', null, $result, $this->response->type()
-            );  
+            );
         }
     }
 

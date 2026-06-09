@@ -6,44 +6,6 @@ $divider = '<li class="divider"></li>';
     <ul class="nav nav-list">
         <?php
             switch ($menuList) {
-                case 'dashboard':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardIndex',
-                        'url' => $baseurl . '/dashboards',
-                        'text' => __('View Dashboard')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardAdd',
-                        'text' => __('Add Widget'),
-                        'onClick' => array(
-                            'function' => 'openGenericModalPost',
-                            'params' => array($baseurl . '/dashboards/getForm/add')
-                        ),
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardImport',
-                        'text' => __('Import Config JSON'),
-                        'url' => $baseurl . '/dashboards/import',
-                        'link_class' => 'modal-open',
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardExport',
-                        'text' => __('Export Config JSON'),
-                        'url' => $baseurl . '/dashboards/export',
-                        'link_class' => 'modal-open',
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardSave',
-                        'text' => __('Save Dashboard Config'),
-                        'url' => $baseurl . '/dashboards/saveTemplate',
-                        'link_class' => 'modal-open',
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'dashboardTemplateIndex',
-                        'url' => $baseurl . '/dashboards/listTemplates',
-                        'text' => __('List Dashboard Templates')
-                    ));
-                    break;
                 case 'event':
                     $eventId = Configure::read('MISP.use_uuids_in_urls') ? h($event['Event']['uuid']) : (int)$event['Event']['id'];
                     echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
@@ -1520,7 +1482,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+                    if ($this->Acl->canAccess('galaxies', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'galaxy_add',
                             'url' => $baseurl . '/galaxies/add',

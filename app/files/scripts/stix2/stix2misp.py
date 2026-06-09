@@ -24,13 +24,14 @@ from pathlib import Path
 
 import importlib
 MODULE_TO_DIRECTORY = {
+    "misp_stix_converter": "misp-stix",
+    "stix2": "cti-python-stix2",
     "stix": "python-stix",
     "cybox": "python-cybox",
     "mixbox": "mixbox",
-    "misp_stix_converter": "misp-stix",
-    "maec": "python-maec",
+    "maec": "python-maec"
 }
-_CURRENT_PATH = Path(__file__).resolve().parent
+_CURRENT_PATH = Path(__file__).resolve().parent.parent
 _CURRENT_PATH_IDX = 0
 for module_name, dir_path in MODULE_TO_DIRECTORY.items():
     try:

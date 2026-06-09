@@ -51,6 +51,18 @@ class SchedulerWorkerShell extends AppShell
                 ]);
             } catch (Exception $e) {
                 CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - failed to fetch tasks: " . $e->getMessage());
+
+                $message = $e->getMessage();
+                if (strpos($message, 'MySQL server has gone away') !== false
+                    || strpos($message, 'Lost connection to MySQL server') !== false) {
+                    try {
+                        $this->Task->getDataSource()->reconnect();
+                        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - database connection re-established.");
+                    } catch (Exception) {
+                        // still down — next iteration will retry
+                    }
+                }
+
                 sleep(10);
                 continue;
             }

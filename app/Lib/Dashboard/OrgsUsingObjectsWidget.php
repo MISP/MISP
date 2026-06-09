@@ -4,6 +4,7 @@ require_once 'OrgsContributorsGeneric.php';
 class OrgsUsingObjectsWidget extends OrgsContributorsGeneric
 {
     public $title = 'Orgs using MISP objects';
+    public $category = 'orgs';
     public $description = 'Display the logos of all organisations having shared at least one event containing an object in the last 100 days';
 
     protected function filter($user, $org, $start_timestamp) {

@@ -463,7 +463,8 @@ class EventTemplateInstantiator
             ? $definition['structure']
             : array();
 
-        $attributeModel = ClassRegistry::init('Attribute');
+        /** @var MispAttribute $attributeModel */
+        $attributeModel = ClassRegistry::init('MispAttribute');
         $rows = $attributeModel->find('all', array(
             'conditions' => array(
                 'Attribute.event_id' => (int)$eventId,
