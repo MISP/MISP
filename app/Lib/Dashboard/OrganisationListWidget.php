@@ -2,6 +2,7 @@
 class OrganisationListWidget
 {
     public $title = 'Organisation list';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The countries represented via organisations on the current instance.';
     public $width = 3;
@@ -9,6 +10,12 @@ class OrganisationListWidget
     public $params = [
         'filter' => 'A list of filters by organisation meta information (sector, type, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
+    ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data. This widget consumes sector / type / local only; name / nationality / uuid set via the toolbar are silently dropped by the widget\'s own validFilterKeys loop.',
+        ],
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;

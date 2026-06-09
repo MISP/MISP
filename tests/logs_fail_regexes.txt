@@ -1,6 +1,10 @@
 # This file contains regexes applied to logs, one line per regex 
 # Whenever the regex matches, the Logs job will fail and report the error.
 class="cake-error"
-Error: [ParseError]
-Error: [PDOException]
-Error: [BadRequestException]
+Error: \[ParseError\]
+Error: \[PDOException\]
+# NOTE: lines here are fed to grep as patterns, so keep them free of
+# regex-special characters. BadRequestException is intentionally absent:
+# it is a 4xx client error that tests deliberately trigger, so it is
+# logged but must not fail the build the way a server-side ParseError
+# or PDOException does.

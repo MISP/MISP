@@ -3,10 +3,12 @@
 class MispAdminResourceWidget
 {
     public $title = 'MISP Resource Usage';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 2;
     public $params = array();
+    public $schema = array();
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 3;

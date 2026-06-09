@@ -8,6 +8,7 @@
 class SharingGraphWidget
 {
     public $title = 'Sharing Trends';
+    public $category = 'orgs';
     public $render = 'MultiLineChart';
     public $width = 8;
     public $height = 6;
@@ -18,6 +19,7 @@ class SharingGraphWidget
         'blocklist_orgs' => 'A list of organisation names to filter out',
         'months' => 'Number of past months to consider for the graph'
     );
+    public $schema = array();
 
     public $placeholder =
 '{
@@ -103,7 +105,7 @@ class SharingGraphWidget
         $this->Log = ClassRegistry::init('Log');
         $this->Org = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->Object = ClassRegistry::init('Object');
         $this->ObjectReference = ClassRegistry::init('ObjectReference');
         $orgs = $this->Org->find('all', array( 'conditions' => array('Organisation.local' => 1)));

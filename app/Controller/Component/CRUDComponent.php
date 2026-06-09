@@ -205,7 +205,7 @@ class CRUDComponent extends Component
             }
             if (!empty($params['override'])) {
                 foreach ($params['override'] as $field => $value) {
-                    $input[$field] = $value;
+                    $input[$modelName][$field] = $value;
                 }
             }
             if (!empty($params['fields'])) {
@@ -317,7 +317,7 @@ class CRUDComponent extends Component
                 throw new MethodNotAllowedException('Something went wrong, delete action failed.');
             }
         }
-        if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
+        if ($validationError === null && ($this->Controller->request->is('post') || $this->Controller->request->is('delete'))) {
             if (!empty($params['modelFunction'])) {
                 $result = $this->Controller->$modelName->{$params['modelFunction']}($id);
             } else {

@@ -11,7 +11,8 @@
 .matrix-table thead > tr {
 }
 
-.matrix-table thead {
+.matrix-table thead th{
+    position: static; /* Fix on attack matrix with new sticky header*/
 }
 
 .matrix-table tbody {
