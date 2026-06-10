@@ -2171,12 +2171,42 @@ class ServersController extends AppController
         }
     }
 
-    public function updateJSON()
+public function updateJSON()
     {
         $results = [];
-        foreach ($this->Server->updateJSON() as $type => $result) {
-            $results[$type] = $results['success'];
+
+        $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
+
+        if ($async) {
+            $this->loadModel('Job');
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'updateJSON',
+                $this->Auth->user('id'),
+                __('Starting server JSON update.')
+            );
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateJSON',
+                    $this->Auth->user('id'),
+                    $jobId,
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+
+            $results['message'] = __('Server updateJSON job queued. Job ID: %s', $jobId);
+        } else {
+            foreach ($this->Server->updateJSON() as $type => $result) {
+                $results[$type] = $results['success'];
+            }
         }
+
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 
