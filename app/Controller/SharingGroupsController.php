@@ -78,6 +78,10 @@ class SharingGroupsController extends AppController
                 }
             }
             $this->SharingGroup->create();
+            // Never allow an id to be supplied on add: a primary key in the save data turns
+            // create() + save() into an update of an arbitrary existing sharing group, bypassing
+            // the edit ACL and letting a user take over a SG they have no access to.
+            unset($sg['id']);
             if (!$canModifyUuid) {
                 unset($sg['uuid']);
             }
