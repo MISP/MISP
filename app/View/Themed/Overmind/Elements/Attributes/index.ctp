@@ -196,7 +196,7 @@ $fields = array_merge($fields, [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
@@ -250,14 +250,14 @@ if (!empty($show_filters)) {
         [
             'type' => 'button',
             'label' => __('My attributes'),
-            'icon' => 'user',
+            'icon' => 'misp-icon misp-icon-user1 misp-simple',
             'class' => 'btn btn-primary',
             'url' => $baseurl . '/attributes/index/searchemail:' . urlencode($me['email'])
         ],
         [
             'type' => 'button',
             'label' => __('Org attributes'),
-            'icon' => 'building',
+            'icon' => 'misp-icon misp-icon-organisation misp-simple',
             'class' => 'btn btn-primary',
             'url' => $baseurl . '/attributes/index/searchorg:' . urlencode($me['org_id'])
         ]
@@ -312,7 +312,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,
-                'delete' => '/delete',
+                'delete' => '/deleteSelection',
                 'mass_edit' => 1,
                 'mass_tag' => 1,
                 'mass_local_tag' => 1,

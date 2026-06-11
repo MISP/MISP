@@ -13,8 +13,8 @@ $fetchUrl = h($baseurl . '/events/viewEventTags/' . $eventId);
             <!-- Icon + title + count -->
             <div class="d-flex align-items-center gap-2 me-auto">
                 <div class="rounded-2 d-flex align-items-center justify-content-center"
-                     style="width:36px;height:36px;background:#d8e6fc;">
-                    <i class="fas fa-tag" style="color:#3B82F6;font-size:1rem;"></i>
+                     style="width:36px;height:36px;background:#DB6A4718;">
+                    <span class="misp-icon misp-icon-tag misp-simple" style="color:#DB6A47;font-size:1rem;"></span>
                 </div>
                 <div>
                     <div class="fw-bold lh-1"><?= __('Tags') ?></div>

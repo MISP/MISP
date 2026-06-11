@@ -9,7 +9,7 @@
                     aria-selected="<?= $i === 0 ? 'true' : 'false' ?>">
 
                     <?php if (!empty($tab['icon'])): ?>
-                        <i class="fas fa-<?= h($tab['icon']) ?>"></i>
+                        <i class="<?= h($tab['icon']) ?>"></i>
                     <?php endif; ?>
 
                     <?php if (!empty($tab['title'])): ?>

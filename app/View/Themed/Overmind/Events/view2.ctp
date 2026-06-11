@@ -20,7 +20,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
@@ -40,7 +40,7 @@
             [
                 'id' => 'objects',
                 'title' => __('Objects'),
-                'icon' => 'cube',
+                'icon' => 'misp-icon misp-icon-object misp-simple',
                 //For the moment the view2 controller doesn't return object_count/attribute_count
                 'count' => $object_count ?? 0,
 
@@ -59,7 +59,7 @@
             [
                 'id' => 'attributes',
                 'title' => __('Attributes'),
-                'icon' => 'inbox',
+                'icon' => 'misp-icon misp-icon-attribute misp-simple',
                 'count' => $attribute_count ?? 0,
 
                 // Content
@@ -77,7 +77,7 @@
             [
                 'id' => 'reports',
                 'title' => __('Reports'),
-                'icon' => 'file-alt',
+                'icon' => 'misp-icon misp-icon-report misp-simple',
                 'count' => $report_count ?? 0,
 
                 // Content
@@ -90,7 +90,7 @@
             [
                 'id' => 'graph',
                 'title' => __('Graph'),
-                'icon' => 'project-diagram',
+                'icon' => 'fas fa-project-diagram',
 
                 // Content
                 'left' => [
@@ -100,7 +100,7 @@
             [
                 'id' => 'timeline',
                 'title' => __('Timeline'),
-                'icon' => 'clock',
+                'icon' => 'fas fa-clock',
 
                 // Content
                 'left' => [
@@ -110,7 +110,7 @@
             [
                 'id' => 'history',
                 'title' => __('History'),
-                'icon' => 'history',
+                'icon' => 'fas fa-history',
                 'count' => $history_count ?? 0,
 
                 // Content

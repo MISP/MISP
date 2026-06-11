@@ -108,7 +108,7 @@ foreach ($filter_bar['children'] as $child) {
             <a href="<?= h($child['url']) ?>"
                class="<?= h($child['class']) ?> flex-shrink-0">
                 <?php if (!empty($child['icon'])): ?>
-                    <i class="fas fa-<?= h($child['icon']) ?>"></i>
+                    <i class="<?= h($child['icon']) ?>"></i>
                 <?php endif; ?>
                 <?= h($child['label']) ?>
             </a>

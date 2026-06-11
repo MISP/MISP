@@ -15,7 +15,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
             <div class="d-flex align-items-center gap-2 me-auto">
                 <div class="rounded-2 d-flex align-items-center justify-content-center"
                      style="width:36px;height:36px;background:#e9d8fc;">
-                    <i class="fab fa-galactic-republic" style="color:#7C3AED;font-size:1rem;"></i>
+                    <span class="misp-icon misp-icon-galaxy misp-simple" style="color:#7C3AED;"></span>
                 </div>
                 <div>
                     <div class="fw-bold lh-1"><?= __('Galaxy Clusters') ?></div>

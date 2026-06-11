@@ -635,7 +635,7 @@ echo $this->Form->create('Server', [
                                                     <div class="row g-3">
                                                         <div class="col-12 col-lg-6">
                                                             <label class="form-label fw-semibold">
-                                                                <i class="fas fa-cube me-1 text-muted"></i>
+                                                                <span class="misp-icon misp-icon-attribute misp-simple me-1 text-muted"></span>
                                                                 <?= __('Attribute types to block') ?>
                                                             </label>
                                                             <?= $this->Form->select(
@@ -661,7 +661,7 @@ echo $this->Form->create('Server', [
 
                                                         <div class="col-12 col-lg-6">
                                                             <label class="form-label fw-semibold">
-                                                                <i class="fas fa-cubes me-1 text-muted"></i>
+                                                                <span class="misp-icon misp-icon-object misp-simple me-1 text-muted"></span>
                                                                 <?= __('Object types to block') ?>
                                                             </label>
                                                             <?= $this->Form->select(

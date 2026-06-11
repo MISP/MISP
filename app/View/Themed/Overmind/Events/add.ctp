@@ -50,14 +50,13 @@ echo $this->Form->create('Event', ['novalidate' => true]);
      style="background:rgba(24,146,177,.06);
             border-bottom:2px solid var(--primary);">
     <div>
-        <div class="text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em;
-                    color:var(--primary); opacity:.85;">
+        <div class="text-uppercase fw-semibold mb-1 text-event"
+             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
             <?= __('Events') ?>
         </div>
         <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'calendar-plus' ?>"
-               style="color:var(--primary); font-size:.95rem;"></i>
+            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-event"
+               style="font-size:1.25rem;"></i>
             <?= $isEdit ? __('Edit Event') : __('Add Event') ?>
         </h4>
         <p class="text-muted mb-0" style="font-size:.75rem;">
@@ -66,8 +65,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                 : __('') ?>
         </p>
     </div>
-    <i class="fas fa-shield-halved"
-       style="font-size:2rem; color:var(--primary); opacity:.1;"></i>
+    <span class="misp-icon misp-icon-event misp-simple text-event" style="font-size:2rem; opacity:.5;"></span>
 </div>
 
 <div class="container-fluid px-4 py-4">

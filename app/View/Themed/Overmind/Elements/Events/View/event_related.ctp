@@ -10,8 +10,8 @@ $fetchUrl = h($baseurl . '/events/viewRelatedEvents/' . $eventId);
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#fbffc8;">
-                <i class="fas fa-link" style="color:#848b1b;font-size:1rem;"></i>
+                 style="width:36px;height:36px;background:#E67F0D40;">
+                <i class="fas fa-link" style="color:#E67F0D;font-size:1rem;"></i>
             </div>
             <div class="me-auto">
                 <div class="fw-bold lh-1"><?= __('Related Events') ?></div>

@@ -41,26 +41,25 @@ $correlIconStyle = $disableCorrelChecked
     : 'color:#198754;opacity:1;';
 
 echo $this->Form->create('Attribute', ['novalidate' => true]);
+xdebug_break();
 ?>
 
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->
 <div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
+     style="background:#97CC040f;
+            border-bottom:2px solid var(--attribute);">
     <div>
-        <div class="text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em;
-                    color:var(--primary); opacity:.85;">
+        <div class="text-attribute text-uppercase fw-semibold mb-1"
+             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
             <?= __('Attributes') ?>
         </div>
         <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'inbox' ?>"
-               style="color:var(--primary); font-size:.95rem;"></i>
+            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-attribute"
+               style="font-size:1.25rem;"></i>
             <?= $isEdit ? __('Edit Attribute') : __('Add Attribute') ?>
         </h4>
     </div>
-    <i class="fas fa-inbox"
-       style="font-size:2rem; color:var(--primary); opacity:.1;"></i>
+    <span class="misp-icon misp-icon-attribute misp-simple text-attribute" style="font-size:2rem; opacity:.5;"></span>
 </div>
 
 <div class="container-fluid px-4 py-4">
@@ -70,10 +69,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="row g-3">
 
             <div class="col-md-6">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Category') ?>
-                    <span class="badge bg-primary"
+                    <span class="badge bg-attribute"
                           style="font-size:.55rem; opacity:.8; font-weight:700;">
                         <?= __('REQUIRED') ?>
                     </span>
@@ -89,10 +88,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             </div>
 
             <div class="col-md-6">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Type') ?>
-                    <span class="badge bg-primary"
+                    <span class="badge bg-attribute"
                           style="font-size:.55rem; opacity:.8; font-weight:700;">
                         <?= __('REQUIRED') ?>
                     </span>
@@ -112,10 +111,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── VALUE ───────────────────────────────────────────── -->
         <div class="w-100">
-            <div class="text-primary fw-bold text-uppercase mb-2"
+            <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Value') ?>
-                <span class="badge bg-primary"
+                <span class="badge bg-attribute"
                       style="font-size:.55rem; opacity:.8; font-weight:700;">
                     <?= __('REQUIRED') ?>
                 </span>
@@ -137,7 +136,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── COMMENT ─────────────────────────────────────────── -->
         <div class="w-100">
-            <div class="text-primary fw-bold text-uppercase mb-2"
+            <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Contextual Comment') ?>
             </div>
@@ -153,7 +152,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100">
-            <div class="text-primary fw-bold text-uppercase mb-2"
+            <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Distribution') ?>
             </div>
@@ -184,7 +183,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <!-- ── ATTRIBUTE SETTINGS ──────────────────────────────── -->
         <div class="w-100">
 
-            <div class="text-primary fw-bold text-uppercase mb-2"
+            <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Settings') ?>
             </div>
@@ -297,7 +296,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="row g-3">
 
             <div class="col-md-6">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('First Seen (UTC)') ?>
                 </div>
@@ -317,7 +316,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             </div>
 
             <div class="col-md-6">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Last Seen (UTC)') ?>
                 </div>
@@ -365,7 +364,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                 '<i class="fas fa-circle-plus me-1"></i> '
                     . ($isEdit ? __('Save Changes') : __('Add Attribute')),
                 [
-                    'class'       => 'btn btn-primary btn-sm',
+                    'class'       => 'btn btn-attribute btn-sm text-white',
                     'escapeTitle' => false,
                 ]
             ) ?>
@@ -382,9 +381,7 @@ var notice_list_triggers  = <?= $notice_list_triggers ?>;
 var category_type_mapping = <?= json_encode(array_map(function (array $v) {
     return $v['types'];
 }, $categoryDefinitions)) ?>;
-</script>
 
-<script>
 var _dist   = <?= (int)$currentDist ?>;
 var _isEdit = <?= $isEdit ? 'true' : 'false' ?>;
 if (document.readyState !== 'loading') {

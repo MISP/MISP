@@ -35,79 +35,77 @@ $filter_bar = $filter_bar ?? [];
 
         <?php if (!empty($filter_bar['mass_tag'])): ?>
             <button id="mass-tag-button"
-                    class="btn btn-tag-light btn-sm d-none"
+                    class="btn btn-tag btn-sm d-none"
                     title="<?= __('Add Tag on selected attributes') ?>"
                     aria-label="<?= __('Add Tag on selected attributes') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-tag text-tag-dark"></i>
-                <span class="text-tag-dark"> <?= __('Tag') ?></span>
+                <span class="misp-icon misp-icon-tag misp-simple text-white"></span>
+                <span class="text-white"> <?= __('Tag') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_local_tag'])): ?>
             <button id="mass-local-tag-button"
-                    class="btn btn-tag-light btn-sm d-none"
-                    style="border: 2px dashed #6B2B06"
+                    class="btn btn-tag btn-sm d-none"
                     title="<?= __('Add Local Tag on selected attributes') ?>"
                     aria-label="<?= __('Add Local Tag on selected attributes') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-user text-tag-dark"></i>
-                <span class="text-tag-dark"> <?= __('Local Tag') ?></span>
+                <i class="fas fa-user text-white"></i>
+                <span class="text-white"> <?= __('Local Tag') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_cluster'])): ?>
             <button id="mass-cluster-button"
-                    class="btn btn-galaxy-light btn-sm d-none"
+                    class="btn btn-galaxy btn-sm d-none"
                     title="<?= __('Add Cluster on selected attributes') ?>"
                     aria-label="<?= __('Add Cluster to selected attributes') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fab fa-galactic-republic text-galaxy-dark"></i>
-                <span class="text-galaxy-dark"> <?= __('Cluster') ?></span>
+                <span class="misp-icon misp-icon-galaxy misp-simple text-white"></span>
+                <span class="text-white"> <?= __('Cluster') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_local_cluster'])): ?>
             <button id="mass-local-cluster-button"
-                    class="btn btn-galaxy-light btn-sm d-none"
-                    style="border: 2px dashed #084298"
+                    class="btn btn-galaxy btn-sm d-none"
                     title="<?= __('Add Local Cluster on selected attributes') ?>"
                     aria-label="<?= __('Add Local Cluster to selected attributes') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-user text-galaxy-dark"></i>
-                <span class="text-galaxy-dark"> <?= __('Local Cluster') ?></span>
+                <i class="fas fa-user text-white"></i>
+                <span class="text-white"> <?= __('Local Cluster') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_object'])): ?>
             <button id="mass-object-button"
-                    class="btn btn-object-dark btn-sm d-none"
+                    class="btn btn-object btn-sm d-none"
                     title="<?= __('Group selected Attributes into an Object') ?>"
                     aria-label="<?= __('Group selected Attributes into an Object') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-cube text-white"></i>
+                <span class="misp-icon misp-icon-object misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Object') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_relationship'])): ?>
             <button id="mass-relationship-button"
-                    class="btn btn-relationship-light btn-sm d-none"
+                    class="btn btn-correlation btn-sm d-none"
                     title="<?= __('Create new relationship for selected entities') ?>"
                     aria-label="<?= __('Create new relationship for selected entities') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-diagram-project text-relationship-dark"></i>
-                <span class="text-relationship-dark"> <?= __('Relationship') ?></span>
+                <i class="fas fa-diagram-project text-white"></i>
+                <span class="text-white"> <?= __('Relationship') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_sighting'])): ?>
             <button id="mass-sighting-button"
-                    class="btn btn-sighting-dark btn-sm d-none"
+                    class="btn btn-sighting btn-sm d-none"
                     title="<?= __('Sightings display for selected attributes') ?>"
                     aria-label="<?= __('Sightings display for selected attributes') ?>"
                     onclick="multiSelectItems('#')">
-                <i class="fas fa-eye text-white"></i>
+                <span class="misp-icon misp-icon-sighting misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Sightings') ?></span>
             </button>
         <?php endif; ?>
@@ -178,8 +176,8 @@ $filter_bar = $filter_bar ?? [];
                     title="<?= __('Delete selected items') ?>"
                     aria-label="<?= __('Delete selected items') ?>"
                     onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['delete']) ?>')">
-                <i class="fas fa-trash"></i>
-                <?= __('Delete') ?>
+                <i class="fas fa-trash text-white"></i>
+                <span class="text-white"> <?= __('Delete') ?></span>
             </button>
         <?php endif; ?>
 
