@@ -5589,6 +5589,144 @@ function queryDeprecatedEndpointUsage() {
     });
 }());
 
+function submitDashboardForm(id) {
+    var configData = $('#DashboardConfig').val();
+    if (configData != '') {
+        try {
+            configData = JSON.parse(configData);
+        } catch (error) {
+            showMessage('fail', error.message)
+            return
+        }
+    } else {
+        configData = {};
+    }
+    configData = JSON.stringify(configData);
+    $('#' + id).closest('.grid-stack-item').attr('config', configData);
+    $('#genericModal').modal('hide');
+    resetDashboardGrid(grid, true);
+}
+
+function saveDashboardState() {
+    var dashBoardSettings = [];
+
+    $('.grid-stack-item').each(function() {
+        var $item    = $(this);
+        var $wrapper = $item.find('.widget-wrapper').first();
+
+        if ($wrapper.length === 0) return;
+        console.log($wrapper.attr('config'));
+        var configAttr = $item.attr('config');
+        var widgetAttr = $wrapper.attr('widget');
+
+        if (!configAttr || !widgetAttr) return;
+
+        var temp = {
+            widget: widgetAttr,
+            config: JSON.parse(configAttr),
+            position: {
+                x: $item.attr('gs-x'),
+                y: $item.attr('gs-y'),
+                width:  $item.attr('gs-w'),
+                height: $item.attr('gs-h')
+            }
+        };
+
+        dashBoardSettings.push(temp);
+    });
+
+    var url = baseurl + '/dashboards/updateSettings'
+    fetchFormDataAjax(url, function(formData) {
+        var $formContainer = $(formData)
+        $formContainer.find('#DashboardValue').val(JSON.stringify(dashBoardSettings))
+        var $theForm = $formContainer.find('form')
+        xhr({
+            data: $theForm.serialize(),
+            success:function () {
+                showMessage('success', 'Dashboard settings saved.');
+            },
+            type:"post",
+            url: $theForm.attr('action')
+        });
+    })
+}
+
+
+
+function resetDashboardGrid(grid, save = true) {
+    $('.grid-stack-item').each(function() {
+        updateDashboardWidget(this);
+    });
+    if (save) {
+        saveDashboardState();
+    }
+    $(document).on('click', '.edit-widget', function (e) {
+        e.preventDefault();
+
+        var wrapper = $(this).closest('.widget-wrapper');
+        var item    = wrapper.closest('.grid-stack-item');
+
+        var data = {
+            id: wrapper.attr('id'),
+            config: JSON.parse(item.attr('config') || '{}'),
+            widget: item.attr('widget'),
+            alias: item.attr('alias')
+        };
+
+        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
+    });
+
+    $(document).on('click', '.remove-widget', function (e) {
+        e.preventDefault();
+
+        var gridItem = $(this).closest('.grid-stack-item').get(0);
+        if (gridItem && grid) {
+            grid.removeWidget(gridItem);
+            if (typeof saveDashboardState === 'function') {
+                saveDashboardState();
+            }
+        }
+    });
+    $(document).on('click', '.widget-export-menu a[data-exporttype]', function(e) {
+        e.preventDefault();
+
+        var $link    = $(this);
+        var $item    = $link.closest('.grid-stack-item');                 // metadata lives here
+        var $wrapper = $link.closest('.grid-stack-item').find('.widget-wrapper').first(); // id lives here
+
+        var export_type = $link.data('exporttype');
+
+        var widget = $item.attr('widget');
+        var config = $item.attr('config') || '[]';
+
+        if (!widget) return;
+
+        var wrapperId = $wrapper.attr('id') || '';
+        if (!wrapperId.startsWith('widget_')) return;
+
+        var container_id = wrapperId.substring(7);
+
+        $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
+            data: {
+                config: config,
+                widget: widget
+            },
+            success: function (data) {
+                if (export_type === 'json') {
+                    data = JSON.stringify(data, null, 2);
+                }
+                var blob = new Blob([data], { type: (export_type === 'json' ? 'application/json' : 'text/csv') });
+                var link = window.document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = widget + "_" + container_id + "_export." + export_type;
+                link.click();
+            }
+        });
+    });
+}
+
 function setHomePage() {
     $.ajax({
         type: 'GET',

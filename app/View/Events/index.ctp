@@ -215,3 +215,6 @@ if (!$ajax
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
 }
+if (!$ajax) {
+    echo $this->Html->script('mass-event-tagging');
+}
