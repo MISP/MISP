@@ -168,6 +168,11 @@ class TagCollectionsController extends AppController
             'beforeSave' => function (array $data) use ($tagCollection) {
                 $data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
                 $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+                // Ownership must never be reassigned through edit: it is only set on create, and
+                // CRUDComponent::edit() copies every supplied field, so pin org_id/user_id back to
+                // the stored values to prevent transferring the collection to another org/user.
+                $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+                $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
                 return $data;
             }
         ];
@@ -201,6 +206,10 @@ class TagCollectionsController extends AppController
 
             $data['TagCollection']['id'] = $id;
             $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+            // Ownership must never be reassigned through edit; pin org_id/user_id back to the stored
+            // values so a supplied org_id/user_id cannot transfer the collection to another org/user.
+            $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+            $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
 
             if (isset($data['TagCollection']['tags'])) {
                 $data['TagCollectionTag'] = [];
