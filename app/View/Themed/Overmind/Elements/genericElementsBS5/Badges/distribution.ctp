@@ -14,7 +14,7 @@ $map = [
         'label' => __('Your organisation only'),
         'bg'    => '#f8d7da',
         'color' => '#842029',
-        'icon'  => 'misp-icon misp-icon-organisation misp-simple'
+        'icon'  => 'fas fa-building'
     ],
     1 => [
         'label' => __('This community only'),

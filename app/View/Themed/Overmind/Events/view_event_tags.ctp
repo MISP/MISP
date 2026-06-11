@@ -4,7 +4,7 @@
 
     <div class="d-flex flex-column align-items-center justify-content-center
                 text-muted py-4" data-tag-empty>
-        <i class="fas fa-tag fa-2x mb-2 opacity-50"></i>
+        <span class="misp-icon misp-icon-tag misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
         <p class="mb-0 small fw-semibold">
             <?= __('No tags associated with this event.') ?>
         </p>

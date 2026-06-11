@@ -8,7 +8,7 @@ $total = $positive + $negative;
 
     <div class="d-flex flex-column align-items-center justify-content-center
                 text-muted py-4">
-        <i class="fas fa-eye fa-2x mb-2 opacity-50"></i>
+        <span class="misp-icon misp-icon-sighting misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
         <p class="mb-0 small fw-semibold">
             <?= __('No sightings recorded yet.') ?>
         </p>

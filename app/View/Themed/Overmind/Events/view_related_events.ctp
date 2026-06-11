@@ -4,22 +4,22 @@ $total = count($relatedEvents);
 
 $distMap = [
     0 => ['bg' => '#f8d7da', 'color' => '#842029',
-          'icon' => 'fa-building',
+          'icon' => 'fas fa-network-building',
           'label' => __('Your organisation only')],
     1 => ['bg' => '#ffe5b4', 'color' => '#b45309',
-          'icon' => 'fa-users',
+          'icon' => 'fas fa-users',
           'label' => __('This community only')],
     2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b',
-          'icon' => 'fa-network-wired',
+          'icon' => 'fas fa-network-wired',
           'label' => __('Connected communities')],
     3 => ['bg' => '#d1f7e0', 'color' => '#0f5132',
-          'icon' => 'fa-globe',
+          'icon' => 'fas fa-globe',
           'label' => __('All communities')],
     4 => ['bg' => '#6a96ee', 'color' => '#0e146d',
-          'icon' => 'fa-share-alt',
+          'icon' => 'misp-icon misp-icon-sharing-group misp-hexagone',
           'label' => __('Sharing group')],
     5 => ['bg' => '#e6b7df', 'color' => '#380f33',
-          'icon' => 'fa-code-fork',
+          'icon' => 'fas fa-code-fork',
           'label' => __('Inherited')],
 ];
 ?>
@@ -62,7 +62,7 @@ $distMap = [
                         background:<?= $dist['bg'] ?>;
                         border:1px solid <?= $dist['color'] ?>33;"
                  title="<?= h($dist['label']) ?>">
-                <i class="fas <?= h($dist['icon']) ?>"
+                <i class="<?= h($dist['icon']) ?>"
                    style="color:<?= $dist['color'] ?>;
                           font-size:.85rem;"></i>
             </div>
