@@ -1609,6 +1609,9 @@ class Server extends AppModel
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
                 $s['setting'] = $k;
+                // Expose file-only (security-sensitive) status alongside the name
+                // so the settings view can show it as a posture badge (#10812).
+                $s['file_only'] = SystemSetting::isSensitive($k);
                 if ($s['level'] == $i) {
                     $finalSettings[] = $s;
                 }
@@ -1648,6 +1651,9 @@ class Server extends AppModel
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
+        // Expose whether the setting is stored in the config file only for security
+        // reasons (passwords, API keys, secrets) so the UI can surface it (#10812).
+        $result['file_only'] = SystemSetting::isSensitive($settingName);
         return $result;
     }
 
