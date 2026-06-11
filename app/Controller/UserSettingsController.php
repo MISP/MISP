@@ -382,22 +382,18 @@ class UserSettingsController extends AppController
             if (empty($this->request->data['path'])) {
                 throw new InvalidArgumentException(__('No path POSTed.'));
             }
-            if ($this->theme === "Overmind") {
-                $result = $this->UserSetting->setSettingInternal(
-                    $this->Auth->user('id'),
-                    'homepage',
-                    ['path' => $this->request->data['path']]
-                );
-            } else {
-                $setting = array(
-                    'UserSetting' => array(
-                        'user_id' => $this->Auth->user('id'),
-                        'setting' => 'homepage',
-                        'value' => ['path' => $this->request->data['path']],
-                    )
-                );
-                $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
-            }
+            $setting = array(
+                'UserSetting' => array(
+                    'user_id' => $this->Auth->user('id'),
+                    'setting' => 'homepage',
+                    'value' => ['path' => $this->request->data['path']],
+                )
+            );
+            // Always persist through setSetting() so the homepage validation (validate_homepage,
+            // which requires the path to start with '/') and the access/self-management checks run.
+            // The Overmind theme previously called setSettingInternal() directly, skipping validation
+            // and allowing an arbitrary path - e.g. an XSS payload - to be stored as the homepage.
+            $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
             return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
         } else {
             $this->layout = false;
