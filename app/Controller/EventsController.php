@@ -2936,6 +2936,23 @@ class EventsController extends AppController
             // say what fields are to be updated
             $fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id', 'extends_uuid');
 
+            // If the distribution is set to a sharing group, validate that the user is actually allowed
+            // to use the chosen SG. The REST path enforces this via Event::_edit(), but the non-REST save
+            // below writes sharing_group_id straight from the submitted form, so without this guard an
+            // editor could tamper with the form to pick a sharing group they have no access to (leaking
+            // its name on the event index). Keeping the event's existing SG unchanged stays allowed.
+            if (isset($this->request->data['Event']['distribution']) && $this->request->data['Event']['distribution'] == 4) {
+                if (($this->request->data['Event']['sharing_group_id'] ?? 0) != $event['Event']['sharing_group_id']) {
+                    $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                    if ($canSGBeUsed !== true) {
+                        throw new MethodNotAllowedException($canSGBeUsed);
+                    }
+                }
+            } else if (isset($this->request->data['Event']['distribution'])) {
+                // A non-sharing-group distribution must not carry a sharing group id.
+                $this->request->data['Event']['sharing_group_id'] = 0;
+            }
+
             // always force the org, but do not force it for admins
             if (!$this->_isSiteAdmin()) {
                 // set the same org as existed before
