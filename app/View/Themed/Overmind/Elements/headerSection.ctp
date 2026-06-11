@@ -29,7 +29,7 @@ $title = isset($headerTitle)
 
             <?php if (!empty($headerDescription)): ?>
                 <p class="text-muted mb-0 mt-1" style="font-size:0.85rem;">
-                    <?= h($headerDescription) ?>
+                    <?= $headerDescription ?>
                 </p>
             <?php else: //small space, just to match the size of the Flash messages ?>
                 <div style="height: 0.5rem;"></div>

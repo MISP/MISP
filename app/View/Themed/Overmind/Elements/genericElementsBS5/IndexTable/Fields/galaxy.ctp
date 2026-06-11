@@ -2,14 +2,42 @@
 $data = Hash::extract($row, $field['data_path']);
 
 if (empty($data)) {
-    return;
+    if (!empty($row['Galaxy'])) {
+        $data = $row['Galaxy'];
+    } elseif (!empty($row['AttributeTag'])) {
+        $data = $row['AttributeTag'];
+    } else {
+        return;
+    }
 }
 
 // Group galaxies by name, collecting cluster values and local status
 $groupedGalaxies = [];
 
 foreach ($data as $item) {
+    // AttributeTag format: Tag.is_galaxy = true 
+    if (!empty($item['Tag']) && !empty($item['Tag']['is_galaxy'])) {
+        $tagName = $item['Tag']['name'];
+        preg_match('/^[^:]+:([^=]+)="(.+)"$/', $tagName, $m);
+        $galaxyType   = isset($m[1]) ? $m[1] : 'unknown';
+        $clusterValue = isset($m[2]) ? $m[2] : $tagName;
+        $isLocal      = !empty($item['local']);
+        $galaxyName   = ucwords(str_replace('-', ' ', $galaxyType));
 
+        if (!isset($groupedGalaxies[$galaxyName])) {
+            $groupedGalaxies[$galaxyName] = [
+                'clusters' => [],
+                'icon'     => 'circle-dot',
+            ];
+        }
+        $groupedGalaxies[$galaxyName]['clusters'][] = [
+            'value' => $clusterValue,
+            'local' => $isLocal,
+        ];
+        continue;
+    }
+
+    //Galaxy / GalaxyCluster format
     if (!empty($item['Galaxy'])) {
         $galaxyName  = $item['Galaxy']['name'];
         $clusterValue = $item['value'] ?? '';
@@ -117,9 +145,9 @@ $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true)
                 style="font-size:0.78rem; color:hsl(<?= $hue ?>,45%,35%); line-height:1.25;"
             >
                 <?php foreach ($galaxyData['clusters'] as $cluster): ?>
-                    <div class="d-flex align-items-start">
+                    <div class="d-flex align-items-center gap-1">
                         <?php if ($cluster['local']): ?>
-                            <i class="fas fa-user me-1 mt-1"></i>
+                            <i class="fas fa-user"></i>
                         <?php endif; ?>
                         <span><?= h($cluster['value']) ?></span>
                     </div>

@@ -11,14 +11,21 @@
             ['controller' => 'users', 'action' => 'login'],
 
             ['controller' => 'events', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'add'],
+            ['controller' => 'events', 'action' => 'edit'],
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
+            ['controller' => 'events', 'action' => 'getEventInfoById'],
 
             ['controller' => 'attributes', 'action' => 'index'],
+            ['controller' => 'attributes', 'action' => 'add'],
+            ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'sightings', 'action' => 'advanced'],
 
             ['controller' => 'collections', 'action' => 'index'],
             ['controller' => 'collections', 'action' => 'view'],
@@ -26,6 +33,16 @@
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
             ['controller' => 'CollectionElements', 'action' => 'index'],
+
+            ['controller' => 'event_reports', 'action' => 'index'],
+            ['controller' => 'event_reports', 'action' => 'view'],
+            ['controller' => 'event_reports', 'action' => 'add'],
+            ['controller' => 'event_reports', 'action' => 'edit'],
+
+
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'index'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'add'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'edit'],
 
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
