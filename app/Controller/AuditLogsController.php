@@ -228,6 +228,66 @@ class AuditLogsController extends AppController
         ]);
     }
 
+    public function eventIndexV2($eventId = null)
+    {
+        $params = $this->IndexFilter->harvestParameters([
+            'created', 'org', 'eventId', 'action', 'model'
+        ]);
+        if (!empty($params['eventId'])) {
+            $eventId = $params['eventId'];
+        } else if (empty($eventId)) {
+            $eventId = -1;
+        }
+        $event = $this->AuditLog->Event->fetchSimpleEvent(
+            $this->Auth->user(), $eventId
+        );
+        if (empty($event)) {
+            throw new NotFoundException('Invalid event.');
+        }
+        $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
+        $this->paginate['conditions'][] = $this->__searchConditions($params);
+
+        $limit = (int)($this->paginate['limit'] ?? 60);
+
+        // Run a real COUNT before paginating.
+        $totalCount = $this->AuditLog->find('count', [
+            'conditions' => $this->paginate['conditions'],
+            'recursive'  => -1,
+            'contain'    => [],
+        ]);
+        $pageCount = $limit > 0 ? (int)ceil($totalCount / $limit) : 1;
+
+        $list = $this->paginate();
+
+        if (!$this->_isSiteAdmin()) {
+            $orgUserIds = $this->User->find('column', [
+                'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
+                'fields' => ['User.id'],
+            ]);
+            foreach ($list as $k => $item) {
+                if ($item['AuditLog']['user_id'] == 0) {
+                    continue;
+                }
+                if (!in_array($item['User']['id'], $orgUserIds)) {
+                    unset($list[$k]['User']);
+                    unset($list[$k]['AuditLog']['user_id']);
+                }
+            }
+        }
+
+        $curPage = isset($this->request->params['paging']['AuditLog']['page'])
+            ? (int)$this->request->params['paging']['AuditLog']['page']
+            : 1;
+
+        return $this->RestResponse->viewData([
+            'data'      => $list,
+            'page'      => $curPage,
+            'pageCount' => $pageCount,
+            'count'     => $totalCount,
+            'limit'     => $limit,
+        ], 'json');
+    }
+
     public function fullChange($id)
     {
         $acl = $this->__applyAuditAcl($this->Auth->user());

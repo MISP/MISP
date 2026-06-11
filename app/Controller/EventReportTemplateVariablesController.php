@@ -28,6 +28,9 @@ class EventReportTemplateVariablesController extends AppController
             return $this->restResponsePayload;
         }
          $this->set('menuData', ['menuList' => 'eventReports', 'menuItem' => 'template_variable_add']);
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     public function view($id)
@@ -58,6 +61,9 @@ class EventReportTemplateVariablesController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', ['menuList' => 'eventReports', 'menuItem' => 'template_variable_edit']);
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->set('action', 'edit');
         $this->render('add');
     }
@@ -70,6 +76,22 @@ class EventReportTemplateVariablesController extends AppController
             return $this->restResponsePayload;
         }
          $this->set('menuData', ['menuList' => 'eventReports', 'menuItem' => 'template_variable_delete']);
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'EventReportTemplateVariable',
+            'restName' => 'EventReportTemplateVariables',
+            'itemName' => 'EventReportTemplateVariable',
+            'view' => 'ajax/eventReportTemplateVariableDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s event report template variable deleted.', '%s event report template variables deleted.', $count, $count);
+            }
+        ]);
     }
 
 }

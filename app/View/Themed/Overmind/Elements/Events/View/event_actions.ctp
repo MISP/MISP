@@ -9,11 +9,13 @@ $canPublish = $this->Acl->canPublishEvent($data);
 $actions = [
     [
         'url' => "$baseurl/events/edit/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/edit/$eventId');",
         'icon' => 'fas fa-pen',
         'label' => __('Edit Event')
     ],
     [
         'url' => "$baseurl/attributes/add/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/attributes/add/$eventId');",
         'icon' => 'fas fa-inbox',
         'label' => __('Add Attribute')
     ],
@@ -26,21 +28,6 @@ $actions = [
         'url' => "$baseurl/event_reports/add/$eventId",
         'icon' => 'fas fa-file-alt',
         'label' => __('Add Event Report')
-    ],
-    [
-        'url' => "$baseurl/attributes/add_attachment/$eventId",
-        'icon' => 'fas fa-copy',
-        'label' => __('Add Attachment')
-    ],
-    [
-        'url' => "#",
-        'icon' => 'fas fa-tag',
-        'label' => __('Add Tag')
-    ],
-    [
-        'url' => "#",
-        'icon' => 'fas fa-bullseye',
-        'label' => __('Add Cluster')
     ],
     [
         'url' => "#",
@@ -58,7 +45,7 @@ $actions = [
 if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
     $actions[] = [
         'url' => "",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/events/publish/$eventId');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/publish/$eventId', 'md');",
         'icon' => 'fas fa-upload',
         'label' => __('Publish Event'),
         'success' => true
@@ -66,7 +53,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
 } else if($isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
     $actions[] = [
         'url' => "",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId', 'md');",
         'icon' => 'fas fa-download',
         'label' => __('Unpublish Event'),
         'warning' => true
@@ -76,7 +63,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
 if ($isSiteAdmin || $mayModify) {
     $actions[] = [
         'url' => "$baseurl/events/delete/$eventId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId', 'sm');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Event'),
         'danger' => true

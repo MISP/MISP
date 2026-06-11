@@ -1,17 +1,18 @@
 :root {
-    --bs-link-color : #1892B1;
-    --bs-link-hover-color : #1892B1;
+    --primary: #1892B1;
+    --bs-link-color: var(--primary);
+    --bs-link-hover-color: var(--primary);
     --bs-link-hover-color-rgb: 24, 146, 177;
     --bs-link-color-rgb: 24, 146, 177;
 }
 
 .pagination {
-    --bs-pagination-active-bg: #1892B1;
-    --bs-pagination-active-border-color: #1892B1;
+    --bs-pagination-active-bg: var(--primary);
+    --bs-pagination-active-border-color: var(--primary);
 }
 
 .dropdown-item {
-    --bs-dropdown-link-active-bg: #1892B1 ;
+    --bs-dropdown-link-active-bg: var(--primary);
 }
 
 html {
@@ -28,7 +29,7 @@ body{
 }
 
 body[data-controller="users"][data-action="login"] {
-    background: linear-gradient(180deg, #1892B1 0%, #12718E 50%, #0B394A 100%);
+    background: linear-gradient(180deg, var(--primary) 0%, #12718E 50%, #0B394A 100%);
     min-height: 100vh;
     padding-top: 56px;  /* Adjust for fixed navbar height */
 }
@@ -86,7 +87,7 @@ body[data-controller="users"][data-action="login"] {
 }
 
 .btn-light{
-    color:#1892B1;
+    color:var(--primary);
 }
 
 /* Login gradient button */
@@ -191,7 +192,7 @@ body[data-controller="users"][data-action="login"] {
 
 /* Hover dropdown item */
 .dropdown-item:hover {
-    background-color: #1892B1;
+    background-color: var(--primary);
     color: #fff;
 }
 
@@ -401,7 +402,13 @@ body[data-controller="users"][data-action="login"] {
 
 
 .checkbox-index input[type="checkbox"]:checked {
-    background-color: #1892B1;
+    background-color: var(--primary);
+}
+
+
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
 }
 /* =======================================================
    Flash Custom CSS
@@ -437,7 +444,7 @@ body[data-controller="users"][data-action="login"] {
 ======================================================= */
 
 .tr:hover{
-    background-color: #1892B1 !important;
+    background-color: var(--primary) !important;
 }
 
 .table {
@@ -598,6 +605,13 @@ th .sort-icon::before {
    To be sorted
 ======================================================= */
 
+.card-header .toggle-chevron {
+    transition: transform 0.3s ease-in-out;
+}
+.card-header.collapsed .toggle-chevron {
+    transform: rotate(180deg);
+}
+
 .dropdown-filters .dropdown-toggle::after {
     display: none !important;
 }
@@ -745,6 +759,7 @@ th .sort-icon::before {
  * ============================================== */
 
 [data-bs-theme="dark"] {
+    /*--primary: #0B394A; */
     --galaxy-alpha: 0.92;
 }
 
@@ -861,7 +876,73 @@ th .sort-icon::before {
 
 
 
-
 .nav-view.active {
-    color: #1892B1 !important;
+    color: var(--primary) !important;
+}
+
+.nav-ajax.active {
+    background-color: var(--primary) !important;
+}
+
+/* ── Shared style for IDS & Correlate toggles ── */
+.ids-shield-toggle,
+.correlate-toggle {
+    line-height: 1;
+    transition: opacity .15s ease, transform .1s ease;
+}
+.ids-shield-toggle:hover,
+.correlate-toggle:hover {
+    opacity: .75;
+    transform: scale(1.15);
+}
+.ids-shield-toggle:active,
+.correlate-toggle:active {
+    transform: scale(.95);
+}
+.ids-shield-toggle .fa-shield-halved,
+.correlate-toggle .fa-link,
+.correlate-toggle .fa-link-slash {
+    transition: color .2s ease;
+}
+
+/* (IDS-specific overrides, if any, go here) */
+
+.analysis-line {
+    position: absolute;
+    top: 10px;
+    left: -50%;
+    width: 100%;
+    height: 2px;
+    z-index: 0;
+}
+/* ──────────────────────────────────────────────
+   Event History Timeline
+────────────────────────────────────────────── */
+.tl { position: relative; padding-left: 2rem; }
+.tl::before {
+    content: '';
+    position: absolute;
+    left: .6rem; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--bs-border-color, #dee2e6);
+    border-radius: 1px;
+}
+.tl-day {
+    margin-left: -2rem;
+    padding: .35rem .75rem .35rem 2.25rem;
+    font-size: .7rem;
+    letter-spacing: .07em;
+    margin-bottom: .75rem;
+}
+.tl-entry { position: relative; margin-bottom: 1rem; }
+.tl-entry:last-child { margin-bottom: .25rem; }
+.tl-dot {
+    position: absolute;
+    left: calc(-2rem + .6rem - 6px);
+    top: .3rem;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-card-bg, #fff);
+    box-shadow: 0 0 0 2px currentColor;
+    z-index: 1;
 }

@@ -16,6 +16,7 @@ class NavbarHelper extends AppHelper {
         'event_delegations' => 'datapoints',
         'collections'       => 'datapoints',
         'event_reports'     => 'datapoints',
+        'eventreporttemplatevariables'     => 'datapoints',
         'analystdata'       => 'datapoints',
         'dashboards'        => 'datapoints',
         // Data models
@@ -200,10 +201,23 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Event Reports'),
-                'url' => $baseurl . '/event_reports/index',
-                'controller' => 'event_reports',
-                'action' => 'index',
                 'icon' => 'fas fa-file-alt',
+                'children' => [
+                    [
+                        'label' => __('Index'),
+                        'url' => $baseurl . '/event_reports/index',
+                        'controller' => 'event_reports',
+                        'action' => 'index',
+                        'icon' => 'fas fa-list'
+                    ],
+                    [
+                        'label' => __('Template Variables'),
+                        'url' => $baseurl . '/EventReportTemplateVariables/index',
+                        'controller' => 'EventReportTemplateVariables',
+                        'action' => 'index',
+                        'icon' => 'fas fa-scroll'
+                    ]
+                ]
             ],
             [
                 'type' => 'group',

@@ -50,6 +50,23 @@ if ($field['data_path'] === 'Collection.id' || !empty($data['Collection'])) {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'EventReport.id') {
+    if (!isset($mayModify)) {
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_add']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'EventReportTemplateVariable.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
 if ($field['data_path'] === 'Warninglist.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

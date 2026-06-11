@@ -120,7 +120,11 @@
                 </select>
                 <input type="text" id="quickFilterField" class="form-control beta-search-input" placeholder="<?= __('Enter value to search') ?>" data-searchkey="<?= h($searchKey) ?>">
                 <button id="quickFilterButton" class="btn btn-primary beta-search-button"><?= __('Filter') ?></button>
-                <button class="btn btn-default beta-advanced-filter-button" onclick="getPopup('<?= h($urlparams) ?>', 'events', 'filterEventIndex')">
+                <?php /* json_encode emits a properly-escaped JS string literal; h() then guards the
+                       attribute layer. Plain h($urlparams) inside a single-quoted JS string is unsafe
+                       here: the browser HTML-decodes the onclick value before JS parsing, restoring any
+                       &#039; and allowing a crafted searcheventinfo value to break out (XSS). */ ?>
+                <button class="btn btn-default beta-advanced-filter-button" onclick="getPopup(<?= h(json_encode($urlparams)) ?>, 'events', 'filterEventIndex')">
                     <i class="fa fa-search"></i> <?= __('Advanced Filter...') ?>
                 </button>
                 <button id="multi-delete-button" class="btn btn-default hidden mass-delete" onclick="multiSelectDeleteEvents()" title="<?= __('Delete selected events') ?>">

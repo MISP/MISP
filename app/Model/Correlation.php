@@ -1357,20 +1357,13 @@ class Correlation extends AppModel
         }
         $eventIds = $this->CorrelationRule->getEventIdsForRule($rule);
         if (!empty($eventIds) && is_array($eventIds)) {
+            // A correlation rule only suppresses correlations where BOTH ends are in
+            // the rule's event set (see CorrelationRule::checkEventIds), so delete only
+            // those. (Was previously an OR of two identical, order-swapped AND clauses.)
             if (!$this->deleteAll([
-                'OR' => [
-                    [
-                        'AND' => [
-                            'Correlation.event_id IN' => $eventIds,
-                            'Correlation.1_event_id IN' => $eventIds,
-                        ],
-                    ],
-                    [
-                        'AND' => [
-                            'Correlation.1_event_id IN' => $eventIds,
-                            'Correlation.event_id IN' => $eventIds,
-                        ]
-                    ]
+                'AND' => [
+                    'Correlation.event_id IN' => $eventIds,
+                    'Correlation.1_event_id IN' => $eventIds,
                 ]
                 ], false, false)) {
                 throw new InternalErrorException(__('Could not delete correlations for rule %s', $id));

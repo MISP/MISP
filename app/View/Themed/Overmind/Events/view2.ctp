@@ -1,8 +1,21 @@
 <?php
+
+    $headerTitle = __('') . ($event['Event']['info'] ?? '');
+    $headerDescription = '';
+    $headerActions = [];
+
+    $this->set('headerTitle', $headerTitle);
+    $this->set('headerDescription', $headerDescription);
+    $this->set('headerActions', $headerActions);
+
+    echo $this->element('genericElements/assetLoader', [
+        'js'  => ['markdown-it', 'Chart.min']
+    ]);
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
-
         'data' => $event,
+        'report' => $event['EventReport'] ?? null,
         'tabs' => [
             [
                 'id' => 'general',
@@ -12,12 +25,16 @@
                 // Content
                 'left' => [
                     'Events/View/event_general',
-                    'Events/View/event_statistics'
+                    'EventReports/View/eventReport_preview',
+                    'Events/View/event_tags',
+                    'Events/View/event_galaxies',
+                    'Events/View/event_attachments',
                 ],
                 'right' => [
                     'Events/View/event_actions',
-                    'Events/View/event_correlations',
-                    'Events/View/event_warninglists'
+                    'Events/View/event_sightings',
+                    'Events/View/event_related',
+                    'Events/View/event_warninglists',
                 ]
             ],
             [
@@ -65,7 +82,9 @@
 
                 // Content
                 'left' => [
-                    'Events/View/event_reports',
+                    [
+                        'ajax' => sprintf('/events/viewEventReports/%s', h($event['Event']['id']))
+                    ]
                 ],
             ],
             [
@@ -87,6 +106,17 @@
                 'left' => [
                     'Events/View/event_timeline',
                 ],
+            ],
+            [
+                'id' => 'history',
+                'title' => __('History'),
+                'icon' => 'history',
+                'count' => $history_count ?? 0,
+
+                // Content
+                'left' => [
+                    'Events/View/event_history',
+                ]
             ]
         ]
     ]);

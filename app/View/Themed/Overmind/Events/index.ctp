@@ -16,7 +16,7 @@ $canPickTemplate = (
 );
 if ($canPickTemplate) {
     $headerActions[] = [
-        'type' => 'modal',
+        'type' => 'navigate',
         'id' => 'event-template-picker-button',
         'label' => __('From template'),
         'icon' => 'clone',
@@ -179,7 +179,7 @@ $fields = [
                 'url' => $baseurl . '/events/view2/%id%'
             ],
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/events/edit/%id%',

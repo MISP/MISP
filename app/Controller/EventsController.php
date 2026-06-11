@@ -1970,6 +1970,7 @@ class EventsController extends AppController
                 'Orgc',
                 'ThreatLevel',
                 'SharingGroup' => ['Organisation'],
+                'User' => ['fields' => ['User.email']],
             ],
         ]);
         if (empty($event)) {
@@ -2129,6 +2130,18 @@ class EventsController extends AppController
                 );
             }
         }
+
+        // Favorite event report (for the moment, only the most recent one)
+        $result = $this->Event->EventReport->find(
+            'first',
+            [
+                'conditions' => [
+                    'EventReport.event_id' =>
+                        $event['Event']['id'],
+                ]
+            ]
+        );
+        $event['EventReport'] = $result['EventReport'] ?? null;
 
         // Extension info: events extending this one
         $extensions = $this->Event->fetchSimpleEvents(
@@ -2370,6 +2383,356 @@ class EventsController extends AppController
     }
 
     /**
+     * Paginated standalone attributes for a given event.
+     * Returns JSON with DB-level sorting and
+     * pagination — no in-memory rearrangement needed.
+     *
+     * Supports filters via named params or POST data:
+     *   page, limit, sort, direction, deleted, category,
+     *   type, toIDS, searchFor
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventReports($id = null)
+    {
+        $user = $this->Auth->user();
+
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+
+        $namedParams = $this->request->params['named'];
+        $data        = $this->request->data;
+        $options     = [];
+        foreach (
+            ['page', 'limit', 'sort', 'direction',
+             'deleted', 'searchFor'] as $key
+        ) {
+            if (isset($namedParams[$key])) {
+                $options[$key] = $namedParams[$key];
+            } elseif (isset($data[$key])) {
+                $options[$key] = $data[$key];
+            }
+        }
+
+        $this->loadModel('EventReport');
+        $result = $this->EventReport->fetchPaginatedReports(
+            $user,
+            $eventId,
+            $options
+        );
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($result, 'json');
+        }
+
+        $mayModify = $this->__canModifyEvent($event, $user);
+
+        $page      = $result['page'];
+        $limit     = $result['limit'];
+        $total     = $result['total'];
+        $pageCount = (int) ceil($total / $limit);
+        $current   = count($result['EventReport']);
+
+        $this->request->params['paging']['EventReport'] = [
+            'page'      => $page,
+            'current'   => $current,
+            'count'     => $total,
+            'prevPage'  => $page > 1,
+            'nextPage'  => $page < $pageCount,
+            'pageCount' => $pageCount,
+            'order'     => null,
+            'limit'     => $limit,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
+        $this->set('reports',   $result['EventReport']);
+        $this->set('event',     $event);
+        $this->set('mayModify', $mayModify);
+        $this->set('total',     $total);
+        $this->set('page',      $page);
+        $this->set('limit',     $limit);
+        $this->layout = false;
+    }
+
+    /**
+     * Returns an Overmind-styled HTML fragment listing the
+     * non-galaxy tags of a given event. Rendered with
+     * layout=false for AJAX injection / post-tag-action refresh.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventTags($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => ['Event.id', 'Event.orgc_id', 'Event.org_id',
+                              'Event.user_id'],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false
+                    ]
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        /* Strip galaxy-cluster tags */
+        $nonGalaxyTags = array_filter(
+            $event['EventTag'] ?? [],
+            function ($et) {
+                return empty($et['Tag']['is_galaxy']);
+            }
+        );
+
+        $this->set('eventTags', array_values($nonGalaxyTags));
+        $this->set('eventId',   $event['Event']['id']);
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+        $this->layout = false;
+    }
+
+    /**
+     * Returns an Overmind-styled HTML fragment listing the
+     * galaxy clusters attached to a given event, grouped by
+     * galaxy. Rendered with layout=false for AJAX injection.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventGalaxies($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => ['Event.id', 'Event.orgc_id',
+                              'Event.org_id', 'Event.user_id'],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false
+                    ]
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        $galaxyTagNames = [];
+        foreach ($event['EventTag'] as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$et['Tag']['id']] =
+                    $et['Tag']['name'];
+            }
+        }
+
+        $galaxies = [];
+        if (!empty($galaxyTagNames)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, true, false
+            );
+            if (!empty($clusters)) {
+                $clustersByTagId = array_column(
+                    array_column($clusters, 'GalaxyCluster'),
+                    null, 'tag_id'
+                );
+                foreach ($event['EventTag'] as $et) {
+                    if (empty($et['Tag']['is_galaxy'])) {
+                        continue;
+                    }
+                    $tagId = $et['Tag']['id'];
+                    if (!isset($clustersByTagId[$tagId])) {
+                        continue;
+                    }
+                    $cluster = $clustersByTagId[$tagId];
+                    $galaxyId = $cluster['Galaxy']['id'];
+                    $cluster['event_tag_id'] = $et['id'];
+                    $cluster['local'] =
+                        $et['local'] ?? false;
+                    $cluster['relationship_type'] =
+                        !empty($et['relationship_type'])
+                        ? $et['relationship_type']
+                        : false;
+                    if (isset($galaxies[$galaxyId])) {
+                        unset($cluster['Galaxy']);
+                        $galaxies[$galaxyId]
+                            ['GalaxyCluster'][] = $cluster;
+                    } else {
+                        $galaxies[$galaxyId] =
+                            $cluster['Galaxy'];
+                        unset($cluster['Galaxy']);
+                        $galaxies[$galaxyId]
+                            ['GalaxyCluster'] = [$cluster];
+                    }
+                }
+                $galaxies = array_values($galaxies);
+            }
+        }
+
+        $this->set('galaxies',  $galaxies);
+        $this->set('eventId',   $event['Event']['id']);
+        $this->set('mayModify', $this->__canModifyEvent(
+            $event, $user
+        ));
+        $this->layout = false;
+    }
+
+    /**
+     * Returns JSON statistics for a given event:
+     * attribute & object breakdowns, attachment count,
+     * report count. Used by the event_general stats widget.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventStats($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+
+        // Attribute breakdown by category
+        $this->loadModel('MispAttribute');
+        $attrRows = $this->MispAttribute->find('all', [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted'  => 0,
+            ],
+            'fields'    => ['Attribute.category', 'COUNT(*) AS attr_count'],
+            'group'     => ['Attribute.category'],
+            'order'     => ['attr_count DESC'],
+            'recursive' => -1,
+        ]);
+        $attrByCategory = [];
+        $attrTotal = 0;
+        foreach ($attrRows as $row) {
+            $cnt = (int)$row[0]['attr_count'];
+            $attrByCategory[$row['Attribute']['category']] = $cnt;
+            $attrTotal += $cnt;
+        }
+
+        // Object breakdown by template name
+        $this->loadModel('MispObject');
+        $objRows = $this->MispObject->find('all', [
+            'conditions' => [
+                'Object.event_id' => $eventId,
+                'Object.deleted'  => 0,
+            ],
+            'fields'    => ['Object.name', 'COUNT(*) AS obj_count'],
+            'group'     => ['Object.name'],
+            'order'     => ['obj_count DESC'],
+            'recursive' => -1,
+        ]);
+        $objByName = [];
+        $objTotal = 0;
+        foreach ($objRows as $row) {
+            $cnt = (int)$row[0]['obj_count'];
+            $objByName[$row['Object']['name']] = $cnt;
+            $objTotal += $cnt;
+        }
+
+        // Attachment count
+        $attachmentCount = (int)$this->MispAttribute->find('count', [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted'  => 0,
+                'Attribute.type'     => ['attachment', 'malware-sample'],
+            ],
+            'recursive' => -1,
+        ]);
+
+        // EventReport count
+        $this->loadModel('EventReport');
+        $reportCount = (int)$this->EventReport->find('count', [
+            'conditions' => [
+                'EventReport.event_id' => $eventId,
+                'EventReport.deleted'  => 0,
+            ],
+            'recursive' => -1,
+        ]);
+
+        return $this->RestResponse->viewData([
+            'attributes'  => [
+                'total'       => $attrTotal,
+                'by_category' => $attrByCategory,
+            ],
+            'objects'     => [
+                'total'   => $objTotal,
+                'by_name' => $objByName,
+            ],
+            'attachments' => $attachmentCount,
+            'reports'     => $reportCount,
+        ], 'json');
+    }
+
+    /**
+     * Returns an HTML fragment listing attachment and
+     * malware-sample attributes for a given event.
+     * Rendered with layout=false for AJAX injection.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewAttachments($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        $this->loadModel('MispAttribute');
+        $rows = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.event_id' => $event['Event']['id'],
+                'Attribute.type'     => ['attachment', 'malware-sample'],
+                'Attribute.deleted'  => 0,
+            ],
+            'fields' => [
+                'Attribute.id', 'Attribute.uuid',
+                'Attribute.type', 'Attribute.category',
+                'Attribute.value', 'Attribute.comment',
+                'Attribute.timestamp', 'Attribute.distribution',
+                'Attribute.object_id',
+            ],
+            'flatten' => true,
+        ]);
+
+        $attachments = array_column($rows, 'Attribute');
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                $attachments, 'json'
+            );
+        }
+
+        $this->set('attachments', $attachments);
+        $this->set('event',       $event);
+        $this->layout = false;
+    }
+
+    /**
      * Returns an event-level warninglist hit summary.
      *
      * Only checks whether the user can see the event —
@@ -2428,6 +2791,49 @@ class EventsController extends AppController
             );
         }
         $this->set('warninglistHits', $eventWarnings);
+        $this->set('event', $event);
+        $this->layout = false;
+    }
+
+    /**
+     * Event-level sightings summary (positive / false-positive
+     * counts) for the Overmind side-panel card.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventSightings($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        $this->loadModel('Sighting');
+        $stats = $this->Sighting->eventsStatistic(
+            [$event],
+            $user
+        );
+
+        $data     = $stats['data']['all'] ?? [];
+        $positive = (int)(isset($data['sighting']['count'])
+            ? $data['sighting']['count'] : 0);
+        $negative = (int)(isset($data['false-positive']['count'])
+            ? $data['false-positive']['count'] : 0);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                ['positive' => $positive,
+                 'negative' => $negative],
+                'json'
+            );
+        }
+        $this->set('positive', $positive);
+        $this->set('negative', $negative);
         $this->set('event', $event);
         $this->layout = false;
     }
@@ -2930,7 +3336,7 @@ class EventsController extends AppController
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
-                        $this->redirect(array('action' => 'view', $this->Event->getID()));
+                        $this->redirect(array('action' => 'view2', $this->Event->getID()));
                     }
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST
@@ -2955,6 +3361,9 @@ class EventsController extends AppController
                             $this->Flash->error(__('A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
                         } else {
                             $this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+                            if ($this->theme === "Overmind") {
+                                $this->redirect(array('action' => 'index'));
+                            }
                         }
                     }
                 }
@@ -3003,10 +3412,14 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
 
-        if (Configure::read('MISP.unpublishedprivate')) {
-            $this->Flash->info(__('The event created will be visible only to your organisation until it is published.'));
+        if ($this->theme === "Overmind"){
+            $this->layout = false;
         } else {
-            $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+            if (Configure::read('MISP.unpublishedprivate')) {
+                $this->Flash->info(__('The event created will be visible only to your organisation until it is published.'));
+            } else {
+                $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+            }
         }
         $this->set('fieldDesc', $fieldDesc);
         if (isset($this->params['named']['extends'])) {
@@ -3598,6 +4011,23 @@ class EventsController extends AppController
             // say what fields are to be updated
             $fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id', 'extends_uuid');
 
+            // If the distribution is set to a sharing group, validate that the user is actually allowed
+            // to use the chosen SG. The REST path enforces this via Event::_edit(), but the non-REST save
+            // below writes sharing_group_id straight from the submitted form, so without this guard an
+            // editor could tamper with the form to pick a sharing group they have no access to (leaking
+            // its name on the event index). Keeping the event's existing SG unchanged stays allowed.
+            if (isset($this->request->data['Event']['distribution']) && $this->request->data['Event']['distribution'] == 4) {
+                if (($this->request->data['Event']['sharing_group_id'] ?? 0) != $event['Event']['sharing_group_id']) {
+                    $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                    if ($canSGBeUsed !== true) {
+                        throw new MethodNotAllowedException($canSGBeUsed);
+                    }
+                }
+            } else if (isset($this->request->data['Event']['distribution'])) {
+                // A non-sharing-group distribution must not carry a sharing group id.
+                $this->request->data['Event']['sharing_group_id'] = 0;
+            }
+
             // always force the org, but do not force it for admins
             if (!$this->_isSiteAdmin()) {
                 // set the same org as existed before
@@ -3652,6 +4082,9 @@ class EventsController extends AppController
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $event);
+        if ($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -6741,9 +7174,10 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($event, $this->response->type());
         }
 
-        if ($this->request->is('ajax')) {
+        if ($this->request->is('ajax') || $this->theme === "Overmind") {
             $this->layout = false;
         }
+
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('validUuid', Validation::uuid($id));
         $this->set('id', $id);

@@ -57,6 +57,9 @@ class EventReportsController extends AppController
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
             }
         }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->set('event_id', $eventId);
         $this->set('action', 'add');
         $this->__injectDistributionLevelToViewContext();
@@ -120,6 +123,9 @@ class EventReportsController extends AppController
         } else {
             $this->request->data = $savedReport;
         }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
 
         $this->set('id', $savedReport['EventReport']['id']);
         $this->set('event_id', $savedReport['EventReport']['event_id']);
@@ -154,6 +160,22 @@ class EventReportsController extends AppController
                 $this->render('ajax/delete');
             }
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'EventReport',
+            'restName' => 'EventReports',
+            'itemName' => 'EventReport',
+            'view' => 'ajax/eventReportDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_add'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s event report deleted.', '%s event reports deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function restore($id)
@@ -375,7 +397,9 @@ class EventReportsController extends AppController
             } else {
                 $this->set('title_for_layout', __('Event Reports'));
                 $this->set('canModify', false);
-                $this->set('mayModify', false);
+                if ($this->theme !== 'Overmind') {
+                    $this->set('mayModify', false);
+                }
             }
         }
     }

@@ -255,6 +255,9 @@ class ObjectsController extends AppController
                             throw new MethodNotAllowedException($canSGBeUsed);
                         }
                     }
+                    if (!empty($object['Attribute'])) {
+                        $this->__validateAttributeSharingGroups($object['Attribute']);
+                    }
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($event);
@@ -413,13 +416,20 @@ class ObjectsController extends AppController
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
                 unset($this->request->data['Object']);
             }
-            if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
-                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+            // The Object fields were merged up to the top level (and data['Object'] unset) just above,
+            // so the distribution/sharing_group_id now live directly on data - the old data['Object']
+            // check could never fire, leaving the SG unvalidated and letting an editor assign an
+            // arbitrary (unauthorised) sharing group.
+            if (isset($this->request->data['distribution']) && $this->request->data['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data);
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);
                 }
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
+            if (!empty($objectToSave['Attribute'])) {
+                $this->__validateAttributeSharingGroups($objectToSave['Attribute']);
+            }
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
             $error_message = __('Object could not be saved.');
             $savedObject = array();
@@ -503,6 +513,32 @@ class ObjectsController extends AppController
         $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', empty($templateData['newer_template_version']) ? false : $templateData['newer_template_version']);
         $this->render('add');
+    }
+
+    /**
+     * Ensure that every attribute saved with a sharing-group distribution (4) references a sharing
+     * group the acting user is actually allowed to use. The per-object distribution check only covers
+     * the object's own sharing group; without this an editor could assign an arbitrary (unauthorised)
+     * sharing group to a contained attribute, leaking its name. Mirrors the unconditional check that
+     * AttributesController::add()/edit() already apply for standalone attributes.
+     *
+     * @param array $attributes List of attribute arrays (each potentially carrying distribution/sharing_group_id)
+     * @throws MethodNotAllowedException when an attribute targets a sharing group the user cannot use
+     */
+    private function __validateAttributeSharingGroups(array $attributes)
+    {
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['distribution']) && $attribute['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed(
+                    $this->Auth->user(),
+                    $this->_isRest(),
+                    ['sharing_group_id' => $attribute['sharing_group_id'] ?? 0]
+                );
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
+            }
+        }
     }
 
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.

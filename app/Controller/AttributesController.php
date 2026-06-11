@@ -413,13 +413,26 @@ class AttributesController extends AppController
                 }
                 if (empty($fails)) {
                     $this->Flash->success($message);
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                    }
                 } else {
                     $this->Flash->error($message);
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
+                    }
                 }
                 if ($successes > 0) {
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+                    }
                 }
             }
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
         }
         // combobox for types
         $types = $this->MispAttribute->getNonAttachmentTypes();
