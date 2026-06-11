@@ -1663,9 +1663,16 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
+        // An org admin must not be able to target a site admin (e.g. to reset
+        // their password) even one within their own organisation, so exclude
+        // site admin roles from every recipient query below.
+        $siteAdminRoleIds = $this->_isSiteAdmin() ? array() : $this->User->getSiteAdminRoleIds();
         $conditionsAllowedOrgs = array();
         if (!$this->_isSiteAdmin()) {
             $conditionsAllowedOrgs = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditionsAllowedOrgs['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
         $conditionsAllowedOrgs['User.disabled'] = 0;
         $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditionsAllowedOrgs, 'contain' => array('Organisation')));
@@ -1681,6 +1688,9 @@ class UsersController extends AppController
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditions['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
 
         // harvest parameters
