@@ -249,8 +249,10 @@ class TmpFileTool
             throw new Exception('Temporary file is already closed.');
         }
     }
-    public function __destruct()
-    {
-        $this->close();
+    public function close() {
+        if (is_resource($this->tmpfile)) {
+            fclose($this->tmpfile);
+        }
+        $this->tmpfile = null;
     }
 }
