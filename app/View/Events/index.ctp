@@ -103,7 +103,7 @@
                         array(
                             'id' => 'multi-tag-button',
                             'title' => __('Tag selected events (global where permitted, local otherwise)'),
-                            'fa-icon' => 'tag',
+                            'html' => '<i class="fas fa-globe"></i> <i class="fas fa-tag"></i>',
                             'class' => 'hidden mass-tag',
                             'requirement' => $this->Acl->canAccess('tags', 'selectTaxonomy'),
                             'data' => [
@@ -113,7 +113,7 @@
                         array(
                             'id' => 'multi-local-tag-button',
                             'title' => __('Add local tag to selected events'),
-                            'fa-icon' => 'user',
+                            'html' => '<i class="fas fa-user"></i> <i class="fas fa-tag"></i>',
                             'class' => 'hidden mass-tag',
                             'requirement' => $this->Acl->canAccess('tags', 'selectTaxonomy'),
                             'data' => [
@@ -123,8 +123,7 @@
                         array(
                             'id' => 'multi-galaxy-button',
                             'title' => __('Add cluster to selected events (global where permitted, local otherwise)'),
-                            'fa-icon' => 'rebel',
-                            'fa-source' => 'fab',
+                            'html' => '<i class="fas fa-globe"></i> <i class="fas fa-book-open"></i>',
                             'class' => 'hidden mass-galaxy',
                             'requirement' => $this->Acl->canAccess('galaxies', 'selectGalaxyNamespace'),
                             'data' => [
@@ -134,8 +133,7 @@
                         array(
                             'id' => 'multi-local-galaxy-button',
                             'title' => __('Add local cluster to selected events'),
-                            'fa-icon' => 'empire',
-                            'fa-source' => 'fab',
+                            'html' => '<i class="fas fa-user"></i> <i class="fas fa-book-open"></i>',
                             'class' => 'hidden mass-galaxy',
                             'requirement' => $this->Acl->canAccess('galaxies', 'selectGalaxyNamespace'),
                             'data' => [

@@ -134,10 +134,11 @@ alone — keep the "state / next step" section honest.
   Irrelevant for the index UI (selection = visible events); T5's
   downgrade matrix must use distribution >= 1 events for the cluster
   case. Flag if the two should be unified instead.
-- 2026-06-12 (T4): icons follow the *actual* attribute-toolbar
-  precedent (`tag`/`user` for global/local tag, `rebel`/`empire` for
-  clusters) — the PRD's D3 said `tag` twice, but the real toolbar uses
-  `user` for the local variant; matched reality.
+- 2026-06-12 (T4, revised post-review): user disliked the single
+  rebel/empire/tag/user icons — replaced with icon *pairs* via the
+  `html` key of `element_simple.ctp`: globe+tag (global tag),
+  user+tag (local tag), globe+book-open (global cluster),
+  user+book-open (local cluster). All FA5 solid glyphs.
 - 2026-06-12 (T4): on the index, `quickSubmitTagForm`/`GalaxyForm`
   `location.reload()` on success (house pattern from the attribute
   flow), which means the summary toast (incl. downgraded counts) is
