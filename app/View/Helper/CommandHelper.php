@@ -13,8 +13,8 @@ App::uses('AppHelper', 'View/Helper');
         private function __buildReplacements() {
             $this->__replacement = array(
                 'link' => array('type' => 'url', 'url' => '$1', 'text' => '$1'),
-                'thread' => array('type' => 'url', 'url' => h(Configure::read('MISP.baseurl')). '/threads/view/$1', 'text' => ' Thread $1'),
-                'event' => array('type' => 'url', 'url' => h(Configure::read('MISP.baseurl')). '/events/view/$1', 'text' => ' Event $1'),
+                'thread' => array('type' => 'url', 'url' => h(Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')). '/threads/view/$1', 'text' => ' Thread $1'),
+                'event' => array('type' => 'url', 'url' => h(Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')). '/events/view/$1', 'text' => ' Event $1'),
                 'code' => array('type' => 'replace', 'text' => '<pre>$1</pre>'),
                 'quote' => array('type' => 'replace', 'text' => '<div class="quote">$1</div>')
             );

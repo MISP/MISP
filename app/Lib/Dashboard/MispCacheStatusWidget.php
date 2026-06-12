@@ -81,7 +81,7 @@ class MispCacheStatusWidget
 
     private function _hubNode()
     {
-        $baseurl = (string)Configure::read('MISP.baseurl');
+        $baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
         $selfName = (string)Configure::read('MISP.org');
         return array(
             'id' => 'self',
