@@ -18,8 +18,11 @@ alone — keep the "state / next step" section honest.
       local_only constraint, unpublish semantics, UUID/body event refs,
       no-permission (foreign-org tagger, global+local).
       Commit: `chg: [test] coverage for events/addTag single-event contract`
-- [ ] **T2** Backend: `events/addTag` `'selected'` support incl. D6
+- [x] **T2** Backend: `events/addTag` `'selected'` support incl. D6
       global→local downgrade + `add_tag.ctp` `event_ids` field (§6.1).
+      Done 2026-06-12: T1 suite still 16/16; bulk smoke verified
+      attached/downgraded/skipped/failed + up-front local_only rejection
+      + junk-ID handling + GET form field.
       Commit: `new: [event] mass tagging of selected events via addTag
       selected pattern`
 - [ ] **T3** Backend: `attachMultipleClusters` `event_ids` branch +
@@ -80,3 +83,18 @@ alone — keep the "state / next step" section honest.
   executing) — not pursued in this branch.
 - 2026-06-12 (T1): `tests/keys.py` had a stale API key; updated to the
   current admin key (untracked local file).
+- 2026-06-12 (T2) bulk-contract decisions (refine §8.1):
+  - JSON counters `attached`/`downgraded`/`skipped`/`failed` count
+    **(event, tag) pairs**; the human message counts **events**
+    (`eventsTagged` / `eventsDowngraded`). With one tag selected the two
+    coincide (the PRD's example).
+  - `saved: false` when nothing was attached, including the all-
+    duplicates re-run case (matches attribute semantics: no attach →
+    not saved).
+  - `event_ids` accepts both a JSON-string (`"[1,2]"`, the form/UI
+    encoding) and a native JSON array (API callers) — superset of the
+    PRD contract.
+  - Single-event path: permission check still precedes tag resolution
+    (order preserved); per-tag find hoisted to one `Tag.id IN` query
+    for both paths; unpublish now batched once per event (same end
+    state, locked by the T1 unpublish test).
