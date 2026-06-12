@@ -42,8 +42,15 @@ alone — keep the "state / next step" section honest.
       classes; both picker endpoints respond for `selected/event`.
       Click-through E2E + non-tagger gating deferred to T6.
       Commit: `new: [UI] mass tag / mass cluster actions on event index`
-- [ ] **T5** Bulk integration tests incl. downgrade matrix + tamper check
-      (§9.2–9.3).
+- [x] **T5** Bulk integration tests incl. downgrade matrix + tamper check
+      (§9.2–9.3). `tests/testlive_event_mass_actions.py`, 17 tests:
+      16 pass + 1 conditional skip (`local_only` galaxy rejection —
+      no such galaxy ships on this box; the path was live-verified in
+      the T3 smoke with a temporarily flagged galaxy). T1 suite re-run
+      green alongside. Covers: own-org/host-org/unrelated-org/site-
+      admin × global/local, mixed selections, unpublish vs stays-
+      published, both tamper vectors (forged body flag, /local:0
+      param), up-front local_only batch rejection, junk/empty IDs.
       Commit: `chg: [test] mass tag and mass cluster integration coverage`
 - [ ] **T6** UI verification pass + attribute-flow non-regression
       (§9.4–9.5), screenshots for PR.
