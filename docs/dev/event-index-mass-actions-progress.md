@@ -10,11 +10,13 @@ alone — keep the "state / next step" section honest.
 
 ## Tasks (PRD §10)
 
-- [ ] **T1** Regression-guard integration test for single-event
-      `events/addTag` (PRD §9.1). Covers: single tag id, JSON tag list,
-      tag name, `collection_N`, `local:1`, duplicate (skip),
-      no-permission cases. Must pass against *unmodified* `addTag`
-      before T2 starts.
+- [x] **T1** Regression-guard integration test for single-event
+      `events/addTag` (PRD §9.1). `tests/testlive_event_addtag.py`,
+      16 tests, all green against unmodified `addTag` (2026-06-12).
+      Covers: single tag id (body+URL), JSON tag list, tag name,
+      `collection_N`, `local:1`, duplicate (skip, incl. cross-local),
+      local_only constraint, unpublish semantics, UUID/body event refs,
+      no-permission (foreign-org tagger, global+local).
       Commit: `chg: [test] coverage for events/addTag single-event contract`
 - [ ] **T2** Backend: `events/addTag` `'selected'` support incl. D6
       global→local downgrade + `add_tag.ctp` `event_ids` field (§6.1).
@@ -51,10 +53,30 @@ alone — keep the "state / next step" section honest.
 
 ## State / next step
 
-- 2026-06-12: Branch created, PRD + tracker checked in. **Next: T1.**
-  Test instance: `http://localhost:5007/`, admin API key in
-  `tests/keys.py` convention / memory `reference-misp-test-instance`.
+- 2026-06-12: Branch created, PRD + tracker checked in.
+- 2026-06-12: T1 done — 16/16 green. **Next: T2** (`events/addTag`
+  `'selected'` restructure per PRD §6.1; re-run
+  `tests/testlive_event_addtag.py` after, semantics must hold).
+  Test instance: `http://localhost:5007/`; run tests with
+  `HOST=localhost:5007 AUTH=<site-admin key>` (or `tests/keys.py`
+  fallback).
 
 ## Decisions & discoveries log
 
-- (none yet)
+- 2026-06-12 (T1): found + fixed a latent 2019 bug — `TagCollection::
+  cullBlockedTags()` checks `Tag.org_id/user_id/hide_tag` but
+  `fetchTagCollection()`'s default contain only loaded `id, name`:
+  cull was a no-op for non-admins + undefined-key warning broke JSON
+  under debug. Fix = load the three fields (commit `515ae33c3`,
+  separate `fix:` commit — review welcome).
+- 2026-06-12 (T1): dev-box fossil removed — a leftover disabled
+  "Workflow for trigger event-publish" (stop_execution node) still
+  executed because the *trigger-level* setting
+  `Plugin.Workflow_triggers_event-publish` was on (the per-workflow
+  `enabled` column does not gate `executeWorkflowForTrigger`); it
+  blocked ALL synchronous publishes on this instance. Disabled via
+  `cake Admin setSetting "Plugin.Workflow_triggers_event-publish"
+  false`. Possible upstream question (disabled workflow still
+  executing) — not pursued in this branch.
+- 2026-06-12 (T1): `tests/keys.py` had a stale API key; updated to the
+  current admin key (untracked local file).
