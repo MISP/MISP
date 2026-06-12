@@ -577,7 +577,11 @@
                 this.component = false;
             }
             this.container = (this.options.container === true) ? this.element : this.options.container;
-            this.container = (this.container !== false) ? $(this.container) : false;
+            if (this.container !== false) {
+                this.container = (typeof this.container === 'string') ? $($.find(this.container)) : $(this.container);
+            } else {
+                this.container = false;
+            }
 
             // Is the element an input? Should we search inside for any input?
             this.input = this.element.is('input') ? this.element : (this.options.input ?
