@@ -34,9 +34,13 @@ alone — keep the "state / next step" section honest.
       single-event + selected/attribute non-regression all verified.
       Commit: `new: [galaxy] attach clusters to multiple events via
       selected pattern`
-- [ ] **T4** Frontend: toolbar buttons, `listCheckboxesCheckedEventIndex`,
+- [x] **T4** Frontend: toolbar buttons, `listCheckboxesCheckedEventIndex`,
       `getSelectedEventIds`, `quickSubmitTagForm`/`quickSubmitGalaxyForm`
-      branches (§6.2, §6.4).
+      branches (§6.2, §6.4). Done 2026-06-12. Verified via session-
+      login curl: all 4 buttons render on /events/index with correct
+      `data-popover-popup` URLs, `hidden mass-tag`/`mass-galaxy`
+      classes; both picker endpoints respond for `selected/event`.
+      Click-through E2E + non-tagger gating deferred to T6.
       Commit: `new: [UI] mass tag / mass cluster actions on event index`
 - [ ] **T5** Bulk integration tests incl. downgrade matrix + tamper check
       (§9.2–9.3).
@@ -112,6 +116,16 @@ alone — keep the "state / next step" section honest.
   Irrelevant for the index UI (selection = visible events); T5's
   downgrade matrix must use distribution >= 1 events for the cluster
   case. Flag if the two should be unified instead.
+- 2026-06-12 (T4): icons follow the *actual* attribute-toolbar
+  precedent (`tag`/`user` for global/local tag, `rebel`/`empire` for
+  clusters) — the PRD's D3 said `tag` twice, but the real toolbar uses
+  `user` for the local variant; matched reality.
+- 2026-06-12 (T4): on the index, `quickSubmitTagForm`/`GalaxyForm`
+  `location.reload()` on success (house pattern from the attribute
+  flow), which means the summary toast (incl. downgraded counts) is
+  not seen — same UX gap as the existing attribute mass-cluster flow.
+  Candidate follow-up alongside PRD §12.6 (persist summary across
+  reload); not in v1 scope.
 - 2026-06-12 (T3): cluster outcomes are mapped from
   `Galaxy::attachCluster()` return strings ('Cluster attached.' /
   'Cluster already attached.' / other = failed); unknown/invisible

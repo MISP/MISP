@@ -99,6 +99,48 @@
                             'fa-icon' => 'file-export',
                             'class' => 'hidden mass-export',
                             'onClick' => 'multiSelectExportEvents'
+                        ),
+                        array(
+                            'id' => 'multi-tag-button',
+                            'title' => __('Tag selected events (global where permitted, local otherwise)'),
+                            'fa-icon' => 'tag',
+                            'class' => 'hidden mass-tag',
+                            'requirement' => $this->Acl->canAccess('tags', 'selectTaxonomy'),
+                            'data' => [
+                                'popover-popup' => $baseurl . '/tags/selectTaxonomy/selected/event',
+                            ],
+                        ),
+                        array(
+                            'id' => 'multi-local-tag-button',
+                            'title' => __('Add local tag to selected events'),
+                            'fa-icon' => 'user',
+                            'class' => 'hidden mass-tag',
+                            'requirement' => $this->Acl->canAccess('tags', 'selectTaxonomy'),
+                            'data' => [
+                                'popover-popup' => $baseurl . '/tags/selectTaxonomy/local:1/selected/event',
+                            ],
+                        ),
+                        array(
+                            'id' => 'multi-galaxy-button',
+                            'title' => __('Add cluster to selected events (global where permitted, local otherwise)'),
+                            'fa-icon' => 'rebel',
+                            'fa-source' => 'fab',
+                            'class' => 'hidden mass-galaxy',
+                            'requirement' => $this->Acl->canAccess('galaxies', 'selectGalaxyNamespace'),
+                            'data' => [
+                                'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/event',
+                            ],
+                        ),
+                        array(
+                            'id' => 'multi-local-galaxy-button',
+                            'title' => __('Add local cluster to selected events'),
+                            'fa-icon' => 'empire',
+                            'fa-source' => 'fab',
+                            'class' => 'hidden mass-galaxy',
+                            'requirement' => $this->Acl->canAccess('galaxies', 'selectGalaxyNamespace'),
+                            'data' => [
+                                'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/event/local:1',
+                            ],
                         )
                     )
                 ),
