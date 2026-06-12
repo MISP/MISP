@@ -138,7 +138,10 @@ alone — keep the "state / next step" section honest.
   rebel/empire/tag/user icons — replaced with icon *pairs* via the
   `html` key of `element_simple.ctp`: globe+tag (global tag),
   user+tag (local tag), globe+book-open (global cluster),
-  user+book-open (local cluster). All FA5 solid glyphs.
+  user+book-open (local cluster). All FA5 solid glyphs. Same swap
+  applied to the four mass-select buttons of the attribute toolbar
+  (`eventattributetoolbar.ctp`) on user request — rebel/empire retired
+  there too.
 - 2026-06-12 (T4): on the index, `quickSubmitTagForm`/`GalaxyForm`
   `location.reload()` on success (house pattern from the attribute
   flow), which means the summary toast (incl. downgraded counts) is
