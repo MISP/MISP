@@ -16,20 +16,64 @@
         if (!empty($setting['redacted'])) {
             $setting['value'] = '*****';
         }
+        // Expose the hidden behavioural "posture" of each setting (#10812) as small
+        // badges next to the setting name, so admins can see at a glance which
+        // settings are CLI-only, stored in the config file for security, redacted
+        // in the UI, or not editable from the web interface. These properties
+        // already travel with each setting row; previously only `cli_only` was
+        // hinted at (as inline text in the description) and the rest were invisible.
+        $posture = array();
+        if (!empty($setting['cli_only'])) {
+            $posture[] = array(
+                'class' => 'label-important',
+                'text'  => __('CLI only'),
+                'title' => __('This setting can only be changed from the command line.')
+            );
+        }
+        if (!empty($setting['file_only'])) {
+            $posture[] = array(
+                'class' => 'label-inverse',
+                'text'  => __('File only'),
+                'title' => __('For security reasons this setting is always stored in the config file, never in the database.')
+            );
+        }
+        if (!empty($setting['redacted'])) {
+            $posture[] = array(
+                'class' => 'label-warning',
+                'text'  => __('Redacted'),
+                'title' => __('The value of this setting is hidden in the UI.')
+            );
+        }
+        if (isset($setting['editable']) && !$setting['editable']) {
+            $posture[] = array(
+                'class' => 'label',
+                'text'  => __('Read only'),
+                'title' => __('This setting cannot be edited from the UI.')
+            );
+        }
+        $postureBadges = '';
+        foreach ($posture as $flag) {
+            $postureBadges .= sprintf(
+                ' <span class="label %s live_filter_target" title="%s">%s</span>',
+                h($flag['class']),
+                h($flag['title']),
+                h($flag['text'])
+            );
+        }
         $column_data = array(
             'level' => array(
                 'html' => $priorities[$setting['level']],
                 'class' => 'short live_filter_target'
             ),
             'setting' => array(
-                'html' => empty($setting['cli_only']) ?
+                'html' => (empty($setting['cli_only']) ?
                     sprintf('%s<span %s></span>',
                         h($setting['setting']),
                         sprintf('role="button" tabindex="0" aria-label="%s" aria-controls="setting_%s_%s_placeholder" onclick="serverSettingsActivateField(\'%s\',\'%s\');"',
                             h('edit'),
                             h($subGroup), h($k),
                             h($setting['setting']), h($k)))
-                    : h($setting['setting']),
+                    : h($setting['setting'])) . $postureBadges,
                 'class' => 'short live_filter_target',
                 'ondblclick' => 'serverSettingsActivateField',
                 'ondblclickParams' => array(h($setting['setting']), h($k))
@@ -69,11 +113,7 @@
                 )
             ),
             'description' => array(
-                'html' => sprintf(
-                    '%s%s',
-                    !empty($setting['cli_only']) ? sprintf('<span class="bold">[<span class="red">%s</span>]</span> ', __('CLI only')) : '',
-                    $setting['description']
-                ),
+                'html' => $setting['description'],
                 'class' => 'live_filter_target'
             ),
             'error' => array(
