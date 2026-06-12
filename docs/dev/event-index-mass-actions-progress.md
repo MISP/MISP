@@ -25,8 +25,13 @@ alone — keep the "state / next step" section honest.
       + junk-ID handling + GET form field.
       Commit: `new: [event] mass tagging of selected events via addTag
       selected pattern`
-- [ ] **T3** Backend: `attachMultipleClusters` `event_ids` branch +
-      skip-and-count + D6 downgrade + form field (§6.3).
+- [x] **T3** Backend: `attachMultipleClusters` `event_ids` branch +
+      skip-and-count + D6 downgrade + form field (§6.3). Done
+      2026-06-12 via new private `__attachClustersToSelectedEvents()`
+      (attribute/single-target branch byte-identical, throws preserved
+      per D4). Smoke: attached/downgraded/skipped/failed counts,
+      up-front local_only-galaxy rejection, junk IDs, both forms, and
+      single-event + selected/attribute non-regression all verified.
       Commit: `new: [galaxy] attach clusters to multiple events via
       selected pattern`
 - [ ] **T4** Frontend: toolbar buttons, `listCheckboxesCheckedEventIndex`,
@@ -98,3 +103,18 @@ alone — keep the "state / next step" section honest.
     (order preserved); per-tag find hoisted to one `Tag.id IN` query
     for both paths; unpublish now batched once per event (same end
     state, locked by the T1 unpublish test).
+- 2026-06-12 (T3) pre-existing visibility asymmetry, kept as-is
+  (additive posture): `addTag` resolves events with a raw find (host-
+  org taggers can local-tag events they cannot VIEW — today's single-
+  event semantic), while `attachMultipleClusters` resolves via
+  `fetchSimpleEvent` (ACL view check — invisible events count as
+  `failed`). Each bulk path inherits its endpoint's existing semantic.
+  Irrelevant for the index UI (selection = visible events); T5's
+  downgrade matrix must use distribution >= 1 events for the cluster
+  case. Flag if the two should be unified instead.
+- 2026-06-12 (T3): cluster outcomes are mapped from
+  `Galaxy::attachCluster()` return strings ('Cluster attached.' /
+  'Cluster already attached.' / other = failed); unknown/invisible
+  clusters throw NotFoundException → caught per pair → `failed`.
+  attachCluster itself touches (unpublishes) per global attach and
+  never on local — D6-compatible without model changes.
