@@ -52,8 +52,15 @@ alone — keep the "state / next step" section honest.
       published, both tamper vectors (forged body flag, /local:0
       param), up-front local_only batch rejection, junk/empty IDs.
       Commit: `chg: [test] mass tag and mass cluster integration coverage`
-- [ ] **T6** UI verification pass + attribute-flow non-regression
-      (§9.4–9.5), screenshots for PR.
+- [x] **T6** UI verification pass + attribute-flow non-regression
+      (§9.4–9.5), screenshots for PR. Done 2026-06-12 via
+      `tests/ui_event_mass_actions_check.py` (headless chromium over
+      CDP, 19 checks, all green): buttons hidden/revealed on selection
+      (computed visibility), picker opens from toolbar, full
+      tag+cluster round-trips through the real JS path asserted via
+      API, attribute mass tag/cluster non-regression, non-tagger
+      button gating (Read Only role). Screenshots (debug off):
+      `/home/iglocska/t6-shots/*.png` — attach to the PR.
 
 ## Key design anchors (don't re-derive)
 
@@ -72,13 +79,17 @@ alone — keep the "state / next step" section honest.
 
 ## State / next step
 
-- 2026-06-12: Branch created, PRD + tracker checked in.
-- 2026-06-12: T1 done — 16/16 green. **Next: T2** (`events/addTag`
-  `'selected'` restructure per PRD §6.1; re-run
-  `tests/testlive_event_addtag.py` after, semantics must hold).
-  Test instance: `http://localhost:5007/`; run tests with
-  `HOST=localhost:5007 AUTH=<site-admin key>` (or `tests/keys.py`
-  fallback).
+- 2026-06-12: **T1–T6 ALL DONE** in one session. Feature complete on
+  `feature-event-index-mass-actions` (6 commits + 1 unrelated
+  `fix: [tagCollection]`). Test instance:
+  `http://localhost:5007/`; run tests with `HOST=localhost:5007
+  AUTH=<site-admin key>` (or `tests/keys.py` fallback); the UI check
+  additionally needs `MISP_ADMIN_EMAIL`/`MISP_ADMIN_PASSWORD`.
+- **Next: PR.** Open PR from `feature-event-index-mass-actions` into
+  `2.5` (PRD §10 says confirm 2.5 vs develop with the user first).
+  Attach `/home/iglocska/t6-shots/*.png`. Surface in the PR
+  description: the D6 ACL boundary, the T3 visibility asymmetry note,
+  and the tagCollection fix being separable.
 
 ## Decisions & discoveries log
 
