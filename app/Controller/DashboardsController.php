@@ -899,6 +899,16 @@ class DashboardsController extends AppController
             $cleanQ = str_replace(['%', '_'], '', $q);
             $conditions['GalaxyCluster.value LIKE'] = '%' . $cleanQ . '%';
         }
+        // Scope to clusters the requesting user is allowed to see. Unlike
+        // organisation names, cluster values are distribution-controlled
+        // (org-private clusters are distribution=0), so this picker must
+        // honour the same ACL as every other cluster read path. Site
+        // admins get [] (no restriction); everyone else is limited to
+        // own-org / shared / authorised sharing-group clusters.
+        $acl = $this->GalaxyCluster->buildConditions($this->Auth->user());
+        if (!empty($acl)) {
+            $conditions[] = $acl;
+        }
         $rows = $this->GalaxyCluster->find('all', [
             'recursive' => -1,
             'fields' => ['GalaxyCluster.tag_name', 'GalaxyCluster.value', 'GalaxyCluster.uuid'],
