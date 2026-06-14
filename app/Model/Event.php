@@ -1080,6 +1080,9 @@ class Event extends AppModel
                         unset($data[$dataType . 'Tag'][$k]);
                     } else {
                         unset($tag['org_id']);
+                        if (array_key_exists('kill_chain_phase', $tag)) {
+                            $tag['Tag']['kill_chain_phase'] = $tag['kill_chain_phase'];
+                        }
                         $data['Tag'][] = $tag['Tag'];
                     }
                 }
@@ -4577,6 +4580,7 @@ class Event extends AppModel
                         'tag_id' => $tagId,
                         'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'kill_chain_phase' => isset($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : '',
                     );
                     $event_tag_ids[] = $tagId;
                 }
@@ -4593,6 +4597,7 @@ class Event extends AppModel
                         'tag_id' => $tag_id,
                         'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'kill_chain_phase' => isset($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : '',
                     ];
                     $event_tag_ids[] = $tag_id;
                 }
@@ -4657,6 +4662,7 @@ class Event extends AppModel
                         'tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags),
                         'local' => isset($tag['local']) ? $tag['local'] : 0,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'kill_chain_phase' => isset($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : '',
                     );
                 }
             }
@@ -4671,6 +4677,7 @@ class Event extends AppModel
                             'tag_id' => $tagId,
                             'local' => isset($tag['local']) ? $tag['local'] : false,
                             'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                            'kill_chain_phase' => isset($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : '',
                         ];
                     }
                 }
@@ -7993,7 +8000,9 @@ class Event extends AppModel
                             $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                             if ($tag_id) {
                                 $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
-                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id, !empty($tag['local']), $relationship_type);
+                                $kill_chain_phase = empty($tag['kill_chain_phase']) ? false : $tag['kill_chain_phase'];
+                                $nothingToChange = false;
+                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id, !empty($tag['local']), $relationship_type, $nothingToChange, $kill_chain_phase);
                             }
                         }
                     }
@@ -8013,7 +8022,9 @@ class Event extends AppModel
                                 $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                                 if ($tag_id) {
                                     $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
-                                    $this->Attribute->AttributeTag->attachTagToAttribute($original_uuid['id'], $id, $tag_id, !empty($tag['local']), $relationship_type);
+                                    $kill_chain_phase = empty($tag['kill_chain_phase']) ? false : $tag['kill_chain_phase'];
+                                    $nothingToChange = false;
+                                    $this->Attribute->AttributeTag->attachTagToAttribute($original_uuid['id'], $id, $tag_id, !empty($tag['local']), $relationship_type, $nothingToChange, $kill_chain_phase);
                                 }
                             }
                         }
@@ -8390,8 +8401,10 @@ class Event extends AppModel
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                     $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
+                    $kill_chain_phase = empty($tag['kill_chain_phase']) ? false : $tag['kill_chain_phase'];
                     if ($tag_id) {
-                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event['Event']['id'], $tag_id, !empty($tag['local']), $relationship_type);
+                        $nothingToChange = false;
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event['Event']['id'], $tag_id, !empty($tag['local']), $relationship_type, $nothingToChange, $kill_chain_phase);
                     }
                 }
             }
@@ -8577,7 +8590,7 @@ class Event extends AppModel
         }
         $ats = $this->Attribute->AttributeTag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['AttributeTag.id', 'AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local', 'AttributeTag.relationship_type'], // we don't need id or event_id
+            'fields' => ['AttributeTag.id', 'AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local', 'AttributeTag.relationship_type', 'AttributeTag.kill_chain_phase'], // we don't need id or event_id
             'recursive' => -1,
         ]);
         if (empty($ats)) {
@@ -8682,6 +8695,7 @@ class Event extends AppModel
                 if ($tag !== null) {
                     $tag['local'] = empty($eventTag['local']) ? false : true;
                     $tag['relationship_type'] = empty($eventTag['relationship_type']) ? null : $eventTag['relationship_type'];
+                    $tag['kill_chain_phase'] = empty($eventTag['kill_chain_phase']) ? null : $eventTag['kill_chain_phase'];
                     $event['EventTag'][$etk]['Tag'] = $tag;
                 } else {
                     unset($event['EventTag'][$etk]);
@@ -8697,6 +8711,7 @@ class Event extends AppModel
                         if ($tag !== null) {
                             $tag['local'] = empty($attributeTag['local']) ? false : true;
                             $tag['relationship_type'] = empty($attributeTag['relationship_type']) ? null : $attributeTag['relationship_type'];
+                            $tag['kill_chain_phase'] = empty($attributeTag['kill_chain_phase']) ? null : $attributeTag['kill_chain_phase'];
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         } else {
                             unset($event['Attribute'][$ak]['AttributeTag'][$atk]);

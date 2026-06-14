@@ -661,6 +661,17 @@
                 "column_type": "varchar(191)",
                 "column_default": "''",
                 "extra": ""
+            },
+            {
+                "column_name": "kill_chain_phase",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": "''",
+                "extra": ""
             }
         ],
         "attr_value_counts": [
@@ -3204,6 +3215,17 @@
             },
             {
                 "column_name": "relationship_type",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "latin1_swedish_ci",
+                "column_type": "varchar(191)",
+                "column_default": "''",
+                "extra": ""
+            },
+            {
+                "column_name": "kill_chain_phase",
                 "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "191",
@@ -11451,5 +11473,5 @@
             "uuid": false
         }
     },
-    "db_version": "152"
+    "db_version": "153"
 }
