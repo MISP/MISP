@@ -895,6 +895,8 @@ class AppController extends Controller
             'manifest-src' => "'none'",
             'report-uri' => '/servers/cspReport',
         ];
+        $this->__allowSameOriginEmbeddingForRenderedReports($default);
+        $this->__allowSameOriginFramesForEventView($default);
         if (env('HTTPS')) {
             $default['upgrade-insecure-requests'] = null;
         }
@@ -924,6 +926,21 @@ class AppController extends Controller
         }
         $headerName = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
         $this->response->header($headerName, implode('; ', $header));
+    }
+
+    private function __allowSameOriginEmbeddingForRenderedReports(array &$policy)
+    {
+        if ($this->_isControllerAction(['eventReports' => ['viewRendered']])) {
+            $policy['frame-ancestors'] = "'self'";
+        }
+    }
+
+    private function __allowSameOriginFramesForEventView(array &$policy)
+    {
+        if ($this->_isControllerAction(['events' => ['view']])) {
+            // Beta event view embeds the rendered event report preview in a same-origin iframe.
+            $policy['frame-src'] = "'self'";
+        }
     }
 
     private function __cors()

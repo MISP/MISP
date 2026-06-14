@@ -8,6 +8,8 @@ App::uses('Xml', 'Utility');
  */
 class EventsController extends AppController
 {
+    public $helpers = array('Event');
+
     public $components = array(
         'RequestHandler',
         'IOCImport',
@@ -1387,6 +1389,9 @@ class EventsController extends AppController
             }
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
+        if (isset($filters['attributeType']) && $filters['attributeType'] !== '') {
+            $this->__applyQueryString($event, $filters['attributeType'], 'type');
+        }
         if (isset($filters['taggedAttributes']) && $filters['taggedAttributes'] !== '') {
             $this->__applyQueryString($event, $filters['taggedAttributes'], 'Tag.name');
         }
@@ -1700,6 +1705,7 @@ class EventsController extends AppController
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event, $user));
+        $this->set('eventReportSummary', $this->Event->EventReport->getSummaryForEvent($user, $event['Event']['id']));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
         } catch (Exception $e) {

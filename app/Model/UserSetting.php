@@ -102,7 +102,7 @@ class UserSetting extends AppModel
         ),
         'event_index_hide_columns' => [
             'placeholder' => ['clusters'],
-            //'validation' => 'validate_json',
+            'validation' => 'validate_event_index_hide_columns',
         ],
         'oidc' => [ // Data saved by OIDC plugin
             'internal' => true,
@@ -166,6 +166,53 @@ class UserSetting extends AppModel
         return true;
     }
 
+        public static function validate_event_index_hide_columns($value, $user)
+        {
+            // Valid column names that can be hidden in the event index
+            $validColumns = [
+                'owner_org',
+                'is_extension',
+                'clusters',
+                'tags',
+                'highlights',
+                'attribute_count',
+                'correlations',
+                'report_count',
+                'sightings',
+                'proposals',
+                'discussion',
+                'creator_user',
+                'timestamp',
+                'publish_timestamp'
+            ];
+
+            // Decode if it's a JSON string
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $value = $decoded;
+                }
+            }
+
+            // Empty array is valid
+            if (empty($value)) {
+                return true;
+            }
+
+            // Must be an array
+            if (!is_array($value)) {
+                return false;
+            }
+
+            // All column names must be valid
+            foreach ($value as $column) {
+                if (!in_array($column, $validColumns, true)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     public static function validate_event_template_user_form_mode($value, $user)
     {
         if (empty($value)) {
