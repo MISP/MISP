@@ -113,6 +113,10 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
+        // Environment variables are the highest priority source, so they are
+        // applied last to override both the config file and the database.
+        App::uses('EnvSetting', 'Tools');
+        EnvSetting::setGlobalSetting();
 
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
