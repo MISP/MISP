@@ -49,7 +49,7 @@ $distMap = [
         $dist    = $distMap[$distId] ?? $distMap[0];
         $corrCount = (int)($correlationCounts[$evId] ?? 0);
     ?>
-        <a href="<?= h($baseurl) ?>/events/view/<?= $evId ?>"
+        <a href="<?= h($baseurl) ?>/events/view2/<?= $evId ?>"
            class="d-flex align-items-start gap-3 px-3 py-2
                   text-decoration-none text-dark border-bottom
                   related-event-row"
