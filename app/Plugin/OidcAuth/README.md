@@ -36,7 +36,7 @@ $config = array(
 ```php
 $config = array(
     ...
-    'OidcAuth' = [
+    'OidcAuth' => [
         'provider_url' => '{{ OIDC_PROVIDER }}',
         'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
         'client_id' => '{{ OIDC_CLIENT_ID }}',
