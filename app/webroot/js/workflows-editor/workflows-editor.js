@@ -2496,7 +2496,12 @@ function getPathForEdge(from_id, to_id) {
 
 // generate unique id for the inputs
 function uid() {
-    return (performance.now().toString(36) + Math.random().toString(36)).replace(/\./g, "")
+    var randomBytes = new Uint8Array(16)
+    window.crypto.getRandomValues(randomBytes)
+    var randomPart = Array.from(randomBytes).map(function(b) {
+        return b.toString(16).padStart(2, '0')
+    }).join('')
+    return performance.now().toString(36) + randomPart
 }
 
 function highlightAcyclic(acyclicData) {
