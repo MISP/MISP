@@ -662,8 +662,7 @@ class Oidc
     {
         try {
             $log = ClassRegistry::init('Log');
-            $change = $this->User->UserLoginProfile->_getUserProfile();
-            $log->createLogEntry($user, 'auth_fail', 'User', $user['id'], $title, json_encode($change));
+            $log->createLogEntry($user, 'auth_fail', 'User', $user['id'], $title);
         } catch (Exception $e) {
             $this->log($user['email'] ?? null, "Could not create auth_fail log entry: {$e->getMessage()}", LOG_WARNING);
         }
