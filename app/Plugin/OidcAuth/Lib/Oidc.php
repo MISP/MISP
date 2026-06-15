@@ -21,7 +21,21 @@ class Oidc
 
         $this->log(null, 'Authenticate');
 
-        if (!$oidc->authenticate()) {
+        try {
+            $authenticated = $oidc->authenticate();
+        } catch (CertMichelin\ErrorResponse | JakubOnderka\ErrorResponse $e) {
+            // A reload of the redirect URI replays a single-use authorization code,
+            // which the IdP rejects with `invalid_grant`. Treat this as a failed
+            // login (the user is sent back to the login page to start a fresh flow)
+            // instead of letting the exception bubble up as an internal server error.
+            if ($e->getError() === 'invalid_grant') {
+                $this->log(null, "Authorization code exchange failed (`invalid_grant`), most likely a replayed or expired code. Cancelling login.", LOG_WARNING);
+                return false;
+            }
+            throw $e;
+        }
+
+        if (!$authenticated) {
             throw new Exception("OIDC authentication was not successful.");
         }
 
@@ -132,10 +146,14 @@ class Oidc
                 $user['role_id'] = $roleId;
             }
 
-            if ($user['disabled'] && $this->getConfig('unblock', false)) {
+            if (!empty($user['disabled']) && $this->getConfig('unblock', false)) {
                 $this->User->updateField($user, 'disabled', false);
                 $this->log($mispUsername, "Unblocking user.");
                 $user['disabled'] = false;
+            } else if (!empty($user['disabled'])) {
+                $this->log($mispUsername, 'User is disabled in MISP, cancelling login.', LOG_WARNING);
+                $this->logAuthFail($user, 'Login attempt by disabled user.');
+                return false;
             }
 
             $refreshToken = $offlineAccessEnabled ? $oidc->getRefreshToken() : null;
@@ -630,6 +648,24 @@ class Oidc
     {
         $this->User->updateField($user, 'disabled', true);
         $this->log($user['email'], "User blocked by OIDC");
+    }
+
+    /**
+     * Create an `auth_fail` entry in the MISP Log (audit) table, mirroring the
+     * behaviour of AppController so SIEM/admins keep visibility of login attempts
+     * that are rejected here before a session is established.
+     *
+     * @param array $user
+     * @param string $title
+     */
+    private function logAuthFail(array $user, $title)
+    {
+        try {
+            $log = ClassRegistry::init('Log');
+            $log->createLogEntry($user, 'auth_fail', 'User', $user['id'], $title);
+        } catch (Exception $e) {
+            $this->log($user['email'] ?? null, "Could not create auth_fail log entry: {$e->getMessage()}", LOG_WARNING);
+        }
     }
 
     /**
