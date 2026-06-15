@@ -820,7 +820,7 @@ class ServerShell extends AppShell
             'recursive' => -1,
         ]);
         if (!$server) {
-            $this->error("Server with ID $serverId doesn't exists.");
+            $this->error("Server with ID $serverId doesn't exist.");
         }
         return $server;
     }
