@@ -292,7 +292,7 @@ class GalaxyCluster extends AppModel
                     $errors[] = __('Cluster already exists in another galaxy');
                     return $errors;
                 }
-                if (!$existingGalaxyCluster['GalaxyCluster']['default']) {
+                if ($existingGalaxyCluster['GalaxyCluster']['default']) {
                     $errors[] = __('Edit not allowed on default clusters');
                     return $errors;
                 }

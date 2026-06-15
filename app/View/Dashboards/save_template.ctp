@@ -22,7 +22,7 @@
  *     action attribute and the page title.
  *   - request->data['Dashboard']: pre-fill payload when editing.
  */
-$baseurl = Configure::read('MISP.baseurl') ?: '';
+$baseurl = Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/');
 ?>
 <header class="misp-dashboard-header misp-template-form-header">
     <div class="misp-template-gallery-title-block">

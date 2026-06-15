@@ -41,7 +41,6 @@ $correlIconStyle = $disableCorrelChecked
     : 'color:#198754;opacity:1;';
 
 echo $this->Form->create('Attribute', ['novalidate' => true]);
-xdebug_break();
 ?>
 
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->

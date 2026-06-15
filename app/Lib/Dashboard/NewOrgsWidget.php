@@ -111,7 +111,7 @@ class NewOrgsWidget
         $field_options = [
             'id' => [
                 'name' => '#',
-                'url' => Configure::read('MISP.baseurl') . '/organisations/view',
+                'url' => (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/organisations/view',
                 'element' => 'links',
                 'data_path' => 'Organisation.id',
                 'url_params_data_paths' => 'Organisation.id'

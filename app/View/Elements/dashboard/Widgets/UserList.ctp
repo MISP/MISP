@@ -75,7 +75,7 @@ if (empty($data)) {
     return;
 }
 
-$baseurl = (string)Configure::read('MISP.baseurl');
+$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
 $imgDir  = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
 
 /**

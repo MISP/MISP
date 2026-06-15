@@ -3191,15 +3191,26 @@ class MispAttribute extends AppModel
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
-                        $this->AttributeTag->create();
-                        $at = [
-                            'attribute_id' => $this->id,
-                            'event_id' => $eventId,
-                            'tag_id' => $tag_id,
-                            'local' => !empty($tag['local']) ? $tag['local'] : 0,
-                            'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
-                        ];
-                        $this->AttributeTag->save($at);
+                        // NEW: Check if the relationship already exists to prevent duplication
+                        $existingAssociation = $this->AttributeTag->find('count', array(
+                            'conditions' => array(
+                                'attribute_id' => $this->id,
+                                'tag_id' => $tag_id
+                            ),
+                            'recursive' => -1
+                        ));
+
+                        if ($existingAssociation === 0) {
+                            $this->AttributeTag->create();
+                            $at = [
+                                'attribute_id' => $this->id,
+                                'event_id' => $eventId,
+                                'tag_id' => $tag_id,
+                                'local' => !empty($tag['local']) ? $tag['local'] : 0,
+                                'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
+                            ];
+                            $this->AttributeTag->save($at);
+                        }
                     }
                 }
             }

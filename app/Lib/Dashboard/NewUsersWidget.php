@@ -119,7 +119,7 @@ class NewUsersWidget
         $field_options = [
             'id' => [
                 'name' => '#',
-                'url' => empty($user['Role']['perm_site_admin']) ? null : Configure::read('MISP.baseurl') . '/admin/users/view',
+                'url' => empty($user['Role']['perm_site_admin']) ? null : (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/admin/users/view',
                 'element' => 'links',
                 'data_path' => 'User.id',
                 'url_params_data_paths' => 'User.id'

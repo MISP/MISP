@@ -37,7 +37,7 @@ if (empty($rows)) {
     return;
 }
 
-$baseurl = (string)Configure::read('MISP.baseurl');
+$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
 
 /**
  * Same URL safety contract as Index.ctp / SimpleList: relative paths
