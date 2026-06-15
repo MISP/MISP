@@ -1,5 +1,6 @@
 :root {
     --primary: #1892B1;
+    --attribute: #97CC04;
     --bs-link-color: var(--primary);
     --bs-link-hover-color: var(--primary);
     --bs-link-hover-color-rgb: 24, 146, 177;

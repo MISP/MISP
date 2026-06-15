@@ -81,7 +81,7 @@ $this->set('headerDescription', $headerDescription);
                             <a href="#"
                                class="small text-muted text-decoration-none"
                                onclick="erPreviewToggle(this,'<?= h($erCardId) ?>','<?= h($erOverlayId) ?>','<?= $erMaxH ?>');return false;">
-                                <i class="fas fa-chevron-down me-1"></i>
+                               <i class="fas fa-chevron-down me-1"></i>
                                 <?= __('Show full content') ?>
                             </a>
                         </div>
@@ -90,7 +90,7 @@ $this->set('headerDescription', $headerDescription);
             <?php else: ?>
                 <div class="border rounded-3 d-flex flex-column align-items-center
                             justify-content-center text-muted py-4">
-                    <i class="fas fa-file-alt fa-2x mb-2 opacity-50"></i>
+                    <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
                     <p class="mb-1 fw-semibold small">
                         <?= __("This event doesn't have a report for the moment") ?>
                     </p>
@@ -143,7 +143,7 @@ $this->set('headerDescription', $headerDescription);
             <div class="col-md-6">
                 <div class="rounded-3 border p-3 h-100">
                     <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-user-circle me-1"></i>
+                        <span class="misp-icon misp-icon-user1 misp-hexagone"></span>
                         <?= __('Created by') ?>
                     </div>
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-1">
@@ -152,7 +152,7 @@ $this->set('headerDescription', $headerDescription);
                             <span class="fw-medium"><?= h($orgc['name'] ?? '') ?></span>
                         </div>
                         <div class="d-flex align-items-center gap-2 text-muted small">
-                            <i class="fas fa-user fa-fw"></i>
+                            <span class="misp-icon misp-icon-user1 misp-simple"></span>
                             <?= h($user['email'] ?? '') ?>
                         </div>
                     </div>
@@ -179,7 +179,7 @@ $this->set('headerDescription', $headerDescription);
                         <?php if ($distribution === 4 && !empty($sg)): ?>
                             <a href="<?= h($baseurl . '/sharing_groups/view/' . ($sg['id'] ?? '')) ?>"
                             class="d-inline-flex align-items-center gap-1 text-decoration-none small">
-                                <i class="fas fa-share-alt text-primary"></i>
+                                <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
                                 <?= h($sg['name'] ?? '') ?>
                             </a>
                         <?php endif; ?>
@@ -379,8 +379,8 @@ $this->set('headerDescription', $headerDescription);
                 <!-- Tags -->
                 <div class="col-6 col-md-3">
                     <?= $this->element('genericElementsBS5/Stats/metric_pill', [
-                        'icon'  => 'fas fa-tag',
-                        'color' => '#3B82F6',
+                        'icon'  => 'misp-icon misp-icon-tag misp-simple',
+                        'color' => '#DB6A47',
                         'label' => __('Tags'),
                         'value' => $tagCount,
                         'id'    => $statsUid . '-tags',
@@ -391,7 +391,7 @@ $this->set('headerDescription', $headerDescription);
                 <!-- Galaxy clusters -->
                 <div class="col-6 col-md-3">
                     <?= $this->element('genericElementsBS5/Stats/metric_pill', [
-                        'icon'  => 'fab fa-galactic-republic',
+                        'icon'  => 'misp-icon misp-icon-galaxy misp-simple',
                         'color' => '#8B5CF6',
                         'label' => __('Clusters'),
                         'value' => $clusterCount,
@@ -415,8 +415,8 @@ $this->set('headerDescription', $headerDescription);
                 <!-- Reports  -->
                 <div class="col-6 col-md-3">
                     <?= $this->element('genericElementsBS5/Stats/metric_pill', [
-                        'icon'  => 'fas fa-file-alt',
-                        'color' => '#10B981',
+                        'icon'  => 'misp-icon misp-icon-report misp-simple',
+                        'color' => '#4DA167',
                         'label' => __('Reports'),
                         'value' => null,
                         'id'    => $statsUid . '-reports',
@@ -540,7 +540,7 @@ $this->set('headerDescription', $headerDescription);
                 title:  <?= json_encode(__('Attributes')) ?>,
                 total:  stats.attributes.total,
                 data:   stats.attributes.by_category,
-                icon:   'fas fa-inbox',
+                icon:   'misp-icon misp-icon-attribute misp-hexagone',
                 color:  '#3B82F6',
                 empty:  <?= json_encode(__('No attributes')) ?>
             },
@@ -549,7 +549,7 @@ $this->set('headerDescription', $headerDescription);
                 title:  <?= json_encode(__('Objects')) ?>,
                 total:  stats.objects.total,
                 data:   stats.objects.by_name,
-                icon:   'fas fa-cube',
+                icon:   'misp-icon misp-icon-object misp-hexagone',
                 color:  '#8B5CF6',
                 empty:  <?= json_encode(__('No objects')) ?>
             }

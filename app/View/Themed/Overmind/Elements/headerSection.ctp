@@ -29,7 +29,7 @@ $totalCount = $headerCount ?? $paginatorCount;
 
     <div class="d-flex justify-content-between align-items-center">
 
-        <div class="d-flex flex-column">
+        <div class="d-flex flex-column align-items-start">
             <?php if ($breadcrumb): ?>
                 <span class="text-muted text-uppercase fw-semibold mb-1"
                         style="font-size:0.68rem; letter-spacing:0.07em;">
@@ -48,7 +48,7 @@ $totalCount = $headerCount ?? $paginatorCount;
             </div>
 
             <?php if (!empty($headerDescription)): ?>
-                <p class="text-muted text-center" style="font-size:0.85rem;">
+                <p class="text-muted text-center mt-1" style="font-size:0.85rem;">
                     <?= $headerDescription ?>
                 </p>
             <?php else: //small space, just to match the size of the Flash messages ?>
