@@ -4,7 +4,7 @@ $total = count($relatedEvents);
 
 $distMap = [
     0 => ['bg' => '#f8d7da', 'color' => '#842029',
-          'icon' => 'fas fa-network-building',
+          'icon' => 'fas fa-building',
           'label' => __('Your organisation only')],
     1 => ['bg' => '#ffe5b4', 'color' => '#b45309',
           'icon' => 'fas fa-users',
