@@ -353,7 +353,7 @@ function hintPictureAlias(cm, options) {
 }
 
 function hintTemplateVars(cm, options) {
-    var reTemplateVar = RegExp('{{\s*(?<varname>[a-zA-Z_$0-9]{3,})\s*}}');
+    var reTemplateVar = /{{\s*(?<varname>[a-zA-Z_$0-9]{3,})\s*}}/;
     var availableTemplateVars = Object.keys(templateVariablesProxy)
     var reExtendedWord = /\S/
     var hintList = []
