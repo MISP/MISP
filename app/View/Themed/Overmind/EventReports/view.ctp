@@ -18,7 +18,7 @@
             [
                 'id'    => 'general',
                 'title' => __('General'),
-                'icon'  => 'info-circle',
+                'icon'  => 'fas fa-info-circle',
                 'left'  => [
                     'EventReports/View/eventReport_general',
                     'EventReports/View/eventReport_preview',
@@ -30,7 +30,7 @@
             [
                 'id'    => 'content',
                 'title' => __('Edit Content'),
-                'icon'  => 'file-lines',
+                'icon'  => 'fas fa-file-lines',
                 'left'  => [
                     'EventReports/View/eventReport_content',
                 ],
