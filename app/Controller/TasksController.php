@@ -132,6 +132,8 @@ class TasksController extends AppController
                             if ($task['Task']['action'] === 'pull') {
                                 $task['Task']['server_technique'] = $params[1];
                             }
+                        } elseif ($task['Task']['type'] === 'TAXII') {
+                            $task['Task']['taxii_server_id'] = $params[0];
                         } elseif ($task['Task']['type'] === 'Feed') {
                             $task['Task']['feed_action'] = $task['Task']['action'];
                             if ($task['Task']['action'] === 'fetch') {
@@ -326,6 +328,7 @@ class TasksController extends AppController
         $this->Server = ClassRegistry::init('Server');
         $this->Feed = ClassRegistry::init('Feed');
         $this->Workflow = ClassRegistry::init('Workflow');
+        $this->TaxiiServer = ClassRegistry::init('TaxiiServer');
 
         $workflows = $this->Workflow->find('all', [
             'order' => ['Workflow.name' => 'ASC'],
@@ -362,6 +365,11 @@ class TasksController extends AppController
                 'order' => ['Feed.name' => 'ASC']
             ]),
             'workflows' => $dropdownWorkflows,
+            'taxii_servers' => ['all' => __('All enabled TAXII servers')] + $this->TaxiiServer->find('list', [
+                'fields' => ['TaxiiServer.id', 'TaxiiServer.name'],
+                'conditions' => ['TaxiiServer.enabled' => 1],
+                'order' => ['TaxiiServer.name' => 'ASC']
+            ]),
         ];
 
         return $dropdownData;
@@ -416,6 +424,21 @@ class TasksController extends AppController
                 return;
             }
             $data['Task']['params'] = $data['Task']['workflow'];
+        } elseif ($data['Task']['type'] === 'TAXII') {
+            $data['Task']['action'] = 'push';
+
+            if (!isset($data['Task']['taxii_server_id']) || empty($data['Task']['taxii_server_id'])) {
+                $this->Flash->error(__('Please select a TAXII server.'));
+                return;
+            }
+            if ($data['Task']['taxii_server_id'] !== 'all' && !$this->TaxiiServer->hasAny([
+                'TaxiiServer.id' => $data['Task']['taxii_server_id'],
+                'TaxiiServer.enabled' => 1,
+            ])) {
+                $this->Flash->error(__('Please select an enabled TAXII server.'));
+                return;
+            }
+            $data['Task']['params'] = $data['Task']['taxii_server_id'];
         } elseif ($data['Task']['type'] === 'Periodic Summary') {
             $data['Task']['action'] = 'send';
         } elseif ($data['Task']['type'] === 'Admin') {

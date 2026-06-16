@@ -23,6 +23,11 @@ echo $this->element(
                 'type' => 'json'
             ],
             [
+                'key' => __('Enabled'),
+                'path' => 'TaxiiServer.enabled',
+                'type' => 'json'
+            ],
+            [
                 'key' => __('Discovery URL'),
                 'path' => 'TaxiiServer.discovery_url'
             ],
