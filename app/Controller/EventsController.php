@@ -3336,7 +3336,11 @@ class EventsController extends AppController
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
-                        $this->redirect(array('action' => 'view2', $this->Event->getID()));
+                        if ($this->theme === "Overmind") {
+                            $this->redirect(array('action' => 'view2', $this->Event->getID()));
+                        } else {
+                            $this->redirect(array('action' => 'view', $this->Event->getID()));
+                        }
                     }
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST
