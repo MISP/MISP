@@ -4300,7 +4300,11 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($message);
                 }
-                $this->redirect(array('action' => 'view', $event['Event']['id']));
+                if ($this->theme === "Overmind"){
+                    $this->redirect(array('action' => 'view2',  $event['Event']['id']));
+                } else {
+                    $this->redirect(array('action' => 'view',  $event['Event']['id']));
+                }
             }
         } else {
             $servers = $this->Event->listServerToPush($event);
@@ -4375,7 +4379,11 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($message);
                 }
-                $this->redirect(array('action' => 'view', $event['Event']['id']));
+                if ($this->theme === "Overmind"){
+                    $this->redirect(array('action' => 'view2',  $event['Event']['id']));
+                } else {
+                    $this->redirect(array('action' => 'view',  $event['Event']['id']));
+                }
             }
         } else {
             $servers = $this->Event->listServerToPush($event);
@@ -4413,7 +4421,11 @@ class EventsController extends AppController
                 $publishable = $this->Event->checkIfPublishable($event['Event']['id']);
                 if ($publishable !== true) {
                     $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
-                    $this->redirect(['action' => 'view', $event['Event']['id']]);
+                    if ($this->theme === "Overmind"){
+                        $this->redirect(array('action' => 'view2',  $event['Event']['id']));
+                    } else {
+                        $this->redirect(array('action' => 'view',  $event['Event']['id']));
+                    }
                 }
             }
         }

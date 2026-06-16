@@ -33,6 +33,14 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Owner Org'),
+        'sort' => 'Event.org_id',
+        'data_path' => 'Event.Org',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
         'name' => __('Last Modified'),
         'data_path' => 'EventReport.timestamp',
         'element' => 'timestamp',
