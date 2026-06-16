@@ -170,9 +170,10 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Analysis Level') ?>
             </div>
-            <?= $this->Form->hidden('analysis', [
+            <?= $this->Form->select('analysis', $analysisLevels, [
                 'id'    => 'EventAnalysisInput',
                 'value' => $currentAnalysis,
+                'style' => 'display:none',
             ]) ?>
             <div class="row g-2">
 
@@ -223,9 +224,10 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Threat Level') ?>
             </div>
-            <?= $this->Form->hidden('threat_level_id', [
+            <?= $this->Form->select('threat_level_id', $threatLevels, [
                 'id'    => 'EventThreatLevelInput',
                 'value' => $currentThreatLevel,
+                'style' => 'display:none',
             ]) ?>
             <div class="row g-2">
 

@@ -146,7 +146,7 @@ function multiSelectItems(url) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
-    const fullUrl = url + '/' + JSON.stringify(ids);
+    const fullUrl = url + '/' + JSON.stringify(ids) + '/true';
     openModal(fullUrl, 'sm');
 }
 
@@ -2482,9 +2482,12 @@ function initAttributeForm(currentDist, isEdit) {
     }
 
     /* Filter the Type TomSelect to the types allowed for the selected category */
-    function applyTypeFilter(selectedCategory) {
+    function applyTypeFilter(selectedCategory, preserveValue) {
         var typeEl  = document.getElementById('AttributeType');
         if (!typeEl) { return; }
+
+        /* Capture current value before clearing options */
+        var previousType = typeEl.value;
 
         var mapping = (typeof category_type_mapping !== 'undefined')
             ? category_type_mapping : {};
@@ -2501,9 +2504,14 @@ function initAttributeForm(currentDist, isEdit) {
             allowed = mapping[selectedCategory].slice();
         }
 
+        /* Value to select: keep previous on init, reset to empty on user change */
+        var nextVal = (preserveValue && allowed.indexOf(previousType) !== -1)
+            ? previousType : '';
+
         while (typeEl.options.length) { typeEl.remove(0); }
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
+        typeEl.value    = nextVal;
         typeEl.disabled = false;
 
         if (typeEl.tomselect) {
@@ -2512,7 +2520,7 @@ function initAttributeForm(currentDist, isEdit) {
             ts.clearOptions();
             ts.addOption({ value: '', text: '' });
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
-            ts.setValue('', true);
+            ts.setValue(nextVal, true);
             ts.refreshItems();
         }
 
@@ -2575,7 +2583,7 @@ function initAttributeForm(currentDist, isEdit) {
 
     toggleSg(currentDist);
     var initCat = document.getElementById('AttributeCategory');
-    applyTypeFilter(initCat ? initCat.value : '');
+    applyTypeFilter(initCat ? initCat.value : '', true);
     if (isEdit) { checkNoticeList('attribute'); }
 }
 
@@ -2619,17 +2627,15 @@ function initEventForm(base) {
 
     /* Card-based radio groups for Analysis and Threat Level */
     function setupRadioCards() {
-        var hiddenMap = {
+        var selectIds = {
             analysis: 'EventAnalysisInput',
-            threat:   'EventThreatLevelInput'
+            threat:   'EventThreatLevelInput',
         };
-
         document.querySelectorAll('.event-card').forEach(function (card) {
             card.addEventListener('click', function () {
                 var group  = card.dataset.group;
-                var val    = card.dataset.value;
-                var hidden = document.getElementById(hiddenMap[group]);
-                if (hidden) { hidden.value = val; }
+                var select = document.getElementById(selectIds[group]);
+                if (select) { select.value = card.dataset.value; }
 
                 document.querySelectorAll(
                     '.event-card[data-group="' + group + '"]'

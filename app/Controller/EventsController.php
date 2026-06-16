@@ -4021,7 +4021,11 @@ class EventsController extends AppController
             $this->request->data['Event']['timestamp'] = time();
             if ($this->Event->save($this->request->data, true, $fieldList)) {
                 $this->Flash->success(__('The event has been saved'));
-                $this->redirect(array('action' => 'view', $id));
+                if ($this->theme === "Overmind"){
+                    $this->redirect(array('action' => 'view2', $id));
+                } else {
+                    $this->redirect(array('action' => 'view', $id));
+                }
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
