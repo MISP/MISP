@@ -172,9 +172,19 @@ function redirectToExportResult() {
     window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
 }
 
-function toggleAllAttributeCheckboxes() {
-    const checked = document.getElementById('select_all').checked;
-    const checkboxes = document.querySelectorAll('.item-checkbox');
+function toggleAllAttributeCheckboxes(selectAllEl) {
+    // Prefer the element passed directly from onclick="…(this)" so that
+    // when multiple scaffolds are loaded in sibling tab-panes (e.g.
+    // Attributes and Reports both have a select-all checkbox), we always
+    // operate on the one the user actually clicked rather than the first
+    // matching getElementById result.
+    const selectAll = selectAllEl || document.getElementById('select_all');
+    if (!selectAll) return;
+    const checked = selectAll.checked;
+    // Scope to the enclosing tab-pane so checkboxes in sibling tabs are
+    // not accidentally included. Fall back to document on standalone pages.
+    const scope = selectAll.closest('.tab-pane') || document;
+    const checkboxes = scope.querySelectorAll('.item-checkbox');
 
     checkboxes.forEach(checkbox => {
         checkbox.checked = checked;
@@ -207,23 +217,29 @@ function setView(view, save = true) {
 }
 
 function updateMultiSelectToolbar() {
-    const toolbar        = document.getElementById('multiSelectToolbar');
-    const selectedCount  = document.getElementById('selectedCount');
-    const deleteButton   = document.getElementById('multi-delete-button');
-    const editButton     = document.getElementById('mass-edit-button');
-    const tagButton      = document.getElementById('mass-tag-button');
-    const localtagButton = document.getElementById('mass-local-tag-button');
-    const clusterButton  = document.getElementById('mass-cluster-button');
-    const localclusterButton = document.getElementById('mass-local-cluster-button');
-    const objectButton   = document.getElementById('mass-object-button');
-    const relationshipButton = document.getElementById('mass-relationship-button');
-    const sightingButton = document.getElementById('mass-sighting-button');
-    const enableButton   = document.getElementById('mass-enable-button');
-    const disableButton  = document.getElementById('mass-disable-button');
-    const requireButton   = document.getElementById('mass-require-button');
-    const optionalButton  = document.getElementById('mass-optional-button');
-    const highlightButton   = document.getElementById('mass-highlight-button');
-    const removehighlightButton  = document.getElementById('mass-removehighlight-button');
+    // When multiple tabs each contain a mass-action toolbar (e.g. Attributes
+    // and Reports), getElementById would return the first one in DOM order
+    // regardless of which tab is visible.  Scope the lookup to the active
+    // tab-pane so we always update the currently visible toolbar.
+    // On standalone index pages (no tab-pane) fall back to document.
+    const scope = document.querySelector('.tab-pane.active') || document;
+    const toolbar        = scope.querySelector('#multiSelectToolbar');
+    const selectedCount  = scope.querySelector('#selectedCount');
+    const deleteButton   = scope.querySelector('#multi-delete-button');
+    const editButton     = scope.querySelector('#mass-edit-button');
+    const tagButton      = scope.querySelector('#mass-tag-button');
+    const localtagButton = scope.querySelector('#mass-local-tag-button');
+    const clusterButton  = scope.querySelector('#mass-cluster-button');
+    const localclusterButton = scope.querySelector('#mass-local-cluster-button');
+    const objectButton   = scope.querySelector('#mass-object-button');
+    const relationshipButton = scope.querySelector('#mass-relationship-button');
+    const sightingButton = scope.querySelector('#mass-sighting-button');
+    const enableButton   = scope.querySelector('#mass-enable-button');
+    const disableButton  = scope.querySelector('#mass-disable-button');
+    const requireButton   = scope.querySelector('#mass-require-button');
+    const optionalButton  = scope.querySelector('#mass-optional-button');
+    const highlightButton   = scope.querySelector('#mass-highlight-button');
+    const removehighlightButton  = scope.querySelector('#mass-removehighlight-button');
 
     const count          = selectedItems.size;
 
@@ -362,6 +378,12 @@ function buildFilterUrl() {
     }
 
     return newUrl;
+}
+
+// Safe global fallback — filter_bar.ctp re-declares this per scaffold,
+// but mispOvermind.js references it unconditionally in its change listener.
+if (typeof selectedItems === 'undefined') {
+    var selectedItems = new Map();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

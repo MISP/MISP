@@ -183,6 +183,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
+                ['misp-iconify', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -537,6 +538,26 @@
             const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
             const tabPane = document.querySelector(target);
             if (!tabPane) return;
+
+            // Clear cross-tab selection state when switching tabs so that
+            // checkboxes from a sibling tab (e.g. Objects accordion) don't
+            // bleed into the newly active tab's mass-select toolbar.
+            // event.relatedTarget is the previously active tab link.
+            const prevTarget = event.relatedTarget
+                ? (event.relatedTarget.getAttribute('data-bs-target') || event.relatedTarget.getAttribute('href'))
+                : null;
+            const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+            if (prevPane) {
+                prevPane.querySelectorAll('.item-checkbox:checked').forEach(function(cb) {
+                    cb.checked = false;
+                });
+            }
+            if (typeof selectedItems !== 'undefined') {
+                selectedItems.clear();
+            }
+            if (typeof updateMultiSelectToolbar === 'function') {
+                updateMultiSelectToolbar();
+            }
 
             tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
         });

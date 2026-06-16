@@ -164,6 +164,24 @@ foreach ($filter_bar['children'] as $child) {
     </div>
 <?php endif; ?>
 
+<?php
+$hasMassActions = !empty($filter_bar['delete'])
+    || !empty($filter_bar['export'])
+    || !empty($filter_bar['mass_edit'])
+    || !empty($filter_bar['mass_tag'])
+    || !empty($filter_bar['mass_local_tag'])
+    || !empty($filter_bar['mass_cluster'])
+    || !empty($filter_bar['mass_local_cluster'])
+    || !empty($filter_bar['mass_object'])
+    || !empty($filter_bar['mass_relationship'])
+    || !empty($filter_bar['mass_sighting'])
+    || !empty($filter_bar['enable'])
+    || !empty($filter_bar['require'])
+    || !empty($filter_bar['highlight'])
+    || !empty($filter_bar['activate']);
+?>
+
+<?php if ($hasMassActions): ?>
 <?= $this->element(
     'genericElementsBS5/IndexTable/multi_select_toolbar',
     [
@@ -171,10 +189,13 @@ foreach ($filter_bar['children'] as $child) {
         'item_url'   => $item_url,
     ]
 ) ?>
+<?php endif; ?>
 
 <script>
 var baseIndexUrl = "<?= h($baseurl . $item_url . '/index') ?>";
+<?php if ($hasMassActions): ?>
 var selectedItems = new Map();
+<?php endif; ?>
 
 var filterBarConfig = <?= json_encode([
     'mode'        => $searchChild['mode'] ?? 'quickFilter',
@@ -225,6 +246,7 @@ function setView(view, save = true) {
         });
     });
 
+<?php if ($hasMassActions): ?>
     document.addEventListener('change', function(e) {
         if (!e.target.classList.contains('item-checkbox')) return;
 
@@ -244,6 +266,7 @@ function setView(view, save = true) {
 
         updateMultiSelectToolbar();
     });
+<?php endif; ?>
 
 })();
 </script>
