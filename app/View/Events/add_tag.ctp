@@ -10,5 +10,8 @@ echo $this->Form->create($scope === 'Attribute' ? 'MispAttribute' : $scope, ['ur
 if ($scope === 'Attribute') {
     echo $this->Form->input('Attribute.attribute_ids', []);
 }
+if ($scope === 'Event' && $object_id === 'selected') {
+    echo $this->Form->input('Event.event_ids', []);
+}
 echo $this->Form->input("$scope.tag", ['value' => 0]);
 echo $this->Form->end();

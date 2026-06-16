@@ -1609,6 +1609,9 @@ class Server extends AppModel
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
                 $s['setting'] = $k;
+                // Expose file-only (security-sensitive) status alongside the name
+                // so the settings view can show it as a posture badge (#10812).
+                $s['file_only'] = SystemSetting::isSensitive($k);
                 if ($s['level'] == $i) {
                     $finalSettings[] = $s;
                 }
@@ -1648,6 +1651,9 @@ class Server extends AppModel
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
+        // Expose whether the setting is stored in the config file only for security
+        // reasons (passwords, API keys, secrets) so the UI can surface it (#10812).
+        $result['file_only'] = SystemSetting::isSensitive($settingName);
         return $result;
     }
 
@@ -2255,6 +2261,14 @@ class Server extends AppModel
             return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
         }
         return true;
+    }
+
+    public function testSecFetchSiteHeader($value)
+    {
+        if (!empty($value)) {
+            return true;
+        }
+        return 'Sec-Fetch-Site header disabled. This can potentially open up the instance to CSRF attacks via automation endpoints. Enabling this is recommended but can actively prevent the operation of instances hosted under multiple addresses.';
     }
 
     public function sightingsBeforeHook($setting, $value)
@@ -7151,9 +7165,8 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If enabled, any POST, PUT or AJAX request will only be allowed when Sec-Fetch-Site header is not defined or contains "same-origin".'),
                     'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true,
+                    'test' => 'testSecFetchSiteHeader',
+                    'type' => 'boolean'
                 ],
                 'force_https' => [
                     'level' => self::SETTING_OPTIONAL,
@@ -7499,7 +7512,7 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForCookieTimeout',
                     'type' => 'numeric'
-                )
+                ),
             ),
             'Plugin' => array(
                 'branch' => 1,

@@ -208,8 +208,14 @@
 
                 <?php if (Configure::read('OidcAuth') && Configure::read('OidcAuth.mixedAuth')): ?>
                     <div class="d-grid mb-3">
+                            <?php
+                                $oidcLoginText = Configure::read('OidcAuth.login_button_text');
+                                if (empty($oidcLoginText)) {
+                                    $oidcLoginText = __('Login with OIDC');
+                                }
+                            ?>
                             <?= $this->Html->link(
-                                '<i class="fa-solid fa-id-badge text-warning me-2"></i>' . __('Login with OIDC'),
+                                '<i class="fa-solid fa-id-badge text-warning me-2"></i>' . h($oidcLoginText),
                                 [
                                     'controller' => 'users',
                                     'action' => 'login',

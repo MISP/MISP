@@ -735,18 +735,26 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     fetchFormDataAjax(url, function(formData) {
         var $formData = $(formData);
         $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
+        if (event_id === 'selected') {
+            $formData.find('#EventEventIds').val(getSelectedEventIds());
+        }
         xhr({
             data: $formData.serialize(),
             success: function (data) {
-                handleGenericAjaxResponse(data);
+                if (event_id === 'selected') {
+                    location.reload();
+                } else {
+                    handleGenericAjaxResponse(data);
+                }
             },
             error: function() {
                 showMessage('fail', 'Could not add tag.');
             },
             complete: function() {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
-
+                if (event_id !== 'selected') {
+                    loadEventTags(event_id);
+                    loadGalaxies(event_id, 'event');
+                }
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
@@ -1028,9 +1036,11 @@ function listCheckboxesCheckedEventIndex() {
     }
 
     if ($('.select:checked').length > 0) {
-        $('.mass-export').removeClass('hidden');
+        // mass tag/galaxy follow any selection: permission filtering happens
+        // server-side per event (global attaches are downgraded to local)
+        $('.mass-export, .mass-tag, .mass-galaxy').removeClass('hidden');
     } else {
-        $('.mass-export').addClass('hidden');
+        $('.mass-export, .mass-tag, .mass-galaxy').addClass('hidden');
     }
 }
 
@@ -1201,6 +1211,17 @@ function getSelected() {
     $(".select_attribute:checked").each(function() {
         var test = $(this).data("id");
         selected.push(test);
+    });
+    return JSON.stringify(selected);
+}
+
+function getSelectedEventIds() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        var id = $(this).data("id");
+        if (id != null) {
+            selected.push(id);
+        }
     });
     return JSON.stringify(selected);
 }
@@ -2857,7 +2878,9 @@ function changeFreetextImportExecute() {
     $('.typeToggle').each(function() {
         if ($(this).val() === from) {
             if (selectContainsOption("#" + $(this).attr('id'), to)) {
-                $(this).val(to);
+                // Update the value, then manually trigger the 'change' event
+                // so the Category dropdowns update automatically.
+                $(this).val(to).trigger('change');
             }
         }
     });
@@ -4619,7 +4642,11 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
         $formData.find("#GalaxyMirrorOnEvent").prop('checked', mirrorOnEvent);
         if (target_id === 'selected') {
-            $formData.find('#GalaxyAttributeIds').val(getSelected());
+            if (scope === 'event') {
+                $formData.find('#GalaxyEventIds').val(getSelectedEventIds());
+            } else {
+                $formData.find('#GalaxyAttributeIds').val(getSelected());
+            }
         }
         $.ajax({
             data: $formData.serialize(),

@@ -22,7 +22,7 @@
 $url  = isset($data['url'])  ? (string)$data['url']  : '';
 $text = isset($data['text']) ? (string)$data['text'] : '';
 
-$baseurl = (string)Configure::read('MISP.baseurl');
+$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
 
 $isSafeUrl = function ($url) use ($baseurl) {
     if (!is_string($url) || $url === '') return false;

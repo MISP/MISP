@@ -79,7 +79,7 @@
                         'id' => 'multi-tag-button',
                         'title' => __('Tag selected Attributes'),
                         'class' => 'mass-select hidden',
-                        'fa-icon' => 'tag',
+                        'html' => '<i class="fas fa-globe"></i> <i class="fas fa-tag"></i>',
                         'data' => [
                             'popover-popup' => $baseurl . '/tags/selectTaxonomy/selected/attribute',
                         ],
@@ -88,7 +88,7 @@
                         'id' => 'multi-local-tag-button',
                         'title' => __('Add Local tag on selected Attributes'),
                         'class' => 'mass-select hidden',
-                        'fa-icon' => 'user',
+                        'html' => '<i class="fas fa-user"></i> <i class="fas fa-tag"></i>',
                         'data' => [
                             'popover-popup' => $baseurl . '/tags/selectTaxonomy/local:1/selected/attribute',
                         ],
@@ -97,8 +97,7 @@
                         'id' => 'multi-galaxy-button',
                         'title' => __('Add new cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
-                        'fa-icon' => 'rebel',
-                        'fa-source' => 'fab',
+                        'html' => '<i class="fas fa-globe"></i> <i class="fas fa-book-open"></i>',
                         'data' => [
                             'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/eventid:' . $eventId,
                         ],
@@ -107,8 +106,7 @@
                         'id' => 'multi-galaxy-button',
                         'title' => __('Add new local cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
-                        'fa-icon' => 'empire',
-                        'fa-source' => 'fab',
+                        'html' => '<i class="fas fa-user"></i> <i class="fas fa-book-open"></i>',
                         'data' => [
                             'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/local:1/eventid:' . $eventId,
                         ],

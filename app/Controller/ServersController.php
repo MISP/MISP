@@ -4,6 +4,7 @@ App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
+App::uses('SystemSetting', 'Model');
 
 /**
  * @property Server $Server
@@ -1612,6 +1613,9 @@ class ServersController extends AppController
             }
             $this->autoRender = false;
             if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
+                // Never log the raw value of a sensitive setting (passwords, API keys, salts, ...):
+                // mask it the same way the successful-save path does (see Server::serverSettingsEditValue).
+                $loggedValue = SystemSetting::isSensitive($setting['name']) ? '*****' : $this->request->data['Server']['value'];
                 $this->loadModel('Log');
                 $this->Log->create();
                 $this->Log->saveOrFailSilently(array(
@@ -1622,7 +1626,7 @@ class ServersController extends AppController
                     'action' => 'serverSettingsEdit',
                     'user_id' => $this->Auth->user('id'),
                     'title' => 'Server setting issue',
-                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $loggedValue  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
                 ));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
