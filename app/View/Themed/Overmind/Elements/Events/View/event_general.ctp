@@ -14,20 +14,23 @@ $analysisMap = [
 ];
 
 $threatMap = [
-    1 => ['label' => __('High'),      'bg' => '#f8d7da', 'color' => '#dc3545', 'icon' => 'fa-exclamation-circle'],
-    2 => ['label' => __('Medium'),    'bg' => '#ffe5cc', 'color' => '#fd7e14', 'icon' => 'fa-exclamation-triangle'],
-    3 => ['label' => __('Low'),       'bg' => '#fff3cd', 'color' => '#856404', 'icon' => 'fa-minus-circle'],
-    4 => ['label' => __('Undefined'), 'bg' => '#e2e3e5', 'color' => '#41464b', 'icon' => 'fa-question-circle'],
+    0 => ['label' => __('Low'),       'color' => '#ffc107', 'icon' => 'fa-minus-circle'],
+    1 => ['label' => __('Medium'),    'color' => '#fd7e14', 'icon' => 'fa-exclamation-triangle'],
+    2 => ['label' => __('High'),      'color' => '#dc3545', 'icon' => 'fa-exclamation-circle'],
+    3 => ['label' => __('Undefined'), 'color' => '#41464b', 'icon' => 'fa-question-circle'],
 ];
 
 $analysisLevel  = (int)($event['analysis']        ?? 0);
+// Backend: 1=High, 2=Medium, 3=Low, 4=Undefined
+// Map to display index: 0=Low, 1=Medium, 2=High, 3=Undefined
 $threatLevelId  = (int)($event['threat_level_id'] ?? 4);
+$threatLevel    = [1 => 2, 2 => 1, 3 => 0, 4 => 3][$threatLevelId] ?? 3;
 $distribution   = (int)($event['distribution']    ?? 0);
 $isPublished    = !empty($event['published']);
 $disableCorrel  = !empty($event['disable_correlation']);
 
 $analysis = $analysisMap[$analysisLevel]  ?? $analysisMap[0];
-$threat   = $threatMap[$threatLevelId]    ?? $threatMap[4];
+$threat   = $threatMap[$threatLevel]    ?? $threatMap[3];
 
 $descParts = [];
 if (!empty($event['date'])) {
@@ -229,57 +232,32 @@ $this->set('headerDescription', $headerDescription);
 
         <div class="row g-2 align-items-start mb-3">
 
-            <!-- ANALYSIS STEPPER -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
+            <!-- ANALYSIS -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-2">
                     <?= __('Analysis') ?>
                 </div>
-                <div class="d-inline-flex position-relative">
-                    <?php foreach ($analysisMap as $step => $info):
-                        $isDone    = $step < $analysisLevel;
-                        $isCurrent = $step === $analysisLevel;
-                        $isActive  = $isDone || $isCurrent;
-                        $dotColor  = $info['dot'];
-                        if ($isActive) {
-                            $circleStyle = 'background-color:' . $dotColor . ';border-color:' . $dotColor . ';color:#fff;';
-                            $labelClass  = 'fw-semibold';
-                            $labelStyle  = 'color:' . $dotColor . ';';
-                        } else {
-                            $circleStyle = 'background-color:#fff;border-color:#adb5bd;color:#adb5bd;';
-                            $labelClass  = 'text-muted';
-                            $labelStyle  = '';
-                        }
-                        $prevDot = $step > 0 ? $analysisMap[$step - 1]['dot'] : '';
-                    ?>
-                        <div class="position-relative text-center"
-                             style="<?= $step > 0 ? 'padding-left:3vw;' : '' ?>padding-right:3vw">
-                            <?php if ($step > 0): ?>
-                                <div class="analysis-line"
-                                     style="<?= $step <= $analysisLevel ? 'background-color:' . h($prevDot) . ';' : 'background-color:var(--bs-secondary-bg,#e9ecef);' ?>"></div>
-                            <?php endif; ?>
-                            <div class="mx-auto rounded-circle border d-flex align-items-center justify-content-center"
-                                 style="width:20px;height:20px;z-index:1;position:relative;<?= $circleStyle ?>">
-                                <i class="fas <?= h($info['icon']) ?>" style="font-size:0.7rem;"></i>
-                            </div>
-                            <div class="small mt-2 <?= $labelClass ?>"
-                                 style="<?= $labelStyle ?>">
-                                <?= $info['label'] ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                <?php $analysisPct = (int)(($analysisLevel + 1) / 3 * 100); ?>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
+                        <div style="height:100%;width:<?= $analysisPct ?>%;border-radius:2px;background:<?= h($analysis['dot']) ?>;"></div>
+                    </div>
+                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($analysis['dot']) ?>;"><?= h($analysis['label']) ?></span>
                 </div>
             </div>
 
             <!-- THREAT LEVEL -->
             <div class="col-md-3">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
+                <div class="text-muted small text-uppercase fw-bold mb-2">
                     <?= __('Threat Level') ?>
                 </div>
-                <span class="badge d-inline-flex align-items-center px-2 py-1"
-                      style="background-color:<?= h($threat['bg']) ?>;color:<?= h($threat['color']) ?>;border:1px solid <?= h($threat['color']) ?>40;font-weight:500;">
-                    <i class="fas <?= h($threat['icon']) ?> me-1"></i>
-                    <?= $threat['label'] ?>
-                </span>
+                <?php $threatPct = $threatLevel < 3 ? (int)(($threatLevel + 1) / 3 * 100) : 5; ?>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
+                        <div style="height:100%;width:<?= $threatPct ?>%;border-radius:2px;background:<?= h($threat['color']) ?>;"></div>
+                    </div>
+                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($threat['color']) ?>;"><?= h($threat['label']) ?></span>
+                </div>
             </div>
 
             <!-- CORRELATION -->
