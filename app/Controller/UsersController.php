@@ -794,7 +794,7 @@ class UsersController extends AppController
                             if ($result && empty(Configure::read('MISP.disable_emailing'))) {
                                 $notification_message .= ' ' . __('User notified of new credentials.');
                             } else {
-                                $notification_message .= ' ' . __('User notification of new credentials could not be send.');
+                                $notification_message .= ' ' . __('User notification of new credentials could not be sent.');
                             }
                         }
                         if (!empty(Configure::read('Security.advanced_authkeys')) && $this->_isRest()) {
@@ -1734,7 +1734,7 @@ class UsersController extends AppController
             // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
 
-                // Make sure we're sending a mail to an elligible org
+                // Make sure we're sending a mail to an eligible org
                 if (!in_array($orgNameList, array_keys($orgName))) {
                     throw new NotFoundException(__('Recipient org not provided'));
                 }
