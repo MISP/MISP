@@ -1402,7 +1402,7 @@ class User extends AppModel
     public function getGpgPublicKey()
     {
         $cryptGpg = $this->initializeGpg();
-        $this->CryptoGraphicKey = ClassRegistry::init('CrytpographicKey');
+        $this->CryptoGraphicKey = ClassRegistry::init('CryptographicKey');
         $fingerprint = $this->CryptoGraphicKey->ingestInstanceKey();
         if (!$fingerprint) {
             return null;
