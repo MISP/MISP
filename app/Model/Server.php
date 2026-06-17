@@ -910,6 +910,9 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
+        if ($serverSync->server()['Server']['internal']) {
+            $filterRules['include_event_tags_fingerprint'] = 1;
+        }
 
         // Fetch event index from cache if exists and is not modified on server
         $redis = RedisTool::init();
@@ -919,6 +922,7 @@ class Server extends AppModel
         } else {
             $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
+        $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
 
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
@@ -954,7 +958,7 @@ class Server extends AppModel
      * @param array $events
      * @return void
      */
-    private function removeOlderEvents(array &$events)
+    private function removeOlderEvents(array &$events, $server=null)
     {
         $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
         $this->Event = ClassRegistry::init('Event');
@@ -962,12 +966,45 @@ class Server extends AppModel
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+            'contain' => ['EventTag' => 'Tag'],
         ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        $reindexed = [];
+        foreach ($localEvents as $item) {
+            $event = $item['Event'];
+            $event['EventTag'] = $item['EventTag'];
+            $reindexed[$event['uuid']] = $event;
+        }
+        $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
-                unset($events[$k]);
+            $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+            $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+
+            if (isset($localEvents[$uuid])) {
+                $isUnlocked = !$localEvents[$uuid]['locked'];
+
+                $localTs = $localEvents[$uuid]['timestamp'];
+                $incomingTs = $event['timestamp'];
+
+                $isInternalSync =
+                    $server !== null &&
+                    !empty($server['Server']['internal']);
+
+                $sameFingerprint =
+                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                    $localEventTagsFingerprint === $eventTagsFingerprint;
+
+                $shouldDiscard =
+                    $isUnlocked ||
+                    ($localTs > $incomingTs) || // strictly newer local event
+                    (
+                        $localTs === $incomingTs && // same timestamp handling
+                        (!$isInternalSync || $sameFingerprint)
+                    );
+
+                if ($shouldDiscard) {
+                    unset($events[$k]);
+                }
             }
         }
     }
@@ -1046,7 +1083,7 @@ class Server extends AppModel
             }
         }
         if (!$force) {
-            $this->removeOlderEvents($eventArray);
+            $this->removeOlderEvents($eventArray, $serverSync->server());
             $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
         }
         return array_column($eventArray, 'uuid');
@@ -1609,6 +1646,9 @@ class Server extends AppModel
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
                 $s['setting'] = $k;
+                // Expose file-only (security-sensitive) status alongside the name
+                // so the settings view can show it as a posture badge (#10812).
+                $s['file_only'] = SystemSetting::isSensitive($k);
                 if ($s['level'] == $i) {
                     $finalSettings[] = $s;
                 }
@@ -1648,6 +1688,9 @@ class Server extends AppModel
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
+        // Expose whether the setting is stored in the config file only for security
+        // reasons (passwords, API keys, secrets) so the UI can surface it (#10812).
+        $result['file_only'] = SystemSetting::isSensitive($settingName);
         return $result;
     }
 

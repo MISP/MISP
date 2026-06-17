@@ -273,7 +273,7 @@
 
         $('.distributionNetworkToggle').each(function() {
             $(this).distributionNetwork({
-                distributionData: <?= json_encode($distributionData, JSON_UNESCAPED_UNICODE); ?>,
+                distributionData: <?= json_encode($this->DistributionGraph->getGraphData(-1), JSON_UNESCAPED_UNICODE); ?>,
             });
         });
     });

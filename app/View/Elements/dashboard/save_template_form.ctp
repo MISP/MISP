@@ -11,7 +11,7 @@
  * controller-set view vars ($options, $isSiteAdmin, $isUpdate, $updateRef) —
  * see DashboardsController::saveTemplate (data contract unchanged).
  */
-$baseurl = Configure::read('MISP.baseurl') ?: '';
+$baseurl = Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/');
 $existing = isset($this->request->data['Dashboard'])
     ? $this->request->data['Dashboard']
     : array();

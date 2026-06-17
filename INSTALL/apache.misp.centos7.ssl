@@ -2,7 +2,7 @@
     ServerAdmin me@me.local
     ServerName misp.local
 
-    Redirect permanent / https://127.0.0.1
+    Redirect permanent / https://127.0.0.1/
 
     LogLevel warn
     ErrorLog /var/log/httpd/misp.local_error.log

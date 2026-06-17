@@ -131,6 +131,9 @@ class ACLComponent extends Component
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
+            // Read-only JSON endpoint used by beta Event view to list collection memberships.
+            'getCollectionsForElement' => ['*'],
+            'getCollectionsForElements' => ['*'],
             'index' => ['*'],
             'view' => ['*']
         ],
@@ -159,6 +162,7 @@ class ACLComponent extends Component
             'view' => []
         ],
         'correlations' => [
+            'eventCorrelations' => ['*'],
             'generateOccurrences' => [],
             'generateTopCorrelations' => [],
             'overCorrelations' => [],
@@ -264,6 +268,7 @@ class ACLComponent extends Component
             'add' => array('perm_add'),
             'view' => array('*'),
             'viewSummary' => array('*'),
+            'viewRendered' => array('*'),
             'edit' => array('perm_add'),
             'delete' => array('perm_add'),
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),

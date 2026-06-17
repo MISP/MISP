@@ -61,7 +61,7 @@ class RecentSightingsWidget
             $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
-                                    Configure::read('MISP.baseurl') . '/events/view/', $event['id'],
+                                    (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/view/', $event['id'],
                                     $event['id']
                                 )
                         );

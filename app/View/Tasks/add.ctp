@@ -163,7 +163,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Next Execution Time') . '<span class="fas fa-clock label-icon"></span>',
                 'type' => 'text',
                 'placeholder' => __('HH:MM:SS'),
-                'type' => 'text'
+                'description' => __("Current server time: %s", date('H:i:s')),
             ],
             [
                 'field' => 'description',
@@ -214,5 +214,29 @@ echo $this->Js->writeBuffer();
         $("#TaskType, #TaskRunAfterCreation, #TaskFeedAction, #TaskServerAction, #TaskFeedId").change(function() {
             taskFormUpdate();
         });
+
+        // Keep the displayed times ticking. The server time is seeded with the
+        // server's wall-clock at page load and advanced by elapsed real time, so
+        // it stays in the server's timezone instead of the browser's.
+        var serverSecondsAtLoad = parseInt("<?= date('H') * 3600 + date('i') * 60 + date('s') ?>", 10);
+        var loadTimestamp = Date.now();
+        $("#TaskNextExecutionTime").closest('.input').nextAll('.form-field-description').first().html(
+            "<?= __('Current server time') ?>: <span id=\"TaskServerTime\"></span>"
+        );
+        function pad(n) {
+            return (n < 10 ? '0' : '') + n;
+        }
+        function formatSeconds(totalSeconds) {
+            totalSeconds = ((totalSeconds % 86400) + 86400) % 86400;
+            return pad(Math.floor(totalSeconds / 3600)) + ':' +
+                pad(Math.floor((totalSeconds % 3600) / 60)) + ':' +
+                pad(totalSeconds % 60);
+        }
+        function updateTime() {
+            var elapsed = Math.floor((Date.now() - loadTimestamp) / 1000);
+            $("#TaskServerTime").text(formatSeconds(serverSecondsAtLoad + elapsed));
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
     });
 </script>
