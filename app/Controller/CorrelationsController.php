@@ -224,4 +224,75 @@ class CorrelationsController extends AppController
         $this->Flash->info($message);
         $this->redirect(['controller' => 'correlations', 'action' => 'overCorrelations']);
     }
+
+    public function eventCorrelations($eventId)
+    {
+        if (!$this->Auth->user()) {
+            throw new ForbiddenException();
+        }
+        $this->loadModel('Event');
+        $sgids = $this->Event->SharingGroup->authorizedIds($this->Auth->user());
+        $correlations = $this->Correlation->getAttributesRelatedToEvent($this->Auth->user(), $eventId, $sgids);
+        $extended = filter_var($this->request->query('extended'), FILTER_VALIDATE_BOOLEAN);
+        $includeAttributes = $extended || filter_var($this->request->query('include_attributes'), FILTER_VALIDATE_BOOLEAN);
+        $includeOrgNames = $extended || filter_var($this->request->query('include_org_names'), FILTER_VALIDATE_BOOLEAN);
+        if ($includeAttributes || $includeOrgNames) {
+            $attributeIds = [];
+            $orgIds = [];
+            foreach ($correlations as $parentId => $relations) {
+                foreach ($relations as $rel) {
+                    if ($includeAttributes) {
+                        $attributeIds[] = $rel['attribute_id'];
+                    }
+                    if ($includeOrgNames && !empty($rel['org_id'])) {
+                        $orgIds[(int)$rel['org_id']] = (int)$rel['org_id'];
+                    }
+                }
+            }
+            if ($includeAttributes && !empty($attributeIds)) {
+                $this->loadModel('MispAttribute');
+                $attributes = $this->MispAttribute->find('all', [
+                    'conditions' => ['Attribute.id' => $attributeIds],
+                    'contain' => [
+                        'AttributeTag' => ['Tag'],
+                        'SharingGroup' => ['fields' => ['SharingGroup.name']],
+                        'Object' => ['fields' => ['Object.id', 'Object.name', 'Object.uuid']]
+                    ]
+                ]);
+                $attributeDetails = [];
+                foreach ($attributes as $attr) {
+                    $attributeDetails[$attr['Attribute']['id']] = $attr;
+                }
+                foreach ($correlations as $parentId => &$relations) {
+                    foreach ($relations as &$rel) {
+                        if (isset($attributeDetails[$rel['attribute_id']])) {
+                            $rel['Attribute'] = $attributeDetails[$rel['attribute_id']]['Attribute'];
+                            $rel['Attribute']['AttributeTag'] = $attributeDetails[$rel['attribute_id']]['AttributeTag'];
+                            $rel['Attribute']['SharingGroup'] = $attributeDetails[$rel['attribute_id']]['SharingGroup'];
+                            if (!empty($attributeDetails[$rel['attribute_id']]['Object'])) {
+                                $rel['Attribute']['Object'] = $attributeDetails[$rel['attribute_id']]['Object'];
+                            }
+                        }
+                    }
+                }
+            }
+            if ($includeOrgNames && !empty($orgIds)) {
+                $this->loadModel('Organisation');
+                $organisations = $this->Organisation->find('list', [
+                    'recursive' => -1,
+                    'conditions' => ['Organisation.id' => array_values($orgIds)],
+                    'fields' => ['Organisation.id', 'Organisation.name']
+                ]);
+                foreach ($correlations as &$relations) {
+                    foreach ($relations as &$rel) {
+                        if (!empty($rel['org_id']) && isset($organisations[$rel['org_id']])) {
+                            $rel['org_name'] = $organisations[$rel['org_id']];
+                        }
+                    }
+                }
+                unset($relations, $rel);
+            }
+        }
+        return $this->RestResponse->viewData($correlations, 'json');
+    }
 }
