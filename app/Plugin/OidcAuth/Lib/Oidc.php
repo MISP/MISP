@@ -324,6 +324,7 @@ class Oidc
         $clientSecret = $this->getConfig('client_secret');
         $issuer = $this->getConfig('issuer', null, false);
         $disableRequestObject = $this->getConfig('disable_request_object', false);
+        $disablePushedAuthorizationRequest = $this->getConfig('disable_pushed_authorization_request', false);
 
         if (class_exists("\CertMichelin\OpenIDConnectClient")) {
             $oidc = new \CertMichelin\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
@@ -343,6 +344,13 @@ class Oidc
             throw new Exception("OpenID Connect client is not installed.");
         }
 
+        if ($disablePushedAuthorizationRequest) {
+            if (method_exists($oidc, 'setDisablePushedAuthorizationRequest')) {
+                $oidc->setDisablePushedAuthorizationRequest(true);
+            } else {
+                $oidc->providerConfigParam(['pushed_authorization_request_endpoint' => false]);
+            }
+        }
         $authenticationMethod = $this->getConfig('authentication_method', false);
         if ($authenticationMethod !== false && $authenticationMethod !== null) {
             $oidc->setAuthenticationMethod($authenticationMethod);
