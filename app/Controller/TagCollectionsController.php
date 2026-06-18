@@ -59,6 +59,14 @@ class TagCollectionsController extends AppController
     {
         if ($this->request->is('post')) {
             $data = $this->request->data;
+            // This is a create-only action: it calls saveAssociated() directly without ever
+            // pinning the primary key, and CakePHP treats an id in the save data as an UPDATE
+            // target. Without stripping it, a supplied TagCollection[id] turns the insert into a
+            // covert UPDATE of an arbitrary tag collection — and because org_id/user_id are forced
+            // to the current user below, that row is also re-owned to the attacker. Drop it so the
+            // save always inserts a new row (mirrors TagCollection::import() and the edit paths,
+            // which pin the id to the authorised record).
+            unset($data['TagCollection']['id']);
             $data['TagCollection']['org_id'] = $this->Auth->user('org_id');
             $data['TagCollection']['user_id'] = $this->Auth->user('id');
 
