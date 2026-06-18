@@ -15,6 +15,7 @@
             ['chosen.min', ['preload' => true]],
             ['main', ['preload' => true]],
             ['main-beta', ['preload' => true]],
+            ['components-beta', ['preload' => true]],
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {

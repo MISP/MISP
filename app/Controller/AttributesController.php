@@ -42,6 +42,7 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
+        $this->Security->unlockedActions[] = 'editField';
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -1092,7 +1093,7 @@ class AttributesController extends AppController
                 throw new MethodNotAllowedException(__('Invalid input.'));
             }
         }
-        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen', 'disable_correlation');
         $changed = false;
         foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
             if (!in_array($changedKey, $validFields, true)) {

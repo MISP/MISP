@@ -954,7 +954,7 @@ class Server extends AppModel
      * @param array $events
      * @return void
      */
-    private function removeOlderEvents(array &$events)
+    private function removeOlderEvents(array &$events, $server=null)
     {
         $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
         $this->Event = ClassRegistry::init('Event');
@@ -962,11 +962,21 @@ class Server extends AppModel
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+            'contain' => ['EventTag' => 'Tag'],
         ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        $reindexed = [];
+        foreach ($localEvents as $item) {
+            $event = $item['Event'];
+            $event['EventTag'] = $item['EventTag'];
+            $reindexed[$event['uuid']] = $event;
+        }
+        $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
+            if (
+                (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) &&
+                !($server !== null && !empty($server['Server']['internal']) && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
+            ) {
                 unset($events[$k]);
             }
         }
@@ -1046,7 +1056,7 @@ class Server extends AppModel
             }
         }
         if (!$force) {
-            $this->removeOlderEvents($eventArray);
+            $this->removeOlderEvents($eventArray, $serverSync->server());
             $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
         }
         return array_column($eventArray, 'uuid');

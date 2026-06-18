@@ -8,6 +8,8 @@ App::uses('Xml', 'Utility');
  */
 class EventsController extends AppController
 {
+    public $helpers = array('Event');
+
     public $components = array(
         'RequestHandler',
         'IOCImport',
@@ -847,7 +849,7 @@ class EventsController extends AppController
             $rules = [
                 'recursive' => -1,
                 'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
-                'contain' => array('Orgc.uuid'),
+                'contain' => array('Orgc.uuid', 'EventTag'),
             ];
         } else {
             // Remove user ID from fetched fields
@@ -919,45 +921,45 @@ class EventsController extends AppController
         $protectedEventsByInstanceKey = $this->Event->CryptographicKey->protectedEventsByInstanceKey($events);
         $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
 
+        // Collect all tag IDs that are events
+        $tagIds = [];
+        foreach (array_column($events, 'EventTag') as $eventTags) {
+            foreach (array_column($eventTags, 'tag_id') as $tagId) {
+                $tagIds[$tagId] = true;
+            }
+        }
+
+        if (!empty($tagIds)) {
+            $tags = $this->Event->EventTag->Tag->find('all', [
+                'conditions' => [
+                    'Tag.id' => array_keys($tagIds),
+                    'Tag.exportable' => 1,
+                ],
+                'recursive' => -1,
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
+            ]);
+            unset($tagIds);
+            $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+
+            foreach ($events as $k => $event) {
+                if (empty($event['EventTag'])) {
+                    continue;
+                }
+                foreach ($event['EventTag'] as $k2 => $et) {
+                    if (!isset($tags[$et['tag_id']])) {
+                        unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
+                    } else {
+                        $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
+                    }
+                }
+                $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+            }
+            if (!$minimal && !$isCsvResponse) {
+                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
+            }
+        }
+
         if (!$minimal) {
-            // Collect all tag IDs that are events
-            $tagIds = [];
-            foreach (array_column($events, 'EventTag') as $eventTags) {
-                foreach (array_column($eventTags, 'tag_id') as $tagId) {
-                    $tagIds[$tagId] = true;
-                }
-            }
-
-            if (!empty($tagIds)) {
-                $tags = $this->Event->EventTag->Tag->find('all', [
-                    'conditions' => [
-                        'Tag.id' => array_keys($tagIds),
-                        'Tag.exportable' => 1,
-                    ],
-                    'recursive' => -1,
-                    'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
-                ]);
-                unset($tagIds);
-                $tags = array_column(array_column($tags, 'Tag'), null, 'id');
-
-                foreach ($events as $k => $event) {
-                    if (empty($event['EventTag'])) {
-                        continue;
-                    }
-                    foreach ($event['EventTag'] as $k2 => $et) {
-                        if (!isset($tags[$et['tag_id']])) {
-                            unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
-                        } else {
-                            $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
-                        }
-                    }
-                    $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
-                }
-                if (!$isCsvResponse) {
-                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
-                }
-            }
-
             // Fetch all org and sharing groups that are in events
             $orgIds = [];
             $sharingGroupIds = [];
@@ -1019,6 +1021,7 @@ class EventsController extends AppController
                 }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                 unset($event['Event']['protected']);
+                $event['Event']['EventTag'] = $event['EventTag'];
                 $events[$key] = $event['Event'];
             }
             $events = array_values($events);
@@ -1387,6 +1390,9 @@ class EventsController extends AppController
             }
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
+        if (isset($filters['attributeType']) && $filters['attributeType'] !== '') {
+            $this->__applyQueryString($event, $filters['attributeType'], 'type');
+        }
         if (isset($filters['taggedAttributes']) && $filters['taggedAttributes'] !== '') {
             $this->__applyQueryString($event, $filters['taggedAttributes'], 'Tag.name');
         }
@@ -1700,6 +1706,7 @@ class EventsController extends AppController
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event, $user));
+        $this->set('eventReportSummary', $this->Event->EventReport->getSummaryForEvent($user, $event['Event']['id']));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
         } catch (Exception $e) {

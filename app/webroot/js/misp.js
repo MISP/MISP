@@ -782,9 +782,16 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             data: $formData.serialize(),
             success:function (data) {
                 if (attribute_id == 'selected') {
-                    updateIndex(0, 'event');
+                    if (typeof window.onBulkAttributeTagsApplied === 'function') {
+                        window.onBulkAttributeTagsApplied(getSelected());
+                    } else {
+                        updateIndex(0, 'event');
+                    }
                 } else {
                     loadAttributeTags(attribute_id);
+                    if (typeof window.onAttributeTagsApplied === 'function') {
+                        updateAttributeTagsApplied(attribute_id);
+                    }
                     loadGalaxies(attribute_id, 'attribute');
                 }
                 handleGenericAjaxResponse(data);
@@ -803,6 +810,20 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             url: url
         });
     });
+}
+
+function updateAttributeTagsApplied(attribute_id) {
+    if (typeof window.onAttributeTagsApplied === 'function') {
+        window.onAttributeTagsApplied(attribute_id);
+    }
+}
+
+function updateBulkGalaxiesApplied(selectedIds, local, eventId) {
+    if (typeof window.onBulkAttributeGalaxiesApplied === 'function') {
+        window.onBulkAttributeGalaxiesApplied(selectedIds, local, eventId);
+        return true;
+    }
+    return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
@@ -1275,6 +1296,18 @@ function loadAttributeTags(attribute_id) {
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
+}
+
+function updateBetaAttributeTags(attribute_id) {
+    var $row = $("[data-primary-id=" + attribute_id + "]");
+    if (!$row.length) {
+        return;
+    }
+    loadAttributeTags(attribute_id);
+    var $tagsRow = $(".col-tags-row[data-primary-id=" + attribute_id + "] .attributeTagContainer");
+    if ($tagsRow.length) {
+        $tagsRow.html($row.find('.attributeTagContainer').first().html());
+    }
 }
 
 function removeObjectTagPopup(clicked, context, object, tag) {
@@ -1963,7 +1996,8 @@ function popoverPopup(clicked, id, context, target, admin) {
 
 function popoverPopupNew(clicked, url) {
     var $clicked = $(clicked);
-    var popover = openPopover($clicked, undefined);
+    var placement = $clicked.data('popover-placement');
+    var popover = openPopover($clicked, undefined, undefined, placement);
 
     // actual request
     $.ajax({
@@ -4655,7 +4689,10 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
             },
             success:function (data) {
                 if (target_id === 'selected' || scope === 'tag_collection') {
-                    location.reload();
+                    if (!updateBulkGalaxiesApplied(getSelected(), local, additionalData['event_id'])) {
+                        location.reload();
+                    }
+                    handleGenericAjaxResponse(data);
                 } else {
                     loadGalaxies(target_id, scope);
                     if (mirrorOnEvent) {
