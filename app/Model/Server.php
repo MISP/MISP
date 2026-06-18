@@ -910,9 +910,6 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
-        if ($serverSync->server()['Server']['internal']) {
-            $filterRules['include_event_tags_fingerprint'] = 1;
-        }
 
         // Fetch event index from cache if exists and is not modified on server
         $redis = RedisTool::init();
@@ -922,7 +919,6 @@ class Server extends AppModel
         } else {
             $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
-        $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
 
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
@@ -977,34 +973,11 @@ class Server extends AppModel
         $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
-            $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
-
-            if (isset($localEvents[$uuid])) {
-                $isUnlocked = !$localEvents[$uuid]['locked'];
-
-                $localTs = $localEvents[$uuid]['timestamp'];
-                $incomingTs = $event['timestamp'];
-
-                $isInternalSync =
-                    $server !== null &&
-                    !empty($server['Server']['internal']);
-
-                $sameFingerprint =
-                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
-                    $localEventTagsFingerprint === $eventTagsFingerprint;
-
-                $shouldDiscard =
-                    $isUnlocked ||
-                    ($localTs > $incomingTs) || // strictly newer local event
-                    (
-                        $localTs === $incomingTs && // same timestamp handling
-                        (!$isInternalSync || $sameFingerprint)
-                    );
-
-                if ($shouldDiscard) {
-                    unset($events[$k]);
-                }
+            if (
+                (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) &&
+                !($server !== null && !empty($server['Server']['internal']) && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
+            ) {
+                unset($events[$k]);
             }
         }
     }
