@@ -7873,6 +7873,11 @@ class Event extends AppModel
                 }
                 foreach ($types as $type) {
                     $model->create();
+                    // Freetext import only ever creates new attributes. A client-supplied id
+                    // (this data can be raw JSON via saveFreeText) would redirect save() onto
+                    // an arbitrary existing attribute - create() does not strip it and there is
+                    // no fieldList here, so the injected id targets the UPDATE WHERE clause.
+                    unset($attribute['id']);
                     $attribute['type'] = $type;
                     if (empty($attribute['comment'])) {
                         $attribute['comment'] = $default_comment;
@@ -8008,6 +8013,10 @@ class Event extends AppModel
             $processedAttributes = 0;
             foreach ($resolved_data['Attribute'] as $attribute) {
                 $this->Attribute->create();
+                // Module-result import (raw JSON from handleModuleResults/importModule) only
+                // creates attributes; strip any client id so it cannot redirect save() onto an
+                // arbitrary attribute row (no fieldList here, create() does not strip it).
+                unset($attribute['id']);
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
                 }
@@ -8133,6 +8142,10 @@ class Event extends AppModel
                             $object_id = $current_object_id;
                         } else {
                             $this->Object->create();
+                            // New object only; strip any client id (the id is read above for
+                            // initialObject matching, never to target this save) so it cannot
+                            // redirect save() onto an arbitrary object row in another event.
+                            unset($object['id']);
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
@@ -8153,6 +8166,9 @@ class Event extends AppModel
                         }
                     } else {
                         $this->Object->create();
+                        // New object only; strip any client id so it cannot redirect save()
+                        // onto an arbitrary object row (no fieldList here).
+                        unset($object['id']);
                         if ($this->Object->save($object)) {
                             $object_id = $this->Object->id;
                             $saved_objects++;
@@ -8419,6 +8435,10 @@ class Event extends AppModel
             $attribute = $this->Attribute->onDemandEncrypt($attribute);
         }
         $this->Attribute->create();
+        // Object-attribute capture only creates new attributes; strip any client id so it
+        // cannot redirect save() onto an arbitrary attribute (object_id/event_id are forced
+        // above, but the primary key is not, and there is no fieldList here).
+        unset($attribute['id']);
         $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {
