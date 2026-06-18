@@ -3959,7 +3959,7 @@
                 "numeric_precision": "3",
                 "collation_name": null,
                 "column_type": "tinyint(4)",
-                "column_default": "0",
+                "column_default": null,
                 "extra": ""
             }
         ],
