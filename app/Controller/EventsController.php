@@ -715,7 +715,7 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended', 'include_event_tags_fingerprint');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
 
@@ -845,16 +845,11 @@ class EventsController extends AppController
 
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
-        $includeEventTagsFingerprint = !empty($passedArgs['searchinclude_event_tags_fingerprint']) || !empty($passedArgs['include_event_tags_fingerprint']);
         if ($minimal) {
-            $contain = ['Orgc.uuid'];
-            if ($includeEventTagsFingerprint) {
-                $contain[] = 'EventTag';
-            }
             $rules = [
                 'recursive' => -1,
                 'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
-                'contain' => $contain,
+                'contain' => array('Orgc.uuid', 'EventTag'),
             ];
         } else {
             // Remove user ID from fetched fields
@@ -927,42 +922,40 @@ class EventsController extends AppController
         $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
 
         // Collect all tag IDs that are events
-        if (!$minimal || $includeEventTagsFingerprint) {
-            $tagIds = [];
-            foreach (array_column($events, 'EventTag') as $eventTags) {
-                foreach (array_column($eventTags, 'tag_id') as $tagId) {
-                    $tagIds[$tagId] = true;
-                }
+        $tagIds = [];
+        foreach (array_column($events, 'EventTag') as $eventTags) {
+            foreach (array_column($eventTags, 'tag_id') as $tagId) {
+                $tagIds[$tagId] = true;
             }
+        }
 
-            if (!empty($tagIds)) {
-                $tags = $this->Event->EventTag->Tag->find('all', [
-                    'conditions' => [
-                        'Tag.id' => array_keys($tagIds),
-                        'Tag.exportable' => 1,
-                    ],
-                    'recursive' => -1,
-                    'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
-                ]);
-                unset($tagIds);
-                $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+        if (!empty($tagIds)) {
+            $tags = $this->Event->EventTag->Tag->find('all', [
+                'conditions' => [
+                    'Tag.id' => array_keys($tagIds),
+                    'Tag.exportable' => 1,
+                ],
+                'recursive' => -1,
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
+            ]);
+            unset($tagIds);
+            $tags = array_column(array_column($tags, 'Tag'), null, 'id');
 
-                foreach ($events as $k => $event) {
-                    if (empty($event['EventTag'])) {
-                        continue;
-                    }
-                    foreach ($event['EventTag'] as $k2 => $et) {
-                        if (!isset($tags[$et['tag_id']])) {
-                            unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
-                        } else {
-                            $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
-                        }
-                    }
-                    $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+            foreach ($events as $k => $event) {
+                if (empty($event['EventTag'])) {
+                    continue;
                 }
-                if (!$minimal && !$isCsvResponse) {
-                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
+                foreach ($event['EventTag'] as $k2 => $et) {
+                    if (!isset($tags[$et['tag_id']])) {
+                        unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
+                    } else {
+                        $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
+                    }
                 }
+                $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+            }
+            if (!$minimal && !$isCsvResponse) {
+                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
             }
         }
 
@@ -1028,9 +1021,7 @@ class EventsController extends AppController
                 }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                 unset($event['Event']['protected']);
-                if ($includeEventTagsFingerprint) {
-                    $event['Event']['event_tags_fingerprint'] = $this->Event->getTagsFingerprint($event['EventTag']);
-                }
+                $event['Event']['EventTag'] = $event['EventTag'];
                 $events[$key] = $event['Event'];
             }
             $events = array_values($events);
