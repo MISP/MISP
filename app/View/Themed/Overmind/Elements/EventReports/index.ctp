@@ -24,7 +24,7 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Event ID'),
+        'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
         'element' => 'id_name',
