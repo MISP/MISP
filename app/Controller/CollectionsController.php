@@ -87,8 +87,28 @@ class CollectionsController extends AppController
             ) {
                 throw new ForbiddenException(__('Collection received older or same as local version.'));
             }
-            if (isset($data['Collection']['distribution']) && $data['Collection']['distribution'] == 4) {
-                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $data, 'Collection');
+            // The sharing-group authorisation check must run against the EFFECTIVE distribution
+            // and sharing group after the edit, not only when 'distribution' is present in the
+            // body. CRUDComponent::edit() retains the stored value for any field the request
+            // omits, so a user could retarget an existing distribution=4 collection onto a
+            // sharing group they are not authorised to use simply by omitting 'distribution'
+            // (it stays 4 from the stored record) while mass-assigning sharing_group_id. Validate
+            // whenever the effective distribution is 4 and this request actually changes the
+            // distribution or the sharing group (an untouched SG on an unrelated edit is left
+            // as-is so a legitimate owner can still edit other fields).
+            $effectiveDistribution = isset($data['Collection']['distribution'])
+                ? $data['Collection']['distribution']
+                : $oldCollection['Collection']['distribution'];
+            $sgChanged = isset($data['Collection']['sharing_group_id'])
+                && $data['Collection']['sharing_group_id'] != $oldCollection['Collection']['sharing_group_id'];
+            $distChanged = isset($data['Collection']['distribution'])
+                && $data['Collection']['distribution'] != $oldCollection['Collection']['distribution'];
+            if ($effectiveDistribution == 4 && ($sgChanged || $distChanged)) {
+                $sgCheckData = $data;
+                if (!isset($sgCheckData['Collection']['sharing_group_id'])) {
+                    $sgCheckData['Collection']['sharing_group_id'] = $oldCollection['Collection']['sharing_group_id'];
+                }
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $sgCheckData, 'Collection');
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);
                 }
