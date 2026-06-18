@@ -504,6 +504,7 @@ class EventReport extends AppModel
 
         $total = $this->find('count', [
             'conditions' => $conditions,
+            'contain'    => ['Event'],
             'recursive'  => -1,
         ]);
 

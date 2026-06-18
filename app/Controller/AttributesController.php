@@ -998,7 +998,11 @@ class AttributesController extends AppController
                   $saved_attribute = $converter->convertAttribute($saved_attribute, true);
                   return $this->RestResponse->viewData($saved_attribute, $type);
                 } else {
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                    if($this->theme === "Overmind") {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                    }
                 }
             } else {
                 if ($this->_isRest()) {
@@ -1006,6 +1010,9 @@ class AttributesController extends AppController
                 } else {
                     if (!CakeSession::read('Message.flash')) {
                         $this->Flash->error(__('The attribute could not be saved. Please, try again.'));
+                        if($this->theme === "Overmind") {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                        }
                     } else {
                         $this->request->data = $this->MispAttribute->read(null, $id);
                     }
@@ -1058,6 +1065,9 @@ class AttributesController extends AppController
         $this->set('categories', $categories);
         $this->set('categoryDefinitions', $categoryDefinitions);
         $this->set('action', $this->action);
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -1219,7 +1229,7 @@ class AttributesController extends AppController
             throw new NotFoundException('Invalid attribute');
         }
         $this->set('id', $attribute['Attribute']['id']);
-        if ($this->request->is('ajax')) {
+        if ($this->request->is('ajax') || $this->theme === 'Overmind') {
             if ($this->request->is('post')) {
                 if ($this->MispAttribute->deleteAttribute($attribute['Attribute']['id'], $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1229,7 +1239,12 @@ class AttributesController extends AppController
             } else {
                 $this->set('hard', $hard);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
-                $this->render('ajax/attributeConfirmationForm');
+                if ($this->theme === 'Overmind') {
+                    $this->layout = false;
+                    $this->render('ajax/attributeDeleteConfirmationForm');
+                } else {
+                    $this->render('ajax/attributeConfirmationForm');
+                }
             }
         } else {
             if (!$this->request->is('post') && !$this->request->is('delete')) {
@@ -1255,6 +1270,76 @@ class AttributesController extends AppController
         }
     }
 
+    public function deleteSelection($id = null, $hard = false)
+    {
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
+
+        if ($this->request->is('post')) {
+            $idList = null;
+            if (isset($this->request->data['Attribute']['ids'])) {
+                $idList = $this->_jsonDecode($this->request->data['Attribute']['ids']);
+            } elseif (!empty($id)) {
+                $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+            }
+            if (empty($idList) || !is_array($idList)) {
+                throw new NotFoundException(__('No matching attributes found.'));
+            }
+            $user      = $this->_closeSession();
+            $successes = [];
+            $fails     = [];
+            foreach ($idList as $attrId) {
+                if ($this->MispAttribute->deleteAttribute(
+                    (int)$attrId, $user, (bool)$hard
+                )) {
+                    $successes[] = (int)$attrId;
+                } else {
+                    $fails[] = (int)$attrId;
+                }
+            }
+            $n = count($successes);
+            if (empty($fails)) {
+                return new CakeResponse([
+                    'body'   => json_encode([
+                        'saved'   => true,
+                        'success' => __n(
+                            '%s attribute deleted.',
+                            '%s attributes deleted.',
+                            $n, $n
+                        ),
+                        'ids'     => $successes,
+                    ]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            } else {
+                return new CakeResponse([
+                    'body'   => json_encode([
+                        'saved'  => false,
+                        'errors' => __n(
+                            '%s attribute could not be deleted.',
+                            '%s attributes could not be deleted.',
+                            count($fails), count($fails)
+                        ),
+                        'ids'    => $successes,
+                    ]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            }
+        } else {
+            $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+            if (empty($idList) || !is_array($idList)) {
+                throw new NotFoundException(__('Invalid attribute ID.'));
+            }
+            $this->layout = false;
+            $this->set('idArray', $idList);
+            $this->set('hard', (bool)$hard);
+            $this->render('ajax/attributeDeleteConfirmationForm');
+        }
+    }
+
     public function restore($id = null)
     {
         $attribute = $this->MispAttribute->find('first', array(
@@ -1277,7 +1362,7 @@ class AttributesController extends AppController
         if (!$this->_isRest()) {
             $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
         }
-        if ($this->request->is('ajax')) {
+        if ($this->request->is('ajax') || $this->theme === 'Overmind') {
             if ($this->request->is('post')) {
                 $result = $this->MispAttribute->restore($id, $this->Auth->user());
                 if ($result === true) {
@@ -1286,6 +1371,7 @@ class AttributesController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'type' => 'json', 'status'=>200));
                 }
             } else {
+                $this->layout = false;
                 $this->set('id', $id);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
                 $this->render('ajax/attributeRestorationForm');

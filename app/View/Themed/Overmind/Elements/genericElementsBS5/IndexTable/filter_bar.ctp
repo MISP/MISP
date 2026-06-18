@@ -20,6 +20,8 @@ if (preg_match('~/index/(.+)~', $currentPath, $matches)) {
 
 $hasActiveFilters = !empty($currentFilters);
 
+$filterId = 'filter-bar-' . uniqid();
+
 $searchChild = null;
 foreach ($filter_bar['children'] as $child) {
     if ($child['type'] === 'search') {
@@ -29,7 +31,7 @@ foreach ($filter_bar['children'] as $child) {
 }
 ?>
 
-<div class="d-flex flex-wrap gap-2 align-items-center">
+<div id="<?= h($filterId) ?>" class="d-flex flex-wrap gap-2 align-items-center">
 
     <?php foreach ($filter_bar['children'] as $child): ?>
 
@@ -78,7 +80,8 @@ foreach ($filter_bar['children'] as $child) {
             <div class="dropdown dropdown-filters flex-shrink-0">
                 <button class="btn btn-outline-primary dropdown-toggle"
                         type="button"
-                        data-bs-toggle="dropdown">
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="false">
                     <i class="fas fa-sliders-h me-1"></i>
                     <?= h($child['label']) ?>
                 </button>
@@ -91,9 +94,9 @@ foreach ($filter_bar['children'] as $child) {
                             </label>
                             <select class="form-select topbar-filter"
                                     name="<?= h($sub['name']) ?>">
-                                <?php foreach ($sub['options'] as $value => $label): ?>
+                                <?php foreach (($sub['options'] ?? []) as $value => $label): ?>
                                     <option value="<?= h($value) ?>"
-                                        <?= (isset($currentFilters[$sub['name']]) && $currentFilters[$sub['name']] == $value) ? 'selected' : '' ?>>
+                                        <?= (isset($currentFilters[$sub['name']]) && urldecode($currentFilters[$sub['name']]) == $value) ? 'selected' : '' ?>>
                                         <?= h($label) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -144,7 +147,7 @@ foreach ($filter_bar['children'] as $child) {
 
 </div>
 
-<?php if ($hasActiveFilters): ?>
+<?php if ($hasActiveFilters && !$this->request->is('ajax')): ?>
     <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
 
         <strong class="me-1"><?= __('Active filters') ?>:</strong>
@@ -203,11 +206,11 @@ var filterBarConfig = <?= json_encode([
     'idField'     => $searchChild['id_field'] ?? null,
 ]) ?>;
 
-function setView(view, save = true) {
-    const tableView = document.getElementById('tableView');
-    const cardView  = document.getElementById('cardView');
-    const viewList  = document.getElementById('viewList');
-    const viewCard  = document.getElementById('viewCard');
+function setView(view, save = true, scope = document) {
+    const tableView = scope.querySelector('#tableView');
+    const cardView  = scope.querySelector('#cardView');
+    const viewList  = scope.querySelector('#viewList');
+    const viewCard  = scope.querySelector('#viewCard');
 
     if (view === 'card') {
         tableView?.classList.add('d-none');
@@ -225,22 +228,23 @@ function setView(view, save = true) {
 }
 
 (function init() {
+    const scope = document.getElementById('<?= h($filterId) ?>')?.closest('.tab-pane') || document;
 
-    document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
-    document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
+    scope.querySelector('#viewList')?.addEventListener('click', () => setView('table', true, scope));
+    scope.querySelector('#viewCard')?.addEventListener('click', () => setView('card', true, scope));
 
     const savedView = localStorage.getItem('indexViewMode');
-    setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
+    setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false, scope);
 
-    document.getElementById('filterButton')?.addEventListener('click', () => {
+    scope.querySelector('#filterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
     });
 
-    document.getElementById('filterField')?.addEventListener('keypress', function(e) {
+    scope.querySelector('#filterField')?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
-    document.querySelectorAll('.topbar-filter').forEach(el => {
+    scope.querySelectorAll('.topbar-filter').forEach(el => {
         el.addEventListener('change', () => {
             window.location.href = buildFilterUrl();
         });

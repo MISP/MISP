@@ -24,12 +24,14 @@ if ($isSiteAdmin || $mayModify) {
 
     $actions[] = [
         'url' => "$baseurl/objects/add/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/objects/add/$eventId');",
         'icon' => 'misp-icon misp-icon-object misp-simple',
         'label' => __('Add Object')
     ];
 
     $actions[] = [
         'url' => "$baseurl/event_reports/add/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/event_reports/add/$eventId');",
         'icon' => 'misp-icon misp-icon-report misp-simple',
         'label' => __('Add Event Report')
     ];

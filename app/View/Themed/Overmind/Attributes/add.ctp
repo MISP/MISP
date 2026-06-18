@@ -7,7 +7,6 @@ $currentDist = isset($attrData['distribution'])
     : (int)$initialDistribution;
 $currentCat  = $attrData['category'] ?? '';
 $currentType = $attrData['type']     ?? '';
-
 $submitId = $isEdit
     ? h($attrData['id'] ?? '')
     : h($event['Event']['id'] ?? '');
@@ -375,9 +374,9 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 <?= $this->Form->end() ?>
 
 <script>
-var non_correlating_types = <?= json_encode($nonCorrelatingTypes) ?>;
-var notice_list_triggers  = <?= $notice_list_triggers ?>;
-var category_type_mapping = <?= json_encode(array_map(function (array $v) {
+window.non_correlating_types = <?= json_encode($nonCorrelatingTypes) ?>;
+window.notice_list_triggers  = <?= $notice_list_triggers ?>;
+window.category_type_mapping = <?= json_encode(array_map(function (array $v) {
     return $v['types'];
 }, $categoryDefinitions)) ?>;
 

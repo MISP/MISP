@@ -16,7 +16,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-primary btn-sm ms-2"
                     title="<?= __('Export selected attributes') ?>"
                     aria-label="<?= __('Export selected attributes') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/restSearchExport') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/restSearchExport') ?>', '')">
                 <i class="fas fa-file-export"></i>
                 <?= __('Export') ?>
             </button>
@@ -27,7 +27,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-secondary btn-sm d-none"
                     title="<?= __('Edit selected attributes') ?>"
                     aria-label="<?= __('Edit selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <i class="fas fa-edit text-white"></i>
                 <span class="text-white"> <?= __('Edit') ?></span>
             </button>
@@ -38,7 +38,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-tag btn-sm d-none"
                     title="<?= __('Add Tag on selected attributes') ?>"
                     aria-label="<?= __('Add Tag on selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <span class="misp-icon misp-icon-tag misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Tag') ?></span>
             </button>
@@ -49,18 +49,18 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-tag btn-sm d-none"
                     title="<?= __('Add Local Tag on selected attributes') ?>"
                     aria-label="<?= __('Add Local Tag on selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <i class="fas fa-user text-white"></i>
                 <span class="text-white"> <?= __('Local Tag') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_cluster'])): ?>
-            <button id="mass-cluster-button"
+            <button id="mass-cluster-button",
                     class="btn btn-galaxy btn-sm d-none"
                     title="<?= __('Add Cluster on selected attributes') ?>"
                     aria-label="<?= __('Add Cluster to selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <span class="misp-icon misp-icon-galaxy misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Cluster') ?></span>
             </button>
@@ -71,7 +71,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-galaxy btn-sm d-none"
                     title="<?= __('Add Local Cluster on selected attributes') ?>"
                     aria-label="<?= __('Add Local Cluster to selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <i class="fas fa-user text-white"></i>
                 <span class="text-white"> <?= __('Local Cluster') ?></span>
             </button>
@@ -82,7 +82,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-object btn-sm d-none"
                     title="<?= __('Group selected Attributes into an Object') ?>"
                     aria-label="<?= __('Group selected Attributes into an Object') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <span class="misp-icon misp-icon-object misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Object') ?></span>
             </button>
@@ -93,7 +93,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-correlation btn-sm d-none"
                     title="<?= __('Create new relationship for selected entities') ?>"
                     aria-label="<?= __('Create new relationship for selected entities') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <i class="fas fa-diagram-project text-white"></i>
                 <span class="text-white"> <?= __('Relationship') ?></span>
             </button>
@@ -104,7 +104,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-sighting btn-sm d-none"
                     title="<?= __('Sightings display for selected attributes') ?>"
                     aria-label="<?= __('Sightings display for selected attributes') ?>"
-                    onclick="multiSelectItems('#')">
+                    onclick="multiSelectItems('#', '')">
                 <span class="misp-icon misp-icon-sighting misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Sightings') ?></span>
             </button>
@@ -114,13 +114,13 @@ $filter_bar = $filter_bar ?? [];
             <button id="mass-enable-button"
                     class="btn btn-outline-success btn-sm d-none"
                     title="<?= __('Enable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable') ?>', '')">
                 <i class="fas fa-play"></i> <?= __('Enable') ?>
             </button>
             <button id="mass-disable-button"
                     class="btn btn-outline-danger btn-sm d-none"
                     title="<?= __('Disable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable') ?>', '')">
                 <i class="fas fa-stop"></i> <?= __('Disable') ?>
             </button>
         <?php endif; ?>
@@ -129,13 +129,13 @@ $filter_bar = $filter_bar ?? [];
             <button id="mass-require-button"
                     class="btn btn-dark btn-sm d-none"
                     title="<?= __('Make the selected items required') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRequire') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRequire') ?>', '')">
                 <i class="fas fa-asterisk"></i> <?= __('Required') ?>
             </button>
             <button id="mass-optional-button"
                     class="btn btn-outline-dark btn-sm d-none"
                     title="<?= __('Make the selected items optional') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massOptional') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massOptional') ?>', '')">
                 <i class="fas fa-question"></i> <?= __('Optional') ?>
             </button>
         <?php endif; ?>
@@ -144,13 +144,13 @@ $filter_bar = $filter_bar ?? [];
             <button id="mass-highlight-button"
                     class="btn btn-primary btn-sm d-none"
                     title="<?= __('Highlight selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massHighlight') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massHighlight') ?>', '')">
                 <i class="fas fa-highlighter"></i> <?= __('Highlight') ?>
             </button>
             <button id="mass-removehighlight-button"
                     class="btn btn-outline-primary btn-sm d-none"
                     title="<?= __('Remove highlight for selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRemoveHighlight') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRemoveHighlight') ?>', '')">
                 <i class="fas fa-down-long"></i> <?= __('Remove Highlight') ?>
             </button>
         <?php endif; ?>
@@ -159,14 +159,25 @@ $filter_bar = $filter_bar ?? [];
             <button id="mass-activate-button"
                     class="btn btn-outline-success btn-sm d-none"
                     title="<?= __('Activate selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massActivate') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massActivate') ?>', '')">
                 <i class="fas fa-play"></i> <?= __('Activate') ?>
             </button>
             <button id="mass-deactivate-button"
                     class="btn btn-outline-danger btn-sm d-none"
                     title="<?= __('Deactivate selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDeactivate') ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDeactivate') ?>', '')">
                 <i class="fas fa-stop"></i> <?= __('Deactivate') ?>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['soft_delete'])): ?>
+            <button id="multi-soft-delete-button"
+                    class="btn btn-warning btn-sm d-none"
+                    title="<?= __('Soft-delete selected items') ?>"
+                    aria-label="<?= __('Soft-delete selected items') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['soft_delete']) ?>', '')">
+                <i class="fas fa-trash"></i>
+                <span> <?= __('Soft-delete') ?></span>
             </button>
         <?php endif; ?>
 
@@ -175,7 +186,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-danger btn-sm d-none"
                     title="<?= __('Delete selected items') ?>"
                     aria-label="<?= __('Delete selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['delete']) ?>')">
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['delete']) ?>', '/true')">
                 <i class="fas fa-trash text-white"></i>
                 <span class="text-white"> <?= __('Delete') ?></span>
             </button>

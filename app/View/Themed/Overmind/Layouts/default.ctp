@@ -14,6 +14,7 @@
             ['controller' => 'events', 'action' => 'add'],
             ['controller' => 'events', 'action' => 'edit'],
             ['controller' => 'events', 'action' => 'delete'],
+            ['controller' => 'events', 'action' => 'view'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
             ['controller' => 'events', 'action' => 'automation'],
@@ -24,6 +25,9 @@
             ['controller' => 'attributes', 'action' => 'add'],
             ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'objects', 'action' => 'add'],
+            ['controller' => 'objects', 'action' => 'delete'],
 
             ['controller' => 'sightings', 'action' => 'advanced'],
 

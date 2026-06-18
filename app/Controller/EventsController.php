@@ -2318,6 +2318,12 @@ class EventsController extends AppController
         $this->set('deleted',            false);
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+
+        $categoryKeys = array_keys($this->Event->Attribute->categoryDefinitions);
+        $this->set('categoryOptions', array_combine($categoryKeys, $categoryKeys));
+        $typeKeys = array_keys($this->Event->Attribute->typeDefinitions);
+        $this->set('typeOptions', array_combine($typeKeys, $typeKeys));
+
         $this->layout = false;
     }
 
@@ -2339,7 +2345,7 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -2400,7 +2406,7 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -3336,7 +3342,11 @@ class EventsController extends AppController
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
-                        $this->redirect(array('action' => 'view2', $this->Event->getID()));
+                        if ($this->theme === "Overmind") {
+                            $this->redirect(array('action' => 'view2', $this->Event->getID()));
+                        } else {
+                            $this->redirect(array('action' => 'view', $this->Event->getID()));
+                        }
                     }
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST

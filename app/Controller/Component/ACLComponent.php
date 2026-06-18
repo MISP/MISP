@@ -58,6 +58,7 @@ class ACLComponent extends Component
             'checkOrphanedAttributes' => array(),
             'cleanDefaultFormValues' => ['*'],
             'delete' => array('perm_add'),
+            'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'deleteSelected' => array('perm_add'),
             'describeTypes' => array('*'),
             'download' => array('*'),
