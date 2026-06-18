@@ -86,6 +86,7 @@ CREATE TABLE `attribute_tags` (
   `tag_id` int(11) NOT NULL,
   `local` tinyint(1) NOT NULL DEFAULT 0,
   `relationship_type` varchar(191) DEFAULT '',
+  `kill_chain_phase` varchar(191) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `attribute_id` (`attribute_id`),
   KEY `event_id` (`event_id`),
@@ -497,6 +498,7 @@ CREATE TABLE `event_tags` (
   `tag_id` int(11) NOT NULL,
   `local` tinyint(1) NOT NULL DEFAULT 0,
   `relationship_type` varchar(191) DEFAULT '',
+  `kill_chain_phase` varchar(191) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `event_id` (`event_id`),
   KEY `tag_id` (`tag_id`)

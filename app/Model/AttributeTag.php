@@ -133,6 +133,7 @@ class AttributeTag extends AppModel
         if (empty($tag['deleted'])) {
             $local = isset($tag['local']) ? $tag['local'] : false;
             $relationship_type = isset($tag['relationship_type']) ? $tag['relationship_type'] : false;
+            $kill_chain_phase = isset($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : false;
             if ($mock) {
                 return [
                     'attach' => [
@@ -140,11 +141,13 @@ class AttributeTag extends AppModel
                         'event_id' => $event_id,
                         'tag_id' => $tag['id'],
                         'local' => $local,
-                        'relationship_type' => $relationship_type
+                        'relationship_type' => $relationship_type,
+                        'kill_chain_phase' => $kill_chain_phase
                     ]
                 ];
             } else {
-                $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local, $relationship_type);
+                $nothingToChange = false;
+                $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local, $relationship_type, $nothingToChange, $kill_chain_phase);
             }
         } else {
             if ($mock) {
@@ -169,7 +172,7 @@ class AttributeTag extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, $relationship_type = false, &$nothingToChange = false)
+    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, $relationship_type = false, &$nothingToChange = false, $kill_chain_phase = false)
     {
         $existingAssociation = $this->find('first', [
             'conditions' => [
@@ -185,6 +188,7 @@ class AttributeTag extends AppModel
                 'tag_id' => $tag_id,
                 'local' => $local ? 1 : 0,
                 'relationship_type' => $relationship_type ? $relationship_type : null,
+                'kill_chain_phase' => $kill_chain_phase ? $kill_chain_phase : null,
             ];
             $this->create();
             if (!$this->save($data)) {
@@ -193,6 +197,10 @@ class AttributeTag extends AppModel
         } else {
             if ($existingAssociation['AttributeTag']['relationship_type'] != $relationship_type) {
                 $existingAssociation['AttributeTag']['relationship_type'] = $relationship_type;
+                $this->save($existingAssociation);
+            }
+            if ($existingAssociation['AttributeTag']['kill_chain_phase'] != $kill_chain_phase) {
+                $existingAssociation['AttributeTag']['kill_chain_phase'] = $kill_chain_phase;
                 $this->save($existingAssociation);
             }
             $nothingToChange = true;

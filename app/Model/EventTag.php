@@ -124,6 +124,7 @@ class EventTag extends AppModel
                         'event_id' => $event_id,
                         'tag_id' => $tag['id'],
                         'relationship_type' => !empty($tag['relationship_type']) ? $tag['relationship_type'] : null,
+                        'kill_chain_phase' => !empty($tag['kill_chain_phase']) ? $tag['kill_chain_phase'] : null,
                         'local' => !empty($tag['local'])
                     ]
                 )
@@ -133,6 +134,10 @@ class EventTag extends AppModel
         } else {
             if (isset($tag['relationship_type']) && $existingAssociation['EventTag']['relationship_type'] != $tag['relationship_type']) {
                 $existingAssociation['EventTag']['relationship_type'] = $tag['relationship_type'];
+                $this->save($existingAssociation);
+            }
+            if (isset($tag['kill_chain_phase']) && $existingAssociation['EventTag']['kill_chain_phase'] != $tag['kill_chain_phase']) {
+                $existingAssociation['EventTag']['kill_chain_phase'] = $tag['kill_chain_phase'];
                 $this->save($existingAssociation);
             }
             $nothingToChange = true;

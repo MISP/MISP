@@ -97,7 +97,8 @@ class AppModel extends Model
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-        147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false
+        147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
+        153 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2693,6 +2694,10 @@ class AppModel extends Model
                 break;
             case 151:
                 $sqlArray[] = "ALTER TABLE `galaxies` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                break;
+            case 153:
+                $sqlArray[] = "ALTER TABLE `event_tags` ADD `kill_chain_phase` varchar(191) NULL DEFAULT '';";
+                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `kill_chain_phase` varchar(191) NULL DEFAULT '';";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
