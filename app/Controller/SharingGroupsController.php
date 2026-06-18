@@ -82,6 +82,9 @@ class SharingGroupsController extends AppController
             // create() + save() into an update of an arbitrary existing sharing group, bypassing
             // the edit ACL and letting a user take over a SG they have no access to.
             unset($sg['id']);
+            // A locally created SG has no sync user; never let the json blob smuggle in a
+            // sync_user_id FK (CSRF field hashing does not cover values nested in the json).
+            unset($sg['sync_user_id']);
             if (!$canModifyUuid) {
                 unset($sg['uuid']);
             }
