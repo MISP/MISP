@@ -86,6 +86,13 @@ class BookmarksController extends AppController
             throw new MethodNotAllowedException(__('Invalid Bookmark or insuficient privileges'));
         }
         $params = [
+            // user_id/org_id are ownership FKs and must not be reassignable through
+            // edit: without this whitelist CRUDComponent::edit merges every posted
+            // field onto the loaded record, and Bookmark::beforeValidate only force-
+            // pins user_id on create. An injected Bookmark[user_id] would otherwise
+            // re-own the bookmark to an arbitrary user and plant it (with attacker
+            // supplied name/url) into that user's global bookmark menu.
+            'fields' => ['name', 'url', 'comment', 'exposed_to_org'],
         ];
         $this->CRUD->edit($id, $params);
         if ($this->restResponsePayload) {
