@@ -18,19 +18,26 @@ class CryptographicKeysController extends AppController
         if (empty($type) || empty($parent_id)) {
             throw new MethodNotAllowedException(__('No type and/or parent_id supplied.'));
         }
-        if ($type === 'Event') {
-            $existingEvent = $this->CryptographicKey->Event->fetchSimpleEvent(
-                $this->Auth->user(),
-                $parent_id,
-                [
-                    'conditions' => [
-                        'Event.orgc_id' => $this->Auth->user('org_id')
-                    ]
+        // DPT-7: Event is the only supported/consumed parent type (the model
+        // belongsTo only Event). Any other type was previously saved with NO
+        // ownership check - parent_type/parent_id are forced from the route,
+        // so a perm_add user could attach a key to an arbitrary parent of any
+        // other type. Reject unsupported types so the ownership check below
+        // always applies.
+        if ($type !== 'Event') {
+            throw new MethodNotAllowedException(__('Unsupported parent type.'));
+        }
+        $existingEvent = $this->CryptographicKey->Event->fetchSimpleEvent(
+            $this->Auth->user(),
+            $parent_id,
+            [
+                'conditions' => [
+                    'Event.orgc_id' => $this->Auth->user('org_id')
                 ]
-            );
-            if (empty($existingEvent)) {
-                throw new MethodNotAllowedException(__('Invalid Event.'));
-            }
+            ]
+        );
+        if (empty($existingEvent)) {
+            throw new MethodNotAllowedException(__('Invalid Event.'));
         }
         $params = [
             'beforeSave' => function ($data) use($type, $parent_id) {
@@ -59,6 +66,13 @@ class CryptographicKeysController extends AppController
         $this->CRUD->delete($id, [
             'beforeDelete' => function ($data) use($user) {
                 $parent_type = $data['CryptographicKey']['parent_type'];
+                // DPT-7: Event is the only supported parent type with an
+                // ownership model. For any other type (inert/unconsumed rows)
+                // fall back to site-admin only, rather than allowing an
+                // unauthorised delete with no check at all.
+                if ($parent_type !== 'Event') {
+                    return $user['Role']['perm_site_admin'] ? $data : false;
+                }
                 $tempModel = ClassRegistry::init($parent_type);
                 $existingData = $tempModel->find('first', [
                     'conditions' => [
@@ -66,10 +80,8 @@ class CryptographicKeysController extends AppController
                     ],
                     'recursive' => -1
                 ]);
-                if ($parent_type === 'Event') {
-                    if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
-                        return false;
-                    }
+                if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
+                    return false;
                 }
                 return $data;
            }
