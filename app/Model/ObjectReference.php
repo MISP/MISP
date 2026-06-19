@@ -283,7 +283,8 @@ class ObjectReference extends AppModel
             $referencedObject = $referencedObject['Object'];
             $referenced_type = 1;
         }
-        if ($referencedObject['event_id'] != $eventId) {
+        if ($referencedObject['event_id'] != $eventId
+            && !$this->isCapturedReferenceToExtendedEvent($eventId, $referencedObject['event_id'])) {
             return true;
         }
         $this->create();
@@ -354,14 +355,33 @@ class ObjectReference extends AppModel
         if ($sourceEvent['Event']['orgc_id'] != $user['org_id']) {
             return false;
         }
-        $targetEventFromExtension = $this->Object->Event->find('first', [
-            'conditions' => [
-                'Event.uuid' => $sourceEvent['Event']['extends_uuid'],
-            ],
+        return $this->eventExtendsTarget($sourceEvent['Event']['extends_uuid'], $targetEventID);
+    }
+
+    private function isCapturedReferenceToExtendedEvent($capturedEventId, $targetEventId)
+    {
+        $capturedEvent = $this->Object->Event->find('first', [
+            'conditions' => ['Event.id' => $capturedEventId],
             'recursive' => -1,
-            'fields' => ['id']
+            'fields' => ['Event.id', 'Event.extends_uuid'],
         ]);
-        return !empty($targetEventFromExtension) && $targetEventFromExtension['Event']['id'] == $targetEventID;
+        if (empty($capturedEvent)) {
+            return false;
+        }
+        return $this->eventExtendsTarget($capturedEvent['Event']['extends_uuid'], $targetEventId);
+    }
+
+    private function eventExtendsTarget($extendsUuid, $targetEventId)
+    {
+        if (empty($extendsUuid)) {
+            return false;
+        }
+        $extendedEvent = $this->Object->Event->find('first', [
+            'conditions' => ['Event.uuid' => $extendsUuid],
+            'recursive' => -1,
+            'fields' => ['Event.id'],
+        ]);
+        return !empty($extendedEvent) && $extendedEvent['Event']['id'] == $targetEventId;
     }
 
     public function countForObject(): array
