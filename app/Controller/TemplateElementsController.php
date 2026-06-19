@@ -268,7 +268,13 @@ class TemplateElementsController extends AppController
             'contain' => array('Template', $ModelType)
         ));
         $this->set('template_id', $templateElement['Template']['id']);
-        if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) {
+        // DPT-5: authorise against the element's STORED parent template,
+        // not a template whose id happens to equal the element id. $id is
+        // the TemplateElement id; checkAuthorisation() expects a Template
+        // id, so the bare call gated on the wrong entity, letting a
+        // perm_template user edit another org's element when they own a
+        // template with the same id. Mirror editV2() which uses template_id.
+        if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($templateElement['Template']['id'], $this->Auth->user(), true)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
         }
         if (!$this->request->is('ajax')) {
