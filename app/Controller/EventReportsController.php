@@ -185,7 +185,14 @@ class EventReportsController extends AppController
             'itemName' => 'EventReport',
             'view' => 'ajax/eventReportDeleteConfirmationForm',
             'checkModifyCallback' => function($itemId) {
-                return $this->userRole['perm_add'];
+                // DPT-1: enforce per-row ownership, mirroring delete().
+                // A bare perm_add flag let any contributor batch-delete
+                // reports owned by other orgs - deleteSelection resolves
+                // rows by id/uuid with no ACL scope of its own.
+                $report = $this->EventReport->fetchIfAuthorized(
+                    $this->Auth->user(), $itemId, 'delete', false, false
+                );
+                return !empty($report['EventReport']);
             },
             'multiSuccessMessageCallback' => function($count) {
                 return __n('%s event report deleted.', '%s event reports deleted.', $count, $count);
