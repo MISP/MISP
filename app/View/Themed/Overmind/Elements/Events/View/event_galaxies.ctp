@@ -2,7 +2,8 @@
 $eventId  = h($data['Event']['id'] ?? '');
 $uid      = 'evt-galaxies-' . $eventId;
 $fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId);
-$mayModify = $this->Acl->canModifyEvent($data);
+$editUrl  = h($baseurl . '/events/editEventGalaxies/' . $eventId);
+$mayModify = $this->Acl->canModifyTag($data);
 ?>
 
 <div class="card shadow-sm mb-3" id="galaxy-card">
@@ -39,7 +40,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
             <?php if ($mayModify || $isSiteAdmin): ?>
             <button type="button"
                     class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                    onclick="">
+                    onclick="openModal('<?= $editUrl ?>', 'xl')">
                 <i class="fas fa-pen-to-square"></i>
                 <?= __('Edit Galaxy Clusters') ?>
             </button>
@@ -66,6 +67,9 @@ $mayModify = $this->Acl->canModifyEvent($data);
     var countEl  = document.getElementById(uid + '-count');
 
     loadGalaxies();
+
+    /* Expose a reload hook so the edit modal can refresh this card after save. */
+    window['reloadGalaxiesCard_' + uid] = loadGalaxies;
 
     function loadGalaxies() {
         fetch(fetchUrl)

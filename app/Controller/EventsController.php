@@ -2512,7 +2512,213 @@ class EventsController extends AppController
 
         $this->set('eventTags', array_values($nonGalaxyTags));
         $this->set('eventId',   $event['Event']['id']);
-        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+
+        $mayModify = $this->__canModifyTag(
+            $event, $user
+        );
+        $this->set('mayModify', $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind modal for editing the tags attached to an event.
+     *
+     * GET  → renders the Bootstrap 5 modal with two TomSelect inputs
+     *        (global tags + local tags) pre-selected with the current state.
+     * POST → accepts { global_ids: int[], local_ids: int[] } as JSON,
+     *        diffs against the current state and calls attach/detach.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function editEventTags($id = null)
+    {
+        $user  = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => [
+                    'Event.id', 'Event.orgc_id',
+                    'Event.org_id', 'Event.user_id',
+                ],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false,
+                    ],
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $mayModify = $this->__canModifyEvent($event, $user);
+        $eventId   = (int)$event['Event']['id'];
+
+        /* ── POST: apply the desired tag state ── */
+        if ($this->request->is('post')) {
+            if (!$mayModify) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved' => false,
+                                             'errors' => __('Forbidden')]),
+                    'status' => 403,
+                    'type'   => 'json',
+                ]);
+            }
+
+            $desiredGlobal = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['global_ids'] ?? [])))));
+            $desiredLocal  = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['local_ids'] ?? [])))));
+
+            /* Split current non-galaxy event tags by locality */
+            $currentGlobal = [];
+            $currentLocal  = [];
+            foreach ($event['EventTag'] as $et) {
+                if (!empty($et['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                if (!empty($et['local'])) {
+                    $currentLocal[(int)$et['tag_id']] = true;
+                } else {
+                    $currentGlobal[(int)$et['tag_id']] = true;
+                }
+            }
+
+            $toAddGlobal    = array_diff($desiredGlobal, array_keys($currentGlobal));
+            $toAddLocal     = array_diff($desiredLocal,  array_keys($currentLocal));
+            $toRemoveGlobal = array_diff(array_keys($currentGlobal), $desiredGlobal);
+            $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
+
+            foreach ($toAddGlobal as $tagId) {
+                $this->Event->EventTag->attachTagToEvent(
+                    $eventId, ['id' => $tagId, 'local' => false]);
+            }
+            foreach ($toAddLocal as $tagId) {
+                $this->Event->EventTag->attachTagToEvent(
+                    $eventId, ['id' => $tagId, 'local' => true]);
+            }
+            foreach ($toRemoveGlobal as $tagId) {
+                $this->Event->EventTag->detachTagFromEvent(
+                    $eventId, $tagId, false);
+            }
+            foreach ($toRemoveLocal as $tagId) {
+                $this->Event->EventTag->detachTagFromEvent(
+                    $eventId, $tagId, true);
+            }
+            if ($toAddGlobal || $toAddLocal || $toRemoveGlobal || $toRemoveLocal) {
+                $this->Event->touch($eventId);
+            }
+
+            return new CakeResponse([
+                'body'   => json_encode([
+                    'saved'   => true,
+                    'success' => __('Tags updated.'),
+                ]),
+                'status' => 200,
+                'type'   => 'json',
+            ]);
+        }
+
+        /* ── GET: build the category-keyed option lists for the modal ── */
+        $tagModel = $this->Event->EventTag->Tag;
+
+        /* All Tags: non-galaxy, visible, globally attachable */
+        $allConditions                   = $tagModel->createConditions($user);
+        $allConditions['Tag.is_galaxy']  = 0;
+        $allConditions['Tag.hide_tag']   = 0;
+        $allConditions['Tag.local_only'] = 0;
+        $allRaw = $tagModel->find('all', [
+            'conditions' => $allConditions,
+            'recursive'  => -1,
+            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
+            'order'      => ['Tag.name asc'],
+        ]);
+        $allTags = [];
+        foreach ($allRaw as $t) {
+            $allTags[] = [
+                'id'     => (int)$t['Tag']['id'],
+                'name'   => $t['Tag']['name'],
+                'colour' => $t['Tag']['colour'] ?: '#0088cc',
+            ];
+        }
+
+        /* Custom Tags: tags that do not belong to any taxonomy */
+        $this->loadModel('Taxonomy');
+        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
+            true, $user, true, true, false
+        );
+        $customTags = [];
+        foreach ($customRaw as $t) {
+            $tag = $t['Tag'];
+            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
+                continue;
+            }
+            $customTags[] = [
+                'id'     => (int)$tag['id'],
+                'name'   => $tag['name'],
+                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+            ];
+        }
+
+        /* Tag Collections: each expands to its member tags */
+        $this->loadModel('TagCollection');
+        $collRaw = $this->TagCollection->fetchTagCollection($user, [
+            'contain' => [
+                'TagCollectionTag' => [
+                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
+                ],
+            ],
+        ]);
+        $tagCollections = [];
+        foreach ($collRaw as $c) {
+            $members = [];
+            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
+                $tg = $cct['Tag'] ?? null;
+                if (empty($tg) || !empty($tg['hide_tag'])) {
+                    continue;
+                }
+                $members[] = [
+                    'id'     => (int)$tg['id'],
+                    'name'   => $tg['name'],
+                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
+                ];
+            }
+            $tagCollections[] = [
+                'id'   => (int)$c['TagCollection']['id'],
+                'name' => $c['TagCollection']['name'],
+                'tags' => $members,
+            ];
+        }
+
+        /* Currently attached non-galaxy tags, split by locality (pre-selected) */
+        $currentGlobalTags = [];
+        $currentLocalTags  = [];
+        foreach ($event['EventTag'] as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                continue;
+            }
+            $tag   = $et['Tag'];
+            $entry = [
+                'id'     => (int)$tag['id'],
+                'name'   => $tag['name'],
+                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+            ];
+            if (!empty($et['local'])) {
+                $currentLocalTags[] = $entry;
+            } else {
+                $currentGlobalTags[] = $entry;
+            }
+        }
+
+        $this->set('allTags',           $allTags);
+        $this->set('customTags',        $customTags);
+        $this->set('tagCollections',    $tagCollections);
+        $this->set('currentGlobalTags', $currentGlobalTags);
+        $this->set('currentLocalTags',  $currentLocalTags);
+        $this->set('eventId',           $eventId);
+        $this->set('mayModify',         $mayModify);
         $this->layout = false;
     }
 
@@ -2601,6 +2807,252 @@ class EventsController extends AppController
             $event, $user
         ));
         $this->layout = false;
+    }
+
+    /**
+     * Overmind modal for editing the galaxy clusters attached to an event.
+     *
+     * GET  → renders the Bootstrap 5 modal with a TomSelect (remote search
+     *        over all clusters) pre-selected with the current clusters.
+     * POST → accepts { cluster_ids: int[] } (GalaxyCluster.id), diffs against
+     *        the current state and attaches/detaches via the Galaxy model.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function editEventGalaxies($id = null)
+    {
+        $user  = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => [
+                    'Event.id', 'Event.orgc_id',
+                    'Event.org_id', 'Event.user_id',
+                ],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false,
+                    ],
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $mayModify = $this->__canModifyEvent($event, $user);
+        $eventId   = (int)$event['Event']['id'];
+
+        /* Current galaxy clusters attached to the event, split by locality */
+        $galaxyTagNames = [];
+        foreach ($event['EventTag'] as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$et['Tag']['id']] = $et['Tag']['name'];
+            }
+        }
+        $this->loadModel('GalaxyCluster');
+        $currentGlobalClusters = [];
+        $currentLocalClusters  = [];
+        $currentGlobalIds      = [];
+        $currentLocalIds       = [];
+        if (!empty($galaxyTagNames)) {
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, true, false
+            );
+            $clustersByTagId = array_column(
+                array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
+            );
+            foreach ($event['EventTag'] as $et) {
+                if (empty($et['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                $tagId = $et['Tag']['id'];
+                if (!isset($clustersByTagId[$tagId])) {
+                    continue;
+                }
+                $gc         = $clustersByTagId[$tagId];
+                $cid        = (int)$gc['id'];
+                $galaxyName = $gc['Galaxy']['name'] ?? '';
+                $entry = [
+                    'id'     => $cid,
+                    'name'   => $gc['value'],
+                    'galaxy' => $galaxyName,
+                    'hue'    => $this->__galaxyHue($galaxyName),
+                ];
+                if (!empty($et['local'])) {
+                    $currentLocalClusters[] = $entry;
+                    $currentLocalIds[]      = $cid;
+                } else {
+                    $currentGlobalClusters[] = $entry;
+                    $currentGlobalIds[]      = $cid;
+                }
+            }
+        }
+
+        /* ── POST: apply the desired cluster state ── */
+        if ($this->request->is('post')) {
+            if (!$mayModify) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved' => false,
+                                             'errors' => __('Forbidden')]),
+                    'status' => 403,
+                    'type'   => 'json',
+                ]);
+            }
+
+            $desiredGlobal = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['global_ids'] ?? [])))));
+            $desiredLocal  = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['local_ids'] ?? [])))));
+
+            $toAddGlobal    = array_diff($desiredGlobal, $currentGlobalIds);
+            $toAddLocal     = array_diff($desiredLocal,  $currentLocalIds);
+            $toRemoveGlobal = array_diff($currentGlobalIds, $desiredGlobal);
+            $toRemoveLocal  = array_diff($currentLocalIds,  $desiredLocal);
+
+            $this->loadModel('Galaxy');
+            try {
+                /*
+                 * Detach before attaching: attachCluster() refuses to attach a
+                 * cluster whose tag is already on the event (regardless of the
+                 * local flag), so a global→local move must remove the old row
+                 * first.
+                 */
+                foreach (array_merge($toRemoveGlobal, $toRemoveLocal) as $cid) {
+                    $this->Galaxy->detachCluster(
+                        $user, 'event', $eventId, $cid
+                    );
+                }
+                if (!empty($toAddGlobal) || !empty($toAddLocal)) {
+                    $target = $this->Galaxy->fetchTarget($user, 'event', $eventId);
+                    if (empty($target)) {
+                        throw new NotFoundException(__('Invalid event'));
+                    }
+                    foreach ($toAddGlobal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, 'event', $target, $cid, false
+                        );
+                    }
+                    foreach ($toAddLocal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, 'event', $target, $cid, true
+                        );
+                    }
+                }
+            } catch (Exception $e) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved'  => false,
+                                             'errors' => $e->getMessage()]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            }
+
+            return new CakeResponse([
+                'body'   => json_encode([
+                    'saved'   => true,
+                    'success' => __('Galaxy clusters updated.'),
+                ]),
+                'status' => 200,
+                'type'   => 'json',
+            ]);
+        }
+
+        /* ── GET: build the modal ── */
+        /* Galaxy list for the per-galaxy category buttons */
+        $this->loadModel('Galaxy');
+        $galaxyRows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields'    => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
+            'order'     => ['Galaxy.name asc'],
+        ]);
+        $galaxyList = [];
+        foreach ($galaxyRows as $g) {
+            $galaxyList[] = [
+                'id'   => (int)$g['Galaxy']['id'],
+                'name' => $g['Galaxy']['name'],
+                'icon' => !empty($g['Galaxy']['icon']) ? $g['Galaxy']['icon'] : 'meteor',
+            ];
+        }
+
+        $this->set('currentGlobalClusters', $currentGlobalClusters);
+        $this->set('currentLocalClusters',  $currentLocalClusters);
+        $this->set('galaxyList',            $galaxyList);
+        $this->set('eventId',               $eventId);
+        $this->set('mayModify',             $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Deterministic hue (0-359) from a galaxy name, mirroring the
+     * $galaxyHue closure in view_event_galaxies.ctp so the modal badges
+     * match the card colours exactly.
+     */
+    private function __galaxyHue($name)
+    {
+        $name = (string)$name;
+        $hash = 0;
+        $len  = strlen($name);
+        for ($i = 0; $i < $len; $i++) {
+            $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
+        }
+        return $hash % 360;
+    }
+
+    /**
+     * JSON search over galaxy clusters, used by the edit-galaxies modal's
+     * TomSelect remote loader. Returns up to 50 matches for ?q=, each as
+     * { id: GalaxyCluster.id, name: value, galaxy: galaxy name }.
+     */
+    public function searchGalaxyClusters()
+    {
+        $user     = $this->Auth->user();
+        $q        = trim((string)($this->request->query('q') ?? ''));
+        $galaxyId = (int)($this->request->query('galaxy_id') ?? 0);
+
+        $this->loadModel('GalaxyCluster');
+        $conditions = [
+            'GalaxyCluster.deleted' => false,
+            'OR' => [
+                'GalaxyCluster.published' => true,
+                'GalaxyCluster.default'   => true,
+            ],
+        ];
+        if ($q !== '') {
+            $conditions['GalaxyCluster.value LIKE'] = '%' . $q . '%';
+        }
+        if ($galaxyId > 0) {
+            $conditions['GalaxyCluster.galaxy_id'] = $galaxyId;
+        }
+
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+            'conditions' => $conditions,
+            'contain'    => ['Galaxy' => ['fields' => ['id', 'name']]],
+            'fields'     => ['GalaxyCluster.id', 'GalaxyCluster.value',
+                             'GalaxyCluster.galaxy_id'],
+            'order'      => ['GalaxyCluster.value asc'],
+            'limit'      => 50,
+        ]);
+
+        $items = [];
+        foreach ($clusters as $c) {
+            $gc         = $c['GalaxyCluster'];
+            $galaxyName = $gc['Galaxy']['name'] ?? '';
+            $items[] = [
+                'id'     => (int)$gc['id'],
+                'name'   => $gc['value'],
+                'galaxy' => $galaxyName,
+                'hue'    => $this->__galaxyHue($galaxyName),
+            ];
+        }
+
+        return new CakeResponse([
+            'body'   => json_encode($items),
+            'status' => 200,
+            'type'   => 'json',
+        ]);
     }
 
     /**

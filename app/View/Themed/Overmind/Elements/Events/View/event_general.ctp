@@ -515,20 +515,22 @@ $this->set('headerDescription', $headerDescription);
         var chartDefs = [
             {
                 key:    'attributes',
+                tab:    '#tab-attributes',
                 title:  <?= json_encode(__('Attributes')) ?>,
                 total:  stats.attributes.total,
                 data:   stats.attributes.by_category,
                 icon:   'misp-icon misp-icon-attribute misp-hexagone',
-                color:  '#3B82F6',
+                color:  '#97CC04',
                 empty:  <?= json_encode(__('No attributes')) ?>
             },
             {
                 key:    'objects',
+                tab:    '#tab-objects',
                 title:  <?= json_encode(__('Objects')) ?>,
                 total:  stats.objects.total,
                 data:   stats.objects.by_name,
                 icon:   'misp-icon misp-icon-object misp-hexagone',
-                color:  '#8B5CF6',
+                color:  '#524948',
                 empty:  <?= json_encode(__('No objects')) ?>
             }
         ];
@@ -558,10 +560,10 @@ $this->set('headerDescription', $headerDescription);
 
             col.innerHTML =
                 '<div class="d-flex flex-column h-100">'
-                + '<div class="text-muted small text-uppercase fw-bold mb-3">'
-                + '<i class="' + def.icon + ' me-1" style="color:' + def.color + '"></i>'
+                + '<a class="d-flex align-items-center text-muted small text-uppercase text-decoration-none fw-bold mb-3" href="' + (typeof baseurl !== 'undefined' ? baseurl : '') + '/events/view2/' + eventId + def.tab + '">'
+                + '<i class="' + def.icon + ' fs-3" style="color:' + def.color + '"></i>'
                 + def.title
-                + '</div>'
+                + '</a>'
                 + '<div class="d-flex align-items-center gap-4 flex-wrap">'
 
                 /* Donut + center label */

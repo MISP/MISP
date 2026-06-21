@@ -321,6 +321,8 @@ class ACLComponent extends Component
             'add' => array('perm_add'),
             'addIOC' => array('perm_add'),
             'addTag' => array('perm_tagger'),
+            'editEventTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editEventGalaxies' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'add_misp_export' => array('perm_modify'),
             'alert' => array('perm_publish'),
             'automation' => array('perm_auth'),
