@@ -25,6 +25,7 @@
             ['controller' => 'attributes', 'action' => 'add'],
             ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+            ['controller' => 'attributes', 'action' => 'add_attachment'],
 
             ['controller' => 'objects', 'action' => 'add'],
             ['controller' => 'objects', 'action' => 'delete'],

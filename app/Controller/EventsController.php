@@ -3186,6 +3186,35 @@ class EventsController extends AppController
 
         $attachments = array_column($rows, 'Attribute');
 
+        // Attachments uploaded as malware samples 
+        $objectIds = array_values(array_unique(array_filter(array_map(
+            function ($att) {
+                return (int)($att['object_id'] ?? 0);
+            },
+            $attachments
+        ))));
+
+        $objectDistribution = [];
+        if (!empty($objectIds)) {
+            $objects = $this->MispAttribute->Object->find('all', [
+                'recursive'  => -1,
+                'conditions' => ['Object.id' => $objectIds],
+                'fields'     => ['Object.id', 'Object.distribution'],
+            ]);
+            foreach ($objects as $object) {
+                $objectDistribution[(int)$object['Object']['id']] =
+                    (int)$object['Object']['distribution'];
+            }
+        }
+
+        foreach ($attachments as &$attachment) {
+            $objectId = (int)($attachment['object_id'] ?? 0);
+            if ($objectId !== 0 && isset($objectDistribution[$objectId])) {
+                $attachment['distribution'] = $objectDistribution[$objectId];
+            }
+        }
+        unset($attachment);
+
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(
                 $attachments, 'json'
