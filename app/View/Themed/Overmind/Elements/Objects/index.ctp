@@ -446,6 +446,7 @@ function _objDistBadge($dist) {
                                                 <ul class="dropdown-menu
                                                            dropdown-menu-end
                                                            shadow-sm">
+                                                    <?php if ($canEdit): ?>
                                                     <li>
                                                         <a class="dropdown-item justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/edit/<?= $attrId ?>"
@@ -454,7 +455,6 @@ function _objDistBadge($dist) {
                                                             <?= __('Edit') ?>
                                                         </a>
                                                     </li>
-                                                    <?php if ($canEdit): ?>
                                                     <li>
                                                         <a class="dropdown-item text-warning justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
