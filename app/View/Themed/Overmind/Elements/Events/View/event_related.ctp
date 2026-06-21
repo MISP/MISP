@@ -18,6 +18,12 @@ $fetchUrl = h($baseurl . '/events/viewRelatedEvents/' . $eventId);
                 <div class="small text-muted mt-1"
                      id="<?= $uid ?>-count">…</div>
             </div>
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    title="<?= h(__('View correlation graph')) ?>"
+                    onclick="var t=document.querySelector('[href=\'#tab-correlation\']');if(t){bootstrap.Tab.getOrCreateInstance(t).show();}">
+                <i class="fas fa-external-link-alt"></i>
+            </button>
         </div>
     </div>
 
@@ -56,6 +62,42 @@ $fetchUrl = h($baseurl . '/events/viewRelatedEvents/' . $eventId);
                             ? <?= json_encode(__('related event')) ?>
                             : <?= json_encode(__('related events')) ?>
                     );
+            }
+
+            var rows = document.getElementById(uid + '-body')
+                .querySelectorAll('.related-event-row');
+            var limit = 5;
+            if (rows.length > limit) {
+                for (var i = limit; i < rows.length; i++) {
+                    rows[i].classList.add('d-none');
+                }
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-link w-100 text-muted py-2';
+                btn.innerHTML = '<i class="fas fa-chevron-down me-1"></i>'
+                    + <?= json_encode(__('Show all')) ?>
+                    + ' (' + rows.length + ')';
+                btn.addEventListener('click', function () {
+                    for (var j = limit; j < rows.length; j++) {
+                        rows[j].classList.remove('d-none');
+                    }
+                    btn.remove();
+
+                    var btnLess = document.createElement('button');
+                    btnLess.type = 'button';
+                    btnLess.className = 'btn btn-sm btn-link w-100 text-muted py-2';
+                    btnLess.innerHTML = '<i class="fas fa-chevron-up me-1"></i>'
+                        + <?= json_encode(__('Show less')) ?>;
+                    btnLess.addEventListener('click', function () {
+                        for (var k = limit; k < rows.length; k++) {
+                            rows[k].classList.add('d-none');
+                        }
+                        btnLess.remove();
+                        document.getElementById(uid + '-body').appendChild(btn);
+                    });
+                    document.getElementById(uid + '-body').appendChild(btnLess);
+                });
+                document.getElementById(uid + '-body').appendChild(btn);
             }
         })
         .catch(function () {

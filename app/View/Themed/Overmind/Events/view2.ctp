@@ -88,25 +88,25 @@
                 ],
             ],
             [
-                'id' => 'graph',
-                'title' => __('Graph'),
-                'icon' => 'fas fa-project-diagram',
+                'id' => 'correlation',
+                'title' => __('Correlation'),
+                'icon' => 'fas fa-link',
 
                 // Content
                 'left' => [
-                    'Events/View/event_graph',
+                    'Events/View/event_correlation_graph',
                 ],
             ],
-            [
-                'id' => 'timeline',
-                'title' => __('Timeline'),
-                'icon' => 'fas fa-clock',
+            // [
+            //     'id' => 'timeline',
+            //     'title' => __('Timeline'),
+            //     'icon' => 'fas fa-clock',
 
-                // Content
-                'left' => [
-                    'Events/View/event_timeline',
-                ],
-            ],
+            //     // Content
+            //     'left' => [
+            //         'Events/View/event_timeline',
+            //     ],
+            // ],
             [
                 'id' => 'history',
                 'title' => __('History'),

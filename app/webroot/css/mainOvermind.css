@@ -1,6 +1,13 @@
 :root {
     --primary: #1892B1;
+    --event: #1892B1;
+    --object: #524948;
     --attribute: #97CC04;
+    --tag: #DB6A47;
+    --galaxy: #8B5CF6;
+    --report: #4DA167;
+    --sighting: #890096;
+    --correlation: #E67F0D;
     --bs-link-color: var(--primary);
     --bs-link-hover-color: var(--primary);
     --bs-link-hover-color-rgb: 24, 146, 177;
@@ -956,4 +963,261 @@ th .sort-icon::before {
 
 tr.attr-deleted td:not(:last-child) {
     opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Correlation — Sankey graph
+   ═══════════════════════════════════════════════════════════ */
+
+.sankey-stage {
+    width: 100%;
+    margin: 0 0 18px;
+}
+
+.sankey-shell {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+}
+
+/* Toggle switches */
+.sankey-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #61707e;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sankey-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.sankey-toggle-label {
+    white-space: nowrap;
+}
+
+.sankey-toggle-switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: #c7d0d9;
+    box-shadow: inset 0 0 0 1px rgba(56, 73, 91, 0.08);
+    transition: background 160ms ease, box-shadow 160ms ease;
+    flex-shrink: 0;
+}
+
+.sankey-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(22, 32, 43, 0.28);
+    transition: transform 160ms ease;
+}
+
+.sankey-toggle input:checked + .sankey-toggle-switch {
+    background: #4cd964;
+}
+
+.sankey-toggle input:checked + .sankey-toggle-switch::after {
+    transform: translateX(18px);
+}
+
+.sankey-toggle input:focus + .sankey-toggle-switch {
+    box-shadow: inset 0 0 0 1px rgba(56, 73, 91, 0.08),
+                0 0 0 3px rgba(76, 217, 100, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Correlation — Correlated-event timeline strip
+   ═══════════════════════════════════════════════════════════ */
+
+.event-timeline {
+    background: #f8fafc;
+    border: 1px solid #e6ecf2;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+
+.event-timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #667;
+    margin-bottom: 8px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.event-timeline-title {
+    font-weight: 600;
+    color: #334;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.event-timeline-range {
+    font-size: 11px;
+    color: #7a8699;
+}
+
+.event-timeline-track {
+    position: relative;
+    padding-top: 28px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.event-timeline-ticks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 28px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.event-timeline-tick {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    bottom: 0;
+    background: transparent;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.event-timeline-tick-label {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    line-height: 1;
+    color: #7a8699;
+    white-space: nowrap;
+}
+
+.event-timeline-tick-label-start {
+    left: 0;
+    transform: none;
+}
+
+.event-timeline-tick-label-end {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.event-timeline-markers {
+    position: relative;
+    height: 20px;
+}
+
+.event-timeline-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #428bca;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(66, 139, 202, 0.4);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 150ms ease;
+}
+
+.event-timeline-marker:hover {
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.event-timeline-current-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px dashed rgba(111, 190, 128, 0.95);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.event-timeline-current-marker::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6fbe80;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Correlation — Related events list
+   ═══════════════════════════════════════════════════════════ */
+
+.corr-event-card {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.corr-event-card:last-child {
+    border-bottom: none;
+}
+
+.corr-event-row {
+    transition: background .12s;
+}
+
+.corr-event-row:hover {
+    background: #f8fafc;
+}
+
+.corr-attr-row {
+    min-height: 1.5rem;
+}
+
+.corr-attr-row .corr-attr-value {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-timeline-current-label {
+    position: absolute;
+    top: -38px;
+    transform: translateX(-50%);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(111, 190, 128, 0.96);
+    color: #1d4b29;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(29, 75, 41, 0.18);
+    rotate: -22deg;
+    transform-origin: center bottom;
 }
