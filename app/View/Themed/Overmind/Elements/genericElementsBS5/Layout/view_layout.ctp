@@ -9,7 +9,7 @@
                     aria-selected="<?= $i === 0 ? 'true' : 'false' ?>">
 
                     <?php if (!empty($tab['icon'])): ?>
-                        <i class="fas fa-<?= h($tab['icon']) ?>"></i>
+                        <i class="<?= h($tab['icon']) ?>"></i>
                     <?php endif; ?>
 
                     <?php if (!empty($tab['title'])): ?>
@@ -83,3 +83,28 @@
         <?php endforeach; ?>
     </div>
 </div>
+
+<script>
+function activateTabFromHash() {
+    var hash = window.location.hash;
+    if (!hash) return;
+    var target = document.querySelector('.nav-link[href="' + hash + '"]');
+    if (target) bootstrap.Tab.getOrCreateInstance(target).show();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Restore active tab from URL hash on load
+    activateTabFromHash();
+
+    // Keep URL hash in sync when switching tabs
+    document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(function (tab) {
+        tab.addEventListener('shown.bs.tab', function (e) {
+            var href = e.target.getAttribute('href');
+            if (href) history.replaceState(null, '', href);
+        });
+    });
+});
+
+// Activate tab when hash changes without page reload (same-page anchor links)
+window.addEventListener('hashchange', activateTabFromHash);
+</script>

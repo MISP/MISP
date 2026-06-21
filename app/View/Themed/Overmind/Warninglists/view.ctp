@@ -6,7 +6,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [

@@ -2135,11 +2135,20 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
-        // Fetch attributes for these objects with ACL
+        // Fetch attributes for these objects with ACL.
+        // Mirror the object-level deleted filter so that attributes of
+        // soft-deleted objects are visible when deleted=1 or deleted=2.
+        if ($deleted === 1) {
+            $attrDeleted = [0, 1];
+        } elseif ($deleted === 2) {
+            $attrDeleted = 1;
+        } else {
+            $attrDeleted = 0;
+        }
         $attrConditions = [
             'Attribute.event_id' => $eventId,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => 0,
+            'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect =

@@ -155,7 +155,9 @@ if ($field['data_path'] === 'Event.id') {
                     <?php elseif ($action['type'] === 'modal'): ?>
                         <?php
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');
-                        if ($action['label'] === __('Delete')){
+                        if (!empty($action['size'])) {
+                            $onclick = "event.preventDefault(); openModal('$url', '" . $action['size'] . "');";
+                        } elseif ($action['label'] === __('Delete') || $action['label'] === __('Soft Delete') || $action['label'] === __('Restore')) {
                             $onclick = "event.preventDefault(); openModal('$url', 'sm');";
                         } else {
                             $onclick = "event.preventDefault(); openModal('$url');";

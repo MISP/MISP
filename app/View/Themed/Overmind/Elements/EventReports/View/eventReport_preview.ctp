@@ -40,7 +40,7 @@ $overlayHtml = '
                 <div class="d-flex align-items-center gap-2 me-auto">
                     <div class="rounded-2 d-flex align-items-center justify-content-center"
                          style="width:36px;height:36px;background:#d4fcee;">
-                        <i class="fas fa-file-alt" style="color:#10B981;font-size:1rem;"></i>
+                        <span class="misp-icon misp-icon-report misp-simple" style="color:#10B981;font-size:1rem;"></span>
                     </div>
                     <div>
                         <div class="fw-bold lh-1"><?= __('First Event Report') ?></div>
@@ -72,7 +72,7 @@ $overlayHtml = '
         <?php else: ?>
             <div class="card-body d-flex flex-column align-items-center
                         justify-content-center text-muted py-5">
-                <i class="fas fa-file-alt fa-2x mb-2 opacity-50"></i>
+                <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
                 <p class="mb-1 fw-semibold">
                     <?= __("This event doesn't have a report for the moment") ?>
                 </p>
