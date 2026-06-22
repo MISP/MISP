@@ -7791,6 +7791,8 @@ class Server extends AppModel
                     'value' => '/etc/rdkafka.ini',
                     'test' => 'testForRdKafkaConfig',
                     'type' => 'string',
+                    'cli' => true,
+                    'null' => true
                 ),
                 'Kafka_include_attachments' => array(
                     'level' => 2,
