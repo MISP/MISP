@@ -77,7 +77,13 @@
                         'type' => 'json'
                     ],
                     [
-                        'name' => __('api_key'),
+                        'name' => __('Auth Type'),
+                        'sort' => 'TaxiiServer.auth_type',
+                        'data_path' => 'TaxiiServer.auth_type',
+                        'callback' => 'ucfirst'
+                    ],
+                    [
+                        'name' => __('API key'),
                         'sort' => 'TaxiiServer.api_key',
                         'data_path' => 'TaxiiServer.api_key'
                     ],
