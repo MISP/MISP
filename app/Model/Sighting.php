@@ -499,7 +499,7 @@ class Sighting extends AppModel
         $conditions = [];
         foreach ($events as $event) {
             $eventCondition = ['Sighting.event_id' => $event['Event']['id']];
-            $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+            $ownEvent = $user['Role']['perm_site_admin'] || (!empty($event['Event']['org_id']) && $event['Event']['org_id'] == $user['org_id']);
             if (!$ownEvent) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                     $eventCondition['Sighting.org_id'] = $user['org_id'];

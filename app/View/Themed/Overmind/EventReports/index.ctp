@@ -7,14 +7,6 @@ $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
-if ($this->Acl->canAccess('event_reports', 'add')) {
-    $headerActions[] = [
-        'type' => 'modal',
-        'label' => __('Add Report'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/event_reports/add'
-    ];
-}
 
 $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);

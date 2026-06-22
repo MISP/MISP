@@ -136,6 +136,13 @@ class TemplateElementsController extends AppController
             $errorMessage = 'The element could not be added.';
             if ($this->TemplateElement->save($templateElement)) {
                 $this->request->data[$ModelType]['template_element_id'] = $this->TemplateElement->id;
+                // Mass-assignment guard: this sub-model save runs on raw request->data
+                // and create() does not strip a supplied id, so an injected
+                // TemplateElement<Type>[id] would covertly UPDATE (re-parent via the
+                // forced template_element_id + overwrite) an arbitrary element row in
+                // another org's template. This is always a NEW sub-element, so strip id
+                // to force an INSERT (edit/editV2 pin it to the loaded row instead).
+                unset($this->request->data[$ModelType]['id']);
                 $this->TemplateElement->$ModelType->create();
                 if ($this->TemplateElement->$ModelType->save($this->request->data)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element successfully added to template.')), 'status' => 200, 'type' => 'json'));
@@ -224,6 +231,13 @@ class TemplateElementsController extends AppController
             $errorMessage = 'The element could not be added.';
             if ($this->TemplateElement->save($templateElement)) {
                 $this->request->data[$ModelType]['template_element_id'] = $this->TemplateElement->id;
+                // Mass-assignment guard: this sub-model save runs on raw request->data
+                // and create() does not strip a supplied id, so an injected
+                // TemplateElement<Type>[id] would covertly UPDATE (re-parent via the
+                // forced template_element_id + overwrite) an arbitrary element row in
+                // another org's template. This is always a NEW sub-element, so strip id
+                // to force an INSERT (edit/editV2 pin it to the loaded row instead).
+                unset($this->request->data[$ModelType]['id']);
                 $this->TemplateElement->$ModelType->create();
                 if ($this->TemplateElement->$ModelType->save($this->request->data)) {
                     $this->Flash->success('Element successfully added to template');
@@ -254,7 +268,13 @@ class TemplateElementsController extends AppController
             'contain' => array('Template', $ModelType)
         ));
         $this->set('template_id', $templateElement['Template']['id']);
-        if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) {
+        // DPT-5: authorise against the element's STORED parent template,
+        // not a template whose id happens to equal the element id. $id is
+        // the TemplateElement id; checkAuthorisation() expects a Template
+        // id, so the bare call gated on the wrong entity, letting a
+        // perm_template user edit another org's element when they own a
+        // template with the same id. Mirror editV2() which uses template_id.
+        if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($templateElement['Template']['id'], $this->Auth->user(), true)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
         }
         if (!$this->request->is('ajax')) {

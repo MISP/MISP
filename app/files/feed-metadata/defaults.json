@@ -2433,5 +2433,25 @@
       "delete_local_file": false,
       "lookup_visible": true
     }
+  },
+    {
+    "Feed": {
+      "name": "SiberKapan",
+      "provider": "siberkapan.org",
+      "url": "https://siberkapan.org/misp-feed/",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
   }
 ]

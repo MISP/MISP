@@ -6,7 +6,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
@@ -19,7 +19,7 @@
             [
                 'id' => 'elements',
                 'title' => __('Elements'),
-                'icon' => 'cube',
+                'icon' => 'fas fa-cube',
 
                 // Content
                 'left' => [

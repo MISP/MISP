@@ -92,8 +92,15 @@ class CollectionElementsController extends AppController
             'restName' => 'CollectionElements',
             'itemName' => 'element',
             'view' => 'ajax/collectionElementsDeleteConfirmationForm',
-            'checkModifyCallback' => function($itemId) {
-                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $itemId);
+            'checkModifyCallback' => function($itemId, $item) {
+                // DPT-3: authorise against the element's OWN collection,
+                // not a collection whose id happens to equal the element
+                // id. mayModify() expects a collection_id, but $itemId is
+                // the element id - the bare call gated on the wrong entity,
+                // allowing cross-collection / cross-org element deletion.
+                // Mirror the single delete() action, using the loaded row.
+                $collectionId = $item['CollectionElement']['collection_id'];
+                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collectionId);
             },
             'multiSuccessMessageCallback' => function($count) {
                 return __n('%s element deleted.', '%s elements deleted.', $count, $count);

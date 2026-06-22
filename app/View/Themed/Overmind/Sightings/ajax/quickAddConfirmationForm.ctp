@@ -7,7 +7,7 @@ $typeLabel = $sighting_type
 <div class="p-4" style="min-width:320px;">
 
     <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-        <i class="fas fa-eye text-primary"></i>
+        <span class="misp-icon misp-icon-sighting misp-hexagone text-primary"></span>
         <?= $sighting_type ? __('Add false-positive sighting') : __('Add sighting') ?>
     </h6>
 

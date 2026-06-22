@@ -11,8 +11,8 @@ $mayModify    = $this->Acl->canModifyEvent($data);
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#fbceff;">
-                <i class="fas fa-eye" style="color:#890096;font-size:1rem;"></i>
+                 style="width:36px;height:36px;background:#89009640;">
+                <span class="misp-icon misp-icon-sighting misp-simple" style="color:#890096;font-size:1rem;"></span>
             </div>
             <div class="me-auto">
                 <div class="fw-bold lh-1"><?= __('Sightings') ?></div>

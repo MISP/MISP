@@ -17,7 +17,7 @@ $urlAdd    = $baseurl . '/sightings/add/' . $safeId;
         <h5 class="d-flex align-items-center gap-2 fw-semibold mb-0">
             <span class="d-inline-flex align-items-center justify-content-center rounded-2"
                   style="width:32px;height:32px;background:#fbceff;">
-                <i class="fas fa-eye" style="color:#890096;font-size:.85rem;"></i>
+                <span class="misp-icon misp-icon-sighting misp-simple" style="color:#890096;font-size:.85rem;"></span>
             </span>
             <?= __('Sightings') ?>
         </h5>
@@ -48,7 +48,7 @@ $urlAdd    = $baseurl . '/sightings/add/' . $safeId;
             <button class="nav-ajax nav-link" role="tab"
                     data-tab="org"
                     data-url="<?= h($urlOrg) ?>">
-                <i class="fas fa-building me-1"></i><?= __('My org') ?>
+                <span class="misp-icon misp-icon-organisation misp-simple me-1"></span><?= __('My org') ?>
             </button>
         </li>
 

@@ -79,6 +79,14 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Enabled'),
+        'sort' => 'TaxiiServer.enabled',
+        'data_path' => 'TaxiiServer.enabled',
+        'element' => 'enabled',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'TaxiiServer.id',
@@ -108,14 +116,18 @@ $fields = [
             [
                 'type' => 'divider',
                 'url' => '#',
-                'requirement' => $isSiteAdmin
+                'requirement' => function (array $row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['TaxiiServer']['enabled']);
+                }
             ],
             [
                 'type' => 'modal',
                 'label' => __('Push all filtered data to TAXII server'),
                 'icon' => 'arrow-circle-up',
                 'url' => $baseurl . '/taxiiServers/push/%id%',
-                'requirement' => $isSiteAdmin
+                'requirement' => function (array $row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['TaxiiServer']['enabled']);
+                }
             ]
         ]
     ]
