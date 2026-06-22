@@ -135,6 +135,25 @@ class TaxiiServer extends AppModel
             '--key', $taxii_server['TaxiiServer']['api_key'],
             '--collection', $taxii_server['TaxiiServer']['collection']
         ];
+        if (empty($taxii_server['TaxiiServer']['skip_proxy'])) {
+            $proxy = Configure::read('Proxy');
+            if (!empty($proxy['host'])) {
+                $command[] = '--proxy_host';
+                $command[] = $proxy['host'];
+                $command[] = '--proxy_port';
+                $command[] = $proxy['port'] ?? 3128;
+                if (!empty($proxy['method'])) {
+                    $command[] = '--proxy_method';
+                    $command[] = $proxy['method'];
+                }
+                if (isset($proxy['user'], $proxy['password'])) {
+                    $command[] = '--proxy_user';
+                    $command[] = $proxy['user'];
+                    $command[] = '--proxy_password';
+                    $command[] = $proxy['password'];
+                }
+            }
+        }
         $result = ProcessTool::execute($command, null, true);
         $temporaryFolder['dir']->delete();
         if ($jobId) {
