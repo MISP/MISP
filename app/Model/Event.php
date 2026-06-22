@@ -7186,6 +7186,28 @@ class Event extends AppModel
         $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
         $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
+
+        // Fix: Intercept and map attribute_tag from CSV/Module ingestion streams
+        if (!empty($attribute['attribute_tag'])) {
+            $rawTags = array();
+            if (is_string($attribute['attribute_tag'])) {
+                $rawTags = explode(',', $attribute['attribute_tag']);
+            } elseif (is_array($attribute['attribute_tag'])) {
+                $rawTags = $attribute['attribute_tag'];
+            }
+
+            $seenTags = array(); //sanitize duplicate tags in the same attribute
+            foreach ($rawTags as $tag) {
+                if (is_string($tag)) {
+                    $tag = trim($tag);
+                    if (!empty($tag) && !isset($seenTags[$tag])) {
+                        $seenTags[$tag] = true;
+                        $attribute['Tag'][] = array('name' => $tag);
+                    }
+                }
+            }
+        }
+
         return $attribute;
     }
 
