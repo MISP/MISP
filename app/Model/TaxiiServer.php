@@ -33,10 +33,16 @@ class TaxiiServer extends AppModel
         if (!isset($this->data['TaxiiServer']['skip_proxy'])) {
             $this->data['TaxiiServer']['skip_proxy'] = false;
         }
+        if (!isset($this->data['TaxiiServer']['enabled']) && empty($this->id)) {
+            $this->data['TaxiiServer']['enabled'] = true;
+        }
 
         // Validate skip_proxy as a boolean
         if (isset($this->data['TaxiiServer']['skip_proxy']) && !is_bool($this->data['TaxiiServer']['skip_proxy'])) {
             $this->data['TaxiiServer']['skip_proxy'] = $this->data['TaxiiServer']['skip_proxy'] ? true : false; // Convert to boolean
+        }
+        if (isset($this->data['TaxiiServer']['enabled']) && !is_bool($this->data['TaxiiServer']['enabled'])) {
+            $this->data['TaxiiServer']['enabled'] = $this->data['TaxiiServer']['enabled'] ? true : false;
         }
         return true;
     }
@@ -73,6 +79,12 @@ class TaxiiServer extends AppModel
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $id]
         ]);
+        if (empty($taxii_server)) {
+            return __('Invalid TAXII server.');
+        }
+        if (empty($taxii_server['TaxiiServer']['enabled'])) {
+            return __('TAXII server is disabled.');
+        }
         $filters = $this->__setPushFilters($taxii_server);
         $elementCounter = 0;
         $eventid = $this->Event->filterEventIds($user, $filters, $elementCounter);
