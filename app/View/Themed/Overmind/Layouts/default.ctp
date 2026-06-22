@@ -14,6 +14,7 @@
             ['controller' => 'events', 'action' => 'add'],
             ['controller' => 'events', 'action' => 'edit'],
             ['controller' => 'events', 'action' => 'delete'],
+            ['controller' => 'events', 'action' => 'view'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
             ['controller' => 'events', 'action' => 'automation'],
@@ -24,6 +25,10 @@
             ['controller' => 'attributes', 'action' => 'add'],
             ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+            ['controller' => 'attributes', 'action' => 'add_attachment'],
+
+            ['controller' => 'objects', 'action' => 'add'],
+            ['controller' => 'objects', 'action' => 'delete'],
 
             ['controller' => 'sightings', 'action' => 'advanced'],
 
@@ -183,6 +188,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
+                ['misp-iconify', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -319,6 +325,7 @@
                         'headerTitle' => $headerTitle ?? null,
                         'headerDescription' => $headerDescription ?? null,
                         'headerStats' => $headerStats ?? [],
+                        'headerCount' => $headerCount ?? null,
                     ]);
                 }
                 ?>
@@ -536,6 +543,26 @@
             const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
             const tabPane = document.querySelector(target);
             if (!tabPane) return;
+
+            // Clear cross-tab selection state when switching tabs so that
+            // checkboxes from a sibling tab (e.g. Objects accordion) don't
+            // bleed into the newly active tab's mass-select toolbar.
+            // event.relatedTarget is the previously active tab link.
+            const prevTarget = event.relatedTarget
+                ? (event.relatedTarget.getAttribute('data-bs-target') || event.relatedTarget.getAttribute('href'))
+                : null;
+            const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+            if (prevPane) {
+                prevPane.querySelectorAll('.item-checkbox:checked').forEach(function(cb) {
+                    cb.checked = false;
+                });
+            }
+            if (typeof selectedItems !== 'undefined') {
+                selectedItems.clear();
+            }
+            if (typeof updateMultiSelectToolbar === 'function') {
+                updateMultiSelectToolbar();
+            }
 
             tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
         });

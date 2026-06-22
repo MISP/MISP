@@ -243,14 +243,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'button',
                         'label' => __('My events'),
-                        'icon' => 'user',
+                        'icon' => 'misp-icon misp-icon-user1 misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
                     ],
                     [
                         'type' => 'button',
                         'label' => __('Org events'),
-                        'icon' => 'building',
+                        'icon' => 'misp-icon misp-icon-organisation misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
                     ],

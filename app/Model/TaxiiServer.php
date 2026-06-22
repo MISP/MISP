@@ -33,10 +33,16 @@ class TaxiiServer extends AppModel
         if (!isset($this->data['TaxiiServer']['skip_proxy'])) {
             $this->data['TaxiiServer']['skip_proxy'] = false;
         }
+        if (!isset($this->data['TaxiiServer']['enabled']) && empty($this->id)) {
+            $this->data['TaxiiServer']['enabled'] = true;
+        }
 
         // Validate skip_proxy as a boolean
         if (isset($this->data['TaxiiServer']['skip_proxy']) && !is_bool($this->data['TaxiiServer']['skip_proxy'])) {
             $this->data['TaxiiServer']['skip_proxy'] = $this->data['TaxiiServer']['skip_proxy'] ? true : false; // Convert to boolean
+        }
+        if (isset($this->data['TaxiiServer']['enabled']) && !is_bool($this->data['TaxiiServer']['enabled'])) {
+            $this->data['TaxiiServer']['enabled'] = $this->data['TaxiiServer']['enabled'] ? true : false;
         }
         return true;
     }
@@ -73,6 +79,12 @@ class TaxiiServer extends AppModel
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $id]
         ]);
+        if (empty($taxii_server)) {
+            return __('Invalid TAXII server.');
+        }
+        if (empty($taxii_server['TaxiiServer']['enabled'])) {
+            return __('TAXII server is disabled.');
+        }
         $filters = $this->__setPushFilters($taxii_server);
         $elementCounter = 0;
         $eventid = $this->Event->filterEventIds($user, $filters, $elementCounter);
@@ -135,6 +147,25 @@ class TaxiiServer extends AppModel
             '--key', $taxii_server['TaxiiServer']['api_key'],
             '--collection', $taxii_server['TaxiiServer']['collection']
         ];
+        if (empty($taxii_server['TaxiiServer']['skip_proxy'])) {
+            $proxy = Configure::read('Proxy');
+            if (!empty($proxy['host'])) {
+                $command[] = '--proxy_host';
+                $command[] = $proxy['host'];
+                $command[] = '--proxy_port';
+                $command[] = $proxy['port'] ?? 3128;
+                if (!empty($proxy['method'])) {
+                    $command[] = '--proxy_method';
+                    $command[] = $proxy['method'];
+                }
+                if (isset($proxy['user'], $proxy['password'])) {
+                    $command[] = '--proxy_user';
+                    $command[] = $proxy['user'];
+                    $command[] = '--proxy_password';
+                    $command[] = $proxy['password'];
+                }
+            }
+        }
         $result = ProcessTool::execute($command, null, true);
         $temporaryFolder['dir']->delete();
         if ($jobId) {

@@ -24,9 +24,17 @@ foreach ($data['data'] as $k => $data_row) {
 
     $primary = !empty($data['primary_id_path']) ? Hash::get($data_row, $data['primary_id_path']) : null;
 
+    $rowClass = '';
+    if (!empty($data['row_class_callable']) && is_callable($data['row_class_callable'])) {
+        $rowClass = call_user_func($data['row_class_callable'], $data_row);
+    }
+
     $row = '<tr data-row-id="' . h($k) . '"';
     if (!empty($primary)) {
         $row .= ' data-primary-id="' . h($primary) . '"';
+    }
+    if ($rowClass !== '') {
+        $row .= ' class="' . h($rowClass) . '"';
     }
     $row .= '>';
 

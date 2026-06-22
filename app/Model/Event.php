@@ -2135,11 +2135,20 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
-        // Fetch attributes for these objects with ACL
+        // Fetch attributes for these objects with ACL.
+        // Mirror the object-level deleted filter so that attributes of
+        // soft-deleted objects are visible when deleted=1 or deleted=2.
+        if ($deleted === 1) {
+            $attrDeleted = [0, 1];
+        } elseif ($deleted === 2) {
+            $attrDeleted = 1;
+        } else {
+            $attrDeleted = 0;
+        }
         $attrConditions = [
             'Attribute.event_id' => $eventId,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => 0,
+            'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect =
@@ -7177,6 +7186,28 @@ class Event extends AppModel
         $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
         $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
+
+        // Fix: Intercept and map attribute_tag from CSV/Module ingestion streams
+        if (!empty($attribute['attribute_tag'])) {
+            $rawTags = array();
+            if (is_string($attribute['attribute_tag'])) {
+                $rawTags = explode(',', $attribute['attribute_tag']);
+            } elseif (is_array($attribute['attribute_tag'])) {
+                $rawTags = $attribute['attribute_tag'];
+            }
+
+            $seenTags = array(); //sanitize duplicate tags in the same attribute
+            foreach ($rawTags as $tag) {
+                if (is_string($tag)) {
+                    $tag = trim($tag);
+                    if (!empty($tag) && !isset($seenTags[$tag])) {
+                        $seenTags[$tag] = true;
+                        $attribute['Tag'][] = array('name' => $tag);
+                    }
+                }
+            }
+        }
+
         return $attribute;
     }
 
