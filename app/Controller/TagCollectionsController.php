@@ -157,6 +157,10 @@ class TagCollectionsController extends AppController
             }
             $this->request->data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
             $this->request->data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+            // Ownership must never be reassigned through edit; pin org_id/user_id back to the stored
+            // values so a supplied org_id/user_id cannot transfer the collection to another org/user.
+            $this->request->data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+            $this->request->data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
             if ($this->TagCollection->save($this->request->data)) {
                 if ($this->_isRest()) {
                     $tagCollection = $this->TagCollection->find('first', array(

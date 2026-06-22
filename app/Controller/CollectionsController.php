@@ -114,6 +114,18 @@ class CollectionsController extends AppController
                 }
             }
             $params = [
+                // Identity and ownership fields must never be reassigned through edit. The model only
+                // forces these on create (Collection::beforeValidate runs its ownership block only when
+                // the id is empty), and CRUDComponent::edit() copies every supplied field onto the loaded
+                // record. Without pinning them here a user could hand the collection to another org/user,
+                // or redirect the save onto a different collection via an injected id (mayModify only
+                // checked the id from the route). Force them back to the stored values.
+                'override' => [
+                    'id' => $oldCollection['Collection']['id'],
+                    'orgc_id' => $oldCollection['Collection']['orgc_id'],
+                    'org_id' => $oldCollection['Collection']['org_id'],
+                    'user_id' => $oldCollection['Collection']['user_id'],
+                ],
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
                     return $collection;

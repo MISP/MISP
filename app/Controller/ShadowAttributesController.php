@@ -596,6 +596,11 @@ class ShadowAttributesController extends AppController
             }
             $this->request->data['ShadowAttribute']['org_id'] =  $this->Auth->user('org_id');
             $this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
+            // The $id route param identifies the *attribute* being proposed against, not the proposal.
+            // A ShadowAttribute id in the request data would turn this save into an update of an
+            // arbitrary existing proposal (belonging to another org), so strip it: edit() only ever
+            // creates a new proposal. Mirrors the same guard in add().
+            unset($this->request->data['ShadowAttribute']['id']);
             if ($this->ShadowAttribute->save($this->request->data)) {
                 $emailResult = "";
                 if (!isset($this->request->data['ShadowAttribute']['deleted']) || !$this->request->data['ShadowAttribute']['deleted']) {
