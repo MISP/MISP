@@ -423,9 +423,16 @@ class Galaxy extends AppModel
         if (!empty($existingGalaxy)) {
             // check if provided galaxy has the same fields as galaxy that are saved in database
             $fieldsToSave = [];
-            foreach (array_keys(array_intersect_key($existingGalaxy, $galaxy)) as $key) {
+            // keep these
+            $fieldsToSave['Galaxy']['id'] = $existingGalaxy['Galaxy']['id'];
+            $fieldsToSave['Galaxy']['uuid'] = $existingGalaxy['Galaxy']['uuid'];
+            $fieldsToSave['Galaxy']['type'] = $existingGalaxy['Galaxy']['type'];
+            $fieldsToSave['Galaxy']['created'] = $existingGalaxy['Galaxy']['created'];
+            // Unset these so they don't get updated
+            unset($existingGalaxy['Galaxy']['id'], $existingGalaxy['Galaxy']['uuid'], $existingGalaxy['Galaxy']['type'], $existingGalaxy['Galaxy']['created']);
+            foreach (array_keys(array_intersect_key($existingGalaxy['Galaxy'], $galaxy)) as $key) {
                 if ($existingGalaxy['Galaxy'][$key] != $galaxy[$key]) {
-                    $fieldsToSave[$key] = $galaxy[$key];
+                    $fieldsToSave['Galaxy'][$key] = $galaxy[$key];
                 }
             }
         } else {
