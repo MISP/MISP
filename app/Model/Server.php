@@ -2330,6 +2330,83 @@ class Server extends AppModel
         return true;
     }
 
+    public function testLogPath($value)
+    {
+        // Controls where the ndjson error log is written (JsonLogTool). Those log
+        // lines can contain attacker-influenced content, so an unconstrained path
+        // is an RCE primitive (e.g. writing a *.php file under the webroot). We are
+        // therefore strict about BOTH the target directory and the file name.
+
+        // Empty is allowed: the logger falls back to its built-in default under
+        // APP/tmp/logs. On the save path the value already arrives trimmed.
+        if ($value === null || !is_string($value) || trim($value) === '') {
+            return true;
+        }
+        $value = trim($value);
+
+        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
+        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
+            return 'Invalid characters in the log path.';
+        }
+
+        // Must be an absolute path.
+        if ($value[0] !== '/') {
+            return 'The log path must be an absolute path.';
+        }
+
+        // Resolve the parent directory so that symlinks and '..' traversal are
+        // collapsed before the allow-list check. The file need not exist yet, but
+        // its directory must (JsonLogTool does not create directories).
+        $realDir = realpath(dirname($value));
+        if ($realDir === false) {
+            return 'The directory for the log file does not exist.';
+        }
+
+        // The directory must sit inside one of the two permitted roots, and
+        // nowhere else - this is what keeps the log out of the webroot.
+        $allowedRoots = array();
+        foreach (array(realpath(APP . 'tmp/logs'), realpath('/var/log')) as $root) {
+            if ($root !== false) {
+                $allowedRoots[] = $root;
+            }
+        }
+        $inAllowedRoot = false;
+        foreach ($allowedRoots as $root) {
+            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
+                $inAllowedRoot = true;
+                break;
+            }
+        }
+        if (!$inAllowedRoot) {
+            return 'The log file must be located within ' . APP . 'tmp/logs/ or /var/log/.';
+        }
+
+        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
+        // dot-separated segments and ending in an allowed log extension. Each
+        // segment must be non-empty, so '..' (and path traversal) cannot occur;
+        // this also rules out path separators, unicode look-alikes, leading dots
+        // and executable extensions such as .php.
+        $fileName = basename($value);
+        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.(log|ndjson)$/', $fileName)) {
+            return 'Invalid log file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .log or .ndjson (e.g. error.log.ndjson).';
+        }
+
+        // Defence in depth: reject script/executable extensions appearing as any
+        // dotted segment (e.g. error.php.ndjson), which some web server
+        // mis-configurations would still execute.
+        $forbidden = array(
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
+            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
+        );
+        foreach (explode('.', strtolower($fileName)) as $segment) {
+            if (in_array($segment, $forbidden, true)) {
+                return 'The log file name must not contain an executable extension.';
+            }
+        }
+
+        return true;
+    }
+
     public function zmqAfterHook($setting, $value)
     {
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
@@ -6309,7 +6386,7 @@ class Server extends AppModel
                     'level' =>  self::SETTING_RECOMMENDED,
                     'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
                     'value' => APP . '/tmp/logs/error.log.ndjson',
-                    'test' => 'testForEmpty',
+                    'test' => 'testLogPath',
                     'type' => 'string',
                     'cli' => true,
                     'null' => true
