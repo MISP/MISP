@@ -1,5 +1,6 @@
 <?php
 $taxiiServerId = h($data['TaxiiServer']['id']);
+$taxiiServerEnabled = !empty($data['TaxiiServer']['enabled']);
 
 $actions = [];
 
@@ -10,12 +11,14 @@ if ($isSiteAdmin) {
         'icon' => 'fas fa-pen',
         'label' => __('Edit Server')
     ];
-    $actions[] = [
-        'url' => "$baseurl/taxiiServers/push/$taxiiServerId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/push/$taxiiServerId', 'sm');",
-        'icon' => 'fas fa-arrow-circle-up',
-        'label' => __('Push data to TAXII server')
-    ];
+    if ($taxiiServerEnabled) {
+        $actions[] = [
+            'url' => "$baseurl/taxiiServers/push/$taxiiServerId",
+            'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/push/$taxiiServerId', 'sm');",
+            'icon' => 'fas fa-arrow-circle-up',
+            'label' => __('Push data to TAXII server')
+        ];
+    }
     $actions[] = [
         'url' => "$baseurl/taxiiServers/delete/$taxiiServerId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/deleteSelection/$taxiiServerId', 'sm');",

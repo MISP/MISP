@@ -75,7 +75,7 @@ class SharingGroupOrg extends AppModel
         // We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
         foreach ($old_orgs as $old_org) {
             if ($this->delete($old_org['id'])) {
-                $this->loadLog()->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['id'] . ').', 'Organisation (' . $org['id'] . ') removed from Sharing group.');
+                $this->loadLog()->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['org_id'] . ').', 'Organisation (' . $old_org['org_id'] . ') removed from Sharing group.');
             }
         }
     }

@@ -16,16 +16,14 @@ $theme-colors: (
 
 // 3️⃣ Add custom variables
 $custom-colors: (
-  "galaxy-dark": #084298,
-  "galaxy-light": #e7f1ff,
-  "tag-dark": #6B2B06,
-  "tag-light": #ccb5bd,
-  "sighting-dark": #E67F0D,
-  "sighting-light": #e6d9c9,
-  "object-dark": #3e2272,
-  "object-light": #e6d9c9,
-  "relationship-dark": #436436,
-  "relationship-light": #c5dbbd,
+  "event": #1892B1,
+  "object": #524948,
+  "attribute": #97CC04,
+  "tag": #DB6A47,
+  "galaxy": #8B5CF6,
+  "report": #4DA167,
+  "sighting": #890096,
+  "correlation": #E67F0D,
 );
 
 $theme-colors: map-merge($theme-colors, $custom-colors);

@@ -50,16 +50,13 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  * - state_path     : Path to the boolean value (toggle)
  */
 
-
-$model = (isset($attributes[0]) && isset($attributes[0]['Attribute'])) ? 'Attribute' : null;
+$firstRow   = !empty($attributes) ? reset($attributes) : [];
+$model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
+$_canModify = !empty($isSiteAdmin) || !empty($mayModify);
 
 $path = function($field) use ($model) {
-    if (empty($model)) {
-        return $field;
-    }
-    if (empty($field)) {
-        return $model;
-    }
+    if (empty($model)) return $field;
+    if (empty($field)) return $model;
     return $model . '.' . $field;
 };
 
@@ -77,7 +74,7 @@ if (!empty($show_event_id)) {
         'sort' => $path('event_id'),
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view/%id%',
+        'url' => $baseurl . '/events/view2/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ];
@@ -152,29 +149,46 @@ $fields = array_merge($fields, [
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card']
     ],
-
     [
-        'name' => __('Sightings'),
-        'data_path' => $path(''),
-        'element' => 'sightings',
-        'card_section' => 'extra',
-        'display_in' => ['card']
+        'name' => __('IDS'),
+        'data_path' => $path('to_ids'),
+        'element' => 'ids',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
-    // [
-    //     'name' => __('Created'),
-    //     'data_path' => $path('date'),
-    //     'element' => 'timestamp',
-    //     'mode' => 'created',
-    //     'card_section' => 'meta',
-    //     'display_in' => ['card']
-    // ],
+    [
+        'name' => __('Correlate'),
+        'data_path' => $path('disable_correlation'),
+        'element' => 'correlate',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Related Events'),
+        'element' => 'relatedEvents',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Feed hits'),
+        'element' => 'feedHits',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
     [
         'name' => __('Last Modified'),
         'data_path' => $path('timestamp'),
         'element' => 'timestamp',
         'mode' => 'modified',
-        'card_section' => 'top',
+        'card_section' => 'meta',
         'display_in' => ['card']
+    ],
+    [
+        'name' => __('Sightings'),
+        'element' => 'sightings',
+        'sightings' => isset($sightingsData) ? $sightingsData : ['data' => [], 'csv' => []],
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Actions'),
@@ -183,11 +197,13 @@ $fields = array_merge($fields, [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
-                'requirement' => 'check_edit_rights'
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify && empty($row['deleted']);
+                }
             ],
             [
                 'type' => 'modal',
@@ -195,7 +211,20 @@ $fields = array_merge($fields, [
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%',
                 'class' => 'text-warning',
-                'requirement' => 'check_edit_rights'
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify && empty($row['deleted']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Restore'),
+                'icon' => 'rotate-left',
+                'url' => $baseurl . '/attributes/restore/%id%',
+                'class' => 'text-success',
+                //'size' => 'sm',
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify && !empty($row['deleted']);
+                }
             ],
             [
                 'type' => 'modal',
@@ -203,7 +232,9 @@ $fields = array_merge($fields, [
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%/true',
                 'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify;
+                }
             ]
         ]
     ]
@@ -224,78 +255,135 @@ $fields = array_merge($fields, [
  * - item_url                     : Base URL for pagination / filters
  */
 
+$children = [
+    [
+        'type' => 'search',
+        'button' => 'Search',
+        "placeholder" => "Filter by attribute value"
+    ]
+];
+
+if (!empty($show_filters)) {
+    $children = array_merge($children, [
+        [
+            'type' => 'button',
+            'label' => __('My attributes'),
+            'icon' => 'misp-icon misp-icon-user1 misp-simple',
+            'class' => 'btn btn-primary',
+            'url' => $baseurl . '/attributes/index/searchemail:' . urlencode($me['email'])
+        ],
+        [
+            'type' => 'button',
+            'label' => __('Org attributes'),
+            'icon' => 'misp-icon misp-icon-organisation misp-simple',
+            'class' => 'btn btn-primary',
+            'url' => $baseurl . '/attributes/index/searchorg:' . urlencode($me['org_id'])
+        ]
+    ]);
+}
+
+if (empty($show_event_id) && !empty($event['Event']['id'])) {
+    // Event view: only category and type are supported by viewAttributes
+    $children = array_merge($children, [
+        [
+            'type' => 'more_filters',
+            'label' => __('More filters'),
+            'children' => [
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Category'),
+                    'name' => 'category',
+                    'options' => ['' => __('All')] + ($categoryOptions ?? [])
+                ],
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Type'),
+                    'name' => 'type',
+                    'options' => ['' => __('All')] + ($typeOptions ?? [])
+                ],
+            ]
+        ]
+    ]);
+} else {
+    $children = array_merge($children, [
+        [
+            'type' => 'more_filters',
+            'label' => __('More filters'),
+            'children' => [
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Category'),
+                    'name' => 'category',
+                    'options' => $categoryOptions ?? []
+                ],
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Type'),
+                    'name' => 'type',
+                    'options' => $typeOptions ?? []
+                ],
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Creator Org'),
+                    'name' => 'org',
+                    'options' => $orgOptions ?? []
+                ],
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Tags'),
+                    'name' => 'tag',
+                    'options' => $tagOptions ?? []
+                ],
+                [
+                    'type' => 'dropdown',
+                    'label' => __('Galaxy'),
+                    'name' => 'galaxy',
+                    'options' => $galaxyOptions ?? []
+                ]
+            ]
+        ]
+    ]);
+}
+
+if (empty($show_event_id) && !empty($event['Event']['id'])) {
+    $attrEventId    = $event['Event']['id'];
+    $namedParams    = $this->request->params['named'] ?? [];
+    $currentDeleted = (int)($namedParams['deleted'] ?? 0);
+    $toggleDeleted  = $currentDeleted ? 0 : 1;
+    $attrBaseUrl    = $baseurl . '/events/viewAttributes/' . $attrEventId;
+    $toggleUrl      = $attrBaseUrl . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '');
+
+    $children[] = [
+        'type'  => 'button',
+        'url'   => $toggleUrl,
+        'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-warning' : 'btn-outline-warning'),
+        'icon'  => 'fas fa-trash',
+        'label' => __('Soft deleted'),
+    ];
+}
+
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $attributes,
+            'primary_id_path' => $path('id'),
+            'row_class_callable' => function($row) {
+                return !empty($row['deleted']) ? 'attr-deleted' : '';
+            },
             'filter_bar' => [
                 'pull' => 'right',
-                'children' => [
-                    [
-                        'type' => 'search',
-                        'button' => 'Search',
-                        "placeholder" => "Filters aren't implemented for the moment"
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('My attributes'),
-                        'icon' => 'user',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/attributes/index/searchemail:' . urlencode($me['email'])
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('Org attributes'),
-                        'icon' => 'building',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/attributes/index/searchorg:' . urlencode($me['org_id'])
-                    ],
-                    [
-                        'type' => 'more_filters',
-                        'label' => __('More filters'),
-                        'children' => [
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Category'),
-                                'name' => 'category',
-                                'options' => $categoryOptions
-                            ],
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Type'),
-                                'name' => 'type',
-                                'options' => $typeOptions
-                            ],
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Creator Org'),
-                                'name' => 'org',
-                                'options' => $orgOptions
-                            ],
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Tags'),
-                                'name' => 'tag',
-                                'options' => $tagOptions
-                            ],
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Galaxy'),
-                                'name' => 'galaxy',
-                                'options' => $galaxyOptions
-                            ]
-                        ]
-                    ]
-                ],
-                'delete' => '/delete',
-                'mass_edit' => 1,
-                'mass_tag' => 1,
-                'mass_local_tag' => 1,
-                'mass_cluster' => 1,
-                'mass_local_cluster' => 1,
-                'mass_object' => 1,
-                'mass_relationship' =>1,
-                'mass_sighting' =>1,
+                'children' => $children,
+                'soft_delete' => '/deleteSelection',
+                'delete'      => '/deleteSelection',
+                // 'mass_edit' => 1,
+                // 'mass_tag' => 1,
+                // 'mass_local_tag' => 1,
+                // 'mass_cluster' => 1,
+                // 'mass_local_cluster' => 1,
+                // 'mass_object' => 1,
+                // 'mass_relationship' =>1,
+                // 'mass_sighting' =>1,
             ],
             'fields' => $fields,
         ]

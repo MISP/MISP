@@ -228,16 +228,19 @@ class TmpFileTool
     }
 
     /**
+     * Close the underlying temporary file handle and free the resource.
+     * Idempotent: safe to call multiple times (e.g. explicitly and again from
+     * the destructor) and safe to call when the file was never opened.
      * @return bool
      */
     public function close()
     {
-        if ($this->tmpfile) {
+        $result = true;
+        if (is_resource($this->tmpfile)) {
             $result = fclose($this->tmpfile);
-            $this->tmpfile = null;
-            return $result;
         }
-        return true;
+        $this->tmpfile = null;
+        return $result;
     }
 
     /**
@@ -248,5 +251,17 @@ class TmpFileTool
         if ($this->tmpfile === null) {
             throw new Exception('Temporary file is already closed.');
         }
+    }
+
+    /**
+     * Ensure the temporary file handle is released when the object goes out of
+     * scope. Without this, the php://temp stream backing file in the system tmp
+     * directory could be left dangling until process exit, filling up disk on
+     * long-running workers (see issue #10828). close() is idempotent, so this is
+     * safe even when close() was already called explicitly.
+     */
+    public function __destruct()
+    {
+        $this->close();
     }
 }

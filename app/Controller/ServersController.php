@@ -4,6 +4,7 @@ App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
+App::uses('SystemSetting', 'Model');
 
 /**
  * @property Server $Server
@@ -425,6 +426,12 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['pull_rules'])) {
                         $this->request->data['Server']['pull_rules'] = $defaultPullRules;
                     }
+                    // This action only ever creates a new server entry. Strip any
+                    // client-supplied id so an injected Server[id] cannot turn this
+                    // INSERT into a covert UPDATE of an arbitrary server row (sync
+                    // url/authkey/push-pull rule hijack) - save() with no fieldList
+                    // here would otherwise honour it. Reported by Jeroen Pinoy.
+                    unset($this->request->data['Server']['id']);
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
                             $this->__saveCert($this->request->data, $this->Server->id, false);
@@ -1612,6 +1619,9 @@ class ServersController extends AppController
             }
             $this->autoRender = false;
             if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
+                // Never log the raw value of a sensitive setting (passwords, API keys, salts, ...):
+                // mask it the same way the successful-save path does (see Server::serverSettingsEditValue).
+                $loggedValue = SystemSetting::isSensitive($setting['name']) ? '*****' : $this->request->data['Server']['value'];
                 $this->loadModel('Log');
                 $this->Log->create();
                 $this->Log->saveOrFailSilently(array(
@@ -1622,7 +1632,7 @@ class ServersController extends AppController
                     'action' => 'serverSettingsEdit',
                     'user_id' => $this->Auth->user('id'),
                     'title' => 'Server setting issue',
-                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $loggedValue  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
                 ));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
@@ -2171,12 +2181,42 @@ class ServersController extends AppController
         }
     }
 
-    public function updateJSON()
+public function updateJSON()
     {
         $results = [];
-        foreach ($this->Server->updateJSON() as $type => $result) {
-            $results[$type] = $results['success'];
+
+        $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
+
+        if ($async) {
+            $this->loadModel('Job');
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'updateJSON',
+                $this->Auth->user('id'),
+                __('Starting server JSON update.')
+            );
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateJSON',
+                    $this->Auth->user('id'),
+                    $jobId,
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+
+            $results['message'] = __('Server updateJSON job queued. Job ID: %s', $jobId);
+        } else {
+            foreach ($this->Server->updateJSON() as $type => $result) {
+                $results[$type] = $results['success'];
+            }
         }
+
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 

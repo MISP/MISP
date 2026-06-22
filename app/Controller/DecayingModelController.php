@@ -229,6 +229,14 @@ class DecayingModelController extends AppController
         $enforceRestrictedEdition = $decaying_model['DecayingModel']['default'];
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            // DPT-6: fetchModel above is VIEW-scoped; edit() never checked
+            // edit ownership, unlike delete/enable/disable. A perm_decaying
+            // user could otherwise edit any model visible to them (e.g.
+            // another org's shared all_orgs=1 model, or toggle enabled/
+            // all_orgs on a default model - bypassing enable/disable's gate).
+            if (!$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model)) {
+                throw new MethodNotAllowedException(__('You are not authorised to edit this model.'));
+            }
 
             $this->request->data['DecayingModel']['id'] = $id;
             $fieldListToSave = array('enabled', 'all_orgs');

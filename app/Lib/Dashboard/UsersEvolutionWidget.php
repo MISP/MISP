@@ -4,6 +4,7 @@
 class UsersEvolutionWidget
 {
     public $title = 'Evolution of user count';
+    public $category = 'system';
     public $render = 'MultiLineChart';
     public $width = 7;
     public $height = 6;
@@ -15,6 +16,7 @@ class UsersEvolutionWidget
         'weeks' => 'Number of days to consider for the graph, takes priority over months. There will be a data entry for each week. Value between 1 and 180.',
         'months' => 'Number of days to consider for the graph. There will be a data entry for each month. Value between 1 and 180.',
     );
+    public $schema = array();
 
     public $placeholder =
         '{

@@ -582,7 +582,7 @@ function renderMarkdown() {
 }
 
 function doRender() {
-    if ($autoRenderMarkdownCB.prop('checked')) {
+    if ($autoRenderMarkdownCB.prop('checked') || (typeof autoRenderMarkdown !== 'undefined' && autoRenderMarkdown)) {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(renderMarkdown, debounceDelay);
     }

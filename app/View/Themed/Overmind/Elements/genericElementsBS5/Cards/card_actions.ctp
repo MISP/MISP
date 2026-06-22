@@ -13,13 +13,22 @@ $actions = $actions ?? [];
 ?>
 
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <h5 class="fw-bold d-flex align-items-center gap-2 mb-3">
-            <i class="fas fa-forward text-primary"></i>
-            <?= __('Quick action') ?>
-        </h5>
+<div class="card shadow-sm mb-3">
 
+    <!-- HEADER -->
+    <div class="p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <div class="rounded-2 d-flex align-items-center justify-content-center"
+                 style="width:36px;height:36px;background:#ccfbf1;">
+                <i class="fas fa-bolt"
+                   style="color:#0f766e;font-size:1rem;"></i>
+            </div>
+            <div class="fw-bold lh-1"><?= __('Quick action') ?></div>
+        </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="p-3">
         <div class="d-flex flex-column gap-2">
             <?php if(!empty($actions)): ?>
                 <?php foreach ($actions as $action):

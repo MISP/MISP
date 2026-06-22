@@ -735,18 +735,26 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     fetchFormDataAjax(url, function(formData) {
         var $formData = $(formData);
         $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
+        if (event_id === 'selected') {
+            $formData.find('#EventEventIds').val(getSelectedEventIds());
+        }
         xhr({
             data: $formData.serialize(),
             success: function (data) {
-                handleGenericAjaxResponse(data);
+                if (event_id === 'selected') {
+                    location.reload();
+                } else {
+                    handleGenericAjaxResponse(data);
+                }
             },
             error: function() {
                 showMessage('fail', 'Could not add tag.');
             },
             complete: function() {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
-
+                if (event_id !== 'selected') {
+                    loadEventTags(event_id);
+                    loadGalaxies(event_id, 'event');
+                }
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
@@ -774,9 +782,16 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             data: $formData.serialize(),
             success:function (data) {
                 if (attribute_id == 'selected') {
-                    updateIndex(0, 'event');
+                    if (typeof window.onBulkAttributeTagsApplied === 'function') {
+                        window.onBulkAttributeTagsApplied(getSelected());
+                    } else {
+                        updateIndex(0, 'event');
+                    }
                 } else {
                     loadAttributeTags(attribute_id);
+                    if (typeof window.onAttributeTagsApplied === 'function') {
+                        updateAttributeTagsApplied(attribute_id);
+                    }
                     loadGalaxies(attribute_id, 'attribute');
                 }
                 handleGenericAjaxResponse(data);
@@ -795,6 +810,20 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             url: url
         });
     });
+}
+
+function updateAttributeTagsApplied(attribute_id) {
+    if (typeof window.onAttributeTagsApplied === 'function') {
+        window.onAttributeTagsApplied(attribute_id);
+    }
+}
+
+function updateBulkGalaxiesApplied(selectedIds, local, eventId) {
+    if (typeof window.onBulkAttributeGalaxiesApplied === 'function') {
+        window.onBulkAttributeGalaxiesApplied(selectedIds, local, eventId);
+        return true;
+    }
+    return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
@@ -1028,9 +1057,11 @@ function listCheckboxesCheckedEventIndex() {
     }
 
     if ($('.select:checked').length > 0) {
-        $('.mass-export').removeClass('hidden');
+        // mass tag/galaxy follow any selection: permission filtering happens
+        // server-side per event (global attaches are downgraded to local)
+        $('.mass-export, .mass-tag, .mass-galaxy').removeClass('hidden');
     } else {
-        $('.mass-export').addClass('hidden');
+        $('.mass-export, .mass-tag, .mass-galaxy').addClass('hidden');
     }
 }
 
@@ -1205,6 +1236,17 @@ function getSelected() {
     return JSON.stringify(selected);
 }
 
+function getSelectedEventIds() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        var id = $(this).data("id");
+        if (id != null) {
+            selected.push(id);
+        }
+    });
+    return JSON.stringify(selected);
+}
+
 function getSelectedTaxonomyNames() {
     var selected = [];
     $(".select_taxonomy").each(function() {
@@ -1254,6 +1296,18 @@ function loadAttributeTags(attribute_id) {
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
+}
+
+function updateBetaAttributeTags(attribute_id) {
+    var $row = $("[data-primary-id=" + attribute_id + "]");
+    if (!$row.length) {
+        return;
+    }
+    loadAttributeTags(attribute_id);
+    var $tagsRow = $(".col-tags-row[data-primary-id=" + attribute_id + "] .attributeTagContainer");
+    if ($tagsRow.length) {
+        $tagsRow.html($row.find('.attributeTagContainer').first().html());
+    }
 }
 
 function removeObjectTagPopup(clicked, context, object, tag) {
@@ -1942,7 +1996,8 @@ function popoverPopup(clicked, id, context, target, admin) {
 
 function popoverPopupNew(clicked, url) {
     var $clicked = $(clicked);
-    var popover = openPopover($clicked, undefined);
+    var placement = $clicked.data('popover-placement');
+    var popover = openPopover($clicked, undefined, undefined, placement);
 
     // actual request
     $.ajax({
@@ -2857,7 +2912,9 @@ function changeFreetextImportExecute() {
     $('.typeToggle').each(function() {
         if ($(this).val() === from) {
             if (selectContainsOption("#" + $(this).attr('id'), to)) {
-                $(this).val(to);
+                // Update the value, then manually trigger the 'change' event
+                // so the Category dropdowns update automatically.
+                $(this).val(to).trigger('change');
             }
         }
     });
@@ -4619,7 +4676,11 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
         $formData.find("#GalaxyMirrorOnEvent").prop('checked', mirrorOnEvent);
         if (target_id === 'selected') {
-            $formData.find('#GalaxyAttributeIds').val(getSelected());
+            if (scope === 'event') {
+                $formData.find('#GalaxyEventIds').val(getSelectedEventIds());
+            } else {
+                $formData.find('#GalaxyAttributeIds').val(getSelected());
+            }
         }
         $.ajax({
             data: $formData.serialize(),
@@ -4628,7 +4689,10 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
             },
             success:function (data) {
                 if (target_id === 'selected' || scope === 'tag_collection') {
-                    location.reload();
+                    if (!updateBulkGalaxiesApplied(getSelected(), local, additionalData['event_id'])) {
+                        location.reload();
+                    }
+                    handleGenericAjaxResponse(data);
                 } else {
                     loadGalaxies(target_id, scope);
                     if (mirrorOnEvent) {
@@ -5589,144 +5653,6 @@ function queryDeprecatedEndpointUsage() {
     });
 }());
 
-function submitDashboardForm(id) {
-    var configData = $('#DashboardConfig').val();
-    if (configData != '') {
-        try {
-            configData = JSON.parse(configData);
-        } catch (error) {
-            showMessage('fail', error.message)
-            return
-        }
-    } else {
-        configData = {};
-    }
-    configData = JSON.stringify(configData);
-    $('#' + id).closest('.grid-stack-item').attr('config', configData);
-    $('#genericModal').modal('hide');
-    resetDashboardGrid(grid, true);
-}
-
-function saveDashboardState() {
-    var dashBoardSettings = [];
-
-    $('.grid-stack-item').each(function() {
-        var $item    = $(this);
-        var $wrapper = $item.find('.widget-wrapper').first();
-
-        if ($wrapper.length === 0) return;
-        console.log($wrapper.attr('config'));
-        var configAttr = $item.attr('config');
-        var widgetAttr = $wrapper.attr('widget');
-
-        if (!configAttr || !widgetAttr) return;
-
-        var temp = {
-            widget: widgetAttr,
-            config: JSON.parse(configAttr),
-            position: {
-                x: $item.attr('gs-x'),
-                y: $item.attr('gs-y'),
-                width:  $item.attr('gs-w'),
-                height: $item.attr('gs-h')
-            }
-        };
-
-        dashBoardSettings.push(temp);
-    });
-
-    var url = baseurl + '/dashboards/updateSettings'
-    fetchFormDataAjax(url, function(formData) {
-        var $formContainer = $(formData)
-        $formContainer.find('#DashboardValue').val(JSON.stringify(dashBoardSettings))
-        var $theForm = $formContainer.find('form')
-        xhr({
-            data: $theForm.serialize(),
-            success:function () {
-                showMessage('success', 'Dashboard settings saved.');
-            },
-            type:"post",
-            url: $theForm.attr('action')
-        });
-    })
-}
-
-
-
-function resetDashboardGrid(grid, save = true) {
-    $('.grid-stack-item').each(function() {
-        updateDashboardWidget(this);
-    });
-    if (save) {
-        saveDashboardState();
-    }
-    $(document).on('click', '.edit-widget', function (e) {
-        e.preventDefault();
-
-        var wrapper = $(this).closest('.widget-wrapper');
-        var item    = wrapper.closest('.grid-stack-item');
-
-        var data = {
-            id: wrapper.attr('id'),
-            config: JSON.parse(item.attr('config') || '{}'),
-            widget: item.attr('widget'),
-            alias: item.attr('alias')
-        };
-
-        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
-    });
-
-    $(document).on('click', '.remove-widget', function (e) {
-        e.preventDefault();
-
-        var gridItem = $(this).closest('.grid-stack-item').get(0);
-        if (gridItem && grid) {
-            grid.removeWidget(gridItem);
-            if (typeof saveDashboardState === 'function') {
-                saveDashboardState();
-            }
-        }
-    });
-    $(document).on('click', '.widget-export-menu a[data-exporttype]', function(e) {
-        e.preventDefault();
-
-        var $link    = $(this);
-        var $item    = $link.closest('.grid-stack-item');                 // metadata lives here
-        var $wrapper = $link.closest('.grid-stack-item').find('.widget-wrapper').first(); // id lives here
-
-        var export_type = $link.data('exporttype');
-
-        var widget = $item.attr('widget');
-        var config = $item.attr('config') || '[]';
-
-        if (!widget) return;
-
-        var wrapperId = $wrapper.attr('id') || '';
-        if (!wrapperId.startsWith('widget_')) return;
-
-        var container_id = wrapperId.substring(7);
-
-        $.ajax({
-            type: 'POST',
-            url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
-            data: {
-                config: config,
-                widget: widget
-            },
-            success: function (data) {
-                if (export_type === 'json') {
-                    data = JSON.stringify(data, null, 2);
-                }
-                var blob = new Blob([data], { type: (export_type === 'json' ? 'application/json' : 'text/csv') });
-                var link = window.document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = widget + "_" + container_id + "_export." + export_type;
-                link.click();
-            }
-        });
-    });
-}
-
 function setHomePage() {
     $.ajax({
         type: 'GET',
@@ -6121,6 +6047,9 @@ function taskFormUpdate() {
             break;
         case 'Workflow':
             $('#Workflow').show();
+            break;
+        case 'TAXII':
+            $('#TaxiiServer').show();
             break;
         case 'Admin':
             $('#AdminAction').show();

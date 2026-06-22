@@ -3,6 +3,7 @@
 class TrendingTagsWidget
 {
     public $title = 'Trending Tags';
+    public $category = 'tags';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;
@@ -13,6 +14,32 @@ class TrendingTagsWidget
         'threshold' => 'Limits the number of displayed tags. Default: 10',
         'filter_event_tags' => 'Filters to be applied on event tags',
         'over_time' => 'Toggle the trending to be over time',
+        'distribution' => 'Filter source events by distribution level. Integer array, subset of {0..5} (0=Org only, 1=Community, 2=Connected, 3=All, 4=Sharing group, 5=Inherit). Empty / missing = no filter.',
+    );
+    public $schema = array(
+        'time_window' => array(
+            'type' => 'time_window',
+            'default' => 'P7D',
+            'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
+        ),
+        'tag_filter' => array(
+            'type' => 'tag_filter',
+            'help' => 'Substring patterns that include/exclude tags from the trending list. "tlp:" matches every TLP tag.',
+        ),
+        'distribution' => array(
+            'type' => 'distribution_filter',
+            'help' => 'Restrict the source events by distribution level. Empty selection = no filter.',
+        ),
+        'threshold' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Limits the number of displayed tags.',
+        ),
+        'over_time' => array(
+            'type' => 'bool',
+            'default' => false,
+            'help' => 'Plot trending tags over time as a multi-line chart instead of a single-snapshot bar chart.',
+        ),
     );
     public $placeholder =
     '{
@@ -24,6 +51,13 @@ class TrendingTagsWidget
 }';
     public $description = 'Widget showing the trending tags over the past x seconds, along with the possibility to include/exclude tags.';
     public $cacheLifetime = 3;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() ACL-scopes the source events via filterEventIds($user),
+    // so the tag tally depends on which events the viewer may see.
+    // cache_scope='user' keys by user id so one viewer's payload is never
+    // served to another.
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
 
 	public function handler($user, $options = array())
 	{
@@ -41,6 +75,31 @@ class TrendingTagsWidget
             $params['event_tags'] = $options['filter_event_tags'];
         }
         $eventIds = $eventModel->filterEventIds($user, $params);
+
+        // Phase 3 canonical distribution_filter — narrow the event-id
+        // list by Event.distribution when the option is non-empty.
+        // filterEventIds doesn't accept `distribution` in its
+        // simple_params dispatch (would be a MISP-core touch), so the
+        // narrowing happens here as a post-step: one `find('list')`
+        // against Event with the already-ACL-filtered eventIds as the
+        // base set, plus an IN clause on Event.distribution. ACL-safe
+        // because the input set was already filtered by
+        // filterEventIds (which honours the user's permissions).
+        if (!empty($options['distribution']) && !empty($eventIds)) {
+            $distribution = is_array($options['distribution'])
+                ? array_values(array_filter($options['distribution'], 'is_numeric'))
+                : (is_numeric($options['distribution']) ? [(int)$options['distribution']] : []);
+            if (!empty($distribution)) {
+                $eventIds = array_keys($eventModel->find('list', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'Event.id' => $eventIds,
+                        'Event.distribution' => $distribution,
+                    ],
+                    'fields' => ['Event.id', 'Event.id'],
+                ]));
+            }
+        }
 
         $tagColours = [];
         $allTags = [];
@@ -72,6 +131,27 @@ class TrendingTagsWidget
                 }
             }
 
+            // Honor $threshold in the over_time path too. Bar path
+            // already slices to top-N; without the same cap here a
+            // multi-line chart surfaces every tag that appears in the
+            // window, which makes the legend unusable and contradicts
+            // the param's help text ("Limits the number of displayed
+            // tags."). Rank tags by total count across the full window
+            // so the per-line series picks the most-frequent overall;
+            // a per-row top-N would give a different tag set per date
+            // and make the line chart meaningless.
+            $totals = array_fill_keys(array_keys($allTags), 0);
+            foreach ($tagOvertime as $date => $tagCount) {
+                foreach ($tagCount as $tagName => $count) {
+                    if (isset($totals[$tagName])) {
+                        $totals[$tagName] += $count;
+                    }
+                }
+            }
+            arsort($totals);
+            $topTagNames = array_slice(array_keys($totals), 0, $threshold);
+            $allTags = array_combine($topTagNames, $topTagNames);
+
             $data['data'] = [];
             foreach($tagOvertime as $date => $tagCount) {
                 $item = [];
@@ -89,6 +169,12 @@ class TrendingTagsWidget
                 return ($a['date'] < $b['date']) ? -1 : 1;
             });
             $data['data'] = array_values($data['data']);
+            // Surface the tag colours so MultiLineChart can use the
+            // widget's own colour metadata; bar path already does this
+            // on line 132. Without it the over_time renderer falls back
+            // to the default ECharts palette which loses the
+            // tag-colour-as-identity that users rely on (e.g. TLP).
+            $data['colours'] = array_intersect_key($tagColours, $allTags);
             return $data;
         } else {
             $tags = [];

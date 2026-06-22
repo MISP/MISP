@@ -153,6 +153,11 @@ class Taxonomy extends AppModel
         ]];
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
+            // An import only ever creates fresh predicates. Strip any client-supplied
+            // primary key so a crafted `id` cannot turn the deep saveAssociated() below
+            // into an UPDATE that re-parents/overwrites a predicate owned by another
+            // taxonomy (cross-taxonomy hijack). As reported by Jeroen Pinoy.
+            unset($predicate['id']);
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
             $predicateLookup[$predicate['value']] = $k;
         }
@@ -162,6 +167,14 @@ class Taxonomy extends AppModel
                     throw new Exception("Invalid taxonomy `{$vocab['namespace']}` provided. Predicate `{$value['predicate']}` is missing.");
                 }
                 $predicatePosition = $predicateLookup[$value['predicate']];
+                // Same id-strip rationale as the predicates above: imported entries are
+                // always fresh INSERTs, so drop any injected `id` that would otherwise
+                // redirect the deep save onto an arbitrary TaxonomyEntry row.
+                if (!empty($value['entry']) && is_array($value['entry'])) {
+                    foreach ($value['entry'] as $entryPos => $entry) {
+                        unset($value['entry'][$entryPos]['id']);
+                    }
+                }
                 if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'])) {
                     $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = $value['entry'];
                 } else {

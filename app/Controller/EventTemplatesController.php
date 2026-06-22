@@ -1010,11 +1010,17 @@ class EventTemplatesController extends AppController
             );
         }
         $this->set('taxonomiesAvailable', $taxonomies);
-
         $this->loadModel('Galaxy');
         $galaxyRows = $this->Galaxy->find('all', array(
             'recursive' => -1,
-            'conditions' => array('Galaxy.enabled' => true),
+            'conditions' => array(
+                'Galaxy.enabled' => true,
+                // Use the canonical galaxy visibility filter. The previous hand-rolled condition
+                // `'Galaxy.distribution' > 0` was a PHP comparison (always evaluating to true), not a
+                // query condition, so every org's galaxies - including org-only (distribution 0) custom
+                // galaxies belonging to other orgs - leaked into the template builder list.
+                $this->Galaxy->buildConditions($this->Auth->user()),
+            ),
             'fields' => array(
                 'Galaxy.type',
                 'Galaxy.description',

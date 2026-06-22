@@ -3,6 +3,7 @@
 class EventEvolutionLineWidget
 {
     public $title = 'Evolution of published event count (filterable)';
+    public $category = 'events';
     public $render = 'MultiLineChart';
     public $width = 7;
     public $height = 6;
@@ -13,6 +14,21 @@ class EventEvolutionLineWidget
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'Start date, expressed in Y-m-d format (e.g. 2012-10-01)',
         'cumulative' => '(default: on), should the data counted cumulatively over time',
+    ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+        'cumulative' => [
+            'type' => 'bool',
+            'default' => true,
+            'help' => 'Plot data cumulatively over time (running total) instead of per-interval counts.',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Start date for the timeline. Open-ended (to = null) is the natural shape — the chart always runs through the current month — so the adapter\'s skip-end_date-when-to-null behavior matches handler()\'s implicit "now" endpoint.',
+        ],
     ];
     private $validFilterKeys = [
         'nationality',
@@ -49,7 +65,21 @@ class EventEvolutionLineWidget
     {
         $this->Organisation = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
-        $isCumulative = isset($options['cumulative']) && empty($options['cumulative']);
+        // Phase 2 cleanup: the prior `$isCumulative = isset(x) && empty(x)`
+        // misnamed the variable (it was true for falsy values, false for
+        // truthy ones) and the consumption site below was correspondingly
+        // inverted, so end-to-end behavior was correct but unreadable.
+        // Rewritten with the canonical bool semantic per $schema['cumulative']
+        // (default: true) — accepts real booleans (from the configure form),
+        // legacy "true"/"1"/"0"/"false" strings, and ints.
+        $cumulative = filter_var(
+            $options['cumulative'] ?? true,
+            FILTER_VALIDATE_BOOLEAN,
+            ['flags' => FILTER_NULL_ON_FAILURE]
+        );
+        if ($cumulative === null) {
+            $cumulative = true; // unrecognized value → schema default
+        }
         $oparams = [
             'conditions' => [
                 'AND' => ['Organisation.local' => !isset($options['local']) ? 1 : $options['local']]
@@ -120,10 +150,10 @@ class EventEvolutionLineWidget
         $total = 0;
         foreach ($raw_padded as $date => $count) {
             $total += $count;
-            if ($isCumulative) {
-                $raw_padded[$date] = $count;
-            } else {
+            if ($cumulative) {
                 $raw_padded[$date] = $total;
+            } else {
+                $raw_padded[$date] = $count;
             }
         }
         $data = [];

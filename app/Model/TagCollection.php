@@ -87,7 +87,10 @@ class TagCollection extends AppModel
                 'TagCollectionTag' => [
                     'Tag' => [
                         'id',
-                        'name'
+                        'name',
+                        'org_id',
+                        'user_id',
+                        'hide_tag'
                     ]
                 ]
             );

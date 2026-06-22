@@ -117,6 +117,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('dumpCurrentDatabaseSchema', [
             'help' => __('Dump current database schema to JSON file.'),
         ]);
+        $parser->addSubcommand('updateAsnCountryMap', [
+            'help' => __('Regenerate app/files/geo-open/asn-country.json from the GeoOpen-Country-ASN mmdb (requires the python maxminddb package). Run after the mmdb is updated; also part of preRelease.'),
+        ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
         ]);
@@ -378,6 +381,10 @@ class AdminShell extends AppShell
     public function updateJSON()
     {
         $this->out('Updating all JSON structures.');
+
+        $userId = empty($this->args[0])  ? null : $this->args[0];
+        $jobId = empty($this->args[1])  ? null : $this->args[1];
+
         $overallSuccess = true;
         foreach ($this->Server->updateJSON() as $type => $result) {
             $type = Inflector::pluralize(Inflector::humanize($type));
@@ -391,8 +398,15 @@ class AdminShell extends AppShell
         }
         if ($overallSuccess) {
             $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
+            if (!is_null($jobId)) {
+                $this->Job->saveProgress($jobId, 'All JSON structures updated', 100);
+                $job['Job']['status'] = Job::STATUS_COMPLETED;
+            }
         } else {
             $this->error('Some structure could no be updated');
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, false, 'Some JSON structures could not be updated');
+            }
         }
     }
 
@@ -1008,12 +1022,26 @@ class AdminShell extends AppShell
         $this->out(__("> describeTypes.json dumped to disk"));
     }
 
+    public function updateAsnCountryMap()
+    {
+        $script = APP . 'files' . DS . 'scripts' . DS . 'generate_asn_country_map.py';
+        try {
+            $output = ProcessTool::execute([ProcessTool::pythonBin(), $script]);
+            $this->out(__('> %s', trim($output)));
+        } catch (Exception $e) {
+            $this->err(__('> Could not regenerate asn-country.json: %s', $e->getMessage()));
+            $this->err(__('> The shipped asn-country.json may be stale. Ensure the python maxminddb package is installed and GeoOpen-Country-ASN.mmdb is present.'));
+        }
+    }
+
     public function preRelease()
     {
         $this->out(__("Dumping database schema to disk"));
         $this->dumpCurrentDatabaseSchema();
         $this->out(__("Dumping describeTypes.json to disk"));
         $this->dumpDescribeTypes();
+        $this->out(__("Regenerating asn-country.json from the GeoOpen-Country-ASN mmdb"));
+        $this->updateAsnCountryMap();
     }
 
     /**

@@ -111,6 +111,9 @@ class TaxiiServersController extends AppController
         if (empty($taxii_server)) {
             throw new NotFoundException(__('Invalid Taxii Server ID provided.'));
         }
+        if (empty($taxii_server['TaxiiServer']['enabled'])) {
+            throw new MethodNotAllowedException(__('TAXII server is disabled.'));
+        }
 
         if ($this->request->is('post')) {
             $result = $this->TaxiiServer->pushRouter($taxii_server['TaxiiServer']['id'], $this->Auth->user());

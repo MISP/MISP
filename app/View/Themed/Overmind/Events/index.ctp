@@ -16,7 +16,7 @@ $canPickTemplate = (
 );
 if ($canPickTemplate) {
     $headerActions[] = [
-        'type' => 'modal',
+        'type' => 'navigate',
         'id' => 'event-template-picker-button',
         'label' => __('From template'),
         'icon' => 'clone',
@@ -179,7 +179,7 @@ $fields = [
                 'url' => $baseurl . '/events/view2/%id%'
             ],
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/events/edit/%id%',
@@ -243,14 +243,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'button',
                         'label' => __('My events'),
-                        'icon' => 'user',
+                        'icon' => 'misp-icon misp-icon-user1 misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
                     ],
                     [
                         'type' => 'button',
                         'label' => __('Org events'),
-                        'icon' => 'building',
+                        'icon' => 'misp-icon misp-icon-organisation misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
                     ],

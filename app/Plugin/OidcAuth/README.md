@@ -36,7 +36,7 @@ $config = array(
 ```php
 $config = array(
     ...
-    'OidcAuth' = [
+    'OidcAuth' => [
         'provider_url' => '{{ OIDC_PROVIDER }}',
         'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
         'client_id' => '{{ OIDC_CLIENT_ID }}',
@@ -47,7 +47,9 @@ $config = array(
         ],
         'default_org' => '{{ MISP_ORG }}',
         'disable_request_object' => true, //Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers. (False by default)
+        'disable_pushed_authorization_request' => true, // Disable the use of Pushed Authorization Requests (PAR) and send authorization request parameters directly to the authorization endpoint instead. This can be used for compatibility with OpenID Connect providers where PAR should not be used. (False by default)
         'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
+        'login_button_text' => 'Login with OIDC', // Optional, custom label for the login button shown when `mixedAuth` is enabled (defaults to "Login with OIDC")
     ],
     ...
 ```
@@ -69,6 +71,10 @@ Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to 
 
 7. Proxy
 Set `OidcAuth.skipProxy` to `false` to use global MISP proxy settings when sending requests to your OIDC provider. By default global proxy settings are ignored. 
+
+8. Custom login button text
+
+When `OidcAuth.mixedAuth` is enabled, a login button is shown on the login page. Set `OidcAuth.login_button_text` to customise its label (for example `Login with Authentik` or `Login with Company SSO`). If unset or empty, it defaults to `Login with OIDC`.
 
 ## Caveats
 

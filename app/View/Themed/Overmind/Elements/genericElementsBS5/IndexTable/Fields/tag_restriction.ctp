@@ -15,7 +15,7 @@ if (!empty($organisation['name'])) {
     $items[] = [
         'type' => 'link',
         'url' => ['controller' => 'organisations', 'action' => 'view', $organisation['id']],
-        'icon' => '<span class="fa fa-building text-primary"></span>',
+        'icon' => '<span class="misp-icon misp-icon-organisation misp-simple text-muted"></span>',
         'text' => $organisation['name'],
         'is_org' => true,
         'org' => $organisation
@@ -26,7 +26,7 @@ if (!empty($organisation['name'])) {
 if (!empty($user['email'])) {
     $items[] = [
         'type' => 'text',
-        'icon' => '<span class="fa fa-image-portrait text-muted"></span>',
+        'icon' => '<span class="misp-icon misp-icon-user1 misp-simple text-muted"></span>',
         'text' => $user['email'],
         'is_org' => false
     ];
@@ -36,7 +36,7 @@ if (!empty($user['email'])) {
 <div class="d-flex <?= $isCard ? 'flex-wrap gap-3' : 'flex-column flex-wrap gap-2' ?>">
     <?php foreach ($items as $item): ?>
         <?php if ($item['type'] === 'link'): ?>
-            <a class="d-flex align-items-center gap-2 text-decoration-none fw-semibold text-primary"
+            <a class="d-flex align-items-center gap-2 text-decoration-none fw-semibold text-muted"
                href="<?= $this->Html->url($item['url']) ?>">
         <?php else: ?>
             <div class="d-flex align-items-center gap-1 fw-semibold">

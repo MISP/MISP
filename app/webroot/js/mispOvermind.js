@@ -45,6 +45,57 @@ function showToast(message, variant = 'success') {
     el.addEventListener('hidden.bs.toast', () => el.remove());
 }
 
+/*******************************
+ * Confirmation modal (inline — no AJAX)
+ *
+ * opts:
+ *   title         (string)   — modal title
+ *   body          (string)   — HTML for the body (already escaped by caller)
+ *   confirmLabel  (string)   — confirm button text
+ *   confirmClass  (string)   — Bootstrap btn class, default 'btn-primary'
+ *   cancelLabel   (string)   — cancel button text, default 'Cancel'
+ *   size          (string)   — modal size suffix: 'sm'|'lg'|'xl', default 'sm'
+ *   onConfirm     (function) — called after the user confirms
+ *******************************/
+function showConfirmModal(opts) {
+    const modalEl   = document.getElementById('mainModal');
+    const modalBody = document.getElementById('mainModalBody');
+    if (!modalEl || !modalBody) return;
+
+    const size         = opts.size         || 'sm';
+    const confirmClass = opts.confirmClass || 'btn-primary';
+    const confirmLabel = opts.confirmLabel || 'Confirm';
+    const cancelLabel  = opts.cancelLabel  || 'Cancel';
+
+    modalBody.innerHTML =
+        '<div class="p-4">' +
+            (opts.title
+                ? '<h5 class="fw-semibold mb-3">' + escapeHtml(opts.title) + '</h5>'
+                : '') +
+            (opts.body
+                ? '<div class="mb-4">' + opts.body + '</div>'
+                : '') +
+            '<div class="d-flex gap-2 justify-content-end">' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary"' +
+                        ' data-bs-dismiss="modal">' + escapeHtml(cancelLabel) + '</button>' +
+                '<button type="button" class="btn btn-sm ' + escapeHtml(confirmClass) + '"' +
+                        ' id="confirmModalOkBtn">' + escapeHtml(confirmLabel) + '</button>' +
+            '</div>' +
+        '</div>';
+
+    const dialog = modalEl.querySelector('.modal-dialog');
+    dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+    dialog.classList.add('modal-' + size);
+
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+
+    document.getElementById('confirmModalOkBtn').addEventListener('click', function () {
+        bsModal.hide();
+        if (typeof opts.onConfirm === 'function') opts.onConfirm();
+    }, { once: true });
+}
+
 // Initializing Bootstrap 5 tooltips
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -63,7 +114,7 @@ function openModal(url, size = 'xl') {
         modalDialog.classList.add('modal-' + size);
     }
 
-    fetch(url)
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
             const container = document.getElementById('mainModalBody');
@@ -73,7 +124,9 @@ function openModal(url, size = 'xl') {
                 if (oldScript.src) {
                     newScript.src = oldScript.src;
                 } else {
-                    newScript.textContent = oldScript.textContent;
+                    // Wrap in IIFE so const/let declarations don't leak into the
+                    // global scope and cause redeclaration errors on repeated opens.
+                    newScript.textContent = '(function(){\n' + oldScript.textContent + '\n})();';
                 }
                 document.body.appendChild(newScript);
                 document.body.removeChild(newScript);
@@ -90,22 +143,13 @@ function openModal(url, size = 'xl') {
         });
 }
 
-function multiSelectItems(url) {
+function multiSelectItems(url, suffixe) {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
-    const fullUrl = url + '/' + JSON.stringify(ids);
+    const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
     openModal(fullUrl, 'sm');
-}
-
-function multiSelectItems2(url) {
-    if (selectedItems.size === 0) {
-        return;
-    }
-    const ids = Array.from(selectedItems.keys());
-    const fullUrl = url + '/' + JSON.stringify(ids);
-    openModal(fullUrl);
 }
 
 function redirectToExportResult() {
@@ -121,9 +165,19 @@ function redirectToExportResult() {
     window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
 }
 
-function toggleAllAttributeCheckboxes() {
-    const checked = document.getElementById('select_all').checked;
-    const checkboxes = document.querySelectorAll('.item-checkbox');
+function toggleAllAttributeCheckboxes(selectAllEl) {
+    // Prefer the element passed directly from onclick="…(this)" so that
+    // when multiple scaffolds are loaded in sibling tab-panes (e.g.
+    // Attributes and Reports both have a select-all checkbox), we always
+    // operate on the one the user actually clicked rather than the first
+    // matching getElementById result.
+    const selectAll = selectAllEl || document.getElementById('select_all');
+    if (!selectAll) return;
+    const checked = selectAll.checked;
+    // Scope to the enclosing tab-pane so checkboxes in sibling tabs are
+    // not accidentally included. Fall back to document on standalone pages.
+    const scope = selectAll.closest('.tab-pane') || document;
+    const checkboxes = scope.querySelectorAll('.item-checkbox');
 
     checkboxes.forEach(checkbox => {
         checkbox.checked = checked;
@@ -156,23 +210,30 @@ function setView(view, save = true) {
 }
 
 function updateMultiSelectToolbar() {
-    const toolbar        = document.getElementById('multiSelectToolbar');
-    const selectedCount  = document.getElementById('selectedCount');
-    const deleteButton   = document.getElementById('multi-delete-button');
-    const editButton     = document.getElementById('mass-edit-button');
-    const tagButton      = document.getElementById('mass-tag-button');
-    const localtagButton = document.getElementById('mass-local-tag-button');
-    const clusterButton  = document.getElementById('mass-cluster-button');
-    const localclusterButton = document.getElementById('mass-local-cluster-button');
-    const objectButton   = document.getElementById('mass-object-button');
-    const relationshipButton = document.getElementById('mass-relationship-button');
-    const sightingButton = document.getElementById('mass-sighting-button');
-    const enableButton   = document.getElementById('mass-enable-button');
-    const disableButton  = document.getElementById('mass-disable-button');
-    const requireButton   = document.getElementById('mass-require-button');
-    const optionalButton  = document.getElementById('mass-optional-button');
-    const highlightButton   = document.getElementById('mass-highlight-button');
-    const removehighlightButton  = document.getElementById('mass-removehighlight-button');
+    // When multiple tabs each contain a mass-action toolbar (e.g. Attributes
+    // and Reports), getElementById would return the first one in DOM order
+    // regardless of which tab is visible.  Scope the lookup to the active
+    // tab-pane so we always update the currently visible toolbar.
+    // On standalone index pages (no tab-pane) fall back to document.
+    const scope = document.querySelector('.tab-pane.active') || document;
+    const toolbar        = scope.querySelector('#multiSelectToolbar');
+    const selectedCount  = scope.querySelector('#selectedCount');
+    const deleteButton     = scope.querySelector('#multi-delete-button');
+    const softDeleteButton = scope.querySelector('#multi-soft-delete-button');
+    const editButton     = scope.querySelector('#mass-edit-button');
+    const tagButton      = scope.querySelector('#mass-tag-button');
+    const localtagButton = scope.querySelector('#mass-local-tag-button');
+    const clusterButton  = scope.querySelector('#mass-cluster-button');
+    const localclusterButton = scope.querySelector('#mass-local-cluster-button');
+    const objectButton   = scope.querySelector('#mass-object-button');
+    const relationshipButton = scope.querySelector('#mass-relationship-button');
+    const sightingButton = scope.querySelector('#mass-sighting-button');
+    const enableButton   = scope.querySelector('#mass-enable-button');
+    const disableButton  = scope.querySelector('#mass-disable-button');
+    const requireButton   = scope.querySelector('#mass-require-button');
+    const optionalButton  = scope.querySelector('#mass-optional-button');
+    const highlightButton   = scope.querySelector('#mass-highlight-button');
+    const removehighlightButton  = scope.querySelector('#mass-removehighlight-button');
 
     const count          = selectedItems.size;
 
@@ -205,6 +266,7 @@ function updateMultiSelectToolbar() {
     const isHidden = !canDeleteAll;
 
     deleteButton?.classList.toggle('d-none', isHidden);
+    softDeleteButton?.classList.toggle('d-none', isHidden);
     editButton?.classList.toggle('d-none', isHidden);
     tagButton?.classList.toggle('d-none', isHidden);
     localtagButton?.classList.toggle('d-none', isHidden);
@@ -311,6 +373,12 @@ function buildFilterUrl() {
     }
 
     return newUrl;
+}
+
+// Safe global fallback — filter_bar.ctp re-declares this per scaffold,
+// but mispOvermind.js references it unconditionally in its change listener.
+if (typeof selectedItems === 'undefined') {
+    var selectedItems = new Map();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2085,4 +2153,601 @@ function initSharingGroupForm(container) {
         renderOrgs();
         renderServers();
     }
+}
+
+/*******************************
+ * Sighting cells — popover lazy-init + add-sighting
+ * i18n strings are injected once per page via window._sightingI18n
+ * (set by the sightings.ctp field partial)
+ *******************************/
+(function () {
+    /* Lazy popover */
+    document.addEventListener('mouseenter', function (e) {
+        var el = e.target.closest('.sighting-counts');
+        if (!el || el._popoverReady) return;
+        el._popoverReady = true;
+        new bootstrap.Popover(el, {
+            trigger:   'hover focus',
+            html:      true,
+            placement: 'top',
+        }).show();
+    }, true);
+
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.add-sighting-btn');
+        if (!btn) return;
+        e.preventDefault();
+
+        var attrId = btn.dataset.attributeId;
+        var type   = btn.dataset.type;
+        var i18n   = window._sightingI18n || {};
+
+        btn.disabled = true;
+        try {
+            var response = await fetch(baseurl + '/sightings/add/' + attrId, {
+                method:  'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type':     'application/x-www-form-urlencoded',
+                    'Accept':           'application/json',
+                    'X-CSRF-Token':     getCsrfToken(),
+                },
+                body: 'data[Sighting][type]=' + encodeURIComponent(type)
+                    + '&data[Sighting][id]='  + encodeURIComponent(attrId),
+            });
+
+            var data = await response.json();
+
+            if (response.ok && !data.errors) {
+                var countEl = document.querySelector(
+                    '#sightings_' + attrId + ' .sighting-' + (type === '0' ? 's' : 'f')
+                );
+                if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+                showToast(type === '0'
+                    ? (i18n.addedSighting || 'Sighting added')
+                    : (i18n.addedFP       || 'Marked as false positive'),
+                    'success');
+            } else {
+                showToast(i18n.failed    || 'Failed to add sighting', 'danger');
+            }
+        } catch (_e) {
+            showToast(i18n.reqFailed || 'Request failed — please try again', 'danger');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+})();
+
+
+/*******************************
+ * Overmind form shared utilities
+ * Used by Events/add, Attributes/add, and any form with a
+ * distribution TomSelect or non-correlating type logic.
+ *******************************/
+/* ── Distribution colours / icons ──────────────────────────────────────── */
+var DIST_MAP = {
+    0: { icon: 'misp-icon misp-icon-organisation misp-simple', bg: '#f8d7da', color: '#842029' },
+    1: { icon: 'fas fa-users',                                  bg: '#ffe5b4', color: '#b45309' },
+    2: { icon: 'fas fa-network-wired',                          bg: '#e7d3c3', color: '#5a3e2b' },
+    3: { icon: 'fas fa-globe',                                  bg: '#d1f7e0', color: '#0f5132' },
+    4: { icon: 'misp-icon misp-icon-sharing-group misp-simple', bg: '#6a96ee', color: '#0e146d' },
+    5: { icon: 'fas fa-code-fork',                              bg: '#e6b7df', color: '#380f33' },
+};
+
+function renderDistOption(data, escape) {
+    var cfg = DIST_MAP[parseInt(data.value, 10)]
+        || { icon: 'fas fa-question', bg: '#f1f1f1', color: '#333' };
+    return '<div class="d-flex align-items-center gap-2 py-1">'
+        + '<span class="badge d-inline-flex align-items-center px-2 py-1" style="'
+            + 'background:' + cfg.bg + ';color:' + cfg.color + ';'
+            + 'border:1px solid ' + cfg.color + '33;">'
+        + '<i class="' + cfg.icon + '"></i>'
+        + '</span>'
+        + '<span>' + escape(data.text) + '</span>'
+        + '</div>';
+}
+
+function renderDistSelected(data, escape) {
+    var cfg = DIST_MAP[parseInt(data.value, 10)]
+        || { icon: 'fas fa-question', bg: '#f1f1f1', color: '#333' };
+    return '<div class="d-flex align-items-center gap-1">'
+        + '<span class="badge d-inline-flex align-items-center px-1" style="'
+            + 'background:' + cfg.bg + ';color:' + cfg.color + ';'
+            + 'border:1px solid ' + cfg.color + '33; font-size:.65rem;">'
+        + '<i class="' + cfg.icon + '"></i>'
+        + '</span>'
+        + '<span>' + escape(data.text) + '</span>'
+        + '</div>';
+}
+
+/*
+ * distBadgeHtml(level, withLabel?, labels?)
+ * Renders a small inline distribution badge (icon + optional label).
+ * @param {number}  level      Distribution level 0–5
+ * @param {boolean} withLabel  Show the text label beside the icon
+ * @param {object}  labels     Map of level → label string (e.g. distLevels from PHP)
+ */
+function distBadgeHtml(level, withLabel, labels) {
+    var d   = DIST_MAP[level] || DIST_MAP[0];
+    var lbl = (withLabel && labels && labels[level]) ? labels[level] : '';
+    return '<span class="badge d-inline-flex align-items-center gap-1 px-2 py-1"'
+        + ' style="background:' + d.bg + ';color:' + d.color
+        + ';border:1px solid ' + d.color + '30;font-weight:500;">'
+        + '<i class="' + d.icon + '"></i>'
+        + (lbl ? '<span class="ms-1" style="font-size:.7rem;">' + escapeHtml(lbl) + '</span>' : '')
+        + '</span>';
+}
+
+function initDistributionSelect(elId, onChange) {
+    var el = document.getElementById(elId);
+    if (!el || el.tomselect) { return; }
+    new TomSelect(el, {
+        create:   false,
+        onChange: onChange || null,
+        render: {
+            option: renderDistOption,
+            item:   renderDistSelected
+        }
+    });
+}
+
+function formTypeChanged(idPrefix) {
+    var typeEl = document.getElementById(idPrefix + 'Type');
+    if (!typeEl) { return; }
+    var isNonCorr = (typeof non_correlating_types !== 'undefined')
+        && non_correlating_types.indexOf(typeEl.value) !== -1;
+    var corrEl = document.getElementById(idPrefix + 'DisableCorrelation');
+    if (corrEl) { corrEl.disabled = isNonCorr; }
+}
+
+function checkNoticeList(type) {
+    var fieldsToCheck = { attribute: ['category', 'type'] };
+    var fields = fieldsToCheck[type];
+    if (!fields) { return; }
+
+    var triggers = (typeof notice_list_triggers !== 'undefined')
+        ? notice_list_triggers : {};
+    var base = (typeof baseurl !== 'undefined') ? baseurl : '';
+
+    fields.forEach(function (fieldName) {
+        var box = document.getElementById('notice_' + fieldName);
+        if (!box) { return; }
+        box.innerHTML = '';
+        box.style.display = 'none';
+
+        if (!(fieldName in triggers)) { return; }
+        var elId = type.charAt(0).toUpperCase() + type.slice(1)
+                 + fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+        var el = document.getElementById(elId);
+        if (!el || !(el.value in triggers[fieldName])) { return; }
+
+        triggers[fieldName][el.value].forEach(function (notice) {
+            var msg = (notice.message && notice.message.en)
+                ? notice.message.en : '';
+
+            var wrap = document.createElement('div');
+            wrap.className = 'd-flex align-items-start gap-2 rounded-2 p-2 mt-1';
+            wrap.style.cssText = 'background:rgba(13,110,253,.06);'
+                + 'border:1px solid rgba(13,110,253,.25);font-size:.8rem;';
+
+            /* innerHTML for static structure; textContent set below to avoid XSS */
+            wrap.innerHTML =
+                '<i class="fas fa-circle-info flex-shrink-0"'
+                + ' style="color:var(--primary);margin-top:.15rem;"></i>'
+                + '<div class="flex-fill" style="min-width:0;overflow:hidden;">'
+                    + '<div class="d-flex align-items-center gap-1"'
+                    + ' style="min-width:0;overflow:hidden;">'
+                        + '<a class="fw-semibold text-decoration-none flex-shrink-0"'
+                        + ' style="color:var(--primary);"></a>'
+                        + '<span class="notice-preview" style="flex:1;min-width:0;'
+                        + 'overflow:hidden;white-space:nowrap;'
+                        + 'text-overflow:ellipsis;color:#666;"></span>'
+                        + '<button type="button" style="background:none;border:none;'
+                        + 'padding:0;color:var(--primary);cursor:pointer;'
+                        + 'flex-shrink:0;">'
+                        + '<i class="fas fa-chevron-down"'
+                        + ' style="font-size:.7rem;"></i></button>'
+                    + '</div>'
+                    + '<div class="notice-full"'
+                    + ' style="display:none;color:#666;margin-top:.2rem;"></div>'
+                + '</div>';
+
+            var link    = wrap.querySelector('a');
+            var preview = wrap.querySelector('.notice-preview');
+            var full    = wrap.querySelector('.notice-full');
+            var btn     = wrap.querySelector('button');
+            var chevron = btn.querySelector('i');
+
+            link.href         = base + '/noticelists/view/' + notice.list_id;
+            link.textContent  = notice.list_name;
+            preview.textContent = msg;
+            full.textContent    = msg;
+
+            btn.addEventListener('click', function () {
+                var expanded = btn.getAttribute('aria-expanded') === 'true';
+                preview.style.display = expanded ? '' : 'none';
+                full.style.display    = expanded ? 'none' : '';
+                chevron.className     = expanded
+                    ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+                btn.setAttribute('aria-expanded', String(!expanded));
+            });
+
+            box.appendChild(wrap);
+            box.style.display = '';
+        });
+    });
+}
+
+function parseSeenDisplay(val) {
+    if (!val) { return ''; }
+    var m = val.trim().match(
+        /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?$/
+    );
+    if (!m) { return ''; }
+    return m[3]
+        + '-'  + m[2].padStart(2, '0')
+        + '-'  + m[1].padStart(2, '0')
+        + 'T'  + (m[4] || '00').padStart(2, '0')
+        + ':'  + (m[5] || '00').padStart(2, '0');
+}
+/*******************************
+ * renderPaginator
+ * Renders a pagination nav inside `el`.
+ * Hides `el` (d-none) when pageCount <= 1.
+ * @param {Element}  el         Container element
+ * @param {number}   page       Current page (1-based)
+ * @param {number}   pageCount  Total pages
+ * @param {function} onPage     Callback(n) on page button click
+ *******************************/
+function renderPaginator(el, page, pageCount, onPage) {
+    if (!el) { return; }
+    if (pageCount <= 1) { el.classList.add('d-none'); return; }
+    el.classList.remove('d-none');
+
+    var maxShow = 5, half = Math.floor(maxShow / 2);
+    var start = Math.max(1, page - half);
+    var end   = Math.min(pageCount, start + maxShow - 1);
+    if (end - start + 1 < maxShow) { start = Math.max(1, end - maxShow + 1); }
+
+    function li(content, disabled, active, n) {
+        var cls = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+        if (disabled || active) {
+            return '<li class="' + cls + '"><span class="page-link">' + content + '</span></li>';
+        }
+        return '<li class="' + cls + '">'
+            + '<button type="button" class="page-link" data-pn="' + n + '">'
+            + content + '</button></li>';
+    }
+
+    var items = li('<i class="fas fa-chevron-left"></i>', page <= 1, false, page - 1);
+    if (start > 1) {
+        items += li('1', false, false, 1);
+        if (start > 2) { items += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>'; }
+    }
+    for (var i = start; i <= end; i++) { items += li(i, false, i === page, i); }
+    if (end < pageCount) {
+        if (end < pageCount - 1) { items += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>'; }
+        items += li(pageCount, false, false, pageCount);
+    }
+    items += li('<i class="fas fa-chevron-right"></i>', page >= pageCount, false, page + 1);
+
+    el.innerHTML = '<nav><ul class="pagination pagination-sm mb-0">' + items + '</ul></nav>';
+    el.querySelectorAll('[data-pn]').forEach(function (btn) {
+        btn.addEventListener('click', function () { onPage(parseInt(btn.dataset.pn, 10)); });
+    });
+}
+
+/*******************************
+ * toggleCollapsible
+ * Toggles visibility of a target element via d-none.
+ * Updates the button icon (chevron) and last text node.
+ * @param {Element} btn        The trigger button
+ * @param {string}  targetId   ID of element to show/hide
+ * @param {string}  showLabel  Label shown when element is hidden
+ * @param {string}  hideLabel  Label shown when element is visible
+ *******************************/
+function toggleCollapsible(btn, targetId, showLabel, hideLabel) {
+    var el   = document.getElementById(targetId);
+    var icon = btn.querySelector('i');
+    if (!el) { return; }
+    var isHidden = el.classList.contains('d-none');
+    el.classList.toggle('d-none', !isHidden);
+    if (icon) { icon.className = isHidden ? 'fas fa-chevron-up me-1' : 'fas fa-chevron-down me-1'; }
+    var last = btn.lastChild;
+    if (last && last.nodeType === 3) { last.textContent = ' ' + (isHidden ? hideLabel : showLabel); }
+}
+
+/*******************************
+ * initAttributeForm
+ * Bootstraps all interactive behaviour for Attributes/add and Attributes/edit.
+ * Call once the DOM is ready: initAttributeForm(currentDist, isEdit)
+ * @param {number}  currentDist  Initial distribution value (0–5)
+ * @param {boolean} isEdit       True when editing an existing attribute
+ *******************************/
+function initAttributeForm(currentDist, isEdit) {
+
+    /* Show/hide the sharing-group select */
+    function toggleSg(val) {
+        var sg = document.getElementById('attr-sg-container');
+        if (sg) { sg.style.display = parseInt(val, 10) === 4 ? '' : 'none'; }
+    }
+
+    /* Checkbox-card colours for Batch / IDS / Correlation */
+    var CARD_CFG = {
+        AttributeBatchImport: {
+            card: 'card-batch', icon: 'icon-batch',
+            on:  { border: '#0d6efd', color: '#0d6efd', iconClass: null },
+            off: { border: '#dee2e6', color: '#adb5bd', iconClass: null }
+        },
+        AttributeToIds: {
+            card: 'card-ids', icon: 'icon-ids',
+            on:  { border: '#ffc107', color: '#ffc107', iconClass: null },
+            off: { border: '#dee2e6', color: '#adb5bd', iconClass: null }
+        },
+        AttributeDisableCorrelation: {
+            card: 'card-correl', icon: 'icon-correl',
+            on:  { border: '#dee2e6', color: '#adb5bd', iconClass: 'fas fa-link-slash' },
+            off: { border: '#198754', color: '#198754', iconClass: 'fas fa-link' }
+        }
+    };
+
+    function applyCardStyle(checkboxId) {
+        var cfg  = CARD_CFG[checkboxId];
+        if (!cfg) { return; }
+        var cb   = document.getElementById(checkboxId);
+        var card = document.getElementById(cfg.card);
+        var icon = document.getElementById(cfg.icon);
+        if (!cb || !card) { return; }
+        var theme = cb.checked ? cfg.on : cfg.off;
+        card.style.borderColor = theme.border;
+        if (icon) {
+            icon.style.color   = theme.color;
+            icon.style.opacity = '1';
+            if (theme.iconClass) { icon.className = theme.iconClass; }
+        }
+    }
+
+    function setupCardListeners() {
+        Object.keys(CARD_CFG).forEach(function (id) {
+            var cb = document.getElementById(id);
+            if (!cb) { return; }
+            applyCardStyle(id);
+            cb.addEventListener('change', function () { applyCardStyle(id); });
+        });
+    }
+
+    /* Filter the Type TomSelect to the types allowed for the selected category */
+    function applyTypeFilter(selectedCategory, preserveValue) {
+        var typeEl  = document.getElementById('AttributeType');
+        if (!typeEl) { return; }
+
+        /* Capture current value before clearing options */
+        var previousType = typeEl.value;
+
+        var mapping = (typeof category_type_mapping !== 'undefined')
+            ? category_type_mapping : {};
+        var allowed = [];
+
+        if (!selectedCategory || !mapping[selectedCategory]) {
+            var seen = {};
+            Object.keys(mapping).forEach(function (cat) {
+                mapping[cat].forEach(function (t) {
+                    if (!seen[t]) { seen[t] = true; allowed.push(t); }
+                });
+            });
+        } else {
+            allowed = mapping[selectedCategory].slice();
+        }
+
+        /* Value to select: keep previous on init, reset to empty on user change */
+        var nextVal = (preserveValue && allowed.indexOf(previousType) !== -1)
+            ? previousType : '';
+
+        while (typeEl.options.length) { typeEl.remove(0); }
+        typeEl.add(new Option('', ''));
+        allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
+        typeEl.value    = nextVal;
+        typeEl.disabled = false;
+
+        if (typeEl.tomselect) {
+            var ts = typeEl.tomselect;
+            ts.clear(true);
+            ts.clearOptions();
+            ts.addOption({ value: '', text: '' });
+            ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
+            ts.setValue(nextVal, true);
+            ts.refreshItems();
+        }
+
+        formTypeChanged('Attribute');
+    }
+
+    /* TomSelect: Category */
+    function initCategorySelect() {
+        var el = document.getElementById('AttributeCategory');
+        if (!el || el.tomselect) { return; }
+        new TomSelect(el, {
+            create: false,
+            onChange: function (val) {
+                applyTypeFilter(val);
+                if (val === 'Internal reference') {
+                    var distEl = document.getElementById('AttributeDistribution');
+                    if (distEl && distEl.tomselect) {
+                        distEl.tomselect.setValue('0');
+                    } else {
+                        toggleSg(0);
+                    }
+                }
+                checkNoticeList('attribute');
+            }
+        });
+    }
+
+    /* TomSelect: Type */
+    function initTypeSelect() {
+        var el = document.getElementById('AttributeType');
+        if (!el || el.tomselect) { return; }
+        new TomSelect(el, {
+            create: false,
+            onChange: function () {
+                formTypeChanged('Attribute');
+                checkNoticeList('attribute');
+            }
+        });
+    }
+
+    /* datetime-local pickers → hidden YYYY-MM-DD HH:MM:SS fields */
+    function setupTemporalInputs() {
+        [['attr-first-seen-picker', 'AttributeFirstSeen'],
+         ['attr-last-seen-picker',  'AttributeLastSeen']].forEach(function (pair) {
+            var picker = document.getElementById(pair[0]);
+            var hidden = document.getElementById(pair[1]);
+            if (!picker || !hidden) { return; }
+            picker.addEventListener('change', function () {
+                hidden.value = picker.value ? picker.value.replace('T', ' ') : '';
+            });
+        });
+    }
+
+    initCategorySelect();
+    initTypeSelect();
+    initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
+    setupCardListeners();
+    setupTemporalInputs();
+    if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
+
+    toggleSg(currentDist);
+    var initCat = document.getElementById('AttributeCategory');
+    applyTypeFilter(initCat ? initCat.value : '', true);
+    if (isEdit) { checkNoticeList('attribute'); }
+}
+
+/*******************************
+ * initEventForm
+ * Bootstraps all interactive behaviour for Events/add and Events/edit.
+ * Call once the DOM is ready: initEventForm(baseurl)
+ * @param {string} base  MISP base URL (no trailing slash)
+ *******************************/
+function initEventForm(base) {
+
+    /* Fetch a live event summary when the user types a UUID/ID */
+    function setupUuidPreview() {
+        var input   = document.getElementById('EventExtendsUuid');
+        var preview = document.getElementById('event_preview');
+        if (!input || !preview) { return; }
+
+        var timer = null;
+        function fetchPreview(val) {
+            clearTimeout(timer);
+            if (!val || !val.trim()) {
+                preview.style.display = 'none';
+                return;
+            }
+            timer = setTimeout(function () {
+                fetch(base + '/events/getEventInfoById/'
+                        + encodeURIComponent(val.trim()),
+                    { credentials: 'same-origin' })
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) {
+                        preview.innerHTML     = html;
+                        preview.style.display = '';
+                    })
+                    .catch(function () { preview.style.display = 'none'; });
+            }, 100);
+        }
+
+        input.addEventListener('input', function () { fetchPreview(input.value); });
+        if (input.value) { fetchPreview(input.value); }
+    }
+
+    /* Card-based radio groups for Analysis and Threat Level */
+    function setupRadioCards() {
+        var selectIds = {
+            analysis: 'EventAnalysisInput',
+            threat:   'EventThreatLevelInput',
+        };
+        document.querySelectorAll('.event-card').forEach(function (card) {
+            card.addEventListener('click', function () {
+                var group  = card.dataset.group;
+                var select = document.getElementById(selectIds[group]);
+                if (select) { select.value = card.dataset.value; }
+
+                document.querySelectorAll(
+                    '.event-card[data-group="' + group + '"]'
+                ).forEach(function (c) {
+                    var inner = c.querySelector('.border');
+                    if (!inner) { return; }
+                    var selected = c === card;
+                    inner.style.borderColor = selected ? 'var(--primary)' : '#d8dde3';
+                    inner.style.background  = selected ? 'rgba(24,146,177,.08)' : '';
+                });
+            });
+        });
+    }
+
+    /* Convert DD/MM/YYYY display input → YYYY-MM-DD hidden field */
+    function setupDateInput() {
+        var display = document.getElementById('EventDateDisplay');
+        var hidden  = document.getElementById('EventDate');
+        if (!display || !hidden) { return; }
+
+        display.addEventListener('input', function () {
+            var parts = display.value.split('/');
+            if (parts.length === 3
+                    && parts[0].length === 2
+                    && parts[1].length === 2
+                    && parts[2].length === 4) {
+                hidden.value = parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+        });
+    }
+
+    initDistributionSelect('distribution-select', null);
+    if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
+    setupUuidPreview();
+    setupRadioCards();
+    setupDateInput();
+}
+
+/*******************************
+ * updateActiveFilterBadge
+ * Injects a dismissible "Active filters" row below the filter bar for AJAX
+ * tab indexes. Removes any existing badge when searchTerm is empty.
+ * @param {Element}  container     Tab container element
+ * @param {string}   searchTerm    Current search value; '' removes the badge
+ * @param {function} clearCb       Called when the user clicks the Clear button
+ * @param {string}   [labelActive] "Active filters" label (default: English)
+ * @param {string}   [labelClear]  Clear button label (default: English)
+ *******************************/
+function updateActiveFilterBadge(container, searchTerm, clearCb, labelActive, labelClear) {
+    var existing = container.querySelector('#overmind-active-filter');
+    if (existing) existing.remove();
+    if (!searchTerm) return;
+
+    var filterBar = container.querySelector('[id^="filter-bar-"]');
+    if (!filterBar) return;
+
+    var wrap = document.createElement('div');
+    wrap.id = 'overmind-active-filter';
+    wrap.className = 'mt-2 d-flex align-items-center flex-wrap gap-2';
+
+    var lbl = document.createElement('strong');
+    lbl.className = 'me-1';
+    lbl.textContent = (labelActive || 'Active filters') + ':';
+
+    var chip = document.createElement('span');
+    chip.className = 'badge bg-primary';
+    chip.textContent = 'search: ' + searchTerm;
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    clearBtn.innerHTML = '<i class="fas fa-times me-1"></i>';
+    clearBtn.appendChild(document.createTextNode(labelClear || 'Clear'));
+    clearBtn.addEventListener('click', clearCb);
+
+    wrap.appendChild(lbl);
+    wrap.appendChild(chip);
+    wrap.appendChild(clearBtn);
+    filterBar.insertAdjacentElement('afterend', wrap);
 }

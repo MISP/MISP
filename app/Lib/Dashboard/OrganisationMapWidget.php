@@ -2,6 +2,7 @@
 class OrganisationMapWidget
 {
     public $title = 'Organisation world map';
+    public $category = 'orgs';
     public $render = 'WorldMap';
     public $description = 'The countries represented via organisations on the current instance.';
     public $width = 3;
@@ -10,10 +11,28 @@ class OrganisationMapWidget
         'filter' => 'A list of filters by organisation meta information (sector, type, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'The ISO 8601 date format at which to start',
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
-        'limit' => 'Limits the number of displayed tags. Default: 10',
+        'limit' => 'Limits the number of countries displayed on the map (top-N by organisation count). Leave empty for unlimited.',
+    ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data. This widget consumes sector / type / local only; name / nationality / uuid set via the toolbar are silently dropped by the widget\'s own validFilterKeys loop.',
+        ],
+        'limit' => [
+            'type' => 'int',
+            'help' => 'Top-N countries by organisation count (leave empty for unlimited).',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Restrict organisations by their date_created within this range.',
+        ],
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() counts org nationalities,
+    // scoped only by the config `filter`, never by $user. Config-only safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'sector',
         'type',
@@ -67,19 +86,33 @@ class OrganisationMapWidget
             }
         }
         $this->Organisation = ClassRegistry::init('Organisation');
+        // Phase 2 fix: stable order so the configurable `limit` (previously
+        // dead — declared in $params but never read) picks the most-
+        // represented countries deterministically. ORDER BY is unconditional
+        // even when no limit is set; the prior order was unspecified, and
+        // relying on it was already a bug. The LIMIT is intentionally NOT
+        // applied at the SQL level — non-mapped nationalities (e.g.
+        // "International", "Krakhozia", "Not specified") would consume
+        // limit slots before the country-code filter below could drop them,
+        // surprising users who asked for "top-N countries on the map".
         $orgs = $this->Organisation->find('all', [
             'recursive' => -1,
             'fields' => ['Organisation.nationality', 'COUNT(Organisation.nationality) AS frequency'],
             'conditions' => $params['conditions'],
-            'group' => ['Organisation.nationality']
+            'group' => ['Organisation.nationality'],
+            'order' => ['frequency DESC'],
         ]);
         $results = ['data' => [], 'scope' => 'Organisations'];
+        $limit = !empty($options['limit']) ? (int) $options['limit'] : 0;
         foreach($orgs as $org) {
             $country = $org['Organisation']['nationality'];
             $count = $org['0']['frequency'];
             if (isset($this->countryCodes[$country])) {
                 $countryCode = $this->countryCodes[$country];
                 $results['data'][$countryCode] = $count;
+                if ($limit > 0 && count($results['data']) >= $limit) {
+                    break;
+                }
             }
         }
         return $results;

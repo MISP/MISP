@@ -3,12 +3,25 @@
 class RecentSightingsWidget
 {
     public $title = 'Recent Sightings';
+    public $category = 'events';
     public $render = 'SimpleList';
     public $width = 8;
     public $height = 6;
     public $params = array(
         'limit' => 'Maximum amount of sightings to return',
         'last' => 'Limit sightings to last 1d, 12h, ...'
+    );
+    public $schema = array(
+        'limit' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Maximum number of sightings to return.',
+        ),
+        'last' => array(
+            'type' => 'time_window',
+            'default' => 'P1D',
+            'help' => 'Show only sightings from the last N hours/days.',
+        ),
     );
     public $description = 'Widget showing information on recent sightings';
     public $cacheLifetime = false;
@@ -48,7 +61,7 @@ class RecentSightingsWidget
             $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
-                                    Configure::read('MISP.baseurl') . '/events/view/', $event['id'],
+                                    (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/view/', $event['id'],
                                     $event['id']
                                 )
                         );
