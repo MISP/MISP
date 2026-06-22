@@ -82,6 +82,9 @@ class SharingGroupsController extends AppController
             // create() + save() into an update of an arbitrary existing sharing group, bypassing
             // the edit ACL and letting a user take over a SG they have no access to.
             unset($sg['id']);
+            // A locally created SG has no sync user; never let the json blob smuggle in a
+            // sync_user_id FK (CSRF field hashing does not cover values nested in the json).
+            unset($sg['sync_user_id']);
             if (!$canModifyUuid) {
                 unset($sg['uuid']);
             }
@@ -338,7 +341,13 @@ class SharingGroupsController extends AppController
             'itemName' => 'SharingGroup',
             'view' => 'ajax/sharingGroupDeleteConfirmationForm',
             'checkModifyCallback' => function($itemId) {
-                return $this->userRole['perm_sharing_group'];
+                // DPT-1: enforce per-row ownership, mirroring delete().
+                // A bare perm_sharing_group flag let any SG-capable user
+                // batch-delete sharing groups they don't own; the single
+                // delete() gates on checkIfOwner, deleteSelection skipped it.
+                return $this->SharingGroup->checkIfOwner(
+                    $this->Auth->user(), $itemId
+                );
             },
             'multiSuccessMessageCallback' => function($count) {
                 return __n('%s SharingGroup deleted.', '%s SharingGroups deleted.', $count, $count);

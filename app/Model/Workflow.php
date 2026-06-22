@@ -1498,6 +1498,12 @@ class Workflow extends AppModel
     {
         $errors = [];
         $this->create();
+        // Defence in depth: addWorkflow only ever INSERTs. A client-supplied
+        // primary key would make save() a covert UPDATE of an arbitrary row even
+        // though the fieldList omits `id` (the fieldList limits which columns are
+        // written, not the INSERT-vs-UPDATE decision, which set() derives from the
+        // supplied id). Strip it for both the wrapped and flat caller shapes.
+        unset($workflow['Workflow']['id'], $workflow['id']);
         $saved = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS_ADD], $errors);
         return [
             'saved' => $saved,

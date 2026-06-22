@@ -231,6 +231,11 @@ class ShadowAttributesController extends AppController
             }
             unset($this->request->data['ShadowAttribute']['id']);
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
+            // This action only ever proposes NEW attributes (edit-proposals go through
+            // edit()). Pin old_id to 0 so a caller cannot supply old_id!=0 + an arbitrary
+            // uuid to make acceptProposal() (ShadowAttribute::acceptProposal, old_id!=0
+            // branch) overwrite or delete a live attribute it was never meant to target.
+            $this->request->data['ShadowAttribute']['old_id'] = 0;
             //
             // multiple attributes in batch import
             //
@@ -426,7 +431,10 @@ class ShadowAttributesController extends AppController
             $completeFail = false;
 
             if ($this->request->data['ShadowAttribute']['malware']) {
-                $result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
+                // Use the route event validated above, never the request-body event_id —
+                // otherwise the proposal lands on (and is processed for) an event the
+                // caller was never authorised against (route-vs-body scope injection).
+                $result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($event['Event']['id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
                 if (!$result['success']) {
                     $this->Flash->error(__('There was a problem to upload the file.'), 'default', array(), 'error');
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -440,7 +448,7 @@ class ShadowAttributesController extends AppController
                                     'value' => $filename . '|' . $result[$hash],
                                     'category' => $this->request->data['ShadowAttribute']['category'],
                                     'type' => $typeName,
-                                    'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                                    'event_id' => $event['Event']['id'], // route-validated event, not body
                                     'comment' => $this->request->data['ShadowAttribute']['comment'],
                                     'to_ids' => 1,
                                     'email' => $this->Auth->user('email'),
@@ -467,7 +475,7 @@ class ShadowAttributesController extends AppController
                         'value' => $filename,
                         'category' => $this->request->data['ShadowAttribute']['category'],
                         'type' => 'attachment',
-                        'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                        'event_id' => $event['Event']['id'], // route-validated event, not body
                         'comment' => $this->request->data['ShadowAttribute']['comment'],
                         'data' => base64_encode($tmpfile->read()),
                         'to_ids' => 0,

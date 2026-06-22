@@ -27,7 +27,7 @@ foreach ($galaxies as $g) {
 
     <div class="d-flex flex-column align-items-center justify-content-center
                 text-muted py-4" data-galaxy-empty>
-        <i class="fab fa-galactic-republic fa-2x mb-2 opacity-50"></i>
+        <span class="misp-icon misp-icon-galaxy misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
         <p class="mb-0 small fw-semibold">
             <?= __('No galaxy clusters associated with this event.') ?>
         </p>

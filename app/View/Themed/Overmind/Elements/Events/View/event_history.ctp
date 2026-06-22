@@ -106,22 +106,22 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
 
     /* ── Action metadata ───────────────────────── */
     var A = {
-        add:                 { label: <?= json_encode(__('Add'))                   ?>, color:'#198754', bg:'#d1e7dd', icon:'fa-plus-circle'       },
-        edit:                { label: <?= json_encode(__('Edit'))                  ?>, color:'#0d6efd', bg:'#cfe2ff', icon:'fa-pencil-alt'         },
-        soft_delete:         { label: <?= json_encode(__('Soft delete'))           ?>, color:'#fd7e14', bg:'#ffe5cc', icon:'fa-trash-restore'       },
-        delete:              { label: <?= json_encode(__('Delete'))                ?>, color:'#dc3545', bg:'#f8d7da', icon:'fa-trash-alt'           },
-        undelete:            { label: <?= json_encode(__('Undelete'))              ?>, color:'#20c997', bg:'#d2f4ea', icon:'fa-trash-restore'       },
-        tag:                 { label: <?= json_encode(__('Tag'))                   ?>, color:'#6f42c1', bg:'#e8d5f5', icon:'fa-tag'                 },
-        tag_local:           { label: <?= json_encode(__('Tag (local)'))           ?>, color:'#6f42c1', bg:'#e8d5f5', icon:'fa-tag'                 },
-        remove_tag:          { label: <?= json_encode(__('Remove tag'))            ?>, color:'#d63384', bg:'#fad8e8', icon:'fa-tag'                 },
-        remove_local_tag:    { label: <?= json_encode(__('Remove tag (local)'))    ?>, color:'#d63384', bg:'#fad8e8', icon:'fa-tag'                 },
-        galaxy:              { label: <?= json_encode(__('Galaxy'))                ?>, color:'#6610f2', bg:'#e0d0fd', icon:'fab fa-galactic-republic'},
-        galaxy_local:        { label: <?= json_encode(__('Galaxy (local)'))        ?>, color:'#6610f2', bg:'#e0d0fd', icon:'fab fa-galactic-republic'},
-        remove_galaxy:       { label: <?= json_encode(__('Remove galaxy'))         ?>, color:'#c2185b', bg:'#fce3f0', icon:'fab fa-galactic-republic'},
-        remove_local_galaxy: { label: <?= json_encode(__('Remove galaxy (local)')) ?>, color:'#c2185b', bg:'#fce3f0', icon:'fab fa-galactic-republic'},
-        publish:             { label: <?= json_encode(__('Publish'))               ?>, color:'#0284c7', bg:'#e0f2fe', icon:'fa-paper-plane'         },
-        publish_sightings:   { label: <?= json_encode(__('Publish sightings'))     ?>, color:'#0891b2', bg:'#cffafe', icon:'fa-eye'                  },
-        instantiate:         { label: <?= json_encode(__('Instantiate'))           ?>, color:'#6c757d', bg:'#e2e3e5', icon:'fa-clone'               }
+        add:                 { label: <?= json_encode(__('Add'))                   ?>, color:'#198754', bg:'#d1e7dd', icon:'fas fa-plus-circle'   },
+        edit:                { label: <?= json_encode(__('Edit'))                  ?>, color:'#0d6efd', bg:'#cfe2ff', icon:'fas fa-pencil-alt'     },
+        soft_delete:         { label: <?= json_encode(__('Soft delete'))           ?>, color:'#fd7e14', bg:'#ffe5cc', icon:'fas fa-trash-restore'  },
+        delete:              { label: <?= json_encode(__('Delete'))                ?>, color:'#dc3545', bg:'#f8d7da', icon:'fas fa-trash-alt'      },
+        undelete:            { label: <?= json_encode(__('Undelete'))              ?>, color:'#20c997', bg:'#d2f4ea', icon:'fas fa-trash-restore'  },
+        tag:                 { label: <?= json_encode(__('Tag'))                   ?>, color:'#6f42c1', bg:'#e8d5f5', icon:'misp-icon misp-icon-tag misp-simple'              },
+        tag_local:           { label: <?= json_encode(__('Tag (local)'))           ?>, color:'#6f42c1', bg:'#e8d5f5', icon:'misp-icon misp-icon-tag misp-simple'              },
+        remove_tag:          { label: <?= json_encode(__('Remove tag'))            ?>, color:'#d63384', bg:'#fad8e8', icon:'misp-icon misp-icon-tag misp-simple'              },
+        remove_local_tag:    { label: <?= json_encode(__('Remove tag (local)'))    ?>, color:'#d63384', bg:'#fad8e8', icon:'misp-icon misp-icon-tag misp-simple'              },
+        galaxy:              { label: <?= json_encode(__('Galaxy'))                ?>, color:'#6610f2', bg:'#e0d0fd', icon:'misp-icon misp-icon-galaxy misp-simple'          },
+        galaxy_local:        { label: <?= json_encode(__('Galaxy (local)'))        ?>, color:'#6610f2', bg:'#e0d0fd', icon:'misp-icon misp-icon-galaxy misp-simple'          },
+        remove_galaxy:       { label: <?= json_encode(__('Remove galaxy'))         ?>, color:'#c2185b', bg:'#fce3f0', icon:'misp-icon misp-icon-galaxy misp-simple'          },
+        remove_local_galaxy: { label: <?= json_encode(__('Remove galaxy (local)')) ?>, color:'#c2185b', bg:'#fce3f0', icon:'misp-icon misp-icon-galaxy misp-simple'          },
+        publish:             { label: <?= json_encode(__('Publish'))               ?>, color:'#0284c7', bg:'#e0f2fe', icon:'fas fa-paper-plane'                                },
+        publish_sightings:   { label: <?= json_encode(__('Publish sightings'))     ?>, color:'#0891b2', bg:'#cffafe', icon:'misp-icon misp-icon-sighting misp-simple'        },
+        instantiate:         { label: <?= json_encode(__('Instantiate'))           ?>, color:'#6c757d', bg:'#e2e3e5', icon:'fas fa-clone'          }
     };
 
     /* ── Helpers ───────────────────────────────── */
@@ -207,12 +207,12 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
         var metaLine = '';
         if (user.email) {
             metaLine += '<span class="d-inline-flex align-items-center gap-1">'
-                + '<i class="fas fa-user opacity-50" style="font-size:.65rem;"></i>'
+                + '<span class="misp-icon misp-icon-user1 misp-simple" style="font-size:.65rem;"></span>'
                 + escapeHtml(user.email) + '</span>';
         }
         if (org.name) {
             metaLine += '<span class="d-inline-flex align-items-center gap-1">'
-                + '<i class="fas fa-building opacity-50" style="font-size:.65rem;"></i>'
+                + '<span class="misp-icon misp-icon-organisation misp-simple" style="font-size:.65rem;"></span>'
                 + escapeHtml(org.name) + '</span>';
         }
 
@@ -236,7 +236,7 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
             + '<span class="badge flex-shrink-0 d-inline-flex align-items-center gap-1 mt-1"'
             + ' style="background:' + escapeHtml(meta.bg) + ';color:' + escapeHtml(meta.color) + ';'
             + 'font-size:.68rem;border:1px solid ' + escapeHtml(meta.color) + '33;">'
-            + '<i class="fas ' + escapeHtml(meta.icon) + '"></i>' + escapeHtml(meta.label) + '</span>'
+            + '<i class="' + escapeHtml(meta.icon) + '"></i>' + escapeHtml(meta.label) + '</span>'
             + '<div class="flex-fill" style="min-width:0;">'
             + '<div class="small fw-medium lh-sm">' + titleHtml + '</div>'
             + (metaLine ? '<div class="d-flex flex-wrap gap-2 mt-1 text-muted" style="font-size:.72rem;">' + metaLine + '</div>' : '')

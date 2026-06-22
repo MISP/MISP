@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false
+        153 => false, 154 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2696,6 +2696,9 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxies` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 break;
             case 153:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1;";
+                break;
+            case 154:
                 $sqlArray[] = "ALTER TABLE `galaxies` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':

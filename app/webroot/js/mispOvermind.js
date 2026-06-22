@@ -114,7 +114,7 @@ function openModal(url, size = 'xl') {
         modalDialog.classList.add('modal-' + size);
     }
 
-    fetch(url)
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
             const container = document.getElementById('mainModalBody');
@@ -124,7 +124,9 @@ function openModal(url, size = 'xl') {
                 if (oldScript.src) {
                     newScript.src = oldScript.src;
                 } else {
-                    newScript.textContent = oldScript.textContent;
+                    // Wrap in IIFE so const/let declarations don't leak into the
+                    // global scope and cause redeclaration errors on repeated opens.
+                    newScript.textContent = '(function(){\n' + oldScript.textContent + '\n})();';
                 }
                 document.body.appendChild(newScript);
                 document.body.removeChild(newScript);
@@ -141,22 +143,13 @@ function openModal(url, size = 'xl') {
         });
 }
 
-function multiSelectItems(url) {
+function multiSelectItems(url, suffixe) {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
-    const fullUrl = url + '/' + JSON.stringify(ids);
+    const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
     openModal(fullUrl, 'sm');
-}
-
-function multiSelectItems2(url) {
-    if (selectedItems.size === 0) {
-        return;
-    }
-    const ids = Array.from(selectedItems.keys());
-    const fullUrl = url + '/' + JSON.stringify(ids);
-    openModal(fullUrl);
 }
 
 function redirectToExportResult() {
@@ -172,9 +165,19 @@ function redirectToExportResult() {
     window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
 }
 
-function toggleAllAttributeCheckboxes() {
-    const checked = document.getElementById('select_all').checked;
-    const checkboxes = document.querySelectorAll('.item-checkbox');
+function toggleAllAttributeCheckboxes(selectAllEl) {
+    // Prefer the element passed directly from onclick="…(this)" so that
+    // when multiple scaffolds are loaded in sibling tab-panes (e.g.
+    // Attributes and Reports both have a select-all checkbox), we always
+    // operate on the one the user actually clicked rather than the first
+    // matching getElementById result.
+    const selectAll = selectAllEl || document.getElementById('select_all');
+    if (!selectAll) return;
+    const checked = selectAll.checked;
+    // Scope to the enclosing tab-pane so checkboxes in sibling tabs are
+    // not accidentally included. Fall back to document on standalone pages.
+    const scope = selectAll.closest('.tab-pane') || document;
+    const checkboxes = scope.querySelectorAll('.item-checkbox');
 
     checkboxes.forEach(checkbox => {
         checkbox.checked = checked;
@@ -207,23 +210,30 @@ function setView(view, save = true) {
 }
 
 function updateMultiSelectToolbar() {
-    const toolbar        = document.getElementById('multiSelectToolbar');
-    const selectedCount  = document.getElementById('selectedCount');
-    const deleteButton   = document.getElementById('multi-delete-button');
-    const editButton     = document.getElementById('mass-edit-button');
-    const tagButton      = document.getElementById('mass-tag-button');
-    const localtagButton = document.getElementById('mass-local-tag-button');
-    const clusterButton  = document.getElementById('mass-cluster-button');
-    const localclusterButton = document.getElementById('mass-local-cluster-button');
-    const objectButton   = document.getElementById('mass-object-button');
-    const relationshipButton = document.getElementById('mass-relationship-button');
-    const sightingButton = document.getElementById('mass-sighting-button');
-    const enableButton   = document.getElementById('mass-enable-button');
-    const disableButton  = document.getElementById('mass-disable-button');
-    const requireButton   = document.getElementById('mass-require-button');
-    const optionalButton  = document.getElementById('mass-optional-button');
-    const highlightButton   = document.getElementById('mass-highlight-button');
-    const removehighlightButton  = document.getElementById('mass-removehighlight-button');
+    // When multiple tabs each contain a mass-action toolbar (e.g. Attributes
+    // and Reports), getElementById would return the first one in DOM order
+    // regardless of which tab is visible.  Scope the lookup to the active
+    // tab-pane so we always update the currently visible toolbar.
+    // On standalone index pages (no tab-pane) fall back to document.
+    const scope = document.querySelector('.tab-pane.active') || document;
+    const toolbar        = scope.querySelector('#multiSelectToolbar');
+    const selectedCount  = scope.querySelector('#selectedCount');
+    const deleteButton     = scope.querySelector('#multi-delete-button');
+    const softDeleteButton = scope.querySelector('#multi-soft-delete-button');
+    const editButton     = scope.querySelector('#mass-edit-button');
+    const tagButton      = scope.querySelector('#mass-tag-button');
+    const localtagButton = scope.querySelector('#mass-local-tag-button');
+    const clusterButton  = scope.querySelector('#mass-cluster-button');
+    const localclusterButton = scope.querySelector('#mass-local-cluster-button');
+    const objectButton   = scope.querySelector('#mass-object-button');
+    const relationshipButton = scope.querySelector('#mass-relationship-button');
+    const sightingButton = scope.querySelector('#mass-sighting-button');
+    const enableButton   = scope.querySelector('#mass-enable-button');
+    const disableButton  = scope.querySelector('#mass-disable-button');
+    const requireButton   = scope.querySelector('#mass-require-button');
+    const optionalButton  = scope.querySelector('#mass-optional-button');
+    const highlightButton   = scope.querySelector('#mass-highlight-button');
+    const removehighlightButton  = scope.querySelector('#mass-removehighlight-button');
 
     const count          = selectedItems.size;
 
@@ -256,6 +266,7 @@ function updateMultiSelectToolbar() {
     const isHidden = !canDeleteAll;
 
     deleteButton?.classList.toggle('d-none', isHidden);
+    softDeleteButton?.classList.toggle('d-none', isHidden);
     editButton?.classList.toggle('d-none', isHidden);
     tagButton?.classList.toggle('d-none', isHidden);
     localtagButton?.classList.toggle('d-none', isHidden);
@@ -362,6 +373,12 @@ function buildFilterUrl() {
     }
 
     return newUrl;
+}
+
+// Safe global fallback — filter_bar.ctp re-declares this per scaffold,
+// but mispOvermind.js references it unconditionally in its change listener.
+if (typeof selectedItems === 'undefined') {
+    var selectedItems = new Map();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2209,22 +2226,22 @@ function initSharingGroupForm(container) {
  *******************************/
 /* ── Distribution colours / icons ──────────────────────────────────────── */
 var DIST_MAP = {
-    0: { icon: 'fa-building',      bg: '#f8d7da', color: '#842029' },
-    1: { icon: 'fa-users',         bg: '#ffe5b4', color: '#b45309' },
-    2: { icon: 'fa-network-wired', bg: '#e7d3c3', color: '#5a3e2b' },
-    3: { icon: 'fa-globe',         bg: '#d1f7e0', color: '#0f5132' },
-    4: { icon: 'fa-share-alt',     bg: '#6a96ee', color: '#0e146d' },
-    5: { icon: 'fa-code-fork',     bg: '#e6b7df', color: '#380f33' }
+    0: { icon: 'misp-icon misp-icon-organisation misp-simple', bg: '#f8d7da', color: '#842029' },
+    1: { icon: 'fas fa-users',                                  bg: '#ffe5b4', color: '#b45309' },
+    2: { icon: 'fas fa-network-wired',                          bg: '#e7d3c3', color: '#5a3e2b' },
+    3: { icon: 'fas fa-globe',                                  bg: '#d1f7e0', color: '#0f5132' },
+    4: { icon: 'misp-icon misp-icon-sharing-group misp-simple', bg: '#6a96ee', color: '#0e146d' },
+    5: { icon: 'fas fa-code-fork',                              bg: '#e6b7df', color: '#380f33' },
 };
 
 function renderDistOption(data, escape) {
     var cfg = DIST_MAP[parseInt(data.value, 10)]
-        || { icon: 'fa-question', bg: '#f1f1f1', color: '#333' };
+        || { icon: 'fas fa-question', bg: '#f1f1f1', color: '#333' };
     return '<div class="d-flex align-items-center gap-2 py-1">'
         + '<span class="badge d-inline-flex align-items-center px-2 py-1" style="'
             + 'background:' + cfg.bg + ';color:' + cfg.color + ';'
             + 'border:1px solid ' + cfg.color + '33;">'
-        + '<i class="fas ' + cfg.icon + '"></i>'
+        + '<i class="' + cfg.icon + '"></i>'
         + '</span>'
         + '<span>' + escape(data.text) + '</span>'
         + '</div>';
@@ -2232,15 +2249,33 @@ function renderDistOption(data, escape) {
 
 function renderDistSelected(data, escape) {
     var cfg = DIST_MAP[parseInt(data.value, 10)]
-        || { icon: 'fa-question', bg: '#f1f1f1', color: '#333' };
+        || { icon: 'fas fa-question', bg: '#f1f1f1', color: '#333' };
     return '<div class="d-flex align-items-center gap-1">'
         + '<span class="badge d-inline-flex align-items-center px-1" style="'
             + 'background:' + cfg.bg + ';color:' + cfg.color + ';'
             + 'border:1px solid ' + cfg.color + '33; font-size:.65rem;">'
-        + '<i class="fas ' + cfg.icon + '"></i>'
+        + '<i class="' + cfg.icon + '"></i>'
         + '</span>'
         + '<span>' + escape(data.text) + '</span>'
         + '</div>';
+}
+
+/*
+ * distBadgeHtml(level, withLabel?, labels?)
+ * Renders a small inline distribution badge (icon + optional label).
+ * @param {number}  level      Distribution level 0–5
+ * @param {boolean} withLabel  Show the text label beside the icon
+ * @param {object}  labels     Map of level → label string (e.g. distLevels from PHP)
+ */
+function distBadgeHtml(level, withLabel, labels) {
+    var d   = DIST_MAP[level] || DIST_MAP[0];
+    var lbl = (withLabel && labels && labels[level]) ? labels[level] : '';
+    return '<span class="badge d-inline-flex align-items-center gap-1 px-2 py-1"'
+        + ' style="background:' + d.bg + ';color:' + d.color
+        + ';border:1px solid ' + d.color + '30;font-weight:500;">'
+        + '<i class="' + d.icon + '"></i>'
+        + (lbl ? '<span class="ms-1" style="font-size:.7rem;">' + escapeHtml(lbl) + '</span>' : '')
+        + '</span>';
 }
 
 function initDistributionSelect(elId, onChange) {
@@ -2482,9 +2517,12 @@ function initAttributeForm(currentDist, isEdit) {
     }
 
     /* Filter the Type TomSelect to the types allowed for the selected category */
-    function applyTypeFilter(selectedCategory) {
+    function applyTypeFilter(selectedCategory, preserveValue) {
         var typeEl  = document.getElementById('AttributeType');
         if (!typeEl) { return; }
+
+        /* Capture current value before clearing options */
+        var previousType = typeEl.value;
 
         var mapping = (typeof category_type_mapping !== 'undefined')
             ? category_type_mapping : {};
@@ -2501,9 +2539,14 @@ function initAttributeForm(currentDist, isEdit) {
             allowed = mapping[selectedCategory].slice();
         }
 
+        /* Value to select: keep previous on init, reset to empty on user change */
+        var nextVal = (preserveValue && allowed.indexOf(previousType) !== -1)
+            ? previousType : '';
+
         while (typeEl.options.length) { typeEl.remove(0); }
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
+        typeEl.value    = nextVal;
         typeEl.disabled = false;
 
         if (typeEl.tomselect) {
@@ -2512,7 +2555,7 @@ function initAttributeForm(currentDist, isEdit) {
             ts.clearOptions();
             ts.addOption({ value: '', text: '' });
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
-            ts.setValue('', true);
+            ts.setValue(nextVal, true);
             ts.refreshItems();
         }
 
@@ -2575,7 +2618,7 @@ function initAttributeForm(currentDist, isEdit) {
 
     toggleSg(currentDist);
     var initCat = document.getElementById('AttributeCategory');
-    applyTypeFilter(initCat ? initCat.value : '');
+    applyTypeFilter(initCat ? initCat.value : '', true);
     if (isEdit) { checkNoticeList('attribute'); }
 }
 
@@ -2619,17 +2662,15 @@ function initEventForm(base) {
 
     /* Card-based radio groups for Analysis and Threat Level */
     function setupRadioCards() {
-        var hiddenMap = {
+        var selectIds = {
             analysis: 'EventAnalysisInput',
-            threat:   'EventThreatLevelInput'
+            threat:   'EventThreatLevelInput',
         };
-
         document.querySelectorAll('.event-card').forEach(function (card) {
             card.addEventListener('click', function () {
                 var group  = card.dataset.group;
-                var val    = card.dataset.value;
-                var hidden = document.getElementById(hiddenMap[group]);
-                if (hidden) { hidden.value = val; }
+                var select = document.getElementById(selectIds[group]);
+                if (select) { select.value = card.dataset.value; }
 
                 document.querySelectorAll(
                     '.event-card[data-group="' + group + '"]'
@@ -2666,4 +2707,47 @@ function initEventForm(base) {
     setupUuidPreview();
     setupRadioCards();
     setupDateInput();
+}
+
+/*******************************
+ * updateActiveFilterBadge
+ * Injects a dismissible "Active filters" row below the filter bar for AJAX
+ * tab indexes. Removes any existing badge when searchTerm is empty.
+ * @param {Element}  container     Tab container element
+ * @param {string}   searchTerm    Current search value; '' removes the badge
+ * @param {function} clearCb       Called when the user clicks the Clear button
+ * @param {string}   [labelActive] "Active filters" label (default: English)
+ * @param {string}   [labelClear]  Clear button label (default: English)
+ *******************************/
+function updateActiveFilterBadge(container, searchTerm, clearCb, labelActive, labelClear) {
+    var existing = container.querySelector('#overmind-active-filter');
+    if (existing) existing.remove();
+    if (!searchTerm) return;
+
+    var filterBar = container.querySelector('[id^="filter-bar-"]');
+    if (!filterBar) return;
+
+    var wrap = document.createElement('div');
+    wrap.id = 'overmind-active-filter';
+    wrap.className = 'mt-2 d-flex align-items-center flex-wrap gap-2';
+
+    var lbl = document.createElement('strong');
+    lbl.className = 'me-1';
+    lbl.textContent = (labelActive || 'Active filters') + ':';
+
+    var chip = document.createElement('span');
+    chip.className = 'badge bg-primary';
+    chip.textContent = 'search: ' + searchTerm;
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    clearBtn.innerHTML = '<i class="fas fa-times me-1"></i>';
+    clearBtn.appendChild(document.createTextNode(labelClear || 'Clear'));
+    clearBtn.addEventListener('click', clearCb);
+
+    wrap.appendChild(lbl);
+    wrap.appendChild(chip);
+    wrap.appendChild(clearBtn);
+    filterBar.insertAdjacentElement('afterend', wrap);
 }

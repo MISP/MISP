@@ -20,6 +20,12 @@ $fields = [
         'default' => false
     ],
     [
+        'field' => 'enabled',
+        'label' => __('Enabled'),
+        'type' => 'checkbox',
+        'default' => !$edit
+    ],
+    [
         'field' => 'api_key',
         'label' => 'API Key',
         'type' => 'text',

@@ -830,18 +830,44 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Push Taxii'] . PHP_EOL);
         }
-        
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
-        $serverId = $this->args[1];
+        $taxiiServerId = $this->args[1];
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push_taxii', 'Server: ' . $serverId, 'Pushing.');
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push_taxii', 'TAXII Server: ' . $taxiiServerId, 'Pushing.');
         }
         $this->Job->read(null, $jobId);
 
-        $result = $this->TaxiiServer->push($serverId, $user, $jobId);
+        if ($taxiiServerId === 'all') {
+            $taxiiServerIds = $this->TaxiiServer->find('column', [
+                'fields' => ['TaxiiServer.id'],
+                'conditions' => ['TaxiiServer.enabled' => 1],
+            ]);
+
+            $successes = 0;
+            $fails = 0;
+            $total = count($taxiiServerIds);
+            foreach ($taxiiServerIds as $k => $taxiiServerId) {
+                $this->Job->saveProgress($jobId, 'Pushing TAXII server: ' . $taxiiServerId, $total > 0 ? 100 * $k / $total : 100);
+                $result = $this->TaxiiServer->push($taxiiServerId, $user, $jobId);
+                if ($result === true || is_array($result)) {
+                    $successes++;
+                } else {
+                    $fails++;
+                    CakeLog::error('TAXII push failed for server ' . $taxiiServerId . ': ' . $result);
+                }
+            }
+
+            $message = 'Job done. ' . $successes . ' TAXII servers pushed successfully, ' . $fails . ' TAXII servers could not be pushed.';
+            $this->Job->saveStatus($jobId, $fails === 0, $message);
+            echo $message . PHP_EOL;
+            return;
+        }
+
+        $result = $this->TaxiiServer->push($taxiiServerId, $user, $jobId);
         if ($result !== true && !is_array($result)) {
             $message = 'Job failed. Reason: ' . $result;
             $this->Job->saveStatus($jobId, false, $message);

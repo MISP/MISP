@@ -261,6 +261,11 @@ class EventReport extends AppModel
         } else {
             unset($report['EventReport']['timestamp']);
         }
+        // Validate the sharing group on edit like the add path (captureReport) does. Without this,
+        // a user could set distribution=4 + an arbitrary sharing_group_id they have no access to
+        // (sharing_group_id is in CAPTURE_FIELDS); captureSG->captureSGForElement resets an
+        // unauthorised SG to 0 and downgrades distribution to 0.
+        $report = $this->captureSG($user, $report);
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
             if ($user['Role']['perm_tagger']) {
@@ -533,6 +538,7 @@ class EventReport extends AppModel
 
         $total = $this->find('count', [
             'conditions' => $conditions,
+            'contain'    => ['Event'],
             'recursive'  => -1,
         ]);
 

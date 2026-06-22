@@ -289,7 +289,11 @@ class ObjectsController extends AppController
                 } else {
                     if (is_numeric($result)) {
                         $this->Flash->success('Object saved.');
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                        } else {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                        }
                     }
                 }
             }
@@ -302,11 +306,36 @@ class ObjectsController extends AppController
                 return $this->RestResponse->viewData($orgs, $this->response->type());
             }
         } else {
-            if (!empty($error)) {
+            if (!empty($error) && !empty($template)) {
                 $this->Flash->error($error);
             }
-            $template = $this->MispObject->prepareTemplate($template, $this->request->data);
-            $enabledRows = array_keys($template['ObjectTemplateElement']);
+            $templateList = $this->MispObject->ObjectTemplate->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'fields' => [
+                        'ObjectTemplate.id',
+                        'ObjectTemplate.name',
+                        'ObjectTemplate.meta-category',
+                        'ObjectTemplate.description',
+                        'ObjectTemplate.version',
+                    ],
+                    'order' => [
+                        'ObjectTemplate.meta-category',
+                        'ObjectTemplate.name',
+                    ],
+                ]
+            );
+            $this->set('templateList', $templateList);
+            if (!empty($template)) {
+                $template = $this->MispObject->prepareTemplate(
+                    $template,
+                    $this->request->data
+                );
+                $enabledRows = array_keys($template['ObjectTemplateElement']);
+            } else {
+                $enabledRows = [];
+            }
             $this->set('enabledRows', $enabledRows);
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
@@ -376,7 +405,11 @@ class ObjectsController extends AppController
         }
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+            if($this->theme === "Overmind"){
+                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+            } else {
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+            }
         }
         if (!empty($template) || $update_template_available) {
             $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
@@ -905,11 +938,17 @@ class ObjectsController extends AppController
                 }
             }
         } else {
-            if ($this->request->is('ajax') && $this->request->is('get')) {
+            if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+                $this->layout = false;
                 $this->set('hard', $hard);
                 $this->set('id', $id);
+                $this->set('idArray', [$id]);
                 $this->set('event_id', $eventId);
-                $this->render('ajax/delete');
+                if ($this->theme === 'Overmind') {
+                    $this->render('ajax/objectDeleteConfirmationForm');
+                } else {
+                    $this->render('ajax/delete');
+                }
             }
         }
     }

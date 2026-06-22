@@ -1,5 +1,9 @@
 <?php
 $edit = $this->request->params['action'] === 'edit';
+$enabledOptions = ['class' => 'form-check-input'];
+if (!$edit && !isset($this->request->data['TaxiiServer']['enabled'])) {
+    $enabledOptions['checked'] = true;
+}
 
 echo $this->Form->create('TaxiiServer', [
     'class' => 'needs-validation',
@@ -100,6 +104,11 @@ echo $this->Form->create('TaxiiServer', [
                         'class' => 'form-check-input',
                     ]) ?>
                     <?= $this->Form->label('skip_proxy', __('Skip Proxy'), ['class' => 'form-check-label']) ?>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <?= $this->Form->checkbox('enabled', $enabledOptions) ?>
+                    <?= $this->Form->label('enabled', __('Enabled'), ['class' => 'form-check-label']) ?>
                 </div>
 
                 <!-- ACTIONS -->

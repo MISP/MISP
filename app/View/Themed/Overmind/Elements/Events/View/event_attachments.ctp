@@ -44,6 +44,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
             <!-- Upload -->
             <?php if ($mayModify || $isSiteAdmin): ?>
             <a href="<?= $uploadUrl ?>"
+               onclick="event.preventDefault(); openModal('<?= $uploadUrl ?>')"
                class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
                 <i class="fas fa-upload"></i>
                 <?= __('Upload') ?>
