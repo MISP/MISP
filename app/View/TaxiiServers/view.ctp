@@ -62,7 +62,8 @@ echo $this->element(
             ],
             [
                 'key' => __('API key'),
-                'path' => 'TaxiiServer.api_key'
+                'path' => 'TaxiiServer.api_key',
+                'privacy' => true
             ],
             [
                 'key' => __('Description'),

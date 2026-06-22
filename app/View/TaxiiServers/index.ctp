@@ -83,11 +83,6 @@
                         'callback' => 'ucfirst'
                     ],
                     [
-                        'name' => __('API key'),
-                        'sort' => 'TaxiiServer.api_key',
-                        'data_path' => 'TaxiiServer.api_key'
-                    ],
-                    [
                         'name' => __('Description'),
                         'sort' => 'TaxiiServer.description',
                         'data_path' => 'TaxiiServer.description'
