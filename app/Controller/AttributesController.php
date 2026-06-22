@@ -608,7 +608,11 @@ class AttributesController extends AppController
             if (!$this->_isRest()) {
                 $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
             }
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+            if ($this->theme === "Overmind") {
+                $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
+            } else {
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+            }
         } else {
             // set the event_id in the form
             $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
