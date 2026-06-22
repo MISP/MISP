@@ -126,6 +126,12 @@ Additionally, it is recommended to set the following settings in the MISP config
 
 This way users will not be able to change their passwords and by-pass the AAD login flow.
 
+## Security considerations
+
+`ad_tenant` and `check_ad_groups` work together, not independently.
+
+If `ad_tenant` is set to `common` (multi-tenant) and `check_ad_groups` is `false`, the only thing standing between an external Microsoft account and a MISP login is a matching email address. In that configuration, *any* Microsoft account - personal, or from a different organization entirely - that authenticates and shares an email with an existing MISP user will be logged in as that user. Use a specific tenant ID rather than `common` unless there's a clear reason not to, and keep `check_ad_groups` enabled so that AD group membership is also required.
+
 ## Known problems
 ### tls_process_server_certificate:certificate verify failed in CakeSocket.php
 
