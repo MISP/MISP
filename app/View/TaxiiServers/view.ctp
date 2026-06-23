@@ -61,7 +61,7 @@ echo $this->element(
                 'callback' => 'ucfirst'
             ],
             [
-                'key' => __('API key'),
+                'key' => __('Token'),
                 'path' => 'TaxiiServer.api_key',
                 'privacy' => true
             ],
