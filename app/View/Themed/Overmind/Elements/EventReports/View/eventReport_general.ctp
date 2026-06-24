@@ -114,7 +114,7 @@ $sharingGroup = $data['SharingGroup'] ?? [];
                     <?= __('Sharing Group') ?>
                 </div>
                 <a href="<?= h($baseurl . '/sharing_groups/view/' . ($sharingGroup['id'] ?? '')) ?>">
-                    <i class="fas fa-share-alt me-1"></i>
+                    <span class="misp-icon misp-icon-sharing-group misp-simple me-1"></span>
                     <?= h($sharingGroup['name'] ?? '') ?>
                 </a>
             </div>

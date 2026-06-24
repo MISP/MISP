@@ -47,6 +47,7 @@ $config = array(
         ],
         'default_org' => '{{ MISP_ORG }}',
         'disable_request_object' => true, //Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers. (False by default)
+        'disable_pushed_authorization_request' => true, // Disable the use of Pushed Authorization Requests (PAR) and send authorization request parameters directly to the authorization endpoint instead. This can be used for compatibility with OpenID Connect providers where PAR should not be used. (False by default)
         'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
         'login_button_text' => 'Login with OIDC', // Optional, custom label for the login button shown when `mixedAuth` is enabled (defaults to "Login with OIDC")
     ],

@@ -26,6 +26,13 @@ class DecayingModelMappingController extends AppController
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            // DPT-6: fetchModel above is VIEW-scoped; without this check a
+            // perm_decaying user could wipe + replace the attribute-type
+            // mappings of any model visible to them (e.g. another org's
+            // shared all_orgs=1 model). Mirror DecayingModel edit/enable.
+            if (!$this->DecayingModelMapping->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $model)) {
+                throw new MethodNotAllowedException(__('You are not authorised to edit this model.'));
+            }
             $this->request->data['DecayingModelMapping']['model_id'] = $model_id;
             if (!isset($this->request->data['DecayingModelMapping']['org_id'])) {
                 $this->request->data['DecayingModelMapping']['org_id'] = $this->Auth->user()['org_id'];

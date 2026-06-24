@@ -2135,11 +2135,20 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
-        // Fetch attributes for these objects with ACL
+        // Fetch attributes for these objects with ACL.
+        // Mirror the object-level deleted filter so that attributes of
+        // soft-deleted objects are visible when deleted=1 or deleted=2.
+        if ($deleted === 1) {
+            $attrDeleted = [0, 1];
+        } elseif ($deleted === 2) {
+            $attrDeleted = 1;
+        } else {
+            $attrDeleted = 0;
+        }
         $attrConditions = [
             'Attribute.event_id' => $eventId,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => 0,
+            'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect =
@@ -7214,6 +7223,28 @@ class Event extends AppModel
         $attribute['value'] = $this->Attribute->runRegexp($attribute['type'], $attribute['value']);
         $attribute['distribution'] = (isset($attribute['distribution']) ? (int)$attribute['distribution'] : $defaultDistribution);
         $attribute['sharing_group_id'] = (isset($attribute['sharing_group_id']) ? (int)$attribute['sharing_group_id'] : 0);
+
+        // Fix: Intercept and map attribute_tag from CSV/Module ingestion streams
+        if (!empty($attribute['attribute_tag'])) {
+            $rawTags = array();
+            if (is_string($attribute['attribute_tag'])) {
+                $rawTags = explode(',', $attribute['attribute_tag']);
+            } elseif (is_array($attribute['attribute_tag'])) {
+                $rawTags = $attribute['attribute_tag'];
+            }
+
+            $seenTags = array(); //sanitize duplicate tags in the same attribute
+            foreach ($rawTags as $tag) {
+                if (is_string($tag)) {
+                    $tag = trim($tag);
+                    if (!empty($tag) && !isset($seenTags[$tag])) {
+                        $seenTags[$tag] = true;
+                        $attribute['Tag'][] = array('name' => $tag);
+                    }
+                }
+            }
+        }
+
         return $attribute;
     }
 
@@ -7910,6 +7941,11 @@ class Event extends AppModel
                 }
                 foreach ($types as $type) {
                     $model->create();
+                    // Freetext import only ever creates new attributes. A client-supplied id
+                    // (this data can be raw JSON via saveFreeText) would redirect save() onto
+                    // an arbitrary existing attribute - create() does not strip it and there is
+                    // no fieldList here, so the injected id targets the UPDATE WHERE clause.
+                    unset($attribute['id']);
                     $attribute['type'] = $type;
                     if (empty($attribute['comment'])) {
                         $attribute['comment'] = $default_comment;
@@ -8045,6 +8081,10 @@ class Event extends AppModel
             $processedAttributes = 0;
             foreach ($resolved_data['Attribute'] as $attribute) {
                 $this->Attribute->create();
+                // Module-result import (raw JSON from handleModuleResults/importModule) only
+                // creates attributes; strip any client id so it cannot redirect save() onto an
+                // arbitrary attribute row (no fieldList here, create() does not strip it).
+                unset($attribute['id']);
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
                 }
@@ -8170,6 +8210,10 @@ class Event extends AppModel
                             $object_id = $current_object_id;
                         } else {
                             $this->Object->create();
+                            // New object only; strip any client id (the id is read above for
+                            // initialObject matching, never to target this save) so it cannot
+                            // redirect save() onto an arbitrary object row in another event.
+                            unset($object['id']);
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
@@ -8190,6 +8234,9 @@ class Event extends AppModel
                         }
                     } else {
                         $this->Object->create();
+                        // New object only; strip any client id so it cannot redirect save()
+                        // onto an arbitrary object row (no fieldList here).
+                        unset($object['id']);
                         if ($this->Object->save($object)) {
                             $object_id = $this->Object->id;
                             $saved_objects++;
@@ -8456,6 +8503,10 @@ class Event extends AppModel
             $attribute = $this->Attribute->onDemandEncrypt($attribute);
         }
         $this->Attribute->create();
+        // Object-attribute capture only creates new attributes; strip any client id so it
+        // cannot redirect save() onto an arbitrary attribute (object_id/event_id are forced
+        // above, but the primary key is not, and there is no fieldList here).
+        unset($attribute['id']);
         $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {

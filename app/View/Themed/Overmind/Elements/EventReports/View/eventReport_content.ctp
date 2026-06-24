@@ -71,7 +71,7 @@ $menuItems = [
     [
         'type'     => 'toggle',
         'onclick'  => "erToggleRenderingRule('attribute', event)",
-        'icon'     => 'fas fa-inbox',
+        'icon'     => 'misp-icon misp-icon-attribute misp-simple',
         'label'    => __('Attribute'),
         'badge_id' => 'er-render-attribute',
     ],
@@ -85,21 +85,21 @@ $menuItems = [
     [
         'type'     => 'toggle',
         'onclick'  => "erToggleRenderingRule('object', event)",
-        'icon'     => 'fas fa-cube',
+        'icon'     => 'misp-icon misp-icon-object misp-simple',
         'label'    => __('Object'),
         'badge_id' => 'er-render-object',
     ],
     [
         'type'     => 'toggle',
         'onclick'  => "erToggleRenderingRule('object-attribute', event)",
-        'icon'     => 'fas fa-cubes',
+        'icon'     => 'misp-icon misp-icon-object misp-simple',
         'label'    => __('Object Attribute'),
         'badge_id' => 'er-render-object-attribute',
     ],
     [
         'type'     => 'toggle',
         'onclick'  => "erToggleRenderingRule('tag', event)",
-        'icon'     => 'fas fa-tag',
+        'icon'     => 'misp-icon misp-icon-tag misp-simple',
         'label'    => __('Tag'),
         'badge_id' => 'er-render-tag',
     ],

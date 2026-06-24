@@ -12,8 +12,7 @@ $full = $full ?? true;
 ?>
 
 <div class="d-inline-flex align-items-center bg-white rounded-pill px-2 py-1 shadow-sm"  style="border: 1px solid #0e146d;">
-    <i class="fas fa-share-alt me-2 ms-1" style="color: #0e146d;"></i>
-    
+    <span class="misp-icon misp-icon-sharing-group misp-simple me-2 ms-1" style="color: #0e146d;"></span>
     <a href="<?= $baseurl ?>/sharingGroups/view/<?= h($sgData['id']) ?>" 
        class="fw-bold text-dark text-decoration-none me-2" 
        title="<?= h($sgData['releasability'] ?? '') ?>"

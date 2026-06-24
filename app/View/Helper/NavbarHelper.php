@@ -127,7 +127,7 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Events'),
-                'icon' => 'fas fa-clipboard-list',
+                'icon' => 'misp-icon misp-icon-event misp-simple',
                 'children' => [
                     [
                         'label' => __('Add'),
@@ -171,7 +171,7 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Attributes'),
-                'icon' => 'fas fa-inbox',
+                'icon' => 'misp-icon misp-icon-attribute misp-simple',
                 'children' => [
                     [
                         'label' => __('Search'),
@@ -201,7 +201,7 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Event Reports'),
-                'icon' => 'fas fa-file-alt',
+                'icon' => 'misp-icon misp-icon-report misp-simple',
                 'children' => [
                     [
                         'label' => __('Index'),
@@ -292,14 +292,14 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Tags & Taxonomies'),
-                'icon' => 'fas fa-tags',
+                'icon' => 'misp-icon misp-icon-tag misp-simple',
                 'children' => [
                     [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',
                         'action' => 'index',
-                        'icon' => 'fas fa-tag'
+                        'icon' => 'misp-icon misp-icon-tag misp-simple'
                     ],
                     [
                         'label' => __('List Tag Collections'),
@@ -313,21 +313,21 @@ class NavbarHelper extends AppHelper {
                         'url' => $baseurl . '/taxonomies/index',
                         'controller' => 'taxonomies',
                         'action' => 'index',
-                        'icon' => 'fas fa-sitemap'
+                        'icon' => 'misp-icon misp-icon-taxonomy misp-simple'
                     ]
                 ]
             ],
             [
                 'type' => 'group',
                 'label' => __('Galaxies'),
-                'icon' => 'fab fa-galactic-republic',
+                'icon' => 'misp-icon misp-icon-galaxy misp-simple',
                 'children' => [
                     [
                         'label' => __('List Galaxies'),
                         'url' => $baseurl . '/galaxies/index',
                         'controller' => 'galaxies',
                         'action' => 'index',
-                        'icon' => 'fab fa-galactic-republic'
+                        'icon' => 'misp-icon misp-icon-galaxy misp-simple'
                     ],
                     [
                         'label' => __('List Galaxy Relationships'),
@@ -371,14 +371,14 @@ class NavbarHelper extends AppHelper {
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
                         'action' => 'index',
-                        'icon' => 'fas fa-cubes'
+                        'icon' => 'misp-icon misp-icon-object misp-simple'
                     ],
                     [
                         'label' => __('List Object Relationships'),
                         'url' => $baseurl . '/object_relationships/index',
                         'controller' => 'object_relationships',
                         'action' => 'index',
-                        'icon' => 'fas fa-object-ungroup'
+                        'icon' => 'fas fa-cubes'
                     ],
                     [
                         'label' => __('Event Templates'),
@@ -386,7 +386,7 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'event_templates',
                         'action' => 'index',
                         'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
-                        'icon' => 'fas fa-file-invoice'
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
                     ],
                     [
                         'label' => __('Add Event Template'),
@@ -511,7 +511,7 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Sharing Groups'),
-                'icon' => 'fas fa-users-rays',
+                'icon' => 'misp-icon misp-icon-sharing-group misp-simple',
                 'children' => [
                     // [
                     //     'label' => __('Add Sharing Group'),
@@ -582,7 +582,7 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'sightingdb',
                         'action' => 'index',
                         'requirement' => $this->Acl->canAccess('sightingdb', 'index'),
-                        'icon' => 'fas fa-eye'
+                        'icon' => 'misp-icon misp-icon-sighting misp-simple'
                     ]
                 ]
             ],
@@ -640,7 +640,7 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'users',
                         'action' => 'index',
                         'requirement' => $isAdmin,
-                        'icon' => 'fas fa-users-between-lines'
+                        'icon' => 'misp-icon misp-icon-user2 misp-simple'
                     ],
                     [
                         'label' => __('Contact User'),
@@ -656,7 +656,7 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'organisations',
                         'action' => 'index',
                         'requirement' => $this->Acl->canAccess('organisations', 'index'),
-                        'icon' => 'fas fa-building'
+                        'icon' => 'misp-icon misp-icon-organisation misp-simple'
                     ]
                 ]
             ],
@@ -1064,6 +1064,7 @@ class NavbarHelper extends AppHelper {
     private function buildAccountMenu(array $context, $baseurl)
     {
         extract($context);
+        $user_icon = !empty($me['Role']['perm_site_admin']) ? 'misp-icon misp-icon-user3 misp-simple' : 'misp-icon misp-icon-user1 misp-simple';
 
         $profileChildren = [
             [
@@ -1077,7 +1078,7 @@ class NavbarHelper extends AppHelper {
                 'url' => $baseurl . '/users/view/me',
                 'controller' => 'users',
                 'action' => 'view',
-                'icon' => 'fas fa-user'
+                'icon' => $user_icon
             ],
             [
                 'label' => __('Log out'),

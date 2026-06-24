@@ -129,6 +129,11 @@ class EventStreamWidget
                 $fields[] = $field_options[$field];
             }
         }
+        if (empty($fields)) {
+            foreach ($this->__default_fields as $field) {
+                $fields[] = $field_options[$field];
+            }
+        }
         // `orgs` no longer passes through to fetchEvent — the canonical
         // adapter has translated the legacy shape into the structured
         // {orgs: [...], match_via: ...} which fetchEvent doesn't accept

@@ -8,9 +8,6 @@ if (session_status() == PHP_SESSION_NONE) {
 	session_start();
 }
 
-//  Generating a new session will fail the further flow of AAD. 
-//	session_regenerate_id();
-
 class AadAuthenticateAuthenticate extends BaseAuthenticate
 {
 
@@ -189,10 +186,32 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 	 */
 	private function _getUserAad(CakeRequest $request)
 	{
+		// Refuse to proceed if redirect_uri isn't HTTPS. The authorization code and
+		// access token both travel via this URI at different stages of the flow;
+		// allowing it to be HTTP would mean those values cross the network in
+		// plaintext. This is checked once, up front, so it covers every branch below
+		// rather than relying on each call site to remember to check.
+		if (!self::_isHttpsUri(self::$redirect_uri)) {
+			$this->_log("error", "AadAuth.redirect_uri must use HTTPS; refusing to proceed with AAD authentication.");
+			return false;
+		}
+
 		if (!headers_sent()) {
 			if (!isset($_GET["code"]) and !isset($_GET["error"])) {
+				// Generate a dedicated, single-use, cryptographically random anti-CSRF
+				// state value. This MUST NOT be the session ID (or derived from it):
+				// the session ID is itself a long-lived credential, and embedding it in
+				// this URL would expose it via browser history, Referer headers, and
+				// access/proxy logs along the redirect chain to and from Azure AD —
+				// turning any such leak into full session hijacking instead of, at
+				// worst, a single forged OAuth callback. Storing a separate nonce in
+				// session data also lets us safely regenerate the session ID later,
+				// at the point of successful login, without breaking this check.
+				$state = RandomTool::random_str(true, 64);
+				$_SESSION['AadAuth']['state'] = $state;
+
 				$url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/authorize?";
-				$url .= "state=" . session_id();
+				$url .= "state=" . urlencode($state);
 				$url .= "&scope=User.Read";
 				$url .= "&response_type=code";
 				$url .= "&approval_prompt=auto";
@@ -203,9 +222,24 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				exit; // we need to exit once the header to redirect to Azure is sent
 
 			} elseif (isset($_GET["error"])) {  //Second load of this page begins, but hopefully we end up to the next elseif section...
-				$this->_log("warning", "Return from Azure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
+				// Don't log raw, attacker-controlled $_GET content verbatim: it allows
+				// arbitrary log injection/forging. Log only the specific, expected
+				// OAuth error fields, sanitized and length-limited.
+				$error = isset($_GET['error']) && is_string($_GET['error']) ? $_GET['error'] : 'unknown';
+				$errorDescription = isset($_GET['error_description']) && is_string($_GET['error_description']) ? $_GET['error_description'] : '';
+				$sanitize = function ($value) {
+					return mb_substr(preg_replace('/[\x00-\x1F\x7F]/', '', $value), 0, 200);
+				};
+				$this->_log("warning", "Return from Azure redirect. Error received at the beginning of second stage. error: " . $sanitize($error) . " error_description: " . $sanitize($errorDescription));
+				unset($_SESSION['AadAuth']['state']);
 				return false;
-			} elseif (strcmp(session_id(), $_GET["state"]) == 0) {
+			} elseif (
+				isset($_GET["state"], $_SESSION['AadAuth']['state'])
+				and is_string($_GET["state"])
+				and hash_equals($_SESSION['AadAuth']['state'], $_GET["state"])
+			) {
+				// Single-use: invalidate immediately so this state value cannot be replayed.
+				unset($_SESSION['AadAuth']['state']);
 				//Verifying the received tokens with Azure and finalizing the authentication part
 				$params = [
 					'grant_type' => 'authorization_code',
@@ -285,6 +319,10 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 						$user = $this->_findUser($mispUsername);
 						if ($user) {
 							$this->_log("info", "AAD authentication successful for ${mispUsername}");
+							// Rotate the session ID now that the user is authenticated, to
+							// prevent session fixation. Safe to do here since the state
+							// check above no longer depends on the session ID staying fixed.
+							session_regenerate_id(true);
 						}
 						return $user;
 					}
@@ -353,6 +391,21 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 		$this->_log("warning", "The user is not a member of any of the MISP AAD groups.");
 
 		return false;
+	}
+
+	/**
+	 * Check whether a URI uses the https scheme
+	 *
+	 * @param mixed $uri The URI to check
+	 * @return bool True if $uri is a string with an https scheme
+	 */
+	private static function _isHttpsUri($uri)
+	{
+		if (!is_string($uri) || $uri === '') {
+			return false;
+		}
+		$scheme = parse_url($uri, PHP_URL_SCHEME);
+		return is_string($scheme) && strtolower($scheme) === 'https';
 	}
 
 	/**

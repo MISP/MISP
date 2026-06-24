@@ -12,6 +12,7 @@ echo $this->element('genericElements/Form/genericForm', [
                     'Feed' => 'Feed',
                     'Workflow' => 'Workflow',
                     'Periodic Summary' => 'Periodic Summary',
+                    'TAXII' => 'TAXII',
                     'Admin' => 'Admin'
                 ],
                 'type' => 'dropdown',
@@ -100,6 +101,18 @@ echo $this->element('genericElements/Form/genericForm', [
                 ],
                 'class' => 'span6',
                 'div' => ['id' => 'Workflow', 'style' => 'display:none', 'class' => 'optionalField'],
+            ],
+            [
+                'field' => 'taxii_server_id',
+                'label' => __('TAXII Server'),
+                'options' => $dropdownData['taxii_servers'],
+                'type' => 'dropdown',
+                'picker' => true,
+                '_chosenOptions' => [
+                    'width' => '460px',
+                ],
+                'class' => 'span6',
+                'div' => ['id' => 'TaxiiServer', 'style' => 'display:none', 'class' => 'optionalField'],
             ],
             [
                 'field' => 'admin_action',
@@ -205,14 +218,22 @@ echo $this->Js->writeBuffer();
 
 <script type="text/javascript">
     $(document).ready(function() {
+        function refreshTaskForm() {
+            taskFormUpdate();
+            if ($("#TaskType").val() === "TAXII") {
+                $("#TaxiiServer").show();
+            }
+            $("#TaxiiServer select, #Workflow select, #Server select, #Feed select").trigger("chosen:updated");
+        }
+
         $(".datepicker").datepicker({
             preventMultipleSet: true,
             format: 'yyyy-mm-dd',
             todayHighlight: true
         });
-        taskFormUpdate();
+        refreshTaskForm();
         $("#TaskType, #TaskRunAfterCreation, #TaskFeedAction, #TaskServerAction, #TaskFeedId").change(function() {
-            taskFormUpdate();
+            refreshTaskForm();
         });
 
         // Keep the displayed times ticking. The server time is seeded with the

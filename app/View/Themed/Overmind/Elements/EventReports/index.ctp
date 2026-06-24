@@ -24,12 +24,20 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Event ID'),
+        'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
         'element' => 'id_name',
         'url' => $baseurl . '/events/view2/%event_id%',
         'card_section' => 'links',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Owner Org'),
+        'sort' => 'Event.org_id',
+        'data_path' => 'Event.Org',
+        'element' => 'organisation',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
