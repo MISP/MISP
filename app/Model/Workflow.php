@@ -568,13 +568,14 @@ class Workflow extends AppModel
                 sprintf('Workflow for trigger `%s`', $trigger_id),
                 __('Executing non-blocking workflow for trigger `%s`', $trigger_id)
             );
+	    $tempFile = $this->Job->getBackgroundJobsTool()->enqueueDataFile($data);
             $this->Job->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
                 BackgroundJobsTool::CMD_WORKFLOW,
                 [
                     'executeWorkflowForTrigger',
                     $trigger_id,
-                    JsonTool::encode($data),
+                    $tempFile,
                     JsonTool::encode($logging),
                     $jobId,
                     Configure::check('CurrentUserId') ? JsonTool::encode(Configure::read('CurrentUserId')) : null,
