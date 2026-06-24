@@ -3,7 +3,7 @@
     <?php if ($hasUnreadNews): ?>
     <div class="alert alert-success">
         <p><?= __('You have unread news.') ?></p>
-        <a class="btn btn-success" href="<?= isset($homepage['path']) ? $homepage['path'] : $homepage ?>"><?= __('Continue to homepage') ?></a>
+        <a class="btn btn-success" href="<?= h(isset($homepage['path']) ? $homepage['path'] : $homepage) ?>"><?= __('Continue to homepage') ?></a>
     </div>
     <?php endif; ?>
 

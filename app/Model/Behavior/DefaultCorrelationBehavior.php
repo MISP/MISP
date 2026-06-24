@@ -303,7 +303,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         $events = $Model->Event->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => ['Event.id', 'Event.orgc_id', 'Event.info', 'Event.date'],
+            'fields' => ['Event.id', 'Event.orgc_id', 'Event.info', 'Event.date', 'Event.distribution'],
         ]);
 
         $events = array_column(array_column($events, 'Event'), null, 'id');
@@ -317,6 +317,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $correlation['org_id'] = $event['orgc_id'];
             $correlation['info'] = $event['info'];
             $correlation['date'] = $event['date'];
+            $correlation['distribution'] = $event['distribution'];
             $parentId = $correlation['parent_id'];
             unset($correlation['parent_id']);
             $relatedAttributes[$parentId][] = $correlation;

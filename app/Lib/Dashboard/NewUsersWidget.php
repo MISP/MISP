@@ -116,10 +116,18 @@ class NewUsersWidget
     public function handler($user, $options = array())
     {
         $this->User = ClassRegistry::init('User');
+        // Site admins (or instances that explicitly opt in) may see and
+        // query e-mail addresses; everyone else has the column redacted
+        // AND is barred from filtering on it - otherwise the filter still
+        // works as an address-existence oracle even with the column hidden.
+        $redactEmails = (
+            empty($user['Role']['perm_site_admin']) &&
+            !Configure::read('Security.disclose_user_emails')
+        );
         $field_options = [
             'id' => [
                 'name' => '#',
-                'url' => empty($user['Role']['perm_site_admin']) ? null : Configure::read('MISP.baseurl') . '/admin/users/view',
+                'url' => empty($user['Role']['perm_site_admin']) ? null : (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/admin/users/view',
                 'element' => 'links',
                 'data_path' => 'User.id',
                 'url_params_data_paths' => 'User.id'
@@ -148,6 +156,9 @@ class NewUsersWidget
         ];
         if (!empty($options['filter']) && is_array($options['filter'])) {
             foreach ($this->validFilterKeys as $filterKey) {
+                if ($filterKey === 'email' && $redactEmails) {
+                    continue;
+                }
                 if (!empty($options['filter'][$filterKey])) {
                     if (!is_array($options['filter'][$filterKey])) {
                         $options['filter'][$filterKey] = [$options['filter'][$filterKey]];
@@ -171,13 +182,17 @@ class NewUsersWidget
         if ($timeConditions) {
             $params['conditions']['AND'][] = $timeConditions;
         }
-        
+
+        // Org admins are scoped to their own organisation, mirroring the
+        // /admin/users boundary. Site admins (checkPermissions has already
+        // barred everyone else) see across all organisations.
+        if (empty($user['Role']['perm_site_admin'])) {
+            $params['conditions']['AND'][] = ['User.org_id' => $user['org_id']];
+        }
+
         // redact e-mails for non site admins unless specifically allowed
-        if (
-            empty($user['Role']['perm_site_admin']) &&
-            !Configure::read('Security.disclose_user_emails')
-        ) {
-                unset($field_options['email']);
+        if ($redactEmails) {
+            unset($field_options['email']);
         }
 
         $fields = [];
@@ -215,5 +230,18 @@ class NewUsersWidget
             'fields' => $fields,
             'description' => $this->tableDescription
         ];
+    }
+
+    /**
+     * Restrict this widget to users who are allowed to see the user
+     * directory at all - mirroring the /admin/users boundary, which
+     * requires org-admin (perm_admin) or site-admin (perm_site_admin).
+     * Org admins are further scoped to their own organisation in
+     * handler(). Regular and read-only users get the widget hidden.
+     */
+    public function checkPermissions($user)
+    {
+        return !empty($user['Role']['perm_site_admin'])
+            || !empty($user['Role']['perm_admin']);
     }
 }

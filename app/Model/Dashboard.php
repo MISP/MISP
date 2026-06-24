@@ -207,7 +207,7 @@ class Dashboard extends AppModel
                     ) ||
                     (
                         !empty($template['Dashboard']['restrict_to_permission_flag']) &&
-                        empty($user['role'][$template['Dashboard']['restrict_to_permission_flag']])
+                        empty($user['Role'][$template['Dashboard']['restrict_to_permission_flag']])
                     )
                 )
             ) {

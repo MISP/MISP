@@ -6,7 +6,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
@@ -19,7 +19,7 @@
             [
                 'id' => 'elements',
                 'title' => __('Elements'),
-                'icon' => 'file-code',
+                'icon' => 'fas fa-file-code',
                 'count' => $tag_count ?? 0,
 
                 // Content

@@ -392,7 +392,7 @@ print_status "Creating Apache configuration file for MISP..."
           ServerAdmin admin@$MISP_DOMAIN
           ServerName $MISP_DOMAIN
 
-          Redirect permanent / https://$MISP_DOMAIN
+          Redirect permanent / https://$MISP_DOMAIN/
 
           LogLevel warn
           ErrorLog /var/log/apache2/misp.local_error.log

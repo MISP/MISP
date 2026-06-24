@@ -1,12 +1,12 @@
 <div class="index">
     <div class="btn-group">
-        <a class="btn <?= $period === 'daily' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/daily' ?>"><?= __('Daily') ?></a>
-        <a class="btn <?= $period === 'weekly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/weekly' ?>"><?= __('Weekly') ?></a>
-        <a class="btn <?= $period === 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Monthly') ?></a>
+        <a class="btn <?= $period === 'daily' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= h($baseurl) . '/users/viewPeriodicSummary/daily' ?>"><?= __('Daily') ?></a>
+        <a class="btn <?= $period === 'weekly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= h($baseurl) . '/users/viewPeriodicSummary/weekly' ?>"><?= __('Weekly') ?></a>
+        <a class="btn <?= $period === 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= h($baseurl) . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Monthly') ?></a>
     </div>
     <div class="input-append" style="margin-bottom: 0;">
         <input class="span2" id="btn-custom" type="number" min="1" step="1" placeholder="<?= __('Number of days from today') ?>">
-        <a id="link-custom" class="btn <?= $period === 'custom' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/custom/lastdays:5' ?>"><?= __('Custom') ?></a>
+        <a id="link-custom" class="btn <?= $period === 'custom' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= h($baseurl) . '/users/viewPeriodicSummary/custom/lastdays:5' ?>"><?= __('Custom') ?></a>
     </div>
 
     <h2><?= __('MISP %s summary', h($period)); ?></h2>
@@ -31,7 +31,7 @@
     var link = document.getElementById('link-custom');
     var input = document.getElementById('btn-custom');
     input.onchange = input.onkeyup = function() {
-        var resource = '<?= $baseurl ?>/users/viewPeriodicSummary/custom/lastdays:' + encodeURIComponent(this.value)
+        var resource = '<?= h($baseurl) ?>/users/viewPeriodicSummary/custom/lastdays:' + encodeURIComponent(this.value)
         link.setAttribute('href', resource)
     };
 </script>

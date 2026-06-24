@@ -85,7 +85,7 @@ class EventStreamWidget
         $field_options = [
             'id' => [
                 'name' => '#',
-                'url' => Configure::read('MISP.baseurl') . '/events/view',
+                'url' => (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/view',
                 'element' => 'links',
                 'data_path' => 'Event.id',
                 'url_params_data_paths' => 'Event.id'
@@ -126,6 +126,11 @@ class EventStreamWidget
         }
         foreach ($options['fields'] as $field) {
             if (!empty($field_options[$field])) {
+                $fields[] = $field_options[$field];
+            }
+        }
+        if (empty($fields)) {
+            foreach ($this->__default_fields as $field) {
                 $fields[] = $field_options[$field];
             }
         }

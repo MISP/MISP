@@ -381,6 +381,10 @@ class AdminShell extends AppShell
     public function updateJSON()
     {
         $this->out('Updating all JSON structures.');
+
+        $userId = empty($this->args[0])  ? null : $this->args[0];
+        $jobId = empty($this->args[1])  ? null : $this->args[1];
+
         $overallSuccess = true;
         foreach ($this->Server->updateJSON() as $type => $result) {
             $type = Inflector::pluralize(Inflector::humanize($type));
@@ -394,8 +398,15 @@ class AdminShell extends AppShell
         }
         if ($overallSuccess) {
             $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
+            if (!is_null($jobId)) {
+                $this->Job->saveProgress($jobId, 'All JSON structures updated', 100);
+                $job['Job']['status'] = Job::STATUS_COMPLETED;
+            }
         } else {
             $this->error('Some structure could no be updated');
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, false, 'Some JSON structures could not be updated');
+            }
         }
     }
 

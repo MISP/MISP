@@ -794,7 +794,7 @@ class UsersController extends AppController
                             if ($result && empty(Configure::read('MISP.disable_emailing'))) {
                                 $notification_message .= ' ' . __('User notified of new credentials.');
                             } else {
-                                $notification_message .= ' ' . __('User notification of new credentials could not be send.');
+                                $notification_message .= ' ' . __('User notification of new credentials could not be sent.');
                             }
                         }
                         if (!empty(Configure::read('Security.advanced_authkeys')) && $this->_isRest()) {
@@ -1669,9 +1669,16 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
+        // An org admin must not be able to target a site admin (e.g. to reset
+        // their password) even one within their own organisation, so exclude
+        // site admin roles from every recipient query below.
+        $siteAdminRoleIds = $this->_isSiteAdmin() ? array() : $this->User->getSiteAdminRoleIds();
         $conditionsAllowedOrgs = array();
         if (!$this->_isSiteAdmin()) {
             $conditionsAllowedOrgs = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditionsAllowedOrgs['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
         $conditionsAllowedOrgs['User.disabled'] = 0;
         $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditionsAllowedOrgs, 'contain' => array('Organisation')));
@@ -1687,6 +1694,9 @@ class UsersController extends AppController
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditions['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
 
         // harvest parameters
@@ -1724,7 +1734,7 @@ class UsersController extends AppController
             // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
 
-                // Make sure we're sending a mail to an elligible org
+                // Make sure we're sending a mail to an eligible org
                 if (!in_array($orgNameList, array_keys($orgName))) {
                     throw new NotFoundException(__('Recipient org not provided'));
                 }

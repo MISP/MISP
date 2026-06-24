@@ -735,18 +735,26 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     fetchFormDataAjax(url, function(formData) {
         var $formData = $(formData);
         $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
+        if (event_id === 'selected') {
+            $formData.find('#EventEventIds').val(getSelectedEventIds());
+        }
         xhr({
             data: $formData.serialize(),
             success: function (data) {
-                handleGenericAjaxResponse(data);
+                if (event_id === 'selected') {
+                    location.reload();
+                } else {
+                    handleGenericAjaxResponse(data);
+                }
             },
             error: function() {
                 showMessage('fail', 'Could not add tag.');
             },
             complete: function() {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
-
+                if (event_id !== 'selected') {
+                    loadEventTags(event_id);
+                    loadGalaxies(event_id, 'event');
+                }
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
@@ -774,9 +782,16 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             data: $formData.serialize(),
             success:function (data) {
                 if (attribute_id == 'selected') {
-                    updateIndex(0, 'event');
+                    if (typeof window.onBulkAttributeTagsApplied === 'function') {
+                        window.onBulkAttributeTagsApplied(getSelected());
+                    } else {
+                        updateIndex(0, 'event');
+                    }
                 } else {
                     loadAttributeTags(attribute_id);
+                    if (typeof window.onAttributeTagsApplied === 'function') {
+                        updateAttributeTagsApplied(attribute_id);
+                    }
                     loadGalaxies(attribute_id, 'attribute');
                 }
                 handleGenericAjaxResponse(data);
@@ -795,6 +810,20 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
             url: url
         });
     });
+}
+
+function updateAttributeTagsApplied(attribute_id) {
+    if (typeof window.onAttributeTagsApplied === 'function') {
+        window.onAttributeTagsApplied(attribute_id);
+    }
+}
+
+function updateBulkGalaxiesApplied(selectedIds, local, eventId) {
+    if (typeof window.onBulkAttributeGalaxiesApplied === 'function') {
+        window.onBulkAttributeGalaxiesApplied(selectedIds, local, eventId);
+        return true;
+    }
+    return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
@@ -1028,9 +1057,11 @@ function listCheckboxesCheckedEventIndex() {
     }
 
     if ($('.select:checked').length > 0) {
-        $('.mass-export').removeClass('hidden');
+        // mass tag/galaxy follow any selection: permission filtering happens
+        // server-side per event (global attaches are downgraded to local)
+        $('.mass-export, .mass-tag, .mass-galaxy').removeClass('hidden');
     } else {
-        $('.mass-export').addClass('hidden');
+        $('.mass-export, .mass-tag, .mass-galaxy').addClass('hidden');
     }
 }
 
@@ -1205,6 +1236,17 @@ function getSelected() {
     return JSON.stringify(selected);
 }
 
+function getSelectedEventIds() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        var id = $(this).data("id");
+        if (id != null) {
+            selected.push(id);
+        }
+    });
+    return JSON.stringify(selected);
+}
+
 function getSelectedTaxonomyNames() {
     var selected = [];
     $(".select_taxonomy").each(function() {
@@ -1254,6 +1296,18 @@ function loadAttributeTags(attribute_id) {
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
+}
+
+function updateBetaAttributeTags(attribute_id) {
+    var $row = $("[data-primary-id=" + attribute_id + "]");
+    if (!$row.length) {
+        return;
+    }
+    loadAttributeTags(attribute_id);
+    var $tagsRow = $(".col-tags-row[data-primary-id=" + attribute_id + "] .attributeTagContainer");
+    if ($tagsRow.length) {
+        $tagsRow.html($row.find('.attributeTagContainer').first().html());
+    }
 }
 
 function removeObjectTagPopup(clicked, context, object, tag) {
@@ -1942,7 +1996,8 @@ function popoverPopup(clicked, id, context, target, admin) {
 
 function popoverPopupNew(clicked, url) {
     var $clicked = $(clicked);
-    var popover = openPopover($clicked, undefined);
+    var placement = $clicked.data('popover-placement');
+    var popover = openPopover($clicked, undefined, undefined, placement);
 
     // actual request
     $.ajax({
@@ -2857,7 +2912,9 @@ function changeFreetextImportExecute() {
     $('.typeToggle').each(function() {
         if ($(this).val() === from) {
             if (selectContainsOption("#" + $(this).attr('id'), to)) {
-                $(this).val(to);
+                // Update the value, then manually trigger the 'change' event
+                // so the Category dropdowns update automatically.
+                $(this).val(to).trigger('change');
             }
         }
     });
@@ -4619,7 +4676,11 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
         $formData.find("#GalaxyMirrorOnEvent").prop('checked', mirrorOnEvent);
         if (target_id === 'selected') {
-            $formData.find('#GalaxyAttributeIds').val(getSelected());
+            if (scope === 'event') {
+                $formData.find('#GalaxyEventIds').val(getSelectedEventIds());
+            } else {
+                $formData.find('#GalaxyAttributeIds').val(getSelected());
+            }
         }
         $.ajax({
             data: $formData.serialize(),
@@ -4628,7 +4689,10 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
             },
             success:function (data) {
                 if (target_id === 'selected' || scope === 'tag_collection') {
-                    location.reload();
+                    if (!updateBulkGalaxiesApplied(getSelected(), local, additionalData['event_id'])) {
+                        location.reload();
+                    }
+                    handleGenericAjaxResponse(data);
                 } else {
                     loadGalaxies(target_id, scope);
                     if (mirrorOnEvent) {
@@ -5983,6 +6047,9 @@ function taskFormUpdate() {
             break;
         case 'Workflow':
             $('#Workflow').show();
+            break;
+        case 'TAXII':
+            $('#TaxiiServer').show();
             break;
         case 'Admin':
             $('#AdminAction').show();

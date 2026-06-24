@@ -95,10 +95,19 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        // Build the user dropdown from the authkey's actual owner, not from request->data:
+        // on a failed validation POST the latter reflects attacker-supplied input, which would
+        // let a user enumerate arbitrary user emails. Access to this owner is already authorised
+        // by the canEditAuthKey() check at the top of this action.
+        $ownerUserId = $this->AuthKey->find('column', [
+            'fields' => ['AuthKey.user_id'],
+            'conditions' => ['AuthKey.id' => $id],
+        ]);
+        $ownerUserId = $ownerUserId[0] ?? null;
         $this->set('dropdownData', [
             'user' => $this->User->find('list', [
                 'sort' => ['username' => 'asc'],
-                'conditions' => ['id' => $this->request->data['AuthKey']['user_id']],
+                'conditions' => ['id' => $ownerUserId],
             ])
         ]);
         $this->set('menuData', [
@@ -119,7 +128,10 @@ class AuthKeysController extends AppController
         }
         $params = [
             'displayOnSuccess' => 'authkey_display',
-            'override' => ['authkey' => null], // do not allow to use own key, always generate random one
+            'override' => [
+                'authkey' => null, // do not allow to use own key, always generate random one
+                'unique_ips' => null, // derived over time from key usage, never user-settable on creation
+            ],
             'afterFind' => function (array $authKey, array $savedData) { // remove hashed key from response
                 unset($authKey['AuthKey']['authkey']);
                 $authKey['AuthKey']['authkey_raw'] = $savedData['AuthKey']['authkey_raw'];

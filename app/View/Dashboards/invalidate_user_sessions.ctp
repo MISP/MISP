@@ -16,7 +16,7 @@
  *
  * Vars: $userId (int), $email (raw), $count (int), $supported (bool).
  */
-$baseurl = (string)Configure::read('MISP.baseurl');
+$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
 ?>
 <div class="misp-user-confirm">
 <?php if (empty($supported)): ?>
