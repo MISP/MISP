@@ -125,7 +125,9 @@ $brandIcons = [
     'twitter',
     'linkedin',
     'btc',
-    'ethereum'
+    'ethereum',
+    'optin-monster',
+    'internet-explorer'
 ];
 
 $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true) ? 'fab' : 'fas';
