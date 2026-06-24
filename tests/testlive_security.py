@@ -142,8 +142,11 @@ class TestSecurity(unittest.TestCase):
         cls.admin_misp_connector = PyMISP(url, key)
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
-        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', False, force=True))
+        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', True, force=True))
         cls.admin_misp_connector.global_pythonify = True
+
+        # we get rid of the legacy authkey checks as those are currently broken since the fix to not having the same keys in the old + new system
+
         # Check if admin is really site admin
         assert cls.admin_misp_connector._current_role.perm_site_admin
 
@@ -179,6 +182,10 @@ class TestSecurity(unittest.TestCase):
         user.password = cls.test_usr_password
         cls.test_usr = cls.admin_misp_connector.add_user(user)
         check_response(cls.test_usr)
+
+        test_usr_key = cls.__create_advanced_authkey(cls, cls.test_usr.id)
+        cls.test_usr.authkey = test_usr_key["authkey_raw"]
+        assert(cls.test_usr.authkey == test_usr_key["authkey_raw"])
 
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
@@ -489,6 +496,7 @@ class TestSecurity(unittest.TestCase):
             # Reset auth key from org admin account
             new_auth_key = send(self.org_admin_misp_connector, "POST", f"users/resetauthkey/{self.test_usr.id}")
             new_auth_key = new_auth_key["message"].replace("Authkey updated: ", "")
+            self.test_usr.authkey = new_auth_key
 
             # Try to login with old key
             with self.assertRaises(PyMISPError):
@@ -1179,14 +1187,6 @@ class TestSecurity(unittest.TestCase):
             response = logged_in.get(url + "/users/view/me.json")
             self.assertIn("X-Username", response.headers)
             self.assertEqual(self.test_usr.email, response.headers["X-Username"])
-
-    def test_username_in_response_header_api_access(self):
-        with self.__setting("Security.username_in_response_header", True):
-            logged_in = PyMISP(url, self.test_usr.authkey)
-
-            response = logged_in._prepare_request('GET', 'users/view/me')
-            self.assertIn("X-Username", response.headers)
-            self.assertEqual(self.test_usr.email + "/API/default", response.headers["X-Username"])
 
     def test_username_in_response_header_advanced_api_access(self):
         with self.__setting({

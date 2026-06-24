@@ -42,7 +42,11 @@ jobs:
 
       - uses: zhulik/redis-action@1.1.0
         with:
-          redis version: '5'
+          # redis-py 8.0 defaults to RESP3 and sends HELLO 3 on connect; Redis 5
+          # (EOL, pre-6.0) rejects HELLO, polluting mispzmq.error.log and tripping
+          # the Errors-in-Logs gate even though all tests pass. Redis 7 supports
+          # HELLO/RESP3, fixing it for mispzmq and all Python Redis consumers.
+          redis version: '7'
           number of databases: 100
 
       # prepare php stuff

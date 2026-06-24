@@ -87,13 +87,46 @@ class CollectionsController extends AppController
             ) {
                 throw new ForbiddenException(__('Collection received older or same as local version.'));
             }
-            if (isset($data['Collection']['distribution']) && $data['Collection']['distribution'] == 4) {
-                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $data, 'Collection');
+            // The sharing-group authorisation check must run against the EFFECTIVE distribution
+            // and sharing group after the edit, not only when 'distribution' is present in the
+            // body. CRUDComponent::edit() retains the stored value for any field the request
+            // omits, so a user could retarget an existing distribution=4 collection onto a
+            // sharing group they are not authorised to use simply by omitting 'distribution'
+            // (it stays 4 from the stored record) while mass-assigning sharing_group_id. Validate
+            // whenever the effective distribution is 4 and this request actually changes the
+            // distribution or the sharing group (an untouched SG on an unrelated edit is left
+            // as-is so a legitimate owner can still edit other fields).
+            $effectiveDistribution = isset($data['Collection']['distribution'])
+                ? $data['Collection']['distribution']
+                : $oldCollection['Collection']['distribution'];
+            $sgChanged = isset($data['Collection']['sharing_group_id'])
+                && $data['Collection']['sharing_group_id'] != $oldCollection['Collection']['sharing_group_id'];
+            $distChanged = isset($data['Collection']['distribution'])
+                && $data['Collection']['distribution'] != $oldCollection['Collection']['distribution'];
+            if ($effectiveDistribution == 4 && ($sgChanged || $distChanged)) {
+                $sgCheckData = $data;
+                if (!isset($sgCheckData['Collection']['sharing_group_id'])) {
+                    $sgCheckData['Collection']['sharing_group_id'] = $oldCollection['Collection']['sharing_group_id'];
+                }
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $sgCheckData, 'Collection');
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);
                 }
             }
             $params = [
+                // Ownership/identity must never be reassigned through edit. The model only forces
+                // these on create (Collection::beforeValidate runs its ownership block only when the
+                // id is empty), and CRUDComponent::edit() copies every supplied field onto the loaded
+                // record. 2.4's CRUDComponent already re-pins the primary key, but its 'override'
+                // param only sets top-level request keys (not model fields), so it does NOT cover
+                // org/user reassignment - pin them back to the stored values in beforeSave instead.
+                'beforeSave' => function (array $collection) use ($oldCollection) {
+                    $collection['Collection']['id'] = $oldCollection['Collection']['id'];
+                    $collection['Collection']['orgc_id'] = $oldCollection['Collection']['orgc_id'];
+                    $collection['Collection']['org_id'] = $oldCollection['Collection']['org_id'];
+                    $collection['Collection']['user_id'] = $oldCollection['Collection']['user_id'];
+                    return $collection;
+                },
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
                     return $collection;

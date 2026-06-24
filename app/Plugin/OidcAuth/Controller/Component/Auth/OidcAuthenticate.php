@@ -20,6 +20,8 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.check_user_validity (integer, default `0`)
  *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
  *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
+ *  - OidcAuth.allow_email_linking (boolean, default: false) - allow OIDC to link to an existing local user (sub IS NULL) by matching the `email` claim. Off by default; enable only when the IdP is trusted to assert ownership of the email claim, otherwise a token holder may take over any local account sharing the email.
+ *  - OidcAuth.require_email_verified (boolean, default: true) - when linking is allowed, also require the token's `email_verified` claim to be true. Disable only on IdPs that do not issue the claim and where ownership of the email is enforced by other means.
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

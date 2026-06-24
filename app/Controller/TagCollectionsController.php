@@ -45,6 +45,12 @@ class TagCollectionsController extends AppController
             if (!isset($this->request->data['TagCollection'])) {
                 $this->request->data = array('TagCollection' => $this->request->data);
             }
+            // create-only action: create() does not strip a supplied primary key, and CakePHP
+            // treats an id in the save data as an UPDATE target. Without dropping it, a supplied
+            // TagCollection[id] turns this insert into a covert UPDATE of an arbitrary collection -
+            // and because org_id/user_id are forced to the current user below, that row is also
+            // re-owned to the attacker. Drop it so the save always inserts a new row.
+            unset($this->request->data['TagCollection']['id']);
             $this->request->data['TagCollection']['org_id'] = $this->Auth->user('org_id');
             $this->request->data['TagCollection']['user_id'] = $this->Auth->user('id');
             if ($this->TagCollection->save($this->request->data)) {
@@ -157,6 +163,10 @@ class TagCollectionsController extends AppController
             }
             $this->request->data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
             $this->request->data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+            // Ownership must never be reassigned through edit; pin org_id/user_id back to the stored
+            // values so a supplied org_id/user_id cannot transfer the collection to another org/user.
+            $this->request->data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+            $this->request->data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
             if ($this->TagCollection->save($this->request->data)) {
                 if ($this->_isRest()) {
                     $tagCollection = $this->TagCollection->find('first', array(

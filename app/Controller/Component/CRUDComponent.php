@@ -186,6 +186,12 @@ class CRUDComponent extends Component
             $data = $params['afterFind']($data);
         }
         if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
+            // The record loaded above is the only row this edit is authorised to touch.
+            // Capture its primary key now so a payload-supplied id cannot later redirect
+            // save() onto a different row: CakePHP treats an id in the save data as an
+            // UPDATE target, so without this an injected id would mass-assign the write
+            // onto an arbitrary record (the scope/auth check only validated this one).
+            $massAssignSafeId = isset($data[$modelName]['id']) ? $data[$modelName]['id'] : null;
             $input = $this->Controller->request->data;
             if (empty($input[$modelName])) {
                 $input = [$modelName => $input];
@@ -205,6 +211,11 @@ class CRUDComponent extends Component
                 foreach ($input[$modelName] as $field => $fieldData) {
                     $data[$modelName][$field] = $fieldData;
                 }
+            }
+            // Re-pin the primary key to the loaded record: never let a payload-supplied
+            // id move this write off the authorised row.
+            if ($massAssignSafeId !== null) {
+                $data[$modelName]['id'] = $massAssignSafeId;
             }
             if (isset($params['beforeSave'])) {
                 $data = $params['beforeSave']($data);
@@ -304,7 +315,7 @@ class CRUDComponent extends Component
                 throw new MethodNotAllowedException('Something went wrong, delete action failed.');
             }
         }
-        if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
+        if ($validationError === null && ($this->Controller->request->is('post') || $this->Controller->request->is('delete'))) {
             if (!empty($params['modelFunction'])) {
                 $result = $this->Controller->$modelName->{$params['modelFunction']}($id);
             } else {

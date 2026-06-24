@@ -1117,6 +1117,38 @@ class User extends AppModel
         ));
     }
 
+    /**
+     * Role IDs that grant site admin privileges.
+     * @return array
+     */
+    public function getSiteAdminRoleIds()
+    {
+        return $this->Role->find('column', array(
+            'conditions' => array('Role.perm_site_admin' => 1),
+            'fields' => array('Role.id')
+        ));
+    }
+
+    /**
+     * Whether the given user ID belongs to a site admin. Unlike getSiteAdmins(),
+     * this deliberately ignores the disabled flag: a disabled site admin must
+     * still be protected from lower-privileged (org) admins.
+     * @param int $userId
+     * @return bool
+     */
+    public function isUserSiteAdmin($userId)
+    {
+        if (empty($userId)) {
+            return false;
+        }
+        $target = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $userId),
+            'contain' => array('Role' => array('fields' => array('perm_site_admin')))
+        ));
+        return !empty($target['Role']['perm_site_admin']);
+    }
+
     public function verifyPassword($user_id, $password)
     {
         $currentUser = $this->find('first', array(
@@ -1144,14 +1176,15 @@ class User extends AppModel
      */
     public function createInitialUser($orgId)
     {
-        $authKey = $this->generateAuthKey();
+        $authKeyOld = $this->generateAuthKey();
+        $authKeyNew = $this->generateAuthKey();
         $admin = array('User' => array(
             'id' => 1,
             'email' => 'admin@admin.test',
             'org_id' => $orgId,
             'password' => 'admin',
             'confirm_password' => 'admin',
-            'authkey' => $authKey,
+            'authkey' => $authKeyOld,
             'nids_sid' => 4000000,
             'newsread' => 0,
             'role_id' => 1,
@@ -1161,7 +1194,7 @@ class User extends AppModel
         $this->save($admin);
         if (!empty(Configure::read("Security.advanced_authkeys"))) {
             $newKey = [
-                'authkey' => $authKey,
+                'authkey' => $authKeyNew,
                 'user_id' => 1,
                 'comment' => 'Initial auto-generated key',
                 'allowed_ips' => null,
@@ -1169,7 +1202,7 @@ class User extends AppModel
             $this->AuthKey->create();
             $this->AuthKey->save($newKey);
         }
-        return $authKey;
+        return empty(Configure::read("Security.advanced_authkeys")) ? $authKeyOld : $authKeyNew;
     }
 
     public function resetAllSyncAuthKeysRouter($user, $jobId = false)

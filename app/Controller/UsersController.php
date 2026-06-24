@@ -161,6 +161,9 @@ class UsersController extends AppController
             if (empty($this->request->data['User'])) {
                 $this->request->data = array('User' => $this->request->data);
             }
+            if (isset($this->request->data['User']['id'])) {
+                unset($this->request->data['User']['id']);
+            }
             $abortPost = false;
             if (!empty($this->request->data['User']['email']) && !$this->_isSiteAdmin()) {
                 $organisation = $this->User->Organisation->find('first', array(
@@ -1345,7 +1348,29 @@ class UsersController extends AppController
     public function routeafterlogin()
     {
         // Events list
-        $url = $this->Session->consume('pre_login_requested_url');
+        $url = $this->Session->consume('pre_login_requested_url') ?? '';
+
+        $url = rawurldecode($url);
+        $parts = parse_url($url);
+
+        if (
+            $url === '' ||
+            $parts === false ||
+            isset($parts['host']) ||
+            isset($parts['scheme']) ||
+            isset($parts['user']) ||
+            !isset($parts['path']) ||
+            $parts['path'][0] !== '/' ||
+            // reject "//x" and "/\x" - both resolve to a protocol-relative (off-site) URL
+            (isset($parts['path'][1]) && ($parts['path'][1] === '/' || $parts['path'][1] === '\\'))
+        ) {
+            $url = '';
+        } else {
+            $url = $parts['path']
+                . (isset($parts['query']) ? '?' . $parts['query'] : '')
+                . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+        }
+        
         if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
             if (substr($url, 0, 7) === "http://") {
                 $url = sprintf('https://%s', substr($url, 7));
@@ -1638,9 +1663,16 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
+        // An org admin must not be able to target a site admin (e.g. to reset
+        // their password) even one within their own organisation, so exclude
+        // site admin roles from every recipient query below.
+        $siteAdminRoleIds = $this->_isSiteAdmin() ? array() : $this->User->getSiteAdminRoleIds();
         $conditionsAllowedOrgs = array();
         if (!$this->_isSiteAdmin()) {
             $conditionsAllowedOrgs = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditionsAllowedOrgs['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
         $conditionsAllowedOrgs['User.disabled'] = 0;
         $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditionsAllowedOrgs, 'contain' => array('Organisation')));
@@ -1656,6 +1688,9 @@ class UsersController extends AppController
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array('org_id' => $this->Auth->user('org_id'));
+            if (!empty($siteAdminRoleIds)) {
+                $conditions['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+            }
         }
 
         // harvest parameters
