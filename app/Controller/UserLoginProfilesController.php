@@ -50,9 +50,14 @@ class UserLoginProfilesController extends AppController
         // normal user
         $conditions = ['user_id' => $this->Auth->user('id')];
         // org admin can see people from their own org
-        if (!$this->_isSiteAdmin() && $this->_isAdmin()) { 
+        if (!$this->_isSiteAdmin() && $this->_isAdmin()) {
             $conditions = ['User.org_id' => $this->Auth->user('org_id'),
-                           'user_id' => $user_id]; 
+                           'user_id' => $user_id];
+            // An org admin must not see a site admin's login profiles.
+            $siteAdminRoleIds = $this->UserLoginProfile->User->getSiteAdminRoleIds();
+            if (!empty($siteAdminRoleIds)) {
+                $conditions['NOT'] = ['User.role_id' => $siteAdminRoleIds];
+            }
             $delete_buttons = true;
         }
         // full admin can see all users
@@ -99,12 +104,37 @@ class UserLoginProfilesController extends AppController
             // no additional filter for siteadmins
         }
         else if ($this->_isAdmin()) {
-            $conditions['User.org_id'] = $this->Auth->user('org_id'); // org admin
-        } 
+            // Org admin: restrict to non-site-admin users of their own org.
+            // We filter on UserLoginProfile.user_id (an own-model column) rather
+            // than User.org_id, because the delete path runs finds with
+            // recursive => -1, where a condition on the associated User table is
+            // not joined and would raise an SQL error.
+            $conditions['UserLoginProfile.user_id'] = $this->__administrableUserIds();
+        }
         else {
             $conditions['UserLoginProfile.user_id'] = $this->Auth->user('id');  // normal user
         }
         return $conditions;
+    }
+
+    /**
+     * User IDs the current org admin is allowed to administer: members of their
+     * own organisation, excluding site admins. Returns a value that matches no
+     * rows when the set is empty, so an empty result fails closed.
+     * @return array
+     */
+    private function __administrableUserIds()
+    {
+        $conditions = ['User.org_id' => $this->Auth->user('org_id')];
+        $siteAdminRoleIds = $this->UserLoginProfile->User->getSiteAdminRoleIds();
+        if (!empty($siteAdminRoleIds)) {
+            $conditions['NOT'] = ['User.role_id' => $siteAdminRoleIds];
+        }
+        $userIds = $this->UserLoginProfile->User->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['User.id'],
+        ]);
+        return empty($userIds) ? [-1] : $userIds;
     }
 
     public function admin_delete($id)

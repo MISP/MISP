@@ -632,6 +632,22 @@ class AnalystData extends AppModel
             $saveSuccess = $analystModel->save($analystData);
             $saveSuccess = true;
         } else {
+            // DPT-4: a regular (non-sync, non-site-admin) caller - the web
+            // add/edit afterSave, or analyst data nested in an object/
+            // attribute/report/event capture - must not be able to overwrite
+            // an existing record it could not edit directly. The incoming
+            // orgc_uuid was already force-rewritten to the caller's own org
+            // above, so authorise against the EXISTING (DB) record's orgc.
+            // The sync/pull path (perm_sync) is intentionally exempt and keeps
+            // its locked + timestamp semantics below.
+            if (
+                !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] &&
+                !$analystModel->canEditAnalystData($user, $existingAnalystData, $type)
+            ) {
+                $results['errors'][] = __('Cannot edit analyst data (%s) created by another organisation.', $analystData[$type]['uuid']);
+                $results['failed']++;
+                return $results;
+            }
             if (!$existingAnalystData[$type]['locked'] && empty($server['Server']['internal'])) {
                 $results['errors'][] = __('Blocked an edit to an analyst data that was created locally. This can happen if a synchronised analyst data that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;

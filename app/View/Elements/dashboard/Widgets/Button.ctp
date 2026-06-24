@@ -16,14 +16,14 @@
         $url = rawurldecode($url);
         $parts = parse_url($url);
 
-        if ($parts === false || isset($parts['host']) || isset($parts['scheme']) || isset($parts['user']) || $parts['path'][0] !== '/') {
+        if ($parts === false || isset($parts['host']) || isset($parts['scheme']) || isset($parts['user']) || empty($parts['path']) || $parts['path'][0] !== '/' || (strlen($parts['path']) > 1 && $parts['path'][1] === '\\')) {
             echo sprintf('<button class="btn btn-secondary widget-button">%s</button>', __('Invalid URL'));
         } else {
             $betterUrl = $parts['path']
                 . (isset($parts['query']) ? '?' . $parts['query'] : '')
                 . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
 
-            echo '<a href="' . htmlspecialchars($betterUrl . $url, ENT_QUOTES, 'UTF-8') . '">';
+            echo '<a href="' . htmlspecialchars($betterUrl, ENT_QUOTES, 'UTF-8') . '">';
             echo '<button class="btn btn-primary widget-button">';
             echo h($data['text']);
             echo '</button></a>';

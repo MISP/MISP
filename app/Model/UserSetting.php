@@ -287,7 +287,12 @@ class UserSetting extends AppModel
          if ($user['Role']['perm_site_admin']) {
              return true;
          } else if ($user['Role']['perm_admin']) {
-             if ($user['org_id'] === $setting['User']['org_id']) {
+             // An org admin may not manage a site admin's setting, even when the
+             // site admin belongs to the same organisation.
+             if (
+                 $user['org_id'] === $setting['User']['org_id'] &&
+                 !$this->User->isUserSiteAdmin($setting['UserSetting']['user_id'])
+             ) {
                  return true;
              }
          } else {
@@ -472,17 +477,27 @@ class UserSetting extends AppModel
             throw new MethodNotAllowedException(__('User self-management is disabled on this instance.'));
         }
         if (!empty($data['UserSetting']['user_id']) && is_numeric($data['UserSetting']['user_id'])) {
+            $targetUserId = $data['UserSetting']['user_id'];
             $user_to_edit = $this->User->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('User.id' => $data['UserSetting']['user_id']),
+                'conditions' => array('User.id' => $targetUserId),
                 'fields' => array('User.org_id')
             ));
-            if (
+            // A user may always edit their own settings. A site admin may edit
+            // anyone's. An org admin may edit non-site-admin users within their
+            // own org. Anything else is an explicit authorisation failure rather
+            // than a silent fall-through to the acting user's own settings.
+            $authorised =
+                ($targetUserId == $user['id']) ||
                 !empty($user['Role']['perm_site_admin']) ||
-                (!empty($user['Role']['perm_admin']) && ($user_to_edit['User']['org_id'] == $user['org_id']))
-            ) {
-                $userSetting['user_id'] = $data['UserSetting']['user_id'];
+                (!empty($user['Role']['perm_admin'])
+                    && !empty($user_to_edit)
+                    && ($user_to_edit['User']['org_id'] == $user['org_id'])
+                    && !$this->User->isUserSiteAdmin($targetUserId));
+            if (!$authorised) {
+                throw new MethodNotAllowedException(__('You are not authorised to edit the settings of this user.'));
             }
+            $userSetting['user_id'] = $targetUserId;
         }
         if (empty($userSetting['user_id'])) {
             $userSetting['user_id'] = $user['id'];

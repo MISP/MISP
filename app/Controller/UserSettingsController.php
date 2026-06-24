@@ -79,12 +79,17 @@ class UserSettingsController extends AppController
         }
         if (!$this->_isSiteAdmin()) {
             if ($this->_isAdmin()) {
+                $orgUserConditions = array('User.org_id' => $this->Auth->user('org_id'));
+                // An org admin must not see a site admin's settings.
+                $siteAdminRoleIds = $this->UserSetting->User->getSiteAdminRoleIds();
+                if (!empty($siteAdminRoleIds)) {
+                    $orgUserConditions['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+                }
                 $conditions['AND'][] = array(
                     'UserSetting.user_id' => $this->UserSetting->User->find(
                         'list', array(
-                            'conditions' => array(
-                                'User.org_id' => $this->Auth->user('org_id')
-                            ),
+                            'recursive' => -1,
+                            'conditions' => $orgUserConditions,
                             'fields' => array(
                                 'User.id', 'User.id'
                             )

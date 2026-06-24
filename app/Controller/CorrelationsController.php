@@ -80,14 +80,14 @@ class CorrelationsController extends AppController
     {
         $query = [
             'limit' => 50,
-            'page' => 1,
-            'order' => 'occurrence desc'
+            'page' => 1
         ];
         foreach ($query as $customParam => $foo) {
             if (isset($this->request->params['named'][$customParam])) {
                 $query[$customParam] = $this->request->params['named'][$customParam];
             }
         }
+        $query['order'] = 'occurrence desc';
         if (isset($this->request->params['named']['scope'])) {
             $limit = $this->Correlation->OverCorrelatingValue->getLimit();
             if ($this->request->params['named']['scope'] === 'over_correlating') {

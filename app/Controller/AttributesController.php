@@ -708,7 +708,10 @@ class AttributesController extends AppController
             $attributes = array();  // array with all the attributes we're going to save
             foreach ($entries as $entry) {
                 $attribute = array();
-                $attribute['event_id'] = $this->request->data['Attribute']['event_id'];
+                // Pin to the route event that __canModifyEvent() authorised above; the
+                // body's event_id is attacker-controlled and would otherwise redirect the
+                // imported attributes into an event the user cannot modify. (Jeroen Pinoy)
+                $attribute['event_id'] = $eventId;
                 $attribute['value'] = $entry['Value'];
                 $attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
                 $attribute['comment'] = $entry['Description'];
@@ -779,7 +782,8 @@ class AttributesController extends AppController
             // generate the Attributes
             foreach ($references as $reference) {
                 $attribute = array();
-                $attribute['event_id'] = $this->request->data['Attribute']['event_id'];
+                // route-pinned event_id (see attribute loop above) — never trust the body
+                $attribute['event_id'] = $eventId;
                 $attribute['category'] = 'Internal reference';
                 if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $reference)) {
                     $attribute['type'] = 'link';
@@ -809,7 +813,9 @@ class AttributesController extends AppController
             // data imported (with or without errors)
             // remove the published flag from the event
             $this->loadModel('Event');
-            $this->Event->id = $this->request->data['Attribute']['event_id'];
+            // unpublish the route event we imported into, not a body-supplied id — the
+            // latter let a user unpublish an arbitrary event they cannot modify.
+            $this->Event->id = $eventId;
             $this->Event->saveField('published', 0);
 
             // everything is done, now redirect to event view

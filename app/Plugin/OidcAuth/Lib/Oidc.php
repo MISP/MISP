@@ -42,9 +42,29 @@ class Oidc
 
         if (!$user) { // User by sub not found, try to find by email
             $user = $this->_findUser($settings, ['User.email' => $mispUsername]);
-            if ($user && $user['sub'] !== null && $user['sub'] !== $sub) {
-                $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.", LOG_ERR);
-                return false;
+            if ($user) {
+                if ($user['sub'] !== null && $user['sub'] !== $sub) {
+                    $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.", LOG_ERR);
+                    return false;
+                }
+                if ($user['sub'] === null) {
+                    $allowLink = (bool)$this->getConfig('allow_email_linking', false, false);
+                    $requireVerified = (bool)$this->getConfig('require_email_verified', true, false);
+                    $rawEmailVerified = $claims->email_verified ?? null;
+                    $isVerified = ($rawEmailVerified === true || $rawEmailVerified === 'true');
+                    if (!$allowLink || ($requireVerified && !$isVerified)) {
+                        $this->log(
+                            $mispUsername,
+                            "Refusing to link OIDC identity to existing user with NULL sub " .
+                            "(allow_email_linking=" . var_export($allowLink, true) .
+                            ", require_email_verified=" . var_export($requireVerified, true) .
+                            ", email_verified=" . var_export($rawEmailVerified, true) . "). " .
+                            "Set OidcAuth.allow_email_linking=true to permit migration; the IdP must also issue email_verified=true unless OidcAuth.require_email_verified is set to false.",
+                            LOG_ERR
+                        );
+                        return false;
+                    }
+                }
             }
         }
 
