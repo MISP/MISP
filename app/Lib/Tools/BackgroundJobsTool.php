@@ -94,6 +94,28 @@ class BackgroundJobsTool
         DATA_CONTENT_PREFIX = 'data_content',
         RUNNING_JOB_PREFIX = 'running';
 
+    /**
+     * Default settings, mirroring the `SimpleBackgroundJobs` block in
+     * config.default.php. Used to backfill any key missing from the live
+     * config so consumers never receive a null/undefined setting - e.g.
+     * `max_job_history_ttl`, which is passed to the typed Redis::setex().
+     *
+     * @var array
+     */
+    const DEFAULT_SETTINGS = [
+        'enabled' => false,
+        'redis_host' => 'localhost',
+        'redis_port' => 6379,
+        'redis_password' => '',
+        'redis_database' => 1,
+        'redis_namespace' => 'background_jobs',
+        'max_job_history_ttl' => 86400,
+        'supervisor_host' => 'localhost',
+        'supervisor_port' => 9001,
+        'supervisor_user' => 'supervisor',
+        'supervisor_password' => '',
+    ];
+
     /** @var array */
     private $settings;
 
@@ -120,7 +142,19 @@ class BackgroundJobsTool
      */
     public function __construct(array $settings)
     {
-        $this->settings = $settings;
+        // Backfill any key missing from the live config with its default, so
+        // an older config.php that predates a given key cannot pass a null
+        // through to a typed Redis call. User-supplied values take precedence.
+        $this->settings = $settings + self::DEFAULT_SETTINGS;
+
+        // max_job_history_ttl is handed to Redis::setex(int $expire); guard
+        // against a blank, zero or non-numeric config value, not just a
+        // missing key (which the union above already backfills).
+        $ttl = $this->settings['max_job_history_ttl'];
+        if (!is_numeric($ttl) || (int)$ttl <= 0) {
+            $ttl = self::DEFAULT_SETTINGS['max_job_history_ttl'];
+        }
+        $this->settings['max_job_history_ttl'] = (int)$ttl;
 
         if ($this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();

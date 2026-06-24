@@ -910,6 +910,9 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
+        if ($serverSync->server()['Server']['internal']) {
+            $filterRules['include_event_tags_fingerprint'] = 1;
+        }
 
         // Fetch event index from cache if exists and is not modified on server
         $redis = RedisTool::init();
@@ -919,6 +922,7 @@ class Server extends AppModel
         } else {
             $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
+        $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
 
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
@@ -973,11 +977,34 @@ class Server extends AppModel
         $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            if (
-                (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) &&
-                !($server !== null && !empty($server['Server']['internal']) && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
-            ) {
-                unset($events[$k]);
+            $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+            $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+
+            if (isset($localEvents[$uuid])) {
+                $isUnlocked = !$localEvents[$uuid]['locked'];
+
+                $localTs = $localEvents[$uuid]['timestamp'];
+                $incomingTs = $event['timestamp'];
+
+                $isInternalSync =
+                    $server !== null &&
+                    !empty($server['Server']['internal']);
+
+                $sameFingerprint =
+                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                    $localEventTagsFingerprint === $eventTagsFingerprint;
+
+                $shouldDiscard =
+                    $isUnlocked ||
+                    ($localTs > $incomingTs) || // strictly newer local event
+                    (
+                        $localTs === $incomingTs && // same timestamp handling
+                        (!$isInternalSync || $sameFingerprint)
+                    );
+
+                if ($shouldDiscard) {
+                    unset($events[$k]);
+                }
             }
         }
     }
@@ -2327,6 +2354,157 @@ class Server extends AppModel
         if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) {
             return 'Invalid format.';
         }
+        return true;
+    }
+
+    public function testNDJSONLogPath($value)
+    {
+        // Controls where the ndjson error log is written (JsonLogTool). Those log
+        // lines can contain attacker-influenced content, so an unconstrained path
+        // is an RCE primitive (e.g. writing a *.php file under the webroot). We are
+        // therefore strict about BOTH the target directory and the file name.
+
+        // Empty is allowed: the logger falls back to its built-in default under
+        // APP/tmp/logs. On the save path the value already arrives trimmed.
+        if ($value === null || !is_string($value) || trim($value) === '') {
+            return true;
+        }
+        $value = trim($value);
+
+        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
+        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
+            return 'Invalid characters in the log path.';
+        }
+
+        // Must be an absolute path.
+        if ($value[0] !== '/') {
+            return 'The log path must be an absolute path.';
+        }
+
+        // Resolve the parent directory so that symlinks and '..' traversal are
+        // collapsed before the allow-list check. The file need not exist yet, but
+        // its directory must (JsonLogTool does not create directories).
+        $realDir = realpath(dirname($value));
+        if ($realDir === false) {
+            return 'The directory for the log file does not exist.';
+        }
+
+        // The directory must sit inside one of the two permitted roots, and
+        // nowhere else - this is what keeps the log out of the webroot.
+        $allowedRoots = array();
+        foreach (array(realpath(APP . 'tmp/logs'), realpath('/var/log')) as $root) {
+            if ($root !== false) {
+                $allowedRoots[] = $root;
+            }
+        }
+        $inAllowedRoot = false;
+        foreach ($allowedRoots as $root) {
+            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
+                $inAllowedRoot = true;
+                break;
+            }
+        }
+        if (!$inAllowedRoot) {
+            return 'The log file must be located within ' . APP . 'tmp/logs/ or /var/log/.';
+        }
+
+        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
+        // dot-separated segments and ending in an allowed log extension. Each
+        // segment must be non-empty, so '..' (and path traversal) cannot occur;
+        // this also rules out path separators, unicode look-alikes, leading dots
+        // and executable extensions such as .php.
+        $fileName = basename($value);
+        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.(log|ndjson|json)$/', $fileName)) {
+            return 'Invalid log file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .log, .ndjson or .json (e.g. error.log.ndjson).';
+        }
+
+        // Defence in depth: reject script/executable extensions appearing as any
+        // dotted segment (e.g. error.php.ndjson), which some web server
+        // mis-configurations would still execute.
+        $forbidden = array(
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
+            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
+        );
+        foreach (explode('.', strtolower($fileName)) as $segment) {
+            if (in_array($segment, $forbidden, true)) {
+                return 'The log file name must not contain an executable extension.';
+            }
+        }
+
+        return true;
+    }
+
+    public function testForRdKafkaConfig($value)
+    {
+        // Path to the ini file parsed for rdkafka (AppModel::getKafkaPubTool ->
+        // parse_ini_file). rdkafka can be steered into loading external code via
+        // config options (e.g. plugin.library.paths), so pointing this loader at
+        // an attacker-supplied file - one uploaded through MISP (attachment, admin
+        // image, ...) - is an RCE primitive. We restrict it to a .ini file in one
+        // of a few sane config directories that are outside the webroot and are
+        // never written to by MISP's upload interfaces.
+
+        // Empty is allowed: no ini file is parsed and the Kafka tool just uses its
+        // defaults. On the save path the value already arrives trimmed.
+        if ($value === null || !is_string($value) || trim($value) === '') {
+            return true;
+        }
+        $value = trim($value);
+
+        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
+        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
+            return 'Invalid characters in the rdkafka config path.';
+        }
+
+        // Must be an absolute path.
+        if ($value[0] !== '/') {
+            return 'The rdkafka config path must be an absolute path.';
+        }
+
+        // Resolve the parent directory so that symlinks and '..' traversal are
+        // collapsed before the allow-list check. The file need not exist yet, but
+        // its directory must.
+        $realDir = realpath(dirname($value));
+        if ($realDir === false) {
+            return 'The directory for the rdkafka config file does not exist.';
+        }
+
+        // The file must live in one of the whitelisted config directories - all
+        // outside the webroot and outside any MISP upload target.
+        $allowedRoots = array();
+        foreach (array(realpath('/etc'), realpath('/usr/local/etc'), realpath(APP . 'Config')) as $root) {
+            if ($root !== false) {
+                $allowedRoots[] = $root;
+            }
+        }
+        $inAllowedRoot = false;
+        foreach ($allowedRoots as $root) {
+            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
+                $inAllowedRoot = true;
+                break;
+            }
+        }
+        if (!$inAllowedRoot) {
+            return 'The rdkafka config file must be located within /etc/, /usr/local/etc/ or ' . APP . 'Config/.';
+        }
+
+        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
+        // dot-separated segments and ending in .ini. Each segment must be
+        // non-empty, so '..' cannot occur; executable extensions are rejected too.
+        $fileName = basename($value);
+        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.ini$/', $fileName)) {
+            return 'Invalid rdkafka config file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .ini (e.g. rdkafka.ini).';
+        }
+        $forbidden = array(
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
+            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
+        );
+        foreach (explode('.', strtolower($fileName)) as $segment) {
+            if (in_array($segment, $forbidden, true)) {
+                return 'The rdkafka config file name must not contain an executable extension.';
+            }
+        }
+
         return true;
     }
 
@@ -6309,7 +6487,7 @@ class Server extends AppModel
                     'level' =>  self::SETTING_RECOMMENDED,
                     'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
                     'value' => APP . '/tmp/logs/error.log.ndjson',
-                    'test' => 'testForEmpty',
+                    'test' => 'testNDJSONLogPath',
                     'type' => 'string',
                     'cli' => true,
                     'null' => true
@@ -7638,8 +7816,10 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
                     'value' => '/etc/rdkafka.ini',
-                    'test' => 'testForEmpty',
+                    'test' => 'testForRdKafkaConfig',
                     'type' => 'string',
+                    'cli' => true,
+                    'null' => true
                 ),
                 'Kafka_include_attachments' => array(
                     'level' => 2,

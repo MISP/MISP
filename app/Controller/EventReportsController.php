@@ -185,7 +185,14 @@ class EventReportsController extends AppController
             'itemName' => 'EventReport',
             'view' => 'ajax/eventReportDeleteConfirmationForm',
             'checkModifyCallback' => function($itemId) {
-                return $this->userRole['perm_add'];
+                // DPT-1: enforce per-row ownership, mirroring delete().
+                // A bare perm_add flag let any contributor batch-delete
+                // reports owned by other orgs - deleteSelection resolves
+                // rows by id/uuid with no ACL scope of its own.
+                $report = $this->EventReport->fetchIfAuthorized(
+                    $this->Auth->user(), $itemId, 'delete', false, false
+                );
+                return !empty($report['EventReport']);
             },
             'multiSuccessMessageCallback' => function($count) {
                 return __n('%s event report deleted.', '%s event reports deleted.', $count, $count);
@@ -339,7 +346,12 @@ class EventReportsController extends AppController
                 $tag_id = $tag['Tag']['id'];
             }
             if (!is_numeric($id)) {
-                $id = $this->request->data['EventReport']['id'];
+                // DPT-2: pin the detach target to the route-authorised
+                // report. Reading the id from the body let it diverge from
+                // the report __canModifyTag() authorises against (which uses
+                // the route report's event), so a perm_tagger user could
+                // strip tags off a report they may not modify (IDOR).
+                $id = $report['EventReport']['id'];
             }
             $eventReportTag = $this->EventReport->EventReportTag->find('first', array(
                 'conditions' => array(

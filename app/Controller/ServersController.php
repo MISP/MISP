@@ -426,6 +426,12 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['pull_rules'])) {
                         $this->request->data['Server']['pull_rules'] = $defaultPullRules;
                     }
+                    // This action only ever creates a new server entry. Strip any
+                    // client-supplied id so an injected Server[id] cannot turn this
+                    // INSERT into a covert UPDATE of an arbitrary server row (sync
+                    // url/authkey/push-pull rule hijack) - save() with no fieldList
+                    // here would otherwise honour it. Reported by Jeroen Pinoy.
+                    unset($this->request->data['Server']['id']);
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
                             $this->__saveCert($this->request->data, $this->Server->id, false);

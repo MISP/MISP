@@ -1225,6 +1225,40 @@ function copyToClipboard(btn, text) {
     }
 }
 
+/**
+ * Copy an arbitrary string to the clipboard and show a discreet toast.
+ * This helper is what index row "copy" actions use.
+ */
+function copyValueToClipboard(text, message) {
+    if (text === undefined || text === null || text === '') {
+        showToast('Nothing to copy', 'warning');
+        return;
+    }
+
+    const done = () => showToast(message || 'Copied to clipboard');
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch((err) => {
+            console.error('Clipboard copy failed', err);
+        });
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            done();
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        document.body.removeChild(textarea);
+    }
+}
+
 function toggleFormats(button, containerId) {
     const container = document.getElementById(containerId);
     const extraFormats = container.querySelectorAll('.extra-format');

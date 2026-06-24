@@ -128,7 +128,10 @@ class AuthKeysController extends AppController
         }
         $params = [
             'displayOnSuccess' => 'authkey_display',
-            'override' => ['authkey' => null], // do not allow to use own key, always generate random one
+            'override' => [
+                'authkey' => null, // do not allow to use own key, always generate random one
+                'unique_ips' => null, // derived over time from key usage, never user-settable on creation
+            ],
             'afterFind' => function (array $authKey, array $savedData) { // remove hashed key from response
                 unset($authKey['AuthKey']['authkey']);
                 $authKey['AuthKey']['authkey_raw'] = $savedData['AuthKey']['authkey_raw'];
