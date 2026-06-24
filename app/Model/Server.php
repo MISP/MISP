@@ -6280,7 +6280,7 @@ class Server extends AppModel
                     'value' => APP . '/tmp/logs/error.log.ndjson',
                     'test' => 'testNDJSONLogPath',
                     'type' => 'string',
-                    'cli' => true,
+                    'cli_only' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
