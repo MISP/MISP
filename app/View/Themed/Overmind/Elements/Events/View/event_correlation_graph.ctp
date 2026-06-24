@@ -246,7 +246,6 @@ echo $this->element('genericElements/assetLoader', [
 
     /* ── process API response ──────────────────────────────── */
     function renderCorrelations(data) {
-        console.log('data',data);
         _correlationData = data;
         var eventDetails  = {};
         var eventCounts   = {};
