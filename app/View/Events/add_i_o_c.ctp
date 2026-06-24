@@ -16,6 +16,7 @@ echo $this->Form->end();
 </div>
 <?php
     $event['Event']['id'] = $id;
+    $event['Event']['uuid'] = $uuid;
     $event['Event']['published'] = $published;
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addIOC', 'event' => $event));
 ?>

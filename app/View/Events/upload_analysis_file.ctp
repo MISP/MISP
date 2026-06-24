@@ -99,6 +99,7 @@
 
 <?php
     $event['Event']['id'] = $eventId;
+    $event['Event']['uuid'] = $uuid;
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 ?>
 <style>

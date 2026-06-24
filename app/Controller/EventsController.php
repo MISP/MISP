@@ -2371,6 +2371,8 @@ class EventsController extends AppController
         }
         // set the id
         $this->set('id', $id);
+        // set the uuid
+        $this->set('uuid', $this->Event->data['Event']['uuid']);
         // set whether it is published or not
         $this->set('published', $this->Event->data['Event']['published'] ?? false);
     }
@@ -6362,6 +6364,9 @@ class EventsController extends AppController
                 }
             }
             $this->redirect('/events/view/' . $eventId);
+        } else {
+            $event = $this->Event->findById($eventId);
+            $this->set('uuid', $event['Event']['uuid']);
         }
     }
 
