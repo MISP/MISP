@@ -705,6 +705,43 @@ class Event extends AppModel
         return $events;
     }
 
+    /**
+     * Attaches two extra counters to each event of an index list:
+     *  - `object_count`: number of (non-deleted) objects in the event
+     *  - `attribute_count_no_objects`: number of (non-deleted) attributes that
+     *    are NOT part of an object (object_id = 0).
+     *
+     * @param array $events
+     * @return array
+     */
+    public function attachObjectAndAttributeCountToEvents(array $events)
+    {
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
+        if (empty($eventIds)) {
+            return $events;
+        }
+        $objectCounts = $this->Object->find('all', array(
+            'fields' => array('Object.event_id', 'COUNT(Object.id) as count'),
+            'conditions' => array('Object.event_id' => $eventIds, 'Object.deleted' => 0),
+            'recursive' => -1,
+            'group' => array('Object.event_id'),
+        ));
+        $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
+        $attributeCounts = $this->Attribute->find('all', array(
+            'fields' => array('Attribute.event_id', 'COUNT(Attribute.id) as count'),
+            'conditions' => array('Attribute.event_id' => $eventIds, 'Attribute.deleted' => 0, 'Attribute.object_id' => 0),
+            'recursive' => -1,
+            'group' => array('Attribute.event_id'),
+        ));
+        $attributeCounts = Hash::combine($attributeCounts, '{n}.Attribute.event_id', '{n}.0.count');
+        foreach ($events as $key => $event) {
+            $eventId = $event['Event']['id'];
+            $events[$key]['Event']['object_count'] = isset($objectCounts[$eventId]) ? (int)$objectCounts[$eventId] : 0;
+            $events[$key]['Event']['attribute_count_no_objects'] = isset($attributeCounts[$eventId]) ? (int)$attributeCounts[$eventId] : 0;
+        }
+        return $events;
+    }
+
     public function attachProposalsCountToEvents($user, $events)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');

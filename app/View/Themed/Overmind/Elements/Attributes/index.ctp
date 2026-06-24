@@ -39,12 +39,14 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  *
  * Fields specific to actions:
  *
- * - type           : link | ajax | toggle | divider
+ * - type           : modal | navigate | toggle | copy | divider
  * - label          : Displayed text
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
  * - icon_on/off    : Toggle icon
  * - url            : URL (supports %id% and %action%)
+ * - data_path      : Value to copy (for type = copy)
+ * - copy_message   : Toast text shown after copy (for type = copy)
  * - class          : CSS class
  * - requirement    : Permission check function
  * - state_path     : Path to the boolean value (toggle)
@@ -197,6 +199,16 @@ $fields = array_merge($fields, [
         'card_section' => 'extra',
         'actions' => [
             [
+                'type' => 'copy',
+                'label' => __('Copy UUID'),
+                'icon' => 'copy',
+                'data_path' => $path('uuid'),
+                'copy_message' => __('UUID copied to clipboard'),
+            ],
+            [
+                'type' => 'divider',
+            ],
+            [
                 'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
@@ -207,21 +219,10 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'modal',
-                'label' => __('Soft Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%',
-                'class' => 'text-warning',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']);
-                }
-            ],
-            [
-                'type' => 'modal',
                 'label' => __('Restore'),
                 'icon' => 'rotate-left',
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
-                //'size' => 'sm',
                 'requirement' => function($row) use ($_canModify) {
                     return $_canModify && !empty($row['deleted']);
                 }
@@ -230,10 +231,10 @@ $fields = array_merge($fields, [
                 'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%/true',
+                'url' => $baseurl . '/attributes/delete/%id%',
                 'class' => 'text-danger',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify;
+                    return $_canModify && empty($row['deleted']);
                 }
             ]
         ]
@@ -356,9 +357,9 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $children[] = [
         'type'  => 'button',
         'url'   => $toggleUrl,
-        'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-warning' : 'btn-outline-warning'),
+        'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
         'icon'  => 'fas fa-trash',
-        'label' => __('Soft deleted'),
+        'label' => __('Deleted'),
     ];
 }
 
@@ -375,7 +376,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'pull' => 'right',
                 'children' => $children,
                 'soft_delete' => '/deleteSelection',
-                'delete'      => '/deleteSelection',
                 // 'mass_edit' => 1,
                 // 'mass_tag' => 1,
                 // 'mass_local_tag' => 1,

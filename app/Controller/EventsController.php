@@ -1105,6 +1105,10 @@ class EventsController extends AppController
             $events = $this->__attachHighlightedTagsToEvents($events);
         }
 
+        if (in_array('attribute_count', $columns, true)) {
+            $events = $this->Event->attachObjectAndAttributeCountToEvents($events);
+        }
+
         if (in_array('correlations', $columns, true)) {
             $events = $this->Event->attachCorrelationCountToEvents($user, $events);
         }
@@ -1992,6 +1996,17 @@ class EventsController extends AppController
                 $this->response->type()
             );
         }
+
+        $withCounts = $this->Event->attachObjectAndAttributeCountToEvents([$event]);
+        $this->set('object_count', $withCounts[0]['Event']['object_count']);
+        $this->set('attribute_count', $withCounts[0]['Event']['attribute_count_no_objects']); //non-object attributes only (object_id = 0)
+
+        $this->loadModel('EventReport');
+        $withReportCount = $this->EventReport->attachReportCountsToEvents($user, [$event]);
+        $this->set('report_count', $withReportCount[0]['Event']['report_count']);
+
+        $sgids = $this->Event->SharingGroup->authorizedIds($user);
+        $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids));
 
         $this->set('event', $event);
         $this->set('analysisLevels',
