@@ -226,7 +226,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
             if (item.isCollection) {
                 return '<div class="d-flex align-items-center gap-2 py-1">'
                     + '<i class="fas fa-layer-group text-tag"></i>'
-                    + '<span class="text-truncate" style="max-width:300px;">'
+                    + '<span class="text-truncate">'
                     + escape(item.name) + '</span>'
                     + '<span class="badge bg-light text-muted ms-auto">'
                     + (item.count || 0) + '</span></div>';
@@ -235,7 +235,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
             return '<div class="d-flex align-items-center gap-2 py-1">'
                 + '<span style="display:inline-block;width:10px;height:10px;'
                 + 'border-radius:2px;flex-shrink:0;background:' + escape(col) + ';"></span>'
-                + '<span class="text-truncate" style="max-width:320px;">'
+                + '<span class="text-truncate">'
                 + escape(item.name) + '</span></div>';
         }
 
