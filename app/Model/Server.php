@@ -5369,6 +5369,8 @@ class Server extends AppModel
 
             $results = [
                 __('User') => $user['User']['email'],
+                __('Organisation name') => $user['Organisation']['name'],
+                __('Organisation UUID') => $user['Organisation']['uuid'],
                 __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
                 __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
