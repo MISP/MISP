@@ -5318,8 +5318,16 @@ class Event extends AppModel
             // edit timestamp newer than existing event timestamp
             if (
                 $force ||
-                !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp'] ||
-                (!empty($server['Server']['internal']) && $this->areLocalTagsDifferent($existingEvent['EventTag'], $data['Event']['Tag']))
+                !isset($data['Event']['timestamp']) ||
+                $data['Event']['timestamp'] > $existingEvent['Event']['timestamp'] ||
+                (
+                    $data['Event']['timestamp'] == $existingEvent['Event']['timestamp'] &&
+                    !empty($server['Server']['internal']) &&
+                    $this->areLocalTagsDifferent(
+                        $existingEvent['EventTag'],
+                        $data['Event']['Tag']
+                    )
+                )
             ) {
                 if (!isset($data['Event']['timestamp'])) {
                     $data['Event']['timestamp'] = time();
@@ -5566,6 +5574,35 @@ class Event extends AppModel
         $localTagsFromEvent = $normalizeFn($eventTags ?? []);
 
         return $localTagsFromExistingEvent !== $localTagsFromEvent;
+    }
+
+    public function getTagsFingerprint($tags=[]) {
+        $normalizeFn = function (array $tags): array {
+            $result = [];
+
+            foreach ($tags as $tag) {
+                $name = $tag['Tag']['name'] ?? ($tag['name'] ?? null);
+
+                if ($name === null) {
+                    continue;
+                }
+
+                $local = (bool) ($tag['local'] ?? false);
+                $relationship = $tag['relationship_type'] ?? '';
+
+                // build a comparable signature
+                $result[] = $name . '|' . (int)$local . '|' . $relationship;
+            }
+
+            $result = array_values(array_unique($result));
+            sort($result);
+
+            return $result;
+        };
+
+        $normalized = $normalizeFn($tags);
+        $tagsFingerprint = sha1(implode($normalized));
+        return $tagsFingerprint;
     }
 
     // format has to be:
