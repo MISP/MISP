@@ -4489,6 +4489,13 @@ class Event extends AppModel
                     if (!$nothingToChange) {
                         $changed = true;
                     }
+                    // check for sightings on attribute
+                    if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+                        $this->Sighting = ClassRegistry::init('Sighting');
+                        foreach ($attribute['Sighting'] as $s) {
+                            $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+                        }
+                    }
                 }
                 $this->Attribute->editAttributeBulk($attributes, $saveResult, $user, $server);
             }
