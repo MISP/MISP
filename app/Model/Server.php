@@ -6486,8 +6486,8 @@ class Server extends AppModel
                 ],
                 'log_errors_ndjson_path' => [
                     'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
-                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
+                    'value' => APP . 'tmp/logs/error.log.ndjson',
                     'test' => 'testNDJSONLogPath',
                     'type' => 'string',
                     'cli_only' => true,
