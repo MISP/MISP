@@ -24,6 +24,35 @@ class ServerShell extends AppShell
                 ),
             )
         ]);
+
+        $parser->addSubcommand('list', [
+            'help' => __('List configured servers (human readable).'),
+        ]);
+        $parser->addSubcommand('listservers', [
+            'help' => __('List configures servers (id, name, url as json).'),
+        ]);
+        $parser->addSubcommand('test', [
+            'help' => __('Test connection and retrieve basic info about server.'),
+            'parser' => array(
+                'arguments' => array(
+                    'server_id' => ['help' => __('Remote server ID.'), 'required' => true],
+                ),
+            )
+        ]);
+
+        $parser->addSubcommand('pull', [
+            'help' => __('Initial pull from server.'),
+            'parser' => array(
+                'arguments' => array(
+                    'user_id' => ['help' => __('MISP user ID to attribute pull to.'), 'required' => true],
+                    'server_id' => ['help' => __('Remote server ID.'), 'required' => true],
+                    'type' => ['help' => __('Pull type, full or update.'), 'required' => false],
+                    'job_id' => ['help' => __('Job id to query for status.'), 'required' => false],
+                ),
+            )
+        ]);
+
+        
         return $parser;
     }
 
