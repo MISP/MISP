@@ -1,7 +1,6 @@
 <?php
 /**
 * Org Events widget which reportes the number of events created monthly by each local organizations
-*
 */
 class OrgEventsWidget
 {
@@ -12,7 +11,7 @@ class OrgEventsWidget
     public $description = 'A graph to show the monthly number of events per organisation';
     public $cacheLifetime = 10;
     public $autoRefreshDelay = false;
-    public $params = array (
+    public $params = array(
         'blocklist_orgs' => 'A list of organisation names to filter out',
         'months' => 'Number of past months to consider for the graph',
         'logarithmic' => 'Visualize data on logarithmic scale'
@@ -25,15 +24,12 @@ class OrgEventsWidget
     "logarithmic": "true"
 }';
 
-
-
-
-
     /*
     * Target_month must be from 1 to 12
     * Target year must be 4 digits
     */
-    private function org_events_count($user, $org, $target_month, $target_year) {
+    private function org_events_count($user, $org, $target_month, $target_year)
+    {
         $events_count = 0;
 
         $start_date = $target_year.'-'.$target_month.'-01';
@@ -57,7 +53,8 @@ class OrgEventsWidget
         return $events_count;
     }
 
-    private function filter_ghost_orgs(&$data, $orgs){
+    private function filter_ghost_orgs(&$data, $orgs)
+    {
         foreach ($data['data'] as &$item) {
             foreach(array_keys($orgs) as $org_name) {
                 unset($item[$org_name]);
@@ -89,6 +86,7 @@ class OrgEventsWidget
             }
             $offset++;
         }
+        $logarithmic = isset($options['logarithmic']) && ($options['logarithmic'] === "true" || $options['logarithmic'] === "1");
         $data = array();
         $data['data'] = array();
         for ($i=0; $i < $limit; $i++) {
@@ -99,20 +97,20 @@ class OrgEventsWidget
                 $target_year -= 1;
             }
             $item = array();
-            $item ['date'] = $target_year.'-'.$target_month.'-01';
+            $item['date'] = $target_year.'-'.$target_month.'-01';
             foreach($orgs as $org) {
-                    $count = $this->org_events_count($user, $org, $target_month, $target_year);
-                    if($options['logarithmic'] === "true" || $options['logarithmic'] === "1") {
-                        $item[$org['Organisation']['name']] = (int) round(log($count, 1.1));  // taking the logarithmic view
-                    } else if(empty($options['logarithmic']) || $options['logarithmic'] === "true" || $options['logarithmic'] === "1"){
-                        $item[$org['Organisation']['name']] = $count;
-                    }
-                    // if a positive score is detected at least once it's enough to be
-                    // considered for the graph
-                    if($count > 0) {
-                        unset($ghost_orgs[$org['Organisation']['name']]);
-                    }
+                $count = $this->org_events_count($user, $org, $target_month, $target_year);
+                if ($logarithmic) {
+                    $item[$org['Organisation']['name']] = (int) round(log($count, 1.1));  // taking the logarithmic view
+                } else {
+                    $item[$org['Organisation']['name']] = $count;
                 }
+                // if a positive score is detected at least once it's enough to be
+                // considered for the graph
+                if ($count > 0) {
+                    unset($ghost_orgs[$org['Organisation']['name']]);
+                }
+            }
             $data['data'][] = $item;
         }
         $this->filter_ghost_orgs($data, $ghost_orgs);
