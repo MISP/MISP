@@ -977,14 +977,15 @@ class Server extends AppModel
         $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
-            $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
-
+            
             if (isset($localEvents[$uuid])) {
                 $isUnlocked = !$localEvents[$uuid]['locked'];
 
                 $localTs = $localEvents[$uuid]['timestamp'];
                 $incomingTs = $event['timestamp'];
+
+                $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
 
                 $isInternalSync =
                     $server !== null &&
