@@ -1,4 +1,6 @@
 <?php
+// $templateList holds every available object template for the add-form picker.
+$templateList = $templateList ?? [];
 $hasTemplate = !empty($template);
 $eventId     = h($event['Event']['id']);
 $templateId  = $hasTemplate ? h($template['ObjectTemplate']['id']) : '';
@@ -16,9 +18,17 @@ sort($metaCategories);
 // Pre-selected category (from template already chosen)
 $selectedMeta = $hasTemplate ? $template['ObjectTemplate']['meta-category'] : '';
 
-$formUrl = $hasTemplate
-    ? $baseurl . '/objects/add/' . $eventId . '/' . $templateId
-    : '#';
+// In edit mode the form must POST to edit() (which deltaMerges into the existing object); posting to add() creates a duplicate. 
+if (!$hasTemplate) {
+    $formUrl = '#';
+} elseif (($action ?? 'add') === 'edit' && !empty($object['Object']['id'])) {
+    $formUrl = $baseurl . '/objects/edit/' . h($object['Object']['id']);
+    if (!empty($update_template_available)) {
+        $formUrl .= '/1';
+    }
+} else {
+    $formUrl = $baseurl . '/objects/add/' . $eventId . '/' . $templateId;
+}
 
 echo $this->Form->create('Object', [
     'id'       => 'objectAddForm',

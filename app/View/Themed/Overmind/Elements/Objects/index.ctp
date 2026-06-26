@@ -63,12 +63,9 @@ function _objDistBadge($dist) {
                                 [
                                     'type'  => 'button',
                                     'url'   => $toggleUrl,
-                                    'class' => 'btn obj-deleted-toggle '
-                                        . ($currentDeleted
-                                            ? 'btn-warning'
-                                            : 'btn-outline-warning'),
+                                    'class' => 'btn obj-deleted-toggle '. ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
                                     'icon'  => 'fas fa-trash',
-                                    'label' => __('Soft deleted'),
+                                    'label' => __('Deleted'),
                                 ],
                             ],
                         ],
@@ -196,11 +193,17 @@ function _objDistBadge($dist) {
                     <div class="px-3 py-2 bg-light border-bottom
                                 d-flex flex-wrap align-items-center gap-3 small text-muted">
                         <?php if (!empty($object['uuid'])): ?>
-                            <span>
+                            <span class="d-inline-flex align-items-center gap-1">
                                 <i class="fas fa-fingerprint me-1"></i>
                                 <code class="user-select-all">
                                     <?= h($object['uuid']) ?>
                                 </code>
+                                <button type="button"
+                                        class="btn btn-sm btn-link p-0 text-muted lh-1"
+                                        title="<?= h(__('Copy UUID')) ?>"
+                                        onclick="copyValueToClipboard('<?= h($object['uuid']) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
+                                    <i class="fas fa-copy"></i>
+                                </button>
                             </span>
                         <?php endif; ?>
                         <?php if (!empty($object['first_seen'])): ?>
@@ -227,6 +230,7 @@ function _objDistBadge($dist) {
 
                         <?php if ($canEdit): ?>
                             <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
+                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/objects/edit/<?= $objId ?>');"
                             class="btn btn-sm btn-outline-secondary ms-auto">
                                 <i class="fas fa-pen-to-square me-1"></i>
                                 <?= __('Edit') ?>
@@ -446,7 +450,16 @@ function _objDistBadge($dist) {
                                                 <ul class="dropdown-menu
                                                            dropdown-menu-end
                                                            shadow-sm">
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); copyValueToClipboard('<?= h($attr['uuid'] ?? '') ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
+                                                            <i class="fas fa-copy me-2"></i>
+                                                            <?= __('Copy UUID') ?>
+                                                        </a>
+                                                    </li>
                                                     <?php if ($canEdit): ?>
+                                                    <li><hr class="dropdown-divider"></li>
                                                     <li>
                                                         <a class="dropdown-item justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/edit/<?= $attrId ?>"
@@ -456,17 +469,9 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <li>
-                                                        <a class="dropdown-item text-warning justify-content-start"
+                                                        <a class="dropdown-item text-danger justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
                                                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'sm');">
-                                                            <i class="fas fa-trash me-2"></i>
-                                                            <?= __('Soft Delete') ?>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item text-danger justify-content-start"
-                                                           href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>/true"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>/true', 'sm');">
                                                             <i class="fas fa-trash me-2"></i>
                                                             <?= __('Delete') ?>
                                                         </a>
