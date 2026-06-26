@@ -40,6 +40,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
             sprintf('Workflow ID: %s', $roamingData->getWorkflow()['Workflow']['id']),
             __('Running workflow parallel tasks.')
         );
+	$tempFile = $this->Job->getBackgroundJobsTool()->enqueueDataFile($roamingData->getData());
         $this->Job->getBackgroundJobsTool()->enqueue(
             BackgroundJobsTool::PRIO_QUEUE,
             BackgroundJobsTool::CMD_WORKFLOW,
@@ -47,7 +48,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
                 'walkGraph',
                 $roamingData->getWorkflow()['Workflow']['id'],
                 $node_id_to_exec,
-                JsonTool::encode($roamingData->getData()),
+                $tempFile,
                 GraphWalker::PATH_TYPE_NON_BLOCKING,
                 $jobId
             ],

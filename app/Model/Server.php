@@ -913,6 +913,9 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
+        if ($serverSync->server()['Server']['internal']) {
+            $filterRules['include_event_tags_fingerprint'] = 1;
+        }
 
         // When paginating, ask the remote for a single ordered page. The sort key
         // is mandatory and must be unique: the remote applies LIMIT/OFFSET to the
@@ -1011,11 +1014,30 @@ class Server extends AppModel
         $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            if (
-                (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) &&
-                !($isInternal && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
-            ) {
-                unset($events[$k]);
+            
+            if (isset($localEvents[$uuid])) {
+                $isUnlocked = !$localEvents[$uuid]['locked'];
+
+                $localTs = $localEvents[$uuid]['timestamp'];
+                $incomingTs = $event['timestamp'];
+
+                $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+
+                $sameFingerprint =
+                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                    $localEventTagsFingerprint === $eventTagsFingerprint;
+
+                $shouldDiscard =
+                    $isUnlocked ||
+                    ($localTs > $incomingTs) || // strictly newer local event
+                    (
+                        $localTs === $incomingTs && // same timestamp handling
+                        (!$isInternal || $sameFingerprint)
+                    );
+                if ($shouldDiscard) {
+                    unset($events[$k]);
+                }
             }
         }
     }
@@ -5424,6 +5446,8 @@ class Server extends AppModel
 
             $results = [
                 __('User') => $user['User']['email'],
+                __('Organisation name') => $user['Organisation']['name'],
+                __('Organisation UUID') => $user['Organisation']['uuid'],
                 __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
                 __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
@@ -6549,11 +6573,11 @@ class Server extends AppModel
                 ],
                 'log_errors_ndjson_path' => [
                     'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
-                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
+                    'value' => APP . 'tmp/logs/error.log.ndjson',
                     'test' => 'testNDJSONLogPath',
                     'type' => 'string',
-                    'cli' => true,
+                    'cli_only' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
@@ -7882,7 +7906,7 @@ class Server extends AppModel
                     'value' => '/etc/rdkafka.ini',
                     'test' => 'testForRdKafkaConfig',
                     'type' => 'string',
-                    'cli' => true,
+                    'cli_only' => true,
                     'null' => true
                 ),
                 'Kafka_include_attachments' => array(
