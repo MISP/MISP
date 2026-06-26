@@ -956,18 +956,34 @@ class Server extends AppModel
      */
     private function removeOlderEvents(array &$events, $server=null)
     {
+        // Only internal sync re-pulls an already-synced event when its local tags
+        // differ (see areLocalTagsDifferent below). For every other connection the
+        // tags are never consulted, so we must not load them: eagerly hydrating the
+        // full Tag model for every local event here - potentially the whole events
+        // table on the count > 10000 branch - was the cause of the pull memory
+        // blow-up (#10881). When tags are needed we fetch only the few fields the
+        // comparison actually reads.
+        $isInternal = $server !== null && !empty($server['Server']['internal']);
         $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
         $this->Event = ClassRegistry::init('Event');
-        $localEvents = $this->Event->find('all', [
+        $findOptions = [
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
-            'contain' => ['EventTag' => 'Tag'],
-        ]);
+        ];
+        if ($isInternal) {
+            $findOptions['contain'] = [
+                'EventTag' => [
+                    'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+                    'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                ],
+            ];
+        }
+        $localEvents = $this->Event->find('all', $findOptions);
         $reindexed = [];
         foreach ($localEvents as $item) {
             $event = $item['Event'];
-            $event['EventTag'] = $item['EventTag'];
+            $event['EventTag'] = $item['EventTag'] ?? [];
             $reindexed[$event['uuid']] = $event;
         }
         $localEvents = $reindexed;
@@ -975,7 +991,7 @@ class Server extends AppModel
             $uuid = $event['uuid'];
             if (
                 (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) &&
-                !($server !== null && !empty($server['Server']['internal']) && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
+                !($isInternal && $this->Event->areLocalTagsDifferent($localEvents[$uuid]['EventTag'], $event['EventTag']))
             ) {
                 unset($events[$k]);
             }

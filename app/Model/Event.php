@@ -5289,7 +5289,6 @@ class Event extends AppModel
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
-        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1, 'contain' => ['EventTag' => 'Tag']]);
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -5309,6 +5308,20 @@ class Event extends AppModel
         } else {
             $server['Server']['internal'] = false;
         }
+        // Only internal sync compares local tags (see areLocalTagsDifferent below),
+        // so only then do we load the existing event's tags. For every other
+        // connection this stays a cheap recursive=-1 lookup rather than eagerly
+        // hydrating the full Tag model for the event on each pulled event (#10881).
+        $existingEventFindOptions = ['conditions' => $conditions, 'recursive' => -1];
+        if (!empty($server['Server']['internal'])) {
+            $existingEventFindOptions['contain'] = [
+                'EventTag' => [
+                    'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+                    'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                ],
+            ];
+        }
+        $existingEvent = $this->find('first', $existingEventFindOptions);
         // If the event exists...
         if (!empty($existingEvent)) {
             $data['Event']['id'] = $existingEvent['Event']['id'];
