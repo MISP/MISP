@@ -892,13 +892,16 @@ class Server extends AppModel
     /**
      * @param ServerSyncTool $serverSync
      * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
+     *                          a single ordered page is requested instead of the
+     *                          whole index (see getEventIdsFromServer()).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
     {
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
@@ -911,9 +914,28 @@ class Server extends AppModel
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
 
-        // Fetch event index from cache if exists and is not modified on server
+        // When paginating, ask the remote for a single ordered page. The sort key
+        // is mandatory and must be unique: the remote applies LIMIT/OFFSET to the
+        // minimal index with no implicit ordering, so without an explicit unique
+        // sort (Event.id) page boundaries could skip or duplicate events. The
+        // filter rules above are still applied per page, so the union of pages is
+        // exactly the same set the non-paginated request would have returned.
+        $paginated = !empty($pagination);
+        if ($paginated) {
+            $filterRules['page'] = $pagination['page'];
+            $filterRules['limit'] = $pagination['limit'];
+            $filterRules['sort'] = 'id';
+            $filterRules['direction'] = 'asc';
+        }
+
+        // Fetch event index from cache if exists and is not modified on server.
+        // Paginated requests are cached per page so each page can be revalidated
+        // independently by its own ETag.
+        $cacheSuffix = $paginated ? ":page:{$pagination['page']}:{$pagination['limit']}" : '';
+        $etagCacheKey = "misp:event_index_cache:etag:{$serverSync->serverId()}{$cacheSuffix}";
+        $contentCacheKey = "misp:event_index_cache:content:{$serverSync->serverId()}{$cacheSuffix}";
         $redis = RedisTool::init();
-        $cacheEtag = $redis->get("misp:event_index_cache:etag:{$serverSync->serverId()}");
+        $cacheEtag = $redis->get($etagCacheKey);
         if ($cacheEtag) {
             $serverSync->debug("Event index loaded from Redis cache with etag $cacheEtag");
         } else {
@@ -923,7 +945,7 @@ class Server extends AppModel
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
         if ($response->isNotModified() && $cacheEtag !== '""') {
-            $eventIndexFromCache = $redis->get("misp:event_index_cache:content:{$serverSync->serverId()}");
+            $eventIndexFromCache = $redis->get($contentCacheKey);
             if ($eventIndexFromCache) {
                 $eventIndexFromCache = RedisTool::decompress($eventIndexFromCache);
                 return JsonTool::decode($eventIndexFromCache);
@@ -935,8 +957,8 @@ class Server extends AppModel
         if ($etag) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
-            $redis->setex("misp:event_index_cache:etag:{$serverSync->serverId()}", 3600 * 24, $etag);
-            $redis->setex("misp:event_index_cache:content:{$serverSync->serverId()}", 3600 * 24, $data);
+            $redis->setex($etagCacheKey, 3600 * 24, $etag);
+            $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
 
@@ -1050,32 +1072,77 @@ class Server extends AppModel
      */
     private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
-
-        if ($all) {
-            return array_column($eventArray, 'uuid');
+        // The remote index is fetched one page at a time and each page is run
+        // through the exact same filter pipeline as before, so the accumulated set
+        // of UUIDs is identical to the previous whole-index implementation - only
+        // the peak memory changes, from "the entire index at once" to "one page".
+        // Keeping the page at/below 10000 also lets removeOlderEvents() use its
+        // cheap `Event.uuid IN (...)` branch instead of scanning the whole local
+        // events table (#10881).
+        $pageSize = (int)Configure::read('MISP.event_index_pull_chunk_size');
+        if ($pageSize <= 0) {
+            $pageSize = 10000;
         }
 
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $this->EventBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            $this->OrgBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        foreach ($eventArray as $k => $event) {
-            if (1 != $event['published']) {
-                unset($eventArray[$k]); // do not keep non-published events
+        if (!$all) {
+            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
+            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             }
         }
-        if (!$force) {
-            $this->removeOlderEvents($eventArray, $serverSync->server());
-            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+
+        $eventUuids = []; // keyed by uuid for O(1) dedup, insertion order preserved
+        $page = 1;
+        $previousMaxId = null;
+        while (true) {
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $fetched = count($eventArray);
+            if ($fetched === 0) {
+                break;
+            }
+            // A remote that does not honour the limit (older instance) returns the
+            // whole index in one response. Detecting more rows than we asked for
+            // tells us this page already is the complete set: process it and stop,
+            // which reproduces the previous non-paginated behaviour exactly.
+            $remoteIgnoredPagination = $fetched > $pageSize;
+            // Safety net against a remote that honours `limit` but ignores `page`
+            // (would otherwise loop forever): the minimal index is sorted by
+            // Event.id asc, so the max id must strictly advance between pages.
+            $maxId = (int)max(array_column($eventArray, 'id'));
+            $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
+            $previousMaxId = $maxId;
+
+            if (!$all) {
+                if (!empty($this->EventBlocklist)) {
+                    $this->EventBlocklist->removeBlockedEvents($eventArray);
+                }
+                if (!empty($this->OrgBlocklist)) {
+                    $this->OrgBlocklist->removeBlockedEvents($eventArray);
+                }
+                foreach ($eventArray as $k => $event) {
+                    if (1 != $event['published']) {
+                        unset($eventArray[$k]); // do not keep non-published events
+                    }
+                }
+                if (!$force) {
+                    $this->removeOlderEvents($eventArray, $serverSync->server());
+                    $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+                }
+            }
+
+            foreach ($eventArray as $event) {
+                $eventUuids[$event['uuid']] = true;
+            }
+            unset($eventArray);
+
+            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+                break; // last page (or a remote that is not paginating)
+            }
+            $page++;
         }
-        return array_column($eventArray, 'uuid');
+        return array_keys($eventUuids);
     }
 
     public function serverEventsOverlap()
@@ -5642,6 +5709,14 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'event_index_pull_chunk_size' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000.'),
+                    'value' => 10000,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
