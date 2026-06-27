@@ -1930,14 +1930,26 @@ class MispAttribute extends AppModel
                 $eventLaxCondition['Event.published'] = 1;
                 $eventSgCondition['Event.published'] = 1;
             }
+            // Multiple sharing groups (#10818): an event shared with any of
+            // the user's authorised sharing groups via the event_sharing_groups
+            // link grants event-level access too. Additive only; the attribute
+            // distribution rules below still apply.
+            $eventAccessOr = [
+                $eventLaxCondition,
+                $eventSgCondition,
+            ];
+            $eventAdditionalSgCondition = $this->Event->additionalSharingGroupAccessCondition(
+                $sgids,
+                Configure::read('MISP.unpublishedprivate')
+            );
+            if ($eventAdditionalSgCondition !== null) {
+                $eventAccessOr[] = $eventAdditionalSgCondition;
+            }
             $conditions = [
                 'OR' => [
                     ['Event.org_id' => $user['org_id']],
                     'AND' => [
-                        'OR' => [
-                            $eventLaxCondition,
-                            $eventSgCondition,
-                        ],
+                        'OR' => $eventAccessOr,
                         [
                             'OR' => [
                                 'Attribute.distribution'

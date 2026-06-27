@@ -320,6 +320,8 @@ class ACLComponent extends Component
         'events' => array(
             'add' => array('perm_add'),
             'addIOC' => array('perm_add'),
+            'addSharingGroup' => array('perm_add'),
+            'removeSharingGroup' => array('perm_add'),
             'addTag' => array('perm_tagger'),
             'add_misp_export' => array('perm_modify'),
             'alert' => array('perm_publish'),

@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false
+        153 => false, 154 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2697,6 +2697,20 @@ class AppModel extends Model
                 break;
             case 153:
                 $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1;";
+                break;
+            case 154:
+                // Multiple sharing groups (#10818): additional sharing groups
+                // that grant read access to an event, on top of its primary
+                // distribution. Purely additive; the event keeps its own
+                // sharing_group_id.
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_sharing_groups` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `event_id` int(11) NOT NULL,
+                    `sharing_group_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `event_id` (`event_id`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
