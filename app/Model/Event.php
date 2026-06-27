@@ -7287,6 +7287,10 @@ class Event extends AppModel
                         }
                     }
                 }
+                // Confidential SG (#10818): strip the member-org roster
+                // before it rides along with shared events/attributes, so a
+                // non-owner member never learns the other organisations.
+                $v['SharingGroup'] = $this->SharingGroup->obscureConfidentialOrgs($user, $v['SharingGroup']);
                 $sharingGroupData[$v['SharingGroup']['id']] = $v['SharingGroup'];
             }
             if ($useCache) {

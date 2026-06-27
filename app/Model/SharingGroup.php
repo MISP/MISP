@@ -174,7 +174,10 @@ class SharingGroup extends AppModel
                         'SharingGroup.name',
                         'SharingGroup.releasability',
                         'SharingGroup.description',
-                        'SharingGroup.org_id'
+                        'SharingGroup.org_id',
+                        // needed so confidential-SG roster gating (#10818)
+                        // works if this dormant permission tree is ever used
+                        'SharingGroup.confidential'
                     ),
                     'contain' => array()
                 ),
@@ -200,11 +203,21 @@ class SharingGroup extends AppModel
             $sgs = $this->find('all', array(
                 'contain' => $canSeeOrgs ? ['SharingGroupOrg' => ['org_id']] : [],
                 'conditions' => $conditions,
-                'fields' => ['SharingGroup.id', 'SharingGroup.name', 'SharingGroup.org_id'],
+                // confidential needed for per-SG roster gating (#10818)
+                'fields' => ['SharingGroup.id', 'SharingGroup.name', 'SharingGroup.org_id', 'SharingGroup.confidential'],
                 'order' => 'SharingGroup.name ASC'
             ));
             if ($canSeeOrgs) {
-                return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
+                $sgs = $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
+                // Confidential SGs (#10818): never expose the member-org list
+                // in the distribution graph to non-owner/non-admin viewers.
+                foreach ($sgs as &$sg) {
+                    if (!$this->canSeeConfidentialOrgs($user, $sg)) {
+                        $sg['SharingGroupOrg'] = [];
+                    }
+                }
+                unset($sg);
+                return $sgs;
             }
             foreach ($sgs as &$sg) {
                 $sg['SharingGroupOrg'] = [];
@@ -554,6 +567,53 @@ class SharingGroup extends AppModel
     }
 
     /**
+     * Whether $user may see the member-org roster of an already-fetched SG.
+     * Confidential sharing groups (#10818) hide their roster from everyone
+     * except the owning org and site admins. The roster still exists at the
+     * data layer for ACL/distribution; this only gates what is shown and
+     * serialized, and is enforced identically on synced peers (the flag
+     * travels with the SG).
+     *
+     * @param array $user
+     * @param array $sg A SG array, either nested (['SharingGroup' => [...]])
+     *                  or a flat SG row.
+     * @return bool
+     */
+    public function canSeeConfidentialOrgs(array $user, array $sg)
+    {
+        $row = isset($sg['SharingGroup']) ? $sg['SharingGroup'] : $sg;
+        if (empty($row['confidential'])) {
+            return true;
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return isset($row['org_id'], $user['org_id']) && (int)$row['org_id'] === (int)$user['org_id'];
+    }
+
+    /**
+     * Remove the member-org roster from a fetched SG when $user is not
+     * allowed to see it (confidential SG, #10818). Returns the SG with
+     * SharingGroupOrg / nested Organisation stripped as needed. Safe to
+     * call on any SG shape; a non-confidential SG is returned untouched.
+     *
+     * @param array $user
+     * @param array $sg
+     * @return array
+     */
+    public function obscureConfidentialOrgs(array $user, array $sg)
+    {
+        if ($this->canSeeConfidentialOrgs($user, $sg)) {
+            return $sg;
+        }
+        unset($sg['SharingGroupOrg']);
+        if (isset($sg['SharingGroup']['SharingGroupOrg'])) {
+            unset($sg['SharingGroup']['SharingGroupOrg']);
+        }
+        return $sg;
+    }
+
+    /**
      * Get all organisation ids that can see a SG.
      * @param int $id Sharing group ID
      * @return array|bool
@@ -689,7 +749,7 @@ class SharingGroup extends AppModel
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['SharingGroup']['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
-                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active', 'confidential'];
                 foreach ($attributes as $a) {
                     if (isset($sg[$a])) {
                         $editedSG[$a] = $sg[$a];
@@ -754,6 +814,9 @@ class SharingGroup extends AppModel
             'modified' => !isset($sg['modified']) ? $date : $sg['modified'],
             'active' => !isset($sg['active']) ? 1 : $sg['active'],
             'roaming' => !isset($sg['roaming']) ? false : $sg['roaming'],
+            // Confidential SGs hide their member-org roster from non-owner
+            // members (#10818). The flag syncs so peers gate display too.
+            'confidential' => empty($sg['confidential']) ? 0 : 1,
             'local' => 0,
             'sync_user_id' => $user['id'],
             'org_id' => $user['Role']['perm_sync'] ? $this->__retrieveOrgIdFromCapturedSG($user, $sg) : $user['org_id']

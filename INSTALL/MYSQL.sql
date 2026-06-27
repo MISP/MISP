@@ -1341,6 +1341,7 @@ CREATE TABLE `sharing_groups` (
   `modified` datetime NOT NULL,
   `local` tinyint(1) NOT NULL,
   `roaming` tinyint(1) NOT NULL DEFAULT 0,
+  `confidential` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uuid` (`uuid`),
   UNIQUE KEY `name` (`name`),

@@ -90,6 +90,10 @@
                 <input type="checkbox" style="float:left;" title="<?php echo __('Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead.');?>" <?php echo $checked; ?> id="SharingGroupRoaming">
                 <label for="SharingGroupRoaming" style="padding-left:20px;"><?php echo __('<b>Enable roaming mode</b> for this sharing group (pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list).');?></label>
             </div>
+            <div style="display:block;">
+                <input type="checkbox" style="float:left;" title="<?php echo __('Mark this sharing group as confidential. The list of member organisations will be hidden from everyone except the owner organisation and site admins, on this instance and on synchronised peers.');?>" <?php echo empty($sharingGroup['SharingGroup']['confidential']) ? '' : 'checked'; ?> id="SharingGroupConfidential">
+                <label for="SharingGroupConfidential" style="padding-left:20px;"><?php echo __('<b>Confidential sharing group</b> (hide the member organisation list from other members; only the owner organisation and site admins can see who is in it).');?></label>
+            </div>
             <div id="serverList" <?php echo $serverDivVisibility; ?>>
                 <div class="tabMenuFixedContainer">
                     <span role="button" tabindex="0" aria-label="<?php echo __('Add instance');?>" title="<?php echo __('Add instance');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('server');"><?php echo __('Add instance');?></span>
