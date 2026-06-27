@@ -282,9 +282,15 @@
                 }
                 */
                 var $categorySelect = $('#' + currentId);
+                var previousCategory = $categorySelect.val();
                 $categorySelect.empty();
                 for (var category in currentOptions) {
                     $categorySelect.append(new Option(category, category));
+                }
+                // Keep the user's current category if it is still valid for the
+                // newly selected type, otherwise fall back to the default one.
+                if (previousCategory && currentOptions && currentOptions.hasOwnProperty(previousCategory)) {
+                    $categorySelect.val(previousCategory);
                 }
             });
         <?php
