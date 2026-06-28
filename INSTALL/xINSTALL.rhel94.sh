@@ -1,5 +1,5 @@
 #!/bin/bash
-# MISP 2.5 installation for Ubuntu RHEL 9.4
+# MISP 2.5 installation for RHEL 9.4
 # This guide is meant to be a simply installation of MISP on a pristine RHEL 9.4 server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
