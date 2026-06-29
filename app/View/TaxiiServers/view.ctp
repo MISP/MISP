@@ -56,8 +56,14 @@ echo $this->element(
                 'model' => 'organisations'
             ],
             [
-                'key' => __('API key'),
-                'path' => 'TaxiiServer.api_key'
+                'key' => __('Authentication Type'),
+                'path' => 'TaxiiServer.auth_type',
+                'callback' => 'ucfirst'
+            ],
+            [
+                'key' => __('Token'),
+                'path' => 'TaxiiServer.api_key',
+                'privacy' => true
             ],
             [
                 'key' => __('Description'),
