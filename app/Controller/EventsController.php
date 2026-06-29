@@ -4379,7 +4379,22 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             if (isset($this->request->data['json'])) {
-                $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                if ($this->_isRest()) {
+                    $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                } else {
+                    // UI: surface malformed JSON as a flash on the event view
+                    // instead of the raw HttpException error page.
+                    try {
+                        $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                    } catch (Exception $e) {
+                        $this->Flash->error(__('Invalid JSON input. Please provide a correctly formatted MISP JSON document.'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view2', $id));
+                        } else {
+                            $this->redirect(array('action' => 'view', $id));
+                        }
+                    }
+                }
             }
             if (isset($this->request->data['Event'])) {
                 $this->request->data = $this->request->data['Event'];
@@ -8074,16 +8089,22 @@ class EventsController extends AppController
             throw new UnauthorizedException('You do not have permission to do that.');
         }
 
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+
         if ($this->request->is('post') && !empty($this->request['data']['Event']['analysis_file']['name'])) {
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $tmp_name = $this->request['data']['Event']['analysis_file']['tmp_name'];
             if (((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none')) && is_uploaded_file($tmp_name)) {
-                $this->set('file_content', file_get_contents($tmp_name)); 
+                $this->set('file_content', file_get_contents($tmp_name));
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
             }
             $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
+            if ($overmindModal) {
+                $this->layout = false;
+                $this->render('mactime_resolution');
+            }
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
             // Find the event that is to be updated
@@ -8198,6 +8219,17 @@ class EventsController extends AppController
                 } else {
                     $PreviousObjRef = $temp;
                     $firstObject = 0;
+                }
+            }
+            if ($overmindModal) {
+                if ($this->_isRest()) {
+                    return new CakeResponse([
+                        'body' => json_encode(['saved' => true, 'count' => count($data)]),
+                        'type' => 'json',
+                    ]);
+                } else {
+                    $this->Flash->success(__('Object(s) created'));
+                    $this->redirect('/events/view2/' . $eventId);
                 }
             }
             $this->redirect('/events/view/' . $eventId);

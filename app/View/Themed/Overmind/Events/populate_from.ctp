@@ -149,55 +149,8 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
         <?php $closeSection(); ?>
 
         <?php
-        // ===================== 4. OpenIOC =====================
-        $openSection(4, 'pfOpenioc', 'fas fa-file-code', __('OpenIOC'), __('Upload an OpenIOC file'));
-        echo $this->Form->create('Event', [
-            'url' => $baseurl . '/events/addIOC/' . $eventId,
-            'type' => 'file',
-            'id' => 'populateOpeniocForm',
-        ]);
-        ?>
-        <p class="text-muted small mb-2">
-            <?= __('Import indicators from an OpenIOC XML file.') ?>
-        </p>
-        <div class="mb-3">
-            <label class="form-label fw-semibold" for="PopulateSubmittedioc"><?= __('OpenIOC file') ?></label>
-            <?= $this->Form->file('Event.submittedioc', [
-                'class' => 'form-control',
-                'id' => 'PopulateSubmittedioc',
-            ]) ?>
-        </div>
-        <?php $submitRow(__('Upload OpenIOC'), 'fas fa-upload'); ?>
-        <?= $this->Form->end(); ?>
-        <?php $closeSection(); ?>
-
-        <?php
-        // ===================== 5. ThreatConnect =====================
-        $openSection(5, 'pfThreatconnect', 'fas fa-file-csv', __('ThreatConnect'), __('Upload a ThreatConnect CSV'));
-        echo $this->Form->create('Attribute', [
-            'url' => $baseurl . '/attributes/add_threatconnect/' . $eventId,
-            'type' => 'file',
-            'id' => 'populateThreatconnectForm',
-        ]);
-        echo $this->Form->hidden('Attribute.event_id', ['value' => $eventId]);
-        ?>
-        <p class="text-muted small mb-2">
-            <?= __('Import a ThreatConnect CSV export. The file must be in plain CSV format.') ?>
-        </p>
-        <div class="mb-3">
-            <label class="form-label fw-semibold" for="PopulateThreatconnectValue"><?= __('CSV file') ?></label>
-            <?= $this->Form->file('Attribute.value', [
-                'class' => 'form-control',
-                'id' => 'PopulateThreatconnectValue',
-            ]) ?>
-        </div>
-        <?php $submitRow(__('Upload CSV'), 'fas fa-upload'); ?>
-        <?= $this->Form->end(); ?>
-        <?php $closeSection(); ?>
-
-        <?php
-        // ===================== 6. Forensic analysis (Mactime) =====================
-        $openSection(6, 'pfForensic', 'fas fa-microscope', __('Forensic analysis'), __('(Experimental) Mactime'));
+        // ===================== 3. Forensic analysis (Mactime) =====================
+        $openSection(6, 'pfForensic', 'fas fa-microscope', __('Forensic analysis'), __('Mactime'));
         echo $this->Form->create('Event', [
             'url' => $baseurl . '/events/upload_analysis_file/' . $eventId,
             'type' => 'file',
@@ -205,7 +158,7 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
         ]);
         ?>
         <p class="text-muted small mb-2">
-            <?= __('(Experimental) Upload a Mactime analysis file. You will then select the lines to turn into objects.') ?>
+            <?= __('Upload a Mactime analysis file. You will then select the lines to turn into objects.') ?>
         </p>
         <div class="mb-3">
             <label class="form-label fw-semibold" for="PopulateAnalysisFile"><?= __('Analysis file') ?></label>
@@ -267,13 +220,37 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
 
 <script>
 (function () {
-    // Freetext: submit the pasted IOCs to freeTextImport and show the resolution.
-    var ftForm = document.getElementById('populateFreetextForm');
-    if (ftForm) {
-        ftForm.addEventListener('submit', function (e) {
+    // Submit a populate sub-form via fetch and show its result in a chained modal
+    function wireModalForm(id) {
+        var form = document.getElementById(id);
+        if (!form) { return; }
+        form.addEventListener('submit', function (e) {
             e.preventDefault();
-            openModalPostChained(ftForm.getAttribute('action'), new FormData(ftForm));
+            openModalPostChained(form.getAttribute('action'), new FormData(form));
         });
     }
+    // Freetext: pasted IOCs → resolution screen.
+    wireModalForm('populateFreetextForm');
+    // Forensic: uploaded Mactime file → timeline selection screen.
+    wireModalForm('populateForensicForm');
+
+    // Keep each section's submit button disabled until its required input is provided
+    function requireInput(formId, inputId, isFile) {
+        var form = document.getElementById(formId);
+        var input = document.getElementById(inputId);
+        if (!form || !input) { return; }
+        var btn = form.querySelector('button[type="submit"]');
+        if (!btn) { return; }
+        function check() {
+            var ok = isFile ? (input.files && input.files.length > 0)
+                            : (input.value.trim() !== '');
+            btn.disabled = !ok;
+        }
+        input.addEventListener(isFile ? 'change' : 'input', check);
+        check();
+    }
+    requireInput('populateJsonForm',     'PopulateEventJson');
+    requireInput('populateFreetextForm', 'PopulateFreetextValue');
+    requireInput('populateForensicForm', 'PopulateAnalysisFile', true);
 })();
 </script>
