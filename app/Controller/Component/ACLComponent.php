@@ -65,6 +65,8 @@ class ACLComponent extends Component
             'downloadAttachment' => array('*'),
             'downloadSample' => array('*'),
             'edit' => array('perm_add'),
+            'editAttributeGalaxies' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editAttributeTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editField' => array('perm_add'),
             'editSelected' => array('perm_add'),
             'enrich' => ['perm_add'],

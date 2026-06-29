@@ -22,6 +22,12 @@ $canEdit = isset($event)
     ? $this->Acl->canModifyEvent($event)
     : false;
 
+// Tag/galaxy "+" buttons on object attributes follow the event's tag-modify
+// rights (galaxy clusters are attached as tags, so they share the permission).
+$canTagObj = isset($event)
+    ? $this->Acl->canModifyTag($event)
+    : false;
+
 // Inline helper: render a small distribution badge
 function _objDistBadge($dist) {
     static $map = [
@@ -345,21 +351,18 @@ function _objDistBadge($dist) {
 
                                     <!-- Tags -->
                                     <td>
-                                    <?php if (!empty($attr['AttributeTag'])):
-                                        foreach ($attr['AttributeTag'] as $at):
-                                            if (empty($at['Tag'])) continue;
-                                            if (!empty($at['Tag']['is_galaxy'])) continue;
-                                            echo $this->element(
-                                                'genericElementsBS5/Badges/tag',
-                                                [
-                                                    'tag'           => $at['Tag'],
-                                                    'local'         => $at['local'] ?? false,
-                                                    'hiddenClass'   => '',
-                                                    'showFavourite' => false,
-                                                ]
-                                            );
-                                        endforeach;
-                                    endif; ?>
+                                        <?php echo $this->element(
+                                            'genericElementsBS5/IndexTable/Fields/tag_list',
+                                            [
+                                                'row'   => $attr,
+                                                'field' => [
+                                                    'data_path'       => 'AttributeTag',
+                                                    'add_tag'         => $canTagObj,
+                                                    'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
+                                                    'add_tag_id_path' => 'id',
+                                                ],
+                                            ]
+                                        ); ?>
                                     </td>
 
 
@@ -369,7 +372,12 @@ function _objDistBadge($dist) {
                                             'genericElementsBS5/IndexTable/Fields/galaxy',
                                             [
                                                 'row'   => $attr,
-                                                'field' => ['data_path' => 'AttributeTag'],
+                                                'field' => [
+                                                    'data_path'          => 'AttributeTag',
+                                                    'add_galaxy'         => $canTagObj,
+                                                    'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
+                                                    'add_galaxy_id_path' => 'id',
+                                                ],
                                             ]
                                         ); ?>
                                     </td>
@@ -635,6 +643,13 @@ function _objDistBadge($dist) {
                 showMessage('fail', errMsg);
             });
     }
+
+    // Expose a reload API (mirrors window.overmindAttrs) so the edit-tag /
+    // edit-galaxy modals can refresh this tab after saving.
+    window.overmindObjects = Object.assign(window.overmindObjects || {}, {
+        loadFn:  loadObjects,
+        buildFn: buildObjectsUrl
+    });
 
     // Clone #filterButton and #filterField to strip filter_bar.ctp's
     // window.location.href listeners (click on button + keypress Enter on field).

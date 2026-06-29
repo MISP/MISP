@@ -62,6 +62,17 @@ $path = function($field) use ($model) {
     return $model . '.' . $field;
 };
 
+/*
+ * Inline "+" add-tag and add-galaxy buttons on each attribute row. Only offered
+ * in the event-view attribute index (not the global /attributes index) and only
+ * when the current user may modify tags on the parent event (galaxy clusters are
+ * attached as tags, so they share the same permission).
+ */
+$canTagAttr = false;
+if (empty($show_event_id) && !empty($event['Event']['id'])) {
+    $canTagAttr = $this->Acl->canModifyTag($event);
+}
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -142,14 +153,20 @@ $fields = array_merge($fields, [
         'data_path' => $path('AttributeTag'),
         'element' => 'tag_list',
         'card_section' => 'tag',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table', 'card'],
+        'add_tag' => $canTagAttr,
+        'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
+        'add_tag_id_path' => $path('id'),
     ],
     [
         'name' => __('Galaxy'),
         'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
         'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table', 'card'],
+        'add_galaxy' => $canTagAttr,
+        'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
+        'add_galaxy_id_path' => $path('id'),
     ],
     [
         'name' => __('IDS'),
