@@ -20,6 +20,7 @@
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
             ['controller' => 'events', 'action' => 'getEventInfoById'],
+            ['controller' => 'events', 'action' => 'freeTextImport'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'add'],

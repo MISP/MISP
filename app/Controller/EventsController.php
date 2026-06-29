@@ -4431,12 +4431,52 @@ class EventsController extends AppController
             }
             if ($result) {
                 $this->Flash->success(__('The event has been saved'));
-                $this->redirect(array('action' => 'view', $id));
+                if ($this->theme === "Overmind") {
+                    $this->redirect(array('action' => 'view2', $id));
+                } else {
+                    $this->redirect(array('action' => 'view', $id));
+                }
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
         }
         $this->set('event', $event);
+    }
+
+    /**
+     * Renders the "Populate from…" modal (Overmind theme): a single accordion
+     * gathering every import method, each section posting to its own legacy
+     * action. Only supplies the data the inline forms need (templates list and
+     * enabled import modules); the actual processing stays in the existing
+     * per-import actions (populate, freeTextImport, addIOC, …).
+     */
+    public function populateFrom($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $id = $event['Event']['id']; // resolve possible event UUID to real ID
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorised to do that.'));
+        }
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+        $this->loadModel('Module');
+        $importModules = array();
+        $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
+        if (is_array($modules) && !empty($modules['modules'])) {
+            foreach ($modules['modules'] as $module) {
+                $importModules[] = array(
+                    'name' => $module['name'],
+                    'text' => Inflector::humanize($module['name']),
+                );
+            }
+        }
+        $this->set('event', $event);
+        $this->set('id', $id);
+        $this->set('importModules', $importModules);
     }
 
     public function edit($id = null)
@@ -5948,6 +5988,11 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         $this->set('event_id', $event['Event']['id']);
+        // Overmind "Populate from…" modal: openModalPostChained POSTs the IOCs
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+        if ($overmindModal) {
+            $this->layout = false;
+        }
         if ($this->request->is('get')) {
             $this->layout = false;
             $this->request->data['MispAttribute']['event_id'] = $event['Event']['id'];
@@ -6024,7 +6069,11 @@ class EventsController extends AppController
             $this->set('title_for_layout', __('Freetext Import Results'));
             $this->set('title', __('Freetext Import Results'));
             $this->set('missingTldLists', $this->Warninglist->missingTldLists());
-            $this->render('resolved_attributes');
+            if ($overmindModal) {
+                $this->render('freetext_resolution');
+            } else {
+                $this->render('resolved_attributes');
+            }
         }
     }
 
@@ -6076,7 +6125,7 @@ class EventsController extends AppController
         $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
         $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $defaultComment, $proposals);
-        $this->Flash->info($flashMessage);
+        $this->Flash->success($flashMessage);
 
         if ($this->request->is('ajax')) {
             return $this->RestResponse->viewData($flashMessage, $this->response->type());
@@ -7444,6 +7493,11 @@ class EventsController extends AppController
         }
         $mayModify = $this->__canModifyEvent($event);
         $eventId = $event['Event']['id'];
+
+        // Overmind
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
 
         $this->loadModel('Module');
         $module = $this->Module->getEnabledModule($moduleName, 'Import');

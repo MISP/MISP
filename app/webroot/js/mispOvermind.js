@@ -143,6 +143,70 @@ function openModal(url, size = 'xl') {
         });
 }
 
+// Close the currently-open #mainModal (if any) and then open `url` in it.
+// Used to chain modals without stacking a second Bootstrap backdrop.
+function openModalChained(url, size = 'xl') {
+    const el = document.getElementById('mainModal');
+    const inst = el ? bootstrap.Modal.getInstance(el) : null;
+    if (inst && el.classList.contains('show')) {
+        el.addEventListener('hidden.bs.modal', function handler() {
+            el.removeEventListener('hidden.bs.modal', handler);
+            openModal(url, size);
+        });
+        inst.hide();
+    } else {
+        openModal(url, size);
+    }
+}
+
+// Inject HTML into #mainModalBody and (re-)run its inline scripts in IIFEs.
+function renderMainModalContent(html) {
+    const container = document.getElementById('mainModalBody');
+    container.innerHTML = html;
+    container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        if (oldScript.src) {
+            newScript.src = oldScript.src;
+        } else {
+            newScript.textContent = '(function(){\n' + oldScript.textContent + '\n})();';
+        }
+        document.body.appendChild(newScript);
+        document.body.removeChild(newScript);
+    });
+    if (typeof initTomSelect === 'function') {
+        initTomSelect(container);
+    }
+}
+
+// POST `body` to `url` and render the HTML response into #mainModal, chaining
+// from the currently-open modal (hide → show) so backdrops don't stack.
+function openModalPostChained(url, body, size = 'xl') {
+    const el = document.getElementById('mainModal');
+    const inst = el ? bootstrap.Modal.getInstance(el) : null;
+    const run = () => {
+        const dialog = el.querySelector('.modal-dialog');
+        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+        if (size) {
+            dialog.classList.add('modal-' + size);
+        }
+        fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                renderMainModalContent(html);
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            });
+    };
+    if (inst && el.classList.contains('show')) {
+        el.addEventListener('hidden.bs.modal', function handler() {
+            el.removeEventListener('hidden.bs.modal', handler);
+            run();
+        });
+        inst.hide();
+    } else {
+        run();
+    }
+}
+
 function multiSelectItems(url, suffixe) {
     if (selectedItems.size === 0) {
         return;
