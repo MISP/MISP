@@ -28,7 +28,37 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - [x] **T0.1** Create this tracker (`docs/collection_sync_progress.md`).
 - [x] **T0.2** Confirm feature-flag registry location + `isSupported` wiring; fix the exact
   `FEATURE_COLLECTION_SYNC` constant name and where it's declared. → findings below.
-- [ ] **T0.3** Confirm ACL/route/CSRF-unlock mechanism for new sync actions.
+- [x] **T0.3** Confirm ACL/route/CSRF-unlock mechanism for new sync actions. → findings below.
+
+### T0.3 findings — ACL / routes / CSRF-unlock (re-verify line #s before editing)
+- **CSRF is auto-unlocked for all REST calls.** `AppController::beforeFilter` (`:230-242`):
+  when `$this->_isRest()` it sets `$this->Security->unlockedActions = [$action]` and
+  `doNotGenerateToken = true`. Sync calls are always REST (API key + JSON) ⇒ **no per-action
+  `$this->Security->unlockedActions[]` registration is needed** for the sync receive/handshake
+  endpoints. (The per-action `unlockedActions[]` lines seen in other controllers are only for
+  *non-REST* AJAX endpoints; `AnalystDataController` adds none.)
+- **ACL registry:** `app/Controller/Component/ACLComponent.php`, the `ACL_LIST` array.
+  `'collections'` block at `:130-140`, `'collectionElements'` at `:141-147`.
+- **★ DEFAULT-DENY ★** `checkAccess()` (`:1498-1556`): unknown controller → `NotFoundException`
+  (`:1505`); an action **absent** from the controller's list skips every permission branch and
+  falls through to site-admin-only (`:1552`) then `ForbiddenException` (`:1555`). ⇒ **every new
+  sync action MUST get an explicit entry in the `'collections'` ACL block**, or a non-site-admin
+  sync user (`perm_sync`, the normal sync role) is hard-403'd.
+- **Analyst-data ACL template** (`:22-33`) to mirror for collections:
+  - read endpoints → `'indexMinimal' => ['*']`, `'index' => ['*']`, `'view' => ['*']`
+    (visibility is filtered *inside* via `buildConditions`; `['*']` = any authenticated user).
+  - write/handshake → `'filterAnalystDataForPush' => ['perm_sync']`,
+    `'pushAnalystData' => ['perm_sync']`.
+  Planned collection entries (added in T3.2/T4.2): `indexMinimal => ['*']`, the fetch endpoint
+  → `['*']` (or reuse `index`), `filterCollectionsForPush => ['perm_sync']`,
+  `captureCollection => ['perm_sync']`.
+- **Routes:** `app/Config/routes.php` has **no** `analyst_data`/`collections` entries — default
+  CakePHP `/:controller/:action` routing covers sync endpoints. ⇒ **no `routes.php` change is
+  required** (tightens PRD §5 item 7: the real touch point is `ACLComponent.php`, not routes).
+- **Defense-in-depth in-action gate:** `AnalystDataController::pushAnalystData` (`:336-341`)
+  *also* hard-checks `perm_sync` (+`perm_analyst_data`) and `_isRest()` in the action body, on
+  top of ACL. Mirror this in the collection capture/filter actions (D3 ⇒ `perm_sync` only, no
+  new perm, no `perm_analyst_data` analogue).
 
 ### T0.2 findings — feature negotiation (re-verify line #s before editing)
 - **Consumer side:** `ServerSyncTool::isSupported($flag)` (`app/Lib/Tools/ServerSyncTool.php:502`)
@@ -98,3 +128,7 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 
 ## Session log
 - **2026-06-30:** T0.1 done — branch `feature-collection-sync` created off `2.5`, tracker added.
+- **2026-06-30:** **Phase 0 complete** — T0.2 (feature negotiation: advertised-boolean
+  `collection_sync`) + T0.3 (CSRF auto-unlocked via REST; ACL is default-deny so every new
+  sync action needs an explicit `'collections'` ACL entry; no routes.php change) locked in.
+  Next: Phase 1 (T1.1 `collections.locked` migration).
