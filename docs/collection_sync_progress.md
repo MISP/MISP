@@ -81,7 +81,25 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   backport-robust. Refines PRD §6.8 (which loosely said "mirror `FEATURE_SIGHTING_REST_SEARCH`").
 
 ## Phase 1 — Schema & model foundations
-- [ ] **T1.1** Add `collections.locked` (MYSQL.sql + db_schema.php + migration).
+- [x] **T1.1** Add `collections.locked` — migration 155 + canonical schema. → findings below.
+
+### T1.1 findings — schema-migration edit sites (CORRECTS the PRD)
+- **★ Canonical schema is `db_schema.json` at repo ROOT ★** (read by `Server::getExpectedDBSchema`
+  `Server.php:3559`; `schemaDiagnostics` compares actual-vs-this). **The PRD's `app/Lib/db_schema.php`
+  is WRONG** — that path is an empty, untracked 0-byte scratch file. Do not edit it.
+- **Three edit sites for a schema column** (verified working pattern from `case 153`):
+  1. `AppModel::updateDatabase()` — new `case 155:` with the `ALTER` (`AppModel.php:2701`).
+  2. `AppModel` `$db_changes` map — `155 => false` (no forced logout; gap at 154 is intentional).
+  3. `db_schema.json` — add the column object to `schema.collections` **and** bump top-level
+     `db_version` 153→155 (it tracks the latest migration). `MYSQL.sql` — add the column to the
+     `collections` CREATE TABLE; **leave MYSQL.sql's `db_version='126'` baseline untouched** (the
+     established convention — e.g. `taxii_servers.enabled`/153 is in MYSQL.sql with db_version 126).
+- **`locked` column = `tinyint(1) NOT NULL DEFAULT 0`** (mirrors `events.locked` byte-for-byte in
+  both db_schema.json and MYSQL.sql). No index on `locked` (matches events; indexes section untouched).
+- **Dev DB live state (read-only check):** `collections` has the 12 original cols, **no `locked`**;
+  `admin_settings.db_version = 154` (dev runs `develop` code → already has TAXII 154). ⇒ migration 155
+  applies cleanly on top (`findUpgrades(154)` yields only 155). Live `runUpdates` application deferred
+  (dev is a 2.5-code-on-154-DB hybrid after the branch switch; apply during regression / T6.3).
 - [ ] **T1.2** Add `servers.pull_collections` + `push_collections` (same three places).
 - [ ] **T1.3** Bump `Collection.modified` on element add/remove/capture (D5).
 - [ ] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`.
@@ -150,3 +168,8 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `collection_sync`) + T0.3 (CSRF auto-unlocked via REST; ACL is default-deny so every new
   sync action needs an explicit `'collections'` ACL entry; no routes.php change) locked in.
   Next: Phase 1 (T1.1 `collections.locked` migration).
+- **2026-06-30:** **T1.1 done** — `collections.locked tinyint(1) NOT NULL DEFAULT 0` as
+  migration 155 (AppModel case 155 + `155 => false`), `db_schema.json` (column + db_version→155),
+  `MYSQL.sql`. Corrected PRD's canonical-schema path (`db_schema.json` at ROOT, not
+  `app/Lib/db_schema.php`). Statically validated; dev DB target confirmed (no `locked`, at 154).
+  Next: T1.2 (server toggles, migration 156).
