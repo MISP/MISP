@@ -22,7 +22,7 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
     }
     $pid = (int)$pid;
     $accept = '<button type="button" class="btn btn-sm btn-success py-0 px-2" title="'
-        . h(__('Accept proposal')) . '" onclick="overmindAcceptProposal(' . $pid . ')">'
+        . h(__('Accept proposal')) . '" onclick="acceptProposal(' . $pid . ')">'
         . '<i class="fas fa-check"></i></button>';
     $discard = '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" title="'
         . h(__('Discard proposal')) . '" onclick="openModal(\'' . $baseurl . '/shadow_attributes/discard/'

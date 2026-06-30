@@ -58,8 +58,8 @@ $discardUrl = h($baseurl . '/shadow_attributes/discard/' . (int)$id);
                 var inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
                 if (inst) { inst.hide(); }
                 if (typeof showToast === 'function') { showToast(data.success || msgOk, 'success'); }
-                if (typeof overmindReloadProposalTabs === 'function') {
-                    overmindReloadProposalTabs();
+                if (typeof reloadProposalTabs === 'function') {
+                    reloadProposalTabs();
                 }
             } else {
                 if (typeof showToast === 'function') { showToast((data && data.errors) ? data.errors : msgFail, 'danger'); }

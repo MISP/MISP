@@ -312,8 +312,8 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
          * once rendered (view_attributes.ctp / Objects/index.ctp).
          */
         var tabs = [
-            { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: window.overmindObjects },
-            { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: window.overmindAttrs }
+            { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: window.mispView.objects },
+            { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: window.mispView.attrs }
         ];
         function reload(api) {
             if (api && typeof api.loadFn === 'function'

@@ -1,3 +1,6 @@
+/* Overmind theme JS namespace — shared mutable handle for the event-view tabs. */
+window.mispView = window.mispView || {};
+
 /*******************************
  * Dark mode
  *******************************/
@@ -1257,16 +1260,16 @@ function getCsrfToken() {
  * and refresh whichever proposal-bearing tab(s) are loaded — no page reload.
  *
  *******************************/
-function overmindReloadProposalTabs() {
-    if (window.overmindAttrs && typeof window.overmindAttrs.loadFn === 'function') {
-        window.overmindAttrs.loadFn(window.overmindAttrs.buildFn());
+function reloadProposalTabs() {
+    if (window.mispView.attrs && typeof window.mispView.attrs.loadFn === 'function') {
+        window.mispView.attrs.loadFn(window.mispView.attrs.buildFn());
     }
-    if (window.overmindObjects && typeof window.overmindObjects.loadFn === 'function') {
-        window.overmindObjects.loadFn(window.overmindObjects.buildFn());
+    if (window.mispView.objects && typeof window.mispView.objects.loadFn === 'function') {
+        window.mispView.objects.loadFn(window.mispView.objects.buildFn());
     }
 }
 
-function overmindAcceptProposal(id) {
+function acceptProposal(id) {
     fetch(baseurl + '/shadow_attributes/accept/' + id, {
         method: 'POST',
         headers: {
@@ -1279,7 +1282,7 @@ function overmindAcceptProposal(id) {
         .then(function (resp) {
             if (resp && resp.saved) {
                 showToast(resp.success || 'Proposal accepted.', 'success');
-                overmindReloadProposalTabs();
+                reloadProposalTabs();
             } else {
                 showToast((resp && resp.errors) ? resp.errors : 'Could not accept the proposal.', 'danger');
             }

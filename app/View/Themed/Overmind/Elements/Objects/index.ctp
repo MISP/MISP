@@ -680,9 +680,10 @@ function _objDistBadge($dist) {
             });
     }
 
-    // Expose a reload API (mirrors window.overmindAttrs) so the edit-tag /
+    // Expose a reload API (mirrors window.mispView.attrs) so the edit-tag /
     // edit-galaxy modals can refresh this tab after saving.
-    window.overmindObjects = Object.assign(window.overmindObjects || {}, {
+    window.mispView = window.mispView || {};
+    window.mispView.objects = Object.assign(window.mispView.objects || {}, {
         loadFn:  loadObjects,
         buildFn: buildObjectsUrl
     });
