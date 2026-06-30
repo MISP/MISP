@@ -1249,6 +1249,44 @@ function getCsrfToken() {
     return match ? decodeURIComponent(match[1]) : '';
 }
 
+/*******************************
+ * Proposals (shadow attributes)
+ *
+ * Shared by the attribute and object event-view indexes. Accept is a direct
+ * XHR (no confirmation); discard goes through a confirmation modal. Both toast
+ * and refresh whichever proposal-bearing tab(s) are loaded — no page reload.
+ *
+ *******************************/
+function overmindReloadProposalTabs() {
+    if (window.overmindAttrs && typeof window.overmindAttrs.loadFn === 'function') {
+        window.overmindAttrs.loadFn(window.overmindAttrs.buildFn());
+    }
+    if (window.overmindObjects && typeof window.overmindObjects.loadFn === 'function') {
+        window.overmindObjects.loadFn(window.overmindObjects.buildFn());
+    }
+}
+
+function overmindAcceptProposal(id) {
+    fetch(baseurl + '/shadow_attributes/accept/' + id, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept':           'application/json',
+            'X-CSRF-Token':     getCsrfToken()
+        }
+    })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (resp) {
+            if (resp && resp.saved) {
+                showToast(resp.success || 'Proposal accepted.', 'success');
+                overmindReloadProposalTabs();
+            } else {
+                showToast((resp && resp.errors) ? resp.errors : 'Could not accept the proposal.', 'danger');
+            }
+        })
+        .catch(function () { showToast('Could not accept the proposal.', 'danger'); });
+}
+
 function copyToClipboard(btn, text) {
     const originalHtml = btn.innerHTML;
 

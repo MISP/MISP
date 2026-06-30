@@ -2274,7 +2274,7 @@ class EventsController extends AppController
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
             'deleted', 'category', 'type', 'toIDS',
-            'searchFor', 'flatten',
+            'searchFor', 'flatten', 'proposal',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2347,8 +2347,27 @@ class EventsController extends AppController
         $this->set('limit',              $limit);
         $this->set('event',              $event);
         $this->set('deleted',            false);
+        $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+
+        // Counts for the Proposals / Deleted toggle buttons. 
+        $nonObjectAttrIds = $this->Event->Attribute->find('column', [
+            'fields' => ['Attribute.id'],
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0],
+        ]);
+        $proposalOr = [['ShadowAttribute.old_id' => 0]];
+        if (!empty($nonObjectAttrIds)) {
+            $proposalOr[] = ['ShadowAttribute.old_id' => $nonObjectAttrIds];
+        }
+        $this->set('proposalCount', $this->Event->ShadowAttribute->find('count', [
+            'conditions' => ['ShadowAttribute.event_id' => $eventId, 'ShadowAttribute.deleted' => 0, 'OR' => $proposalOr],
+            'recursive' => -1,
+        ]));
+        $this->set('deletedCount', $this->Event->Attribute->find('count', [
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.deleted' => 1, 'Attribute.object_id' => 0],
+            'recursive' => -1,
+        ]));
 
         $categoryKeys = array_keys($this->Event->Attribute->categoryDefinitions);
         $this->set('categoryOptions', array_combine($categoryKeys, $categoryKeys));
@@ -2389,7 +2408,7 @@ class EventsController extends AppController
         $options = [];
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
-            'deleted', 'name', 'meta-category', 'searchFor',
+            'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2416,6 +2435,23 @@ class EventsController extends AppController
         $this->set('page', $result['page']);
         $this->set('limit', $result['limit']);
         $this->set('event', $event);
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+        $this->set('proposal', !empty($options['proposal']));
+
+        // Counts for the Proposals / Deleted toggle buttons. Proposals on this
+        // index are the edits/deletions targeting attributes inside objects.
+        $objectAttributeIds = $this->Event->Attribute->find('column', [
+            'fields' => ['Attribute.id'],
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.object_id !=' => 0, 'Attribute.deleted' => 0],
+        ]);
+        $this->set('proposalCount', empty($objectAttributeIds) ? 0 : $this->Event->ShadowAttribute->find('count', [
+            'conditions' => ['ShadowAttribute.old_id' => $objectAttributeIds, 'ShadowAttribute.deleted' => 0],
+            'recursive' => -1,
+        ]));
+        $this->set('deletedCount', $this->Event->Object->find('count', [
+            'conditions' => ['Object.event_id' => $eventId, 'Object.deleted' => 1],
+            'recursive' => -1,
+        ]));
         $this->layout = false;
     }
 

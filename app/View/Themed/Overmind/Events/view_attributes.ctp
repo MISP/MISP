@@ -2,6 +2,7 @@
 $namedParams     = $this->request->params['named'] ?? [];
 $attrEventId     = $event['Event']['id'];
 $currentDeleted  = (int)($namedParams['deleted']  ?? 0);
+$currentProposal = (int)($namedParams['proposal'] ?? 0);
 $currentCategory = $namedParams['category'] ?? '';
 $currentType     = $namedParams['type']     ?? '';
 
@@ -30,6 +31,7 @@ echo $this->element('Attributes/index', [
     window.overmindAttrs = Object.assign(window.overmindAttrs || {}, {
         attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>,
         deletedState:  <?= (int)$currentDeleted ?>,
+        proposalState: <?= (int)$currentProposal ?>,
         activeFilters: <?= json_encode(array_filter(['category' => $currentCategory, 'type' => $currentType])) ?>,
     });
 
@@ -42,6 +44,7 @@ echo $this->element('Attributes/index', [
         var S   = window.overmindAttrs;
         var url = S.attrBase;
         if (S.deletedState) url += '/deleted:' + S.deletedState;
+        if (S.proposalState) url += '/proposal:' + S.proposalState;
         Object.keys(S.activeFilters).forEach(function (n) {
             if (S.activeFilters[n]) url += '/' + n + ':' + encodeURIComponent(S.activeFilters[n]);
         });
@@ -149,26 +152,21 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    // .attr-deleted-toggle — clone to override Attributes/index.ctp's capture listener
-    var toggleBtn = container ? container.querySelector('.attr-deleted-toggle') : null;
-    if (toggleBtn) {
-        var newToggle = toggleBtn.cloneNode(true);
-        toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
-        newToggle.addEventListener('click', function (e) {
+    // Toggle buttons (deleted / proposals)
+    function wireToggle(selector, stateKey) {
+        var btn = container ? container.querySelector(selector) : null;
+        if (!btn) return;
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function (e) {
             e.preventDefault();
-            var S          = window.overmindAttrs;
-            var newDeleted = S.deletedState ? 0 : 1;
-            var url        = S.attrBase;
-            if (newDeleted) url += '/deleted:' + newDeleted;
-            Object.keys(S.activeFilters).forEach(function (n) {
-                if (S.activeFilters[n]) url += '/' + n + ':' + encodeURIComponent(S.activeFilters[n]);
-            });
-            var cont  = getContainer();
-            var field = cont ? cont.querySelector('#filterField') : null;
-            if (field && field.value.trim()) url += '/searchFor:' + encodeURIComponent(field.value.trim());
-            loadAttributes(url);
+            var S = window.overmindAttrs;
+            S[stateKey] = S[stateKey] ? 0 : 1;
+            loadAttributes(buildAttrsUrl());
         });
     }
+    wireToggle('.attr-deleted-toggle', 'deletedState');
+    wireToggle('.attr-proposal-toggle', 'proposalState');
 
     // TomSelect on More Filters dropdowns
     if (container) initMoreFilters(container);

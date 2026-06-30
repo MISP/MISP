@@ -54,7 +54,8 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
 
 $firstRow   = !empty($attributes) ? reset($attributes) : [];
 $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
-$_canModify = !empty($isSiteAdmin) || !empty($mayModify);
+$_canModify = !empty($mayModify);
+$_canPropose = !empty($me['Role']['perm_add']);
 
 $path = function($field) use ($model) {
     if (empty($model)) return $field;
@@ -62,12 +63,6 @@ $path = function($field) use ($model) {
     return $model . '.' . $field;
 };
 
-/*
- * Inline "+" add-tag and add-galaxy buttons on each attribute row. Only offered
- * in the event-view attribute index (not the global /attributes index) and only
- * when the current user may modify tags on the parent event (galaxy clusters are
- * attached as tags, so they share the same permission).
- */
 $canTagAttr = false;
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $canTagAttr = $this->Acl->canModifyTag($event);
@@ -223,7 +218,19 @@ $fields = array_merge($fields, [
                 'copy_message' => __('UUID copied to clipboard'),
             ],
             [
+                'type' => 'modal',
+                'label' => __('Propose change'),
+                'icon' => 'comment-dots',
+                'url' => $baseurl . '/shadow_attributes/edit/%id%',
+                'requirement' => function($row) use ($_canPropose) {
+                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
+            ],
+            [
                 'type' => 'divider',
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify && empty($row['is_proposal']);
+                }
             ],
             [
                 'type' => 'modal',
@@ -231,7 +238,7 @@ $fields = array_merge($fields, [
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']);
+                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -241,7 +248,7 @@ $fields = array_merge($fields, [
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && !empty($row['deleted']);
+                    return $_canModify && !empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -251,7 +258,7 @@ $fields = array_merge($fields, [
                 'url' => $baseurl . '/attributes/delete/%id%',
                 'class' => 'text-danger',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']);
+                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ]
         ]
@@ -364,19 +371,36 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
 }
 
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
-    $attrEventId    = $event['Event']['id'];
-    $namedParams    = $this->request->params['named'] ?? [];
-    $currentDeleted = (int)($namedParams['deleted'] ?? 0);
-    $toggleDeleted  = $currentDeleted ? 0 : 1;
-    $attrBaseUrl    = $baseurl . '/events/viewAttributes/' . $attrEventId;
-    $toggleUrl      = $attrBaseUrl . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '');
+    $attrEventId     = $event['Event']['id'];
+    $namedParams     = $this->request->params['named'] ?? [];
+    $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
+    $currentProposal = (int)($namedParams['proposal'] ?? 0);
+    $toggleDeleted   = $currentDeleted ? 0 : 1;
+    $toggleProposal  = $currentProposal ? 0 : 1;
+    $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId;
+
+    // Fallback hrefs (real toggles are handled by view_attributes.ctp)
+    $deletedUrl  = $attrBaseUrl
+        . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '')
+        . ($currentProposal ? '/proposal:' . $currentProposal : '');
+    $proposalUrl = $attrBaseUrl
+        . ($currentDeleted ? '/deleted:' . $currentDeleted : '')
+        . ($toggleProposal ? '/proposal:' . $toggleProposal : '');
 
     $children[] = [
         'type'  => 'button',
-        'url'   => $toggleUrl,
+        'url'   => $proposalUrl,
+        'class' => 'btn attr-proposal-toggle ' . ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
+        'icon'  => 'fas fa-comment-dots',
+        'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
+    ];
+
+    $children[] = [
+        'type'  => 'button',
+        'url'   => $deletedUrl,
         'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
         'icon'  => 'fas fa-trash',
-        'label' => __('Deleted'),
+        'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
     ];
 }
 
@@ -387,6 +411,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $attributes,
             'primary_id_path' => $path('id'),
             'row_class_callable' => function($row) {
+                if (!empty($row['is_proposal'])) {
+                    return 'attr-proposal-row';
+                }
                 return !empty($row['deleted']) ? 'attr-deleted' : '';
             },
             'filter_bar' => [

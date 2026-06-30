@@ -13,10 +13,18 @@ $totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
 $window     = 2;
 $objectsUrl = '/events/viewObjects/' . $eventId;
 
-$namedParams    = $this->request->params['named'] ?? [];
-$currentDeleted = (int)($namedParams['deleted'] ?? 0);
-$toggleDeleted  = $currentDeleted ? 0 : 1;
-$toggleUrl      = $baseurl . $objectsUrl . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '');
+$namedParams     = $this->request->params['named'] ?? [];
+$currentDeleted  = (int)($namedParams['deleted'] ?? 0);
+$currentProposal = (int)($namedParams['proposal'] ?? 0);
+$toggleDeleted   = $currentDeleted ? 0 : 1;
+$toggleProposal  = $currentProposal ? 0 : 1;
+// Fallback hrefs (the JS rebuilds the real URL); each preserves the other toggle.
+$toggleUrl       = $baseurl . $objectsUrl
+    . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '')
+    . ($currentProposal ? '/proposal:' . $currentProposal : '');
+$proposalUrl     = $baseurl . $objectsUrl
+    . ($currentDeleted ? '/deleted:' . $currentDeleted : '')
+    . ($toggleProposal ? '/proposal:' . $toggleProposal : '');
 
 $canEdit = isset($event)
     ? $this->Acl->canModifyEvent($event)
@@ -68,10 +76,17 @@ function _objDistBadge($dist) {
                                 ],
                                 [
                                     'type'  => 'button',
+                                    'url'   => $proposalUrl,
+                                    'class' => 'btn obj-proposal-toggle '. ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
+                                    'icon'  => 'fas fa-comment-dots',
+                                    'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
+                                ],
+                                [
+                                    'type'  => 'button',
                                     'url'   => $toggleUrl,
                                     'class' => 'btn obj-deleted-toggle '. ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
                                     'icon'  => 'fas fa-trash',
-                                    'label' => __('Deleted'),
+                                    'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
                                 ],
                             ],
                         ],
@@ -109,6 +124,14 @@ function _objDistBadge($dist) {
             $collapseId  = 'obj_collapse_' . $objId;
             $headingId   = 'obj_heading_'  . $objId;
             $attrCount   = count($object['Attribute'] ?? []);
+            // Auto-expand objects that carry a proposal while the Proposals
+            // toggle is on, so toggling it open/closes every object with a
+            // pending proposal.
+            $hasProposal = false;
+            foreach (($object['Attribute'] ?? []) as $_a) {
+                if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
+            }
+            $expandForProposal = $currentProposal && $hasProposal;
         ?>
 
         <?php $isDeleted = !empty($object['deleted']); ?>
@@ -117,11 +140,11 @@ function _objDistBadge($dist) {
 
             <!-- Card header -->
             <h2 class="accordion-header" id="<?= $headingId ?>">
-                <button class="accordion-button collapsed py-2 px-3 rounded"
+                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 px-3 rounded"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#<?= $collapseId ?>"
-                        aria-expanded="false"
+                        aria-expanded="<?= $expandForProposal ? 'true' : 'false' ?>"
                         aria-controls="<?= $collapseId ?>">
 
                     <span class="d-flex align-items-center
@@ -182,7 +205,7 @@ function _objDistBadge($dist) {
 
             <!-- Card body -->
             <div id="<?= $collapseId ?>"
-                 class="accordion-collapse collapse"
+                 class="accordion-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
                  aria-labelledby="<?= $headingId ?>">
 
                 <div class="accordion-body p-0">
@@ -466,6 +489,16 @@ function _objDistBadge($dist) {
                                                             <?= __('Copy UUID') ?>
                                                         </a>
                                                     </li>
+                                                    <?php if (!empty($me['Role']['perm_add']) && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
+                                                            <i class="fas fa-comment-dots me-2"></i>
+                                                            <?= __('Propose change') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
                                                     <?php if ($canEdit): ?>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
@@ -575,6 +608,7 @@ function _objDistBadge($dist) {
     var errMsg       = <?= json_encode(__('Could not load objects.')) ?>;
     var _objBase     = baseurl + <?= json_encode($objectsUrl) ?>;
     var _deletedState = <?= (int)$currentDeleted ?>;
+    var _proposalState = <?= (int)$currentProposal ?>;
     var _labelActive = <?= json_encode(__('Active filters')) ?>;
     var _labelClear  = <?= json_encode(__('Clear')) ?>;
 
@@ -588,6 +622,7 @@ function _objDistBadge($dist) {
     function buildObjectsUrl() {
         var url = _objBase;
         if (_deletedState) url += '/deleted:' + _deletedState;
+        if (_proposalState) url += '/proposal:' + _proposalState;
         var cont  = getContainer();
         var field = cont ? cont.querySelector('#filterField') : null;
         if (field && field.value.trim()) {
@@ -630,6 +665,7 @@ function _objDistBadge($dist) {
                     function () {
                         var clearUrl = _objBase;
                         if (_deletedState) clearUrl += '/deleted:' + _deletedState;
+                        if (_proposalState) clearUrl += '/proposal:' + _proposalState;
                         loadObjects(clearUrl, '');
                     },
                     _labelActive,
@@ -673,24 +709,22 @@ function _objDistBadge($dist) {
         });
     }
 
-    // Deleted toggle — clone to strip default navigation, preserve search term
-    var toggleBtn = container ? container.querySelector('.obj-deleted-toggle') : null;
-    if (toggleBtn) {
-        var newToggle = toggleBtn.cloneNode(true);
-        toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
-        newToggle.addEventListener('click', function (e) {
+    // Toggle buttons (deleted / proposals) — clone to strip default navigation,
+    // flip the relevant state then reload from the full URL (which preserves the
+    // other toggle + the search term).
+    function wireObjToggle(selector, flip) {
+        var btn = container ? container.querySelector(selector) : null;
+        if (!btn) return;
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function (e) {
             e.preventDefault();
-            var newDeleted = _deletedState ? 0 : 1;
-            var url = _objBase;
-            if (newDeleted) url += '/deleted:' + newDeleted;
-            var cont  = getContainer();
-            var field = cont ? cont.querySelector('#filterField') : null;
-            if (field && field.value.trim()) {
-                url += '/searchFor:' + encodeURIComponent(field.value.trim());
-            }
-            loadObjects(url);
+            flip();
+            loadObjects(buildObjectsUrl());
         });
     }
+    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 1; });
+    wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
 
     // Pagination link clicks
     document.addEventListener('click', function (e) {
