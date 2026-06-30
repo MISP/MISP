@@ -108,6 +108,11 @@ class ShadowAttributesController extends AppController
             throw new MethodNotAllowedException();
         }
         $response = $this->__accept($id);
+        // Overmind inline accept via XHR so it can toast + refresh in place.
+        if ($this->request->is('ajax')) {
+            $this->autoRender = false;
+            return new CakeResponse(array('body'=> json_encode($response), 'status'=>200, 'type' => 'json'));
+        }
         if ($this->_isRest()) {
             if (isset($response['success'])) {
                 $response['check_publish'] = true;
@@ -160,7 +165,11 @@ class ShadowAttributesController extends AppController
     {
         if ($this->request->is('post')) {
             if ($this->__discard($id)) {
-                if ($this->_isRest()) {
+                // Overmind toast and refresh.
+                if ($this->request->is('ajax')) {
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Proposal discarded.'))), 'status'=>200, 'type' => 'json'));
+                } elseif ($this->_isRest()) {
                     $this->set('name', 'Proposal discarded.');
                     $this->set('message', 'Proposal discarded.');
                     $this->set('url', $this->baseurl . '/shadow_attributes/discard/' . $id);
@@ -170,7 +179,10 @@ class ShadowAttributesController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')), 'status'=>200, 'type' => 'json'));
                 }
             } else {
-                if ($this->_isRest()) {
+                if ($this->request->is('ajax')) {
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Could not discard proposal.'))), 'status'=>200, 'type' => 'json'));
+                } elseif ($this->_isRest()) {
                     throw new InternalErrorException(__('Could not discard proposal.'));
                 } else {
                     $this->autoRender = false;
@@ -189,7 +201,12 @@ class ShadowAttributesController extends AppController
                     'fields' => array('id', 'event_id'),
             ));
             $this->set('event_id', $shadowAttribute['ShadowAttribute']['event_id']);
-            $this->render('ajax/shadowAttributeConfirmationForm');
+            if ($this->theme === 'Overmind') {
+                $this->layout = false;
+                $this->render('ajax/proposalDiscardConfirmationForm');
+            } else {
+                $this->render('ajax/shadowAttributeConfirmationForm');
+            }
         }
     }
 
@@ -601,6 +618,8 @@ class ShadowAttributesController extends AppController
                 $v = explode('.', $v);
                 $this->request->data['ShadowAttribute'][$k] = $existingAttribute[$v[0]][$v[1]];
             }
+
+            $isDeleteProposal = !empty($this->request->data['ShadowAttribute']['proposal_to_delete']);
             $validChangeMade = false;
             foreach ($fields['optional'] as $v) {
                 if (!isset($this->request->data['ShadowAttribute'][$v])) {
@@ -609,7 +628,7 @@ class ShadowAttributesController extends AppController
                     $validChangeMade = true;
                 }
             }
-            if (!$validChangeMade) {
+            if (!$validChangeMade && !$isDeleteProposal) {
                 throw new MethodNotAllowedException(__('Invalid input.'));
             }
             $this->request->data['ShadowAttribute']['org_id'] =  $this->Auth->user('org_id');
@@ -639,7 +658,8 @@ class ShadowAttributesController extends AppController
                     $this->set('_serialize', array('ShadowAttribute'));
                 } else {
                     $this->Flash->success(__('The proposed Attribute has been saved' . $emailResult));
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $existingAttribute['Attribute']['event_id']));
+                    $viewAction = ($this->theme === 'Overmind') ? 'view2' : 'view';
+                    $this->redirect(array('controller' => 'events', 'action' => $viewAction, $existingAttribute['Attribute']['event_id']));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -650,6 +670,9 @@ class ShadowAttributesController extends AppController
                     throw new InternalErrorException(__('Could not save the proposal. Errors: %s', $message));
                 } else {
                     $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
+                    if ($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $existingAttribute['Attribute']['event_id']));
+                    }
                 }
             }
         } else {
@@ -686,11 +709,15 @@ class ShadowAttributesController extends AppController
             }
         }
         $this->set('event', ['Event' => $existingAttribute['Event']]);
+        $this->set('attribute_id', $existingAttribute['Attribute']['id']);
         $this->set('categories', $categories);
         $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->Attribute->categoryDefinitions);
+        if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     private function __common()

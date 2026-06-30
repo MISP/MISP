@@ -104,34 +104,36 @@ foreach ($galaxies as $g) {
             ?>
                 <div data-cluster-item
                      data-cluster-name="<?= h(strtolower($cluster['value'] ?? '')) ?>">
+                     <a style="cursor:pointer;"
+                     href="<?= h($baseurl) ?>/galaxy_clusters/view/<?= $cId ?>">
 
-                    <span class="badge p-2"
-                          style="<?= $badgeStyle ?>"
-                          <?= $cDesc ? 'title="' . $cDesc . '"' : '' ?>>
+                        <span class="badge p-2"
+                            style="<?= $badgeStyle ?>"
+                            <?= $cDesc ? 'title="' . $cDesc . '"' : '' ?>>
 
-                        <div class="d-flex flex-column">
+                            <div class="d-flex flex-column">
 
-                            <?php if ($relType): ?>
-                            <div class="mb-1">
-                                <span class="badge text-white me-1 bg-dark"
-                                      style="font-size:.65rem;">
-                                    <?= h($relType) ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-
-                            <div class="d-flex align-items-center gap-1">
-                                <?php if ($isLocal): ?>
-                                    <i class="fas fa-user" title="<?= __('Local cluster') ?>"></i>
+                                <?php if ($relType): ?>
+                                <div class="mb-1">
+                                    <span class="badge text-white me-1 bg-dark"
+                                        style="font-size:.65rem;">
+                                        <?= h($relType) ?>
+                                    </span>
+                                </div>
                                 <?php endif; ?>
-                                <span>
-                                    <?= $cValue ?>
-                                </span>
+
+                                <div class="d-flex align-items-center gap-1">
+                                    <?php if ($isLocal): ?>
+                                        <i class="fas fa-user" title="<?= __('Local cluster') ?>"></i>
+                                    <?php endif; ?>
+                                    <span>
+                                        <?= $cValue ?>
+                                    </span>
+                                </div>
+
                             </div>
-
-                        </div>
-                    </span>
-
+                        </span>
+                    </a>
                 </div>
             <?php endforeach; ?>
             </div>

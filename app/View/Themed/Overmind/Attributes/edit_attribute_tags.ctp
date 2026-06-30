@@ -1,22 +1,21 @@
 <?php
 /*
- * GET/POST /attributes/editEventTags/{id}  (POST body: JSON { global_ids, local_ids })
+ * GET/POST /attributes/editAttributeTags/{id}  (POST body: JSON { global_ids, local_ids })
  *
  * Thin wrapper around the shared tag-picker modal.
- * Variables come from EventsController::editEventTags:
+ * Variables come from AttributesController::editAttributeTags:
  * - $allTags
  * - $customTags
  * - $tagCollections
  * - $currentGlobalTags
  * - $currentLocalTags
- * - eventId
+ * - attributeId
  * - $mayModify
  */
 echo $this->element('genericElementsBS5/Modals/tag_picker', [
-    'saveUrl'           => $baseurl . '/events/editEventTags/' . $eventId,
-    'uid'               => 'evt-tags-' . $eventId,
-    'headerEyebrow'     => __('Tags'),
-    'reloadHook'        => 'reloadTagsCard_',
+    'saveUrl'           => $baseurl . '/attributes/editAttributeTags/' . $attributeId,
+    'uid'               => 'attr-tags-' . $attributeId,
+    'headerEyebrow'     => __('Attribute Tags'),
     'allTags'           => $allTags,
     'customTags'        => $customTags,
     'tagCollections'    => $tagCollections,

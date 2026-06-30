@@ -37,8 +37,8 @@ if ($isSiteAdmin || $mayModify) {
     ];
 
     $actions[] = [
-        'url' => "#",
-        'onclick' => "event.preventDefault();getPopup($eventId, events, importChoice)",
+        'url' => "$baseurl/events/populateFrom/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/populateFrom/$eventId');",
         'icon' => 'fas fa-sign-in-alt',
         'label' => __('Populate from')
     ];

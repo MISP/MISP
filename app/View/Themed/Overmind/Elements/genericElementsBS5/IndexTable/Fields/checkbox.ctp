@@ -1,4 +1,9 @@
 <?php
+// Proposal rows are not selectable for mass actions 
+if (!empty($row['is_proposal']) || !empty($row['Attribute']['is_proposal'])) {
+    return;
+}
+
 $id = Hash::get($row, $field['data_path']);
 if (empty($id)) {
     if (!empty($row['id'])) {

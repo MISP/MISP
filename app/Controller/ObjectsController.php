@@ -509,7 +509,11 @@ class ObjectsController extends AppController
                     } else {
                         $this->Flash->error($error_message);
                     }
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    if ($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    }
                 }
             }
         } else {
@@ -545,6 +549,9 @@ class ObjectsController extends AppController
         $this->set('object', $object);
         $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', empty($templateData['newer_template_version']) ? false : $templateData['newer_template_version']);
+        if($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 

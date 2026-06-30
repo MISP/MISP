@@ -965,6 +965,14 @@ tr.attr-deleted td:not(:last-child) {
     opacity: 0.5;
 }
 
+/* Standalone "new attribute" proposal rows in the event-view attribute index */
+tr.attr-proposal-row {
+    background-color: rgba(245, 158, 11, 0.06);
+}
+tr.attr-proposal-row td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--bs-warning, #f59e0b);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Sankey graph
    ═══════════════════════════════════════════════════════════ */

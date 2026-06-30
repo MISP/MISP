@@ -1,13 +1,34 @@
 <?php
 $data = Hash::extract($row, $field['data_path']);
 
+/*
+ * Optional inline "+" button to attach a galaxy cluster to this object.
+ * Enabled by the caller via $field['add_galaxy'] (already ACL-gated upstream).
+ * $field['add_galaxy_url'] holds a URL template with a %id% placeholder,
+ * resolved from $field['add_galaxy_id_path'] (falls back to $row['id']).
+ */
+$allowAddGalaxy = !empty($field['add_galaxy']);
+$addUrl         = null;
+if ($allowAddGalaxy) {
+    $addId = Hash::get($row, $field['add_galaxy_id_path'] ?? 'id');
+    if (empty($addId) && !empty($row['id'])) {
+        $addId = $row['id'];
+    }
+    $isDeleted = !empty($row['deleted']) || !empty($row['Attribute']['deleted']);
+    if (!empty($addId) && !$isDeleted && !empty($field['add_galaxy_url'])) {
+        $addUrl = str_replace('%id%', rawurlencode($addId), $field['add_galaxy_url']);
+    }
+}
+
 if (empty($data)) {
     if (!empty($row['Galaxy'])) {
         $data = $row['Galaxy'];
     } elseif (!empty($row['AttributeTag'])) {
         $data = $row['AttributeTag'];
-    } else {
+    } elseif (empty($addUrl)) {
         return;
+    } else {
+        $data = [];
     }
 }
 
@@ -125,7 +146,9 @@ $brandIcons = [
     'twitter',
     'linkedin',
     'btc',
-    'ethereum'
+    'ethereum',
+    'optin-monster',
+    'internet-explorer'
 ];
 
 $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true) ? 'fab' : 'fas';
@@ -165,6 +188,19 @@ $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true)
     >
         +<?= $hiddenCount ?>
     </span>
+<?php endif; ?>
+
+<?php if (!empty($addUrl)): ?>
+    <button
+        type="button"
+        class="badge border-0 me-1 mb-1 align-self-start attr-add-galaxy-btn"
+        style="cursor:pointer; background:hsla(258,90%,66%,.12); color:hsl(258,55%,40%);"
+        title="<?= __('Add a galaxy cluster') ?>"
+        aria-label="<?= __('Add a galaxy cluster') ?>"
+        onclick="event.stopPropagation(); openModal('<?= h($addUrl) ?>', 'xl');"
+    >
+        <i class="fas fa-plus"></i>
+    </button>
 <?php endif; ?>
 
 </div>
