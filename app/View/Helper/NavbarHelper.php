@@ -234,18 +234,18 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-comment-dots',
                 'children' => [
                     [
-                        'label' => __('View'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/shadow_attributes/index',
                         'controller' => 'shadow_attributes',
                         'action' => 'index',
-                        'icon' => 'fas fa-eye'
+                        'icon' => 'fas fa-list'
                     ],
                     [
                         'label' => __('Events with Proposals'),
-                        'url' => $baseurl . '/shadow_attributes/search',
-                        'controller' => 'shadow_attributes',
-                        'action' => 'search',
-                        'icon' => 'fas fa-clipboard-question'
+                        'url' => $baseurl . '/events/proposalEventIndex',
+                        'controller' => 'events',
+                        'action' => 'proposalEventIndex',
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
                     ],
                     [
                         'label' => __('Delegation Requests'),

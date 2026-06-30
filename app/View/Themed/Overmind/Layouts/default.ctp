@@ -21,12 +21,17 @@
             ['controller' => 'events', 'action' => 'export'],
             ['controller' => 'events', 'action' => 'getEventInfoById'],
             ['controller' => 'events', 'action' => 'freeTextImport'],
+            ['controller' => 'events', 'action' => 'proposalEventIndex'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'add'],
             ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
             ['controller' => 'attributes', 'action' => 'add_attachment'],
+
+            ['controller' => 'shadow_attributes', 'action' => 'index'],
+
+            ['controller' => 'event_delegations', 'action' => 'index'],
 
             ['controller' => 'objects', 'action' => 'add'],
             ['controller' => 'objects', 'action' => 'edit'],
