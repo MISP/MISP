@@ -1,0 +1,80 @@
+# Collection Sync — Progress Tracker
+
+In-repo, checked-in source of truth for ticked task state across sessions.
+Full design lives in `collection_sync_prd.md` (owner's `~/prds`, not in-repo).
+
+- **Branch:** `feature-collection-sync` (off `2.5`)
+- **Model commit this builds on:** `846c130fa` — *"new: [collections] feature added. Still missing sync integration - WiP"*
+- **Execution rule:** strictly sequential — one task, one commit (body cites task id);
+  gitchangelog titles (`new:`/`fix:`/`chg: [collections] …`). `[security]` label only if CVE-worthy.
+- **Line-number caveat:** all `file:line` anchors in the PRD are point-in-time;
+  re-verify against the working tree before editing.
+
+## Locked design decisions (full rationale → PRD §4)
+- **D1** pointers-only (sync collection + element refs verbatim; never cascade-sync targets)
+- **D2** both directions (pull + push together; analyst-data shape)
+- **D3** server toggles `pull_collections` / `push_collections`; gate on existing `perm_sync`; no new perm
+- **D4** no per-element leak filter (the collection's own `distribution` is the sole gate)
+- **D5** element edits propagate; corpus authoritative (incoming set replaces local)
+- **D6** last-writer-wins by `modified` + `collections.locked` (Event/Analyst-Data rule)
+- **D7** neutralize creator `user_id` → sync user on capture
+- **D8** full UI/job surfacing (toggles + collection counts in job/preview/server view)
+
+Accepted non-additive touch points = **PRD §5**. Anything beyond that list needs fresh sign-off.
+
+---
+
+## Phase 0 — Scaffolding & research lock-in
+- [x] **T0.1** Create this tracker (`docs/collection_sync_progress.md`).
+- [ ] **T0.2** Confirm feature-flag registry location + `isSupported` wiring; fix the exact
+  `FEATURE_COLLECTION_SYNC` constant name and where it's declared.
+- [ ] **T0.3** Confirm ACL/route/CSRF-unlock mechanism for new sync actions.
+
+## Phase 1 — Schema & model foundations
+- [ ] **T1.1** Add `collections.locked` (MYSQL.sql + db_schema.php + migration).
+- [ ] **T1.2** Add `servers.pull_collections` + `push_collections` (same three places).
+- [ ] **T1.3** Bump `Collection.modified` on element add/remove/capture (D5).
+- [ ] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`.
+
+## Phase 2 — Shared capture sink
+- [ ] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
+  user_id neutralize, distribution downgrade, locked conflict rule, corpus replace.
+- [ ] **T2.2** Unit tests for every `captureCollection` branch (PRD §9.1).
+
+## Phase 3 — Pull
+- [ ] **T3.1** `ServerSyncTool`: `collectionIndexMinimal` + `fetchCollections`.
+- [ ] **T3.2** `CollectionsController::indexMinimal` + full-fetch endpoint (CSRF-unlocked, perm_sync).
+- [ ] **T3.3** `Collection::pull` (+ chunking, org pull-rules) → `captureCollection`.
+- [ ] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
+- [ ] **T3.5** Pull tests (PRD §9).
+
+## Phase 4 — Push
+- [ ] **T4.1** `ServerSyncTool`: `filterCollectionsForPush` + `pushCollection`.
+- [ ] **T4.2** `CollectionsController::filterCollectionsForPush` + `captureCollection` (CSRF-unlocked, perm_sync).
+- [ ] **T4.3** `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
+- [ ] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
+- [ ] **T4.5** Push tests (PRD §9).
+
+## Phase 5 — UI surfacing & negotiation polish
+- [ ] **T5.1** Server add/edit/view: collection toggles.
+- [ ] **T5.2** Sync job output + pull/push preview: collection counts.
+- [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+
+## Phase 6 — End-to-end testing & docs
+- [ ] **T6.1** Two-instance (or loopback) live sync E2E script under `tests/` (PRD §9.2).
+- [ ] **T6.2** Sync docs (`docs/dev/…`) describe collection sync.
+- [ ] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`.
+
+---
+
+## Parked / open items (full list → PRD §10)
+- **Test infra (before Phase 6):** dev box exposes a single instance (localhost:5007);
+  true sync needs two *both running the feature code*. User to pick: second local instance
+  (recommended) / loopback Server row / PyMISP harness. Phases 0–5 don't depend on this.
+- **`Collection.modified` granularity:** DATETIME (second resolution) — mirror analyst-data
+  skip-on-equal for same-second ties. Verify at T2.1.
+- **`org_id` vs `orgc_id` on capture:** confirm exact Event convention, replicate (T2.1).
+- **Migration ordering:** schema migrations must land before any code reads the new columns.
+
+## Session log
+- **2026-06-30:** T0.1 done — branch `feature-collection-sync` created off `2.5`, tracker added.
