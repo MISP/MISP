@@ -131,12 +131,18 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `AppModel.php:2698`); `$db_changes` map ends `153 => false` (`:101`).
 - **`develop`:** already holds `case 154` (TAXII `auth_type`) + `154 => false`.
 - **⇒ Use 155 (T1.1 `collections.locked`) and 156 (T1.2 server toggles)** — NOT 154/155.
-  154 *looks* free on `2.5` but is already claimed by `develop`; numbering past it avoids a
-  collision when these branches merge. (This matches the PRD's original 155/156.)
-- **Contiguity wrinkle:** the `$db_changes` map is gapless (it carries no-op numbers like 150/152
-  that have no `case`). Adding 155/156 on a branch whose map stops at 153 leaves a hole at 154.
-  T1.1 must decide: either also add `154 => false` (no-op) to keep the map gapless on this branch,
-  or rebase/merge so `develop`'s real 154 is present first. **Resolve at T1.1 (flag to user).**
+  **USER-CONFIRMED 2026-06-30.** 154 *looks* free on `2.5` but is already claimed by `develop`
+  (TAXII `auth_type`); numbering past it avoids a hard collision when these branches merge.
+  (Matches the PRD's original 155/156.)
+- **The map does NOT need to be gapless — do NOT add a no-op `154 => false`.** `findUpgrades()`
+  (`AppModel.php:3552-3556`) applies every `DB_CHANGES` key strictly `> db_version` (a single
+  monotonic integer stored in `admin_settings.db_version`); it tolerates gaps fine. The 153→155
+  hole is harmless. **Adding `154 => false` would be an active hazard:** an instance that reaches
+  `db_version=156` via this branch would then *skip* `develop`'s real `154` (156 > 154 ⇒ TAXII
+  `auth_type` never applied). So: leave 154 undefined here; it arrives via the normal
+  `develop→2.5` merge. **Before any merge/deploy, rebase the feature branch onto a 2.5 base that
+  already contains `develop`'s `case 154:`** so 154 isn't skipped (and renumber 155/156 if the
+  base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
 - **2026-06-30:** T0.1 done — branch `feature-collection-sync` created off `2.5`, tracker added.
