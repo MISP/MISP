@@ -185,8 +185,17 @@ class TaxiiServersController extends AppController
             if (!empty($caPath)) {
                 $request['ssl_cafile'] = $caPath;
             }
-            if (!empty($this->request->data['api_key'])) {
-                $request['header']['Authorization'] = 'Basic ' . $this->request->data['api_key'];
+            if (!empty($this->request->data['api_key']) || (!empty($this->request->data['auth_type']) && $this->request->data['auth_type'] === 'basic' && !empty($this->request->data['username']))) {
+                $authMethod = 'Basic ';
+                if (isset($this->request->data['auth_type']) && $this->request->data['auth_type'] === 'bearer') {
+                    $authMethod = 'Bearer ';
+                }
+
+                $apiKey = $this->request->data['api_key'];
+                if ($authMethod === 'Basic ' && !empty($this->request->data['username']) && !empty($this->request->data['password'])) {
+                    $apiKey = base64_encode($this->request->data['username'] . ':' . $this->request->data['password']);
+                }
+                $request['header']['Authorization'] = $authMethod . $apiKey;
             }
             
             // 3. Unified Error Handling to prevent differential responses
