@@ -26,9 +26,29 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 
 ## Phase 0 — Scaffolding & research lock-in
 - [x] **T0.1** Create this tracker (`docs/collection_sync_progress.md`).
-- [ ] **T0.2** Confirm feature-flag registry location + `isSupported` wiring; fix the exact
-  `FEATURE_COLLECTION_SYNC` constant name and where it's declared.
+- [x] **T0.2** Confirm feature-flag registry location + `isSupported` wiring; fix the exact
+  `FEATURE_COLLECTION_SYNC` constant name and where it's declared. → findings below.
 - [ ] **T0.3** Confirm ACL/route/CSRF-unlock mechanism for new sync actions.
+
+### T0.2 findings — feature negotiation (re-verify line #s before editing)
+- **Consumer side:** `ServerSyncTool::isSupported($flag)` (`app/Lib/Tools/ServerSyncTool.php:502`)
+  switches on the flag and reads `$this->info()` — the remote's metadata fetched from
+  `GET /servers/getVersion` (`ServerSyncTool::info()` `:377`).
+- **Constant registry:** the `FEATURE_*` / `PERM_*` consts are a single `const` block at the
+  top of `ServerSyncTool.php` (`:7-19`). Add `FEATURE_COLLECTION_SYNC = 'collection_sync'` here.
+- **Advertiser side:** `ServersController::getVersion()` (`app/Controller/ServersController.php:1982-1998`)
+  builds the info payload (`version`, `perm_sync`, `perm_analyst_data`, `filter_sightings`, …).
+- **Two negotiation patterns coexist:**
+  1. *Version-gated* (e.g. `FEATURE_SIGHTING_REST_SEARCH` `:532` parses `$info['version']`).
+     Needs a hardcoded target release (`2.5.X` / `>2`).
+  2. *Advertised-boolean* (e.g. `FEATURE_FILTER_SIGHTINGS` `:510` reads `$info['filter_sightings']`;
+     `PERM_ANALYST_DATA` `:530` reads `$info['perm_analyst_data']`). Remote adds one key.
+- **LOCKED CHOICE → advertised-boolean.** Add `'collection_sync' => true` to the `getVersion`
+  payload, `FEATURE_COLLECTION_SYNC = 'collection_sync'` to the const block, and
+  `case self::FEATURE_COLLECTION_SYNC: return isset($info['collection_sync']) && $info['collection_sync'];`
+  to `isSupported`. Rationale: no release-version number to guess (we don't know the hotfix);
+  mirrors `filter_sightings`, the closest analogue (a boolean capability, not a pure version gate);
+  backport-robust. Refines PRD §6.8 (which loosely said "mirror `FEATURE_SIGHTING_REST_SEARCH`").
 
 ## Phase 1 — Schema & model foundations
 - [ ] **T1.1** Add `collections.locked` (MYSQL.sql + db_schema.php + migration).
