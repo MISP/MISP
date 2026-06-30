@@ -103,7 +103,25 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - [x] **T1.2** Add `servers.pull_collections` + `push_collections` — migration 156 (same three
   places as T1.1). `tinyint(1) NOT NULL DEFAULT 0`, mirrors `pull/push_analyst_data`; placed after
   `pull_galaxy_clusters` (order is cosmetic — `compareDBSchema` keys by column_name). db_version→156.
-- [ ] **T1.3** Bump `Collection.modified` on element add/remove/capture (D5).
+- [x] **T1.3** Bump `Collection.modified` on element add/remove/capture (D5). → findings below.
+
+### T1.3 findings — element-modified propagation (D5)
+- **Implemented purely at the model layer** in `CollectionElement` (zero controller edits — cleaner
+  than PRD §6.3's controller-touch plan, and a strict subset of the §5 accepted touch points):
+  `afterSave` + `beforeDelete`(stash collection_id)/`afterDelete` → `touchCollection()` which does
+  a callback-free `Collection->updateAll(['modified' => now], ['id' => collectionId])`.
+- **Covers all five mutation paths** (verified via CRUDComponent): `CRUD->add` (`save`),
+  `addElementToCollection` (`save`), `CRUD->delete` (`delete`), `CRUD->deleteSelection`
+  (per-item `delete`), and `captureElements` (`save`/`delete`).
+- **`updateAll` chosen** over `saveField`: no callbacks/validation, and it harmlessly affects 0 rows
+  if the parent is mid-cascade-delete (avoids a spurious-insert / stale-id edge).
+- **Sync-capture suppression:** new `public $skipCollectionModifiedBump` flag, set inside
+  `captureElements`, makes element saves/deletes there NOT bump `modified` — capture's `modified`
+  is the REMOTE's value, set authoritatively by `Collection::captureCollection` (T2.1). Without
+  this, capture would clobber the remote `modified` and break `{uuid: modified}` dedup.
+- **★ LIVE-VERIFIED on dev (localhost:5007, this branch's code) ★** API add element → collection
+  `modified` jumped 2024-03-05 → 2026-06-30 (now); API delete element (after resetting modified to
+  2024-01-01) → bumped to now again. Test element removed, original modified restored.
 - [ ] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`.
 
 ## Phase 2 — Shared capture sink
@@ -179,3 +197,9 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `tinyint(1) NOT NULL DEFAULT 0` as migration 156 (two ALTERs AFTER `pull_galaxy_clusters`),
   `db_schema.json` (both cols + db_version→156), `MYSQL.sql`. Validated; dev `servers` lacks them.
   Next: T1.3 (bump `Collection.modified` on element add/remove/capture — D5 prerequisite for dedup).
+- **2026-06-30:** **T1.3 done** — D5 modified-bump implemented as `CollectionElement` model
+  callbacks (afterSave/afterDelete → `Collection->updateAll(modified=now)`), suppressed during
+  `captureElements` via `$skipCollectionModifiedBump`. Zero controller edits. **Live-verified** on
+  the dev box (add + delete both bumped `modified`). Next: T1.4 (Collection `locked` default on
+  local create; mass-assignment guard). NB to live-verify T1.4+ run migrations 155/156 on the dev
+  box first (`cake Admin runUpdates`; dev is at 154, applies only 155/156).
