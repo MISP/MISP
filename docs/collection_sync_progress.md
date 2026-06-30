@@ -126,6 +126,18 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **`org_id` vs `orgc_id` on capture:** confirm exact Event convention, replicate (T2.1).
 - **Migration ordering:** schema migrations must land before any code reads the new columns.
 
+### Phase 1 prep — migration numbering (verified 2026-06-30, this branch)
+- **This `2.5` branch:** highest `case` = **153** (`taxii_servers.enabled`,
+  `AppModel.php:2698`); `$db_changes` map ends `153 => false` (`:101`).
+- **`develop`:** already holds `case 154` (TAXII `auth_type`) + `154 => false`.
+- **⇒ Use 155 (T1.1 `collections.locked`) and 156 (T1.2 server toggles)** — NOT 154/155.
+  154 *looks* free on `2.5` but is already claimed by `develop`; numbering past it avoids a
+  collision when these branches merge. (This matches the PRD's original 155/156.)
+- **Contiguity wrinkle:** the `$db_changes` map is gapless (it carries no-op numbers like 150/152
+  that have no `case`). Adding 155/156 on a branch whose map stops at 153 leaves a hole at 154.
+  T1.1 must decide: either also add `154 => false` (no-op) to keep the map gapless on this branch,
+  or rebase/merge so `develop`'s real 154 is present first. **Resolve at T1.1 (flag to user).**
+
 ## Session log
 - **2026-06-30:** T0.1 done — branch `feature-collection-sync` created off `2.5`, tracker added.
 - **2026-06-30:** **Phase 0 complete** — T0.2 (feature negotiation: advertised-boolean
