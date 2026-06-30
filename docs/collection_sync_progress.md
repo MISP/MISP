@@ -100,7 +100,9 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `admin_settings.db_version = 154` (dev runs `develop` code → already has TAXII 154). ⇒ migration 155
   applies cleanly on top (`findUpgrades(154)` yields only 155). Live `runUpdates` application deferred
   (dev is a 2.5-code-on-154-DB hybrid after the branch switch; apply during regression / T6.3).
-- [ ] **T1.2** Add `servers.pull_collections` + `push_collections` (same three places).
+- [x] **T1.2** Add `servers.pull_collections` + `push_collections` — migration 156 (same three
+  places as T1.1). `tinyint(1) NOT NULL DEFAULT 0`, mirrors `pull/push_analyst_data`; placed after
+  `pull_galaxy_clusters` (order is cosmetic — `compareDBSchema` keys by column_name). db_version→156.
 - [ ] **T1.3** Bump `Collection.modified` on element add/remove/capture (D5).
 - [ ] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`.
 
@@ -173,3 +175,7 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `MYSQL.sql`. Corrected PRD's canonical-schema path (`db_schema.json` at ROOT, not
   `app/Lib/db_schema.php`). Statically validated; dev DB target confirmed (no `locked`, at 154).
   Next: T1.2 (server toggles, migration 156).
+- **2026-06-30:** **T1.2 done** — `servers.push_collections` + `pull_collections`
+  `tinyint(1) NOT NULL DEFAULT 0` as migration 156 (two ALTERs AFTER `pull_galaxy_clusters`),
+  `db_schema.json` (both cols + db_version→156), `MYSQL.sql`. Validated; dev `servers` lacks them.
+  Next: T1.3 (bump `Collection.modified` on element add/remove/capture — D5 prerequisite for dedup).

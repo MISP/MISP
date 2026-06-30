@@ -1200,6 +1200,8 @@ CREATE TABLE `servers` (
   `push_analyst_data` tinyint(1) NOT NULL DEFAULT 0,
   `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0,
   `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0,
+  `push_collections` tinyint(1) NOT NULL DEFAULT 0,
+  `pull_collections` tinyint(1) NOT NULL DEFAULT 0,
   `lastpulledid` int(11) DEFAULT NULL,
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) DEFAULT NULL,
