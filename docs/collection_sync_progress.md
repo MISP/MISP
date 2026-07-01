@@ -260,11 +260,16 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
     (advertised-boolean, mirrors `filter_sightings`/`perm_analyst_data` — NOT version-gated).
   - advertiser `ServersController::getVersion` (`:1996`): `'collection_sync' => true`. ⇒ two feature-code
     instances negotiate support; an older peer omits the key ⇒ `isSupported` false ⇒ silent skip.
-- **Endpoints these hit are T3.2** (`/collections/indexMinimal` POST + the `index` fetch). The fetch URL
-  reuses `/collections/index` with a `uuid[]` named-param filter — T3.2 must make that action honour the
-  filter, **always serialize `CollectionElement` (even empty)** for a true corpus-replace (per T2.1), and
-  NOT paginate for sync. Whether that's a modified `index` or a dedicated action is a T3.2 decision; if a
-  dedicated endpoint is chosen, update `fetchCollections`'s URL to match.
+- **Endpoints these hit are T3.2** (`/collections/indexMinimal` POST + the `index` fetch). **★ T3.2 fetch
+  is mostly free ★** (user-corrected, code-verified): the existing `index` action, hit via API (`.json`),
+  already gives no-pagination + JSON + CSRF-off by default (`CRUDComponent::index:57` does a plain
+  `find('all')` for REST), `Collection.uuid` is already in its `filters` (`CollectionsController.php:329`)
+  so `uuid[]` filtering works unchanged, and `'index'=>['*']` already exists in the ACL. The ONLY fetch gap
+  is `index`'s `contain` (`['Orgc','SharingGroup']`) lacking `CollectionElement` — add it **when
+  `_isRest()`** so the corpus (even empty) serializes for capture (T2.1). `indexMinimal` is the one
+  genuinely-new action (mirror `AnalystDataController::indexMinimal`; but translate `orgc_name`→`orgc_id`
+  integer FK, not `orgc_uuid`). `fetchCollections`'s URL already targets `/collections/index` ⇒ no client
+  change needed.
 - **Additive within existing files** (PRD §5 items 2 + 6). Lint clean (`parallel-lint`, PHP 8.3). Not
   live-verifiable yet (no caller until T3.3/T3.4; no live 2-instance harness until Phase 6).
 - [ ] **T3.2** `CollectionsController::indexMinimal` + full-fetch endpoint (CSRF-unlocked, perm_sync).
