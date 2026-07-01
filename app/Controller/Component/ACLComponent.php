@@ -304,6 +304,9 @@ class ACLComponent extends Component
         'eventTemplates' => array(
             'index' => array('*'),
             'view' => array('*'),
+            // Exposed-only listing — the Draugnet pull contract. Read action,
+            // gated by the same visibility conditions as index/view.
+            'exposed' => array('*'),
             'add' => array('perm_template'),
             'edit' => array('perm_template'),
             'delete' => array('perm_template'),
