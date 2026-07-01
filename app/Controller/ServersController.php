@@ -1993,6 +1993,7 @@ class ServersController extends AppController
             'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
+            'collection_sync' => true, // check if Collection sync (indexMinimal/fetch/capture) is supported
         ];
         return $this->RestResponse->viewData($response, 'json');
     }

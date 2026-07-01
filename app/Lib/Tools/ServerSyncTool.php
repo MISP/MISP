@@ -16,7 +16,8 @@ class ServerSyncTool
         PERM_GALAXY_EDITOR = 'perm_galaxy_editor',
         PERM_ANALYST_DATA = 'perm_analyst_data',
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
-        FEATURE_FAST_CACHING = 'fast_caching';
+        FEATURE_FAST_CACHING = 'fast_caching',
+        FEATURE_COLLECTION_SYNC = 'collection_sync';
 
     /** @var array */
     private $server;
@@ -288,6 +289,45 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function collectionIndexMinimal(array $rules)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        return $this->post('/collections/indexMinimal', $rules);
+    }
+
+    /**
+     * @param array $uuids
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     * @throws InvalidArgumentException
+     */
+    public function fetchCollections(array $uuids)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        $params = [
+            'uuid' => $uuids,
+        ];
+
+        $url = '/collections/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -535,6 +575,8 @@ class ServerSyncTool
             case self::FEATURE_FAST_CACHING:
                 $version = explode('.', $info['version']);
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
+            case self::FEATURE_COLLECTION_SYNC:
+                return isset($info['collection_sync']) && $info['collection_sync'];
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
