@@ -375,18 +375,23 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
     surfacing (the "…N collections pulled" strings in those callers) deferred to **T5.2** / D8.
 - **PRD §5 item 1** ("new collection block in `pull()`") — non-additive touch point, pre-accepted.
   Additive *within* the method (a new block; only the count sprintf/return lines edited).
-- **★ LIVE-VERIFIED via self-loopback ★** — server 7 (`http://localhost:5007`, this instance) temporarily
-  set `pull=1, pull_collections=1` with a known-good perm_sync key (user 187 `JFKX…`; the row's stored
-  `lmro33…`/user-185 key was stale → `auth_fail`, a **pre-existing** loopback issue, not T3.4), pull
-  triggered via `POST /servers/pull/7/full` (background worker, www-data). **Result:** job completed;
-  the pull log line read *"0 events, … , 0 analyst data and 0 collections pulled or updated"* — the new
-  clause is live. **Discriminating proof the block actually ran** (vs. a defaulted 0): the Apache access
-  log shows `POST /collections/indexMinimal HTTP/1.1 200` with User-Agent `MISP 2.5.42 - #6f7be07bc…`
-  (the sync client at the current commit) — `Collection::pull`'s real index round-trip. Dedup returned 0
-  (local == remote ⇒ skip-on-equal), correctly suppressing any `fetchCollections` follow-up. **The
-  write branch (fetch → captureCollection) is unreachable in a self-loopback** (can't make remote
-  strictly-newer-than-local on the same DB) — that's the Phase 6 two-instance E2E (T6.1). **Server 7
-  fully restored** (authkey `lmro33…`, pull/pull_collections=0). Lint clean.
+- **★ LIVE-VERIFIED via self-loopback (canonical run, as the intended sync user 185) ★** — server 7
+  (`http://localhost:5007`, this instance) temporarily `pull=1, pull_collections=1`, pull triggered via
+  `POST /servers/pull/7/full` (background worker, www-data). **Result:** job 1391 completed, **auth_fail=0**;
+  pull log line `2334559` = *"0 events, … , 0 analyst data and 0 collections pulled or updated"* — the new
+  clause is live. **Three-layer discriminating proof (0 is live dedup, not an empty index or a defaulted 0):**
+  (1) a direct `POST /collections/indexMinimal` as user 185 returns **all 3 collections** with modified
+  `{74049a17:2024-03-05 08:20:34, 7f3ea871:2024-12-15 16:24:35, fb063f85:2024-12-15 16:24:47}` — **exactly
+  equal to the local rows** (user 185 = org 1 = the owning org, so buildConditions shows all 3, incl. the
+  dist=0 one); (2) the pull's Apache access-log entry `POST /collections/indexMinimal HTTP/1.1 200 516` with
+  UA `MISP 2.5.42 - #<current-commit>` proves the block ran `Collection::pull`'s real index round-trip
+  (516 B = the 3-entry map); (3) imported=0 ⇒ the live skip-on-equal dedup filtered all 3 (equal modified),
+  correctly suppressing any `fetchCollections` follow-up. **The write branch (fetch → captureCollection) is
+  structurally unreachable in a self-loopback** — a single DB can't make the remote index strictly-newer than
+  the local row it *is* — so that's the Phase 6 two-instance E2E (T6.1). **Server 7 left as a working loopback**
+  (authkey now user 185's valid `mBuok…` key — repaired the pre-existing stale `lmro33…`; pull/pull_collections
+  reverted to 0). Lint clean. *(An earlier run used user 187's key as a substitute before the correct 185 key
+  was available — same 0-collections outcome, superseded by this canonical run.)*
 - [ ] **T3.5** Pull tests (PRD §9).
 
 ## Phase 4 — Push
