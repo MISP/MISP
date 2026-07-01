@@ -122,7 +122,26 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **★ LIVE-VERIFIED on dev (localhost:5007, this branch's code) ★** API add element → collection
   `modified` jumped 2024-03-05 → 2026-06-30 (now); API delete element (after resetting modified to
   2024-01-01) → bumped to now again. Test element removed, original modified restored.
-- [ ] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`.
+- [x] **T1.4** `Collection` model: set `locked=0` on local create; allow capture to set `1`. → findings below.
+
+### T1.4 findings — locked mass-assignment guard on create
+- **Implemented in `Collection::beforeValidate`** create-branch (`empty($this->id)`): force
+  `locked=0` for any caller lacking `perm_sync`, mirroring the existing `perm_sync` exemption on
+  `orgc_id` two lines up. A `perm_sync` user (the sync-capture path, T2.1) is NOT forced, so
+  `captureCollection` can still set `locked=1` to mark a synced-in original. Additive, model-only.
+- **★ LIVE-VERIFIED on dev (localhost:5007) ★** — non-sync Publisher user (id 196, org 531,
+  `perm_sync=0`) POSTed `Collection[locked]=1` to `/collections/add`; stored row had `locked=0`.
+  (`locked` is now a real column, so absent the guard Cake would have persisted the supplied `1`
+  ⇒ discriminating positive test.) Test collection deleted afterwards.
+- **⚠ OPEN — edit-path bypass (NOT yet fixed, needs sign-off).** `CollectionsController::edit`
+  (`:217-222`) pins `id/orgc_id/org_id/user_id` via `override` but **not `locked`**;
+  `CRUDComponent::edit` copies every supplied field, so an owner (`mayModify`) can flip `locked`
+  on their own collection via edit, bypassing the create guard. Impact is self-limited (a user can
+  only mark their OWN collection overwritable-by-remote — self-harm, no cross-user write), but it
+  defeats the guard's intent. The override block is **pre-existing mass-assignment-audit code**
+  (commit `9341690e9b`, on the `2.5` base — not this feature branch), so extending it is
+  "touching existing code" per the additive-only posture ⇒ flagged to the user for sign-off.
+  Fix if approved: add `'locked' => $oldCollection['Collection']['locked']` to the `override`.
 
 ## Phase 2 — Shared capture sink
 - [ ] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
@@ -203,3 +222,10 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   the dev box (add + delete both bumped `modified`). Next: T1.4 (Collection `locked` default on
   local create; mass-assignment guard). NB to live-verify T1.4+ run migrations 155/156 on the dev
   box first (`cake Admin runUpdates`; dev is at 154, applies only 155/156).
+- **2026-07-01:** **T1.4 done** (commit `fafe71eb4`) — `Collection::beforeValidate` forces
+  `locked=0` on local create for non-`perm_sync` callers; capture path exempt. **Live-verified**
+  (perm_sync=0 user's `locked=1` create stored as 0). **Migrations 155/156 already applied** —
+  dev DB is now at **db_version 156** with `collections.locked` + `servers.pull/push_collections`
+  present (someone ran `runUpdates` since the last session; the "dev still at 154" note is stale).
+  **Phase 1 COMPLETE.** Surfaced an OPEN edit-path `locked` bypass (see T1.4 findings) for
+  sign-off. Next: **Phase 2 T2.1 `Collection::captureCollection()`** (the shared sink).

@@ -92,6 +92,13 @@ class Collection extends AppModel
             }
             $this->data['Collection']['org_id'] = $this->current_user['Organisation']['id'];
             $this->data['Collection']['user_id'] = $this->current_user['id'];
+            // A locally created collection is never locked; only the sync-capture path
+            // (running as a perm_sync user) may set locked=1 to mark a synced-in original.
+            // Force it to 0 for everyone else so a web user cannot self-set locked via
+            // mass assignment (mirrors the perm_sync exemption on orgc_id above).
+            if (empty($this->current_user['Role']['perm_sync'])) {
+                $this->data['Collection']['locked'] = 0;
+            }
         }
         return true;
     }
