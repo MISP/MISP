@@ -310,7 +310,51 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `find('all')` for REST, no paginate; `RestResponse` JSON; REST CSRF auto-unlock). User's steer was correct.
 - **`fetchCollections` client URL (`/collections/index`) needs NO change** — it already targets this action.
 - Regression: `CollectionCaptureTest` 22/22 green (model method is purely additive). Lint clean.
-- [ ] **T3.3** `Collection::pull` (+ chunking, org pull-rules) → `captureCollection`.
+- [x] **T3.3** `Collection::pull` (+ chunking, org pull-rules) → `captureCollection`.
+  Commit `fda46c5b1`. → findings below.
+
+### T3.3 findings — Collection::pull chunked fetch → captureCollection (commit `fda46c5b1`)
+- **Three additive methods** on `Collection.php` (+ one `App::uses('ServerSyncTool','Tools')`
+  so the `pull()` type hint autoloads, mirroring `AnalystData.php:3`):
+  - **`pull(array $user, ServerSyncTool $serverSync): int`** — mirrors `AnalystData::pull`
+    (`:1158`) flattened: (1) `isSupported(FEATURE_COLLECTION_SYNC)` early-return-0 negotiation
+    gate; (2) `buildPullFilterRules(server)` → `collectionIndexMinimal($rules)->json()` inside a
+    try/catch (`logException` + return 0 on failure); (3) dedup — `find('all')` local
+    `[uuid=>modified]` for the remote uuid set, keep uuids **missing locally OR strictly-newer
+    remote** (`strtotime(local) < strtotime(remote)`, **skip-on-equal = D6**); (4) delegate to
+    `pullCollectionsInChunks`. **No `foreach ANALYST_DATA_TYPES` layer** — the index is a flat
+    `{uuid: modified}` map (T3.1/T3.2 shape), not `{type:{uuid:modified}}`.
+  - **`pullCollectionsInChunks(...)`** (private) — `array_chunk($uuids, 100)`;
+    `fetchCollections($chunk)->json()` per chunk (try/catch + continue on failure); each RAW
+    collection → `captureCollection($user, $collection, $serverSync->server(), $remotePermSyncInternal)`;
+    sum `['imported']` where `['success']`. `$remotePermSyncInternal =
+    !empty($serverSync->cachedUserInfo()['Role']['perm_sync_internal'])` (mirrors `pullInChunks:1216-1217`).
+  - **`buildPullFilterRules(array $server): array`** (private) — verbatim copy of
+    `AnalystData::buildPullFilterRules` (`:1265`): `{orgc_name: [OR names…, '!'+NOT names…]}`.
+    The `indexMinimal` controller action consumes `orgc_name` and resolves → `orgc_id` (T3.2).
+- **★ Carry-forward honoured: pull passes the RAW remote collection, does NOT pre-downgrade ★**
+  The T2.1 sink owns the distribution downgrade + `locked=1` + D6 conflict rule; pre-downgrading
+  in pull would double-downgrade. Confirmed the sink's downgrade key is `$remotePermSyncInternal`,
+  passed through from `cachedUserInfo`.
+- **★ Dedup vs sink division of labour ★** — `pull()`'s `modified` dedup is a *fetch optimisation*
+  (avoid pulling equal/older); the sink independently re-enforces D6 (strictly-newer + locked-block)
+  as the authoritative gate. Mirrors analyst-data (index dedup + `updatePulledBeforeInsert` +
+  `captureAnalystData` all re-apply). Belt-and-suspenders, not redundant.
+- **Element-shape spot-check (handoff ask) — CONFIRMED.** `CollectionElement::captureElements`
+  (`:207-270`) iterates `$data['Collection']['CollectionElement']` reading each element's flat keys
+  `uuid`/`element_uuid`/`element_type`/`description` — exactly the flat rows the T3.2 fetch payload
+  serializes (`id,uuid,element_uuid,element_type,collection_id,description`, verified live in T3.2).
+  captureCollection lifts `CollectionElement` out and passes it as-is ⇒ shapes match end-to-end.
+- **Dedup local lookup uses `find('all')` + manual `[uuid=>modified]` build** (not `find('list')`)
+  — matches the proven flatten pattern already in `Collection::indexMinimal` (`:205-214`), avoids
+  the `find('list')` fields-order subtlety.
+- **NOT live-verified** (follows the T3.1 precedent — a caller-less consumer method). A genuine
+  pull needs a **distinct** remote peer: the dev box is single-instance and the two-instance
+  harness is parked until Phase 6; a same-instance loopback would only exercise the skip-on-equal
+  read path (local == remote ⇒ returns 0), never the capture-create branch. The real entry point
+  arrives at **T3.4** (`Server::pull` wiring, `:695` next to the `AnalystData->pull` call) — run a
+  loopback smoke test there, full round-trip at T6.1. Lint clean (PHP 8.3); `CollectionCaptureTest`
+  22/22 green (pull is purely additive — captureCollection unchanged).
 - [ ] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
 - [ ] **T3.5** Pull tests (PRD §9).
 
@@ -361,6 +405,15 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-01:** **T3.3 done** (commit `fda46c5b1`) — `Collection::pull` + private
+  `pullCollectionsInChunks` + `buildPullFilterRules` (+ `App::uses ServerSyncTool`), mirroring
+  `AnalystData::pull`/`pullInChunks` flattened (no `type` dimension). isSupported gate → index
+  fetch → `modified` dedup (skip-on-equal, D6) → `array_chunk(100)` fetch → RAW → `captureCollection`
+  (sink owns downgrade/locked/D6, so no pre-downgrade; `remotePermSyncInternal` from `cachedUserInfo`).
+  Element flat-row shape spot-checked against `captureElements` — matches. Additive; lint clean;
+  `CollectionCaptureTest` 22/22. Not live-verified (caller-less consumer, T3.1 precedent — real
+  entry point is T3.4 `Server::pull:695`; two-instance E2E parked to Phase 6). **Next: T3.4** —
+  wire into `Server::pull` behind `pull_collections` + negotiation.
 - **2026-07-01:** **T3.2 done** (commit `f94147a89`) — `Collection::indexMinimal` model method +
   `CollectionsController::indexMinimal` action (ACL `['*']`, orgc_name OR/NOT → orgc_id) + REST-only
   `index` additions (contain CollectionElement, harvest `uuid[]` → `Collection.uuid` IN). **★ First
