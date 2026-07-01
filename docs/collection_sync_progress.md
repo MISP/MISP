@@ -238,7 +238,35 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   PHPUnit, stubbed framework classes) is the dedicated branch-by-branch verification. Lint clean.
 
 ## Phase 3 — Pull
-- [ ] **T3.1** `ServerSyncTool`: `collectionIndexMinimal` + `fetchCollections`.
+- [x] **T3.1** `ServerSyncTool`: `collectionIndexMinimal` + `fetchCollections` (+ T0.2 negotiation
+  triad landed). Commit `7d4072421`. → findings below.
+
+### T3.1 findings — ServerSyncTool collection index/fetch + negotiation (commit `7d4072421`)
+- **Two consumer methods** added after `pushAnalystData` (`ServerSyncTool.php:~292`), both returning
+  `HttpSocketResponseExtended` (caller does `->json()`, mirroring `fetchIndexMinimal`/`fetchAnalystData`):
+  - `collectionIndexMinimal(array $rules)` → POST `/collections/indexMinimal`, returns `{uuid: modified}`
+    (flat — collections have NO analyst-data-style `type` dimension, so no `{type:{uuid:modified}}` nesting).
+  - `fetchCollections(array $uuids)` → GET `/collections/index` + `createParams(['uuid'=>$uuids])` + `.json`
+    → `/collections/index/uuid[]:<u1>/uuid[]:<u2>.json`. Full collections **incl. `CollectionElement`**.
+    Mirrors `fetchAnalystData` minus the `/{type}` URL segment.
+- **Both gated** behind `isSupported(self::FEATURE_COLLECTION_SYNC)` (throw `RuntimeException` when
+  unsupported — defensive belt-and-suspenders; the real skip happens earlier in `Collection::pull`/
+  `Server::pull`, mirroring how `AnalystData::pull` early-returns at `isSupported` before ever calling
+  these).
+- **T0.2 negotiation triad landed here** (was deferred "to T3.1 or when first needed"; the isSupported
+  case is *mandatory* now — gating on an unknown flag hits `default:` → `InvalidArgumentException`):
+  - const `FEATURE_COLLECTION_SYNC = 'collection_sync'` (`:20`, end of the const block).
+  - `isSupported` case (`:578`): `isset($info['collection_sync']) && $info['collection_sync']`
+    (advertised-boolean, mirrors `filter_sightings`/`perm_analyst_data` — NOT version-gated).
+  - advertiser `ServersController::getVersion` (`:1996`): `'collection_sync' => true`. ⇒ two feature-code
+    instances negotiate support; an older peer omits the key ⇒ `isSupported` false ⇒ silent skip.
+- **Endpoints these hit are T3.2** (`/collections/indexMinimal` POST + the `index` fetch). The fetch URL
+  reuses `/collections/index` with a `uuid[]` named-param filter — T3.2 must make that action honour the
+  filter, **always serialize `CollectionElement` (even empty)** for a true corpus-replace (per T2.1), and
+  NOT paginate for sync. Whether that's a modified `index` or a dedicated action is a T3.2 decision; if a
+  dedicated endpoint is chosen, update `fetchCollections`'s URL to match.
+- **Additive within existing files** (PRD §5 items 2 + 6). Lint clean (`parallel-lint`, PHP 8.3). Not
+  live-verifiable yet (no caller until T3.3/T3.4; no live 2-instance harness until Phase 6).
 - [ ] **T3.2** `CollectionsController::indexMinimal` + full-fetch endpoint (CSRF-unlocked, perm_sync).
 - [ ] **T3.3** `Collection::pull` (+ chunking, org pull-rules) → `captureCollection`.
 - [ ] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
@@ -291,6 +319,16 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-01:** **T3.1 done** (commit `7d4072421`) — `ServerSyncTool::collectionIndexMinimal`
+  (POST `/collections/indexMinimal` → `{uuid:modified}`) + `fetchCollections` (GET `/collections/index`
+  uuid named-params `.json` → full collections + elements), both gated behind
+  `isSupported(FEATURE_COLLECTION_SYNC)`. Landed the **T0.2 negotiation triad** alongside: const
+  `FEATURE_COLLECTION_SYNC='collection_sync'`, `isSupported` case (advertised-boolean), and
+  `ServersController::getVersion` advertising `collection_sync=>true`. Modelled on the analyst-data
+  pair (no `type` dimension for collections). Lint clean; not live-verifiable until a caller exists
+  (T3.3/T3.4). Additive (PRD §5 items 2+6). **Phase 3 started.** Next: **T3.2** — `CollectionsController::indexMinimal`
+  + fetch endpoint (CSRF-unlocked via REST, ACL `['*']`/`['perm_sync']` per T0.3; must serialize
+  `CollectionElement` always, honour `uuid[]` filter, no pagination for sync).
 - **2026-06-30:** T0.1 done — branch `feature-collection-sync` created off `2.5`, tracker added.
 - **2026-06-30:** **Phase 0 complete** — T0.2 (feature negotiation: advertised-boolean
   `collection_sync`) + T0.3 (CSRF auto-unlocked via REST; ACL is default-deny so every new
