@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ServerSyncTool', 'Tools');
 
 class Collection extends AppModel
 {
@@ -212,6 +213,126 @@ class Collection extends AppModel
             $allData[$entry['Collection']['uuid']] = $entry['Collection']['modified'];
         }
         return $allData;
+    }
+
+    /**
+     * Sync pull entry point. Fetches the remote collection index ({uuid: modified}),
+     * dedups it against local copies by `modified` (D6 skip-on-equal), then chunk-fetches
+     * and captures every winner. Mirrors AnalystData::pull + pullInChunks, flattened —
+     * collections have no analyst-data-style `type` dimension, so the remote index is a
+     * single [uuid => modified] map rather than [type][uuid => modified].
+     *
+     * The shared sink captureCollection() OWNS the distribution downgrade, locked=1 and
+     * the D6 conflict rule, so each RAW remote collection is passed through untouched —
+     * pre-downgrading here would double-downgrade (T2.1 carry-forward).
+     *
+     * @param array $user The local sync user driving the capture.
+     * @param ServerSyncTool $serverSync Negotiated connection to the remote instance.
+     * @return int Number of collections imported (created or updated).
+     */
+    public function pull(array $user, ServerSyncTool $serverSync)
+    {
+        // Real negotiation gate: skip silently against a peer without the feature (the
+        // ServerSyncTool method throws are pure defense-in-depth on top of this).
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            return 0;
+        }
+
+        try {
+            $filterRules = $this->buildPullFilterRules($serverSync->server());
+            $remoteData = $serverSync->collectionIndexMinimal($filterRules)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not fetch collection index from server {$serverSync->server()['Server']['name']}", $e);
+            return 0;
+        }
+
+        if (empty($remoteData)) {
+            return 0;
+        }
+
+        $remoteUUIDs = array_keys($remoteData);
+        $localRows = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['Collection.uuid' => $remoteUUIDs],
+            'fields' => ['Collection.uuid', 'Collection.modified'],
+        ]);
+        $localModified = [];
+        foreach ($localRows as $localRow) {
+            $localModified[$localRow['Collection']['uuid']] = $localRow['Collection']['modified'];
+        }
+
+        $uuidsToFetch = [];
+        foreach ($remoteData as $remoteUUID => $remoteModified) {
+            if (!isset($localModified[$remoteUUID])) {
+                // Missing locally — fetch it.
+                $uuidsToFetch[] = $remoteUUID;
+            } elseif (strtotime($localModified[$remoteUUID]) < strtotime($remoteModified)) {
+                // Strictly newer remote wins (skip-on-equal — D6).
+                $uuidsToFetch[] = $remoteUUID;
+            }
+        }
+        unset($remoteData, $remoteUUIDs, $localRows, $localModified);
+
+        if (empty($uuidsToFetch)) {
+            return 0;
+        }
+
+        return $this->pullCollectionsInChunks($user, $uuidsToFetch, $serverSync);
+    }
+
+    /**
+     * Chunk-fetch the deduped UUID list and hand each RAW remote collection to the shared
+     * capture sink. Mirrors AnalystData::pullInChunks (100/chunk); no type layer.
+     *
+     * @param array $user
+     * @param array $uuids UUIDs already deduped by Collection::pull.
+     * @param ServerSyncTool $serverSync
+     * @return int Number of collections imported.
+     */
+    private function pullCollectionsInChunks(array $user, array $uuids, ServerSyncTool $serverSync)
+    {
+        $saved = 0;
+        // The sink applies the downgrade unless internal + this flag (mirrors pullInChunks).
+        $remotePermSyncInternal = !empty($serverSync->cachedUserInfo()['Role']['perm_sync_internal']);
+
+        foreach (array_chunk($uuids, 100) as $uuidChunk) {
+            try {
+                $chunkedCollections = $serverSync->fetchCollections($uuidChunk)->json();
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the chunked collections from {$serverSync->server()['Server']['name']}.", $e);
+                continue;
+            }
+
+            foreach ($chunkedCollections as $collection) {
+                // RAW payload straight to the sink — it owns downgrade + locked=1 + D6.
+                $savedResult = $this->captureCollection($user, $collection, $serverSync->server(), $remotePermSyncInternal);
+                if ($savedResult['success']) {
+                    $saved += $savedResult['imported'];
+                }
+            }
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Translate a server's org pull-rules into the orgc_name OR/NOT filter the
+     * indexMinimal endpoint expects (it resolves names -> orgc_id). Mirrors
+     * AnalystData::buildPullFilterRules verbatim.
+     */
+    private function buildPullFilterRules(array $server): array
+    {
+        $filterRules = ['orgc_name' => []];
+        $pullRules = $this->jsonDecode($server['Server']['pull_rules']);
+        if (!empty($pullRules['orgs']['OR'])) {
+            $filterRules['orgc_name'] = $pullRules['orgs']['OR'];
+        }
+        if (!empty($pullRules['orgs']['NOT'])) {
+            $filterRules['orgc_name'] = array_merge($filterRules['orgc_name'], array_map(function ($orgName) {
+                return '!' . $orgName;
+            }, $pullRules['orgs']['NOT']));
+        }
+        return $filterRules;
     }
 
     /**
