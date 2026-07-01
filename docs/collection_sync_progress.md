@@ -416,7 +416,50 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **Endpoints are T4.2** (`/collections/filterCollectionsForPush` + the `captureCollection` receive action).
   Additive within an accepted touch point (PRD §5 item 2). Lint clean. Not live-verifiable until a caller
   exists (T4.3/T4.4); full push verification is Phase 6 (two-instance).
-- [ ] **T4.2** `CollectionsController::filterCollectionsForPush` + `captureCollection` (CSRF-unlocked, perm_sync).
+- [x] **T4.2** `CollectionsController::filterCollectionsForPush` + `captureCollection` (CSRF-unlocked, perm_sync).
+  Commit `d5242ad46`. **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
+
+### T4.2 findings — push-receive controller/model endpoints (commit `d5242ad46`)
+- **Three additive edits** (all live-verified against the 3 dev collections + a temp import):
+  1. **`Collection::filterCollectionsForPush($candidates)`** (model) — flat receive-side dedup mirror of
+     `AnalystData::filterAnalystDataForPush` (no `type` dimension). Returns the `{uuid: modified}` subset
+     the local side WANTS: uuid missing locally → wanted; uuid present + `locked=1` + candidate strictly
+     newer → wanted; uuid present + `locked=0` (locally-created, authoritative) → dropped; present + not
+     strictly-newer → dropped. Shares a private `isCandidateValidForPush($candModified, $existing)` helper
+     (locked==0 ⇒ false; existing.modified >= candidate ⇒ false) — a straight port of the analyst-data one.
+  2. **`CollectionsController::filterCollectionsForPush()`** — POST-only (`MethodNotAllowedException`
+     otherwise), delegates to the model, `RestResponse->viewData`. ACL `'filterCollectionsForPush' => ['perm_sync']`.
+  3. **`CollectionsController::captureCollection()`** — in-action `perm_sync` + `_isRest()` + POST gate;
+     hands the **RAW** payload to the existing T2.1 sink `Collection::captureCollection($user, $data, false,
+     !empty($user['Role']['perm_sync_internal']))`. **Push-receive passes `$server=false`** ⇒ the sink treats
+     it as external+non-internal (downgrade + locked protection both apply), `remotePermSyncInternal` from
+     the PUSHING user's own role (contrast pull: server + remote `cachedUserInfo`). Return mirrors
+     `pushAnalystData` (`saveSuccessResponse`/`saveFailResponse`, imported/ignored/failed counts) — note
+     `success` is only true when `imported>0`, so an ignored/not-newer re-push returns `saveFailResponse`
+     (faithful to the analyst-data template). ACL `'captureCollection' => ['perm_sync']`.
+- **`$this->Collection` auto-available** in the actions (no `loadModel('Collection')`) — same as the
+  live-verified T3.2 `indexMinimal` sibling; empirically proven, not re-derived.
+- **ACL default-deny** ⇒ both new actions got explicit `'collections'` entries (kept alphabetical among
+  siblings). **CSRF auto-unlocks for REST** ⇒ no `unlockedActions[]` needed (T0.3 lock-in).
+- **★ Live verification matrix (dev localhost:5007, all discriminating) ★**
+  - `filterCollectionsForPush` (sync user 187): {existing-locked0-way-newer, existing-locked0-equal,
+    missing} → only the **missing** uuid returned (locked=0 rows dropped even when the candidate is much
+    newer — D6 authoritative-local). Temp-locked collection 3 (`locked=1`): equal→`[]`, strictly-newer→uuid
+    wanted, older→`[]`.
+  - `captureCollection`: **non-sync user 196 → HTTP 403** (ACL `perm_sync` layer; in-action gate is
+    defense-in-depth beneath it). **Sync user 187 import** of a payload carrying injected
+    `user_id/org_id/orgc_id=9999, locked=0, distribution=2`: DB row landed **`locked=1`, `org_id=orgc_id=149`
+    (sync user's org), `user_id=187` (D7 neutralised), `distribution=1` (2→1 downgrade), `modified` preserved
+    at the remote value.** Re-push **equal modified → ignored** (name change did NOT apply); **strictly-newer
+    → 1 imported** (name + modified updated, still locked=1). This is the **first HTTP exercise of the T2.1
+    capture sink** — every pin/downgrade/D6 rule holds over the wire.
+  - **DB side-effect caught + repaired:** `collections.modified` is `datetime … ON UPDATE CURRENT_TIMESTAMP`,
+    so the two raw `UPDATE … SET locked` statements used to stage the locked=1 test auto-bumped collection 3's
+    `modified`; restored to `2024-12-15 16:24:47`. (The capture path is unaffected — Cake writes `modified`
+    explicitly, overriding the ON UPDATE default, as Test 4/5b confirmed.) Test import collection deleted; dev
+    DB back to the original 3 collections.
+- **Additive within accepted touch points** (PRD §5 items 2 + 6). Lint clean (`parallel-lint`, PHP 8.3).
+  **Next: T4.3** — `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
 - [ ] **T4.3** `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
 - [ ] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
 - [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
