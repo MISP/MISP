@@ -328,6 +328,47 @@ class ServerSyncTool
     }
 
     /**
+     * Push dedup: send the local push candidates ({uuid: modified}) to the remote, which
+     * replies with the subset of UUIDs it actually wants (missing locally or strictly older
+     * there). Mirrors filterAnalystDataForPush (no type dimension).
+     *
+     * @param array $candidates uuid => modified map of collections eligible for push.
+     * @return HttpSocketResponseExtended The UUIDs the remote wants (a flat list).
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function filterCollectionsForPush(array $candidates)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        return $this->post('/collections/filterCollectionsForPush', $candidates);
+    }
+
+    /**
+     * Upload a single collection (with its Orgc / SharingGroup / CollectionElement corpus) to
+     * the remote's push-receive endpoint, which feeds it to the shared Collection::captureCollection
+     * sink. Mirrors pushAnalystData — the caller (Collection::push) loops per collection.
+     *
+     * @param array $collection A collection payload nested under the 'Collection' key.
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function pushCollection(array $collection)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        $logMessage = "Pushing Collection #{$collection['Collection']['uuid']} to Server #{$this->serverId()}";
+        return $this->post('/collections/captureCollection', $collection, $logMessage);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
