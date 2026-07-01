@@ -1425,6 +1425,17 @@
                 "column_type": "mediumtext",
                 "column_default": "NULL",
                 "extra": ""
+            },
+            {
+                "column_name": "locked",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "collection_elements": [
@@ -7477,6 +7488,28 @@
                 "extra": ""
             },
             {
+                "column_name": "push_collections",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "pull_collections",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "lastpulledid",
                 "is_nullable": "YES",
                 "data_type": "int",
@@ -11486,5 +11519,5 @@
             "uuid": false
         }
     },
-    "db_version": "154"
+    "db_version": "157"
 }

@@ -49,6 +49,17 @@ class CollectionElement extends AppModel
         ]
     ];
 
+    /**
+     * When true, element saves/deletes do NOT bump the parent Collection's
+     * `modified`. Set during sync capture, where the parent's `modified` is
+     * set authoritatively from the remote by Collection::captureCollection().
+     * @var bool
+     */
+    public $skipCollectionModifiedBump = false;
+
+    /** @var int|null parent collection_id stashed in beforeDelete for afterDelete */
+    private $deletedElementCollectionId = null;
+
 
     public function beforeValidate($options = array())
     {
@@ -69,6 +80,54 @@ class CollectionElement extends AppModel
             $this->data['CollectionElement']['element_type'] = $this->deduceType($this->data['CollectionElement']['element_uuid']);
         }
         return true;
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        parent::afterSave($created, $options);
+        if ($this->skipCollectionModifiedBump) {
+            return;
+        }
+        $collectionId = $this->data['CollectionElement']['collection_id'] ?? null;
+        if (empty($collectionId) && !empty($this->id)) {
+            $collectionId = $this->field('collection_id', ['CollectionElement.id' => $this->id]);
+        }
+        $this->touchCollection($collectionId);
+    }
+
+    public function beforeDelete($cascade = true)
+    {
+        // The row is gone by afterDelete, so stash the parent collection_id now.
+        $this->deletedElementCollectionId = $this->field('collection_id', ['CollectionElement.id' => $this->id]);
+        return true;
+    }
+
+    public function afterDelete()
+    {
+        parent::afterDelete();
+        $collectionId = $this->deletedElementCollectionId;
+        $this->deletedElementCollectionId = null;
+        if ($this->skipCollectionModifiedBump) {
+            return;
+        }
+        $this->touchCollection($collectionId);
+    }
+
+    /**
+     * Bump the parent Collection's `modified` so element-only edits are visible
+     * to {uuid: modified} sync dedup (D5). updateAll avoids callbacks/validation
+     * and harmlessly affects zero rows if the parent no longer exists (e.g. a
+     * cascading Collection delete). Skipped during sync capture (see the flag).
+     */
+    private function touchCollection($collectionId)
+    {
+        if (empty($collectionId)) {
+            return;
+        }
+        $this->Collection->updateAll(
+            ['Collection.modified' => "'" . date('Y-m-d H:i:s') . "'"],
+            ['Collection.id' => $collectionId]
+        );
     }
 
     public function mayModify(int $user_id, int $collection_id)
@@ -146,6 +205,10 @@ class CollectionElement extends AppModel
      *  The received object is authoritative, so all elements that no longer exist in the upstream will be culled.
      */
     public function captureElements($data) {
+        // Sync capture: the parent Collection's `modified` is set authoritatively
+        // from the remote by Collection::captureCollection(), so element saves/
+        // deletes here must NOT bump it to the local now (D5 / D6 dedup).
+        $this->skipCollectionModifiedBump = true;
         $temp = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
@@ -202,6 +265,7 @@ class CollectionElement extends AppModel
             }
         }
 
+        $this->skipCollectionModifiedBump = false;
         return $data;
     }
 }

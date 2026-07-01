@@ -92,6 +92,13 @@ class Collection extends AppModel
             }
             $this->data['Collection']['org_id'] = $this->current_user['Organisation']['id'];
             $this->data['Collection']['user_id'] = $this->current_user['id'];
+            // A locally created collection is never locked; only the sync-capture path
+            // (running as a perm_sync user) may set locked=1 to mark a synced-in original.
+            // Force it to 0 for everyone else so a web user cannot self-set locked via
+            // mass assignment (mirrors the perm_sync exemption on orgc_id above).
+            if (empty($this->current_user['Role']['perm_sync'])) {
+                $this->data['Collection']['locked'] = 0;
+            }
         }
         return true;
     }
@@ -175,6 +182,185 @@ class Collection extends AppModel
             ];
         }
         return $conditions;
+    }
+
+    /**
+     * Shared sync capture sink for Collections — the single ingest point for BOTH the
+     * pull path and the push-receive controller action (mirrors
+     * GalaxyCluster::captureCluster / AnalystData::captureAnalystData). Centralising
+     * every enforcement rule here means both sync directions are covered once:
+     *  - D5 corpus authoritative: the incoming element set replaces the local one
+     *    wholesale via CollectionElement::captureElements() (which self-suppresses the
+     *    parent `modified` bump, T1.3, so the remote `modified` we write stays
+     *    authoritative for `{uuid: modified}` dedup).
+     *  - D6 last-writer-wins guarded by `locked`: a locally-created (locked=0) collection
+     *    is never overwritten by a non-internal remote; otherwise the strictly-newer
+     *    `modified` wins (equal/older is skipped). Accepted captures are marked locked=1.
+     *  - D7 creator neutralised: `user_id` is pinned to the sync user, `org_id` to the
+     *    sync user's org; `orgc_id`/`sharing_group_id` are resolved by UUID.
+     *  - Distribution is downgraded on incoming (1->0, 2->1) unless the server is internal
+     *    and the remote sync user has perm_sync_internal.
+     *
+     * All identity/security fields (uuid, org, orgc, user_id, locked) are pinned from
+     * server-derived context, never honoured from the payload; the payload `id` is
+     * dropped (capture keys on `uuid` only) — PRD §7 mass-assignment discipline.
+     *
+     * NB for the pull (T3.3) and push (T4.x) wiring: the downgrade + locked=1 live HERE,
+     * so callers must pass the raw remote collection and must NOT pre-downgrade it
+     * (avoids a double downgrade). Pull passes $remotePermSyncInternal from the remote
+     * user info; push-receive passes !empty($user['Role']['perm_sync_internal']).
+     *
+     * @param array $user The sync user performing/authorising the capture.
+     * @param array $collection Remote collection (with Orgc / SharingGroup / CollectionElement).
+     * @param array|false $server The server the capture originates from (internal/locked rules).
+     * @param bool $remotePermSyncInternal Whether the remote sync user has perm_sync_internal.
+     * @return array ['success', 'imported', 'ignored', 'failed', 'errors']
+     */
+    public function captureCollection(array $user, array $collection, $server = false, $remotePermSyncInternal = false): array
+    {
+        $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
+
+        // Normalise: hoist related data under the Collection key, tolerating both raw
+        // find() output (siblings) and an already-rearranged payload (nested).
+        if (!isset($collection['Collection'])) {
+            $collection = ['Collection' => $collection];
+        }
+        foreach (['Orgc', 'Org', 'SharingGroup', 'CollectionElement'] as $child) {
+            if (isset($collection[$child]) && !isset($collection['Collection'][$child])) {
+                $collection['Collection'][$child] = $collection[$child];
+                unset($collection[$child]);
+            }
+        }
+
+        // No server context ⇒ treat as external + non-internal (downgrade + locked
+        // protection both apply — the safe default; also avoids null offset warnings).
+        if (empty($server)) {
+            $server = ['Server' => ['internal' => 0, 'org_id' => 0]];
+        }
+
+        if (empty($collection['Collection']['uuid'])) {
+            $collection['Collection']['uuid'] = CakeText::uuid();
+        }
+
+        // Resolve creator org (orgc_id) by UUID and, for distribution=4, the sharing
+        // group by UUID (create-if-missing) — mirrors GalaxyCluster::captureOrganisationAndSG.
+        $collection = $this->captureOrganisationAndSG($collection, $user);
+
+        // Server-derived, never attacker-controlled: owner org = the sync user's org;
+        // creator user neutralised to the sync user (D7); mark as synced-in (locked=1).
+        $collection['Collection']['org_id'] = $user['Organisation']['id'];
+        $collection['Collection']['user_id'] = $user['id'];
+        $collection['Collection']['locked'] = 1;
+
+        // Distribution downgrade on incoming, unless internal + remote perm_sync_internal
+        // (mirrors AnalystData/GalaxyCluster updatePulled*BeforeInsert).
+        if (
+            empty(Configure::read('MISP.host_org_id')) ||
+            empty($server['Server']['internal']) ||
+            Configure::read('MISP.host_org_id') != $server['Server']['org_id'] ||
+            !$remotePermSyncInternal
+        ) {
+            switch ((int)($collection['Collection']['distribution'] ?? 0)) {
+                case 1:
+                    $collection['Collection']['distribution'] = 0; // community -> org only
+                    break;
+                case 2:
+                    $collection['Collection']['distribution'] = 1; // connected -> community only
+                    break;
+            }
+        }
+        if ((int)($collection['Collection']['distribution'] ?? 0) !== 4) {
+            $collection['Collection']['sharing_group_id'] = null;
+        }
+
+        // D5: the incoming element corpus is authoritative — pull it aside for a wholesale
+        // replace after the parent is saved (present-but-empty ⇒ cull all local elements).
+        $elements = null;
+        if (array_key_exists('CollectionElement', $collection['Collection'])) {
+            $elements = $collection['Collection']['CollectionElement'];
+            unset($collection['Collection']['CollectionElement']);
+        }
+
+        $fieldList = [
+            'uuid', 'name', 'type', 'description', 'distribution',
+            'sharing_group_id', 'org_id', 'orgc_id', 'user_id', 'locked', 'modified'
+        ];
+
+        $existing = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Collection.uuid' => $collection['Collection']['uuid']],
+        ]);
+
+        // current_user drives beforeValidate on the create branch (owner org / user_id /
+        // orgc fallback); its perm_sync exemption lets our locked=1 stand.
+        $this->current_user = $user;
+        if (empty($existing)) {
+            unset($collection['Collection']['id']);
+            $this->create();
+            $saveSuccess = $this->save($collection, true, $fieldList);
+        } else {
+            // D6: never let a non-internal remote overwrite a locally-created original.
+            if (empty($existing['Collection']['locked']) && empty($server['Server']['internal'])) {
+                $results['errors'][] = __('Blocked an edit to a collection that was created locally. This can happen if a synchronised collection that was created on this instance was modified by an administrator on the remote side.');
+                $results['failed']++;
+                return $results;
+            }
+            // Last-writer-wins: only a strictly-newer remote version wins.
+            if (isset($collection['Collection']['modified']) && $collection['Collection']['modified'] > $existing['Collection']['modified']) {
+                $collection['Collection']['id'] = $existing['Collection']['id'];
+                $saveSuccess = $this->save($collection, true, $fieldList);
+            } else {
+                $results['errors'][] = __('Remote version is not newer than local one for collection (%s)', $collection['Collection']['uuid']);
+                $results['ignored']++;
+                return $results;
+            }
+        }
+
+        if ($saveSuccess) {
+            $results['imported']++;
+            $saved = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Collection.uuid' => $collection['Collection']['uuid']],
+            ]);
+            if ($elements !== null) {
+                // captureElements() replaces the corpus authoritatively and suppresses the
+                // Collection.modified bump itself, preserving the remote `modified` (T1.3).
+                $this->CollectionElement->captureElements([
+                    'Collection' => [
+                        'id' => $saved['Collection']['id'],
+                        'CollectionElement' => $elements,
+                    ],
+                ]);
+            }
+        } else {
+            $results['failed']++;
+            foreach ($this->validationErrors as $validationError) {
+                $results['errors'][] = is_array($validationError) ? $validationError[0] : $validationError;
+            }
+        }
+        $results['success'] = $results['imported'] > 0;
+        return $results;
+    }
+
+    /**
+     * Resolve the creator organisation (orgc_id) by UUID and, for distribution=4, the
+     * sharing group by UUID (create-if-missing). Mirrors
+     * GalaxyCluster::captureOrganisationAndSG — Collection keys org/SG by integer id.
+     */
+    private function captureOrganisationAndSG($collection, $user)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        if (isset($collection['Collection']['distribution']) && $collection['Collection']['distribution'] == 4) {
+            $collection['Collection'] = $this->Event->captureSGForElement($collection['Collection'], $user);
+        }
+        if (isset($collection['Collection']['Orgc'])) {
+            $collection['Collection']['orgc_id'] = $this->Orgc->captureOrg($collection['Collection']['Orgc'], $user);
+            unset($collection['Collection']['Orgc']);
+        } else {
+            // No creator org travelled with the payload — default to the sync user's org.
+            $collection['Collection']['orgc_id'] = $user['org_id'];
+        }
+        return $collection;
     }
 
     public function rearrangeCollection(array $collection, $user = null) {
