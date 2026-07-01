@@ -355,7 +355,38 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   arrives at **T3.4** (`Server::pull` wiring, `:695` next to the `AnalystData->pull` call) — run a
   loopback smoke test there, full round-trip at T6.1. Lint clean (PHP 8.3); `CollectionCaptureTest`
   22/22 green (pull is purely additive — captureCollection unchanged).
-- [ ] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
+- [x] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
+  Commit `4a97bb06c`. **★ LIVE-VERIFIED via self-loopback on dev (localhost:5007) ★** → findings below.
+
+### T3.4 findings — Server::pull collections block (commit `4a97bb06c`)
+- **One additive block** in `Server::pull` (`Server.php`, inside the `full`/`update` technique gate,
+  right after the `AnalystData->pull` call at `:695`), plus count-plumbing:
+  - Gate: `!empty($server['Server']['pull_collections'])` (T1.2 toggle, mirrors the
+    `pull_galaxy_clusters` gate) **AND** `$serverSync->isSupported(FEATURE_COLLECTION_SYNC)`
+    (negotiation — reads the info already cached by the `:609` version fetch, so no extra HTTP;
+    `Collection::pull` re-checks it too, belt-and-suspenders). Job progress line `'Pulling collections.', 90`.
+  - `$this->Collection = ClassRegistry::init('Collection'); $pulledCollections = $this->Collection->pull($user, $serverSync);`
+  - `$pulledCollections = 0` init added to the existing `$pulledProposals = … = 0;` chain (used
+    outside the technique gate by `$change`/return).
+  - **Count surfacing:** added `%s collections` to the `$change` sprintf (the pull DB-log line) and
+    **appended `$pulledCollections` to the return array as index `[6]`**. Verified all three callers
+    (`ServersController::pull:844-853`, `ServerShell::pull:160`, `ServerShell` scheduled `:579`)
+    index `$result[0..5]` positionally ⇒ appending [6] is non-breaking. Full user-facing message
+    surfacing (the "…N collections pulled" strings in those callers) deferred to **T5.2** / D8.
+- **PRD §5 item 1** ("new collection block in `pull()`") — non-additive touch point, pre-accepted.
+  Additive *within* the method (a new block; only the count sprintf/return lines edited).
+- **★ LIVE-VERIFIED via self-loopback ★** — server 7 (`http://localhost:5007`, this instance) temporarily
+  set `pull=1, pull_collections=1` with a known-good perm_sync key (user 187 `JFKX…`; the row's stored
+  `lmro33…`/user-185 key was stale → `auth_fail`, a **pre-existing** loopback issue, not T3.4), pull
+  triggered via `POST /servers/pull/7/full` (background worker, www-data). **Result:** job completed;
+  the pull log line read *"0 events, … , 0 analyst data and 0 collections pulled or updated"* — the new
+  clause is live. **Discriminating proof the block actually ran** (vs. a defaulted 0): the Apache access
+  log shows `POST /collections/indexMinimal HTTP/1.1 200` with User-Agent `MISP 2.5.42 - #6f7be07bc…`
+  (the sync client at the current commit) — `Collection::pull`'s real index round-trip. Dedup returned 0
+  (local == remote ⇒ skip-on-equal), correctly suppressing any `fetchCollections` follow-up. **The
+  write branch (fetch → captureCollection) is unreachable in a self-loopback** (can't make remote
+  strictly-newer-than-local on the same DB) — that's the Phase 6 two-instance E2E (T6.1). **Server 7
+  fully restored** (authkey `lmro33…`, pull/pull_collections=0). Lint clean.
 - [ ] **T3.5** Pull tests (PRD §9).
 
 ## Phase 4 — Push
@@ -405,6 +436,15 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-01:** **T3.4 done** (commit `4a97bb06c`) — collections block wired into `Server::pull`
+  inside the `full`/`update` gate after analyst data, gated on `pull_collections` (T1.2) +
+  `isSupported(FEATURE_COLLECTION_SYNC)`; count fed into the `$change` log line + appended to the
+  return array [6] (callers index [0..5] ⇒ non-breaking). **★ LIVE-VERIFIED via self-loopback ★**
+  (server 7 → localhost:5007, pull_collections=1, user-187 key): pull completed, log line shows
+  "…and 0 collections pulled or updated"; Apache log's `POST /collections/indexMinimal 200` with the
+  MISP sync UA at commit `6f7be07bc` proves the block ran Collection::pull's real index fetch (0 =
+  expected self-loopback skip-on-equal; write branch needs a distinct peer → Phase 6). Server 7
+  restored. Lint clean. **Next: T3.5** — pull tests (PRD §9).
 - **2026-07-01:** **T3.3 done** (commit `fda46c5b1`) — `Collection::pull` + private
   `pullCollectionsInChunks` + `buildPullFilterRules` (+ `App::uses ServerSyncTool`), mirroring
   `AnalystData::pull`/`pullInChunks` flattened (no `type` dimension). isSupported gate → index
