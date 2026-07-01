@@ -171,6 +171,12 @@ class EventTemplatesController extends AppController
             'active' => (!array_key_exists('active', $input) || $input['active'])
                 ? 1
                 : 0,
+            // Unlike `active` (on by default), exposing a template to
+            // Draugnet is an explicit opt-in: default 0 unless the caller
+            // sends a truthy `exposed`.
+            'exposed' => (array_key_exists('exposed', $input) && $input['exposed'])
+                ? 1
+                : 0,
             'org_id' => (int)$this->Auth->user('org_id'),
             'creator_user_id' => (int)$this->Auth->user('id'),
             'definition' => isset($input['definition'])
@@ -231,6 +237,12 @@ class EventTemplatesController extends AppController
             // round-trips as a PHP bool through Cake's read path, which the
             // boolean validator would otherwise reject on re-save.
             $row['misp_default'] = (int)(bool)$row['misp_default'];
+        }
+        if (array_key_exists('exposed', $row)) {
+            // Merged from the existing row (a tinyint(1) → PHP bool) or from
+            // caller input; coerce to a clean int so it persists as 0/1 and
+            // an untouched value is preserved across edits.
+            $row['exposed'] = (int)(bool)$row['exposed'];
         }
         $row['id'] = $id;
         $this->EventTemplate->id = $id;
