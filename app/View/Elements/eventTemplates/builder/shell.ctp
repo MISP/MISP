@@ -13,6 +13,7 @@
         'distribution' => (int)($existing['distribution'] ?? 0),
         'active'       => !empty($existing['active']) ? 1 : ($existing ? 0 : 1),
         'misp_default' => !empty($existing['misp_default']) ? 1 : 0,
+        'exposed'      => !empty($existing['exposed']) ? 1 : 0,
     ];
     $initialDefinition = ($existing && is_array($existing['definition'] ?? null))
         ? $existing['definition']
@@ -232,6 +233,11 @@
                    title="<?php echo __('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.'); ?>">
                 <input type="checkbox" id="et-envelope-misp-default">
                 <?php echo __('Library-managed'); ?>
+            </label>
+            <label class="checkbox inline" for="et-envelope-exposed"
+                   title="<?php echo __('When checked, this template is offered to anonymous community reporters through Draugnet (if the CSIRT runs it with the MISP template source). Off by default — exposing is an explicit opt-in.'); ?>">
+                <input type="checkbox" id="et-envelope-exposed">
+                <?php echo __('Expose to Draugnet'); ?>
             </label>
         </div>
     </div>
