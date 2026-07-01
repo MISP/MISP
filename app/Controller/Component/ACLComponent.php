@@ -136,6 +136,7 @@ class ACLComponent extends Component
             'getCollectionsForElement' => ['*'],
             'getCollectionsForElements' => ['*'],
             'index' => ['*'],
+            'indexMinimal' => ['*'],
             'view' => ['*']
         ],
         'collectionElements' => [

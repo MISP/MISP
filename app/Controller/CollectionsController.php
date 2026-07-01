@@ -348,12 +348,80 @@ class CollectionsController extends AppController
         if (!$this->_isSiteAdmin()) {
             $params['conditions']['AND'][] = $this->Collection->buildConditions($this->Auth->user('id'));
         }
+        if ($this->_isRest()) {
+            // The sync pull fetches full collections by uuid through this action
+            // (ServerSyncTool::fetchCollections -> GET /collections/index/uuid[]:...json).
+            // The capture sink needs the element corpus — even when empty — to perform an
+            // authoritative replace (D5), so include CollectionElement for REST callers
+            // only. The HTML index shows just element_count and must not eager-load every
+            // element across the paginated list.
+            $params['contain'][] = 'CollectionElement';
+            // The generic index filter list registers the fully-qualified 'Collection.uuid'
+            // key, but harvestParameters only matches a named param whose key is literally
+            // 'Collection.uuid'. The sync client sends bare uuid[] named params, so harvest
+            // them here into an explicit, alias-qualified IN() condition. A bare 'uuid'
+            // filter would be ambiguous against the joined Orgc/SharingGroup uuid columns.
+            $uuidFilter = $this->request->params['named']['uuid'] ?? null;
+            if (!empty($uuidFilter)) {
+                $params['conditions']['AND'][] = ['Collection.uuid' => (array)$uuidFilter];
+            }
+        }
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    /**
+     * Minimal index endpoint used by a remote instance during a sync pull: returns
+     * { uuid: modified } for every collection the caller may see + distribute (filtered
+     * inside Collection::indexMinimal via buildConditions), optionally narrowed by
+     * orgc_name OR/NOT pull-rules. Mirrors AnalystDataController::indexMinimal. CSRF is
+     * auto-unlocked for REST (AppController::beforeFilter); the ACL entry is ['*'] and
+     * visibility is enforced by buildConditions rather than a blanket perm_sync gate.
+     */
+    public function indexMinimal()
+    {
+        $filters = [];
+        if ($this->request->is('post')) {
+            $filters = $this->request->data;
+        }
+        $options = [];
+        if (!empty($filters['orgc_name'])) {
+            // Resolve names through a canonically-aliased Organisation model: fetchOrg()
+            // hardcodes a `LOWER(Organisation.name)` condition, so calling it via the
+            // Collection->Orgc association (alias 'Orgc') would emit an unknown-column error.
+            $this->loadModel('Organisation');
+            $orgcNames = $filters['orgc_name'];
+            if (!is_array($orgcNames)) {
+                $orgcNames = [$orgcNames];
+            }
+            foreach ($orgcNames as $orgcName) {
+                // Collections key the creator org by integer FK (orgc_id), not the
+                // orgc_uuid string column that analyst data filters on — resolve the
+                // name to a local org id before building the condition.
+                if ($orgcName[0] === '!') {
+                    $orgc = $this->Organisation->fetchOrg(substr($orgcName, 1));
+                    if ($orgc === false) {
+                        continue;
+                    }
+                    $options[]['AND'][] = ['Collection.orgc_id !=' => $orgc['id']];
+                } else {
+                    $orgc = $this->Organisation->fetchOrg($orgcName);
+                    if ($orgc === false) {
+                        continue;
+                    }
+                    $options['OR'][] = ['Collection.orgc_id' => $orgc['id']];
+                }
+            }
+            if (empty($options)) {
+                return $this->RestResponse->viewData([], $this->response->type());
+            }
+        }
+        $allData = $this->Collection->indexMinimal($this->Auth->user(), $options);
+        return $this->RestResponse->viewData($allData, $this->response->type());
     }
 
     /**

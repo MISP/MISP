@@ -185,6 +185,36 @@ class Collection extends AppModel
     }
 
     /**
+     * Minimal index for sync pull: returns [uuid => modified] for every collection the
+     * caller may see and distribute (filtered via buildConditions), optionally narrowed
+     * by $filters (e.g. the orgc_id OR/NOT pull-rules the controller builds from
+     * orgc_name). Mirrors AnalystData::indexMinimal, flattened — a collection has no
+     * analyst-data-style type dimension, so the shape is a single [uuid => modified] map.
+     * The remote side dedups against this by comparing `modified` (D6).
+     *
+     * @param array $user The requesting sync user.
+     * @param array $filters Extra conditions ANDed onto the visibility gate.
+     * @return array uuid => modified (datetime string)
+     */
+    public function indexMinimal(array $user, array $filters = []): array
+    {
+        $conditions = [$this->buildConditions($user['id'])];
+        if (!empty($filters)) {
+            $conditions[] = $filters;
+        }
+        $entries = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['AND' => $conditions],
+            'fields' => ['Collection.uuid', 'Collection.modified'],
+        ]);
+        $allData = [];
+        foreach ($entries as $entry) {
+            $allData[$entry['Collection']['uuid']] = $entry['Collection']['modified'];
+        }
+        return $allData;
+    }
+
+    /**
      * Shared sync capture sink for Collections — the single ingest point for BOTH the
      * pull path and the push-receive controller action (mirrors
      * GalaxyCluster::captureCluster / AnalystData::captureAnalystData). Centralising
