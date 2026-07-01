@@ -320,9 +320,10 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   event-template commit had left it at 154 despite adding the column — corrected in the merge).
   MYSQL.sql auto-merged; `event_templates.exposed` intentionally not in MYSQL.sql (baseline is ingested
   then brought current by the AppModel case-157 migration at install — per owner). Resolves the parked
-  "merge hygiene" item. Full `app/Test/` suite green post-merge (422/0). **Dev DB still at db_version
-  156** — needs `cake Admin runUpdates` to apply 157 (event_templates.exposed) when live-testing on
-  develop. Ongoing work now on `develop`. Next: Phase 3 T3.1.
+  "merge hygiene" item. Full `app/Test/` suite green post-merge (422/0). **Dev DB now at db_version
+  157** — 155/156 + 157 (event_templates.exposed) all applied and column-verified (fpm auto-applied 157;
+  MISP console must run as www-data not iglocska). `feature-collection-sync` branch deleted (merged).
+  Ongoing work now on `develop`. Next: Phase 3 T3.1.
 - **2026-07-01:** **T2.2 done** — `app/Test/CollectionCaptureTest.php`: 22 bare-PHPUnit tests (62
   assertions) covering every captureCollection branch via a TestableCollection in-memory harness; all
   green. Mutation-verified discriminating (neuter downgrade → 3 fail, neuter locked block → 1 fail).
