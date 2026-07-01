@@ -272,7 +272,44 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   change needed.
 - **Additive within existing files** (PRD §5 items 2 + 6). Lint clean (`parallel-lint`, PHP 8.3). Not
   live-verifiable yet (no caller until T3.3/T3.4; no live 2-instance harness until Phase 6).
-- [ ] **T3.2** `CollectionsController::indexMinimal` + full-fetch endpoint (CSRF-unlocked, perm_sync).
+- [x] **T3.2** `CollectionsController::indexMinimal` + full-fetch endpoint (CSRF-unlocked, ACL `['*']`).
+  Commit `f94147a89`. **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
+
+### T3.2 findings — pull-side controller/model endpoints (commit `f94147a89`)
+- **Three additive edits** (all live-verified with sync user 187, perm_sync=1, against the 3 dev
+  collections: U1=74049a17 dist=2/5-elements, U2=7f3ea871 dist=0/other-org/HIDDEN, U3=fb063f85 dist=4/0-elements):
+  1. **`Collection::indexMinimal($user, $filters=[])`** (model) — `[uuid => modified]` for collections
+     visible+distributable via `buildConditions($user['id'])`, ANDed with `$filters`. Flattened analogue of
+     `AnalystData::indexMinimal` (no type dimension). Verified: no-filter → {U1,U3}; U2 (dist=0 other org)
+     correctly EXCLUDED.
+  2. **`CollectionsController::indexMinimal`** (new action) — reads POST `orgc_name` OR/NOT, translates to
+     `orgc_id` conditions, delegates to the model. ACL `'indexMinimal' => ['*']` added (default-deny needs
+     the explicit entry; visibility is inside via buildConditions — no blanket perm_sync gate, matching
+     analyst-data). Verified discriminating: `orgc_name=Iglocska` → {U1,U3}; `!Iglocska` → {}; unknown org
+     → {} (empty-options guard); list-form `["Iglocska"]` → {U1,U3}. Non-sync user 196 (perm_sync=0) also
+     gets 200 + visibility-filtered result (ACL `['*']` is correct — visibility, not the sync perm, gates).
+  3. **`CollectionsController::index`** REST-only additions (both gated on `_isRest()` ⇒ HTML index path
+     provably untouched): (a) `contain CollectionElement` so the fetch payload carries the element corpus —
+     verified U1 returns 5 flat element rows (`id,uuid,element_uuid,element_type,collection_id,description`),
+     **U3 returns `CollectionElement: []` (key PRESENT, empty)** = the T2.1 corpus-replace requirement; (b)
+     harvest bare `uuid[]` named params into an explicit **`Collection.uuid` IN()** condition.
+- **★ TWO BUGS caught by discriminating live tests (would have been latent) ★**:
+  - **uuid filter silently ignored** — the index `filters` list registers the *fully-qualified*
+    `'Collection.uuid'`, but `IndexFilterComponent::__massageData` (`:62-68`) only harvests a named param
+    whose key **literally equals** a filter-list entry; the sync URL sends bare `uuid[]`. So the filter never
+    applied and the fetch returned ALL visible collections (a false pass until a single-uuid request proved
+    it — request only U2 returned U1+U3). Fixed with the explicit REST condition (§3b). Chose an
+    alias-qualified `Collection.uuid` over adding bare `'uuid'` to the shared list because bare `uuid` is
+    ambiguous against the joined `Orgc`/`SharingGroup` uuid columns. **Discriminating proof: request U2+U3 →
+    only U3** (U1 excluded by uuid filter, U2 by visibility).
+  - **`orgc_name` resolution 500'd** — `Organisation::fetchOrg` hardcodes `LOWER(Organisation.name)`; calling
+    it via the `Collection->Orgc` association (alias `Orgc`) emitted `Unknown column 'Organisation.name'`.
+    Fixed by resolving through a canonically-aliased `Organisation` model (`$this->loadModel('Organisation')`).
+    (Same latent flaw exists in the analyst-data copy; only bites on a non-numeric/non-uuid name.)
+- **No CSRF/pagination/JSON work needed** — confirmed those are REST defaults (`CRUDComponent::index:57`
+  `find('all')` for REST, no paginate; `RestResponse` JSON; REST CSRF auto-unlock). User's steer was correct.
+- **`fetchCollections` client URL (`/collections/index`) needs NO change** — it already targets this action.
+- Regression: `CollectionCaptureTest` 22/22 green (model method is purely additive). Lint clean.
 - [ ] **T3.3** `Collection::pull` (+ chunking, org pull-rules) → `captureCollection`.
 - [ ] **T3.4** Wire into `Server::pull` behind `pull_collections` + feature negotiation.
 - [ ] **T3.5** Pull tests (PRD §9).
@@ -324,6 +361,16 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-01:** **T3.2 done** (commit `f94147a89`) — `Collection::indexMinimal` model method +
+  `CollectionsController::indexMinimal` action (ACL `['*']`, orgc_name OR/NOT → orgc_id) + REST-only
+  `index` additions (contain CollectionElement, harvest `uuid[]` → `Collection.uuid` IN). **★ First
+  live HTTP verification of the sync surface ★** on dev localhost:5007 with sync user 187 — all
+  discriminating (visibility gate, uuid filter, orgc OR/NOT, empty-corpus present-as-`[]`). **Caught +
+  fixed two latent bugs live:** the `uuid[]` filter was silently ignored (fully-qualified `Collection.uuid`
+  filter key never matches the bare `uuid` named param in `__massageData`) so the fetch returned all
+  visible collections; and `orgc_name` 500'd (fetchOrg via the `Orgc`-aliased assoc → unknown-column).
+  User's steer confirmed: no-pagination/JSON/CSRF are REST defaults, so the fetch reuses `index`.
+  `CollectionCaptureTest` 22/22 green. **Next: T3.3** — `Collection::pull` (chunked fetch → captureCollection).
 - **2026-07-01:** **T3.1 done** (commit `7d4072421`) — `ServerSyncTool::collectionIndexMinimal`
   (POST `/collections/indexMinimal` → `{uuid:modified}`) + `fetchCollections` (GET `/collections/index`
   uuid named-params `.json` → full collections + elements), both gated behind
