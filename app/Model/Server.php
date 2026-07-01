@@ -677,7 +677,7 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = $pulledCollections = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
@@ -693,22 +693,35 @@ class Server extends AppModel
 
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
+
+            // Collections: gated on the per-server pull_collections toggle (T1.2) AND
+            // feature negotiation (isSupported reads the already-cached remote info, so no
+            // extra round-trip) — an older peer without the capability is skipped silently.
+            // Collection::pull re-checks isSupported and owns the downgrade/locked/D6 rules.
+            if (!empty($server['Server']['pull_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Pulling collections.', 90);
+                }
+                $this->Collection = ClassRegistry::init('Collection');
+                $pulledCollections = $this->Collection->pull($user, $serverSync);
+            }
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
             $pulledAnalystData,
+            $pulledCollections,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData, $pulledCollections];
     }
 
     public function filterRuleToParameter($filter_rules)
