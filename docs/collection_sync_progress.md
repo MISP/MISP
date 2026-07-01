@@ -392,14 +392,35 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   (authkey now user 185's valid `mBuok…` key — repaired the pre-existing stale `lmro33…`; pull/pull_collections
   reverted to 0). Lint clean. *(An earlier run used user 187's key as a substitute before the correct 185 key
   was available — same 0-collections outcome, superseded by this canonical run.)*
-- [ ] **T3.5** Pull tests (PRD §9).
+- [~] **T3.5** Pull tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** — all per-phase
+  testing is folded into Phase 6 (T6.x) once the implementation is finished. The T3.4 self-loopback
+  already live-smoke-tested negotiation + index + skip-on-equal dedup; the write branch + full E2E are
+  T6.1 (two-instance). No standalone pull unit tests this phase.
 
 ## Phase 4 — Push
-- [ ] **T4.1** `ServerSyncTool`: `filterCollectionsForPush` + `pushCollection`.
+- [x] **T4.1** `ServerSyncTool`: `filterCollectionsForPush` + `pushCollection`. Commit `9abd6bb64`.
+  → findings below.
+
+### T4.1 findings — ServerSyncTool push-side pair (commit `9abd6bb64`)
+- **Two consumer methods** added after `fetchCollections` (`ServerSyncTool.php`), grouping all four
+  collection sync methods together; both return `HttpSocketResponseExtended` (caller does `->json()`):
+  - `filterCollectionsForPush(array $candidates)` → POST `/collections/filterCollectionsForPush` — sends
+    the local `{uuid: modified}` push candidates; remote replies with the UUID subset it wants (missing or
+    strictly-older there). Mirrors `filterAnalystDataForPush` (`:231`), no `type` dimension.
+  - `pushCollection(array $collection)` → POST `/collections/captureCollection` — uploads ONE collection
+    (nested under `Collection`, with its `Orgc`/`SharingGroup`/`CollectionElement` corpus) with a log
+    message; feeds the remote's shared `captureCollection` sink. Mirrors `pushAnalystData` (`:285`) —
+    per-item (caller loops in T4.3), NOT batched.
+- **Both gated** behind `isSupported(FEATURE_COLLECTION_SYNC)` (throw when unsupported — defensive; the
+  real negotiation skip happens earlier in `Collection::push`/`Server::push`, mirroring the pull side).
+- **Endpoints are T4.2** (`/collections/filterCollectionsForPush` + the `captureCollection` receive action).
+  Additive within an accepted touch point (PRD §5 item 2). Lint clean. Not live-verifiable until a caller
+  exists (T4.3/T4.4); full push verification is Phase 6 (two-instance).
 - [ ] **T4.2** `CollectionsController::filterCollectionsForPush` + `captureCollection` (CSRF-unlocked, perm_sync).
 - [ ] **T4.3** `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
 - [ ] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
-- [ ] **T4.5** Push tests (PRD §9).
+- [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
+  testing folds into Phase 6 once implementation is finished).
 
 ## Phase 5 — UI surfacing & negotiation polish
 - [ ] **T5.1** Server add/edit/view: collection toggles.
@@ -441,6 +462,14 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-01:** **T4.1 done** (commit `9abd6bb64`) — `ServerSyncTool::filterCollectionsForPush`
+  (POST `/collections/filterCollectionsForPush`, push dedup) + `pushCollection` (POST
+  `/collections/captureCollection`, per-item upload w/ log message), both gated behind
+  `isSupported(FEATURE_COLLECTION_SYNC)`; mirror the analyst-data push pair, no `type` dimension.
+  Additive (PRD §5 item 2); lint clean; endpoints built in T4.2. **★ Testing decision (user, 2026-07-01):
+  T3.5 + T4.5 (and per-phase tests) DEFERRED to Phase 6 — finish the implementation first, test at the
+  two-instance E2E stage.** **Next: T4.2** — `CollectionsController::filterCollectionsForPush` +
+  `captureCollection` receive endpoints (CSRF-unlocked via REST, `perm_sync`).
 - **2026-07-01:** **T3.4 done** (commit `4a97bb06c`) — collections block wired into `Server::pull`
   inside the `full`/`update` gate after analyst data, gated on `pull_collections` (T1.2) +
   `isSupported(FEATURE_COLLECTION_SYNC)`; count fed into the `$change` log line + appended to the
