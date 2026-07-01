@@ -155,9 +155,56 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   - D) `perm_sync=1` edit `locked=0` on a locked=1 row → locked stays **1**, HTTP 200 (edit never flips locked).
 
 ## Phase 2 — Shared capture sink
-- [ ] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
+- [x] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
   user_id neutralize, distribution downgrade, locked conflict rule, corpus replace.
+  → findings below.
 - [ ] **T2.2** Unit tests for every `captureCollection` branch (PRD §9.1).
+
+### T2.1 findings — captureCollection sync sink (commit `a3c44705a`)
+- **Signature:** `captureCollection(array $user, array $collection, $server = false,
+  $remotePermSyncInternal = false): array` → `['success','imported','ignored','failed','errors']`.
+  **No `$fromPull`/`$orgId` params** (unlike captureCluster): org_id is the sync user's org for
+  BOTH directions (see below), and the downgrade always applies on incoming, so neither was needed.
+- **★ Template = `GalaxyCluster::captureCluster` (`:736-860`), NOT captureAnalystData ★** — GalaxyCluster
+  is the true analogue because Collection keys org/orgc/SG by **integer FK** (`orgc_id`/`org_id`/
+  `sharing_group_id`); AnalystData uses `orgc_uuid` **string** columns. `captureOrg()`
+  (`Organisation.php:199`) returns the local **id** by default (`$returnUUID=false`) — perfect for
+  `orgc_id`. Added a private `captureOrganisationAndSG($collection,$user)` mirroring GalaxyCluster's
+  (`Orgc->captureOrg` → orgc_id; `Event->captureSGForElement` for dist=4 → sharing_group_id, sets
+  dist=0 if SG unresolvable).
+- **org_id = `$user['Organisation']['id']` for BOTH pull and push-receive** (deliberate simplification
+  vs GalaxyCluster, which uses the *server's* org_id on pull). Rationale: (a) `beforeValidate` (T1.4)
+  already forces exactly this on create, so sink + web-create agree; (b) push-receive `$user` IS the
+  pushing sync user ⇒ org_id = source org, matching GalaxyCluster's push convention; (c) one org rule,
+  no create/update divergence. **If a future need arises for server-org ownership on pull, revisit here.**
+- **D7 neutralize:** `user_id` pinned to `$user['id']`, `org_id` to the sync user's org, `locked=1`,
+  explicitly in the save data (works on the update branch where beforeValidate is skipped) AND via
+  `$this->current_user = $user` (drives beforeValidate on the create branch; its perm_sync exemption
+  lets locked=1 stand — T1.4).
+- **Mass-assignment (PRD §7):** save uses an explicit `$fieldList` = `[uuid,name,type,description,
+  distribution,sharing_group_id,org_id,orgc_id,user_id,locked,modified]`; payload `id` is `unset`
+  (create) / never sourced from payload (update keys on existing uuid → id). No `created` in fieldList
+  ⇒ Cake sets it to now on create, untouched on update.
+- **★ `modified` preserved on save (load-bearing for dedup) ★** — verified against CakePHP source
+  (`Model.php:1847-1855`): a date field present in BOTH the data AND the whitelist is NOT overwritten
+  with now (`$fieldHasValue && $fieldInWhitelist` ⇒ `continue`). Since I include `modified` in data +
+  fieldList, the remote `modified` I write survives (a null/empty modified would be unset @1823-1825
+  and auto-filled — so pass a real datetime).
+- **Downgrade centralized in the sink** (per handoff item 3): `1→0`, `2→1` unless
+  `host_org_id set && server internal && host_org_id==server.org_id && remotePermSyncInternal`
+  (mirrors `updatePulled*BeforeInsert`). **⇒ T3.3 pull and T4.x push MUST pass the RAW remote
+  collection and NOT pre-downgrade** (else double-downgrade). Pull passes `$remotePermSyncInternal`
+  from `cachedUserInfo`; push-receive passes `!empty($user['Role']['perm_sync_internal'])`.
+- **Elements (D5):** the corpus is pulled aside (`$elements`) and passed to
+  `CollectionElement::captureElements(['Collection'=>['id'=>localId,'CollectionElement'=>$elements]])`
+  AFTER the parent save. captureElements already self-manages `skipCollectionModifiedBump` (T1.3), so
+  no external flag-wrapping needed (handoff item 6 predates that — it's already handled). Guarded on
+  `array_key_exists('CollectionElement', …)`: **present-but-empty `[]` ⇒ cull all local elements**
+  (authoritative), **key absent ⇒ elements left untouched** (so the T3.2 fetch endpoint MUST always
+  serialize `CollectionElement`, even empty, for a true corpus replace).
+- **No CollectionBlocklist** model exists ⇒ no blocklist step (unlike captureCluster/captureAnalystData).
+- **NOT yet live-verified** — captureCollection has no HTTP entry point until T3.2/T4.2; T2.2 (bare
+  PHPUnit, stubbed framework classes) is the dedicated branch-by-branch verification. Lint clean.
 
 ## Phase 3 — Pull
 - [ ] **T3.1** `ServerSyncTool`: `collectionIndexMinimal` + `fetchCollections`.
@@ -233,6 +280,13 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   the dev box (add + delete both bumped `modified`). Next: T1.4 (Collection `locked` default on
   local create; mass-assignment guard). NB to live-verify T1.4+ run migrations 155/156 on the dev
   box first (`cake Admin runUpdates`; dev is at 154, applies only 155/156).
+- **2026-07-01:** **T2.1 done** (commit `a3c44705a`) — `Collection::captureCollection()` +
+  private `captureOrganisationAndSG()` helper added (additive; no existing paths touched). Modelled on
+  `GalaxyCluster::captureCluster` (integer-FK org/orgc/SG analogue, not AnalystData's uuid columns).
+  Centralises D5 corpus-replace / D6 locked+modified conflict / D7 user_id neutralize / distribution
+  downgrade in one sink for both directions. Verified CakePHP preserves the remote `modified` on save
+  (dedup-critical). Lint clean; not live-verifiable until T3.2/T4.2 (no HTTP entry point yet).
+  **Next: T2.2** (bare-PHPUnit branch tests). **Phase 2 half done.**
 - **2026-07-01:** **T1.4 done** (commit `fafe71eb4`) — `Collection::beforeValidate` forces
   `locked=0` on local create for non-`perm_sync` callers; capture path exempt. **Live-verified**
   (perm_sync=0 user's `locked=1` create stored as 0). **Migrations 155/156 already applied** —
