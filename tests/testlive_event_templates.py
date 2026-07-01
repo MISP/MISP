@@ -412,6 +412,177 @@ class EventTemplatesRestTests(unittest.TestCase):
         self.assertEqual(attachments[0]["value"], "greeting.txt")
 
 
+class EventTemplatesExposedFlagTests(unittest.TestCase):
+    """The `exposed` flag + the exposed-only listing that backs the
+    Draugnet MISP-pull template source (PRD §7 M3 / M5).
+
+    `exposed` marks a template as offered to anonymous community
+    reporters through Draugnet. It defaults to 0 (an explicit opt-in),
+    is settable via add/edit, and gates GET /event_templates/exposed —
+    which still honours the normal read ACL. Owns and cleans up its
+    rows in tearDown.
+    """
+
+    _templates: List[int]
+
+    def setUp(self) -> None:
+        if not KEY:
+            self.skipTest("AUTH env var / keys.py not configured.")
+        self._templates = []
+
+    def tearDown(self) -> None:
+        for tid in self._templates:
+            try:
+                requests.post(
+                    f"{URL}/event_templates/delete/{tid}",
+                    headers=_headers(),
+                    timeout=10,
+                )
+            except requests.RequestException:
+                pass
+
+    # ---- helpers ---------------------------------------------------
+
+    def _add(self, name: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "name": name or f"exp-{uuid.uuid4().hex[:8]}",
+            "distribution": 0,
+            "active": 1,
+            "definition": _minimal_definition(),
+        }
+        payload.update(extra)
+        r = requests.post(
+            f"{URL}/event_templates/add",
+            headers=_headers(),
+            data=json.dumps(payload),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        self._templates.append(int(body["EventTemplate"]["id"]))
+        return body
+
+    def _view(self, tid: int) -> Dict[str, Any]:
+        r = requests.get(
+            f"{URL}/event_templates/view/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        return r.json()["EventTemplate"]
+
+    def _edit(self, tid: int, patch: Dict[str, Any]) -> None:
+        r = requests.post(
+            f"{URL}/event_templates/edit/{tid}",
+            headers=_headers(),
+            data=json.dumps(patch),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+
+    def _exposed_rows(self) -> List[Dict[str, Any]]:
+        r = requests.get(
+            f"{URL}/event_templates/exposed",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        rows = r.json()
+        self.assertIsInstance(rows, list, f"expected a JSON array: {rows!r}")
+        return rows
+
+    def _exposed_uuids(self) -> List[str]:
+        return [row["EventTemplate"]["uuid"] for row in self._exposed_rows()]
+
+    # ---- tests -----------------------------------------------------
+
+    def test_exposed_defaults_to_zero_on_create(self) -> None:
+        created = self._add(name="exp-default")
+        self.assertEqual(
+            int(created["EventTemplate"]["exposed"]), 0,
+            "exposed must default to 0 on create",
+        )
+        # And it persisted, not just echoed from the request.
+        tid = int(created["EventTemplate"]["id"])
+        self.assertEqual(int(self._view(tid)["exposed"]), 0)
+
+    def test_exposed_set_on_create(self) -> None:
+        created = self._add(name="exp-on", exposed=1)
+        tid = int(created["EventTemplate"]["id"])
+        self.assertEqual(int(created["EventTemplate"]["exposed"]), 1)
+        self.assertEqual(int(self._view(tid)["exposed"]), 1)
+
+    def test_exposed_toggle_on_edit(self) -> None:
+        created = self._add(name="exp-toggle", exposed=0)
+        tid = int(created["EventTemplate"]["id"])
+        self.assertEqual(int(self._view(tid)["exposed"]), 0)
+
+        self._edit(tid, {"exposed": 1})
+        self.assertEqual(int(self._view(tid)["exposed"]), 1)
+
+        self._edit(tid, {"exposed": 0})
+        self.assertEqual(int(self._view(tid)["exposed"]), 0)
+
+    def test_exposed_preserved_when_edit_omits_it(self) -> None:
+        # The edit path merges the existing row, so editing an unrelated
+        # field must not silently reset exposed back to its default.
+        created = self._add(name="exp-preserve", exposed=1)
+        tid = int(created["EventTemplate"]["id"])
+        self.assertEqual(int(self._view(tid)["exposed"]), 1)
+
+        self._edit(tid, {"definition": _minimal_definition(name="exp-edited")})
+        self.assertEqual(
+            int(self._view(tid)["exposed"]), 1,
+            "editing another field must preserve exposed",
+        )
+
+    def test_exposed_listing_includes_exposed_excludes_unexposed(self) -> None:
+        exposed = self._add(name="exp-listed", exposed=1)
+        unexposed = self._add(name="exp-hidden", exposed=0)
+        exposed_uuid = exposed["EventTemplate"]["uuid"]
+        unexposed_uuid = unexposed["EventTemplate"]["uuid"]
+
+        uuids = self._exposed_uuids()
+        self.assertIn(
+            exposed_uuid, uuids,
+            "exposed template must appear in the exposed-only listing",
+        )
+        self.assertNotIn(
+            unexposed_uuid, uuids,
+            "non-exposed template must not appear in the exposed-only listing",
+        )
+
+    def test_exposed_listing_reflects_unexpose(self) -> None:
+        # Un-exposing hides the template from the listing (Draugnet J2).
+        created = self._add(name="exp-then-hide", exposed=1)
+        tid = int(created["EventTemplate"]["id"])
+        tpl_uuid = created["EventTemplate"]["uuid"]
+        self.assertIn(tpl_uuid, self._exposed_uuids())
+
+        self._edit(tid, {"exposed": 0})
+        self.assertNotIn(tpl_uuid, self._exposed_uuids())
+
+    def test_exposed_listing_rows_carry_full_definition(self) -> None:
+        # The pull contract requires each row to carry its full, decoded
+        # definition so Draugnet can render a form without a second call.
+        created = self._add(name="exp-with-def", exposed=1)
+        tpl_uuid = created["EventTemplate"]["uuid"]
+
+        row = next(
+            (x for x in self._exposed_rows()
+             if x["EventTemplate"]["uuid"] == tpl_uuid),
+            None,
+        )
+        self.assertIsNotNone(row, "just-exposed template missing from listing")
+        definition = row["EventTemplate"]["definition"]
+        self.assertIsInstance(
+            definition, dict,
+            "definition must be a decoded object, not a JSON string",
+        )
+        self.assertEqual(int(definition["schema_version"]), 1)
+        self.assertIn("structure", definition)
+
+
 class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
     """Verifies the `event_template_object_dependencies` sidecar stays in
     sync with the parent template's object_field references across save,
