@@ -158,7 +158,37 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - [x] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
   user_id neutralize, distribution downgrade, locked conflict rule, corpus replace.
   → findings below.
-- [ ] **T2.2** Unit tests for every `captureCollection` branch (PRD §9.1).
+- [x] **T2.2** Unit tests for every `captureCollection` branch (PRD §9.1). → findings below.
+
+### T2.2 findings — captureCollection unit tests (`app/Test/CollectionCaptureTest.php`)
+- **22 tests, 62 assertions, all green** ([[project-misp-test-convention]]: bare `app/Test/*.php`,
+  pure PHPUnit, framework classes stubbed at file top — no CakePHP bootstrap, no DB, so no
+  schema-cache false-pass trap; the live sink is exercised for real at T3/T4 E2E).
+- **Harness:** stub `App`/`Configure`/`CakeText`/`ClassRegistry`/`__`/`AppModel` at file top, `require`
+  the real `Collection.php`, then a `TestableCollection extends Collection` overrides `find()`/`save()`/
+  `create()` with an in-memory sim (first `find` = injected existing row; later `find` = saved payload +
+  local id). Stub doubles for `Orgc->captureOrg`, `Event->captureSGForElement` (via ClassRegistry),
+  `CollectionElement->captureElements`. **Works because captureCollection pins every identity field and
+  applies the downgrade BEFORE `save()`** ⇒ asserting on the captured save payload tests the real logic.
+  (beforeValidate is not exercised — the create-branch pins are all explicit in captureCollection, and
+  beforeValidate's create-guard was already live-verified in T1.4.)
+- **Coverage** (all 7 PRD §9.1 targets, each discriminating): create (pin+downgrade); orgc fallback;
+  update-when-newer / skip-when-older / **skip-on-equal**; locked block from external + bypass for
+  internal; downgrade 2→1 / 3-unchanged / no-downgrade-for-internal+perm_sync_internal /
+  downgrade-when-host-org-mismatch; dist=4 SG resolve / unresolvable→dist0 / non-SG nulls sg_id;
+  element capture with local id / empty-set culls / absent-key untouched / not-captured-on-save-fail;
+  mass-assignment (payload id/org/orgc/user_id/locked all ignored) + fieldList excludes id;
+  modified-passed-through; sibling-shaped payload normalisation.
+- **★ Discriminating power mutation-verified ★** — neutering the downgrade broke 3 downgrade tests and
+  neutering the locked block broke the locked-block test (exactly 4 expected failures); reverted.
+- **★ Test-isolation gotcha (fixed) ★** — `ClassRegistry` is also stubbed by `PewPewMapWidgetTest`;
+  both guard with `class_exists()`, so in a full-suite run whichever file loads first wins for everyone
+  (mine sorts before PewPew). My first cut returned null for unregistered names, which broke PewPew's
+  `init('EventTag')->responses` (15 errors). Fixed by matching PewPew's contract: `init()` auto-creates
+  a `find()`/`responses` fake (uniquely-named `CollectionTestFakeModel`) for unregistered names; the
+  Event double is pre-registered into `$instances`. **Full `app/Test/` suite: 422 tests, 0 errors, 2
+  pre-existing skips.** (Other shared stubs — App/`__` won by earlier files; Configure/AppModel/CakeText
+  mine-wins but compatible — verified via the full-suite baseline of 400.)
 
 ### T2.1 findings — captureCollection sync sink (commit `a3c44705a`)
 - **Signature:** `captureCollection(array $user, array $collection, $server = false,
@@ -280,6 +310,12 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   the dev box (add + delete both bumped `modified`). Next: T1.4 (Collection `locked` default on
   local create; mass-assignment guard). NB to live-verify T1.4+ run migrations 155/156 on the dev
   box first (`cake Admin runUpdates`; dev is at 154, applies only 155/156).
+- **2026-07-01:** **T2.2 done** — `app/Test/CollectionCaptureTest.php`: 22 bare-PHPUnit tests (62
+  assertions) covering every captureCollection branch via a TestableCollection in-memory harness; all
+  green. Mutation-verified discriminating (neuter downgrade → 3 fail, neuter locked block → 1 fail).
+  Fixed a full-suite ClassRegistry stub collision with PewPewMapWidgetTest (auto-create fake for
+  unregistered names). **Full `app/Test/` suite: 422 tests, 0 errors.** **Phase 2 COMPLETE.**
+  Next: Phase 3 (Pull) — T3.1 `ServerSyncTool` collection index/fetch.
 - **2026-07-01:** **T2.1 done** (commit `a3c44705a`) — `Collection::captureCollection()` +
   private `captureOrganisationAndSG()` helper added (additive; no existing paths touched). Modelled on
   `GalaxyCluster::captureCluster` (integer-FK org/orgc/SG analogue, not AnalystData's uuid columns).
