@@ -3,7 +3,8 @@
 In-repo, checked-in source of truth for ticked task state across sessions.
 Full design lives in `collection_sync_prd.md` (owner's `~/prds`, not in-repo).
 
-- **Branch:** `feature-collection-sync` (off `2.5`)
+- **Branch:** `develop` (merged from `feature-collection-sync` at `6170ffa18`, 2026-07-01).
+  Original feature branch was off `2.5`; ongoing work continues on `develop`.
 - **Model commit this builds on:** `846c130fa` — *"new: [collections] feature added. Still missing sync integration - WiP"*
 - **Execution rule:** strictly sequential — one task, one commit (body cites task id);
   gitchangelog titles (`new:`/`fix:`/`chg: [collections] …`). `[security]` label only if CVE-worthy.
@@ -310,6 +311,18 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   the dev box (add + delete both bumped `modified`). Next: T1.4 (Collection `locked` default on
   local create; mass-assignment guard). NB to live-verify T1.4+ run migrations 155/156 on the dev
   box first (`cake Admin runUpdates`; dev is at 154, applies only 155/156).
+- **2026-07-01:** **Merged `feature-collection-sync` → `develop`** (merge commit `6170ffa18`).
+  **Migration numbering reconciled (no renumber):** develop's in-flight event-template track had
+  deliberately numbered its `event_templates.exposed` migration **157** (above this branch's 155/156),
+  so there was NO collision — kept 155 (collections.locked) / 156 (servers toggles); develop's 154
+  (TAXII auth_type) + 157 preserved. Final monotonic `runUpdates` sequence **153→154→155→156→157**;
+  AppModel `$db_changes` map unioned. `db_schema.json` `db_version` set to **157** (develop's
+  event-template commit had left it at 154 despite adding the column — corrected in the merge).
+  MYSQL.sql auto-merged; `event_templates.exposed` intentionally not in MYSQL.sql (baseline is ingested
+  then brought current by the AppModel case-157 migration at install — per owner). Resolves the parked
+  "merge hygiene" item. Full `app/Test/` suite green post-merge (422/0). **Dev DB still at db_version
+  156** — needs `cake Admin runUpdates` to apply 157 (event_templates.exposed) when live-testing on
+  develop. Ongoing work now on `develop`. Next: Phase 3 T3.1.
 - **2026-07-01:** **T2.2 done** — `app/Test/CollectionCaptureTest.php`: 22 bare-PHPUnit tests (62
   assertions) covering every captureCollection branch via a TestableCollection in-memory harness; all
   green. Mutation-verified discriminating (neuter downgrade → 3 fail, neuter locked block → 1 fail).
