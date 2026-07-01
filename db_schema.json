@@ -3315,6 +3315,17 @@
                 "extra": ""
             },
             {
+                "column_name": "exposed",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "version",
                 "is_nullable": "NO",
                 "data_type": "int",
@@ -11056,6 +11067,7 @@
         },
         "event_templates": {
             "active": false,
+            "exposed": false,
             "id": true,
             "name": false,
             "org_id": false,
