@@ -219,6 +219,11 @@ class CollectionsController extends AppController
                     'orgc_id' => $oldCollection['Collection']['orgc_id'],
                     'org_id' => $oldCollection['Collection']['org_id'],
                     'user_id' => $oldCollection['Collection']['user_id'],
+                    // locked is a sync-integrity flag set only by captureCollection (as a
+                    // perm_sync user); the web edit path must never change it, otherwise an
+                    // owner could flip locked and bypass the create-time guard in
+                    // Collection::beforeValidate. Pin it to the stored value.
+                    'locked' => $oldCollection['Collection']['locked'],
                 ],
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);

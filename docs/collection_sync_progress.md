@@ -133,15 +133,26 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   `perm_sync=0`) POSTed `Collection[locked]=1` to `/collections/add`; stored row had `locked=0`.
   (`locked` is now a real column, so absent the guard Cake would have persisted the supplied `1`
   ⇒ discriminating positive test.) Test collection deleted afterwards.
-- **⚠ OPEN — edit-path bypass (NOT yet fixed, needs sign-off).** `CollectionsController::edit`
-  (`:217-222`) pins `id/orgc_id/org_id/user_id` via `override` but **not `locked`**;
-  `CRUDComponent::edit` copies every supplied field, so an owner (`mayModify`) can flip `locked`
-  on their own collection via edit, bypassing the create guard. Impact is self-limited (a user can
-  only mark their OWN collection overwritable-by-remote — self-harm, no cross-user write), but it
-  defeats the guard's intent. The override block is **pre-existing mass-assignment-audit code**
-  (commit `9341690e9b`, on the `2.5` base — not this feature branch), so extending it is
-  "touching existing code" per the additive-only posture ⇒ flagged to the user for sign-off.
-  Fix if approved: add `'locked' => $oldCollection['Collection']['locked']` to the `override`.
+- **✓ RESOLVED — edit-path bypass** (user signed off 2026-07-01; separate commit). `CollectionsController::edit`
+  `override` now also pins `'locked' => $oldCollection['Collection']['locked']` (alongside
+  id/orgc_id/org_id/user_id), so an owner can no longer flip `locked` on their own collection via
+  edit to bypass the create guard. The web edit path never legitimately changes `locked` (only the
+  T2.1 capture sink does), so an unconditional pin — matching how orgc/org/user are pinned — is correct.
+  **Live-verified** (see the discriminating matrix below). Extending the pre-existing audit override
+  (`9341690e9b`) was explicitly approved.
+- **★ CACHE GOTCHA (cost real debugging time — record for T2.1+ live verification) ★** After a
+  migration adds a column, MISP's CakePHP-2 caches must be cleared or the running app's `find()`
+  silently omits the new column (schema/DB have it, but the SELECT list doesn't). TWO caches matter:
+  `app/tmp/cache/models/` (`_cake_model_`, the describe cache) **AND** `app/tmp/cache/persistent/myapp_cake_core_method_cache`
+  (`_cake_core_`, where `DboSource::fields()` caches the generated column list keyed by ALIAS, not by
+  schema). Clearing only `models/` is NOT enough — the stale method_cache made a `perm_sync=0`
+  `locked=1` create *look* forced-to-0 when really Cake was dropping `locked` from the INSERT (a FALSE
+  PASS). Clear both (or reload php-fpm) before trusting any live schema-column verification.
+- **Discriminating verification matrix (2026-07-01, dev localhost:5007, caches cleared):**
+  - A) `perm_sync=0` create `locked=1` → stored **0** (guard forces).
+  - B) `perm_sync=1` create `locked=1` → stored **1** (exemption works; proves column is writable ⇒ A is discriminating).
+  - C) `perm_sync=0` edit `locked=1`+desc → locked **0**, desc changed, HTTP 200 (edit-pin holds, other fields editable).
+  - D) `perm_sync=1` edit `locked=0` on a locked=1 row → locked stays **1**, HTTP 200 (edit never flips locked).
 
 ## Phase 2 — Shared capture sink
 - [ ] **T2.1** Implement `Collection::captureCollection()` (PRD §6.2) — orgc/org/SG capture,
