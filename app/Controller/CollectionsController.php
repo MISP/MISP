@@ -425,6 +425,62 @@ class CollectionsController extends AppController
     }
 
     /**
+     * Push-receive dedup handshake. The pushing peer sends its {uuid: modified} candidates;
+     * we reply with the subset this instance actually wants (missing locally, or strictly
+     * newer than a synced-in local copy). Mirrors AnalystDataController::filterAnalystDataForPush.
+     * REST/CSRF auto-unlocked; ACL gated on perm_sync.
+     *
+     * POST /collections/filterCollectionsForPush
+     */
+    public function filterCollectionsForPush()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
+        }
+        $allIncomingCollections = $this->request->data;
+        $wantedUuids = $this->Collection->filterCollectionsForPush($allIncomingCollections);
+        return $this->RestResponse->viewData($wantedUuids, $this->response->type());
+    }
+
+    /**
+     * Push-receive upload endpoint. The pushing peer uploads one collection (nested under
+     * Collection, with its Orgc / SharingGroup / CollectionElement corpus); we hand the RAW
+     * payload to the shared Collection::captureCollection sink, which owns the distribution
+     * downgrade, locked=1 and the D6 conflict rule. Push-receive passes $server=false and
+     * remotePermSyncInternal from the pushing user's own role (contrast pull, which passes
+     * the server + the remote cachedUserInfo). Mirrors AnalystDataController::pushAnalystData.
+     * REST/CSRF auto-unlocked; in-action perm_sync + _isRest() gate on top of the ACL entry.
+     *
+     * POST /collections/captureCollection
+     */
+    public function captureCollection()
+    {
+        if (!$this->Auth->user()['Role']['perm_sync']) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only accessible via a REST request.'));
+        }
+        if ($this->request->is('post')) {
+            $collection = $this->request->data;
+            $saveResult = $this->Collection->captureCollection(
+                $this->Auth->user(),
+                $collection,
+                false,
+                !empty($this->Auth->user()['Role']['perm_sync_internal'])
+            );
+            $messageInfo = __('%s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+            if ($saveResult['success']) {
+                $message = __('Collection imported. ') . $messageInfo;
+                return $this->RestResponse->saveSuccessResponse('Collection', 'captureCollection', false, $this->response->type(), $message);
+            } else {
+                $message = __('Could not import collection. ') . $messageInfo;
+                return $this->RestResponse->saveFailResponse('Collection', 'captureCollection', false, $message);
+            }
+        }
+    }
+
+    /**
      * Returns the collections that contain a given element (by type + uuid).
      * Read-only, JSON only. Used by the beta UI event view widget.
      *

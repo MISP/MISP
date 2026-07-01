@@ -336,6 +336,60 @@ class Collection extends AppModel
     }
 
     /**
+     * Push-receive dedup: given the pushing peer's {uuid: modified} candidates, return
+     * only the subset this (receiving) instance actually wants — the receive-side mirror
+     * of the pull dedup in Collection::pull. Flattened analogue of
+     * AnalystData::filterAnalystDataForPush (no analyst-data `type` dimension).
+     *
+     * A candidate is wanted when it is either missing locally, OR strictly newer than a
+     * local copy that is itself synced-in (locked=1). A locally-created (locked=0)
+     * collection is authoritative and is never overwritten by a push (D6), so its uuid is
+     * dropped from the wanted set even if the candidate looks newer.
+     *
+     * @param array $candidates {uuid: modified} offered by the pushing peer.
+     * @return array The {uuid: modified} subset the local side wants captured.
+     */
+    public function filterCollectionsForPush($candidates): array
+    {
+        $incoming = $candidates;
+        $incomingUuids = array_keys($incoming);
+        if (empty($incomingUuids)) {
+            return [];
+        }
+        $localRows = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['Collection.uuid' => $incomingUuids],
+            'fields' => ['uuid', 'modified', 'locked'],
+        ]);
+        foreach ($localRows as $localRow) {
+            $local = $localRow['Collection'];
+            if (empty($incoming[$local['uuid']])) {
+                continue;
+            }
+            if (!$this->isCandidateValidForPush($incoming[$local['uuid']], $local)) {
+                unset($incoming[$local['uuid']]);
+            }
+        }
+        return $incoming;
+    }
+
+    /**
+     * D6 gate shared by filterCollectionsForPush: a candidate only wins against an existing
+     * local row when that row is synced-in (locked=1) AND the candidate is strictly newer.
+     * Mirrors AnalystData::isCandidateValidForPush.
+     */
+    private function isCandidateValidForPush($candidateModified, array $existingEntry): bool
+    {
+        if ($existingEntry['locked'] == 0) {
+            return false;
+        }
+        if (strtotime($existingEntry['modified']) >= strtotime($candidateModified)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Shared sync capture sink for Collections — the single ingest point for BOTH the
      * pull path and the push-receive controller action (mirrors
      * GalaxyCluster::captureCluster / AnalystData::captureAnalystData). Centralising

@@ -129,9 +129,13 @@ class ACLComponent extends Component
         ],
         'collections' => [
             'add' => ['perm_modify'],
+            // Sync push-receive upload endpoint → Collection::captureCollection sink.
+            'captureCollection' => ['perm_sync'],
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
+            // Sync push-receive dedup handshake (returns the UUIDs the local side wants).
+            'filterCollectionsForPush' => ['perm_sync'],
             // Read-only JSON endpoint used by beta Event view to list collection memberships.
             'getCollectionsForElement' => ['*'],
             'getCollectionsForElements' => ['*'],
