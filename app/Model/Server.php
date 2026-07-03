@@ -1436,6 +1436,20 @@ class Server extends AppModel
             $fails = array();
         }
 
+        // Collections: gated on the per-server push_collections toggle (T1.2) AND feature
+        // negotiation (isSupported reads the remote info already cached by the version check,
+        // so no extra round-trip) — an older peer without the capability is skipped silently.
+        // Collection::push re-checks isSupported; the remote captureCollection sink owns the
+        // distribution downgrade + locked=1, so the push sends RAW (mirroring the pull side).
+        $pushedCollections = 0;
+        if (!empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            if ($jobId) {
+                $job->saveProgress($jobId, __('Pushing collections.'));
+            }
+            $this->Collection = ClassRegistry::init('Collection');
+            $pushedCollections = $this->Collection->push($user, $serverSync);
+        }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->saveOrFailSilently(array(
@@ -1446,7 +1460,7 @@ class Server extends AppModel
             'action' => 'push',
             'user_id' => $user['id'],
             'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update. ' . $pushedCollections . ' collections pushed.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
