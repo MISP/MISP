@@ -843,7 +843,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $technique, $s);
                 if (is_array($result)) {
-                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5]);
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled, %s collections pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5], $result[6]);
                 } else {
                     $error = $result;
                 }
@@ -852,6 +852,7 @@ class ServersController extends AppController
                 $this->set('pulledProposals', $result[2]);
                 $this->set('pulledSightings', $result[3]);
                 $this->set('pulledAnalystData', $result[5]);
+                $this->set('pulledCollections', $result[6]);
             } else {
                 $this->loadModel('Job');
                 $jobId = $this->Job->createJob(
