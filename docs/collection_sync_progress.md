@@ -460,7 +460,46 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
     DB back to the original 3 collections.
 - **Additive within accepted touch points** (PRD §5 items 2 + 6). Lint clean (`parallel-lint`, PHP 8.3).
   **Next: T4.3** — `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
-- [ ] **T4.3** `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
+- [x] **T4.3** `Collection::push` (+ `collectDataForPush` eligibility, `prepareForPushToServer`).
+  Commit `64ad9a02e`. → findings below.
+
+### T4.3 findings — Collection::push model (commit `64ad9a02e`)
+- **Six additive methods** on `Collection` (mirror `AnalystData::push` / `collectDataForPush` /
+  `collectValidSharingGroupIDs` / `isPushableForServerSyncRules` / `uploadEntryToServer` /
+  `prepareForPushToServer`, flattened — no `type` dimension):
+  - **`push($user, ServerSyncTool)`** → `int` count. `isSupported(FEATURE_COLLECTION_SYNC)` gate →
+    `collectDataForPush` → build `{uuid: modified}` candidates → `ServerSyncTool::filterCollectionsForPush`
+    (T4.1) → for each wanted uuid `uploadCollectionToServer`. Handles the `['response']` unwrap on the
+    remote reply. **Symmetric with `Collection::pull`** (int return; `push_collections` toggle left to the
+    caller `Server::push`/T4.4, exactly as `pull_collections` is checked in `Server::pull`, not `Collection::pull`).
+  - **`collectDataForPush($server)`** — eligible = `distribution` 1-3, OR 4 with `$server` in the SG
+    (`collectValidSharingGroupIDs`, checkIfServerInSG per SG). Enriches the dist=4 SharingGroup with the full
+    `Organisation`/`SharingGroupOrg`/`SharingGroupServer` structure (so the remote `captureSG` can create it if
+    missing — copy of the analyst-data `$sgStore` cache). **Nests** the `Orgc`/`SharingGroup`/`CollectionElement`
+    corpus under `Collection` (the shape `checkDistributionForPush`, `pushCollection` and the remote
+    `captureCollection` sink all expect). Filters by `Event::checkDistributionForPush(…, 'Collection')` (blocks
+    dist<2 for external; dist=4 SG-membership) + org push-rules (`isPushableForServerSyncRules`, keyed on
+    `Orgc.uuid`).
+  - **`uploadCollectionToServer` + `prepareForPushToServer`** — per-collection upload; prepare re-checks the
+    dist=4 SG-server membership (403) + `checkDistributionForPush` (403) and **strips the local `id`**.
+- **★ RAW passthrough — the deliberate divergence from analyst-data ★** `prepareForPushToServer` does **NOT**
+  downgrade distribution and does **NOT** set `locked` (contrast `AnalystData::updateAnalystDataForSync`, which
+  does both on the push side). The shared `captureCollection` sink OWNS the downgrade + `locked=1` (T2.1), and
+  **T4.2 live-proved it downgrades on receive** (pushed dist=2 → landed dist=1). Pre-downgrading here would
+  double-downgrade. This keeps push symmetric with pull (both pass RAW). Carry-forward honoured.
+- **Element corpus shape** verified symmetric with the pull path: `contain => ['CollectionElement']` yields
+  rows with `uuid`/`element_uuid`/`element_type`/`description` — exactly what `captureElements` reads (line
+  236-238), and the remote `captureElements` rebuilds each element clean (ignores the local `id`/`collection_id`).
+- **Reused, not re-derived:** `Event::checkDistributionForPush` (context `'Collection'` reads
+  `$object['Collection']['distribution']` + `['SharingGroup']`), `SharingGroup::checkIfServerInSG`, the
+  `loadLog()`/`logException()` AppModel helpers. `push_rules` is `NOT NULL` (text) ⇒ `json_decode` needs no
+  null-guard.
+- **Caller-less until T4.4** (mirrors T3.3 → T3.4 precedent): committed on lint + static/template verification;
+  **the T4.4 self-loopback push will live-exercise the full chain** (collect → filter → upload → remote capture
+  → DB write) — a *stronger* test than pull's self-loopback, since push actively writes (pull's loopback could
+  only reach skip-on-equal). Additive (PRD §5 item 8). Lint clean (`parallel-lint`, PHP 8.3). **Next: T4.4** —
+  wire `Collection::push` into `Server::push` behind `push_collections` + negotiation (`Server.php` ~`:1229`;
+  mirror the T3.4 pull block at `Server::pull` ~`:695`).
 - [ ] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
 - [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
   testing folds into Phase 6 once implementation is finished).
