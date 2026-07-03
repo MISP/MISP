@@ -500,7 +500,56 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   only reach skip-on-equal). Additive (PRD §5 item 8). Lint clean (`parallel-lint`, PHP 8.3). **Next: T4.4** —
   wire `Collection::push` into `Server::push` behind `push_collections` + negotiation (`Server.php` ~`:1229`;
   mirror the T3.4 pull block at `Server::pull` ~`:695`).
-- [ ] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
+- [x] **T4.4** Wire into `Server::push` behind `push_collections` + feature negotiation.
+  Commit `013d9cfc1`. **★ LIVE-VERIFIED via self-loopback push on dev (localhost:5007) ★** → findings below.
+
+### T4.4 findings — Server::push collections block (commit `013d9cfc1`)
+- **One additive block** in `Server::push` (`Server.php`, right after the analyst-data push block
+  `:1422-1433`, before the push `Log` save `:1449`), plus count-plumbing, mirroring the T3.4 pull block:
+  - Gate: `!empty($server['Server']['push_collections'])` (T1.2 toggle) **AND**
+    `$serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)` (negotiation — reads the info
+    already cached by the `:1255` `checkVersionCompatibility` version fetch, no extra HTTP;
+    `Collection::push` re-checks it too, belt-and-suspenders). **The `push_collections` toggle is
+    checked HERE, not in `Collection::push`** — symmetric with `pull_collections` in `Server::pull`.
+  - Body: `$this->Collection = ClassRegistry::init('Collection'); $pushedCollections = $this->Collection->push($user, $serverSync);`
+    + a **message-only** `$job->saveProgress($jobId, __('Pushing collections.'))` when `$jobId`.
+    **No percentage** (deliberate divergence from pull's `90`): push has no fixed progress scale — its
+    event loop already reaches 100% at `:1391`, and sightings/analyst-data emit no progress — so a fixed
+    percent here would regress the bar. Message-only matches the push method's own convention.
+  - `$pushedCollections = 0` initialised before the gate (defined when the toggle is off), appended to
+    the push DB-log `$change` string (`:1449`) as `. $pushedCollections . ' collections pushed.'`.
+    **The return shape `array($successes, $fails)` (`:1454`) is deliberately NOT changed** (callers
+    `list($successes,$fails)` it; fuller user-facing surfacing is T5.2/D8). Note push's `$change` is a
+    plain concatenation (contrast pull's `sprintf`), so the append is a concat too.
+- **★ LIVE-VERIFIED via self-loopback push (server 7 → localhost:5007) ★** — `push=1, push_collections=1`,
+  `POST /servers/push/7/full` (admin key, background worker, **job 1392 completed, "Job done."**).
+  **Result:** new push log (id `2334750`) = *"0 events pushed or updated. 0 events failed or didn't need
+  an update. **0 collections pushed.**"* — the new clause is live (the prior push log used the old
+  clause-less format ⇒ clean before/after). **Discriminating three-layer proof (0 is a LIVE round-trip,
+  not a short-circuited/defaulted 0):** (1) `server-sync.log` shows the push firing, in order,
+  `GET /servers/getVersion 200` → `POST /events/filterEventIdsForPush 200` → `POST /events/index 200` →
+  **`POST /collections/filterCollectionsForPush 200 2`** — the T4.4 wiring running `Collection::push`'s
+  real chain (T4.1 `ServerSyncTool` client → T4.2 receive endpoint → back); (2) the `2`-byte `[]` response
+  = the remote (=self) wanting NONE of the offered collections = the **D6 clean-loopback drop** of the
+  offered `locked=0` originals (authoritative-local); the very presence of the `filterCollectionsForPush`
+  call proves `collectDataForPush` produced ≥1 candidate (U1 dist=2) and offered it — a failed
+  toggle/negotiation gate would emit **no** call at all; (3) collections table unchanged (3 rows, all
+  `locked=0`) ⇒ no spurious capture. Toggles reverted; server 7 left as the working loopback.
+- **★ Corrects the T4.3 body's optimism — a push self-loopback does NOT reach the capture-write branch
+  either.** Same DB ⇒ the remote `filterCollectionsForPush` can never *want* a `locked=0` or
+  equal-`modified` row it already holds (D6), so `0` is the correct terminal outcome, NOT a bug. The
+  fetch/capture-over-push **write branch** (T4.2's `captureCollection` was already live-verified directly
+  via curl in T4.2, but the push-driven path to it) needs a **distinct peer** → **Phase 6 T6.1**, the
+  same limitation class as the T3.4 pull loopback.
+- **Note (flagged for review): the block is gated on the toggle + negotiation ONLY, exactly per the
+  handoff plan — NOT on `$push['canPush']`.** The sibling event/sightings/analyst-data pushes each gate on
+  a `$push` capability; collections have no separate remote capability (D3), so `$push['canPush']` would be
+  the faithful analogue and would skip a guaranteed-403 upload attempt when the remote refuses this sync
+  user. Omitted per the plan (harmless — the remote's `perm_sync` ACL still enforces `captureCollection`);
+  recorded as an **optional T5 tightening** for the user's call.
+- **PRD §5 item 1** (accepted non-additive touch point); additive *within* the method. Lint clean
+  (`parallel-lint`, PHP 8.3). **★ Phase 4 implementation COMPLETE (T4.1–T4.4); T4.5 tests → Phase 6.**
+  **Next: Phase 5 (UI/D8) — T5.1** server add/edit/view collection toggles.
 - [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
   testing folds into Phase 6 once implementation is finished).
 
@@ -544,6 +593,18 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03:** **T4.4 done** (commit `013d9cfc1`) → **Phase 4 implementation COMPLETE (T4.1–T4.4).**
+  Wired a collections block into `Server::push` after the analyst-data push block (`:1422-1433`), gated on
+  `push_collections` (T1.2) + `isSupported(FEATURE_COLLECTION_SYNC)`; `ClassRegistry::init('Collection')->push()`;
+  count appended to the `$change` DB-log concat; **return shape untouched** (T5.2 does the user-facing
+  surfacing). Message-only `saveProgress` (push has no fixed progress scale). **★ LIVE-VERIFIED via
+  self-loopback push ★** (server 7 → localhost:5007, `push=1/push_collections=1`, job 1392): push log shows
+  "…0 collections pushed."; `server-sync.log` shows `POST /collections/filterCollectionsForPush 200 2` = the
+  wiring firing `Collection::push`'s real T4.1→T4.2 chain, the `[]` response = D6 drop of the offered
+  `locked=0` originals (live 0, not a short-circuit; collectDataForPush offered U1). Collections unchanged;
+  toggles reverted. **Corrects T4.3's optimism** — a push self-loopback also can't reach the capture-write
+  branch (same-DB D6); that's Phase 6 T6.1 with a distinct peer. Flagged an optional T5 `$push['canPush']`
+  gate tightening for review. Lint clean. **Next: Phase 5 T5.1** (server-form collection toggles).
 - **2026-07-01:** **T4.1 done** (commit `9abd6bb64`) — `ServerSyncTool::filterCollectionsForPush`
   (POST `/collections/filterCollectionsForPush`, push dedup) + `pushCollection` (POST
   `/collections/captureCollection`, per-item upload w/ log message), both gated behind
