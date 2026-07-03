@@ -558,7 +558,50 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
 - [x] **T5.2** Sync job output + pull/push preview: collection counts. Commit `73185042b`.
   **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** → findings below.
-- [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+- [x] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+  Commit `582999bd0` (unit test). **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** → findings below.
+
+### T5.3 findings — negotiation-skip vs a simulated old peer (commit `582999bd0`)
+- **The NEGATIVE control** for the negotiation triad (const + `getVersion` advertise +
+  `ServerSyncTool::isSupported` case, landed T3.1). The POSITIVE path (both peers advertise
+  `collection_sync` ⇒ the blocks fire) was already proven by the live 5007⇄5008 E2E (T6.1) and the
+  self-loopback runs at T3.4/T5.2. T5.3 proves the other side: an older peer NOT advertising the key ⇒
+  `isSupported(FEATURE_COLLECTION_SYNC)` false ⇒ `Server::pull`/`push` skip the collection blocks with
+  **no `/collections/*` HTTP round-trip at all**, while the rest of the sync runs normally. Verified two ways:
+- **Unit (checked-in, deterministic):** `app/Test/ServerSyncCollectionNegotiationTest.php` — 7 bare-PHPUnit
+  tests ([[project-misp-test-convention]]). A `TestableServerSync extends ServerSyncTool` bypasses the
+  socket-building constructor and overrides `info()` to return an injected remote-getVersion payload, so
+  `isSupported` (which reads `$this->info()`, `:585`) operates on the exact advertised metadata. Cases:
+  advertised `true` / truthy `1` → supported; key **absent** / `false` / falsy `0` → unsupported; plus a
+  **harness positive control** (the sibling `filter_sightings` advertised-boolean flag toggles with the
+  injected payload) so the negative assertions are discriminating, not a vacuous always-empty-info artifact.
+  **★ Mutation-verified ★** — forcing the `FEATURE_COLLECTION_SYNC` case to `return true` broke exactly the
+  3 negative tests (KeyAbsent/False/Zero); reverted. **Full `app/Test/` suite: 429 tests, 0 failures** (422→+7).
+- **Live-simulate (block-level skip):** temporarily stripped the `'collection_sync' => true` line from
+  `ServersController::getVersion` (`:1997`) to mimic an old peer (reverted via `git checkout`); opcache guard =
+  a direct `GET /servers/getVersion` confirmed the key was **gone** (payload shrank 271→**248 bytes**) before
+  pulling. Self-loopback pull (server 7 → localhost:5007, `pull=1,pull_collections=1`, admin key user 1,
+  background worker, **job 1400** completed status 4). **The pull's new `server-sync.log` lines fired the full
+  normal sequence** — `GET /servers/getVersion` (248B), `POST /events/index`, `shadow_attributes/index`,
+  `POST /analyst_data/indexMinimal` (5834B) — **but ZERO `POST /collections/indexMinimal`** (`grep -c` = 0),
+  vs the **positive baseline** (the immediately-preceding pull at the same commit, whose sequence ended with
+  `POST /collections/indexMinimal 200 184` right after `analyst_data/indexMinimal`). Identical pull minus the
+  collections call ⇒ the block short-circuited on `isSupported()==false` before any HTTP.
+- **★ Nuance — the job MESSAGE is NOT the discriminator.** `$pulledCollections` initialises to `0`, so the
+  T5.2 caller string renders "0 collections pulled" whether the block ran-and-found-0 (skip-on-equal) OR was
+  skipped entirely (old peer). The authoritative proof is the **absence of the `/collections/indexMinimal`
+  round-trip in `server-sync.log`** (present in the positive baseline, absent here). Bonus discriminator: the
+  248-vs-271-byte getVersion delta confirms the remote genuinely served the old-peer payload.
+- **All reverted:** `getVersion` restored (advertises `collection_sync=true` again, curl-confirmed); server 7
+  toggles back to `0/0`. Only the additive test file remains. Lint clean.
+- **★ Phase 5 implementation COMPLETE (T5.1–T5.3).** Remaining: Phase 6 (checked-in `tests/` E2E script,
+  T3.5/T4.5 per-phase unit tests, T6.2 docs, T6.3 final regression). **Optional T5 tightening still OPEN**
+  (flagged T4.4): the `Server::push` collections block gates on toggle + negotiation only, not
+  `$push['canPush']` — confirmed at `Server.php:1256` the push only early-returns when the remote can neither
+  push nor sight, so a **sightings-only** remote reaches the collection block and would fire a guaranteed-403
+  `filterCollectionsForPush`/`captureCollection` (the sibling analyst-data block guards this at `:1422`).
+  Harmless (remote `perm_sync` ACL still 403s), but the faithful analogue. **Left for the user's explicit call**
+  (asked this session; user afk — not touching committed push behaviour unprompted).
 
 ### T5.1 findings — server-form collection toggles (commit `45b83b56f`)
 - **Three additive edits**, mirroring the `pull_analyst_data`/`push_analyst_data` toggles verbatim:
@@ -730,6 +773,22 @@ columns intact. Everywhere below that says "155/156" is historical — the live 
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03 — session 10:** **T5.3 done → Phase 5 implementation COMPLETE.** Verified the
+  feature-negotiation SKIP (the negative control) two ways. **Unit** (`582999bd0`,
+  `app/Test/ServerSyncCollectionNegotiationTest.php`, 7 tests): a `TestableServerSync` injects a fake
+  `info()` (remote getVersion payload), asserting `isSupported(FEATURE_COLLECTION_SYNC)` is false when
+  the key is absent/false/0 and true when advertised true/1, with a `filter_sightings` positive control
+  proving the harness is discriminating; mutation-verified (case→true breaks exactly the 3 negatives);
+  full suite 429/0. **Live** (self-loopback, job 1400): stripped `collection_sync` from `getVersion`
+  (old-peer simulate, curl-confirmed 271→248B), pulled → `server-sync.log` fired getVersion/events/
+  shadow_attributes/`analyst_data/indexMinimal` but **zero `/collections/indexMinimal`** (vs the positive
+  baseline that fires it right after analyst_data) ⇒ the block short-circuited before any HTTP; all reverted.
+  Nuance recorded: the job "0 collections pulled" MESSAGE isn't discriminating ($pulledCollections inits 0);
+  the sync-log ABSENCE is. Also confirmed `Server.php:1256` — a sightings-only remote reaches the push
+  collection block, so the optional `$push['canPush']` tightening is a real (minor) improvement; left for
+  the user's explicit call (asked; user afk). Pushed `73185042b`+`c26556ae6` were already on origin
+  (git push = up-to-date). **Next: Phase 6** (checked-in `tests/` E2E script + T3.5/T4.5 unit tests +
+  T6.2 docs + T6.3 final regression).
 - **2026-07-03 — session 9:** **T5.2 done** (commit `73185042b`). Surfaced the pulled-collections
   count (`Server::pull` return index [6], from T3.4) in the user-facing "Pull completed. …" messages,
   mirroring the analyst-data `$result[5]` verbatim: `, %s collections pulled.` appended in
