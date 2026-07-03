@@ -568,6 +568,241 @@ class Collection extends AppModel
         return $collection;
     }
 
+    /**
+     * Sync push entry point. Collects the local collections eligible to leave for this peer,
+     * asks the remote which of them it actually wants (filterCollectionsForPush remote dedup),
+     * then uploads each accepted collection (with its Orgc / SharingGroup / CollectionElement
+     * corpus) to the remote captureCollection sink. Mirrors AnalystData::push, flattened —
+     * collections have no analyst-data `type` dimension.
+     *
+     * ★ RAW passthrough (T2.1 carry-forward): the remote captureCollection() sink OWNS the
+     * distribution downgrade and locked=1, so we must NOT pre-downgrade or set locked here (the
+     * pull side follows the same rule). This is the deliberate divergence from AnalystData::push,
+     * whose updateAnalystDataForSync downgrades + locks on the push side.
+     *
+     * The push_collections server toggle is checked by the caller (Server::push), mirroring how
+     * Server::pull gates Collection::pull on pull_collections — this method only enforces the
+     * feature-negotiation gate, keeping push/pull symmetric.
+     *
+     * @param array $user The local sync user driving the push.
+     * @param ServerSyncTool $serverSync Negotiated connection to the remote instance.
+     * @return int Number of collections accepted + uploaded by the remote.
+     */
+    public function push(array $user, ServerSyncTool $serverSync)
+    {
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            return 0;
+        }
+        $server = $serverSync->server();
+        $this->Server = ClassRegistry::init('Server');
+
+        $collections = $this->collectDataForPush($server);
+        if (empty($collections)) {
+            return 0;
+        }
+
+        // Remote dedup: offer {uuid: modified}, the remote replies with the subset it wants
+        // (missing there, or strictly newer than a synced-in remote copy — the mirror of our
+        // own filterCollectionsForPush receive logic).
+        $candidates = [];
+        foreach ($collections as $collection) {
+            $candidates[$collection['Collection']['uuid']] = $collection['Collection']['modified'];
+        }
+        try {
+            $wanted = $serverSync->filterCollectionsForPush($candidates)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not get eligible collection UUIDs from server #{$server['Server']['id']} for push.", $e);
+            return 0;
+        }
+        if (isset($wanted['response'])) {
+            $wanted = $wanted['response'];
+        }
+        if (empty($wanted)) {
+            return 0;
+        }
+
+        $pushed = 0;
+        foreach ($collections as $collection) {
+            if (!isset($wanted[$collection['Collection']['uuid']])) {
+                continue;
+            }
+            if ($this->uploadCollectionToServer($collection, $server, $serverSync, $user) === 'Success') {
+                $pushed++;
+            }
+        }
+        return $pushed;
+    }
+
+    /**
+     * Collect the local collections eligible to be pushed to $server: distribution 1-3, or 4
+     * when $server is a member of the collection's sharing group; then apply the server's
+     * distribution rules (checkDistributionForPush) and org push-rules (orgc OR/NOT). Each kept
+     * collection carries its Orgc / SharingGroup / CollectionElement corpus nested under
+     * Collection so the remote sink can resolve orgc_id / sharing_group_id by UUID and replace
+     * the element corpus. Mirrors AnalystData::collectDataForPush, flattened.
+     *
+     * @param array $server
+     * @return array List of collections, each nested under 'Collection'.
+     */
+    public function collectDataForPush(array $server): array
+    {
+        $sgIDs = $this->collectValidSharingGroupIDs($server);
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'contain' => ['Orgc', 'SharingGroup', 'CollectionElement'],
+            'conditions' => [
+                'OR' => [
+                    ['AND' => [['Collection.distribution >' => 0], ['Collection.distribution <' => 4]]],
+                    ['AND' => ['Collection.distribution' => 4, 'Collection.sharing_group_id' => $sgIDs]],
+                ],
+            ],
+        ]);
+        $this->Event = ClassRegistry::init('Event');
+        $SGModel = ClassRegistry::init('SharingGroup');
+        $sgStore = [];
+        $dataForPush = [];
+        foreach ($rows as $row) {
+            // Enrich the dist=4 sharing group with the full org/server structure the remote
+            // captureSG needs to create it if missing (mirrors the AnalystData $sgStore cache).
+            if (!empty($row['SharingGroup']['id'])) {
+                $sgId = $row['SharingGroup']['id'];
+                if (!isset($sgStore[$sgId])) {
+                    $sg = $SGModel->find('first', [
+                        'contain' => [
+                            'SharingGroupServer' => ['Server' => ['fields' => ['Server.id', 'Server.url', 'Server.remote_org_id']]],
+                            'SharingGroupOrg' => ['Organisation' => ['fields' => ['Organisation.id', 'Organisation.uuid']]],
+                            'Organisation' => ['fields' => ['Organisation.id', 'Organisation.uuid']],
+                        ],
+                        'conditions' => ['SharingGroup.id' => $sgId],
+                    ]);
+                    $temp = $sg['SharingGroup'];
+                    foreach (['Organisation', 'SharingGroupOrg', 'SharingGroupServer'] as $field) {
+                        $temp[$field] = $sg[$field];
+                    }
+                    $sgStore[$sgId] = $temp;
+                }
+                $row['SharingGroup'] = $sgStore[$sgId];
+            }
+            // Nest the corpus under Collection — the shape checkDistributionForPush,
+            // ServerSyncTool::pushCollection and the remote captureCollection sink all expect.
+            $collection = ['Collection' => $row['Collection']];
+            foreach (['Orgc', 'SharingGroup', 'CollectionElement'] as $child) {
+                if (isset($row[$child])) {
+                    $collection['Collection'][$child] = $row[$child];
+                }
+            }
+            if (!$this->Event->checkDistributionForPush($collection, $server, 'Collection')) {
+                continue;
+            }
+            if (!$this->isPushableForServerSyncRules($collection['Collection'], $server)) {
+                continue;
+            }
+            $dataForPush[] = $collection;
+        }
+        return $dataForPush;
+    }
+
+    /**
+     * Sharing group IDs whose membership includes $server — dist=4 collections in one of these
+     * are eligible to push. Mirrors AnalystData::collectValidSharingGroupIDs.
+     */
+    private function collectValidSharingGroupIDs(array $server): array
+    {
+        $SGModel = ClassRegistry::init('SharingGroup');
+        $sgs = $SGModel->find('all', [
+            'recursive' => -1,
+            'contain' => ['Organisation', 'SharingGroupOrg' => ['Organisation'], 'SharingGroupServer'],
+        ]);
+        $sgIDs = [];
+        foreach ($sgs as $sg) {
+            if ($SGModel->checkIfServerInSG($sg, $server)) {
+                $sgIDs[] = $sg['SharingGroup']['id'];
+            }
+        }
+        if (empty($sgIDs)) {
+            $sgIDs = [-1];
+        }
+        return $sgIDs;
+    }
+
+    /**
+     * Apply the server's org push-rules (orgc OR/NOT) to a collection. Mirrors
+     * AnalystData::isPushableForServerSyncRules; keys off the creator org UUID (Orgc.uuid).
+     */
+    private function isPushableForServerSyncRules(array $collection, array $server): bool
+    {
+        $pushRules = json_decode($server['Server']['push_rules'], true);
+        if (!empty($pushRules['orgs']['OR'])) {
+            if (empty($collection['Orgc']['uuid']) || !in_array($collection['Orgc']['uuid'], $pushRules['orgs']['OR'])) {
+                return false;
+            }
+        }
+        if (!empty($pushRules['orgs']['NOT'])) {
+            if (!empty($collection['Orgc']['uuid']) && in_array($collection['Orgc']['uuid'], $pushRules['orgs']['NOT'])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Prepare + upload a single collection to the remote captureCollection endpoint. Mirrors
+     * AnalystData::uploadEntryToServer; logs + returns the error string on failure, 'Success'
+     * otherwise (a numeric return from prepareForPushToServer means the collection was blocked).
+     */
+    public function uploadCollectionToServer(array $collection, array $server, ServerSyncTool $serverSync, array $user)
+    {
+        $collectionUuid = $collection['Collection']['uuid'];
+        $collection = $this->prepareForPushToServer($collection, $server);
+        if (is_numeric($collection)) {
+            return $collection;
+        }
+        try {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC)) {
+                return __('The remote user does not have the permission to sync, the upload of the collection has been blocked.');
+            }
+            $serverSync->pushCollection($collection)->json();
+        } catch (Exception $e) {
+            $title = __('Uploading Collection (%s) to Server (%s)', $collectionUuid, $server['Server']['id']);
+            $this->loadLog()->createLogEntry($user, 'push', 'Collection', 0, $title, $e->getMessage());
+            $this->logException("Could not push collection to remote server {$serverSync->serverId()}", $e);
+            return $e->getMessage();
+        }
+        return 'Success';
+    }
+
+    /**
+     * Final gate + cleanup before a collection leaves for $server. Mirrors
+     * AnalystData::prepareForPushToServer, MINUS the downgrade/locked mutation (the remote
+     * captureCollection sink owns both — RAW passthrough, T2.1 carry-forward): re-checks the
+     * dist=4 sharing-group server membership and the distribution rules, then strips the local
+     * id (mass-assignment discipline; the remote keys on uuid). Returns 403 when blocked.
+     */
+    private function prepareForPushToServer(array $collection, array $server)
+    {
+        if ($collection['Collection']['distribution'] == 4) {
+            if (!empty($collection['Collection']['SharingGroup']['SharingGroupServer'])) {
+                $found = false;
+                foreach ($collection['Collection']['SharingGroup']['SharingGroupServer'] as $sgs) {
+                    if ($sgs['server_id'] == $server['Server']['id']) {
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    return 403;
+                }
+            } elseif (empty($collection['Collection']['SharingGroup']['roaming'])) {
+                return 403;
+            }
+        }
+        $this->Event = ClassRegistry::init('Event');
+        if (!$this->Event->checkDistributionForPush($collection, $server, 'Collection')) {
+            return 403;
+        }
+        unset($collection['Collection']['id']);
+        return $collection;
+    }
+
     public function rearrangeCollection(array $collection, $user = null) {
         foreach ($collection as $key => $elements) {
             if ($key !== 'Collection') {
