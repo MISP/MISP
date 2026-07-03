@@ -554,9 +554,42 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   testing folds into Phase 6 once implementation is finished).
 
 ## Phase 5 — UI surfacing & negotiation polish
-- [ ] **T5.1** Server add/edit/view: collection toggles.
+- [x] **T5.1** Server add/edit/view: collection toggles. Commit `45b83b56f`.
+  **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
 - [ ] **T5.2** Sync job output + pull/push preview: collection counts.
 - [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+
+### T5.1 findings — server-form collection toggles (commit `45b83b56f`)
+- **Three additive edits**, mirroring the `pull_analyst_data`/`push_analyst_data` toggles verbatim:
+  1. **`app/View/Servers/edit.ctp`** (`:96-97` area) — two bare `$this->Form->input('push_collections')`
+     / `pull_collections` calls right after the analyst-data pair. **`edit.ctp` is shared by `add()`**,
+     which does `$this->render('edit')` (`ServersController.php:501`) — so ONE template edit surfaces the
+     checkboxes on BOTH the add and edit forms.
+  2. **`ServersController::edit()`** (`:570`) — added `'push_collections', 'pull_collections'` to the save
+     `$fieldList`. **`add()` needs NO change** — it saves with `$this->Server->save($this->request->data)`
+     (`:435`, no `$fieldList`), so the two fields persist automatically once present in the form POST.
+  3. **`app/View/Servers/index.ctp`** (`:141` area) — two `boolean`/`class=short` columns
+     ("Push Collections" / "Pull Collections", `data_path`+`sort` = `Server.push/pull_collections`) after
+     the analyst-data columns. **★ There is NO `app/View/Servers/view.ctp`** — the server-list `index.ctp`
+     is where per-server sync-toggle state is displayed (the handoff's "server view" surfacing = these columns).
+- **★ LIVE-VERIFIED on dev (localhost:5007), all discriminating ★** (caches cleared first — the schema-column
+  cache gotcha; Form->input introspects the tinyint(1) columns to render a checkbox, not a text input):
+  - **`edit()` `$fieldList` persistence** — REST `POST /servers/edit/7` (admin key): `{push_collections:1,
+    pull_collections:1}` → DB `servers.push_collections=1, pull_collections=1`; then `{…:0,…:0}` → both back
+    to `0`. The 0→1→0 round-trip proves the two fields are genuinely mass-assignable via the new whitelist
+    entry (not stuck at a default). Server 7 restored to baseline `0/0`.
+  - **edit form checkboxes** — web GET `/servers/edit/7` (admin session): renders
+    `<input type="checkbox" name="data[Server][push_collections]" id="ServerPushCollections">` +
+    `pull_collections`, with auto-labels "Push Collections"/"Pull Collections" — byte-identical shape to the
+    analyst-data checkboxes directly above.
+  - **add form checkboxes** — web GET `/servers/add` (renders `edit.ctp`): same two checkboxes present.
+  - **index columns** — web GET `/servers/index`: both boolean columns render with `sort:Server.push/pull_collections`
+    sort links.
+- **Additive UI only** (PRD §5 item 5 — accepted touch point). Lint clean (`parallel-lint`, PHP 8.3, all 3 files).
+  **Next: T5.2** (collection counts in sync job output + pull/push preview — the `$change` DB-log strings
+  already carry the count; the deferred caller-side "…N collections pulled/pushed" user-facing messages +
+  preview screens land here). **Optional T5 tightening still open** (flagged at T4.4): `Server::push`
+  collections block gates on toggle + negotiation only, not `$push['canPush']`.
 
 ## Phase 6 — End-to-end testing & docs
 - [~] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
@@ -654,6 +687,14 @@ columns intact. Everywhere below that says "155/156" is historical — the live 
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03 — session 8:** **T5.1 done** (commit `45b83b56f`) → **Phase 5 STARTED.** Surfaced the
+  `pull_collections`/`push_collections` server toggles in the UI (D8), mirroring `pull/push_analyst_data`:
+  two `Form->input` checkboxes in `edit.ctp` (shared by `add()` via `render('edit')`), the two field names
+  added to `ServersController::edit()`'s save `$fieldList` (`add()` saves fieldList-less ⇒ automatic), and
+  two boolean columns in `index.ctp` (there is no `Servers/view.ctp`). **★ LIVE-VERIFIED (localhost:5007) ★** —
+  REST edit of server 7 flips both DB cols 0→1→0 (discriminating); add + edit forms render both checkboxes;
+  index shows both sortable boolean columns. Additive (PRD §5 item 5); lint clean. **Next: T5.2** (collection
+  counts in sync job output + pull/push preview).
 - **2026-07-03:** **Migration renumber 155/156 → 158/159** (commit `f94da2aa5`) — user-suggested fix for the
   upstream-develop-at-157 skip trap surfaced by the 5008 E2E. Moved the collections migrations ABOVE develop's
   event-template `157` (so `findUpgrades` on any instance ≤157 applies them); `$db_changes` map + `db_schema.json`
