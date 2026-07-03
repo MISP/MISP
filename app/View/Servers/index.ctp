@@ -139,6 +139,20 @@
                     'data_path' => 'Server.pull_analyst_data'
                 ],
                 [
+                    'name' => __('Push Collections'),
+                    'sort' => 'Server.push_collections',
+                    'element' => 'boolean',
+                    'class' => 'short',
+                    'data_path' => 'Server.push_collections'
+                ],
+                [
+                    'name' => __('Pull Collections'),
+                    'sort' => 'Server.pull_collections',
+                    'element' => 'boolean',
+                    'class' => 'short',
+                    'data_path' => 'Server.pull_collections'
+                ],
+                [
                     'name' => __('Cache'),
                     'sort' => 'Server.caching_enabled',
                     'element' => 'cache_status',
