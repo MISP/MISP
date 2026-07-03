@@ -396,7 +396,7 @@ function _objDistBadge($dist) {
                                             [
                                                 'row'   => $attr,
                                                 'field' => [
-                                                    'data_path'          => 'AttributeTag',
+                                                    'data_path'          => 'Galaxy',
                                                     'add_galaxy'         => $canTagObj,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',

@@ -1229,3 +1229,36 @@ tr.attr-proposal-row td:first-child {
     rotate: -22deg;
     transform-origin: center bottom;
 }
+
+
+.form-switch-galaxy .form-check-input:checked {
+    background-color: var(--bs-galaxy);
+    border-color: var(--bs-galaxy);
+}
+.form-switch-galaxy .form-check-input:focus {
+    border-color: var(--bs-galaxy);
+    box-shadow: 0 0 0 .2rem rgba(139, 92, 246, .25);
+}
+.galaxy-toggle-card {
+    transition: border-color .15s, background-color .15s;
+}
+.galaxy-toggle-card:hover {
+    border-color: var(--bs-galaxy) !important;
+    background-color: rgba(139, 92, 246, .06) !important;
+}
+
+
+.form-switch-galaxy .form-check-input:checked,
+#galaxyExportModal .form-switch-galaxy .form-check-input:checked {
+    background-color: var(--bs-galaxy);
+    border-color: var(--bs-galaxy);
+}
+
+#galaxyExportModal .btn-check:checked + .btn-outline-galaxy {
+    color: var(--bs-light);
+}
+
+#galaxyExportModal .export-section-label {
+    font-size: .62rem;
+    letter-spacing: .12em;
+}

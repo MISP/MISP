@@ -48,12 +48,11 @@ class GalaxyClustersController extends AppController
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
-        $contextConditions = array();
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
-        } else {
-            $contextConditions = array('GalaxyCluster.deleted' => false);
         }
+        // Deleted clusters are hidden everywhere except the explicit "deleted" context.
+        $contextConditions = array('GalaxyCluster.deleted' => false);
 
         if ($filters['context'] == 'default') {
             $contextConditions['GalaxyCluster.default'] = true;
@@ -140,9 +139,12 @@ class GalaxyClustersController extends AppController
                 $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
             }
             $clusters[$k]['GalaxyCluster']['event_count'] = 0; // real number is assigned later
+            $clusters[$k]['GalaxyCluster']['attribute_count'] = 0; // real number is assigned later
         }
 
         $eventCountsForTags = $this->GalaxyCluster->Tag->EventTag->countForTags($tagIds, $this->Auth->user());
+        $this->loadModel('AttributeTag');
+        $attributeCountsForTags = $this->AttributeTag->countForTags($tagIds, $this->Auth->user());
 
         $this->loadModel('Sighting');
         $csvForTags = $this->Sighting->tagsSparkline($tagIds, $this->Auth->user(), '0');
@@ -153,6 +155,9 @@ class GalaxyClustersController extends AppController
                 }
                 if (isset($eventCountsForTags[$cluster['GalaxyCluster']['tag_id']])) {
                     $clusters[$k]['GalaxyCluster']['event_count'] = $eventCountsForTags[$cluster['GalaxyCluster']['tag_id']];
+                }
+                if (isset($attributeCountsForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                    $clusters[$k]['GalaxyCluster']['attribute_count'] = $attributeCountsForTags[$cluster['GalaxyCluster']['tag_id']];
                 }
             }
         }
@@ -172,8 +177,8 @@ class GalaxyClustersController extends AppController
 
         if ($this->request->is('ajax')) {
             $this->layout = false;
-            $this->render('ajax/index');
         }
+        $this->render('ajax/index');
     }
 
     /**
@@ -365,6 +370,9 @@ class GalaxyClustersController extends AppController
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
         $this->set('action', 'add');
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
     }
 
     /**
@@ -499,6 +507,9 @@ class GalaxyClustersController extends AppController
         $this->set('clusterId', $id);
         $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
         $this->set('action', 'edit');
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -544,6 +555,9 @@ class GalaxyClustersController extends AppController
         } else {
             $this->set('cluster', $cluster);
             $this->set('type', 'publish');
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
             $this->render('ajax/publishConfirmationForm');
         }
     }
@@ -618,15 +632,80 @@ class GalaxyClustersController extends AppController
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
+    public function deleteSelection($id = null, $hard = false)
+    {
+        $ids = [];
+        if (isset($this->request->data['GalaxyCluster']['ids'])) {
+            $raw = $this->request->data['GalaxyCluster']['ids'];
+            $ids = is_array($raw) ? $raw : json_decode($raw, true);
+        } elseif ($id !== null) {
+            $ids = is_numeric($id) ? [$id] : json_decode(htmlspecialchars_decode(urldecode($id)), true);
+        }
+        $ids = is_array($ids) ? $ids : [];
+
+        if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
+            $deleted = [];
+            foreach ($ids as $cid) {
+                $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $cid, 'delete', false, false);
+                if (empty($cluster) || (isset($cluster['authorized']) && $cluster['authorized'] === false)) {
+                    continue;
+                }
+                if ($this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard)) {
+                    $deleted[] = $cluster['GalaxyCluster']['id'];
+                }
+            }
+            $count = count($deleted);
+            $message = __n('%s galaxy cluster deleted.', '%s galaxy clusters deleted.', $count, $count);
+            if ($this->request->is('ajax') || $this->_isRest()) {
+                return new CakeResponse([
+                    'body' => json_encode([
+                        'saved' => $count > 0,
+                        'success' => $message,
+                        'errors' => $count > 0 ? '' : __('No galaxy cluster deleted.'),
+                        'ids' => $deleted,
+                    ]),
+                    'status' => 200,
+                    'type' => 'json',
+                ]);
+            }
+            if ($count > 0) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error(__('No galaxy cluster deleted.'));
+            }
+            $this->redirect($this->referer(array('controller' => 'galaxies', 'action' => 'index')));
+        } else {
+            $this->set('idArray', $ids);
+            if ($this->theme === 'Overmind') {
+                $this->layout = false;
+            }
+            $this->render('ajax/galaxy_cluster_delete_confirmation');
+        }
+    }
+
     public function delete($id, $hard=false)
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            if (!empty($this->request->data['hard'])) {
+            if (!empty($this->request->data['hard']) || !empty($this->request->data['GalaxyCluster']['hard'])) {
                 $hard = true;
             }
             $result = $this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard=$hard);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
+            if ($this->request->is('ajax')) {
+                if ($result) {
+                    $message = __(
+                        'Galaxy cluster successfully %s deleted%s.',
+                        $hard ? __('hard') : __('soft'),
+                        $hard ? __(' and added to the block list') : ''
+                    );
+                    return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
+                }
+                return new CakeResponse(['body' => json_encode(['saved' => false, 'errors' => __('Galaxy cluster could not be %s deleted.', $hard ? __('hard') : __('soft'))]), 'status' => 200, 'type' => 'json']);
+            }
             if ($result) {
                 $message = __(
                     'Galaxy cluster successfully %s deleted%s.',
@@ -652,6 +731,9 @@ class GalaxyClustersController extends AppController
             if ($this->request->is('ajax')) {
                 $this->set('id', $cluster['GalaxyCluster']['id']);
                 $this->set('cluster', $cluster['GalaxyCluster']);
+                if ($this->theme === 'Overmind') {
+                    $this->layout = false;
+                }
                 $this->render('ajax/galaxy_cluster_delete_confirmation');
             } else {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
@@ -665,6 +747,12 @@ class GalaxyClustersController extends AppController
         if ($this->request->is('post')) {
             $result = $this->GalaxyCluster->restoreCluster($cluster['GalaxyCluster']['id']);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
+            if ($this->request->is('ajax')) {
+                if ($result) {
+                    return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => __('Galaxy cluster successfully restored.')]), 'status' => 200, 'type' => 'json']);
+                }
+                return new CakeResponse(['body' => json_encode(['saved' => false, 'errors' => __('Galaxy cluster could not be restored.')]), 'status' => 200, 'type' => 'json']);
+            }
             if ($result) {
                 $message = __('Galaxy cluster successfully restored.');
                 if ($this->_isRest()) {
@@ -683,7 +771,16 @@ class GalaxyClustersController extends AppController
                 }
             }
         } else {
-            throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
+            if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+                $this->set('id', $cluster['GalaxyCluster']['id']);
+                $this->set('cluster', $cluster['GalaxyCluster']);
+                if ($this->theme === 'Overmind') {
+                    $this->layout = false;
+                }
+                $this->render('ajax/galaxy_cluster_restore_confirmation');
+            } else {
+                throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
+            }
         }
     }
 
@@ -701,6 +798,9 @@ class GalaxyClustersController extends AppController
             $this->set('galaxy', $galaxy);
             $this->set('galaxy_id', $galaxy['Galaxy']['id']);
             $this->set('convertedCluster', $convertedCluster);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
             $this->render('cluster_export_misp_galaxy');
         }
     }
@@ -914,6 +1014,9 @@ class GalaxyClustersController extends AppController
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
         }
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, true);
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();

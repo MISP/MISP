@@ -71,6 +71,24 @@
             ['controller' => 'taxonomies', 'action' => 'addTag'],
             ['controller' => 'taxonomies', 'action' => 'disableTag'],
 
+            ['controller' => 'galaxies', 'action' => 'index'],
+            ['controller' => 'galaxies', 'action' => 'view'],
+            ['controller' => 'galaxies', 'action' => 'add'],
+            ['controller' => 'galaxies', 'action' => 'edit'],
+            ['controller' => 'galaxies', 'action' => 'delete'],
+            ['controller' => 'galaxies', 'action' => 'viewGraph'],
+            ['controller' => 'galaxies', 'action' => 'export'],
+
+
+            ['controller' => 'galaxy_clusters', 'action' => 'index'],
+            ['controller' => 'galaxy_clusters', 'action' => 'view'],
+            ['controller' => 'galaxy_clusters', 'action' => 'add'],
+            ['controller' => 'galaxy_clusters', 'action' => 'edit'],
+            ['controller' => 'galaxy_clusters', 'action' => 'delete'],
+            ['controller' => 'galaxy_clusters', 'action' => 'export_for_misp_galaxy'],
+
+            ['controller' => 'galaxy_cluster_relations', 'action' => 'index'],
+
             ['controller' => 'templates', 'action' => 'index'],
             ['controller' => 'templates', 'action' => 'delete'],
             ['controller' => 'templates', 'action' => 'add'],
