@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false, 154 => false, 155 => false, 156 => false, 157 => false
+        153 => false, 154 => false, 157 => false, 158 => false, 159 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2701,13 +2701,6 @@ class AppModel extends Model
             case 154:
                 $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `auth_type` VARCHAR(255) DEFAULT 'basic' AFTER `api_key`;";
                 break;
-            case 155:
-                $sqlArray[] = "ALTER TABLE `collections` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
-                break;
-            case 156:
-                $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
-                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
-                break;
             case 157:
                 // exposed marks an event template as visible to Draugnet's
                 // MISP-pull template source (the anonymous community
@@ -2715,12 +2708,23 @@ class AppModel extends Model
                 // an additive, opt-in marker defaulting off. Placed after
                 // misp_default and indexed like active for the exposed-only
                 // listing filter.
-                // Numbered 157 (not develop's next, 155) so it stays above
-                // the in-flight collection-sync branch's 155/156, which will
-                // merge into develop first — keeping the update sequence
-                // monotonic. Renumber if the merge order differs.
                 $sqlArray[] = "ALTER TABLE `event_templates` ADD `exposed` tinyint(1) NOT NULL DEFAULT 0 AFTER `misp_default`;";
                 $indexArray[] = array('event_templates', 'exposed');
+                break;
+            case 158:
+                // Collection sync (T1.1). Numbered 158/159 — ABOVE the
+                // event-template `exposed` migration (157) — so an instance
+                // already at db_version 157 via upstream develop (which never
+                // saw the original 155/156) still applies these via
+                // findUpgrades. Re-adding an existing column is an accepted
+                // duplicate-column error (isAcceptedDatabaseError), so
+                // instances that already applied the old 155/156 self-heal.
+                $sqlArray[] = "ALTER TABLE `collections` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 159:
+                // Collection sync per-server toggles (T1.2).
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
