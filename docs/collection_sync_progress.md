@@ -392,10 +392,30 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   (authkey now user 185's valid `mBuok…` key — repaired the pre-existing stale `lmro33…`; pull/pull_collections
   reverted to 0). Lint clean. *(An earlier run used user 187's key as a substitute before the correct 185 key
   was available — same 0-collections outcome, superseded by this canonical run.)*
-- [~] **T3.5** Pull tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** — all per-phase
-  testing is folded into Phase 6 (T6.x) once the implementation is finished. The T3.4 self-loopback
-  already live-smoke-tested negotiation + index + skip-on-equal dedup; the write branch + full E2E are
-  T6.1 (two-instance). No standalone pull unit tests this phase.
+- [x] **T3.5** Pull tests (PRD §9). Commit `d40c8a1ec` (`app/Test/CollectionPullTest.php`, 17 tests).
+  → findings below. *(Was deferred to Phase 6 per user 2026-07-01; done now as the first Phase 6 task.)*
+
+### T3.5 findings — Collection::pull unit tests (commit `d40c8a1ec`)
+- **17 bare-PHPUnit tests, 37 assertions, all green** — the pull-side companion to
+  `CollectionCaptureTest` (which already covers `captureCollection`'s branches). Harness mirrors the
+  convention ([[project-misp-test-convention]]): guarded framework stubs, a
+  `CollectionPullTestServerSync extends ServerSyncTool` that bypasses the socket constructor and
+  returns injected index/fetch/user payloads (a `CollectionPullFakeResponse` provides `->json()`),
+  and a `CollectionPullTestable extends Collection` whose `find()` returns injected local rows and
+  whose `captureCollection()` is a **recorder** (so we assert exactly which RAW payloads reach the
+  sink + with what flags). **Unique class names** (`CollectionPull*`) avoid full-suite collisions with
+  `CollectionCaptureTest`'s `TestableCollection`/`StubOrgc`/etc.; `jsonDecode`/`logException` overridden
+  in the subclass so the tests don't depend on which sibling's leaner `AppModel` stub wins the load race.
+- **Coverage:** negotiation early-return (unsupported peer ⇒ 0 fetch, 0 capture); empty index ⇒ 0;
+  index-fetch exception ⇒ 0 + logged; dedup D6 (missing / strictly-newer fetched, equal / older skipped,
+  mixed index ⇒ exactly {missing, newer}); **RAW passthrough** (dist=2 reaches capture un-downgraded; the
+  exact remote payload + server context + `remotePermSyncInternal` from `cachedUserInfo` forwarded);
+  only-successful-imports counted; failed fetch chunk skip-and-continue; **array_chunk(100)** (101 UUIDs
+  ⇒ 2 chunks, 100+1); `buildPullFilterRules` orgc_name OR / NOT('!' prefix) / merged (via reflection).
+- **★ Mutation-verified ★** — flipping the skip-on-equal `<` to `<=` in `Collection::pull` broke exactly
+  the 2 equal-modified tests (`testEqualModifiedIsSkipped`, `testMixedIndexFetchesOnlyMissingAndNewer`);
+  reverted, back to 17/17. **Full `app/Test/` suite: 446 tests, 0 failures** (429 → +17, 2 pre-existing
+  skips) — no stub collision. Lint clean.
 
 ## Phase 4 — Push
 - [x] **T4.1** `ServerSyncTool`: `filterCollectionsForPush` + `pushCollection`. Commit `9abd6bb64`.
