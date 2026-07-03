@@ -559,7 +559,53 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
 
 ## Phase 6 — End-to-end testing & docs
-- [ ] **T6.1** Two-instance (or loopback) live sync E2E script under `tests/` (PRD §9.2).
+- [~] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
+  instances (5007 ⇄ 5008) — both capture-write branches proven ★.** The scripted `tests/` deliverable (PRD §9.2)
+  is the remaining sub-item. → findings below.
+
+### T6.1 findings — two-instance write-branch E2E (2026-07-03)
+- **★ Harness: a genuine second instance ★** — 5008 (`mispx` DB, reachable locally with the same creds) on
+  `develop` + the feature code (user brought it up to snuff: manually applied migrations 155/156 since
+  `findUpgrades(157)` skips keys < 157 — the numbering-reconciliation trap, now confirmed real). Both directions
+  wired: 5007 server row **42 (`mispx`) → 5008** (key = 5008 user 2 / org 2 iglocska, perm_sync); 5008 row 1 → 5007.
+  Both DBs directly queryable (`misp`=5007, `mispx`=5008) ⇒ capture verified at the row level on both sides.
+- **★ This reaches the branch NO self-loopback can ★** — a self-loopback's `filter*ForPush`/index always sees an
+  equal/`locked=0` local copy of every offered uuid (same DB) ⇒ never fetches/captures. A distinct peer with a
+  collection the other side lacks makes the **fetch→capture** (pull) and **upload→capture** (push) write branches
+  fire for real.
+- **PULL write branch (5008 → 5007), fully discriminating:** seeded a dist=2 collection `64578a85…` on 5008
+  (orgc=iglocska, 1 Event-ptr element, `modified 2026-07-03 08:42:53`), set `pull_collections=1` on server 42,
+  `POST /servers/pull/42/full`. Captured on 5007 (id 969): **`locked=1`**, **`distribution=1` (2→1 downgrade)**,
+  `user_id`/`org_id`=local puller (D7 neutralize), **`orgc_id` resolved by UUID** (5007 org 1 = Iglocska
+  `84977a3b` = 5008's orgc, not a fallback), **`modified` preserved exactly**, **element replicated** with a fresh
+  element uuid. Pull log: *"…and 1 collections pulled or updated"*. `server-sync.log` proved the real fetch:
+  `POST /collections/indexMinimal 200` → **`GET /collections/index/uuid[]:64578a85….json 200 679`** (the
+  679-byte full-collection fetch → capture). **Re-pull → "0 collections", still exactly 1 copy** (D6 skip-on-equal
+  idempotency; no dup).
+- **PUSH write branch (5007 → 5008), fully discriminating:** isolated to collections-only (server 42 temporarily
+  `push=0` + `push_sightings`(already 0)/`push_galaxy_clusters=0`/`push_analyst_data=0` off — `pushSightings`
+  honors `push_sightings` `Sighting.php:1346`, `AnalystData::push` honors `push_analyst_data` `:785`, and the
+  collections block gates only on `push_collections && isSupported`, independent of `Server.push` — so a
+  collections-only push runs with **zero** event/sighting/cluster/analyst side-effect on 5008; the 84,486
+  sightings were NOT dumped). `POST /servers/push/42/full` → U1 (`74049a17`, dist=2, 5 elements) captured on 5008
+  (id 2): **`locked=1`**, **`distribution=1` (2→1)**, `org_id`/`orgc_id`/`user_id`=2 (5008 sync user; orgc resolved
+  by UUID to 5008's iglocska), **`modified 2024-03-05 08:20:34` preserved**, **all 5 elements replicated**. Push
+  log: *"…1 collections pushed."* (the T4.4 clause). `server-sync.log`:
+  `POST /collections/filterCollectionsForPush 200` → **`POST /collections/captureCollection 200 199`** (the real
+  upload+capture). **Re-push → "0 collections", still 1 copy** (D6 idempotency).
+- **★ D6 origin-protection confirmed cross-instance:** the pulled `64578a85…` (now `locked=1` on 5007) was
+  offered back to 5008 on the push, and 5008 **dropped it** (it holds the `locked=0` authoritative original) —
+  the last-writer-wins + locked rule holds over the wire, not just in unit tests. U3 (dist=4) correctly not
+  pushed (server not in its SG); dist=0 not eligible.
+- **Migration-numbering trap CONFIRMED real (operational):** an instance already at `db_version 157` (upstream
+  develop) that gains the feature code will have `runUpdates` **skip** cases 155/156 (both < 157) ⇒ columns must
+  be applied manually (the 3 ALTERs). `getVersion` still advertises `collection_sync:true` (code-driven) while
+  the columns are missing ⇒ a live trap. Recorded for T6.2 docs + any real deploy.
+- **Cleanup:** both instances returned to baseline (5007 → its 3 originals; 5008 → 0 collections; server 42
+  toggles restored `push=1,pull=1,push_sightings=0,push_galaxy_clusters=1,push_analyst_data=1,collections=0`).
+- **Remaining T6.1 sub-item:** a checked-in reusable `tests/` E2E script (PRD §9.2). The behaviour is now
+  live-proven; the deferred T3.5/T4.5 unit tests also still fold into Phase 6. **The core feature promise
+  (bidirectional write-branch sync + locked/downgrade/neutralize/D6) is LIVE-VALIDATED across two instances.**
 - [ ] **T6.2** Sync docs (`docs/dev/…`) describe collection sync.
 - [ ] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`.
 
@@ -593,6 +639,19 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03:** **★ T6.1 LIVE E2E VALIDATED (two real instances, 5007 ⇄ 5008) ★** — no code change; docs only.
+  User stood up 5008 (`mispx` DB, develop + feature code + manually-applied migrations 155/156) wired both ways to
+  5007 (server row 42). **Both capture-write branches — unreachable by any self-loopback — proven live & fully
+  discriminating:** PULL 5008→5007 captured a seeded dist=2 collection as `locked=1`, dist 2→1, orgc-by-UUID,
+  user/org neutralized, modified preserved, element replicated (real `indexMinimal`+`index` fetch in
+  `server-sync.log`); PUSH 5007→5008 captured U1 the same way (real `filterCollectionsForPush`+`captureCollection`
+  round-trip), isolated to collections-only so 5007's 84k sightings weren't dumped. Both idempotent on re-run
+  (D6 skip-on-equal, no dup); D6 origin-protection held cross-instance (a `locked=0` original is never
+  overwritten by a push-back). Confirmed the migration-numbering trap is real (155/156 < 157 ⇒ `runUpdates`
+  skips them; columns need manual ALTERs, yet `getVersion` still advertises support — a deploy trap for T6.2
+  docs). Both instances cleaned back to baseline. Remaining T6.1 = a checked-in `tests/` E2E script. **The core
+  feature promise is now LIVE-VALIDATED end-to-end.** Next: T6.1 scripted harness / T6.2 docs / T6.3 regression,
+  and Phase 5 UI (T5.1) still outstanding.
 - **2026-07-03:** **T4.4 done** (commit `013d9cfc1`) → **Phase 4 implementation COMPLETE (T4.1–T4.4).**
   Wired a collections block into `Server::push` after the analyst-data push block (`:1422-1433`), gated on
   `push_collections` (T1.2) + `isSupported(FEATURE_COLLECTION_SYNC)`; `ClassRegistry::init('Collection')->push()`;
