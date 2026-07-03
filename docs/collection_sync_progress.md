@@ -721,9 +721,41 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   accepted touch points (PRD §5). **Next: T5.3** (negotiation-skip vs a simulated old peer).
 
 ## Phase 6 — End-to-end testing & docs
-- [~] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
-  instances (5007 ⇄ 5008) — both capture-write branches proven ★.** The scripted `tests/` deliverable (PRD §9.2)
-  is the remaining sub-item. → findings below.
+- [x] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
+  instances (5007 ⇄ 5008) — both capture-write branches proven ★** + **checked-in scripted deliverable done**
+  (`tests/testlive_collection_sync.py`, commit `26950cd21`). → findings below.
+
+### T6.1 scripted deliverable findings — `tests/testlive_collection_sync.py` (commit `26950cd21`)
+- **Reusable PyMISP E2E harness** modelled on `tests/testlive_sync.py` (PRD §9.2). **LOOPBACK** mode
+  (HOST+AUTH, CI-friendly single instance) asserts negotiation + a clean push (`"Push complete."`) + the
+  pull message's collections clause; **TWO-INSTANCE** mode (REMOTE_HOST+REMOTE_AUTH) additionally asserts the
+  capture write branch (peer copy `locked=1` + dist 2→1 + element replicated; re-push D6 no-op; local
+  `locked=0` original not clobbered on pull-back; peer-origin pull). Raw `_prepare_request` for the collection
+  endpoints (PyMISP has no wrappers); all fixtures torn down in a `finally`.
+- **★ LOOPBACK LIVE-VERIFIED green against localhost:5007 ★** — all assertions pass; pull message renders
+  *"…0 analyst data pulled, 0 collections pulled."* (the T5.2 clause). Cleanup verified (dev box back to its 3
+  baseline collections, no residue). The two-instance write branch mirrors the manually-validated 5007⇄5008
+  flow already recorded above.
+- **★ The validation run caught 2 real script bugs (now fixed) + surfaced 2 pre-existing latent warnings:**
+  1. *(script)* the push assertion wrongly expected a "collections pushed" clause in the push **message** —
+     but the push caller message surfaces only events (T5.2); the collections push count lives in the
+     `Server::push` `$change` **DB-log**. Fixed to assert `"Push complete"` + rely on the two-instance
+     write-branch check.
+  2. *(script)* a hand-built `CollectionElement` fixture omitted `description`, tripping a debug-mode warning
+     (see below); fixed by adding `description` to the element.
+  3. *(pre-existing, out of scope)* `CollectionElement::captureElements` (`CollectionElement.php:238`) reads
+     `$element['description']` with no null-guard ⇒ an "Undefined array key description" warning when an
+     element lacks it. Sync-fetched elements always carry `description` (T3.2), so this only bites hand-built
+     payloads; harmless with `debug=0`. Left as a separate non-collection-sync ticket if wanted.
+  4. *(pre-existing, out of scope)* `SharingGroup::checkIfServerInSG` (`SharingGroup.php:606`) emits
+     "Undefined array key uuid" when a `SharingGroupOrg` entry / `RemoteOrg` lacks a uuid — fires from the
+     **plain event push** path (`Server.php:1309`) too, i.e. NOT introduced by collection sync (our
+     `collectValidSharingGroupIDs` just calls the same shared helper). Debug-only noise; function returns
+     correctly.
+- **NB (dev box):** `app/Config/config.php` has `debug => 1`, so PHP warnings render into REST bodies and
+  corrupt JSON parsing (PyMISP then returns the raw string). The script assumes a clean `debug=0` instance
+  (the CI/prod convention `testlive_sync.py` also relies on). The loopback run above was done with debug
+  temporarily flipped to 0 and **restored to 1** afterwards.
 
 ### T6.1 findings — two-instance write-branch E2E (2026-07-03)
 - **★ Harness: a genuine second instance ★** — 5008 (`mispx` DB, reachable locally with the same creds) on
