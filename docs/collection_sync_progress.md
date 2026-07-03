@@ -806,9 +806,22 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   Covers: what syncs (D1/D4/D5), schema + the 158/159 numbering trap, negotiation, pull/push flows,
   the captureCollection sink rules (locked/D6/downgrade/D7/corpus-replace/mass-assignment),
   endpoints/ACL/CSRF, UI toggles + operation, testing surface, code map.
-- [ ] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`.
-  **★ Also fix `tests/testlive_sync.py:90`** — its hardcoded pull-completed message assertion predates
-  the T5.2 `, N collections pulled.` clause and now mismatches (a real regression this feature introduced).
+- [x] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`. → findings below.
+
+### T6.3 findings — final regression (2026-07-03)
+- **parallel-lint** (`--exclude cakephp,Vendor -e php,ctp app/`): **1867 files, no syntax error.**
+- **phpunit** (`app/Test/`): **477 tests, 0 failures**, 2 pre-existing skips (429 pre-Phase-6 → +17 pull
+  +31 push = 477).
+- **`Admin schemaDiagnostics`** (ran as the current user; exit 0): `admin_settings.db_version = 159` =
+  canonical `db_schema.json` `db_version`. **All three feature columns clean** — `collections.locked`,
+  `servers.pull_collections`, `servers.push_collections` are NOT reported missing/different (grep of the
+  full output confirms zero mentions), and each matches the canonical def (`tinyint(1) NOT NULL DEFAULT 0`,
+  DB-verified). The only `collections` diff is pre-existing `created`/`modified` **datetime-type drift**
+  (dev-box-wide, present across many tables — unrelated to this feature).
+- **★ Regression fix (commit `f85c3f09b`) — `tests/testlive_sync.py`:** its hardcoded exact-match
+  pull-completed assertion predated the T5.2 `, N collections pulled.` clause and now mismatched; appended
+  `, 0 collections pulled.` to the expected string. (Discovered while writing the T6.1 E2E script; a real
+  regression this feature introduced into the existing sync smoke test.)
 
 ---
 
