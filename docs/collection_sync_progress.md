@@ -637,14 +637,14 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   248-vs-271-byte getVersion delta confirms the remote genuinely served the old-peer payload.
 - **All reverted:** `getVersion` restored (advertises `collection_sync=true` again, curl-confirmed); server 7
   toggles back to `0/0`. Only the additive test file remains. Lint clean.
-- **★ Phase 5 implementation COMPLETE (T5.1–T5.3).** Remaining: Phase 6 (checked-in `tests/` E2E script,
-  T3.5/T4.5 per-phase unit tests, T6.2 docs, T6.3 final regression). **Optional T5 tightening still OPEN**
-  (flagged T4.4): the `Server::push` collections block gates on toggle + negotiation only, not
-  `$push['canPush']` — confirmed at `Server.php:1256` the push only early-returns when the remote can neither
-  push nor sight, so a **sightings-only** remote reaches the collection block and would fire a guaranteed-403
-  `filterCollectionsForPush`/`captureCollection` (the sibling analyst-data block guards this at `:1422`).
-  Harmless (remote `perm_sync` ACL still 403s), but the faithful analogue. **Left for the user's explicit call**
-  (asked this session; user afk — not touching committed push behaviour unprompted).
+- **★ Phase 5 implementation COMPLETE (T5.1–T5.3).** **★ Phase 6 COMPLETE** (T3.5 `d40c8a1ec`,
+  T4.5 `59938b72e`, T6.1 script `26950cd21`, T6.2 docs `6d7287559`, T6.3 regression + testlive_sync.py fix
+  `f85c3f09b`). **✓ Optional `$push['canPush']` tightening RESOLVED — user APPROVED, applied `dcce98ee1`**
+  (2026-07-03): `Server::push` collections gate now also gates on `$push['canPush']` (faithful analogue of
+  the sibling sightings/analyst-data gates; skips a guaranteed-403 upload to a sightings-only remote). No
+  behavioural change for a real collection-sync peer (must have perm_sync ⇒ canPush true). LIVE-VERIFIED via
+  self-loopback push (canPush=true ⇒ block still fires `POST /collections/filterCollectionsForPush 200` in
+  server-sync.log); lint clean; phpunit 477/0. **★ THE WHOLE FEATURE (Phases 0–6) IS NOW COMPLETE.**
 
 ### T5.1 findings — server-form collection toggles (commit `45b83b56f`)
 - **Three additive edits**, mirroring the `pull_analyst_data`/`push_analyst_data` toggles verbatim:
@@ -868,6 +868,21 @@ columns intact. Everywhere below that says "155/156" is historical — the live 
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03 — session 11:** **★ PHASE 6 COMPLETE → FEATURE DONE (Phases 0–6). ★** Six commits:
+  **T3.5** (`d40c8a1ec`) 17 pull unit tests + **T4.5** (`59938b72e`) 31 push unit tests (both
+  mutation-verified; full suite 429→477/0). **T6.1** (`26950cd21`) checked-in
+  `tests/testlive_collection_sync.py` (loopback + two-instance PyMISP E2E), **loopback LIVE-VERIFIED green**
+  against 5007 (temporarily flipped `config.php` debug 1→0 for clean JSON, restored). The validation run
+  caught 2 script bugs (wrong push-message assertion — push message has no collections clause per T5.2;
+  missing element `description`) and surfaced 2 pre-existing debug-only warnings (captureElements +
+  checkIfServerInSG undefined array keys — both out of scope, the latter also fires from the plain event
+  push). **T6.2** (`6d7287559`) `docs/dev/collection_sync.md` developer reference. **T6.3** regression
+  (parallel-lint 1867/0, phpunit 477/0, schemaDiagnostics db_version 159 all 3 feature columns clean) +
+  **fixed `tests/testlive_sync.py`** (`f85c3f09b`, its hardcoded pull message predated the T5.2 clause).
+  **✓ `$push['canPush']` tightening — user APPROVED, applied `dcce98ee1`** (Server::push collections gate
+  now gates on canPush too; LIVE-VERIFIED canPush=true still fires the block via server-sync.log). Tracker
+  ticked per task. **Feature fully implemented, tested, documented, live-proven. Next: user pushes
+  `collection_sync` to origin so 5008 can pull; feature ready for review/merge.**
 - **2026-07-03 — session 10:** **T5.3 done → Phase 5 implementation COMPLETE.** Verified the
   feature-negotiation SKIP (the negative control) two ways. **Unit** (`582999bd0`,
   `app/Test/ServerSyncCollectionNegotiationTest.php`, 7 tests): a `TestableServerSync` injects a fake
