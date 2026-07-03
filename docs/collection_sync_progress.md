@@ -570,8 +570,31 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **PRD §5 item 1** (accepted non-additive touch point); additive *within* the method. Lint clean
   (`parallel-lint`, PHP 8.3). **★ Phase 4 implementation COMPLETE (T4.1–T4.4); T4.5 tests → Phase 6.**
   **Next: Phase 5 (UI/D8) — T5.1** server add/edit/view collection toggles.
-- [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
-  testing folds into Phase 6 once implementation is finished).
+- [x] **T4.5** Push tests (PRD §9). Commit `59938b72e` (`app/Test/CollectionPushTest.php`, 31 tests).
+  → findings below.
+
+### T4.5 findings — Collection::push chain unit tests (commit `59938b72e`)
+- **31 bare-PHPUnit tests, 43 assertions, all green** — same convention/harness as T3.5
+  (`CollectionPushTestServerSync` socket-less ServerSyncTool; `CollectionPushTestable` with injected
+  DB/HTTP touch-points; unique `CollectionPush*` class names). `collectDataForPush`/`uploadCollectionToServer`
+  fall back to the **real** implementation unless an injected override is set, so ONE subclass serves both
+  the orchestration tests (which stub them) and the direct helper tests (which exercise them). Private
+  helpers tested via `ReflectionMethod`.
+- **Coverage:** push() orchestration (negotiation gate; empty-collect / empty-wanted ⇒ 0; uploads only the
+  wanted subset; `['response']` unwrap; Success-only count; filter-exception ⇒ 0); `filterCollectionsForPush`
+  receive dedup D6 (missing + locked=1-newer wanted; **locked=0 authoritative-local dropped even if newer**;
+  equal/older dropped; mixed set); `isCandidateValidForPush` gate; `isPushableForServerSyncRules` orgc OR/NOT
+  (match/miss both ways); `prepareForPushToServer` (**id stripped, distribution NOT downgraded** = RAW
+  passthrough, dist=4 SG-server-membership 403 vs allow, non-roaming-no-servers 403, checkDistributionForPush
+  403); `collectDataForPush` post-find (corpus nesting under Collection, checkDist + push-rules filtering,
+  dist=4 SG enrichment from `find('first')`).
+- **★ Scope honesty ★** — `collectDataForPush`'s SQL-level dist eligibility (the `distribution 1-3 OR
+  4-in-sgIDs` WHERE) is NOT unit-covered here: the `find()` override returns injected rows and ignores the
+  conditions. That branch is exercised live (T4.4 self-loopback offered U1; T6.1 two-instance). The tests
+  cover the post-find PHP filtering + corpus shaping.
+- **★ Mutation-verified ★** — neutering the D6 `locked==0` gate broke 3 tests; removing the `id`-strip in
+  `prepareForPushToServer` broke 2; reverted, back to 31/31. **Full `app/Test/` suite: 477 tests, 0 failures**
+  (446 → +31, 2 pre-existing skips) — no stub collision. Lint clean.
 
 ## Phase 5 — UI surfacing & negotiation polish
 - [x] **T5.1** Server add/edit/view: collection toggles. Commit `45b83b56f`.
