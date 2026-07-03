@@ -800,8 +800,15 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **Remaining T6.1 sub-item:** a checked-in reusable `tests/` E2E script (PRD §9.2). The behaviour is now
   live-proven; the deferred T3.5/T4.5 unit tests also still fold into Phase 6. **The core feature promise
   (bidirectional write-branch sync + locked/downgrade/neutralize/D6) is LIVE-VALIDATED across two instances.**
-- [ ] **T6.2** Sync docs (`docs/dev/…`) describe collection sync.
+- [x] **T6.2** Sync docs (`docs/dev/…`) describe collection sync. Commit `6d7287559`
+  (`docs/dev/collection_sync.md`). Standalone checked-in feature reference (the existing
+  `docs/dev/sync_mechanism.md` is the user's untracked general-sync scratch — not extended/tracked).
+  Covers: what syncs (D1/D4/D5), schema + the 158/159 numbering trap, negotiation, pull/push flows,
+  the captureCollection sink rules (locked/D6/downgrade/D7/corpus-replace/mass-assignment),
+  endpoints/ACL/CSRF, UI toggles + operation, testing surface, code map.
 - [ ] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`.
+  **★ Also fix `tests/testlive_sync.py:90`** — its hardcoded pull-completed message assertion predates
+  the T5.2 `, N collections pulled.` clause and now mismatches (a real regression this feature introduced).
 
 ---
 
