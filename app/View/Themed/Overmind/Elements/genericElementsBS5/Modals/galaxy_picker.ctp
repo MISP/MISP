@@ -28,7 +28,7 @@ $initLJson = json_encode($currentLocalClusters,  JSON_HEX_TAG | JSON_HEX_AMP);
 $brandIcons = [
     'github', 'gitlab', 'docker', 'linux', 'android', 'apple',
     'google', 'microsoft', 'facebook', 'twitter', 'linkedin',
-    'btc', 'ethereum',
+    'btc', 'ethereum', 'optin-monster', 'internet-explorer',
 ];
 
 /* Reusable section markup (category buttons + picker + selected area) */
@@ -148,14 +148,18 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
         local:  <?= $initLJson ?: '[]' ?>
     };
 
-    /* Cluster badge style identical to the galaxy views */
+    /*
+     * Cluster badge style, built client-side from the hue the backend emits
+     * (GalaxyColour::hue). Mirrors GalaxyColour::palette()/badgeStyle() exactly
+     * so picker badges match every other galaxy view — keep the numbers in sync.
+     */
     function badgeStyle(hue) {
         hue = (hue == null) ? 270 : hue;
         return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
-            + 'color:hsl(' + hue + ',65%,25%);'
+            + 'color:hsl(' + hue + ',65%,28%);'
             + 'border:1px solid hsl(' + hue + ',55%,65%);'
-            + 'background-image:linear-gradient(145deg,rgba(255,255,255,.18) 0%,'
-            + 'rgba(255,255,255,.04) 40%,rgba(0,0,0,.04) 100%);'
+            + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+            + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
             + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
     }
 

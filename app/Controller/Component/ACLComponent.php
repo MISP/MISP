@@ -451,8 +451,12 @@ class ACLComponent extends Component
             'add' => array('perm_galaxy_editor'),
             'edit' => array('perm_galaxy_editor'),
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'disable' => array(),
             'enable' => array(),
+            'massEnable' => array('theming_enabled'),
+            'massDisable' => array('theming_enabled'),
+            'toggleEnable' => array('theming_enabled'),
             'export' => array('*'),
             'forkTree' => array('*'),
             'index' => array('*'),
@@ -479,6 +483,7 @@ class ACLComponent extends Component
         'galaxyClusters' => array(
             'add' => array('perm_galaxy_editor'),
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'detach' => array('perm_tagger'),
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
@@ -504,6 +509,7 @@ class ACLComponent extends Component
         ),
         'galaxyElements' => array(
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'flattenJson' => array('perm_galaxy_editor'),
             'index' => array('*'),
         ),

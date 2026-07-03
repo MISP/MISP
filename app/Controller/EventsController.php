@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('GalaxyColour', 'Tools');
 
 /**
  * @property Event $Event
@@ -2937,7 +2938,7 @@ class EventsController extends AppController
                     'id'     => $cid,
                     'name'   => $gc['value'],
                     'galaxy' => $galaxyName,
-                    'hue'    => $this->__galaxyHue($galaxyName),
+                    'hue'    => GalaxyColour::hue($galaxyName),
                 ];
                 if (!empty($et['local'])) {
                     $currentLocalClusters[] = $entry;
@@ -3046,22 +3047,6 @@ class EventsController extends AppController
     }
 
     /**
-     * Deterministic hue (0-359) from a galaxy name, mirroring the
-     * $galaxyHue closure in view_event_galaxies.ctp so the modal badges
-     * match the card colours exactly.
-     */
-    private function __galaxyHue($name)
-    {
-        $name = (string)$name;
-        $hash = 0;
-        $len  = strlen($name);
-        for ($i = 0; $i < $len; $i++) {
-            $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
-        }
-        return $hash % 360;
-    }
-
-    /**
      * JSON search over galaxy clusters, used by the edit-galaxies modal's
      * TomSelect remote loader. Returns up to 50 matches for ?q=, each as
      * { id: GalaxyCluster.id, name: value, galaxy: galaxy name }.
@@ -3104,7 +3089,7 @@ class EventsController extends AppController
                 'id'     => (int)$gc['id'],
                 'name'   => $gc['value'],
                 'galaxy' => $galaxyName,
-                'hue'    => $this->__galaxyHue($galaxyName),
+                'hue'    => GalaxyColour::hue($galaxyName),
             ];
         }
 

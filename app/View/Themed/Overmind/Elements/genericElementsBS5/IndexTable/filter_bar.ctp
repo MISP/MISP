@@ -127,38 +127,62 @@ foreach ($filter_bar['children'] as $child) {
     </div>
 
     <div class="btn-group" role="group">
-        <button
-            id="viewList"
-            type="button"
-            class="btn btn-outline-primary active"
-            title="Table View"
-        >
-            <i class="fas fa-list"></i>
-        </button>
-        <button
-            id="viewCard"
-            type="button"
-            class="btn btn-outline-primary"
-            title="Card View"
-        >
-            <i class="fas fa-th"></i>
-        </button>
+        <?php if (!empty($filter_bar['view_switch'])): ?>
+            <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->
+            <?php foreach ($filter_bar['view_switch'] as $vs): ?>
+                <a href="<?= h($vs['url']) ?>"
+                   class="btn btn-outline-primary <?= !empty($vs['active']) ? 'active' : '' ?>"
+                   title="<?= h($vs['title'] ?? '') ?>">
+                    <i class="<?= h($vs['icon']) ?>"></i>
+                </a>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <button
+                id="viewList"
+                type="button"
+                class="btn btn-outline-primary active"
+                title="Table View"
+            >
+                <i class="fas fa-list"></i>
+            </button>
+            <button
+                id="viewCard"
+                type="button"
+                class="btn btn-outline-primary"
+                title="Card View"
+            >
+                <i class="fas fa-th"></i>
+            </button>
+        <?php endif; ?>
     </div>
 
 </div>
 
-<?php if ($hasActiveFilters && !$this->request->is('ajax')): ?>
+<?php
+// Active-filters display. An index may pass an explicit `active_filters` map
+// (label => value) plus a `clear_url`; this is rendered in every mode (incl.
+// ajax fragments that manage their own in-tab reloads).
+$explicitActive = $filter_bar['active_filters'] ?? null;
+if ($explicitActive !== null) {
+    $activeToShow = $explicitActive;
+    $clearHref = $filter_bar['clear_url'] ?? ($item_url . '/index');
+} else {
+    $activeToShow = !$this->request->is('ajax') ? $currentFilters : [];
+    $clearHref = $item_url . '/index';
+}
+?>
+<?php if (!empty($activeToShow)): ?>
     <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
 
         <strong class="me-1"><?= __('Active filters') ?>:</strong>
 
-        <?php foreach ($currentFilters as $key => $value): ?>
+        <?php foreach ($activeToShow as $key => $value): ?>
             <span class="badge bg-primary">
                 <?= h($key) ?>: <?= h(urldecode($value)) ?>
             </span>
         <?php endforeach; ?>
 
-        <a href="<?= h($item_url . '/index') ?>"
+        <a href="<?= h($clearHref) ?>"
            class="btn btn-sm btn-outline-danger ms-auto">
             <i class="fas fa-times"></i>
             <?= __('Clear all') ?>
@@ -234,26 +258,35 @@ function isMobile() {
 (function init() {
     const scope = document.getElementById('<?= h($filterId) ?>')?.closest('.tab-pane') || document;
 
-    scope.querySelector('#viewList')?.addEventListener('click', () => setView('table', true, scope));
-    scope.querySelector('#viewCard')?.addEventListener('click', () => setView('card', true, scope));
+    // Only wire the table/card view toggle when it is present. 
+    // Indexes using a custom view switch have no #viewCard and manage their
+    // own reloads, so we must NOT run setView() in that case.
+    if (scope.querySelector('#viewCard')) {
+        scope.querySelector('#viewList')?.addEventListener('click', () => setView('table', true, scope));
+        scope.querySelector('#viewCard')?.addEventListener('click', () => setView('card', true, scope));
 
-    // A narrow viewport always forces card view; otherwise defaulting to table
-    function applyResponsiveView() {
         const savedView = localStorage.getItem('indexViewMode');
-        setView(isMobile() ? 'card' : (savedView || 'table'), false, scope);
-    }
-
-    applyResponsiveView();
-
-    // Re-apply whenever the viewport crosses the mobile breakpoint
-    let wasMobile = isMobile();
-    window.addEventListener('resize', () => {
-        const nowMobile = isMobile();
-        if (nowMobile !== wasMobile) {
-            wasMobile = nowMobile;
-            applyResponsiveView();
+        setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false, scope);
+        
+        // A narrow viewport always forces card view; otherwise defaulting to table
+        function applyResponsiveView() {
+            const savedView = localStorage.getItem('indexViewMode');
+            setView(isMobile() ? 'card' : (savedView || 'table'), false, scope);
         }
-    });
+
+        applyResponsiveView();
+
+        // Re-apply whenever the viewport crosses the mobile breakpoint
+        let wasMobile = isMobile();
+        window.addEventListener('resize', () => {
+            const nowMobile = isMobile();
+            if (nowMobile !== wasMobile) {
+                wasMobile = nowMobile;
+                applyResponsiveView();
+            }
+        });
+    }
+    
 
     scope.querySelector('#filterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();

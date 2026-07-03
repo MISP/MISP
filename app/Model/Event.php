@@ -1750,6 +1750,73 @@ class Event extends AppModel
     }
 
     /**
+     * Move each attribute's is_galaxy tags into a ['Galaxy'] array (grouped by
+     * galaxy, each carrying its GalaxyCluster list) and strip them from ['AttributeTag'] —
+     * so the Overmind galaxy field renders the real galaxy name/icon
+     * inside the event-view attribute and object tabs instead of falling back to the tag-derived name.
+     *
+     * @param array $attributes flat attributes, each with an 'AttributeTag' list
+     * @param array $user
+     * @return array same attributes, with 'Galaxy' set and galaxy tags removed
+     */
+    private function attributeGalaxiesFromTags(array $attributes, array $user)
+    {
+        // Gather galaxy tags across all attributes for a single lookup.
+        $galaxyTags = [];
+        foreach ($attributes as $attr) {
+            foreach (($attr['AttributeTag'] ?? []) as $at) {
+                if (!empty($at['Tag']['is_galaxy'])) {
+                    $galaxyTags[$at['Tag']['id']] = $at['Tag']['name'];
+                }
+            }
+        }
+
+        $clustersByTagId = [];
+        if (!empty($galaxyTags)) {
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $clusters = $GalaxyCluster->getClustersByTags(
+                $galaxyTags, $user, true, false
+            );
+            $clustersByTagId = array_column(
+                array_column($clusters, 'GalaxyCluster'),
+                null,
+                'tag_id'
+            );
+        }
+
+        foreach ($attributes as &$attr) {
+            $galaxies = [];
+            $remainingTags = [];
+            foreach (($attr['AttributeTag'] ?? []) as $at) {
+                $tagId = $at['Tag']['id'] ?? null;
+                if (empty($at['Tag']['is_galaxy'])
+                    || !isset($clustersByTagId[$tagId])
+                ) {
+                    $remainingTags[] = $at;
+                    continue;
+                }
+                $cluster = $clustersByTagId[$tagId];
+                $galaxyId = $cluster['Galaxy']['id'];
+                $cluster['local'] = $at['local'] ?? false;
+                $cluster['attribute_tag_id'] = $at['id'] ?? null;
+                if (isset($galaxies[$galaxyId])) {
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
+                } else {
+                    $galaxies[$galaxyId] = $cluster['Galaxy'];
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
+                }
+            }
+            $attr['AttributeTag'] = $remainingTags;
+            $attr['Galaxy'] = array_values($galaxies);
+        }
+        unset($attr);
+
+        return $attributes;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -1949,6 +2016,9 @@ class Event extends AppModel
             }
             unset($attribute);
         }
+
+        // Move is_galaxy tags into an ['Galaxy'] array.
+        $flat = $this->attributeGalaxiesFromTags($flat, $user);
 
         // Attach SharingGroup names for distribution==4
         $sgIdsNeeded = [];
@@ -2488,6 +2558,22 @@ class Event extends AppModel
             }
         }
         unset($obj);
+
+        // Move each object-attribute's is_galaxy tags into a ['Galaxy'] array
+        $galaxyMap = [];
+        $galaxyFlat = [];
+        foreach ($flat as $objId => $obj) {
+            foreach (($obj['Attribute'] ?? []) as $idx => $attr) {
+                $galaxyMap[] = [$objId, $idx];
+                $galaxyFlat[] = $attr;
+            }
+        }
+        if (!empty($galaxyFlat)) {
+            $galaxyFlat = $this->attributeGalaxiesFromTags($galaxyFlat, $user);
+            foreach ($galaxyMap as $i => $pos) {
+                $flat[$pos[0]]['Attribute'][$pos[1]] = $galaxyFlat[$i];
+            }
+        }
 
         // Attach SharingGroup names for distribution==4
         $sgIdsNeeded = [];

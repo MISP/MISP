@@ -1,12 +1,20 @@
 <?php
 $breadcrumb = '';
 if (!empty($currentController)) {
+    if ($currentController === 'galaxy_clusters') {
+        $currentController = 'galaxies';
+        $middle = 'clusters';
+    }
     $controllerUrl = $this->Html->url('/' . $currentController);
     $breadcrumb = '<a href="' . $controllerUrl . '" '
         . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
         . ucfirst(h($currentController)) . '</a>';
     if (!empty($currentAction)) {
-        $breadcrumb .= ' > ' . ucfirst(h($currentAction));
+        if (empty($middle)) {
+            $breadcrumb .= ' > ' . ucfirst(h($currentAction));
+        } else {
+            $breadcrumb .= ' > ' . ucfirst(h($middle)) .  ' > ' . ucfirst(h($currentAction));
+        }
     }
 }
 $title = isset($headerTitle)
@@ -42,7 +50,7 @@ $totalCount = $headerCount ?? $paginatorCount;
                 </h1>
                 <?php if ($totalCount !== null): ?>
                     <span class="badge rounded-pill bg-primary fw-semibold px-3">
-                        <?= number_format($totalCount) ?>
+                        <?= number_format($totalCount, 0, ',', ' ') ?>
                     </span>
                 <?php endif; ?>
             </div>
@@ -83,7 +91,8 @@ $totalCount = $headerCount ?? $paginatorCount;
                                     'class' => 'btn btn-outline-primary fw-semibold'
                                         . ' d-flex align-items-center gap-2',
                                     'escape' => false,
-                                ]
+                                ],
+                                $action['confirm'] ?? false
                             );
                         ?>
 

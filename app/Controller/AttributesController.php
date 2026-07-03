@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('GalaxyColour', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -178,7 +179,8 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             $this->paginate['conditions'] = $conditions;
-            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+            $attributeCount = 0;
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params, $attributeCount, true);
             App::uses('CustomPaginationTool', 'Tools');
             $customPagination = new CustomPaginationTool();
             $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
@@ -255,6 +257,7 @@ class AttributesController extends AppController
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
+        $this->set('headerCount', $attributeCount);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
@@ -3016,7 +3019,7 @@ class AttributesController extends AppController
                     'id'     => $cid,
                     'name'   => $gc['value'],
                     'galaxy' => $galaxyName,
-                    'hue'    => $this->__galaxyHue($galaxyName),
+                    'hue'    => GalaxyColour::hue($galaxyName),
                 ];
                 if (!empty($at['local'])) {
                     $currentLocalClusters[] = $entry;
@@ -3123,22 +3126,6 @@ class AttributesController extends AppController
         $this->set('attributeId',           $attributeId);
         $this->set('mayModify',             $mayModify);
         $this->layout = false;
-    }
-
-    /**
-     * Deterministic hue (0-359) from a galaxy name, mirroring the $galaxyHue
-     * closure in the Overmind galaxy views so the modal badges match the row
-     * colours exactly.
-     */
-    private function __galaxyHue($name)
-    {
-        $name = (string)$name;
-        $hash = 0;
-        $len  = strlen($name);
-        for ($i = 0; $i < $len; $i++) {
-            $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
-        }
-        return $hash % 360;
     }
 
     public function addTag($id = false, $tag_id = false)

@@ -186,6 +186,17 @@ if ($field['data_path'] === 'Event.id') {
                             </div>
                         </a>
 
+                    <?php elseif ($action['type'] === 'postLink'): ?>
+                        <?= $this->Form->postLink(
+                            '<div><i class="fas fa-' . h($action['icon']) . ' me-2"></i>' . h($action['label']) . '</div>',
+                            $url,
+                            [
+                                'escape' => false,
+                                'class' => trim('dropdown-item ' . ($action['class'] ?? '')),
+                            ],
+                            $action['confirm'] ?? false
+                        ) ?>
+
                     <?php elseif ($action['type'] === 'divider'): ?>
                         <li><hr class="dropdown-divider"></li>
 
