@@ -556,7 +556,8 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 ## Phase 5 — UI surfacing & negotiation polish
 - [x] **T5.1** Server add/edit/view: collection toggles. Commit `45b83b56f`.
   **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
-- [ ] **T5.2** Sync job output + pull/push preview: collection counts.
+- [x] **T5.2** Sync job output + pull/push preview: collection counts. Commit `73185042b`.
+  **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** → findings below.
 - [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
 
 ### T5.1 findings — server-form collection toggles (commit `45b83b56f`)
@@ -590,6 +591,48 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   already carry the count; the deferred caller-side "…N collections pulled/pushed" user-facing messages +
   preview screens land here). **Optional T5 tightening still open** (flagged at T4.4): `Server::push`
   collections block gates on toggle + negotiation only, not `$push['canPush']`.
+
+### T5.2 findings — collection counts in pull job output (commit `73185042b`)
+- **Scope reduced to the pull caller strings after auditing the sibling (analyst-data)
+  surfacing — parity, not invention:**
+  - **Pull plumbing already there (T3.4):** `Server::pull` returns a 7-element array
+    (`Server.php:724` `[$successes,$fails,$pulledProposals,$pulledSightings,$pulledClusters,
+    $pulledAnalystData,$pulledCollections]`); index **[6]** = collections. The `$change` DB-log
+    line already carries "…%s collections pulled or updated" (`Server.php:714`). The **gap** was
+    the caller-side "Pull completed. …" user-facing strings, which stopped at `$result[5]`
+    (analyst data).
+  - **Two edits, mirroring `$result[5]` verbatim:** `ServersController::pull` (`:846`, the
+    synchronous `!background_jobs` path) + `ServerShell::pull` (`:162`, the background-worker
+    Job status) both got `, %s collections pulled.` appended with `$result[6]`. Also added
+    `$this->set('pulledCollections', $result[6])` (`ServersController:855`) for parity with the
+    `pulledAnalystData` view var two lines up (both vestigial — the action redirects right after —
+    but kept for sibling consistency).
+  - **Third pull caller NOT edited:** `ServerShell` scheduled pull (`:579`) reads only
+    `$result[0]` for the 1/2/3/4 error codes and relies on the `$change` DB-log line (already has
+    the count) ⇒ no message edit needed there.
+- **★ Push side needs NO caller edit — parity = DB-log only ★** Audited both push callers:
+  `ServersController::push` (`:935`) surfaces **only events** ("%s events pushed, %s events could
+  not be pushed") — analyst-data/sightings/clusters push counts are NOT surfaced to the caller;
+  `ServerShell::push` (`:203`) just reports "Job done.". So no sync type surfaces a per-type count
+  to a push caller. Collections push count already lives in the `Server::push` `$change` DB-log
+  (T4.4, `:1463`) — faithful parity. (The optional `$push['canPush']` tightening from T4.4 is a
+  separate concern, still open.)
+- **★ No pull/push preview surface exists for ANY sibling sync type ★** The only `preview*`
+  actions on `ServersController` are `previewIndex`/`previewEvent` (`:108`/`:179`) — remote-EVENT
+  preview, not a per-type-count pull/push preview. Analyst-data added none. ⇒ PRD §6.9's "preview"
+  has no sibling to mirror; nothing built (parity, not invention).
+- **`$result[6]` exposure = identical to the existing `$result[5]`** — both are unguarded in the
+  same message expression, and both are undefined only on the `pull_relevant_clusters` early-return
+  (`Server.php:633`, a 5-element array). Pre-existing for `[5]`; my `[6]` shares its exact fate ⇒
+  no new risk, faithful mirror (guarding would diverge from the sibling and is out of scope).
+- **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** — server 7 (→ this instance)
+  temporarily `pull=1, pull_collections=1`; `POST /servers/pull/7/full` (admin key user 1,
+  background worker) → **job 1399** status message = *"Pull completed. 0 events pulled, … 0 analyst
+  data pulled, **0 collections pulled.**"* — the new clause renders `$result[6]` correctly
+  positioned, non-crashing, with a real value (0 = self-loopback skip-on-equal; T6.1 already proved
+  a **nonzero** count on a real 5008-delta pull, "…1 collections pulled or updated"). Server 7
+  restored to baseline `0/0`. Lint clean (`parallel-lint`, PHP 8.3, both files). Additive within
+  accepted touch points (PRD §5). **Next: T5.3** (negotiation-skip vs a simulated old peer).
 
 ## Phase 6 — End-to-end testing & docs
 - [~] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
@@ -687,6 +730,18 @@ columns intact. Everywhere below that says "155/156" is historical — the live 
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03 — session 9:** **T5.2 done** (commit `73185042b`). Surfaced the pulled-collections
+  count (`Server::pull` return index [6], from T3.4) in the user-facing "Pull completed. …" messages,
+  mirroring the analyst-data `$result[5]` verbatim: `, %s collections pulled.` appended in
+  `ServersController::pull` (`:846`) + `ServerShell::pull` (`:162`), plus a parity
+  `$this->set('pulledCollections', $result[6])`. **Push needs no caller edit** — no sync type surfaces
+  a per-type count to push callers (events-only in `ServersController::push`; "Job done." in
+  `ServerShell::push`), so parity keeps the collections push count in the `Server::push` `$change`
+  DB-log alone (T4.4). **No preview surface exists** for any sibling sync type (only remote-event
+  preview), so none invented. **★ LIVE-VERIFIED via self-loopback pull ★** (server 7, job 1399): job
+  message now reads "…0 analyst data pulled, 0 collections pulled." (0 = self-loopback skip-on-equal;
+  T6.1 already showed a nonzero count on a real delta). Lint clean; additive (PRD §5). **Next: T5.3**
+  (negotiation-skip vs a simulated old peer).
 - **2026-07-03 — session 8:** **T5.1 done** (commit `45b83b56f`) → **Phase 5 STARTED.** Surfaced the
   `pull_collections`/`push_collections` server toggles in the UI (D8), mirroring `pull/push_analyst_data`:
   two `Form->input` checkboxes in `edit.ctp` (shared by `add()` via `render('edit')`), the two field names
