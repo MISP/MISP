@@ -253,7 +253,7 @@ function toggleAllAttributeCheckboxes(selectAllEl) {
 }
 
 function isMobile() {
-    return window.innerWidth < 768;
+    return window.innerWidth < 1000;
 }
 
 function setView(view, save = true) {
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
 
     const savedView = localStorage.getItem('indexViewMode');
-    setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
+    setView(isMobile() ? 'card' : (savedView || 'table'), false);
 
     document.getElementById('quickFilterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
