@@ -620,6 +620,21 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **`org_id` vs `orgc_id` on capture:** confirm exact Event convention, replicate (T2.1).
 - **Migration ordering:** schema migrations must land before any code reads the new columns.
 
+### ★ MIGRATION RENUMBER 155/156 → 158/159 (2026-07-03, commit `f94da2aa5`) — SUPERSEDES the numbering below
+The original 155/156 choice (below) assumed collection-sync merges into develop BEFORE the event-template
+`exposed` migration (157), so every instance passes through 155/156 before 157. **That breaks for an instance
+that reaches `db_version 157` via upstream develop (has 157, never had 155/156) then gains this code —
+`findUpgrades()` skips 155/156 (< 157) ⇒ columns never created, yet `getVersion` still advertises
+`collection_sync` (a live deploy trap; it bit 5008, which needed the 3 ALTERs hand-applied).** **Fix:** the
+feature's migrations now live ABOVE the current develop max — **158** (`collections.locked`) + **159** (servers
+toggles), moved after `case 157:` in `AppModel`; `$db_changes` map → `…154, 157, 158, 159`; `db_schema.json`
+db_version → **159**; MYSQL.sql unchanged (columns already in its baseline CREATE TABLE). **Safe for
+already-migrated boxes:** re-adding an existing column is an ACCEPTED duplicate-column error
+(`AppModel::isAcceptedDatabaseError`, SQLSTATE 42S21/1060 → "the update went through") ⇒ this dev box + 5008
+self-heal on the next `runUpdates` (db_version → 159, no breakage, no dup columns). **LIVE-VERIFIED here**
+(was at 157 w/ columns): web-triggered runUpdates applied 158+159 as accepted-duplicate no-ops → db_version 159,
+columns intact. Everywhere below that says "155/156" is historical — the live numbers are **158/159**.
+
 ### Phase 1 prep — migration numbering (verified 2026-06-30, this branch)
 - **This `2.5` branch:** highest `case` = **153** (`taxii_servers.enabled`,
   `AppModel.php:2698`); `$db_changes` map ends `153 => false` (`:101`).
@@ -639,6 +654,13 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03:** **Migration renumber 155/156 → 158/159** (commit `f94da2aa5`) — user-suggested fix for the
+  upstream-develop-at-157 skip trap surfaced by the 5008 E2E. Moved the collections migrations ABOVE develop's
+  event-template `157` (so `findUpgrades` on any instance ≤157 applies them); `$db_changes` map + `db_schema.json`
+  db_version → 159; MYSQL.sql unchanged. Safe for already-migrated boxes via the accepted duplicate-column path.
+  **LIVE-VERIFIED** (this box 157→159, 158/159 ran as accepted-duplicate no-ops, columns intact). See the
+  RENUMBER note in the migration-numbering section. **NB commits since T4.4 are on branch `collection_sync`**
+  (user switched off `develop` this session); `develop` still at `5bec30427`.
 - **2026-07-03:** **★ T6.1 LIVE E2E VALIDATED (two real instances, 5007 ⇄ 5008) ★** — no code change; docs only.
   User stood up 5008 (`mispx` DB, develop + feature code + manually-applied migrations 155/156) wired both ways to
   5007 (server row 42). **Both capture-write branches — unreachable by any self-loopback — proven live & fully
