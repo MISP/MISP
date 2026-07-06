@@ -168,7 +168,6 @@ class LogsController extends AppController
             $this->set('headerCount', (int)$this->Log->tableRows());
             $this->set('headerCountApprox', true);
         }
-        xdebug_break();
 
         // Light pagination (prev/next only)
         App::uses('CustomPaginationTool', 'Tools');

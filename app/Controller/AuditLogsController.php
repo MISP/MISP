@@ -163,7 +163,6 @@ class AuditLogsController extends AppController
             $this->set('headerCount', (int)$this->AuditLog->tableRows());
             $this->set('headerCountApprox', true);
         }
-        xdebug_break();
 
         // If no limit is set, we retrieve the total and set the headerCountApprox flag to true, so the header shows an estimated count
         App::uses('CustomPaginationTool', 'Tools');
