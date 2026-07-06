@@ -191,6 +191,17 @@ class TaxiiServer extends AppModel
         return new File($temporaryFolder . '/' . $random . '.json', true, 0644);
     }
 
+    public function beforeSave($options = array())
+    {
+        parent::beforeSave($options);
+        if (isset($this->data['TaxiiServer']['auth_type']) && $this->data['TaxiiServer']['auth_type'] === 'basic') {
+            if (!empty($this->data['TaxiiServer']['username']) && !empty($this->data['TaxiiServer']['password'])) {
+                $this->data['TaxiiServer']['api_key'] = base64_encode($this->data['TaxiiServer']['username'] . ':' . $this->data['TaxiiServer']['password']);
+            }
+        }
+        return true;
+    }
+
     public function queryInstance($options)
     {
         $url = $options['TaxiiServer']['api_root'] . $options['TaxiiServer']['path'];
@@ -213,9 +224,12 @@ class TaxiiServer extends AppModel
                 'Content-type' => 'application/taxii+json;version=2.1'
             ]
         ];
-        error_log($options['TaxiiServer']['api_key']);
         if (!empty($options['TaxiiServer']['api_key'])) {
-            $request['header']['Authorization'] = 'Basic ' . $options['TaxiiServer']['api_key'];
+            $authMethod = 'Basic ';
+            if (isset($options['TaxiiServer']['auth_type']) && $options['TaxiiServer']['auth_type'] === 'bearer') {
+                $authMethod = 'Bearer ';
+            }
+            $request['header']['Authorization'] = $authMethod . $options['TaxiiServer']['api_key'];
         }
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {

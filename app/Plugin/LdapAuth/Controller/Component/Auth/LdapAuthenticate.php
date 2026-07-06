@@ -1,7 +1,5 @@
 <?php
 
-use PSpell\Config;
-
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 class LdapAuthenticate extends BaseAuthenticate

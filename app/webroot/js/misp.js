@@ -5771,6 +5771,17 @@ function redirectIdSelection(scope, action) {
     }
 }
 
+$(document.body).on('change', '#TaxiiServerAuthType', function() {
+    var authType = $(this).val();
+    if (authType == 'basic') {
+        $('.auth-basic-field').closest('.input, .row').show();
+        $('.auth-bearer-field').closest('.input, .row').hide();
+    } else if (authType == 'bearer') {
+        $('.auth-basic-field').closest('.input, .row').hide();
+        $('.auth-bearer-field').closest('.input, .row').show();
+    }
+});
+
 $(document.body).on('click', '.populateActionTrigger', function() {
     var populate_script = $(this).data('request-script');
     populate_script = atob(populate_script);

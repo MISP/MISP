@@ -224,6 +224,7 @@ abstract class StixExport
             'source' => $cluster['source'],
             'authors' => $cluster['authors'],
             'uuid' => $cluster['uuid'],
+            'meta' => $cluster['meta'],
             'timestamp' => $timestamp
         ];
         return $arranged_cluster;

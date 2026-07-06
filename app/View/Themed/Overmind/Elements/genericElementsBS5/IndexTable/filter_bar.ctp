@@ -251,6 +251,10 @@ function setView(view, save = true, scope = document) {
     if (save) localStorage.setItem('indexViewMode', view);
 }
 
+function isMobile() {
+    return window.innerWidth < 1000;
+}
+
 (function init() {
     const scope = document.getElementById('<?= h($filterId) ?>')?.closest('.tab-pane') || document;
 
@@ -263,7 +267,26 @@ function setView(view, save = true, scope = document) {
 
         const savedView = localStorage.getItem('indexViewMode');
         setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false, scope);
+        
+        // A narrow viewport always forces card view; otherwise defaulting to table
+        function applyResponsiveView() {
+            const savedView = localStorage.getItem('indexViewMode');
+            setView(isMobile() ? 'card' : (savedView || 'table'), false, scope);
+        }
+
+        applyResponsiveView();
+
+        // Re-apply whenever the viewport crosses the mobile breakpoint
+        let wasMobile = isMobile();
+        window.addEventListener('resize', () => {
+            const nowMobile = isMobile();
+            if (nowMobile !== wasMobile) {
+                wasMobile = nowMobile;
+                applyResponsiveView();
+            }
+        });
     }
+    
 
     scope.querySelector('#filterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
