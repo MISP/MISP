@@ -187,6 +187,12 @@
             ['controller' => 'event_templates', 'action' => 'library_status'],
 
 
+            ['controller' => 'logs', 'action' => 'index'],
+            ['controller' => 'logs', 'action' => 'admin_index'],
+            ['controller' => 'audit_logs', 'action' => 'admin_index'],
+            ['controller' => 'access_logs', 'action' => 'admin_index'],
+
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
         ];

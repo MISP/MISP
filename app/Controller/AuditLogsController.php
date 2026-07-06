@@ -151,6 +151,32 @@ class AuditLogsController extends AppController
             $list[$k]['AuditLog']['action_human'] =  $this->actions[$item['AuditLog']['action']];
         }
 
+        // Free-text fields use partial matching (LIKE) for the search
+        if (!empty($params)) {
+            $this->set('headerCount', (int)$this->AuditLog->find('count', [
+                'conditions' => $this->paginate['conditions'],
+                'recursive' => -1,
+                'contain' => [],
+            ]));
+            $this->set('headerCountApprox', false);
+        } else {
+            $this->set('headerCount', (int)$this->AuditLog->tableRows());
+            $this->set('headerCountApprox', true);
+        }
+        xdebug_break();
+
+        // If no limit is set, we retrieve the total and set the headerCountApprox flag to true, so the header shows an estimated count
+        App::uses('CustomPaginationTool', 'Tools');
+        $curPage = (int)($this->request->params['named']['page'] ?? 1);
+        $pagingOptions = ['page' => $curPage, 'limit' => (int)($this->paginate['limit'] ?? 60)];
+        $paging = (new CustomPaginationTool())->createPaginationRules($list, $pagingOptions, 'AuditLog');
+        if (count($list) >= $pagingOptions['limit']) {
+            $paging['nextPage'] = true;
+            $paging['prevPage'] = $curPage > 1;
+            $paging['current'] = count($list);
+        }
+        $this->request->params['paging']['AuditLog'] = $paging;
+
         $this->set('list', $list);
         $this->set('actions', [
             AuditLog::ACTION_ADD => __('Add'),
@@ -641,13 +667,22 @@ class AuditLogsController extends AppController
             switch ($auditLog['model']) {
                 case 'Event':
                     if (isset($events[$modelId])) {
-                        $url = '/events/view/' . $modelId;
+                        if ($this->theme === 'Overmind'){
+                            $url = '/events/view2/' . $modelId;
+                        } else {
+                            $url = '/events/view/' . $modelId;
+                        }
+
                         $eventInfo = $events[$modelId];
                     }
                     break;
                 case 'ObjectReference':
                     if (isset($objectReferences[$modelId]) && isset($objects[$objectReferences[$modelId]])) {
-                        $url = '/events/view/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
+                        if ($this->theme === 'Overmind'){
+                            $url = '/events/view2/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
+                        } else {
+                            $url = '/events/view/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
+                        }
                         if ($objects[$objectReferences[$modelId]]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -658,7 +693,11 @@ class AuditLogsController extends AppController
                     break;
                 case 'Object':
                     if (isset($objects[$modelId])) {
-                        $url = '/events/view/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
+                        if ($this->theme === 'Overmind'){
+                            $url = '/events/view2/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
+                        } else {
+                            $url = '/events/view/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
+                        }
                         if ($objects[$modelId]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -669,7 +708,11 @@ class AuditLogsController extends AppController
                     break;
                 case 'Attribute':
                     if (isset($attributes[$modelId])) {
-                        $url = '/events/view/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
+                        if ($this->theme === 'Overmind'){
+                            $url = '/events/view2/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
+                        } else {
+                            $url = '/events/view/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
+                        }
                         if ($attributes[$modelId]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -680,7 +723,11 @@ class AuditLogsController extends AppController
                     break;
                 case 'ShadowAttribute':
                     if (isset($shadowAttributes[$modelId])) {
-                        $url = '/events/view/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
+                        if ($this->theme === 'Overmind'){
+                            $url = '/events/view2/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
+                        } else {
+                            $url = '/events/view/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
+                        }
                         if (isset($events[$shadowAttributes[$modelId]['event_id']])) {
                             $eventInfo = $events[$shadowAttributes[$modelId]['event_id']];
                         }

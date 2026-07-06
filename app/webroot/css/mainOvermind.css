@@ -954,6 +954,8 @@ th .sort-icon::before {
     box-shadow: 0 0 0 2px currentColor;
     z-index: 1;
 }
+.tl-meta-link { cursor: pointer; }
+.tl-meta-link:hover { text-decoration: underline !important; color: var(--primary, #4f46e5) !important; }
 
 .breadcrumb-controller-link:hover {
     color: var(--primary) !important;

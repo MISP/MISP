@@ -31,6 +31,35 @@ try {
     // no paginator on this page
 }
 $totalCount = $headerCount ?? $paginatorCount;
+
+// Compact count formatting (1,4K, ...)
+// Count prefixed with "+" to denote an estimate.
+$abbreviateCount = function ($num) {
+    $num = (int)$num;
+    if ($num < 1000) {
+        return (string)$num;
+    }
+    foreach ([['T', 1e12], ['B', 1e9], ['M', 1e6], ['K', 1e3]] as [$suffix, $scale]) {
+        if ($num >= $scale) {
+            $v = floor($num / $scale * 10) / 10; // one decimal, truncated
+            $s = rtrim(rtrim(number_format($v, 1, ',', ''), '0'), ',');
+            return $s . $suffix;
+        }
+    }
+    return (string)$num;
+};
+
+$countDisplay = null;
+if (isset($headerCountText)) {
+    $countDisplay = $headerCountText;
+} elseif (isset($headerCountApprox)) {
+    $n = $headerCount ?? $paginatorCount;
+    if ($n !== null && $n < PHP_INT_MAX) {
+        $countDisplay = ($headerCountApprox ? '+' : '') . $abbreviateCount($n);
+    }
+} elseif ($totalCount !== null && $totalCount < PHP_INT_MAX) {
+    $countDisplay = number_format($totalCount, 0, ',', ' ');
+}
 ?>
 
 <div class="container-fluid py-3">
@@ -48,9 +77,9 @@ $totalCount = $headerCount ?? $paginatorCount;
                 <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem;">
                     <?= $title ?>
                 </h1>
-                <?php if ($totalCount !== null): ?>
+                <?php if ($countDisplay !== null): ?>
                     <span class="badge rounded-pill bg-primary fw-semibold px-3">
-                        <?= number_format($totalCount, 0, ',', ' ') ?>
+                        <?= h($countDisplay) ?>
                     </span>
                 <?php endif; ?>
             </div>

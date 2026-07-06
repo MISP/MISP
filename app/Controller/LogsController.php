@@ -135,20 +135,54 @@ class LogsController extends AppController
         if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
             $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
         }
+        // Free-text fields use partial matching (LIKE) for the search
+        $likeFields = ['title', 'change', 'email', 'org', 'description'];
         foreach ($filters as $key => $value) {
             if ($key == 'page' || $key == 'limit' || $key == 'search_token') { // These should not be part of the condition parameter
                 continue;
             }
             if ($key === 'created') {
-                $key = 'created >=';
+                $this->paginate['conditions']['Log.created >='] = $value;
+                continue;
             }
-            if (in_array($key, $paramArray)) {
+            if (in_array($key, $likeFields, true) && is_string($value) && $value !== '') {
+                $this->paginate['conditions']["LOWER(Log.$key) LIKE"] = '%' . strtolower($value) . '%';
+            } elseif (in_array($key, $paramArray, true)) {
                 $this->paginate['conditions']["Log.$key"] = $value;
             }
         }
         $this->set('validFilters', $validFilters);
         $this->set('filter', $filters);
-        $this->set('data', $this->paginate());
+
+        $data = $this->paginate();
+
+        // If no limit is set, we retrieve the total and set the headerCountApprox flag to true, so the header shows an estimated count
+        $activeFilterKeys = array_diff(array_keys($filters), ['page', 'limit', 'search_token']);
+        if (!empty($activeFilterKeys) || isset($this->params['named']['filter'])) {
+            $this->set('headerCount', (int)$this->Log->find('count', [
+                'conditions' => $this->paginate['conditions'],
+                'recursive' => -1,
+            ]));
+            $this->set('headerCountApprox', false);
+        } else {
+            $this->set('headerCount', (int)$this->Log->tableRows());
+            $this->set('headerCountApprox', true);
+        }
+        xdebug_break();
+
+        // Light pagination (prev/next only)
+        App::uses('CustomPaginationTool', 'Tools');
+        $curPage = (int)($this->request->params['named']['page'] ?? 1);
+        $pagingOptions = ['page' => $curPage, 'limit' => (int)($this->paginate['limit'] ?? 60)];
+        $paging = (new CustomPaginationTool())->createPaginationRules($data, $pagingOptions, 'Log');
+        if (count($data) >= $pagingOptions['limit']) {
+            $paging['nextPage'] = true;
+            $paging['prevPage'] = $curPage > 1;
+            $paging['current'] = count($data);
+        }
+        $this->request->params['paging']['Log'] = $paging;
+
+        $this->set('data', $data);
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $passedArgs);
         $this->set('menuData', ['menuList' => 'logs', 'menuItem' => 'index']);
