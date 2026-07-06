@@ -85,7 +85,7 @@ if (isset($headerCountText)) {
             </div>
 
             <?php if (!empty($headerDescription)): ?>
-                <p class="text-muted text-center mt-1" style="font-size:0.85rem;">
+                <p class="text-muted mt-1" style="font-size:0.85rem;">
                     <?= $headerDescription ?>
                 </p>
             <?php else: //small space, just to match the size of the Flash messages ?>
@@ -175,7 +175,7 @@ if (isset($headerCountText)) {
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($stat['icon'])): ?>
-                                <i class="fas fa-<?= h($stat['icon']) ?> text-<?= $color ?> opacity-25 fa-xl"></i>
+                                <i class="fas fa-<?= h($stat['icon']) ?> text-<?= $color ?> opacity-25" style="font-size:1.25rem;"></i>
                             <?php endif; ?>
                         </div>
                     </div>

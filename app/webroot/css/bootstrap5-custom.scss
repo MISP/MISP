@@ -24,6 +24,9 @@ $custom-colors: (
   "report": #4DA167,
   "sighting": #890096,
   "correlation": #E67F0D,
+  "category": #EF476F,
+  "type": #06D6A0,
+
 );
 
 $theme-colors: map-merge($theme-colors, $custom-colors);

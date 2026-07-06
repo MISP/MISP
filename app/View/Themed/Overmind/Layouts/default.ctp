@@ -195,6 +195,8 @@
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
+
+            ['controller' => 'pages', 'action' => 'display'],
         ];
 
         $currentController = $this->params['controller'];
