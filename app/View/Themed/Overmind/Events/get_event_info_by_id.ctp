@@ -22,6 +22,7 @@ if (empty($event)):
 
 <?php else:
     $eId        = $event['Event']['id'] ?? '';
+    $eUuid      = $event['Event']['uuid'] ?? '';
     $eInfo      = $event['Event']['info'] ?? '';
     $eAnalysis  = (int)($event['Event']['analysis'] ?? 0);
     $eThreat    = $event['ThreatLevel']['name'] ?? '';
@@ -30,8 +31,10 @@ if (empty($event)):
     $analysisLabel = $analysisLevels[$eAnalysis] ?? '';
     $threatDot     = $threatColors[$eThreat] ?? '#adb5bd';
 ?>
-<div class="rounded border mt-1 overflow-hidden"
-     style="border-color:var(--primary); font-size:.8rem;">
+<div class="rounded border mt-1 overflow-hidden js-extends-event-card"
+     data-extends-uuid="<?= h($eUuid) ?>"
+     title="<?= h(__('Click to use this event\'s UUID')) ?>"
+     style="border-color:var(--primary); font-size:.8rem; cursor:pointer;">
 
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between px-3 py-2"
@@ -46,7 +49,8 @@ if (empty($event)):
         <a href="<?= h($baseurl) ?>/events/view2/<?= h($eId) ?>"
            class="d-flex align-items-center gap-1 text-decoration-none"
            style="font-size:.7rem; color:var(--primary);"
-           target="_blank">
+           target="_blank"
+           onclick="event.stopPropagation();">
             <span class="fw-semibold">#<?= h($eId) ?></span>
             <i class="fas fa-arrow-up-right-from-square" style="font-size:.6rem;"></i>
         </a>

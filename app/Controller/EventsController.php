@@ -7923,7 +7923,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
         $event = $this->Event->fetchSimpleEvent($user, $id, [
-            'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
             'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
         ]);
         if ($this->_isRest()) {
