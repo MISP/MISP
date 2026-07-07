@@ -97,6 +97,16 @@
                     'Events/View/event_correlation_graph',
                 ],
             ],
+            [
+                'id' => 'pivot-explorer',
+                'title' => __('Pivot Explorer'),
+                'icon' => 'fas fa-circle-nodes',
+
+                // Content
+                'left' => [
+                    'Events/View/event_pivot_explorer',
+                ],
+            ],
             // [
             //     'id' => 'timeline',
             //     'title' => __('Timeline'),
