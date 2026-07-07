@@ -1315,11 +1315,11 @@ tr.attr-proposal-row td:first-child {
     border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody th.ct-row-head {
-    position: sticky; left: 0; z-index: 2;
+    position: sticky; left: 0; z-index: 2; cursor: pointer;
     background: var(--bs-body-bg); border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody tr:hover th.ct-row-head,
-.ct-page .ct-matrix tbody tr:hover td { background: var(--bs-tertiary-bg); }
+.ct-page .ct-matrix tbody tr:hover td { background: var(--bs-secondary-bg); }
 .ct-page .ct-vhead {
     writing-mode: vertical-rl; transform: rotate(180deg);
     cursor: pointer; color: hsl(var(--h) 55% 40%);

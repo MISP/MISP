@@ -249,7 +249,8 @@ $this->set('headerStats', [
                 <tbody>
                     <?php foreach ($typeDefinitions as $type => $def): ?>
                         <tr class="ct-item" data-search="<?= h(strtolower($type)) ?>">
-                            <th class="ct-row-head font-monospace fw-semibold text-nowrap text-start px-2 py-1"><?= h($type) ?></th>
+                            <th class="ct-row-head font-monospace fw-semibold text-nowrap text-start px-2 py-1 ct-type-jump"
+                                    data-type="<?= h($type) ?>"><?= h($type) ?></th>
                             <?php foreach ($catList as $cat): ?>
                                 <td style="padding: 0.60rem;">
                                     <?php if (in_array($type, $categoryDefinitions[$cat]['types'], true)): ?>
