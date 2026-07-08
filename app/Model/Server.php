@@ -1436,13 +1436,17 @@ class Server extends AppModel
             $fails = array();
         }
 
-        // Collections: gated on the per-server push_collections toggle (T1.2) AND feature
+        // Collections: gated on the remote's general push capability ($push['canPush'] =
+        // remote perm_sync) AND the per-server push_collections toggle (T1.2) AND feature
         // negotiation (isSupported reads the remote info already cached by the version check,
-        // so no extra round-trip) — an older peer without the capability is skipped silently.
-        // Collection::push re-checks isSupported; the remote captureCollection sink owns the
-        // distribution downgrade + locked=1, so the push sends RAW (mirroring the pull side).
+        // so no extra round-trip). Collections have no separate remote capability (D3), so
+        // canPush is the faithful analogue of the sibling sightings/analyst-data gates — it
+        // skips a guaranteed-403 upload to a sightings-only remote (one that can sight but not
+        // sync); an older peer without the capability is skipped silently too. Collection::push
+        // re-checks isSupported; the remote captureCollection sink owns the distribution
+        // downgrade + locked=1, so the push sends RAW (mirroring the pull side).
         $pushedCollections = 0;
-        if (!empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+        if ($push['canPush'] && !empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
             if ($jobId) {
                 $job->saveProgress($jobId, __('Pushing collections.'));
             }

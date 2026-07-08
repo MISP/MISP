@@ -392,10 +392,30 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   (authkey now user 185's valid `mBuok…` key — repaired the pre-existing stale `lmro33…`; pull/pull_collections
   reverted to 0). Lint clean. *(An earlier run used user 187's key as a substitute before the correct 185 key
   was available — same 0-collections outcome, superseded by this canonical run.)*
-- [~] **T3.5** Pull tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** — all per-phase
-  testing is folded into Phase 6 (T6.x) once the implementation is finished. The T3.4 self-loopback
-  already live-smoke-tested negotiation + index + skip-on-equal dedup; the write branch + full E2E are
-  T6.1 (two-instance). No standalone pull unit tests this phase.
+- [x] **T3.5** Pull tests (PRD §9). Commit `d40c8a1ec` (`app/Test/CollectionPullTest.php`, 17 tests).
+  → findings below. *(Was deferred to Phase 6 per user 2026-07-01; done now as the first Phase 6 task.)*
+
+### T3.5 findings — Collection::pull unit tests (commit `d40c8a1ec`)
+- **17 bare-PHPUnit tests, 37 assertions, all green** — the pull-side companion to
+  `CollectionCaptureTest` (which already covers `captureCollection`'s branches). Harness mirrors the
+  convention ([[project-misp-test-convention]]): guarded framework stubs, a
+  `CollectionPullTestServerSync extends ServerSyncTool` that bypasses the socket constructor and
+  returns injected index/fetch/user payloads (a `CollectionPullFakeResponse` provides `->json()`),
+  and a `CollectionPullTestable extends Collection` whose `find()` returns injected local rows and
+  whose `captureCollection()` is a **recorder** (so we assert exactly which RAW payloads reach the
+  sink + with what flags). **Unique class names** (`CollectionPull*`) avoid full-suite collisions with
+  `CollectionCaptureTest`'s `TestableCollection`/`StubOrgc`/etc.; `jsonDecode`/`logException` overridden
+  in the subclass so the tests don't depend on which sibling's leaner `AppModel` stub wins the load race.
+- **Coverage:** negotiation early-return (unsupported peer ⇒ 0 fetch, 0 capture); empty index ⇒ 0;
+  index-fetch exception ⇒ 0 + logged; dedup D6 (missing / strictly-newer fetched, equal / older skipped,
+  mixed index ⇒ exactly {missing, newer}); **RAW passthrough** (dist=2 reaches capture un-downgraded; the
+  exact remote payload + server context + `remotePermSyncInternal` from `cachedUserInfo` forwarded);
+  only-successful-imports counted; failed fetch chunk skip-and-continue; **array_chunk(100)** (101 UUIDs
+  ⇒ 2 chunks, 100+1); `buildPullFilterRules` orgc_name OR / NOT('!' prefix) / merged (via reflection).
+- **★ Mutation-verified ★** — flipping the skip-on-equal `<` to `<=` in `Collection::pull` broke exactly
+  the 2 equal-modified tests (`testEqualModifiedIsSkipped`, `testMixedIndexFetchesOnlyMissingAndNewer`);
+  reverted, back to 17/17. **Full `app/Test/` suite: 446 tests, 0 failures** (429 → +17, 2 pre-existing
+  skips) — no stub collision. Lint clean.
 
 ## Phase 4 — Push
 - [x] **T4.1** `ServerSyncTool`: `filterCollectionsForPush` + `pushCollection`. Commit `9abd6bb64`.
@@ -550,18 +570,258 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
 - **PRD §5 item 1** (accepted non-additive touch point); additive *within* the method. Lint clean
   (`parallel-lint`, PHP 8.3). **★ Phase 4 implementation COMPLETE (T4.1–T4.4); T4.5 tests → Phase 6.**
   **Next: Phase 5 (UI/D8) — T5.1** server add/edit/view collection toggles.
-- [~] **T4.5** Push tests (PRD §9). **★ DEFERRED to Phase 6 per user (2026-07-01) ★** (see T3.5 note — all
-  testing folds into Phase 6 once implementation is finished).
+- [x] **T4.5** Push tests (PRD §9). Commit `59938b72e` (`app/Test/CollectionPushTest.php`, 31 tests).
+  → findings below.
+
+### T4.5 findings — Collection::push chain unit tests (commit `59938b72e`)
+- **31 bare-PHPUnit tests, 43 assertions, all green** — same convention/harness as T3.5
+  (`CollectionPushTestServerSync` socket-less ServerSyncTool; `CollectionPushTestable` with injected
+  DB/HTTP touch-points; unique `CollectionPush*` class names). `collectDataForPush`/`uploadCollectionToServer`
+  fall back to the **real** implementation unless an injected override is set, so ONE subclass serves both
+  the orchestration tests (which stub them) and the direct helper tests (which exercise them). Private
+  helpers tested via `ReflectionMethod`.
+- **Coverage:** push() orchestration (negotiation gate; empty-collect / empty-wanted ⇒ 0; uploads only the
+  wanted subset; `['response']` unwrap; Success-only count; filter-exception ⇒ 0); `filterCollectionsForPush`
+  receive dedup D6 (missing + locked=1-newer wanted; **locked=0 authoritative-local dropped even if newer**;
+  equal/older dropped; mixed set); `isCandidateValidForPush` gate; `isPushableForServerSyncRules` orgc OR/NOT
+  (match/miss both ways); `prepareForPushToServer` (**id stripped, distribution NOT downgraded** = RAW
+  passthrough, dist=4 SG-server-membership 403 vs allow, non-roaming-no-servers 403, checkDistributionForPush
+  403); `collectDataForPush` post-find (corpus nesting under Collection, checkDist + push-rules filtering,
+  dist=4 SG enrichment from `find('first')`).
+- **★ Scope honesty ★** — `collectDataForPush`'s SQL-level dist eligibility (the `distribution 1-3 OR
+  4-in-sgIDs` WHERE) is NOT unit-covered here: the `find()` override returns injected rows and ignores the
+  conditions. That branch is exercised live (T4.4 self-loopback offered U1; T6.1 two-instance). The tests
+  cover the post-find PHP filtering + corpus shaping.
+- **★ Mutation-verified ★** — neutering the D6 `locked==0` gate broke 3 tests; removing the `id`-strip in
+  `prepareForPushToServer` broke 2; reverted, back to 31/31. **Full `app/Test/` suite: 477 tests, 0 failures**
+  (446 → +31, 2 pre-existing skips) — no stub collision. Lint clean.
 
 ## Phase 5 — UI surfacing & negotiation polish
-- [ ] **T5.1** Server add/edit/view: collection toggles.
-- [ ] **T5.2** Sync job output + pull/push preview: collection counts.
-- [ ] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+- [x] **T5.1** Server add/edit/view: collection toggles. Commit `45b83b56f`.
+  **★ LIVE-VERIFIED on dev (localhost:5007) ★** → findings below.
+- [x] **T5.2** Sync job output + pull/push preview: collection counts. Commit `73185042b`.
+  **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** → findings below.
+- [x] **T5.3** End-to-end feature-negotiation skip verified against a simulated old peer.
+  Commit `582999bd0` (unit test). **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** → findings below.
+
+### T5.3 findings — negotiation-skip vs a simulated old peer (commit `582999bd0`)
+- **The NEGATIVE control** for the negotiation triad (const + `getVersion` advertise +
+  `ServerSyncTool::isSupported` case, landed T3.1). The POSITIVE path (both peers advertise
+  `collection_sync` ⇒ the blocks fire) was already proven by the live 5007⇄5008 E2E (T6.1) and the
+  self-loopback runs at T3.4/T5.2. T5.3 proves the other side: an older peer NOT advertising the key ⇒
+  `isSupported(FEATURE_COLLECTION_SYNC)` false ⇒ `Server::pull`/`push` skip the collection blocks with
+  **no `/collections/*` HTTP round-trip at all**, while the rest of the sync runs normally. Verified two ways:
+- **Unit (checked-in, deterministic):** `app/Test/ServerSyncCollectionNegotiationTest.php` — 7 bare-PHPUnit
+  tests ([[project-misp-test-convention]]). A `TestableServerSync extends ServerSyncTool` bypasses the
+  socket-building constructor and overrides `info()` to return an injected remote-getVersion payload, so
+  `isSupported` (which reads `$this->info()`, `:585`) operates on the exact advertised metadata. Cases:
+  advertised `true` / truthy `1` → supported; key **absent** / `false` / falsy `0` → unsupported; plus a
+  **harness positive control** (the sibling `filter_sightings` advertised-boolean flag toggles with the
+  injected payload) so the negative assertions are discriminating, not a vacuous always-empty-info artifact.
+  **★ Mutation-verified ★** — forcing the `FEATURE_COLLECTION_SYNC` case to `return true` broke exactly the
+  3 negative tests (KeyAbsent/False/Zero); reverted. **Full `app/Test/` suite: 429 tests, 0 failures** (422→+7).
+- **Live-simulate (block-level skip):** temporarily stripped the `'collection_sync' => true` line from
+  `ServersController::getVersion` (`:1997`) to mimic an old peer (reverted via `git checkout`); opcache guard =
+  a direct `GET /servers/getVersion` confirmed the key was **gone** (payload shrank 271→**248 bytes**) before
+  pulling. Self-loopback pull (server 7 → localhost:5007, `pull=1,pull_collections=1`, admin key user 1,
+  background worker, **job 1400** completed status 4). **The pull's new `server-sync.log` lines fired the full
+  normal sequence** — `GET /servers/getVersion` (248B), `POST /events/index`, `shadow_attributes/index`,
+  `POST /analyst_data/indexMinimal` (5834B) — **but ZERO `POST /collections/indexMinimal`** (`grep -c` = 0),
+  vs the **positive baseline** (the immediately-preceding pull at the same commit, whose sequence ended with
+  `POST /collections/indexMinimal 200 184` right after `analyst_data/indexMinimal`). Identical pull minus the
+  collections call ⇒ the block short-circuited on `isSupported()==false` before any HTTP.
+- **★ Nuance — the job MESSAGE is NOT the discriminator.** `$pulledCollections` initialises to `0`, so the
+  T5.2 caller string renders "0 collections pulled" whether the block ran-and-found-0 (skip-on-equal) OR was
+  skipped entirely (old peer). The authoritative proof is the **absence of the `/collections/indexMinimal`
+  round-trip in `server-sync.log`** (present in the positive baseline, absent here). Bonus discriminator: the
+  248-vs-271-byte getVersion delta confirms the remote genuinely served the old-peer payload.
+- **All reverted:** `getVersion` restored (advertises `collection_sync=true` again, curl-confirmed); server 7
+  toggles back to `0/0`. Only the additive test file remains. Lint clean.
+- **★ Phase 5 implementation COMPLETE (T5.1–T5.3).** **★ Phase 6 COMPLETE** (T3.5 `d40c8a1ec`,
+  T4.5 `59938b72e`, T6.1 script `26950cd21`, T6.2 docs `6d7287559`, T6.3 regression + testlive_sync.py fix
+  `f85c3f09b`). **✓ Optional `$push['canPush']` tightening RESOLVED — user APPROVED, applied `dcce98ee1`**
+  (2026-07-03): `Server::push` collections gate now also gates on `$push['canPush']` (faithful analogue of
+  the sibling sightings/analyst-data gates; skips a guaranteed-403 upload to a sightings-only remote). No
+  behavioural change for a real collection-sync peer (must have perm_sync ⇒ canPush true). LIVE-VERIFIED via
+  self-loopback push (canPush=true ⇒ block still fires `POST /collections/filterCollectionsForPush 200` in
+  server-sync.log); lint clean; phpunit 477/0. **★ THE WHOLE FEATURE (Phases 0–6) IS NOW COMPLETE.**
+
+### T5.1 findings — server-form collection toggles (commit `45b83b56f`)
+- **Three additive edits**, mirroring the `pull_analyst_data`/`push_analyst_data` toggles verbatim:
+  1. **`app/View/Servers/edit.ctp`** (`:96-97` area) — two bare `$this->Form->input('push_collections')`
+     / `pull_collections` calls right after the analyst-data pair. **`edit.ctp` is shared by `add()`**,
+     which does `$this->render('edit')` (`ServersController.php:501`) — so ONE template edit surfaces the
+     checkboxes on BOTH the add and edit forms.
+  2. **`ServersController::edit()`** (`:570`) — added `'push_collections', 'pull_collections'` to the save
+     `$fieldList`. **`add()` needs NO change** — it saves with `$this->Server->save($this->request->data)`
+     (`:435`, no `$fieldList`), so the two fields persist automatically once present in the form POST.
+  3. **`app/View/Servers/index.ctp`** (`:141` area) — two `boolean`/`class=short` columns
+     ("Push Collections" / "Pull Collections", `data_path`+`sort` = `Server.push/pull_collections`) after
+     the analyst-data columns. **★ There is NO `app/View/Servers/view.ctp`** — the server-list `index.ctp`
+     is where per-server sync-toggle state is displayed (the handoff's "server view" surfacing = these columns).
+- **★ LIVE-VERIFIED on dev (localhost:5007), all discriminating ★** (caches cleared first — the schema-column
+  cache gotcha; Form->input introspects the tinyint(1) columns to render a checkbox, not a text input):
+  - **`edit()` `$fieldList` persistence** — REST `POST /servers/edit/7` (admin key): `{push_collections:1,
+    pull_collections:1}` → DB `servers.push_collections=1, pull_collections=1`; then `{…:0,…:0}` → both back
+    to `0`. The 0→1→0 round-trip proves the two fields are genuinely mass-assignable via the new whitelist
+    entry (not stuck at a default). Server 7 restored to baseline `0/0`.
+  - **edit form checkboxes** — web GET `/servers/edit/7` (admin session): renders
+    `<input type="checkbox" name="data[Server][push_collections]" id="ServerPushCollections">` +
+    `pull_collections`, with auto-labels "Push Collections"/"Pull Collections" — byte-identical shape to the
+    analyst-data checkboxes directly above.
+  - **add form checkboxes** — web GET `/servers/add` (renders `edit.ctp`): same two checkboxes present.
+  - **index columns** — web GET `/servers/index`: both boolean columns render with `sort:Server.push/pull_collections`
+    sort links.
+- **Additive UI only** (PRD §5 item 5 — accepted touch point). Lint clean (`parallel-lint`, PHP 8.3, all 3 files).
+  **Next: T5.2** (collection counts in sync job output + pull/push preview — the `$change` DB-log strings
+  already carry the count; the deferred caller-side "…N collections pulled/pushed" user-facing messages +
+  preview screens land here). **Optional T5 tightening still open** (flagged at T4.4): `Server::push`
+  collections block gates on toggle + negotiation only, not `$push['canPush']`.
+
+### T5.2 findings — collection counts in pull job output (commit `73185042b`)
+- **Scope reduced to the pull caller strings after auditing the sibling (analyst-data)
+  surfacing — parity, not invention:**
+  - **Pull plumbing already there (T3.4):** `Server::pull` returns a 7-element array
+    (`Server.php:724` `[$successes,$fails,$pulledProposals,$pulledSightings,$pulledClusters,
+    $pulledAnalystData,$pulledCollections]`); index **[6]** = collections. The `$change` DB-log
+    line already carries "…%s collections pulled or updated" (`Server.php:714`). The **gap** was
+    the caller-side "Pull completed. …" user-facing strings, which stopped at `$result[5]`
+    (analyst data).
+  - **Two edits, mirroring `$result[5]` verbatim:** `ServersController::pull` (`:846`, the
+    synchronous `!background_jobs` path) + `ServerShell::pull` (`:162`, the background-worker
+    Job status) both got `, %s collections pulled.` appended with `$result[6]`. Also added
+    `$this->set('pulledCollections', $result[6])` (`ServersController:855`) for parity with the
+    `pulledAnalystData` view var two lines up (both vestigial — the action redirects right after —
+    but kept for sibling consistency).
+  - **Third pull caller NOT edited:** `ServerShell` scheduled pull (`:579`) reads only
+    `$result[0]` for the 1/2/3/4 error codes and relies on the `$change` DB-log line (already has
+    the count) ⇒ no message edit needed there.
+- **★ Push side needs NO caller edit — parity = DB-log only ★** Audited both push callers:
+  `ServersController::push` (`:935`) surfaces **only events** ("%s events pushed, %s events could
+  not be pushed") — analyst-data/sightings/clusters push counts are NOT surfaced to the caller;
+  `ServerShell::push` (`:203`) just reports "Job done.". So no sync type surfaces a per-type count
+  to a push caller. Collections push count already lives in the `Server::push` `$change` DB-log
+  (T4.4, `:1463`) — faithful parity. (The optional `$push['canPush']` tightening from T4.4 is a
+  separate concern, still open.)
+- **★ No pull/push preview surface exists for ANY sibling sync type ★** The only `preview*`
+  actions on `ServersController` are `previewIndex`/`previewEvent` (`:108`/`:179`) — remote-EVENT
+  preview, not a per-type-count pull/push preview. Analyst-data added none. ⇒ PRD §6.9's "preview"
+  has no sibling to mirror; nothing built (parity, not invention).
+- **`$result[6]` exposure = identical to the existing `$result[5]`** — both are unguarded in the
+  same message expression, and both are undefined only on the `pull_relevant_clusters` early-return
+  (`Server.php:633`, a 5-element array). Pre-existing for `[5]`; my `[6]` shares its exact fate ⇒
+  no new risk, faithful mirror (guarding would diverge from the sibling and is out of scope).
+- **★ LIVE-VERIFIED via self-loopback pull (localhost:5007) ★** — server 7 (→ this instance)
+  temporarily `pull=1, pull_collections=1`; `POST /servers/pull/7/full` (admin key user 1,
+  background worker) → **job 1399** status message = *"Pull completed. 0 events pulled, … 0 analyst
+  data pulled, **0 collections pulled.**"* — the new clause renders `$result[6]` correctly
+  positioned, non-crashing, with a real value (0 = self-loopback skip-on-equal; T6.1 already proved
+  a **nonzero** count on a real 5008-delta pull, "…1 collections pulled or updated"). Server 7
+  restored to baseline `0/0`. Lint clean (`parallel-lint`, PHP 8.3, both files). Additive within
+  accepted touch points (PRD §5). **Next: T5.3** (negotiation-skip vs a simulated old peer).
 
 ## Phase 6 — End-to-end testing & docs
-- [ ] **T6.1** Two-instance (or loopback) live sync E2E script under `tests/` (PRD §9.2).
-- [ ] **T6.2** Sync docs (`docs/dev/…`) describe collection sync.
-- [ ] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`.
+- [x] **T6.1** Two-instance (or loopback) live sync E2E. **★ LIVE E2E VALIDATED 2026-07-03 across two real
+  instances (5007 ⇄ 5008) — both capture-write branches proven ★** + **checked-in scripted deliverable done**
+  (`tests/testlive_collection_sync.py`, commit `26950cd21`). → findings below.
+
+### T6.1 scripted deliverable findings — `tests/testlive_collection_sync.py` (commit `26950cd21`)
+- **Reusable PyMISP E2E harness** modelled on `tests/testlive_sync.py` (PRD §9.2). **LOOPBACK** mode
+  (HOST+AUTH, CI-friendly single instance) asserts negotiation + a clean push (`"Push complete."`) + the
+  pull message's collections clause; **TWO-INSTANCE** mode (REMOTE_HOST+REMOTE_AUTH) additionally asserts the
+  capture write branch (peer copy `locked=1` + dist 2→1 + element replicated; re-push D6 no-op; local
+  `locked=0` original not clobbered on pull-back; peer-origin pull). Raw `_prepare_request` for the collection
+  endpoints (PyMISP has no wrappers); all fixtures torn down in a `finally`.
+- **★ LOOPBACK LIVE-VERIFIED green against localhost:5007 ★** — all assertions pass; pull message renders
+  *"…0 analyst data pulled, 0 collections pulled."* (the T5.2 clause). Cleanup verified (dev box back to its 3
+  baseline collections, no residue). The two-instance write branch mirrors the manually-validated 5007⇄5008
+  flow already recorded above.
+- **★ The validation run caught 2 real script bugs (now fixed) + surfaced 2 pre-existing latent warnings:**
+  1. *(script)* the push assertion wrongly expected a "collections pushed" clause in the push **message** —
+     but the push caller message surfaces only events (T5.2); the collections push count lives in the
+     `Server::push` `$change` **DB-log**. Fixed to assert `"Push complete"` + rely on the two-instance
+     write-branch check.
+  2. *(script)* a hand-built `CollectionElement` fixture omitted `description`, tripping a debug-mode warning
+     (see below); fixed by adding `description` to the element.
+  3. *(pre-existing, out of scope)* `CollectionElement::captureElements` (`CollectionElement.php:238`) reads
+     `$element['description']` with no null-guard ⇒ an "Undefined array key description" warning when an
+     element lacks it. Sync-fetched elements always carry `description` (T3.2), so this only bites hand-built
+     payloads; harmless with `debug=0`. Left as a separate non-collection-sync ticket if wanted.
+  4. *(pre-existing, out of scope)* `SharingGroup::checkIfServerInSG` (`SharingGroup.php:606`) emits
+     "Undefined array key uuid" when a `SharingGroupOrg` entry / `RemoteOrg` lacks a uuid — fires from the
+     **plain event push** path (`Server.php:1309`) too, i.e. NOT introduced by collection sync (our
+     `collectValidSharingGroupIDs` just calls the same shared helper). Debug-only noise; function returns
+     correctly.
+- **NB (dev box):** `app/Config/config.php` has `debug => 1`, so PHP warnings render into REST bodies and
+  corrupt JSON parsing (PyMISP then returns the raw string). The script assumes a clean `debug=0` instance
+  (the CI/prod convention `testlive_sync.py` also relies on). The loopback run above was done with debug
+  temporarily flipped to 0 and **restored to 1** afterwards.
+
+### T6.1 findings — two-instance write-branch E2E (2026-07-03)
+- **★ Harness: a genuine second instance ★** — 5008 (`mispx` DB, reachable locally with the same creds) on
+  `develop` + the feature code (user brought it up to snuff: manually applied migrations 155/156 since
+  `findUpgrades(157)` skips keys < 157 — the numbering-reconciliation trap, now confirmed real). Both directions
+  wired: 5007 server row **42 (`mispx`) → 5008** (key = 5008 user 2 / org 2 iglocska, perm_sync); 5008 row 1 → 5007.
+  Both DBs directly queryable (`misp`=5007, `mispx`=5008) ⇒ capture verified at the row level on both sides.
+- **★ This reaches the branch NO self-loopback can ★** — a self-loopback's `filter*ForPush`/index always sees an
+  equal/`locked=0` local copy of every offered uuid (same DB) ⇒ never fetches/captures. A distinct peer with a
+  collection the other side lacks makes the **fetch→capture** (pull) and **upload→capture** (push) write branches
+  fire for real.
+- **PULL write branch (5008 → 5007), fully discriminating:** seeded a dist=2 collection `64578a85…` on 5008
+  (orgc=iglocska, 1 Event-ptr element, `modified 2026-07-03 08:42:53`), set `pull_collections=1` on server 42,
+  `POST /servers/pull/42/full`. Captured on 5007 (id 969): **`locked=1`**, **`distribution=1` (2→1 downgrade)**,
+  `user_id`/`org_id`=local puller (D7 neutralize), **`orgc_id` resolved by UUID** (5007 org 1 = Iglocska
+  `84977a3b` = 5008's orgc, not a fallback), **`modified` preserved exactly**, **element replicated** with a fresh
+  element uuid. Pull log: *"…and 1 collections pulled or updated"*. `server-sync.log` proved the real fetch:
+  `POST /collections/indexMinimal 200` → **`GET /collections/index/uuid[]:64578a85….json 200 679`** (the
+  679-byte full-collection fetch → capture). **Re-pull → "0 collections", still exactly 1 copy** (D6 skip-on-equal
+  idempotency; no dup).
+- **PUSH write branch (5007 → 5008), fully discriminating:** isolated to collections-only (server 42 temporarily
+  `push=0` + `push_sightings`(already 0)/`push_galaxy_clusters=0`/`push_analyst_data=0` off — `pushSightings`
+  honors `push_sightings` `Sighting.php:1346`, `AnalystData::push` honors `push_analyst_data` `:785`, and the
+  collections block gates only on `push_collections && isSupported`, independent of `Server.push` — so a
+  collections-only push runs with **zero** event/sighting/cluster/analyst side-effect on 5008; the 84,486
+  sightings were NOT dumped). `POST /servers/push/42/full` → U1 (`74049a17`, dist=2, 5 elements) captured on 5008
+  (id 2): **`locked=1`**, **`distribution=1` (2→1)**, `org_id`/`orgc_id`/`user_id`=2 (5008 sync user; orgc resolved
+  by UUID to 5008's iglocska), **`modified 2024-03-05 08:20:34` preserved**, **all 5 elements replicated**. Push
+  log: *"…1 collections pushed."* (the T4.4 clause). `server-sync.log`:
+  `POST /collections/filterCollectionsForPush 200` → **`POST /collections/captureCollection 200 199`** (the real
+  upload+capture). **Re-push → "0 collections", still 1 copy** (D6 idempotency).
+- **★ D6 origin-protection confirmed cross-instance:** the pulled `64578a85…` (now `locked=1` on 5007) was
+  offered back to 5008 on the push, and 5008 **dropped it** (it holds the `locked=0` authoritative original) —
+  the last-writer-wins + locked rule holds over the wire, not just in unit tests. U3 (dist=4) correctly not
+  pushed (server not in its SG); dist=0 not eligible.
+- **Migration-numbering trap CONFIRMED real (operational):** an instance already at `db_version 157` (upstream
+  develop) that gains the feature code will have `runUpdates` **skip** cases 155/156 (both < 157) ⇒ columns must
+  be applied manually (the 3 ALTERs). `getVersion` still advertises `collection_sync:true` (code-driven) while
+  the columns are missing ⇒ a live trap. Recorded for T6.2 docs + any real deploy.
+- **Cleanup:** both instances returned to baseline (5007 → its 3 originals; 5008 → 0 collections; server 42
+  toggles restored `push=1,pull=1,push_sightings=0,push_galaxy_clusters=1,push_analyst_data=1,collections=0`).
+- **Remaining T6.1 sub-item:** a checked-in reusable `tests/` E2E script (PRD §9.2). The behaviour is now
+  live-proven; the deferred T3.5/T4.5 unit tests also still fold into Phase 6. **The core feature promise
+  (bidirectional write-branch sync + locked/downgrade/neutralize/D6) is LIVE-VALIDATED across two instances.**
+- [x] **T6.2** Sync docs (`docs/dev/…`) describe collection sync. Commit `6d7287559`
+  (`docs/dev/collection_sync.md`). Standalone checked-in feature reference (the existing
+  `docs/dev/sync_mechanism.md` is the user's untracked general-sync scratch — not extended/tracked).
+  Covers: what syncs (D1/D4/D5), schema + the 158/159 numbering trap, negotiation, pull/push flows,
+  the captureCollection sink rules (locked/D6/downgrade/D7/corpus-replace/mass-assignment),
+  endpoints/ACL/CSRF, UI toggles + operation, testing surface, code map.
+- [x] **T6.3** Final regression: parallel-lint, phpunit, `Admin schemaDiagnostics`. → findings below.
+
+### T6.3 findings — final regression (2026-07-03)
+- **parallel-lint** (`--exclude cakephp,Vendor -e php,ctp app/`): **1867 files, no syntax error.**
+- **phpunit** (`app/Test/`): **477 tests, 0 failures**, 2 pre-existing skips (429 pre-Phase-6 → +17 pull
+  +31 push = 477).
+- **`Admin schemaDiagnostics`** (ran as the current user; exit 0): `admin_settings.db_version = 159` =
+  canonical `db_schema.json` `db_version`. **All three feature columns clean** — `collections.locked`,
+  `servers.pull_collections`, `servers.push_collections` are NOT reported missing/different (grep of the
+  full output confirms zero mentions), and each matches the canonical def (`tinyint(1) NOT NULL DEFAULT 0`,
+  DB-verified). The only `collections` diff is pre-existing `created`/`modified` **datetime-type drift**
+  (dev-box-wide, present across many tables — unrelated to this feature).
+- **★ Regression fix (commit `f85c3f09b`) — `tests/testlive_sync.py`:** its hardcoded exact-match
+  pull-completed assertion predated the T5.2 `, N collections pulled.` clause and now mismatched; appended
+  `, 0 collections pulled.` to the expected string. (Discovered while writing the T6.1 E2E script; a real
+  regression this feature introduced into the existing sync smoke test.)
 
 ---
 
@@ -573,6 +833,21 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   skip-on-equal for same-second ties. Verify at T2.1.
 - **`org_id` vs `orgc_id` on capture:** confirm exact Event convention, replicate (T2.1).
 - **Migration ordering:** schema migrations must land before any code reads the new columns.
+
+### ★ MIGRATION RENUMBER 155/156 → 158/159 (2026-07-03, commit `f94da2aa5`) — SUPERSEDES the numbering below
+The original 155/156 choice (below) assumed collection-sync merges into develop BEFORE the event-template
+`exposed` migration (157), so every instance passes through 155/156 before 157. **That breaks for an instance
+that reaches `db_version 157` via upstream develop (has 157, never had 155/156) then gains this code —
+`findUpgrades()` skips 155/156 (< 157) ⇒ columns never created, yet `getVersion` still advertises
+`collection_sync` (a live deploy trap; it bit 5008, which needed the 3 ALTERs hand-applied).** **Fix:** the
+feature's migrations now live ABOVE the current develop max — **158** (`collections.locked`) + **159** (servers
+toggles), moved after `case 157:` in `AppModel`; `$db_changes` map → `…154, 157, 158, 159`; `db_schema.json`
+db_version → **159**; MYSQL.sql unchanged (columns already in its baseline CREATE TABLE). **Safe for
+already-migrated boxes:** re-adding an existing column is an ACCEPTED duplicate-column error
+(`AppModel::isAcceptedDatabaseError`, SQLSTATE 42S21/1060 → "the update went through") ⇒ this dev box + 5008
+self-heal on the next `runUpdates` (db_version → 159, no breakage, no dup columns). **LIVE-VERIFIED here**
+(was at 157 w/ columns): web-triggered runUpdates applied 158+159 as accepted-duplicate no-ops → db_version 159,
+columns intact. Everywhere below that says "155/156" is historical — the live numbers are **158/159**.
 
 ### Phase 1 prep — migration numbering (verified 2026-06-30, this branch)
 - **This `2.5` branch:** highest `case` = **153** (`taxii_servers.enabled`,
@@ -593,6 +868,77 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
   base advanced further). Irrelevant for the local single-instance dev/test loop.
 
 ## Session log
+- **2026-07-03 — session 11:** **★ PHASE 6 COMPLETE → FEATURE DONE (Phases 0–6). ★** Six commits:
+  **T3.5** (`d40c8a1ec`) 17 pull unit tests + **T4.5** (`59938b72e`) 31 push unit tests (both
+  mutation-verified; full suite 429→477/0). **T6.1** (`26950cd21`) checked-in
+  `tests/testlive_collection_sync.py` (loopback + two-instance PyMISP E2E), **loopback LIVE-VERIFIED green**
+  against 5007 (temporarily flipped `config.php` debug 1→0 for clean JSON, restored). The validation run
+  caught 2 script bugs (wrong push-message assertion — push message has no collections clause per T5.2;
+  missing element `description`) and surfaced 2 pre-existing debug-only warnings (captureElements +
+  checkIfServerInSG undefined array keys — both out of scope, the latter also fires from the plain event
+  push). **T6.2** (`6d7287559`) `docs/dev/collection_sync.md` developer reference. **T6.3** regression
+  (parallel-lint 1867/0, phpunit 477/0, schemaDiagnostics db_version 159 all 3 feature columns clean) +
+  **fixed `tests/testlive_sync.py`** (`f85c3f09b`, its hardcoded pull message predated the T5.2 clause).
+  **✓ `$push['canPush']` tightening — user APPROVED, applied `dcce98ee1`** (Server::push collections gate
+  now gates on canPush too; LIVE-VERIFIED canPush=true still fires the block via server-sync.log). Tracker
+  ticked per task. **Feature fully implemented, tested, documented, live-proven. Next: user pushes
+  `collection_sync` to origin so 5008 can pull; feature ready for review/merge.**
+- **2026-07-03 — session 10:** **T5.3 done → Phase 5 implementation COMPLETE.** Verified the
+  feature-negotiation SKIP (the negative control) two ways. **Unit** (`582999bd0`,
+  `app/Test/ServerSyncCollectionNegotiationTest.php`, 7 tests): a `TestableServerSync` injects a fake
+  `info()` (remote getVersion payload), asserting `isSupported(FEATURE_COLLECTION_SYNC)` is false when
+  the key is absent/false/0 and true when advertised true/1, with a `filter_sightings` positive control
+  proving the harness is discriminating; mutation-verified (case→true breaks exactly the 3 negatives);
+  full suite 429/0. **Live** (self-loopback, job 1400): stripped `collection_sync` from `getVersion`
+  (old-peer simulate, curl-confirmed 271→248B), pulled → `server-sync.log` fired getVersion/events/
+  shadow_attributes/`analyst_data/indexMinimal` but **zero `/collections/indexMinimal`** (vs the positive
+  baseline that fires it right after analyst_data) ⇒ the block short-circuited before any HTTP; all reverted.
+  Nuance recorded: the job "0 collections pulled" MESSAGE isn't discriminating ($pulledCollections inits 0);
+  the sync-log ABSENCE is. Also confirmed `Server.php:1256` — a sightings-only remote reaches the push
+  collection block, so the optional `$push['canPush']` tightening is a real (minor) improvement; left for
+  the user's explicit call (asked; user afk). Pushed `73185042b`+`c26556ae6` were already on origin
+  (git push = up-to-date). **Next: Phase 6** (checked-in `tests/` E2E script + T3.5/T4.5 unit tests +
+  T6.2 docs + T6.3 final regression).
+- **2026-07-03 — session 9:** **T5.2 done** (commit `73185042b`). Surfaced the pulled-collections
+  count (`Server::pull` return index [6], from T3.4) in the user-facing "Pull completed. …" messages,
+  mirroring the analyst-data `$result[5]` verbatim: `, %s collections pulled.` appended in
+  `ServersController::pull` (`:846`) + `ServerShell::pull` (`:162`), plus a parity
+  `$this->set('pulledCollections', $result[6])`. **Push needs no caller edit** — no sync type surfaces
+  a per-type count to push callers (events-only in `ServersController::push`; "Job done." in
+  `ServerShell::push`), so parity keeps the collections push count in the `Server::push` `$change`
+  DB-log alone (T4.4). **No preview surface exists** for any sibling sync type (only remote-event
+  preview), so none invented. **★ LIVE-VERIFIED via self-loopback pull ★** (server 7, job 1399): job
+  message now reads "…0 analyst data pulled, 0 collections pulled." (0 = self-loopback skip-on-equal;
+  T6.1 already showed a nonzero count on a real delta). Lint clean; additive (PRD §5). **Next: T5.3**
+  (negotiation-skip vs a simulated old peer).
+- **2026-07-03 — session 8:** **T5.1 done** (commit `45b83b56f`) → **Phase 5 STARTED.** Surfaced the
+  `pull_collections`/`push_collections` server toggles in the UI (D8), mirroring `pull/push_analyst_data`:
+  two `Form->input` checkboxes in `edit.ctp` (shared by `add()` via `render('edit')`), the two field names
+  added to `ServersController::edit()`'s save `$fieldList` (`add()` saves fieldList-less ⇒ automatic), and
+  two boolean columns in `index.ctp` (there is no `Servers/view.ctp`). **★ LIVE-VERIFIED (localhost:5007) ★** —
+  REST edit of server 7 flips both DB cols 0→1→0 (discriminating); add + edit forms render both checkboxes;
+  index shows both sortable boolean columns. Additive (PRD §5 item 5); lint clean. **Next: T5.2** (collection
+  counts in sync job output + pull/push preview).
+- **2026-07-03:** **Migration renumber 155/156 → 158/159** (commit `f94da2aa5`) — user-suggested fix for the
+  upstream-develop-at-157 skip trap surfaced by the 5008 E2E. Moved the collections migrations ABOVE develop's
+  event-template `157` (so `findUpgrades` on any instance ≤157 applies them); `$db_changes` map + `db_schema.json`
+  db_version → 159; MYSQL.sql unchanged. Safe for already-migrated boxes via the accepted duplicate-column path.
+  **LIVE-VERIFIED** (this box 157→159, 158/159 ran as accepted-duplicate no-ops, columns intact). See the
+  RENUMBER note in the migration-numbering section. **NB commits since T4.4 are on branch `collection_sync`**
+  (user switched off `develop` this session); `develop` still at `5bec30427`.
+- **2026-07-03:** **★ T6.1 LIVE E2E VALIDATED (two real instances, 5007 ⇄ 5008) ★** — no code change; docs only.
+  User stood up 5008 (`mispx` DB, develop + feature code + manually-applied migrations 155/156) wired both ways to
+  5007 (server row 42). **Both capture-write branches — unreachable by any self-loopback — proven live & fully
+  discriminating:** PULL 5008→5007 captured a seeded dist=2 collection as `locked=1`, dist 2→1, orgc-by-UUID,
+  user/org neutralized, modified preserved, element replicated (real `indexMinimal`+`index` fetch in
+  `server-sync.log`); PUSH 5007→5008 captured U1 the same way (real `filterCollectionsForPush`+`captureCollection`
+  round-trip), isolated to collections-only so 5007's 84k sightings weren't dumped. Both idempotent on re-run
+  (D6 skip-on-equal, no dup); D6 origin-protection held cross-instance (a `locked=0` original is never
+  overwritten by a push-back). Confirmed the migration-numbering trap is real (155/156 < 157 ⇒ `runUpdates`
+  skips them; columns need manual ALTERs, yet `getVersion` still advertises support — a deploy trap for T6.2
+  docs). Both instances cleaned back to baseline. Remaining T6.1 = a checked-in `tests/` E2E script. **The core
+  feature promise is now LIVE-VALIDATED end-to-end.** Next: T6.1 scripted harness / T6.2 docs / T6.3 regression,
+  and Phase 5 UI (T5.1) still outstanding.
 - **2026-07-03:** **T4.4 done** (commit `013d9cfc1`) → **Phase 4 implementation COMPLETE (T4.1–T4.4).**
   Wired a collections block into `Server::push` after the analyst-data push block (`:1422-1433`), gated on
   `push_collections` (T1.2) + `isSupported(FEATURE_COLLECTION_SYNC)`; `ClassRegistry::init('Collection')->push()`;

@@ -233,9 +233,9 @@ class CollectionElement extends AppModel
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
-                            'element_uuid' => $element['element_uuid'],
-                            'element_type' => $element['element_type'],
-                            'description' => $element['description'],
+                            'element_uuid' => $element['element_uuid'] ?? null,
+                            'element_type' => $element['element_type'] ?? null,
+                            'description' => $element['description'] ?? null,
                             'collection_id' => $data['Collection']['id']
                         ]
                     ];
