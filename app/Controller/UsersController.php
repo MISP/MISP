@@ -270,6 +270,10 @@ class UsersController extends AppController
         $this->set('canChangePassword', $this->__canChangePassword());
         $this->set('canChangeLogin', $this->__canChangeLogin());
         $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
+        // Body-only render for the Overmind edit modal (opened via openModal).
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
     }
 
     private function __pw_change($user, $source, &$abortPost, $token = false, $skip_password_confirmation = false)
@@ -385,6 +389,17 @@ class UsersController extends AppController
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         if (!empty($this->passedArgs['value'])) {
             $this->passedArgs['searchall'] = $this->passedArgs['value'];
+        }
+        // Unified status dropdown (Overmind filter bar) → existing status filters.
+        if (!empty($this->passedArgs['searchstatus'])) {
+            $status = $this->passedArgs['searchstatus'];
+            if ($status === 'enabled') {
+                $this->passedArgs['searchdisabled'] = '0';
+            } elseif ($status === 'disabled') {
+                $this->passedArgs['searchdisabled'] = '1';
+            } elseif ($status === 'inactive') {
+                $this->passedArgs['searchinactive'] = '1';
+            }
         }
         foreach ($this->passedArgs as $k => $v) {
             if (substr($k, 0, 6) === 'search') {
@@ -512,6 +527,7 @@ class UsersController extends AppController
         }
 
         $this->paginate['contain']['Server'] = ['id', 'name'];
+        $this->paginate['contain']['Role'] = ['id', 'name', 'perm_site_admin', 'perm_admin', 'perm_sync', 'perm_auth'];
         $this->set('urlparams', $urlParams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
@@ -653,6 +669,10 @@ class UsersController extends AppController
 
     public function admin_add()
     {
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            // Body-only fragment for the Overmind "Add user" modal.
+            $this->layout = false;
+        }
         $params = null;
         if (!$this->_isSiteAdmin()) {
             $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1, 'restricted_to_site_admin' => 0));
@@ -811,6 +831,16 @@ class UsersController extends AppController
                                 $user['User']['authkey'] = $newKey;
                             }
                             return $this->RestResponse->viewData($user, $this->response->type());
+                        } elseif ($this->request->is('ajax') && $this->theme === 'Overmind') {
+                            // Overmind add modal: signal success so the JS closes the
+                            // modal and navigates, instead of a redirect the fetch would follow.
+                            // Queue the flash now — it renders when the JS lands on the index.
+                            $this->Flash->success(__('The user has been saved.') . $notification_message);
+                            return new CakeResponse(array(
+                                'body' => json_encode(array('success' => true, 'message' => __('The user has been saved.') . $notification_message)),
+                                'status' => 200,
+                                'type' => 'json',
+                            ));
                         } else {
                             $this->Flash->success(__('The user has been saved.') . $notification_message);
                             $this->redirect(array('action' => 'index'));
@@ -864,6 +894,8 @@ class UsersController extends AppController
             $this->set('servers', $servers);
             $this->set(compact('roles', 'syncRoles'));
             $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
+            // Field validation errors (e.g. duplicate email) shown in the modal.
+            $this->set('validationErrors', $this->User->validationErrors);
         }
     }
 
@@ -1088,6 +1120,10 @@ class UsersController extends AppController
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->request->data = $userToEdit;
+            if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+                // Body-only fragment for the Overmind "Edit user" modal.
+                $this->layout = false;
+            }
         }
         if ($this->_isSiteAdmin()) {
             $orgs = $this->User->Organisation->find('list', array(
@@ -1146,6 +1182,19 @@ class UsersController extends AppController
             $this->Flash->error(__('User was not deleted'));
             $this->redirect(array('action' => 'index'));
         } else {
+            if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+                $user = $this->User->find('first', array(
+                    'conditions' => $this->__adminFetchConditions($id),
+                    'recursive' => -1,
+                    'fields' => array('User.id', 'User.email'),
+                ));
+                if (empty($user)) {
+                    throw new NotFoundException(__('Invalid user'));
+                }
+                $this->layout = false;
+                $this->set('targetUser', $user);
+                return $this->render('/Users/ajax/user_delete_confirmation');
+            }
             $this->set(
                 'question',
                 __('Are you sure you want to delete the user? It is highly recommended to never delete users but to disable them instead.')
@@ -1621,6 +1670,10 @@ class UsersController extends AppController
             $encryption = 'SMIME';
         }
         $this->set('encryption', $encryption);
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            // Body-only fragment for the Overmind "Send email" modal.
+            $this->layout = false;
+        }
         if (!$error && !$encryption && (Configure::read('GnuPG.onlyencrypted') || Configure::read('GnuPG.bodyonlyencrypted'))) {
             $error = 'No encryption key found for the user and the instance posture blocks non encrypted e-mails from being sent.';
         }
@@ -1955,6 +2008,10 @@ class UsersController extends AppController
 
         $this->set('qrcode', $qrcode);
         $this->set('secret', $secret);
+        // Body-only render for the Overmind modal (opened via openModal).
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
     }
 
     public function totp_delete($id)

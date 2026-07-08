@@ -1,11 +1,20 @@
 <?php
 $breadcrumb = '';
+$unclickableControllers = ['pages'];
 if (!empty($currentController)) {
     if ($currentController === 'galaxy_clusters') {
         $currentController = 'galaxies';
         $middle = 'clusters';
     }
     $controllerUrl = $this->Html->url('/' . $currentController);
+    if ($currentController === 'users' && $me['Role']['perm_site_admin']) {
+        $controllerUrl = $this->Html->url('/admin/' . $currentController);
+    } else {
+        $controllerUrl = $this->Html->url('#');
+    }
+    if (in_array($currentController, $unclickableControllers)) {
+        $controllerUrl = '#';
+    }
     $breadcrumb = '<a href="' . $controllerUrl . '" '
         . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
         . ucfirst(h($currentController)) . '</a>';
@@ -96,16 +105,20 @@ if (isset($headerCountText)) {
         <?php if (!empty($headerActions)): ?>
             <div class="d-flex gap-2 align-items-center flex-wrap">
                 <?php foreach ($headerActions as $action): ?>
+                    <?php
+                        $tabAttr = !empty($action['tab']) ? ' data-header-tab="' . h($action['tab']) . '"' : '';
+                        $tabHidden = !empty($action['tab']) ? ' d-none' : '';
+                    ?>
 
                     <?php if ($action['type'] === 'navigate'): ?>
-                        <a href="<?= h($action['url']) ?>"
+                        <a href="<?= h($action['url']) ?>"<?= $tabAttr ?>
                             <?php if (!empty($action['onClick'])): ?>
                                 onclick="event.preventDefault(); <?= h($action['onClick']) ?>();"
                             <?php endif; ?>
                             <?php if (!empty($action['id'])): ?>
                                 id="<?= h($action['id']) ?>"
                             <?php endif; ?>
-                            class="btn btn-outline-dark fw-semibold d-flex align-items-center gap-2">
+                            class="btn btn-outline-dark fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>
@@ -116,19 +129,19 @@ if (isset($headerCountText)) {
                                 '<i class="fas fa-' . h($action['icon']) . '"></i> '
                                     . h($action['label']),
                                 $action['url'],
-                                [
+                                array_merge([
                                     'class' => 'btn btn-outline-primary fw-semibold'
-                                        . ' d-flex align-items-center gap-2',
+                                        . ' d-flex align-items-center gap-2' . $tabHidden,
                                     'escape' => false,
-                                ],
+                                ], !empty($action['tab']) ? ['data-header-tab' => $action['tab']] : []),
                                 $action['confirm'] ?? false
                             );
                         ?>
 
                     <?php elseif ($action['type'] === 'modal'): ?>
-                        <a href="<?= h($action['url']) ?>"
+                        <a href="<?= h($action['url']) ?>"<?= $tabAttr ?>
                             onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');"
-                            class="btn btn-primary fw-semibold d-flex align-items-center gap-2">
+                            class="btn btn-primary fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>

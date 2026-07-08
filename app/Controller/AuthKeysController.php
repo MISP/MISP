@@ -74,6 +74,22 @@ class AuthKeysController extends AppController
         }
     }
 
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'AuthKey',
+            'restName' => 'AuthKeys',
+            'itemName' => 'auth key',
+            'view' => 'ajax/authKeyDeleteConfirmationForm',
+            'checkModifyCallback' => function ($itemId, $item) {
+                return $this->AuthKey->canEditAuthKey($this->Auth->user(), $itemId);
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s auth key deleted.', '%s auth keys deleted.', $count, $count);
+            }
+        ]);
+    }
+
     public function edit($id)
     {
         if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
@@ -117,6 +133,9 @@ class AuthKeysController extends AppController
         $this->set('edit', true);
         $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
         $this->set('title_for_layout', __('Edit auth key'));
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -140,6 +159,12 @@ class AuthKeysController extends AppController
         ];
         if ($user_id === 'me' || $user_id === false) {
             $user_id = $this->Auth->user('id');
+        }
+        // For modal display in Overmind (the add form on GET, the
+        // generated-key display on POST success, or the form+errors on failure).
+        // Must be set BEFORE CRUD->add, which renders displayOnSuccess internally.
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
         }
         $selectConditions = [];
         if ($user_id) {
