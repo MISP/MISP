@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('GalaxyColour', 'Tools');
 
 /**
  * @property Event $Event
@@ -1114,6 +1115,10 @@ class EventsController extends AppController
             $events = $this->__attachHighlightedTagsToEvents($events);
         }
 
+        if (in_array('attribute_count', $columns, true)) {
+            $events = $this->Event->attachObjectAndAttributeCountToEvents($events);
+        }
+
         if (in_array('correlations', $columns, true)) {
             $events = $this->Event->attachCorrelationCountToEvents($user, $events);
         }
@@ -2002,6 +2007,17 @@ class EventsController extends AppController
             );
         }
 
+        $withCounts = $this->Event->attachObjectAndAttributeCountToEvents([$event]);
+        $this->set('object_count', $withCounts[0]['Event']['object_count']);
+        $this->set('attribute_count', $withCounts[0]['Event']['attribute_count_no_objects']); //non-object attributes only (object_id = 0)
+
+        $this->loadModel('EventReport');
+        $withReportCount = $this->EventReport->attachReportCountsToEvents($user, [$event]);
+        $this->set('report_count', $withReportCount[0]['Event']['report_count']);
+
+        $sgids = $this->Event->SharingGroup->authorizedIds($user);
+        $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids));
+
         $this->set('event', $event);
         $this->set('analysisLevels',
             $this->Event->analysisLevels
@@ -2259,7 +2275,7 @@ class EventsController extends AppController
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
             'deleted', 'category', 'type', 'toIDS',
-            'searchFor', 'flatten',
+            'searchFor', 'flatten', 'proposal',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2332,8 +2348,27 @@ class EventsController extends AppController
         $this->set('limit',              $limit);
         $this->set('event',              $event);
         $this->set('deleted',            false);
+        $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+
+        // Counts for the Proposals / Deleted toggle buttons. 
+        $nonObjectAttrIds = $this->Event->Attribute->find('column', [
+            'fields' => ['Attribute.id'],
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0],
+        ]);
+        $proposalOr = [['ShadowAttribute.old_id' => 0]];
+        if (!empty($nonObjectAttrIds)) {
+            $proposalOr[] = ['ShadowAttribute.old_id' => $nonObjectAttrIds];
+        }
+        $this->set('proposalCount', $this->Event->ShadowAttribute->find('count', [
+            'conditions' => ['ShadowAttribute.event_id' => $eventId, 'ShadowAttribute.deleted' => 0, 'OR' => $proposalOr],
+            'recursive' => -1,
+        ]));
+        $this->set('deletedCount', $this->Event->Attribute->find('count', [
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.deleted' => 1, 'Attribute.object_id' => 0],
+            'recursive' => -1,
+        ]));
 
         $categoryKeys = array_keys($this->Event->Attribute->categoryDefinitions);
         $this->set('categoryOptions', array_combine($categoryKeys, $categoryKeys));
@@ -2374,7 +2409,7 @@ class EventsController extends AppController
         $options = [];
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
-            'deleted', 'name', 'meta-category', 'searchFor',
+            'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2401,6 +2436,23 @@ class EventsController extends AppController
         $this->set('page', $result['page']);
         $this->set('limit', $result['limit']);
         $this->set('event', $event);
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+        $this->set('proposal', !empty($options['proposal']));
+
+        // Counts for the Proposals / Deleted toggle buttons. Proposals on this
+        // index are the edits/deletions targeting attributes inside objects.
+        $objectAttributeIds = $this->Event->Attribute->find('column', [
+            'fields' => ['Attribute.id'],
+            'conditions' => ['Attribute.event_id' => $eventId, 'Attribute.object_id !=' => 0, 'Attribute.deleted' => 0],
+        ]);
+        $this->set('proposalCount', empty($objectAttributeIds) ? 0 : $this->Event->ShadowAttribute->find('count', [
+            'conditions' => ['ShadowAttribute.old_id' => $objectAttributeIds, 'ShadowAttribute.deleted' => 0],
+            'recursive' => -1,
+        ]));
+        $this->set('deletedCount', $this->Event->Object->find('count', [
+            'conditions' => ['Object.event_id' => $eventId, 'Object.deleted' => 1],
+            'recursive' => -1,
+        ]));
         $this->layout = false;
     }
 
@@ -2886,7 +2938,7 @@ class EventsController extends AppController
                     'id'     => $cid,
                     'name'   => $gc['value'],
                     'galaxy' => $galaxyName,
-                    'hue'    => $this->__galaxyHue($galaxyName),
+                    'hue'    => GalaxyColour::hue($galaxyName),
                 ];
                 if (!empty($et['local'])) {
                     $currentLocalClusters[] = $entry;
@@ -2995,22 +3047,6 @@ class EventsController extends AppController
     }
 
     /**
-     * Deterministic hue (0-359) from a galaxy name, mirroring the
-     * $galaxyHue closure in view_event_galaxies.ctp so the modal badges
-     * match the card colours exactly.
-     */
-    private function __galaxyHue($name)
-    {
-        $name = (string)$name;
-        $hash = 0;
-        $len  = strlen($name);
-        for ($i = 0; $i < $len; $i++) {
-            $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
-        }
-        return $hash % 360;
-    }
-
-    /**
      * JSON search over galaxy clusters, used by the edit-galaxies modal's
      * TomSelect remote loader. Returns up to 50 matches for ?q=, each as
      * { id: GalaxyCluster.id, name: value, galaxy: galaxy name }.
@@ -3053,7 +3089,7 @@ class EventsController extends AppController
                 'id'     => (int)$gc['id'],
                 'name'   => $gc['value'],
                 'galaxy' => $galaxyName,
-                'hue'    => $this->__galaxyHue($galaxyName),
+                'hue'    => GalaxyColour::hue($galaxyName),
             ];
         }
 
@@ -4364,7 +4400,22 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             if (isset($this->request->data['json'])) {
-                $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                if ($this->_isRest()) {
+                    $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                } else {
+                    // UI: surface malformed JSON as a flash on the event view
+                    // instead of the raw HttpException error page.
+                    try {
+                        $this->request->data = $this->_jsonDecode($this->request->data['json']);
+                    } catch (Exception $e) {
+                        $this->Flash->error(__('Invalid JSON input. Please provide a correctly formatted MISP JSON document.'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view2', $id));
+                        } else {
+                            $this->redirect(array('action' => 'view', $id));
+                        }
+                    }
+                }
             }
             if (isset($this->request->data['Event'])) {
                 $this->request->data = $this->request->data['Event'];
@@ -4416,12 +4467,52 @@ class EventsController extends AppController
             }
             if ($result) {
                 $this->Flash->success(__('The event has been saved'));
-                $this->redirect(array('action' => 'view', $id));
+                if ($this->theme === "Overmind") {
+                    $this->redirect(array('action' => 'view2', $id));
+                } else {
+                    $this->redirect(array('action' => 'view', $id));
+                }
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
         }
         $this->set('event', $event);
+    }
+
+    /**
+     * Renders the "Populate from…" modal (Overmind theme): a single accordion
+     * gathering every import method, each section posting to its own legacy
+     * action. Only supplies the data the inline forms need (templates list and
+     * enabled import modules); the actual processing stays in the existing
+     * per-import actions (populate, freeTextImport, addIOC, …).
+     */
+    public function populateFrom($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $id = $event['Event']['id']; // resolve possible event UUID to real ID
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorised to do that.'));
+        }
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+        $this->loadModel('Module');
+        $importModules = array();
+        $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
+        if (is_array($modules) && !empty($modules['modules'])) {
+            foreach ($modules['modules'] as $module) {
+                $importModules[] = array(
+                    'name' => $module['name'],
+                    'text' => Inflector::humanize($module['name']),
+                );
+            }
+        }
+        $this->set('event', $event);
+        $this->set('id', $id);
+        $this->set('importModules', $importModules);
     }
 
     public function edit($id = null)
@@ -5933,6 +6024,11 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         $this->set('event_id', $event['Event']['id']);
+        // Overmind "Populate from…" modal: openModalPostChained POSTs the IOCs
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+        if ($overmindModal) {
+            $this->layout = false;
+        }
         if ($this->request->is('get')) {
             $this->layout = false;
             $this->request->data['MispAttribute']['event_id'] = $event['Event']['id'];
@@ -6009,7 +6105,11 @@ class EventsController extends AppController
             $this->set('title_for_layout', __('Freetext Import Results'));
             $this->set('title', __('Freetext Import Results'));
             $this->set('missingTldLists', $this->Warninglist->missingTldLists());
-            $this->render('resolved_attributes');
+            if ($overmindModal) {
+                $this->render('freetext_resolution');
+            } else {
+                $this->render('resolved_attributes');
+            }
         }
     }
 
@@ -6061,7 +6161,7 @@ class EventsController extends AppController
         $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
         $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $defaultComment, $proposals);
-        $this->Flash->info($flashMessage);
+        $this->Flash->success($flashMessage);
 
         if ($this->request->is('ajax')) {
             return $this->RestResponse->viewData($flashMessage, $this->response->type());
@@ -7430,6 +7530,11 @@ class EventsController extends AppController
         $mayModify = $this->__canModifyEvent($event);
         $eventId = $event['Event']['id'];
 
+        // Overmind
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+
         $this->loadModel('Module');
         $module = $this->Module->getEnabledModule($moduleName, 'Import');
         if (!is_array($module)) {
@@ -8005,16 +8110,22 @@ class EventsController extends AppController
             throw new UnauthorizedException('You do not have permission to do that.');
         }
 
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+
         if ($this->request->is('post') && !empty($this->request['data']['Event']['analysis_file']['name'])) {
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $tmp_name = $this->request['data']['Event']['analysis_file']['tmp_name'];
             if (((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none')) && is_uploaded_file($tmp_name)) {
-                $this->set('file_content', file_get_contents($tmp_name)); 
+                $this->set('file_content', file_get_contents($tmp_name));
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
             }
             $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
+            if ($overmindModal) {
+                $this->layout = false;
+                $this->render('mactime_resolution');
+            }
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
             // Find the event that is to be updated
@@ -8129,6 +8240,17 @@ class EventsController extends AppController
                 } else {
                     $PreviousObjRef = $temp;
                     $firstObject = 0;
+                }
+            }
+            if ($overmindModal) {
+                if ($this->_isRest()) {
+                    return new CakeResponse([
+                        'body' => json_encode(['saved' => true, 'count' => count($data)]),
+                        'type' => 'json',
+                    ]);
+                } else {
+                    $this->Flash->success(__('Object(s) created'));
+                    $this->redirect('/events/view2/' . $eventId);
                 }
             }
             $this->redirect('/events/view/' . $eventId);

@@ -24,6 +24,7 @@ class NavbarHelper extends AppHelper {
         'tagcollections'           => 'datamodels',
         'taxonomies'               => 'datamodels',
         'galaxies'                 => 'datamodels',
+        'galaxy_clusters'          => 'datamodels',
         'galaxy_cluster_relations' => 'datamodels',
         'decayingmodel'            => 'datamodels',
         'objecttemplates'          => 'datamodels',
@@ -127,24 +128,10 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Events'),
+                'url' => $baseurl . '/events/index',
+                'controller' => 'events',
+                'action' => 'index',
                 'icon' => 'misp-icon misp-icon-event misp-simple',
-                'children' => [
-                    [
-                        'label' => __('Add'),
-                        'url' => $baseurl . '/events/add',
-                        'controller' => 'events',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('events', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/events/index',
-                        'controller' => 'events',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ],
-                ]
             ],
             // To implement later, when the object view will be ready
             /* [
@@ -171,23 +158,10 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Attributes'),
+                'url' => $baseurl . '/attributes/index',
+                'controller' => 'attributes',
+                'action' => 'index',
                 'icon' => 'misp-icon misp-icon-attribute misp-simple',
-                'children' => [
-                    [
-                        'label' => __('Search'),
-                        'url' => $baseurl . '/attributes/search',
-                        'controller' => 'attributes',
-                        'action' => 'search',
-                        'icon' => 'fas fa-search'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/attributes/index',
-                        'controller' => 'attributes',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ]
-                ]
             ],
             ['divider' => true],
             [
@@ -234,18 +208,18 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-comment-dots',
                 'children' => [
                     [
-                        'label' => __('View'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/shadow_attributes/index',
                         'controller' => 'shadow_attributes',
                         'action' => 'index',
-                        'icon' => 'fas fa-eye'
+                        'icon' => 'fas fa-list'
                     ],
                     [
                         'label' => __('Events with Proposals'),
-                        'url' => $baseurl . '/shadow_attributes/search',
-                        'controller' => 'shadow_attributes',
-                        'action' => 'search',
-                        'icon' => 'fas fa-clipboard-question'
+                        'url' => $baseurl . '/events/proposalEventIndex',
+                        'controller' => 'events',
+                        'action' => 'proposalEventIndex',
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
                     ],
                     [
                         'label' => __('Delegation Requests'),

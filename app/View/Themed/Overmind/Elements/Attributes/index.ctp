@@ -39,12 +39,14 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  *
  * Fields specific to actions:
  *
- * - type           : link | ajax | toggle | divider
+ * - type           : modal | navigate | toggle | copy | divider
  * - label          : Displayed text
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
  * - icon_on/off    : Toggle icon
  * - url            : URL (supports %id% and %action%)
+ * - data_path      : Value to copy (for type = copy)
+ * - copy_message   : Toast text shown after copy (for type = copy)
  * - class          : CSS class
  * - requirement    : Permission check function
  * - state_path     : Path to the boolean value (toggle)
@@ -52,13 +54,19 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
 
 $firstRow   = !empty($attributes) ? reset($attributes) : [];
 $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
-$_canModify = !empty($isSiteAdmin) || !empty($mayModify);
+$_canModify = !empty($mayModify);
+$_canPropose = !empty($me['Role']['perm_add']);
 
 $path = function($field) use ($model) {
     if (empty($model)) return $field;
     if (empty($field)) return $model;
     return $model . '.' . $field;
 };
+
+$canTagAttr = false;
+if (empty($show_event_id) && !empty($event['Event']['id'])) {
+    $canTagAttr = $this->Acl->canModifyTag($event);
+}
 
 $fields = [
     [
@@ -140,14 +148,20 @@ $fields = array_merge($fields, [
         'data_path' => $path('AttributeTag'),
         'element' => 'tag_list',
         'card_section' => 'tag',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table', 'card'],
+        'add_tag' => $canTagAttr,
+        'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
+        'add_tag_id_path' => $path('id'),
     ],
     [
         'name' => __('Galaxy'),
         'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
         'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table', 'card'],
+        'add_galaxy' => $canTagAttr,
+        'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
+        'add_galaxy_id_path' => $path('id'),
     ],
     [
         'name' => __('IDS'),
@@ -197,22 +211,34 @@ $fields = array_merge($fields, [
         'card_section' => 'extra',
         'actions' => [
             [
+                'type' => 'copy',
+                'label' => __('Copy UUID'),
+                'icon' => 'copy',
+                'data_path' => $path('uuid'),
+                'copy_message' => __('UUID copied to clipboard'),
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Propose change'),
+                'icon' => 'comment-dots',
+                'url' => $baseurl . '/shadow_attributes/edit/%id%',
+                'requirement' => function($row) use ($_canPropose) {
+                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canModify) {
+                    return $_canModify && empty($row['is_proposal']);
+                }
+            ],
+            [
                 'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Soft Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%',
-                'class' => 'text-warning',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']);
+                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -221,19 +247,18 @@ $fields = array_merge($fields, [
                 'icon' => 'rotate-left',
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
-                //'size' => 'sm',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && !empty($row['deleted']);
+                    return $_canModify && !empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
                 'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%/true',
+                'url' => $baseurl . '/attributes/delete/%id%',
                 'class' => 'text-danger',
                 'requirement' => function($row) use ($_canModify) {
-                    return $_canModify;
+                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ]
         ]
@@ -346,19 +371,36 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
 }
 
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
-    $attrEventId    = $event['Event']['id'];
-    $namedParams    = $this->request->params['named'] ?? [];
-    $currentDeleted = (int)($namedParams['deleted'] ?? 0);
-    $toggleDeleted  = $currentDeleted ? 0 : 1;
-    $attrBaseUrl    = $baseurl . '/events/viewAttributes/' . $attrEventId;
-    $toggleUrl      = $attrBaseUrl . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '');
+    $attrEventId     = $event['Event']['id'];
+    $namedParams     = $this->request->params['named'] ?? [];
+    $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
+    $currentProposal = (int)($namedParams['proposal'] ?? 0);
+    $toggleDeleted   = $currentDeleted ? 0 : 1;
+    $toggleProposal  = $currentProposal ? 0 : 1;
+    $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId;
+
+    // Fallback hrefs (real toggles are handled by view_attributes.ctp)
+    $deletedUrl  = $attrBaseUrl
+        . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '')
+        . ($currentProposal ? '/proposal:' . $currentProposal : '');
+    $proposalUrl = $attrBaseUrl
+        . ($currentDeleted ? '/deleted:' . $currentDeleted : '')
+        . ($toggleProposal ? '/proposal:' . $toggleProposal : '');
 
     $children[] = [
         'type'  => 'button',
-        'url'   => $toggleUrl,
-        'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-warning' : 'btn-outline-warning'),
+        'url'   => $proposalUrl,
+        'class' => 'btn attr-proposal-toggle ' . ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
+        'icon'  => 'fas fa-comment-dots',
+        'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
+    ];
+
+    $children[] = [
+        'type'  => 'button',
+        'url'   => $deletedUrl,
+        'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
         'icon'  => 'fas fa-trash',
-        'label' => __('Soft deleted'),
+        'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
     ];
 }
 
@@ -369,13 +411,15 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $attributes,
             'primary_id_path' => $path('id'),
             'row_class_callable' => function($row) {
+                if (!empty($row['is_proposal'])) {
+                    return 'attr-proposal-row';
+                }
                 return !empty($row['deleted']) ? 'attr-deleted' : '';
             },
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,
                 'soft_delete' => '/deleteSelection',
-                'delete'      => '/deleteSelection',
                 // 'mass_edit' => 1,
                 // 'mass_tag' => 1,
                 // 'mass_local_tag' => 1,

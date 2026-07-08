@@ -3,7 +3,6 @@
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
-
     $this->set('headerTitle', $headerTitle);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
@@ -35,23 +34,18 @@
                     'Events/View/event_sightings',
                     'Events/View/event_related',
                     'Events/View/event_warninglists',
+                    'Events/View/event_collections',
                 ]
             ],
             [
                 'id' => 'objects',
                 'title' => __('Objects'),
                 'icon' => 'misp-icon misp-icon-object misp-simple',
-                //For the moment the view2 controller doesn't return object_count/attribute_count
                 'count' => $object_count ?? 0,
 
                 // Content
                 'left' => [
                     [
-                        // 'ajax' => $this->Url->build([
-                        //     'controller' => 'events',
-                        //     'action' => 'viewObjects',
-                        //     $eventId
-                        // ])
                         'ajax' => sprintf('/events/viewObjects/%s',h($event['Event']['id']))
                     ]
                 ],
@@ -65,11 +59,6 @@
                 // Content
                 'left' => [
                     [
-                        // 'ajax' => $this->Url->build([
-                        //     'controller' => 'events',
-                        //     'action' => 'viewAttributes',
-                        //     $eventId
-                        // ])
                         'ajax' => sprintf('/events/viewAttributes/%s',h($event['Event']['id']))
                     ]
                 ],
@@ -91,6 +80,7 @@
                 'id' => 'correlation',
                 'title' => __('Correlation'),
                 'icon' => 'fas fa-link',
+                'count' => $correlation_count ?? 0,
 
                 // Content
                 'left' => [
@@ -111,7 +101,6 @@
                 'id' => 'history',
                 'title' => __('History'),
                 'icon' => 'fas fa-history',
-                'count' => $history_count ?? 0,
 
                 // Content
                 'left' => [

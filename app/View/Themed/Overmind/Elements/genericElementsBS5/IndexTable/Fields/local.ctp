@@ -19,6 +19,12 @@ echo $this->element(
     [
         'boolean' => $local[0],
         'full' => $isCard,
+        'true' => __('Local only'),
+        'false' => __('Global'),
+        'trueColor'  => 'tag',
+        'falseColor' => 'galaxy',
+        'trueIcon'   => 'fa-user',
+        'falseIcon'  => 'fa-globe'
     ]
 );
 ?>

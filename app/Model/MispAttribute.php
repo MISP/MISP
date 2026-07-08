@@ -3372,7 +3372,7 @@ class MispAttribute extends AppModel
                     $existingGlobalTags = $this->AttributeTag->find('all', [
                         'recursive' => -1,
                         'conditions' => [
-                            'attribute_id' => $attribute['id'],
+                            'attribute_id' => $attributeId,
                             'local' => 0,
                         ],
                         'contain' => array(

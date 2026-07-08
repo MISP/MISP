@@ -1,4 +1,9 @@
 <?php
+// Proposal rows are not selectable for mass actions 
+if (!empty($row['is_proposal']) || !empty($row['Attribute']['is_proposal'])) {
+    return;
+}
+
 $id = Hash::get($row, $field['data_path']);
 if (empty($id)) {
     if (!empty($row['id'])) {
@@ -70,6 +75,30 @@ if ($field['data_path'] === 'EventReportTemplateVariable.id') {
 if ($field['data_path'] === 'Warninglist.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Galaxy.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'GalaxyElement.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_galaxy_editor']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'GalaxyCluster.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_galaxy_editor']);
     }
     $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';

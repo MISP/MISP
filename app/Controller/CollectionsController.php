@@ -301,7 +301,65 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $elements = $this->viewVars['data']['Collection']['CollectionElement'] ?? [];
+        $data = $this->viewVars['data'];
+        $elements = $data['Collection']['CollectionElement'] ?? [];
+
+        // Enrich elements with a human-readable reference so the elements
+        // index can display the resolved target instead of the raw UUID.
+        $eventUuids = [];
+        $clusterUuids = [];
+        foreach ($elements as $element) {
+            $elementType = $element['element_type'] ?? null;
+            if (empty($element['element_uuid'])) {
+                continue;
+            }
+            if ($elementType === 'Event') {
+                $eventUuids[] = $element['element_uuid'];
+            } elseif ($elementType === 'GalaxyCluster') {
+                $clusterUuids[] = $element['element_uuid'];
+            }
+        }
+
+        $eventsByUuid = [];
+        if (!empty($eventUuids)) {
+            $this->loadModel('Event');
+            $events = $this->Event->fetchSimpleEvents($user, [
+                'conditions' => ['Event.uuid' => array_values(array_unique($eventUuids))]
+            ]);
+            foreach ($events as $event) {
+                $eventsByUuid[$event['Event']['uuid']] = [
+                    'id' => $event['Event']['id'],
+                    'info' => $event['Event']['info'],
+                ];
+            }
+        }
+
+        $clustersByUuid = [];
+        if (!empty($clusterUuids)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+                'conditions' => ['GalaxyCluster.uuid' => array_values(array_unique($clusterUuids))]
+            ]);
+            foreach ($clusters as $cluster) {
+                $arranged = $this->GalaxyCluster->arrangeData($cluster);
+                $clustersByUuid[$cluster['GalaxyCluster']['uuid']] = $arranged['GalaxyCluster'];
+            }
+        }
+
+        if (!empty($eventsByUuid) || !empty($clustersByUuid)) {
+            foreach ($elements as $k => $element) {
+                $elementType = $element['element_type'] ?? null;
+                $elementUuid = $element['element_uuid'] ?? null;
+                if ($elementType === 'Event' && isset($eventsByUuid[$elementUuid])) {
+                    $elements[$k]['Event'] = $eventsByUuid[$elementUuid];
+                } elseif ($elementType === 'GalaxyCluster' && isset($clustersByUuid[$elementUuid])) {
+                    $elements[$k]['GalaxyCluster'] = [$clustersByUuid[$elementUuid]];
+                }
+            }
+            $data['Collection']['CollectionElement'] = $elements;
+            $this->set('data', $data);
+        }
+
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [
             'page'      => 1,

@@ -20,6 +20,8 @@
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
             ['controller' => 'events', 'action' => 'getEventInfoById'],
+            ['controller' => 'events', 'action' => 'freeTextImport'],
+            ['controller' => 'events', 'action' => 'proposalEventIndex'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'add'],
@@ -27,7 +29,12 @@
             ['controller' => 'attributes', 'action' => 'delete'],
             ['controller' => 'attributes', 'action' => 'add_attachment'],
 
+            ['controller' => 'shadow_attributes', 'action' => 'index'],
+
+            ['controller' => 'event_delegations', 'action' => 'index'],
+
             ['controller' => 'objects', 'action' => 'add'],
+            ['controller' => 'objects', 'action' => 'edit'],
             ['controller' => 'objects', 'action' => 'delete'],
 
             ['controller' => 'sightings', 'action' => 'advanced'],
@@ -63,6 +70,24 @@
             ['controller' => 'taxonomies', 'action' => 'view'],
             ['controller' => 'taxonomies', 'action' => 'addTag'],
             ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
+            ['controller' => 'galaxies', 'action' => 'index'],
+            ['controller' => 'galaxies', 'action' => 'view'],
+            ['controller' => 'galaxies', 'action' => 'add'],
+            ['controller' => 'galaxies', 'action' => 'edit'],
+            ['controller' => 'galaxies', 'action' => 'delete'],
+            ['controller' => 'galaxies', 'action' => 'viewGraph'],
+            ['controller' => 'galaxies', 'action' => 'export'],
+
+
+            ['controller' => 'galaxy_clusters', 'action' => 'index'],
+            ['controller' => 'galaxy_clusters', 'action' => 'view'],
+            ['controller' => 'galaxy_clusters', 'action' => 'add'],
+            ['controller' => 'galaxy_clusters', 'action' => 'edit'],
+            ['controller' => 'galaxy_clusters', 'action' => 'delete'],
+            ['controller' => 'galaxy_clusters', 'action' => 'export_for_misp_galaxy'],
+
+            ['controller' => 'galaxy_cluster_relations', 'action' => 'index'],
 
             ['controller' => 'templates', 'action' => 'index'],
             ['controller' => 'templates', 'action' => 'delete'],

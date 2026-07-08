@@ -69,7 +69,7 @@ if ($field['data_path'] === 'Event.id') {
                     continue;
                 }
 
-                $url = $action['url'];
+                $url = $action['url'] ?? '';
                 $url = str_replace('%id%', $id, $url);
                 if (!empty($action['url_params_data_paths'])) {
                     foreach ($action['url_params_data_paths'] as $placeholder => $path) {
@@ -171,6 +171,31 @@ if ($field['data_path'] === 'Event.id') {
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
+
+                    <?php elseif ($action['type'] === 'copy'): ?>
+                        <?php
+                            $copyValue = Hash::get($row, $action['data_path'] ?? '');
+                            $copyMessage = $action['copy_message'] ?? __('Copied to clipboard');
+                        ?>
+                        <a class="dropdown-item <?= h($action['class'] ?? '') ?>"
+                           href="#"
+                           onclick="event.preventDefault(); copyValueToClipboard('<?= h($copyValue) ?>', '<?= h($copyMessage) ?>');">
+                            <div>
+                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
+                    <?php elseif ($action['type'] === 'postLink'): ?>
+                        <?= $this->Form->postLink(
+                            '<div><i class="fas fa-' . h($action['icon']) . ' me-2"></i>' . h($action['label']) . '</div>',
+                            $url,
+                            [
+                                'escape' => false,
+                                'class' => trim('dropdown-item ' . ($action['class'] ?? '')),
+                            ],
+                            $action['confirm'] ?? false
+                        ) ?>
 
                     <?php elseif ($action['type'] === 'divider'): ?>
                         <li><hr class="dropdown-divider"></li>

@@ -95,6 +95,17 @@ class GalaxiesController extends AppController
             $distributionLevels = $this->MispAttribute->distributionLevels;
             $this->set('distributionLevels', $distributionLevels);
             $this->set('shortDist', $this->MispAttribute->shortDist);
+            $clusterCount = $this->Galaxy->GalaxyCluster->find('count', [
+                'recursive' => -1,
+                'conditions' => [
+                    'AND' => [
+                        $this->Galaxy->GalaxyCluster->buildConditions($this->Auth->user()),
+                        'GalaxyCluster.galaxy_id' => $id,
+                        'GalaxyCluster.deleted' => false,
+                    ],
+                ],
+            ]);
+            $this->set('clusterCount', $clusterCount);
         }
     }
 
@@ -126,6 +137,9 @@ class GalaxiesController extends AppController
 
         $this->__setDistribution();
         $this->set('action', 'add');
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     public function edit($id)
@@ -163,11 +177,13 @@ class GalaxiesController extends AppController
             $this->request->data = $this->Galaxy->data;
         }
 
-        
         $this->set('id', $galaxy['Galaxy']['id']);
         $this->set('galaxy', $galaxy);
         $this->set('action', 'edit');
         $this->__setDistribution();
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -207,6 +223,94 @@ class GalaxiesController extends AppController
         return $this->toggle($id, false);
     }
 
+    public function toggleEnable($id)
+    {
+        return $this->toggle($id);
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Galaxy',
+            'restName' => 'Galaxies',
+            'itemName' => 'galaxy',
+            'view' => 'ajax/galaxyDeleteConfirmationForm',
+            'checkModifyCallback' => function () {
+                return $this->_isSiteAdmin();
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s galaxy deleted.', '%s galaxies deleted.', $count, $count);
+            }
+        ]);
+    }
+
+    public function massEnable($idList = null)
+    {
+        return $this->_massToggleState($idList, 1);
+    }
+
+    public function massDisable($idList = null)
+    {
+        return $this->_massToggleState($idList, 0);
+    }
+
+    private function _massToggleState($idList = null, $state = null)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
+        }
+        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
+        $ids = json_decode($cleanIdList, true);
+        if (empty($ids) || !is_array($ids)) {
+            $message = __('Invalid IDs provided.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Galaxies', 'massToggle', false, $message, $this->response->type());
+            }
+            return new CakeResponse([
+                'body' => json_encode(['saved' => false, 'errors' => $message]),
+                'status' => 200,
+                'type' => 'json'
+            ]);
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successCount = 0;
+            foreach ($ids as $id) {
+                $galaxy = $this->Galaxy->find('first', [
+                    'conditions' => ['Galaxy.id' => $id],
+                    'recursive' => -1,
+                ]);
+                if (empty($galaxy)) {
+                    continue;
+                }
+                $galaxy['Galaxy']['enabled'] = $state;
+                if ($this->Galaxy->save($galaxy)) {
+                    $successCount++;
+                }
+            }
+            $message = __('%s galaxies successfully %s.', $successCount, $state ? __('enabled') : __('disabled'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Galaxies', 'massToggle', false, $this->response->type(), $message);
+            }
+            if ($this->request->is('ajax')) {
+                return new CakeResponse([
+                    'body' => json_encode(['saved' => true, 'success' => $message]),
+                    'status' => 200,
+                    'type' => 'json'
+                ]);
+            }
+            $this->Flash->success($message);
+            return $this->redirect($this->referer(['action' => 'index']));
+        }
+
+        $this->layout = false;
+        $this->set('actionText', $state ? __('enable') : __('disable'));
+        $this->set('idArray', $ids);
+        $this->set('state', $state);
+        $this->set('url', '/galaxies/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        $this->render('ajax/galaxyToggleConfirmationForm');
+    }
+
     public function toggle($id, $enabled=null)
     {
         $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true);
@@ -218,22 +322,31 @@ class GalaxiesController extends AppController
             }
             $result = $this->Galaxy->save($galaxy);
             if ($result) {
-                $message = __('Galaxy %s', $enabled ? __('enabled') : __('disabled'));
+                $message = __('Galaxy %s', $galaxy['Galaxy']['enabled'] ? __('enabled') : __('disabled'));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->type(), $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                    $this->redirect($this->referer(array('controller' => 'galaxies', 'action' => 'index')));
                 }
             } else {
                 $message = __('Could not enable Galaxy.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Galaxy', 'toggle', false, $message);
                 } else {
-                    $this->Flash->success($message);
+                    $this->Flash->error($message);
                     $this->redirect($this->referer());
                 }
             }
+        } else {
+            // GET → render the enable/disable confirmation modal (Overmind).
+            $currentlyEnabled = !empty($galaxy['Galaxy']['enabled']);
+            $willEnable = is_null($enabled) ? !$currentlyEnabled : $enabled;
+            $this->set('actionText', $willEnable ? __('enable') : __('disable'));
+            $this->set('idArray', [$id]);
+            $this->set('url', '/galaxies/' . $this->request->params['action'] . '/' . $id);
+            $this->layout = false;
+            $this->render('ajax/galaxyToggleConfirmationForm');
         }
     }
 
@@ -270,6 +383,9 @@ class GalaxiesController extends AppController
             }
         }
         $this->set('action', 'import');
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     // Ingests clusters coming from a sync request
@@ -334,6 +450,9 @@ class GalaxiesController extends AppController
             $distributionLevels[4] = __('All sharing groups');
             $this->set('distributionLevels', $distributionLevels);
             $this->set('action', 'export');
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
         }
     }
 
