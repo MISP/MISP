@@ -11,7 +11,18 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 <div class="d-flex flex-column gap-1">
     <div class="d-flex align-items-baseline gap-2 mb-0">
         <?php if($element['element_type'] === "Event") {
-            echo $this->element(
+            if (!empty($element['Event'])) {
+                printf(
+                    '<a class="text-decoration-none d-inline-flex align-items-baseline gap-1" href="%s">'
+                        . '<span class="badge bg-event">#%s</span>'
+                        . '<span class="text-body">%s</span>'
+                    . '</a>',
+                    h($baseurl . '/events/view2/' . $element['Event']['id']),
+                    h($element['Event']['id']),
+                    h($element['Event']['info'])
+                );
+            } else {
+                echo $this->element(
                     '/genericElementsBS5/IndexTable/Fields/uuid',
                     [
                         'row' => $row,
@@ -22,17 +33,30 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                     ]
                 );
             }
+            }
             else if($element['element_type'] === "GalaxyCluster") {
-                echo $this->element(
-                    '/genericElementsBS5/IndexTable/Fields/uuid',
-                    [
-                        'row' => $row,
-                        'field' => [
-                            'data_path' => 'element_uuid',
-                            'url' => $baseurl . '/galaxy_clusters/view/%id%'
+                if (!empty($element['GalaxyCluster'])) {
+                    echo $this->element(
+                        '/genericElementsBS5/IndexTable/Fields/galaxy',
+                        [
+                            'row' => $row,
+                            'field' => [
+                                'data_path' => 'GalaxyCluster',
+                            ]
                         ]
-                    ]
-                );
+                    );
+                } else {
+                    echo $this->element(
+                        '/genericElementsBS5/IndexTable/Fields/uuid',
+                        [
+                            'row' => $row,
+                            'field' => [
+                                'data_path' => 'element_uuid',
+                                'url' => $baseurl . '/galaxy_clusters/view/%id%'
+                            ]
+                        ]
+                    );
+                }
             }
         ?>
     </div>

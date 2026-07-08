@@ -115,7 +115,7 @@ class SharingGroupsController extends AppController
                         ));
                     }
                 }
-                $this->Flash->success(__('The sharing group has been addedd'));
+                $this->Flash->success(__('The sharing group has been added'));
                 $this->redirect('/SharingGroups/view/' . $this->SharingGroup->id);
             } else {
                 $validationReplacements = array(

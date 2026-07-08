@@ -677,7 +677,7 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = $pulledCollections = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
@@ -693,22 +693,35 @@ class Server extends AppModel
 
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
+
+            // Collections: gated on the per-server pull_collections toggle (T1.2) AND
+            // feature negotiation (isSupported reads the already-cached remote info, so no
+            // extra round-trip) — an older peer without the capability is skipped silently.
+            // Collection::pull re-checks isSupported and owns the downgrade/locked/D6 rules.
+            if (!empty($server['Server']['pull_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Pulling collections.', 90);
+                }
+                $this->Collection = ClassRegistry::init('Collection');
+                $pulledCollections = $this->Collection->pull($user, $serverSync);
+            }
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
             $pulledAnalystData,
+            $pulledCollections,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData, $pulledCollections];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -892,13 +905,16 @@ class Server extends AppModel
     /**
      * @param ServerSyncTool $serverSync
      * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
+     *                          a single ordered page is requested instead of the
+     *                          whole index (see getEventIdsFromServer()).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
     {
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
@@ -914,20 +930,38 @@ class Server extends AppModel
             $filterRules['include_event_tags_fingerprint'] = 1;
         }
 
-        // Fetch event index from cache if exists and is not modified on server
+        // When paginating, ask the remote for a single ordered page. The sort key
+        // is mandatory and must be unique: the remote applies LIMIT/OFFSET to the
+        // minimal index with no implicit ordering, so without an explicit unique
+        // sort (Event.id) page boundaries could skip or duplicate events. The
+        // filter rules above are still applied per page, so the union of pages is
+        // exactly the same set the non-paginated request would have returned.
+        $paginated = !empty($pagination);
+        if ($paginated) {
+            $filterRules['page'] = $pagination['page'];
+            $filterRules['limit'] = $pagination['limit'];
+            $filterRules['sort'] = 'id';
+            $filterRules['direction'] = 'asc';
+        }
+
+        // Fetch event index from cache if exists and is not modified on server.
+        // Paginated requests are cached per page so each page can be revalidated
+        // independently by its own ETag.
+        $cacheSuffix = $paginated ? ":page:{$pagination['page']}:{$pagination['limit']}" : '';
+        $etagCacheKey = "misp:event_index_cache:etag:{$serverSync->serverId()}{$cacheSuffix}";
+        $contentCacheKey = "misp:event_index_cache:content:{$serverSync->serverId()}{$cacheSuffix}";
         $redis = RedisTool::init();
-        $cacheEtag = $redis->get("misp:event_index_cache:etag:{$serverSync->serverId()}");
+        $cacheEtag = $redis->get($etagCacheKey);
         if ($cacheEtag) {
             $serverSync->debug("Event index loaded from Redis cache with etag $cacheEtag");
         } else {
             $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
-        $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
 
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
         if ($response->isNotModified() && $cacheEtag !== '""') {
-            $eventIndexFromCache = $redis->get("misp:event_index_cache:content:{$serverSync->serverId()}");
+            $eventIndexFromCache = $redis->get($contentCacheKey);
             if ($eventIndexFromCache) {
                 $eventIndexFromCache = RedisTool::decompress($eventIndexFromCache);
                 return JsonTool::decode($eventIndexFromCache);
@@ -939,8 +973,8 @@ class Server extends AppModel
         if ($etag) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
-            $redis->setex("misp:event_index_cache:etag:{$serverSync->serverId()}", 3600 * 24, $etag);
-            $redis->setex("misp:event_index_cache:content:{$serverSync->serverId()}", 3600 * 24, $data);
+            $redis->setex($etagCacheKey, 3600 * 24, $etag);
+            $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
 
@@ -960,35 +994,48 @@ class Server extends AppModel
      */
     private function removeOlderEvents(array &$events, $server=null)
     {
+        // Only internal sync re-pulls an already-synced event when its local tags
+        // differ (see areLocalTagsDifferent below). For every other connection the
+        // tags are never consulted, so we must not load them: eagerly hydrating the
+        // full Tag model for every local event here - potentially the whole events
+        // table on the count > 10000 branch - was the cause of the pull memory
+        // blow-up (#10881). When tags are needed we fetch only the few fields the
+        // comparison actually reads.
+        $isInternal = $server !== null && !empty($server['Server']['internal']);
         $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
         $this->Event = ClassRegistry::init('Event');
-        $localEvents = $this->Event->find('all', [
+        $findOptions = [
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
-            'contain' => ['EventTag' => 'Tag'],
-        ]);
+        ];
+        if ($isInternal) {
+            $findOptions['contain'] = [
+                'EventTag' => [
+                    'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+                    'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                ],
+            ];
+        }
+        $localEvents = $this->Event->find('all', $findOptions);
         $reindexed = [];
         foreach ($localEvents as $item) {
             $event = $item['Event'];
-            $event['EventTag'] = $item['EventTag'];
+            $event['EventTag'] = $item['EventTag'] ?? [];
             $reindexed[$event['uuid']] = $event;
         }
         $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
-            $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
-
+            
             if (isset($localEvents[$uuid])) {
                 $isUnlocked = !$localEvents[$uuid]['locked'];
 
                 $localTs = $localEvents[$uuid]['timestamp'];
                 $incomingTs = $event['timestamp'];
 
-                $isInternalSync =
-                    $server !== null &&
-                    !empty($server['Server']['internal']);
+                $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
 
                 $sameFingerprint =
                     $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
@@ -999,9 +1046,8 @@ class Server extends AppModel
                     ($localTs > $incomingTs) || // strictly newer local event
                     (
                         $localTs === $incomingTs && // same timestamp handling
-                        (!$isInternalSync || $sameFingerprint)
+                        (!$isInternal || $sameFingerprint)
                     );
-
                 if ($shouldDiscard) {
                     unset($events[$k]);
                 }
@@ -1061,32 +1107,77 @@ class Server extends AppModel
      */
     private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
-
-        if ($all) {
-            return array_column($eventArray, 'uuid');
+        // The remote index is fetched one page at a time and each page is run
+        // through the exact same filter pipeline as before, so the accumulated set
+        // of UUIDs is identical to the previous whole-index implementation - only
+        // the peak memory changes, from "the entire index at once" to "one page".
+        // Keeping the page at/below 10000 also lets removeOlderEvents() use its
+        // cheap `Event.uuid IN (...)` branch instead of scanning the whole local
+        // events table (#10881).
+        $pageSize = (int)Configure::read('MISP.event_index_pull_chunk_size');
+        if ($pageSize <= 0) {
+            $pageSize = 10000;
         }
 
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $this->EventBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            $this->OrgBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        foreach ($eventArray as $k => $event) {
-            if (1 != $event['published']) {
-                unset($eventArray[$k]); // do not keep non-published events
+        if (!$all) {
+            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
+            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             }
         }
-        if (!$force) {
-            $this->removeOlderEvents($eventArray, $serverSync->server());
-            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+
+        $eventUuids = []; // keyed by uuid for O(1) dedup, insertion order preserved
+        $page = 1;
+        $previousMaxId = null;
+        while (true) {
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $fetched = count($eventArray);
+            if ($fetched === 0) {
+                break;
+            }
+            // A remote that does not honour the limit (older instance) returns the
+            // whole index in one response. Detecting more rows than we asked for
+            // tells us this page already is the complete set: process it and stop,
+            // which reproduces the previous non-paginated behaviour exactly.
+            $remoteIgnoredPagination = $fetched > $pageSize;
+            // Safety net against a remote that honours `limit` but ignores `page`
+            // (would otherwise loop forever): the minimal index is sorted by
+            // Event.id asc, so the max id must strictly advance between pages.
+            $maxId = (int)max(array_column($eventArray, 'id'));
+            $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
+            $previousMaxId = $maxId;
+
+            if (!$all) {
+                if (!empty($this->EventBlocklist)) {
+                    $this->EventBlocklist->removeBlockedEvents($eventArray);
+                }
+                if (!empty($this->OrgBlocklist)) {
+                    $this->OrgBlocklist->removeBlockedEvents($eventArray);
+                }
+                foreach ($eventArray as $k => $event) {
+                    if (1 != $event['published']) {
+                        unset($eventArray[$k]); // do not keep non-published events
+                    }
+                }
+                if (!$force) {
+                    $this->removeOlderEvents($eventArray, $serverSync->server());
+                    $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+                }
+            }
+
+            foreach ($eventArray as $event) {
+                $eventUuids[$event['uuid']] = true;
+            }
+            unset($eventArray);
+
+            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+                break; // last page (or a remote that is not paginating)
+            }
+            $page++;
         }
-        return array_column($eventArray, 'uuid');
+        return array_keys($eventUuids);
     }
 
     public function serverEventsOverlap()
@@ -1345,6 +1436,24 @@ class Server extends AppModel
             $fails = array();
         }
 
+        // Collections: gated on the remote's general push capability ($push['canPush'] =
+        // remote perm_sync) AND the per-server push_collections toggle (T1.2) AND feature
+        // negotiation (isSupported reads the remote info already cached by the version check,
+        // so no extra round-trip). Collections have no separate remote capability (D3), so
+        // canPush is the faithful analogue of the sibling sightings/analyst-data gates — it
+        // skips a guaranteed-403 upload to a sightings-only remote (one that can sight but not
+        // sync); an older peer without the capability is skipped silently too. Collection::push
+        // re-checks isSupported; the remote captureCollection sink owns the distribution
+        // downgrade + locked=1, so the push sends RAW (mirroring the pull side).
+        $pushedCollections = 0;
+        if ($push['canPush'] && !empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            if ($jobId) {
+                $job->saveProgress($jobId, __('Pushing collections.'));
+            }
+            $this->Collection = ClassRegistry::init('Collection');
+            $pushedCollections = $this->Collection->push($user, $serverSync);
+        }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->saveOrFailSilently(array(
@@ -1355,7 +1464,7 @@ class Server extends AppModel
             'action' => 'push',
             'user_id' => $user['id'],
             'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update. ' . $pushedCollections . ' collections pushed.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
@@ -5368,6 +5477,8 @@ class Server extends AppModel
 
             $results = [
                 __('User') => $user['User']['email'],
+                __('Organisation name') => $user['Organisation']['name'],
+                __('Organisation UUID') => $user['Organisation']['uuid'],
                 __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
                 __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
@@ -5653,6 +5764,14 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'event_index_pull_chunk_size' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000.'),
+                    'value' => 10000,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -6485,8 +6604,8 @@ class Server extends AppModel
                 ],
                 'log_errors_ndjson_path' => [
                     'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
-                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
+                    'value' => APP . 'tmp/logs/error.log.ndjson',
                     'test' => 'testNDJSONLogPath',
                     'type' => 'string',
                     'cli_only' => true,

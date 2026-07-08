@@ -2,6 +2,7 @@
 $namedParams     = $this->request->params['named'] ?? [];
 $attrEventId     = $event['Event']['id'];
 $currentDeleted  = (int)($namedParams['deleted']  ?? 0);
+$currentProposal = (int)($namedParams['proposal'] ?? 0);
 $currentCategory = $namedParams['category'] ?? '';
 $currentType     = $namedParams['type']     ?? '';
 
@@ -27,9 +28,11 @@ echo $this->element('Attributes/index', [
     var _lClear  = <?= json_encode(__('Clear')) ?>;
 
     // Shared mutable state — updated every IIFE run so ALL closures see latest values
-    window.overmindAttrs = Object.assign(window.overmindAttrs || {}, {
+    window.mispView = window.mispView || {};
+    window.mispView.attrs = Object.assign(window.mispView.attrs || {}, {
         attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>,
         deletedState:  <?= (int)$currentDeleted ?>,
+        proposalState: <?= (int)$currentProposal ?>,
         activeFilters: <?= json_encode(array_filter(['category' => $currentCategory, 'type' => $currentType])) ?>,
     });
 
@@ -39,9 +42,10 @@ echo $this->element('Attributes/index', [
 
     // URL without search term (deleted + column filters)
     function buildBaseUrl() {
-        var S   = window.overmindAttrs;
+        var S   = window.mispView.attrs;
         var url = S.attrBase;
         if (S.deletedState) url += '/deleted:' + S.deletedState;
+        if (S.proposalState) url += '/proposal:' + S.proposalState;
         Object.keys(S.activeFilters).forEach(function (n) {
             if (S.activeFilters[n]) url += '/' + n + ':' + encodeURIComponent(S.activeFilters[n]);
         });
@@ -95,22 +99,22 @@ echo $this->element('Attributes/index', [
             // TomSelect for styling only — value changes come via native change event
             if (typeof TomSelect !== 'undefined') {
                 new TomSelect(newSel, { allowEmptyOption: true, create: false });
-                var currentVal = (window.overmindAttrs.activeFilters || {})[name];
+                var currentVal = (window.mispView.attrs.activeFilters || {})[name];
                 if (currentVal && newSel.tomselect) {
                     newSel.tomselect.setValue(currentVal, true);
                 }
             }
             // Native change listener — fires after both plain-select and TomSelect changes
             newSel.addEventListener('change', function () {
-                window.overmindAttrs.activeFilters[name] = newSel.value;
+                window.mispView.attrs.activeFilters[name] = newSel.value;
                 loadAttributes(buildAttrsUrl());
             });
         });
     }
 
     // Expose latest function refs so OLD closures (e.g. pagination) can call current impls
-    window.overmindAttrs.buildFn = buildAttrsUrl;
-    window.overmindAttrs.loadFn  = loadAttributes;
+    window.mispView.attrs.buildFn = buildAttrsUrl;
+    window.mispView.attrs.loadFn  = loadAttributes;
 
     var container = getContainer();
 
@@ -123,8 +127,8 @@ echo $this->element('Attributes/index', [
             e.preventDefault();
             var m    = (link.getAttribute('href') || '').match(/page[:\-](\d+)/);
             var page = m ? m[1] : '1';
-            window.overmindAttrs.loadFn(
-                window.overmindAttrs.buildFn() + '/page:' + page
+            window.mispView.attrs.loadFn(
+                window.mispView.attrs.buildFn() + '/page:' + page
             );
         });
     }
@@ -149,26 +153,21 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    // .attr-deleted-toggle — clone to override Attributes/index.ctp's capture listener
-    var toggleBtn = container ? container.querySelector('.attr-deleted-toggle') : null;
-    if (toggleBtn) {
-        var newToggle = toggleBtn.cloneNode(true);
-        toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
-        newToggle.addEventListener('click', function (e) {
+    // Toggle buttons (deleted / proposals)
+    function wireToggle(selector, stateKey) {
+        var btn = container ? container.querySelector(selector) : null;
+        if (!btn) return;
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function (e) {
             e.preventDefault();
-            var S          = window.overmindAttrs;
-            var newDeleted = S.deletedState ? 0 : 1;
-            var url        = S.attrBase;
-            if (newDeleted) url += '/deleted:' + newDeleted;
-            Object.keys(S.activeFilters).forEach(function (n) {
-                if (S.activeFilters[n]) url += '/' + n + ':' + encodeURIComponent(S.activeFilters[n]);
-            });
-            var cont  = getContainer();
-            var field = cont ? cont.querySelector('#filterField') : null;
-            if (field && field.value.trim()) url += '/searchFor:' + encodeURIComponent(field.value.trim());
-            loadAttributes(url);
+            var S = window.mispView.attrs;
+            S[stateKey] = S[stateKey] ? 0 : 1;
+            loadAttributes(buildAttrsUrl());
         });
     }
+    wireToggle('.attr-deleted-toggle', 'deletedState');
+    wireToggle('.attr-proposal-toggle', 'proposalState');
 
     // TomSelect on More Filters dropdowns
     if (container) initMoreFilters(container);

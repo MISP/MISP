@@ -182,11 +182,18 @@ $filter_bar = $filter_bar ?? [];
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['delete'])): ?>
+            <?php
+                // `delete_url` overrides the constructed URL for indexes whose
+                // item_url is not the plain controller
+                $multiDeleteUrl = !empty($filter_bar['delete_url'])
+                    ? ($baseurl . $filter_bar['delete_url'])
+                    : ($baseurl . $item_url . $filter_bar['delete']);
+            ?>
             <button id="multi-delete-button"
                     class="btn btn-danger btn-sm d-none"
                     title="<?= __('Delete selected items') ?>"
                     aria-label="<?= __('Delete selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['delete']) ?>', '/true')">
+                    onclick="multiSelectItems('<?= h($multiDeleteUrl) ?>', '/true')">
                 <i class="fas fa-trash text-white"></i>
                 <span class="text-white"> <?= __('Delete') ?></span>
             </button>

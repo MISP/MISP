@@ -22,7 +22,7 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
         true
     );
     $correlDisabled = !empty($attribute['disable_correlation']) || $isNonCorrelatingType;
-    $canToggle      = $this->Acl->canDisableCorrelation($row)
+    $canToggle      = $this->Acl->canDisableCorrelation($event)
                    && empty($event['disable_correlation'])
                    && !$isNonCorrelatingType;
 

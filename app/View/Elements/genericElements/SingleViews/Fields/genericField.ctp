@@ -4,6 +4,13 @@ if (isset($field['raw'])) {
 } else {
     $value = Hash::get($data, $field['path']);
     $string = empty($value) ? '' : h($value);
+    if (!empty($field['privacy'])) {
+        $string = sprintf(
+            '<span class="privacy-value quickSelect" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>',
+            $string,
+            __('Reveal hidden value')
+        );
+    }
 }
 if (!empty($field['url'])) {
     if (!empty($field['url_vars'])) {

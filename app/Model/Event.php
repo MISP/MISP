@@ -705,6 +705,43 @@ class Event extends AppModel
         return $events;
     }
 
+    /**
+     * Attaches two extra counters to each event of an index list:
+     *  - `object_count`: number of (non-deleted) objects in the event
+     *  - `attribute_count_no_objects`: number of (non-deleted) attributes that
+     *    are NOT part of an object (object_id = 0).
+     *
+     * @param array $events
+     * @return array
+     */
+    public function attachObjectAndAttributeCountToEvents(array $events)
+    {
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
+        if (empty($eventIds)) {
+            return $events;
+        }
+        $objectCounts = $this->Object->find('all', array(
+            'fields' => array('Object.event_id', 'COUNT(Object.id) as count'),
+            'conditions' => array('Object.event_id' => $eventIds, 'Object.deleted' => 0),
+            'recursive' => -1,
+            'group' => array('Object.event_id'),
+        ));
+        $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
+        $attributeCounts = $this->Attribute->find('all', array(
+            'fields' => array('Attribute.event_id', 'COUNT(Attribute.id) as count'),
+            'conditions' => array('Attribute.event_id' => $eventIds, 'Attribute.deleted' => 0, 'Attribute.object_id' => 0),
+            'recursive' => -1,
+            'group' => array('Attribute.event_id'),
+        ));
+        $attributeCounts = Hash::combine($attributeCounts, '{n}.Attribute.event_id', '{n}.0.count');
+        foreach ($events as $key => $event) {
+            $eventId = $event['Event']['id'];
+            $events[$key]['Event']['object_count'] = isset($objectCounts[$eventId]) ? (int)$objectCounts[$eventId] : 0;
+            $events[$key]['Event']['attribute_count_no_objects'] = isset($attributeCounts[$eventId]) ? (int)$attributeCounts[$eventId] : 0;
+        }
+        return $events;
+    }
+
     public function attachProposalsCountToEvents($user, $events)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');
@@ -1713,6 +1750,73 @@ class Event extends AppModel
     }
 
     /**
+     * Move each attribute's is_galaxy tags into a ['Galaxy'] array (grouped by
+     * galaxy, each carrying its GalaxyCluster list) and strip them from ['AttributeTag'] —
+     * so the Overmind galaxy field renders the real galaxy name/icon
+     * inside the event-view attribute and object tabs instead of falling back to the tag-derived name.
+     *
+     * @param array $attributes flat attributes, each with an 'AttributeTag' list
+     * @param array $user
+     * @return array same attributes, with 'Galaxy' set and galaxy tags removed
+     */
+    private function attributeGalaxiesFromTags(array $attributes, array $user)
+    {
+        // Gather galaxy tags across all attributes for a single lookup.
+        $galaxyTags = [];
+        foreach ($attributes as $attr) {
+            foreach (($attr['AttributeTag'] ?? []) as $at) {
+                if (!empty($at['Tag']['is_galaxy'])) {
+                    $galaxyTags[$at['Tag']['id']] = $at['Tag']['name'];
+                }
+            }
+        }
+
+        $clustersByTagId = [];
+        if (!empty($galaxyTags)) {
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $clusters = $GalaxyCluster->getClustersByTags(
+                $galaxyTags, $user, true, false
+            );
+            $clustersByTagId = array_column(
+                array_column($clusters, 'GalaxyCluster'),
+                null,
+                'tag_id'
+            );
+        }
+
+        foreach ($attributes as &$attr) {
+            $galaxies = [];
+            $remainingTags = [];
+            foreach (($attr['AttributeTag'] ?? []) as $at) {
+                $tagId = $at['Tag']['id'] ?? null;
+                if (empty($at['Tag']['is_galaxy'])
+                    || !isset($clustersByTagId[$tagId])
+                ) {
+                    $remainingTags[] = $at;
+                    continue;
+                }
+                $cluster = $clustersByTagId[$tagId];
+                $galaxyId = $cluster['Galaxy']['id'];
+                $cluster['local'] = $at['local'] ?? false;
+                $cluster['attribute_tag_id'] = $at['id'] ?? null;
+                if (isset($galaxies[$galaxyId])) {
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
+                } else {
+                    $galaxies[$galaxyId] = $cluster['Galaxy'];
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
+                }
+            }
+            $attr['AttributeTag'] = $remainingTags;
+            $attr['Galaxy'] = array_values($galaxies);
+        }
+        unset($attr);
+
+        return $attributes;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -1913,6 +2017,9 @@ class Event extends AppModel
             unset($attribute);
         }
 
+        // Move is_galaxy tags into an ['Galaxy'] array.
+        $flat = $this->attributeGalaxiesFromTags($flat, $user);
+
         // Attach SharingGroup names for distribution==4
         $sgIdsNeeded = [];
         foreach ($flat as $attribute) {
@@ -1954,15 +2061,156 @@ class Event extends AppModel
         $enriched = $this->__enrichAttributes(
             $flat, $user, $eventId
         );
+        $attributesOut = $enriched['attributes'];
+
+        // Proposals (shadow attributes): when requested, attach pending
+        // proposed edits/deletions inline on their target attribute and
+        // surface standalone "new attribute" proposals as their own rows.
+        // Done after enrichment so proposals don't pick up attribute-id
+        // based correlations / sightings.
+        if (!empty($options['proposal'])) {
+            $attributesOut = $this->__attachProposals(
+                $attributesOut, $eventId, $page, $options
+            );
+        }
 
         return [
-            'Attribute' => $enriched['attributes'],
+            'Attribute' => $attributesOut,
             'total' => (int)$total,
             'page' => $page,
             'limit' => $limit,
             'sightings_csv' =>
                 $enriched['sightings_csv'],
         ];
+    }
+
+    /**
+     * Attach pending proposals to a page of attributes for the event view.
+     *
+     * - Proposed edits / deletions (ShadowAttribute.old_id = attribute id)
+     *   are attached inline on their target attribute as ['ShadowAttribute'].
+     * - Standalone "new attribute" proposals (ShadowAttribute.old_id = 0) are
+     *   normalised into attribute-shaped rows (flagged is_proposal) and
+     *   prepended to the list. They are only surfaced on page 1 so they are
+     *   not duplicated across pagination.
+     *
+     * @param array $attributes Enriched, flat attribute rows for the page
+     * @param int|string $eventId
+     * @param int $page Current page number
+     * @param array $options viewAttributes filters (category/type/searchFor)
+     * @return array
+     */
+    private function __attachProposals(array $attributes, $eventId, $page, array $options)
+    {
+        // Pending proposed edits / deletions for attributes on this page.
+        $attrIds = array_column($attributes, 'id');
+        $editsByAttr = [];
+        if (!empty($attrIds)) {
+            $edits = $this->ShadowAttribute->find('all', [
+                'conditions' => [
+                    'ShadowAttribute.old_id' => $attrIds,
+                    'ShadowAttribute.event_id' => $eventId,
+                    'ShadowAttribute.deleted' => 0,
+                ],
+                'recursive' => -1,
+            ]);
+            foreach ($edits as $e) {
+                $editsByAttr[$e['ShadowAttribute']['old_id']][] = $e['ShadowAttribute'];
+            }
+        }
+
+        // Standalone proposed-new attributes (old_id = 0), first page only.
+        $newProposals = [];
+        if ((int)$page === 1) {
+            $conditions = [
+                'ShadowAttribute.event_id' => $eventId,
+                'ShadowAttribute.old_id' => 0,
+                'ShadowAttribute.deleted' => 0,
+            ];
+            if (!empty($options['category'])) {
+                $conditions['ShadowAttribute.category'] = $options['category'];
+            }
+            if (!empty($options['type'])) {
+                $conditions['ShadowAttribute.type'] = $options['type'];
+            }
+            if (!empty($options['searchFor'])) {
+                $conditions['ShadowAttribute.value1 LIKE'] = '%' . $options['searchFor'] . '%';
+            }
+            $newProposals = $this->ShadowAttribute->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => ['ShadowAttribute.timestamp DESC'],
+            ]);
+        }
+
+        if (empty($editsByAttr) && empty($newProposals)) {
+            return $attributes;
+        }
+
+        // Resolve proposer org names for everything we are about to render.
+        $orgIds = [];
+        foreach ($editsByAttr as $list) {
+            foreach ($list as $sa) {
+                $orgIds[$sa['org_id']] = true;
+            }
+        }
+        foreach ($newProposals as $p) {
+            $orgIds[$p['ShadowAttribute']['org_id']] = true;
+        }
+        $orgNames = [];
+        if (!empty($orgIds)) {
+            $orgModel = ClassRegistry::init('Organisation');
+            $orgNames = $orgModel->find('list', [
+                'conditions' => ['Organisation.id' => array_keys($orgIds)],
+                'fields' => ['Organisation.id', 'Organisation.name'],
+                'recursive' => -1,
+            ]);
+        }
+
+        $decorate = function ($sa) use ($orgNames) {
+            $sa['org_name'] = $orgNames[$sa['org_id']] ?? $sa['org_id'];
+            return $sa;
+        };
+
+        // Attach inline edit / delete proposals.
+        foreach ($attributes as &$attr) {
+            if (!empty($editsByAttr[$attr['id']])) {
+                $attr['ShadowAttribute'] = array_map($decorate, $editsByAttr[$attr['id']]);
+            }
+        }
+        unset($attr);
+
+        // Prepend standalone proposed-new attribute rows.
+        $rows = [];
+        foreach ($newProposals as $p) {
+            $sa = $decorate($p['ShadowAttribute']);
+            $rows[] = [
+                'id' => $sa['id'],
+                'event_id' => $eventId,
+                'category' => $sa['category'],
+                'type' => $sa['type'],
+                'value' => $sa['value'],
+                'to_ids' => $sa['to_ids'],
+                'uuid' => $sa['uuid'],
+                'comment' => $sa['comment'],
+                'timestamp' => $sa['timestamp'],
+                'first_seen' => $sa['first_seen'] ?? null,
+                'last_seen' => $sa['last_seen'] ?? null,
+                'deleted' => 0,
+                'disable_correlation' => 0,
+                'AttributeTag' => [],
+                'ShadowAttribute' => [],
+                'RelatedAttribute' => [],
+                'Sighting' => [],
+                'is_proposal' => true,
+                'proposal_id' => $sa['id'],
+                'proposal_type' => 'new',
+                'proposal_org_id' => $sa['org_id'],
+                'proposal_org_name' => $sa['org_name'],
+            ];
+        }
+
+        return array_merge($rows, $attributes);
     }
 
     /**
@@ -2253,10 +2501,10 @@ class Event extends AppModel
             }
         }
 
-        // Bulk-load proposals (shadow attributes) for
-        // attributes in these objects
+        // Bulk-load proposals (shadow attributes) for attributes in these
+        // objects — only when the caller asked for them (proposals toggle).
         $proposalsByAttr = [];
-        if (!empty($allAttrIds)) {
+        if (!empty($allAttrIds) && !empty($options['proposal'])) {
             $proposals = $this->ShadowAttribute->find('all', [
                 'conditions' => [
                     'ShadowAttribute.old_id' => $allAttrIds,
@@ -2264,9 +2512,23 @@ class Event extends AppModel
                 ],
                 'recursive' => -1,
             ]);
+            $orgIds = [];
             foreach ($proposals as $p) {
-                $proposalsByAttr[$p['ShadowAttribute']['old_id']][]
-                    = $p['ShadowAttribute'];
+                $orgIds[$p['ShadowAttribute']['org_id']] = true;
+            }
+            $orgNames = [];
+            if (!empty($orgIds)) {
+                $orgModel = ClassRegistry::init('Organisation');
+                $orgNames = $orgModel->find('list', [
+                    'conditions' => ['Organisation.id' => array_keys($orgIds)],
+                    'fields' => ['Organisation.id', 'Organisation.name'],
+                    'recursive' => -1,
+                ]);
+            }
+            foreach ($proposals as $p) {
+                $sa = $p['ShadowAttribute'];
+                $sa['org_name'] = $orgNames[$sa['org_id']] ?? $sa['org_id'];
+                $proposalsByAttr[$sa['old_id']][] = $sa;
             }
         }
 
@@ -2296,6 +2558,22 @@ class Event extends AppModel
             }
         }
         unset($obj);
+
+        // Move each object-attribute's is_galaxy tags into a ['Galaxy'] array
+        $galaxyMap = [];
+        $galaxyFlat = [];
+        foreach ($flat as $objId => $obj) {
+            foreach (($obj['Attribute'] ?? []) as $idx => $attr) {
+                $galaxyMap[] = [$objId, $idx];
+                $galaxyFlat[] = $attr;
+            }
+        }
+        if (!empty($galaxyFlat)) {
+            $galaxyFlat = $this->attributeGalaxiesFromTags($galaxyFlat, $user);
+            foreach ($galaxyMap as $i => $pos) {
+                $flat[$pos[0]]['Attribute'][$pos[1]] = $galaxyFlat[$i];
+            }
+        }
 
         // Attach SharingGroup names for distribution==4
         $sgIdsNeeded = [];
@@ -5289,7 +5567,6 @@ class Event extends AppModel
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
-        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1, 'contain' => ['EventTag' => 'Tag']]);
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -5309,6 +5586,20 @@ class Event extends AppModel
         } else {
             $server['Server']['internal'] = false;
         }
+        // Only internal sync compares local tags (see areLocalTagsDifferent below),
+        // so only then do we load the existing event's tags. For every other
+        // connection this stays a cheap recursive=-1 lookup rather than eagerly
+        // hydrating the full Tag model for the event on each pulled event (#10881).
+        $existingEventFindOptions = ['conditions' => $conditions, 'recursive' => -1];
+        if (!empty($server['Server']['internal'])) {
+            $existingEventFindOptions['contain'] = [
+                'EventTag' => [
+                    'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+                    'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                ],
+            ];
+        }
+        $existingEvent = $this->find('first', $existingEventFindOptions);
         // If the event exists...
         if (!empty($existingEvent)) {
             $data['Event']['id'] = $existingEvent['Event']['id'];

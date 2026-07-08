@@ -219,6 +219,11 @@ class CollectionsController extends AppController
                     'orgc_id' => $oldCollection['Collection']['orgc_id'],
                     'org_id' => $oldCollection['Collection']['org_id'],
                     'user_id' => $oldCollection['Collection']['user_id'],
+                    // locked is a sync-integrity flag set only by captureCollection (as a
+                    // perm_sync user); the web edit path must never change it, otherwise an
+                    // owner could flip locked and bypass the create-time guard in
+                    // Collection::beforeValidate. Pin it to the stored value.
+                    'locked' => $oldCollection['Collection']['locked'],
                 ],
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
@@ -296,7 +301,65 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $elements = $this->viewVars['data']['Collection']['CollectionElement'] ?? [];
+        $data = $this->viewVars['data'];
+        $elements = $data['Collection']['CollectionElement'] ?? [];
+
+        // Enrich elements with a human-readable reference so the elements
+        // index can display the resolved target instead of the raw UUID.
+        $eventUuids = [];
+        $clusterUuids = [];
+        foreach ($elements as $element) {
+            $elementType = $element['element_type'] ?? null;
+            if (empty($element['element_uuid'])) {
+                continue;
+            }
+            if ($elementType === 'Event') {
+                $eventUuids[] = $element['element_uuid'];
+            } elseif ($elementType === 'GalaxyCluster') {
+                $clusterUuids[] = $element['element_uuid'];
+            }
+        }
+
+        $eventsByUuid = [];
+        if (!empty($eventUuids)) {
+            $this->loadModel('Event');
+            $events = $this->Event->fetchSimpleEvents($user, [
+                'conditions' => ['Event.uuid' => array_values(array_unique($eventUuids))]
+            ]);
+            foreach ($events as $event) {
+                $eventsByUuid[$event['Event']['uuid']] = [
+                    'id' => $event['Event']['id'],
+                    'info' => $event['Event']['info'],
+                ];
+            }
+        }
+
+        $clustersByUuid = [];
+        if (!empty($clusterUuids)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+                'conditions' => ['GalaxyCluster.uuid' => array_values(array_unique($clusterUuids))]
+            ]);
+            foreach ($clusters as $cluster) {
+                $arranged = $this->GalaxyCluster->arrangeData($cluster);
+                $clustersByUuid[$cluster['GalaxyCluster']['uuid']] = $arranged['GalaxyCluster'];
+            }
+        }
+
+        if (!empty($eventsByUuid) || !empty($clustersByUuid)) {
+            foreach ($elements as $k => $element) {
+                $elementType = $element['element_type'] ?? null;
+                $elementUuid = $element['element_uuid'] ?? null;
+                if ($elementType === 'Event' && isset($eventsByUuid[$elementUuid])) {
+                    $elements[$k]['Event'] = $eventsByUuid[$elementUuid];
+                } elseif ($elementType === 'GalaxyCluster' && isset($clustersByUuid[$elementUuid])) {
+                    $elements[$k]['GalaxyCluster'] = [$clustersByUuid[$elementUuid]];
+                }
+            }
+            $data['Collection']['CollectionElement'] = $elements;
+            $this->set('data', $data);
+        }
+
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [
             'page'      => 1,
@@ -343,11 +406,135 @@ class CollectionsController extends AppController
         if (!$this->_isSiteAdmin()) {
             $params['conditions']['AND'][] = $this->Collection->buildConditions($this->Auth->user('id'));
         }
+        if ($this->_isRest()) {
+            // The sync pull fetches full collections by uuid through this action
+            // (ServerSyncTool::fetchCollections -> GET /collections/index/uuid[]:...json).
+            // The capture sink needs the element corpus — even when empty — to perform an
+            // authoritative replace (D5), so include CollectionElement for REST callers
+            // only. The HTML index shows just element_count and must not eager-load every
+            // element across the paginated list.
+            $params['contain'][] = 'CollectionElement';
+            // The generic index filter list registers the fully-qualified 'Collection.uuid'
+            // key, but harvestParameters only matches a named param whose key is literally
+            // 'Collection.uuid'. The sync client sends bare uuid[] named params, so harvest
+            // them here into an explicit, alias-qualified IN() condition. A bare 'uuid'
+            // filter would be ambiguous against the joined Orgc/SharingGroup uuid columns.
+            $uuidFilter = $this->request->params['named']['uuid'] ?? null;
+            if (!empty($uuidFilter)) {
+                $params['conditions']['AND'][] = ['Collection.uuid' => (array)$uuidFilter];
+            }
+        }
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
+        }
+    }
+
+    /**
+     * Minimal index endpoint used by a remote instance during a sync pull: returns
+     * { uuid: modified } for every collection the caller may see + distribute (filtered
+     * inside Collection::indexMinimal via buildConditions), optionally narrowed by
+     * orgc_name OR/NOT pull-rules. Mirrors AnalystDataController::indexMinimal. CSRF is
+     * auto-unlocked for REST (AppController::beforeFilter); the ACL entry is ['*'] and
+     * visibility is enforced by buildConditions rather than a blanket perm_sync gate.
+     */
+    public function indexMinimal()
+    {
+        $filters = [];
+        if ($this->request->is('post')) {
+            $filters = $this->request->data;
+        }
+        $options = [];
+        if (!empty($filters['orgc_name'])) {
+            // Resolve names through a canonically-aliased Organisation model: fetchOrg()
+            // hardcodes a `LOWER(Organisation.name)` condition, so calling it via the
+            // Collection->Orgc association (alias 'Orgc') would emit an unknown-column error.
+            $this->loadModel('Organisation');
+            $orgcNames = $filters['orgc_name'];
+            if (!is_array($orgcNames)) {
+                $orgcNames = [$orgcNames];
+            }
+            foreach ($orgcNames as $orgcName) {
+                // Collections key the creator org by integer FK (orgc_id), not the
+                // orgc_uuid string column that analyst data filters on — resolve the
+                // name to a local org id before building the condition.
+                if ($orgcName[0] === '!') {
+                    $orgc = $this->Organisation->fetchOrg(substr($orgcName, 1));
+                    if ($orgc === false) {
+                        continue;
+                    }
+                    $options[]['AND'][] = ['Collection.orgc_id !=' => $orgc['id']];
+                } else {
+                    $orgc = $this->Organisation->fetchOrg($orgcName);
+                    if ($orgc === false) {
+                        continue;
+                    }
+                    $options['OR'][] = ['Collection.orgc_id' => $orgc['id']];
+                }
+            }
+            if (empty($options)) {
+                return $this->RestResponse->viewData([], $this->response->type());
+            }
+        }
+        $allData = $this->Collection->indexMinimal($this->Auth->user(), $options);
+        return $this->RestResponse->viewData($allData, $this->response->type());
+    }
+
+    /**
+     * Push-receive dedup handshake. The pushing peer sends its {uuid: modified} candidates;
+     * we reply with the subset this instance actually wants (missing locally, or strictly
+     * newer than a synced-in local copy). Mirrors AnalystDataController::filterAnalystDataForPush.
+     * REST/CSRF auto-unlocked; ACL gated on perm_sync.
+     *
+     * POST /collections/filterCollectionsForPush
+     */
+    public function filterCollectionsForPush()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
+        }
+        $allIncomingCollections = $this->request->data;
+        $wantedUuids = $this->Collection->filterCollectionsForPush($allIncomingCollections);
+        return $this->RestResponse->viewData($wantedUuids, $this->response->type());
+    }
+
+    /**
+     * Push-receive upload endpoint. The pushing peer uploads one collection (nested under
+     * Collection, with its Orgc / SharingGroup / CollectionElement corpus); we hand the RAW
+     * payload to the shared Collection::captureCollection sink, which owns the distribution
+     * downgrade, locked=1 and the D6 conflict rule. Push-receive passes $server=false and
+     * remotePermSyncInternal from the pushing user's own role (contrast pull, which passes
+     * the server + the remote cachedUserInfo). Mirrors AnalystDataController::pushAnalystData.
+     * REST/CSRF auto-unlocked; in-action perm_sync + _isRest() gate on top of the ACL entry.
+     *
+     * POST /collections/captureCollection
+     */
+    public function captureCollection()
+    {
+        if (!$this->Auth->user()['Role']['perm_sync']) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only accessible via a REST request.'));
+        }
+        if ($this->request->is('post')) {
+            $collection = $this->request->data;
+            $saveResult = $this->Collection->captureCollection(
+                $this->Auth->user(),
+                $collection,
+                false,
+                !empty($this->Auth->user()['Role']['perm_sync_internal'])
+            );
+            $messageInfo = __('%s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+            if ($saveResult['success']) {
+                $message = __('Collection imported. ') . $messageInfo;
+                return $this->RestResponse->saveSuccessResponse('Collection', 'captureCollection', false, $this->response->type(), $message);
+            } else {
+                $message = __('Could not import collection. ') . $messageInfo;
+                return $this->RestResponse->saveFailResponse('Collection', 'captureCollection', false, $message);
+            }
         }
     }
 

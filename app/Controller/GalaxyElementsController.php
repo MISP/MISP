@@ -90,6 +90,80 @@ class GalaxyElementsController extends AppController
         }
     }
 
+    public function deleteSelection($id = null)
+    {
+        if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
+            $ids = $this->_resolveElementIds($id);
+            if (empty($ids)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+            $successes = 0;
+            $clustersToBump = [];
+            foreach ($ids as $eid) {
+                $element = $this->GalaxyElement->find('first', [
+                    'conditions' => ['GalaxyElement.id' => $eid],
+                    'recursive' => -1,
+                ]);
+                if (empty($element)) {
+                    continue;
+                }
+                $clusterId = $element['GalaxyElement']['galaxy_cluster_id'];
+                $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit'), false, false);
+                if (empty($cluster) || (isset($cluster['authorized']) && $cluster['authorized'] === false)) {
+                    continue;
+                }
+                if ($this->GalaxyElement->delete($eid)) {
+                    $successes++;
+                    $clustersToBump[$clusterId] = $cluster;
+                }
+            }
+            // Re-save the affected cluster(s) so caches/tags stay consistent.
+            foreach ($clustersToBump as $cluster) {
+                $this->GalaxyElement->GalaxyCluster->editCluster($this->Auth->user(), $cluster, [], false);
+            }
+            $message = __n('%s galaxy element deleted.', '%s galaxy elements deleted.', $successes, $successes);
+            if ($this->request->is('ajax') || $this->_isRest()) {
+                $saved = $successes > 0;
+                return new CakeResponse([
+                    'body' => json_encode(['saved' => $saved, 'success' => $message, 'errors' => $saved ? '' : __('No galaxy element deleted.')]),
+                    'status' => 200,
+                    'type' => 'json',
+                ]);
+            }
+            if ($successes > 0) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error(__('No galaxy element deleted.'));
+            }
+            $this->redirect($this->referer());
+        } else {
+            $ids = $this->_resolveElementIds($id);
+            $this->request->data['GalaxyElement']['id'] = json_encode($ids);
+            $this->set('idArray', $ids);
+            $this->layout = false;
+            $this->render('ajax/galaxyElementDeleteConfirmationForm');
+        }
+    }
+
+    private function _resolveElementIds($id)
+    {
+        if (isset($this->request->data['GalaxyElement']['id'])) {
+            $raw = $this->request->data['GalaxyElement']['id'];
+        } elseif ($id !== null) {
+            $raw = $id;
+        } else {
+            return [];
+        }
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (is_numeric($raw)) {
+            return [$raw];
+        }
+        $decoded = json_decode(htmlspecialchars_decode(urldecode($raw)), true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
     public function flattenJson($clusterId)
     {
         $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit'), true, false);
