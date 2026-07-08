@@ -7536,7 +7536,7 @@ class EventsController extends AppController
         }
 
         $this->loadModel('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'Import');
+        $module = $this->Module->getEnabledModule($moduleName, 'Import', $this->Auth->user());
         if (!is_array($module)) {
             throw new MethodNotAllowedException($module);
         }
