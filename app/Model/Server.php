@@ -2811,6 +2811,10 @@ class Server extends AppModel
         if (!$cli && $cliOnly) {
             return __('This setting can only changed via the CLI. Change request ignored.');
         }
+        App::uses('EnvSetting', 'Tools');
+        if (EnvSetting::isSetViaEnv($setting['name'])) {
+            return __('This setting is set via an environment variable and cannot be changed here. Change request ignored.');
+        }
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
             if (SystemSetting::isSensitive($setting['name'])) {
