@@ -417,7 +417,7 @@ class EventReportsController extends AppController
                 $this->set('mayModify', $canModify);
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $this->set('extendingEvent', !empty($filters['extending_event']));
-                $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
+                $fetcherModule = $this->EventReport->isFetchURLModuleEnabled($this->Auth->user());
                 $this->set('importModuleEnabled', is_array($fetcherModule));
                 $this->set('unsafeUrlSettingEnabled', !empty(Configure::read('Security.eventreport_enable_arbitrary_urls')));
                 $this->render('ajax/indexForEvent');
@@ -773,11 +773,8 @@ class EventReportsController extends AppController
     {
         $moduleName = 'convert_markdown_to_pdf';
         $this->loadModel('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'expansion');
-        if (!Configure::read('Plugin.Enrichment_' . $moduleName . '_enabled')) {
-            throw new MethodNotAllowedException('Module not found or not available.');
-        }
-        if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', ['name' => $module])) {
+        $module = $this->Module->getEnabledModule($moduleName, 'expansion', $this->Auth->user());
+        if (!Configure::read('Plugin.Enrichment_' . $moduleName . '_enabled') || !is_array($module)) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
         return true;
