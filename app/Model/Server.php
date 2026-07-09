@@ -1021,7 +1021,9 @@ class Server extends AppModel
         $reindexed = [];
         foreach ($localEvents as $item) {
             $event = $item['Event'];
-            $event['EventTag'] = $item['EventTag'] ?? [];
+            if ($isInternal) {
+                $event['EventTag'] = $item['EventTag'] ?? [];
+            }
             $reindexed[$event['uuid']] = $event;
         }
         $localEvents = $reindexed;
@@ -1031,23 +1033,29 @@ class Server extends AppModel
             if (isset($localEvents[$uuid])) {
                 $isUnlocked = !$localEvents[$uuid]['locked'];
 
-                $localTs = $localEvents[$uuid]['timestamp'];
-                $incomingTs = $event['timestamp'];
+                $localTs = (int)$localEvents[$uuid]['timestamp'];
+                $incomingTs = (int)$event['timestamp'];
 
-                $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
-                $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+                if ($isInternal) {
+                    $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                    $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
 
-                $sameFingerprint =
-                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
-                    $localEventTagsFingerprint === $eventTagsFingerprint;
+                    $sameFingerprint =
+                        $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                        $localEventTagsFingerprint === $eventTagsFingerprint;
 
-                $shouldDiscard =
-                    $isUnlocked ||
-                    ($localTs > $incomingTs) || // strictly newer local event
-                    (
-                        $localTs === $incomingTs && // same timestamp handling
-                        (!$isInternal || $sameFingerprint)
-                    );
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs > $incomingTs) || // strictly newer local event
+                        (
+                            $localTs === $incomingTs && // same timestamp handling
+                            $sameFingerprint
+                        );
+                } else {
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs >= $incomingTs); // same timestamp handling
+                }
                 if ($shouldDiscard) {
                     unset($events[$k]);
                 }
@@ -2833,6 +2841,10 @@ class Server extends AppModel
         $cliOnly = isset($setting['cli_only']) && $setting['cli_only'];
         if (!$cli && $cliOnly) {
             return __('This setting can only changed via the CLI. Change request ignored.');
+        }
+        App::uses('EnvSetting', 'Tools');
+        if (EnvSetting::isSetViaEnv($setting['name'])) {
+            return __('This setting is set via an environment variable and cannot be changed here. Change request ignored.');
         }
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
