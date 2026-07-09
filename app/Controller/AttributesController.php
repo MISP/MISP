@@ -293,7 +293,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
