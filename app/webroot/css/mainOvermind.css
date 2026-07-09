@@ -486,6 +486,33 @@ body[data-controller="users"][data-action="login"] {
     overflow-y: auto;
 }
 
+/* Allow long unbroken strings (hashes, URLs, base64, keys…) to wrap so a
+   single cell can't blow out the auto table-layout and force horizontal
+   scrolling. `anywhere` (not `break-word`) is required: it also shrinks the
+   min-content size that table-layout:auto uses to compute column widths.*/
+.table-scroll td {
+    overflow-wrap:break-word;
+    word-break: break-word; /* legacy WebKit/Safari fallback */
+}
+
+/* Card view
+*/
+.idx-card {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Structured / naturally-short columns where string shouldn't wrap.
+   Use Field file name */
+.table-scroll .idx-col-id,
+.table-scroll .idx-col-type,
+.table-scroll .idx-col-category,
+.table-scroll .idx-col-tag_list,
+.table-scroll .idx-col-galaxy{
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
 .table thead{
     position: sticky;
     top: 0;
