@@ -236,7 +236,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
-                ['misp-iconify-font', ['preload' => true]]
+                ['misp-iconify', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
