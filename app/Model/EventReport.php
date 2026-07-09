@@ -1,5 +1,3 @@
-
-
 <?php
 App::uses('AppModel', 'Model');
 App::uses('SyncTool', 'Tools');
