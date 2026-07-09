@@ -2630,6 +2630,9 @@ class Server extends AppModel
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
         if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
+                if (Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+                    return true;
+                }
                 $this->getPubSubTool()->killService();
                 return true;
             }
@@ -4096,19 +4099,28 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        try {
-            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
-        } catch (Exception $e) {
-            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
-            $diagnostic_errors++;
-            return 2;
-        }
+        if (!Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+            try {
+                $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+            } catch (Exception $e) {
+                $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+                $diagnostic_errors++;
+                return 2;
+            }
 
-        if (!$isInstalled) {
-            $diagnostic_errors++;
-            return 2;
+            if (!$isInstalled) {
+                $diagnostic_errors++;
+                return 2;
+            }
         }
-        if ($pubSubTool->checkIfRunning()) {
+        try {
+            $status = $pubSubTool->statusCheck();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not running or not responding.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 3;
+        }
+        if (!empty($status)) {
             return 0;
         }
         $diagnostic_errors++;
@@ -8116,6 +8128,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_supervisor_managed' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting if the ZeroMQ server is managed by supervisor.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                    'cli_only' => true,
                 ),
                 'ZeroMQ_host' => array(
                     'level' => 2,
