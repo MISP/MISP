@@ -79,7 +79,7 @@ jobs:
         env:
           php_version: ${{ matrix.php }}
         run: |
-          sudo apt-get -y update
+          sudo apt-get -y update --allow-releaseinfo-change
           sudo apt-get -y install redis-tools
 
       - name: Wait for Redis service
@@ -108,7 +108,7 @@ jobs:
         env:
           php_version: ${{ matrix.php }}
         run: |
-          sudo apt-get -y update
+          sudo apt-get -y update --allow-releaseinfo-change
           sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
 
       # mod_php (libapache2-mod-php) ships its own php.ini under
