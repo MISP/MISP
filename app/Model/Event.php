@@ -348,6 +348,11 @@ class Event extends AppModel
             'className' => 'EventReport',
             'dependent' => true,
         ),
+        // Additional sharing groups granting read access (#10818).
+        'EventSharingGroup' => array(
+            'className' => 'EventSharingGroup',
+            'dependent' => true,
+        ),
         'CryptographicKey' => [
             'foreignKey' => 'parent_id',
             'conditions' => [
@@ -1473,11 +1478,50 @@ class Event extends AppModel
                     ]
                 ]
             ];
+            // Multiple sharing groups (#10818): grant access if the event is
+            // shared with any sharing group the user is authorised for via
+            // the event_sharing_groups link table. Additive only.
+            $additionalSgCondition = $this->additionalSharingGroupAccessCondition($sgids, $unpublishedPrivate);
+            if ($additionalSgCondition !== null) {
+                $conditions['AND']['OR'][] = $additionalSgCondition;
+            }
             if (!$skip_own_event_rule) {
                 $conditions['AND']['OR'][] = ['Event.org_id' => $user['org_id']];
             }
         }
         return $conditions;
+    }
+
+    /**
+     * Multiple sharing groups (#10818): build the condition that grants
+     * read access to events shared with any of $sgids via the
+     * event_sharing_groups link table. Returns null when the user has no
+     * authorised sharing groups (nothing extra to grant), so callers add
+     * the branch only when it can match. Additive only: this never
+     * restricts access, it only ORs in another way to be allowed.
+     *
+     * @param array $sgids Authorised sharing group ids for the user.
+     * @param bool $unpublishedPrivate
+     * @return array|null
+     */
+    public function additionalSharingGroupAccessCondition(array $sgids, $unpublishedPrivate = false)
+    {
+        if (empty($sgids)) {
+            return null;
+        }
+        $subQuery = $this->subQueryGenerator(
+            $this->EventSharingGroup,
+            [
+                'fields' => ['EventSharingGroup.event_id'],
+                'conditions' => ['EventSharingGroup.sharing_group_id' => $sgids],
+            ],
+            'Event.id'
+        );
+        $condition = ['AND' => [$subQuery[0]]];
+        if ($unpublishedPrivate) {
+            $condition['AND']['Event.published'] = 1;
+        }
+        return $condition;
     }
 
     public function set_filter_wildcard(&$params, $conditions, $options)

@@ -5519,6 +5519,79 @@ class EventsController extends AppController
         $this->set('count', $count);
     }
 
+    /**
+     * Multiple sharing groups (#10818): attach an additional sharing group
+     * to an event, granting its members read access on top of the event's
+     * own distribution. Requires edit rights on the event and access to the
+     * sharing group being attached.
+     */
+    public function addSharingGroup($event_id = false, $sharing_group_id = false)
+    {
+        return $this->__modifyEventSharingGroup($event_id, $sharing_group_id, 'add');
+    }
+
+    /**
+     * Multiple sharing groups (#10818): detach an additional sharing group
+     * from an event.
+     */
+    public function removeSharingGroup($event_id = false, $sharing_group_id = false)
+    {
+        return $this->__modifyEventSharingGroup($event_id, $sharing_group_id, 'remove');
+    }
+
+    private function __modifyEventSharingGroup($event_id, $sharing_group_id, $mode)
+    {
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
+            throw new MethodNotAllowedException(__('This endpoint expects a POST request.'));
+        }
+        $event = $this->Event->find('first', [
+            'recursive' => -1,
+            'conditions' => Validation::uuid($event_id) ? ['Event.uuid' => $event_id] : ['Event.id' => $event_id],
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        // Resolve and authorise the sharing group. A user may only attach a
+        // sharing group they themselves have access to, so they cannot widen
+        // an event to an arbitrary group.
+        $sg = $this->Event->SharingGroup->find('first', [
+            'recursive' => -1,
+            'fields' => ['SharingGroup.id'],
+            'conditions' => Validation::uuid($sharing_group_id) ? ['SharingGroup.uuid' => $sharing_group_id] : ['SharingGroup.id' => $sharing_group_id],
+        ]);
+        if (empty($sg) || !$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $sg['SharingGroup']['id'])) {
+            throw new ForbiddenException(__('Invalid sharing group or you do not have access to it.'));
+        }
+        $eventId = (int)$event['Event']['id'];
+        $sgId = (int)$sg['SharingGroup']['id'];
+        $existing = $this->Event->EventSharingGroup->find('first', [
+            'recursive' => -1,
+            'conditions' => ['EventSharingGroup.event_id' => $eventId, 'EventSharingGroup.sharing_group_id' => $sgId],
+        ]);
+        if ($mode === 'add') {
+            if (empty($existing)) {
+                $this->Event->EventSharingGroup->create();
+                if (!$this->Event->EventSharingGroup->save(['event_id' => $eventId, 'sharing_group_id' => $sgId])) {
+                    throw new InternalErrorException(__('Could not attach the sharing group.'));
+                }
+            }
+            $message = __('Sharing group attached to event.');
+        } else {
+            if (!empty($existing)) {
+                $this->Event->EventSharingGroup->delete($existing['EventSharingGroup']['id']);
+            }
+            $message = __('Sharing group detached from event.');
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Events', $mode . 'SharingGroup', $eventId, false, $message);
+        }
+        $this->Flash->success($message);
+        $this->redirect(['action' => 'view', $eventId]);
+    }
+
     public function addTag($id = false, $tag_id = false)
     {
         $rearrangeRules = array(

@@ -10835,6 +10835,41 @@
                 "column_default": "NULL",
                 "extra": ""
             }
+        ],
+        "event_sharing_groups": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "event_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "sharing_group_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            }
         ]
     },
     "indexes": {
@@ -11460,7 +11495,12 @@
             "name": false,
             "timestamp": false,
             "uuid": false
+        },
+        "event_sharing_groups": {
+            "event_id": false,
+            "id": true,
+            "sharing_group_id": false
         }
     },
-    "db_version": "153"
+    "db_version": "154"
 }
