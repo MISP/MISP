@@ -7,10 +7,12 @@ if (!empty($currentController)) {
         $middle = 'clusters';
     }
     $controllerUrl = $this->Html->url('/' . $currentController);
-    if ($currentController === 'users' && $me['Role']['perm_site_admin']) {
-        $controllerUrl = $this->Html->url('/admin/' . $currentController);
-    } else {
-        $controllerUrl = $this->Html->url('#');
+    if ($currentController === 'users') {
+        if (!empty($me['Role']['perm_site_admin'])) {
+            $controllerUrl = $this->Html->url('/admin/' . $currentController);
+        } else {
+            $controllerUrl = $this->Html->url('#');
+        }
     }
     if (in_array($currentController, $unclickableControllers)) {
         $controllerUrl = '#';
@@ -83,7 +85,7 @@ if (isset($headerCountText)) {
                 </span>
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 ">
-                <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem;">
+                <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem; word-break:break-word; max-width:100%;">
                     <?= $title ?>
                 </h1>
                 <?php if ($countDisplay !== null): ?>
