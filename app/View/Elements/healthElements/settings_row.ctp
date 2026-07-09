@@ -54,7 +54,7 @@
         $postureBadges = '';
         foreach ($posture as $flag) {
             $postureBadges .= sprintf(
-                ' <span class="label %s live_filter_target" title="%s">%s</span>',
+                ' <span class="label %s" title="%s">%s</span>',
                 h($flag['class']),
                 h($flag['title']),
                 h($flag['text'])

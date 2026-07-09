@@ -677,7 +677,7 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = $pulledCollections = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
@@ -693,22 +693,35 @@ class Server extends AppModel
 
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
+
+            // Collections: gated on the per-server pull_collections toggle (T1.2) AND
+            // feature negotiation (isSupported reads the already-cached remote info, so no
+            // extra round-trip) — an older peer without the capability is skipped silently.
+            // Collection::pull re-checks isSupported and owns the downgrade/locked/D6 rules.
+            if (!empty($server['Server']['pull_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Pulling collections.', 90);
+                }
+                $this->Collection = ClassRegistry::init('Collection');
+                $pulledCollections = $this->Collection->pull($user, $serverSync);
+            }
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
             $pulledAnalystData,
+            $pulledCollections,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData, $pulledCollections];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -1431,6 +1444,24 @@ class Server extends AppModel
             $fails = array();
         }
 
+        // Collections: gated on the remote's general push capability ($push['canPush'] =
+        // remote perm_sync) AND the per-server push_collections toggle (T1.2) AND feature
+        // negotiation (isSupported reads the remote info already cached by the version check,
+        // so no extra round-trip). Collections have no separate remote capability (D3), so
+        // canPush is the faithful analogue of the sibling sightings/analyst-data gates — it
+        // skips a guaranteed-403 upload to a sightings-only remote (one that can sight but not
+        // sync); an older peer without the capability is skipped silently too. Collection::push
+        // re-checks isSupported; the remote captureCollection sink owns the distribution
+        // downgrade + locked=1, so the push sends RAW (mirroring the pull side).
+        $pushedCollections = 0;
+        if ($push['canPush'] && !empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            if ($jobId) {
+                $job->saveProgress($jobId, __('Pushing collections.'));
+            }
+            $this->Collection = ClassRegistry::init('Collection');
+            $pushedCollections = $this->Collection->push($user, $serverSync);
+        }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->saveOrFailSilently(array(
@@ -1441,7 +1472,7 @@ class Server extends AppModel
             'action' => 'push',
             'user_id' => $user['id'],
             'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update. ' . $pushedCollections . ' collections pushed.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
@@ -2599,6 +2630,9 @@ class Server extends AppModel
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
         if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
+                if (Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+                    return true;
+                }
                 $this->getPubSubTool()->killService();
                 return true;
             }
@@ -4069,19 +4103,28 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        try {
-            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
-        } catch (Exception $e) {
-            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
-            $diagnostic_errors++;
-            return 2;
-        }
+        if (!Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+            try {
+                $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+            } catch (Exception $e) {
+                $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+                $diagnostic_errors++;
+                return 2;
+            }
 
-        if (!$isInstalled) {
-            $diagnostic_errors++;
-            return 2;
+            if (!$isInstalled) {
+                $diagnostic_errors++;
+                return 2;
+            }
         }
-        if ($pubSubTool->checkIfRunning()) {
+        try {
+            $status = $pubSubTool->statusCheck();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not running or not responding.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 3;
+        }
+        if (!empty($status)) {
             return 0;
         }
         $diagnostic_errors++;
@@ -8089,6 +8132,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_supervisor_managed' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting if the ZeroMQ server is managed by supervisor.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                    'cli_only' => true,
                 ),
                 'ZeroMQ_host' => array(
                     'level' => 2,

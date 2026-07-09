@@ -24,6 +24,7 @@ class NavbarHelper extends AppHelper {
         'tagcollections'           => 'datamodels',
         'taxonomies'               => 'datamodels',
         'galaxies'                 => 'datamodels',
+        'galaxy_clusters'          => 'datamodels',
         'galaxy_cluster_relations' => 'datamodels',
         'decayingmodel'            => 'datamodels',
         'objecttemplates'          => 'datamodels',
@@ -127,24 +128,10 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Events'),
+                'url' => $baseurl . '/events/index',
+                'controller' => 'events',
+                'action' => 'index',
                 'icon' => 'misp-icon misp-icon-event misp-simple',
-                'children' => [
-                    [
-                        'label' => __('Add'),
-                        'url' => $baseurl . '/events/add',
-                        'controller' => 'events',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('events', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/events/index',
-                        'controller' => 'events',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ],
-                ]
             ],
             // To implement later, when the object view will be ready
             /* [
@@ -171,23 +158,10 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Attributes'),
+                'url' => $baseurl . '/attributes/index',
+                'controller' => 'attributes',
+                'action' => 'index',
                 'icon' => 'misp-icon misp-icon-attribute misp-simple',
-                'children' => [
-                    [
-                        'label' => __('Search'),
-                        'url' => $baseurl . '/attributes/search',
-                        'controller' => 'attributes',
-                        'action' => 'search',
-                        'icon' => 'fas fa-search'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/attributes/index',
-                        'controller' => 'attributes',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ]
-                ]
             ],
             ['divider' => true],
             [
@@ -234,18 +208,18 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-comment-dots',
                 'children' => [
                     [
-                        'label' => __('View'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/shadow_attributes/index',
                         'controller' => 'shadow_attributes',
                         'action' => 'index',
-                        'icon' => 'fas fa-eye'
+                        'icon' => 'fas fa-list'
                     ],
                     [
                         'label' => __('Events with Proposals'),
-                        'url' => $baseurl . '/shadow_attributes/search',
-                        'controller' => 'shadow_attributes',
-                        'action' => 'search',
-                        'icon' => 'fas fa-clipboard-question'
+                        'url' => $baseurl . '/events/proposalEventIndex',
+                        'controller' => 'events',
+                        'action' => 'proposalEventIndex',
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
                     ],
                     [
                         'label' => __('Delegation Requests'),
@@ -853,16 +827,6 @@ class NavbarHelper extends AppHelper {
                 'action' => 'index',
                 'requirement' => $isSiteAdmin,
                 'icon' => 'fas fa-file-pen',
-            ],
-            ['divider' => true, 'requirement' => $this->Acl->canAccess('logs', 'search')],
-            [
-                'type' => 'group',
-                'label' => __('Search logs'),
-                'url' => $baseurl . '/logs/search',
-                'controller' => 'logs',
-                'action' => 'index',
-                'requirement' => $this->Acl->canAccess('logs', 'search'),
-                'icon' => 'fas fa-search',
             ]
         ];
         return [
@@ -932,40 +896,18 @@ class NavbarHelper extends AppHelper {
 
         $resourcesChildren = [
             [
-                'type' => 'group',
-                'label' => __('News'),
-                'url' => $baseurl . '/news',
-                'controller' => 'news',
-                'action' => '',
-                'icon' => 'fas fa-newspaper',
+                'label' => __('User Guide'),
+                'url' => 'https://www.circl.lu/doc/misp/',
+                'icon' => 'fas fa-address-book'
+            ],
+            [
+                'label' => __('Categories & Types'),
+                'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                'controller' => 'doc',
+                'action' => 'categories_and_types',
+                'icon' => 'fas fa-table-list'
             ],
             ['divider' => true],
-            [
-                'type' => 'group',
-                'label' => __('Documentation'),
-                'icon' => 'fas fa-book',
-                'children' => [
-                    [
-                        'label' => __('User Guide'),
-                        'url' => 'https://www.circl.lu/doc/misp/',
-                        'icon' => 'fas fa-address-book'
-                    ],
-                    [
-                        'label' => __('Categories & Types'),
-                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
-                        'controller' => 'doc',
-                        'action' => 'categories_and_types',
-                        'icon' => 'fas fa-table-list'
-                    ],
-                    [
-                        'label' => __('Terms & Conditions'),
-                        'url' => $baseurl . '/users/terms',
-                        'controller' => 'users',
-                        'action' => 'terms',
-                        'icon' => 'fas fa-gavel'
-                    ]
-                ]
-            ],
             [
                 'type' => 'group',
                 'label' => __('Themes'),

@@ -152,9 +152,11 @@ class Module extends AppModel
     /**
      * @param string $name
      * @param string $type
+     * @param array|null $user If provided, enforce the per-organisation module
+     *                         restriction (canUse), matching getEnabledModules().
      * @return array|string
      */
-    public function getEnabledModule($name, $type)
+    public function getEnabledModule($name, $type, array $user = null)
     {
         if (!isset(self::TYPE_TO_FAMILY[$type])) {
             throw new InvalidArgumentException("Invalid type '$type'.");
@@ -168,6 +170,9 @@ class Module extends AppModel
             foreach ($modules as $module) {
                 if ($module['name'] == $name) {
                     if ($type && in_array(strtolower($type), $module['meta']['module-type'])) {
+                        if ($user !== null && !$this->canUse($user, $moduleFamily, $module)) {
+                            return 'The requested module is restricted.';
+                        }
                         return $module;
                     } else {
                         return 'The requested module is not available for the requested action.';

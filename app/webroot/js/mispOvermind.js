@@ -1,3 +1,6 @@
+/* Overmind theme JS namespace — shared mutable handle for the event-view tabs. */
+window.mispView = window.mispView || {};
+
 /*******************************
  * Dark mode
  *******************************/
@@ -141,6 +144,70 @@ function openModal(url, size = 'xl') {
             let modal = new bootstrap.Modal(document.getElementById('mainModal'));
             modal.show();
         });
+}
+
+// Close the currently-open #mainModal (if any) and then open `url` in it.
+// Used to chain modals without stacking a second Bootstrap backdrop.
+function openModalChained(url, size = 'xl') {
+    const el = document.getElementById('mainModal');
+    const inst = el ? bootstrap.Modal.getInstance(el) : null;
+    if (inst && el.classList.contains('show')) {
+        el.addEventListener('hidden.bs.modal', function handler() {
+            el.removeEventListener('hidden.bs.modal', handler);
+            openModal(url, size);
+        });
+        inst.hide();
+    } else {
+        openModal(url, size);
+    }
+}
+
+// Inject HTML into #mainModalBody and (re-)run its inline scripts in IIFEs.
+function renderMainModalContent(html) {
+    const container = document.getElementById('mainModalBody');
+    container.innerHTML = html;
+    container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        if (oldScript.src) {
+            newScript.src = oldScript.src;
+        } else {
+            newScript.textContent = '(function(){\n' + oldScript.textContent + '\n})();';
+        }
+        document.body.appendChild(newScript);
+        document.body.removeChild(newScript);
+    });
+    if (typeof initTomSelect === 'function') {
+        initTomSelect(container);
+    }
+}
+
+// POST `body` to `url` and render the HTML response into #mainModal, chaining
+// from the currently-open modal (hide → show) so backdrops don't stack.
+function openModalPostChained(url, body, size = 'xl') {
+    const el = document.getElementById('mainModal');
+    const inst = el ? bootstrap.Modal.getInstance(el) : null;
+    const run = () => {
+        const dialog = el.querySelector('.modal-dialog');
+        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+        if (size) {
+            dialog.classList.add('modal-' + size);
+        }
+        fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                renderMainModalContent(html);
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            });
+    };
+    if (inst && el.classList.contains('show')) {
+        el.addEventListener('hidden.bs.modal', function handler() {
+            el.removeEventListener('hidden.bs.modal', handler);
+            run();
+        });
+        inst.hide();
+    } else {
+        run();
+    }
 }
 
 function multiSelectItems(url, suffixe) {
@@ -1185,6 +1252,44 @@ function getCsrfToken() {
     return match ? decodeURIComponent(match[1]) : '';
 }
 
+/*******************************
+ * Proposals (shadow attributes)
+ *
+ * Shared by the attribute and object event-view indexes. Accept is a direct
+ * XHR (no confirmation); discard goes through a confirmation modal. Both toast
+ * and refresh whichever proposal-bearing tab(s) are loaded — no page reload.
+ *
+ *******************************/
+function reloadProposalTabs() {
+    if (window.mispView.attrs && typeof window.mispView.attrs.loadFn === 'function') {
+        window.mispView.attrs.loadFn(window.mispView.attrs.buildFn());
+    }
+    if (window.mispView.objects && typeof window.mispView.objects.loadFn === 'function') {
+        window.mispView.objects.loadFn(window.mispView.objects.buildFn());
+    }
+}
+
+function acceptProposal(id) {
+    fetch(baseurl + '/shadow_attributes/accept/' + id, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept':           'application/json',
+            'X-CSRF-Token':     getCsrfToken()
+        }
+    })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (resp) {
+            if (resp && resp.saved) {
+                showToast(resp.success || 'Proposal accepted.', 'success');
+                reloadProposalTabs();
+            } else {
+                showToast((resp && resp.errors) ? resp.errors : 'Could not accept the proposal.', 'danger');
+            }
+        })
+        .catch(function () { showToast('Could not accept the proposal.', 'danger'); });
+}
+
 function copyToClipboard(btn, text) {
     const originalHtml = btn.innerHTML;
 
@@ -1218,6 +1323,40 @@ function copyToClipboard(btn, text) {
         try {
             document.execCommand("copy");
             proceedCopy();
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        document.body.removeChild(textarea);
+    }
+}
+
+/**
+ * Copy an arbitrary string to the clipboard and show a discreet toast.
+ * This helper is what index row "copy" actions use.
+ */
+function copyValueToClipboard(text, message) {
+    if (text === undefined || text === null || text === '') {
+        showToast('Nothing to copy', 'warning');
+        return;
+    }
+
+    const done = () => showToast(message || 'Copied to clipboard');
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch((err) => {
+            console.error('Clipboard copy failed', err);
+        });
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            done();
         } catch (err) {
             console.error('Fallback copy failed', err);
         }
@@ -2651,9 +2790,20 @@ function initEventForm(base) {
                     .then(function (html) {
                         preview.innerHTML     = html;
                         preview.style.display = '';
+                        bindCardClick();
                     })
                     .catch(function () { preview.style.display = 'none'; });
             }, 100);
+        }
+
+        /* Clicking the matched-event card copies its UUID into the input */
+        function bindCardClick() {
+            var card = preview.querySelector('.js-extends-event-card');
+            if (!card) { return; }
+            card.addEventListener('click', function () {
+                var uuid = card.dataset.extendsUuid;
+                if (uuid) { input.value = uuid; }
+            });
         }
 
         input.addEventListener('input', function () { fetchPreview(input.value); });

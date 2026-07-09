@@ -3,16 +3,8 @@
 $brandIcons = [
     'github', 'gitlab', 'docker', 'linux', 'android', 'apple',
     'google', 'microsoft', 'facebook', 'twitter', 'linkedin',
-    'btc', 'ethereum',
+    'btc', 'ethereum', 'optin-monster', 'internet-explorer'
 ];
-
-$galaxyHue = function (string $name): int {
-    $hash = 0;
-    for ($i = 0, $len = strlen($name); $i < $len; $i++) {
-        $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
-    }
-    return $hash % 360;
-};
 
 $totalClusters = 0;
 foreach ($galaxies as $g) {
@@ -43,10 +35,7 @@ foreach ($galaxies as $g) {
         $galaxyId   = (int)($galaxy['id'] ?? 0);
         $icon       = $galaxy['icon'] ?? 'meteor';
         $iconPrefix = in_array($icon, $brandIcons, true) ? 'fab' : 'fas';
-        $hue        = $galaxyHue($galaxy['name']);
-        $bgSection  = "hsla({$hue},55%,55%,0.07)";
-        $borderCol  = "hsl({$hue},55%,70%)";
-        $headCol    = "hsl({$hue},60%,28%)";
+        $palette    = $this->GalaxyColour->palette($galaxy['name']);
 
         $clusterNames = implode(' ', array_map(
             function ($c) { return strtolower($c['value'] ?? ''); },
@@ -55,19 +44,19 @@ foreach ($galaxies as $g) {
     ?>
 
         <div class="rounded-2 border overflow-hidden"
-             style="border-color:<?= $borderCol ?> !important;
-                    background:<?= $bgSection ?>;"
+             style="border-color:<?= $palette['sectionBorder'] ?> !important;
+                    background:<?= $palette['sectionBg'] ?>;"
              data-galaxy-section
              data-galaxy-name="<?= h(strtolower($galaxy['name'])) ?>"
              data-cluster-names="<?= h($clusterNames) ?>">
 
             <!-- Galaxy header -->
             <div class="d-flex align-items-center gap-2 px-3 py-2"
-                 style="background:hsla(<?= $hue ?>,55%,55%,var(--galaxy-alpha,0.12));
-                        border-bottom:1px solid <?= $borderCol ?>;">
+                 style="background:<?= $palette['badgeBg'] ?>;
+                        border-bottom:1px solid <?= $palette['sectionBorder'] ?>;">
                 <i class="<?= $iconPrefix ?> fa-<?= h($icon) ?>"
-                   style="color:<?= $headCol ?>; font-size:0.95rem;"></i>
-                <span class="fw-bold" style="color:<?= $headCol ?>; font-size:0.9rem;">
+                   style="color:<?= $palette['headerText'] ?>; font-size:0.95rem;"></i>
+                <span class="fw-bold" style="color:<?= $palette['headerText'] ?>; font-size:0.9rem;">
                     <?= $galaxyName ?>
                 </span>
                 <?php if ($galaxyId): ?>
@@ -91,47 +80,41 @@ foreach ($galaxies as $g) {
                 $relType   = $cluster['relationship_type'] ?? false;
                 $tagId     = (int)($cluster['tag_id'] ?? 0);
 
-                $bgColor   = "hsla({$hue},65%,55%,var(--galaxy-alpha,0.12))";
-                $textColor = "hsl({$hue},65%,25%)";
-                $border    = "hsl({$hue},55%,65%)";
-                $metallic  = 'background-image:linear-gradient(145deg,'
-                           . 'rgba(255,255,255,.18) 0%,rgba(255,255,255,.04) 40%,'
-                           . 'rgba(0,0,0,.04) 100%)';
-                $badgeStyle = "background-color:{$bgColor};color:{$textColor};"
-                            . "border:1px solid {$border};{$metallic};"
-                            . "white-space:normal;word-wrap:break-word;"
-                            . "text-align:left;max-width:260px;";
+                $badgeStyle = $this->GalaxyColour->badgeStyle($galaxy['name'])
+                            . 'max-width:260px;';
             ?>
                 <div data-cluster-item
                      data-cluster-name="<?= h(strtolower($cluster['value'] ?? '')) ?>">
+                     <a style="cursor:pointer;"
+                     href="<?= h($baseurl) ?>/galaxy_clusters/view/<?= $cId ?>">
 
-                    <span class="badge p-2"
-                          style="<?= $badgeStyle ?>"
-                          <?= $cDesc ? 'title="' . $cDesc . '"' : '' ?>>
+                        <span class="badge p-2"
+                            style="<?= $badgeStyle ?>"
+                            <?= $cDesc ? 'title="' . $cDesc . '"' : '' ?>>
 
-                        <div class="d-flex flex-column">
+                            <div class="d-flex flex-column">
 
-                            <?php if ($relType): ?>
-                            <div class="mb-1">
-                                <span class="badge text-white me-1 bg-dark"
-                                      style="font-size:.65rem;">
-                                    <?= h($relType) ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-
-                            <div class="d-flex align-items-center gap-1">
-                                <?php if ($isLocal): ?>
-                                    <i class="fas fa-user" title="<?= __('Local cluster') ?>"></i>
+                                <?php if ($relType): ?>
+                                <div class="mb-1">
+                                    <span class="badge text-white me-1 bg-dark"
+                                        style="font-size:.65rem;">
+                                        <?= h($relType) ?>
+                                    </span>
+                                </div>
                                 <?php endif; ?>
-                                <span>
-                                    <?= $cValue ?>
-                                </span>
+
+                                <div class="d-flex align-items-center gap-1">
+                                    <?php if ($isLocal): ?>
+                                        <i class="fas fa-user" title="<?= __('Local cluster') ?>"></i>
+                                    <?php endif; ?>
+                                    <span>
+                                        <?= $cValue ?>
+                                    </span>
+                                </div>
+
                             </div>
-
-                        </div>
-                    </span>
-
+                        </span>
+                    </a>
                 </div>
             <?php endforeach; ?>
             </div>

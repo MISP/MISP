@@ -33,6 +33,7 @@
         'distribution' => (int)($existing['distribution'] ?? 0),
         'active'       => !empty($existing['active']) ? 1 : ($existing ? 0 : 1),
         'misp_default' => !empty($existing['misp_default']) ? 1 : 0,
+        'exposed'      => !empty($existing['exposed']) ? 1 : 0,
     ];
     $initialDefinition = ($existing && is_array($existing['definition'] ?? null))
         ? $existing['definition']
@@ -224,13 +225,22 @@
                             <?= __('Active') ?>
                         </label>
                     </div>
-                    <div class="form-check"
+                    <div class="form-check me-3"
                          title="<?= h(__('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.')) ?>">
                         <input class="form-check-input" type="checkbox"
                                id="et-envelope-misp-default"
                                x-model="envelope.misp_default">
                         <label class="form-check-label" for="et-envelope-misp-default">
                             <?= __('Library-managed') ?>
+                        </label>
+                    </div>
+                    <div class="form-check"
+                         title="<?= h(__('When checked, this template is offered to anonymous community reporters through Draugnet (if the CSIRT runs it with the MISP template source). Off by default — exposing is an explicit opt-in.')) ?>">
+                        <input class="form-check-input" type="checkbox"
+                               id="et-envelope-exposed"
+                               x-model="envelope.exposed">
+                        <label class="form-check-label" for="et-envelope-exposed">
+                            <?= __('Expose to Draugnet') ?>
                         </label>
                     </div>
                 </div>

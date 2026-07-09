@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/faviconOvermind.png">
     <title><?= h($title_for_layout) .  ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $bootstrap5Pages = [
@@ -20,6 +20,8 @@
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
             ['controller' => 'events', 'action' => 'getEventInfoById'],
+            ['controller' => 'events', 'action' => 'freeTextImport'],
+            ['controller' => 'events', 'action' => 'proposalEventIndex'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'add'],
@@ -27,7 +29,12 @@
             ['controller' => 'attributes', 'action' => 'delete'],
             ['controller' => 'attributes', 'action' => 'add_attachment'],
 
+            ['controller' => 'shadow_attributes', 'action' => 'index'],
+
+            ['controller' => 'event_delegations', 'action' => 'index'],
+
             ['controller' => 'objects', 'action' => 'add'],
+            ['controller' => 'objects', 'action' => 'edit'],
             ['controller' => 'objects', 'action' => 'delete'],
 
             ['controller' => 'sightings', 'action' => 'advanced'],
@@ -63,6 +70,24 @@
             ['controller' => 'taxonomies', 'action' => 'view'],
             ['controller' => 'taxonomies', 'action' => 'addTag'],
             ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
+            ['controller' => 'galaxies', 'action' => 'index'],
+            ['controller' => 'galaxies', 'action' => 'view'],
+            ['controller' => 'galaxies', 'action' => 'add'],
+            ['controller' => 'galaxies', 'action' => 'edit'],
+            ['controller' => 'galaxies', 'action' => 'delete'],
+            ['controller' => 'galaxies', 'action' => 'viewGraph'],
+            ['controller' => 'galaxies', 'action' => 'export'],
+
+
+            ['controller' => 'galaxy_clusters', 'action' => 'index'],
+            ['controller' => 'galaxy_clusters', 'action' => 'view'],
+            ['controller' => 'galaxy_clusters', 'action' => 'add'],
+            ['controller' => 'galaxy_clusters', 'action' => 'edit'],
+            ['controller' => 'galaxy_clusters', 'action' => 'delete'],
+            ['controller' => 'galaxy_clusters', 'action' => 'export_for_misp_galaxy'],
+
+            ['controller' => 'galaxy_cluster_relations', 'action' => 'index'],
 
             ['controller' => 'templates', 'action' => 'index'],
             ['controller' => 'templates', 'action' => 'delete'],
@@ -162,8 +187,31 @@
             ['controller' => 'event_templates', 'action' => 'library_status'],
 
 
+            ['controller' => 'users', 'action' => 'view'],
+            ['controller' => 'users', 'action' => 'admin_view'],
+            ['controller' => 'users', 'action' => 'admin_index'],
+            ['controller' => 'users', 'action' => 'edit'],
+            ['controller' => 'users', 'action' => 'admin_edit'],
+            ['controller' => 'users', 'action' => 'admin_add'],
+            ['controller' => 'users', 'action' => 'admin_quickEmail'],
+            ['controller' => 'users', 'action' => 'totp_new'],
+            ['controller' => 'auth_keys', 'action' => 'index'],
+            ['controller' => 'auth_keys', 'action' => 'add'],
+            ['controller' => 'auth_keys', 'action' => 'edit'],
+            ['controller' => 'auth_keys', 'action' => 'view'],
+            ['controller' => 'benchmarks', 'action' => 'index'],
+
+
+            ['controller' => 'logs', 'action' => 'index'],
+            ['controller' => 'logs', 'action' => 'admin_index'],
+            ['controller' => 'audit_logs', 'action' => 'admin_index'],
+            ['controller' => 'access_logs', 'action' => 'admin_index'],
+
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
+
+            ['controller' => 'pages', 'action' => 'display'],
         ];
 
         $currentController = $this->params['controller'];
@@ -188,7 +236,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
-                ['misp-iconify', ['preload' => true]]
+                ['misp-iconify-font', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -537,6 +585,17 @@
                 container.innerHTML = '<div class="text-danger">Error loading content</div>';
             });
         }
+
+        // Reload an already-loaded ajax index container with a new (filtered,
+        // sorted or paginated) URL, keeping the user inside the current tab
+        // instead of navigating the whole page. Used by IndexTable/filter_bar.
+        window.reloadAjaxTabIndex = function (container, url) {
+            if (!container || !url) return;
+            container.dataset.url = url;
+            delete container.dataset.loaded;
+            container.innerHTML = '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+            loadAjaxContainer(container);
+        };
 
         // Lazy loading on tab click
         document.addEventListener('shown.bs.tab', function (event) {

@@ -92,19 +92,42 @@ function activateTabFromHash() {
     if (target) bootstrap.Tab.getOrCreateInstance(target).show();
 }
 
+// The header strip is rendered once by the page and never re-rendered on tab
+// switch, so header actions tagged with data-header-tab are toggled here to
+// match the active tab. Actions without the attribute are left untouched.
+function syncHeaderActions(tabId) {
+    document.querySelectorAll('[data-header-tab]').forEach(function (el) {
+        el.classList.toggle('d-none', el.getAttribute('data-header-tab') !== tabId);
+    });
+}
+
+function currentTabId() {
+    var active = document.querySelector('.nav-view.active[href^="#tab-"]');
+    return active ? active.getAttribute('href').replace('#tab-', '') : null;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Restore active tab from URL hash on load
     activateTabFromHash();
 
-    // Keep URL hash in sync when switching tabs
+    // Reveal the header actions belonging to the initially active tab
+    syncHeaderActions(currentTabId());
+
+    // Keep URL hash + header actions in sync when switching tabs
     document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(function (tab) {
         tab.addEventListener('shown.bs.tab', function (e) {
             var href = e.target.getAttribute('href');
-            if (href) history.replaceState(null, '', href);
+            if (href) {
+                history.replaceState(null, '', href);
+                syncHeaderActions(href.replace('#tab-', ''));
+            }
         });
     });
 });
 
 // Activate tab when hash changes without page reload (same-page anchor links)
-window.addEventListener('hashchange', activateTabFromHash);
+window.addEventListener('hashchange', function () {
+    activateTabFromHash();
+    syncHeaderActions(currentTabId());
+});
 </script>

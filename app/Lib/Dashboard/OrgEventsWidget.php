@@ -156,7 +156,7 @@ class OrgEventsWidget
         for ($i=0; $i < $limit; $i++) {
             $target_month = $current_month - $i;
             $target_year = $current_year;
-            if ($target_month < 1) {
+            while ($target_month < 1) {
                 $target_month += 12;
                 $target_year -= 1;
             }

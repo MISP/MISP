@@ -603,7 +603,7 @@ class SharingGroup extends AppModel
         }
         if (isset($sg['SharingGroupOrg']) && !empty($sg['SharingGroupOrg'])) {
             foreach ($sg['SharingGroupOrg'] as $org) {
-                if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+                if (isset($org['Organisation']['uuid'], $server['RemoteOrg']['uuid']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
                     return true;
                 }
             }

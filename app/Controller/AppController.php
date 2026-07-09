@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '185';
+    private $__queryVersion = '186';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -888,7 +888,7 @@ class AppController extends Controller
             'style-src' => "'self' 'unsafe-inline'",
             'object-src' => "'none'",
             'frame-ancestors' => "'none'",
-            'worker-src' => "'none'",
+            'worker-src' => "blob:",
             'child-src' => "'none'",
             'frame-src' => "'none'",
             'base-uri' => "'self'",

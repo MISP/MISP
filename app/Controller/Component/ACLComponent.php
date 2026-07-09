@@ -65,6 +65,8 @@ class ACLComponent extends Component
             'downloadAttachment' => array('*'),
             'downloadSample' => array('*'),
             'edit' => array('perm_add'),
+            'editAttributeGalaxies' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editAttributeTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editField' => array('perm_add'),
             'editSelected' => array('perm_add'),
             'enrich' => ['perm_add'],
@@ -96,6 +98,7 @@ class ACLComponent extends Component
         'authKeys' => [
             'add' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
             'delete' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
+            'deleteSelection' => ['AND' => ['perm_auth', 'not_read_only_authkey', 'theming_enabled']],
             'edit' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
             'pin' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
             'index' => ['perm_auth'],
@@ -129,13 +132,18 @@ class ACLComponent extends Component
         ],
         'collections' => [
             'add' => ['perm_modify'],
+            // Sync push-receive upload endpoint → Collection::captureCollection sink.
+            'captureCollection' => ['perm_sync'],
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
+            // Sync push-receive dedup handshake (returns the UUIDs the local side wants).
+            'filterCollectionsForPush' => ['perm_sync'],
             // Read-only JSON endpoint used by beta Event view to list collection memberships.
             'getCollectionsForElement' => ['*'],
             'getCollectionsForElements' => ['*'],
             'index' => ['*'],
+            'indexMinimal' => ['*'],
             'view' => ['*']
         ],
         'collectionElements' => [
@@ -304,6 +312,9 @@ class ACLComponent extends Component
         'eventTemplates' => array(
             'index' => array('*'),
             'view' => array('*'),
+            // Exposed-only listing — the Draugnet pull contract. Read action,
+            // gated by the same visibility conditions as index/view.
+            'exposed' => array('*'),
             'add' => array('perm_template'),
             'edit' => array('perm_template'),
             'delete' => array('perm_template'),
@@ -365,6 +376,7 @@ class ACLComponent extends Component
             'merge' => array('perm_modify'),
             'nids' => array('*'),
             'populate' => array('perm_add'),
+            'populateFrom' => array('AND' => ['perm_add', 'theming_enabled']),
             'proposalEventIndex' => array('*'),
             'protect' => ['perm_add'],
             'publish' => array('perm_publish'),
@@ -448,8 +460,12 @@ class ACLComponent extends Component
             'add' => array('perm_galaxy_editor'),
             'edit' => array('perm_galaxy_editor'),
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'disable' => array(),
             'enable' => array(),
+            'massEnable' => array('theming_enabled'),
+            'massDisable' => array('theming_enabled'),
+            'toggleEnable' => array('theming_enabled'),
             'export' => array('*'),
             'forkTree' => array('*'),
             'index' => array('*'),
@@ -476,6 +492,7 @@ class ACLComponent extends Component
         'galaxyClusters' => array(
             'add' => array('perm_galaxy_editor'),
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'detach' => array('perm_tagger'),
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
@@ -501,6 +518,7 @@ class ACLComponent extends Component
         ),
         'galaxyElements' => array(
             'delete' => array('perm_galaxy_editor'),
+            'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'flattenJson' => array('perm_galaxy_editor'),
             'index' => array('*'),
         ),

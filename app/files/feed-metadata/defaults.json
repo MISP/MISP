@@ -2453,5 +2453,57 @@
       "delete_local_file": false,
       "lookup_visible": true
     }
+  },
+  {
+    "Feed": {
+      "name": "HoneyLabs active exploiters",
+      "provider": "HoneyLabs",
+      "url": "https://honeylabs.net/feed/exploiters",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": true,
+      "settings": "{\"csv\":{\"value\":\"1\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "HoneyLabs malware infrastructure",
+      "provider": "HoneyLabs",
+      "url": "https://honeylabs.net/feed/malware-infrastructure",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": true,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]
