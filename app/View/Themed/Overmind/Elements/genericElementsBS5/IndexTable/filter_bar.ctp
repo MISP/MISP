@@ -37,9 +37,17 @@ foreach ($filter_bar['children'] as $child) {
 
         <?php if ($child['type'] === 'search'): ?>
             <?php
-            $searchKey = ($child['mode'] ?? 'quickFilter') === 'legacy'
-                ? ($child['name'] ?? 'quickFilter')
-                : 'quickFilter';
+            // Re-populate the search box from the current URL filters — 
+            // read the right key so the term survives a reload (important for in-tab ajax indexes).
+            $mode = $child['mode'] ?? 'quickFilter';
+            if ($mode === 'legacy' || $mode === 'event') {
+                $searchVal = $currentFilters[$child['name']] ?? null;
+                if ($searchVal === null && !empty($child['id_field'])) {
+                    $searchVal = $currentFilters[$child['id_field']] ?? null;
+                }
+            } else {
+                $searchVal = $currentFilters['quickFilter'] ?? null;
+            }
             ?>
             <div class="flex-grow-1" style="max-width: 600px">
                 <div class="input-group">
@@ -48,7 +56,7 @@ foreach ($filter_bar['children'] as $child) {
                         id="filterField"
                         type="text"
                         placeholder="<?= h($child['placeholder']) ?>"
-                        value="<?= isset($currentFilters[$searchKey]) ? h(urldecode($currentFilters[$searchKey])) : '' ?>"
+                        value="<?= $searchVal !== null ? h(urldecode($searchVal)) : '' ?>"
                     >
                     <button
                         id="filterButton"
@@ -160,14 +168,45 @@ foreach ($filter_bar['children'] as $child) {
 
 <?php
 // Active-filters display. An index may pass an explicit `active_filters` map
-// (label => value) plus a `clear_url`; this is rendered in every mode (incl.
-// ajax fragments that manage their own in-tab reloads).
+// (label => value) plus a `clear_url`.
 $explicitActive = $filter_bar['active_filters'] ?? null;
+$isAjaxBar = $this->request->is('ajax');
+
+// Which URL params are *this bar's own controls* (removable) — everything else
+// (e.g. searchemail: scope, positional pass-args) must never show as a
+// removable chip and must survive "Clear all".
+$controlKeys = [];
+foreach (($filter_bar['children'] ?? []) as $c) {
+    $ctype = $c['type'] ?? '';
+    if ($ctype === 'search') {
+        $cmode = $c['mode'] ?? 'quickFilter';
+        if ($cmode === 'event' || $cmode === 'legacy') {
+            if (!empty($c['name'])) $controlKeys[] = $c['name'];
+            if (!empty($c['id_field'])) $controlKeys[] = $c['id_field'];
+        } else {
+            $controlKeys[] = 'quickFilter';
+        }
+    } elseif ($ctype === 'dropdown' && !empty($c['name'])) {
+        $controlKeys[] = $c['name'];
+    } elseif ($ctype === 'more_filters') {
+        foreach (($c['children'] ?? []) as $sub) {
+            if (!empty($sub['name'])) $controlKeys[] = $sub['name'];
+        }
+    }
+}
+
+$clearViaJs = false;
 if ($explicitActive !== null) {
     $activeToShow = $explicitActive;
     $clearHref = $filter_bar['clear_url'] ?? ($item_url . '/index');
+} elseif ($isAjaxBar) {
+    // In an ajax tab, only this bar's own filters are removable; 
+    // "Clear all" is handled in JS so it drops them while keeping the scope.
+    $activeToShow = array_intersect_key($currentFilters, array_flip($controlKeys));
+    $clearHref = null;
+    $clearViaJs = true;
 } else {
-    $activeToShow = !$this->request->is('ajax') ? $currentFilters : [];
+    $activeToShow = $currentFilters;
     $clearHref = $item_url . '/index';
 }
 ?>
@@ -182,11 +221,18 @@ if ($explicitActive !== null) {
             </span>
         <?php endforeach; ?>
 
-        <a href="<?= h($clearHref) ?>"
-           class="btn btn-sm btn-outline-danger ms-auto">
-            <i class="fas fa-times"></i>
-            <?= __('Clear all') ?>
-        </a>
+        <?php if ($clearViaJs): ?>
+            <button type="button" class="filter-clear-all btn btn-sm btn-outline-danger ms-auto">
+                <i class="fas fa-times"></i>
+                <?= __('Clear all') ?>
+            </button>
+        <?php else: ?>
+            <a href="<?= h($clearHref) ?>"
+               class="btn btn-sm btn-outline-danger ms-auto">
+                <i class="fas fa-times"></i>
+                <?= __('Clear all') ?>
+            </a>
+        <?php endif; ?>
 
     </div>
 <?php endif; ?>
@@ -256,9 +302,16 @@ function isMobile() {
 }
 
 (function init() {
-    const scope = document.getElementById('<?= h($filterId) ?>')?.closest('.tab-pane') || document;
+    const filterBarEl = document.getElementById('<?= h($filterId) ?>');
+    const scope = filterBarEl?.closest('.tab-pane') || document;
+    // When the index is rendered inside a lazily-loaded ajax tab, keep the user in that tab
+    const ajaxContainer = filterBarEl?.closest('.ajax-tab-content') || null;
+    // Capture per-instance config locally
+    const cfg = filterBarConfig;
+    const base = baseIndexUrl;
+    const itemIndexPath = '<?= h($item_url . '/index') ?>';
 
-    // Only wire the table/card view toggle when it is present. 
+    // Only wire the table/card view toggle when it is present.
     // Indexes using a custom view switch have no #viewCard and manage their
     // own reloads, so we must NOT run setView() in that case.
     if (scope.querySelector('#viewCard')) {
@@ -267,7 +320,7 @@ function isMobile() {
 
         const savedView = localStorage.getItem('indexViewMode');
         setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false, scope);
-        
+
         // A narrow viewport always forces card view; otherwise defaulting to table
         function applyResponsiveView() {
             const savedView = localStorage.getItem('indexViewMode');
@@ -286,42 +339,154 @@ function isMobile() {
             }
         });
     }
-    
 
-    scope.querySelector('#filterButton')?.addEventListener('click', () => {
-        window.location.href = buildFilterUrl();
-    });
+    // Build the filter URL from the ajax container's *current* fragment URL so
+    // persistent scope survives a search/filter change. Scope can be a named
+    // param (events: searchemail:x) or a positional pass arg (auth keys:
+    // /index/<userId>) — both are preserved; only this bar's own controls and
+    // pagination/sort are recomputed.
+    function buildScopedUrl() {
+        const src = (ajaxContainer && ajaxContainer.dataset.url) ? ajaxContainer.dataset.url : window.location.pathname;
+        const positional = [];
+        const filters = {};
+        const after = src.indexOf(itemIndexPath) !== -1 ? src.split(itemIndexPath)[1] : '';
+        (after || '').split('/').filter(Boolean).forEach(seg => {
+            const idx = seg.indexOf(':');
+            if (idx < 0) { positional.push(seg); return; }          // scope (e.g. userId)
+            let key = seg.slice(0, idx);
+            if (cfg.mode === 'event' && key.indexOf('search') === 0) key = key.slice(6);
+            filters[key] = decodeURIComponent(seg.slice(idx + 1));
+        });
+        // A new search/filter resets pagination and sort.
+        delete filters['page']; delete filters['sort']; delete filters['direction'];
 
-    scope.querySelector('#filterField')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') window.location.href = buildFilterUrl();
-    });
+        const ff = scope.querySelector('#filterField');
+        const qv = ff ? ff.value.trim() : '';
+        if (cfg.mode === 'legacy' || cfg.mode === 'event') {
+            delete filters[cfg.searchField];
+            if (cfg.idField) delete filters[cfg.idField];
+            if (qv !== '') {
+                const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                const numRe = /^[0-9]+$/;
+                if (cfg.idField && (uuidRe.test(qv) || numRe.test(qv))) filters[cfg.idField] = qv;
+                else filters[cfg.searchField] = qv;
+            }
+        } else {
+            delete filters['quickFilter'];
+            if (qv !== '') filters['quickFilter'] = qv;
+        }
+        scope.querySelectorAll('.topbar-filter').forEach(el => {
+            const n = el.getAttribute('name');
+            if (!n) return;
+            if (el.value !== '') filters[n] = el.value; else delete filters[n];
+        });
 
-    scope.querySelectorAll('.topbar-filter').forEach(el => {
-        el.addEventListener('change', () => {
+        let url = base;
+        positional.forEach(p => { url += '/' + p; });
+        Object.keys(filters).forEach(k => {
+            const v = encodeURIComponent(filters[k]);
+            url += (cfg.mode === 'event') ? ('/search' + k + ':' + v) : ('/' + k + ':' + v);
+        });
+        return url;
+    }
+
+    function go(url) {
+        if (ajaxContainer && typeof reloadAjaxTabIndex === 'function') {
+            reloadAjaxTabIndex(ajaxContainer, url);
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    if (ajaxContainer) {
+        scope.querySelector('#filterButton')?.addEventListener('click', () => go(buildScopedUrl()));
+        scope.querySelector('#filterField')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') go(buildScopedUrl()); });
+        scope.querySelectorAll('.topbar-filter').forEach(el => el.addEventListener('change', () => go(buildScopedUrl())));
+
+        // "Clear all": drop this bar's own filters but keep the scope (search
+        // field + dropdowns are reset, then buildScopedUrl keeps only the scope).
+        scope.querySelector('.filter-clear-all')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const ff = scope.querySelector('#filterField');
+            if (ff) ff.value = '';
+            scope.querySelectorAll('.topbar-filter').forEach(el => {
+                if (el.tomselect) el.tomselect.clear(true); else el.value = '';
+            });
+            go(buildScopedUrl());
+        });
+
+        // Pagination + sort links. Rebuild the target from the container's current
+        // (scoped) URL so the scope is always kept — including the page-1 link,
+        // which CakePHP renders without a /page: segment. Registered once on the
+        // persistent container so reloads don't stack duplicate listeners.
+        if (!ajaxContainer.dataset.indexWired) {
+            ajaxContainer.dataset.indexWired = '1';
+            ajaxContainer.addEventListener('click', function(e) {
+                const a = e.target.closest('a[href]');
+                if (!a || !ajaxContainer.contains(a)) return;
+                const href = a.getAttribute('href') || '';
+                const curr = ajaxContainer.dataset.url || '';
+
+                if (a.classList.contains('page-link')) {
+                    e.preventDefault();
+                    const pm = href.match(/[/?&]page[:=](\d+)/);
+                    const page = pm ? pm[1] : '1';
+                    reloadAjaxTabIndex(ajaxContainer, curr.replace(/\/page:\d+/, '') + '/page:' + page);
+                    return;
+                }
+
+                const sm = href.match(/\/sort:([^\/]+)/);
+                if (sm && href.indexOf(itemIndexPath) !== -1) {
+                    e.preventDefault();
+                    const dm = href.match(/\/direction:([^\/]+)/);
+                    let url = curr.replace(/\/page:\d+/, '').replace(/\/sort:[^\/]+/, '').replace(/\/direction:[^\/]+/, '');
+                    url += '/sort:' + sm[1];
+                    if (dm) url += '/direction:' + dm[1];
+                    reloadAjaxTabIndex(ajaxContainer, url);
+                    return;
+                }
+            });
+        }
+    } else {
+        scope.querySelector('#filterButton')?.addEventListener('click', () => {
             window.location.href = buildFilterUrl();
         });
-    });
+
+        scope.querySelector('#filterField')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') window.location.href = buildFilterUrl();
+        });
+
+        scope.querySelectorAll('.topbar-filter').forEach(el => {
+            el.addEventListener('change', () => {
+                window.location.href = buildFilterUrl();
+            });
+        });
+    }
 
 <?php if ($hasMassActions): ?>
-    document.addEventListener('change', function(e) {
-        if (!e.target.classList.contains('item-checkbox')) return;
+    // Guard so reloading an ajax index does not stack duplicate change listeners.
+    if (!window.__mispMassActionChangeWired) {
+        window.__mispMassActionChangeWired = true;
+        document.addEventListener('change', function(e) {
+            if (!e.target.classList.contains('item-checkbox')) return;
 
-        const checkbox  = e.target;
-        const id        = checkbox.dataset.itemId;
-        const canDelete = checkbox.dataset.canDelete == "1";
-        const publish   = checkbox.dataset.publish;
-        const enable    = checkbox.dataset.enable;
-        const require   = checkbox.dataset.require;
-        const highlight = checkbox.dataset.highlight;
+            const checkbox  = e.target;
+            const id        = checkbox.dataset.itemId;
+            const canDelete = checkbox.dataset.canDelete == "1";
+            const publish   = checkbox.dataset.publish;
+            const enable    = checkbox.dataset.enable;
+            const require   = checkbox.dataset.require;
+            const highlight = checkbox.dataset.highlight;
 
-        if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight });
-        } else {
-            selectedItems.delete(id);
-        }
+            if (checkbox.checked) {
+                selectedItems.set(id, { id, canDelete, publish, enable, require, highlight });
+            } else {
+                selectedItems.delete(id);
+            }
 
-        updateMultiSelectToolbar();
-    });
+            updateMultiSelectToolbar();
+        });
+    }
 <?php endif; ?>
 
 })();
