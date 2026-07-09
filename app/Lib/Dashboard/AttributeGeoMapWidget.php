@@ -13,7 +13,7 @@
  * mapping is computed transiently per render and never persisted, so
  * there is nothing stable to link a region to.)
  *
- * It blends up to four independently-selectable sources (config key
+ * It blends up to seven independently-selectable sources (config key
  * `sources`, default all on), each producing ISO alpha-2 tallies that
  * are summed:
  *
@@ -43,6 +43,12 @@
  *                      so the lookup approximates each ASN as the
  *                      country in which it announces the most IPv4
  *                      space. Regenerate the JSON when the mmdb updates.
+ *   - 'geolocation'    the `countrycode` attribute (ISO alpha-2) of
+ *                      geolocation objects. The free-text `country`
+ *                      name field is intentionally not consumed in v1.
+ *   - 'country_code'   any attribute carrying the `country-code`
+ *                      object_relation (ISO alpha-2), regardless of the
+ *                      object template it belongs to.
  *
  * Note the map intentionally mixes *indicator location* (ip / tld)
  * with *attribution / relevance* (country_galaxy / threat_actor); the
@@ -79,12 +85,12 @@ class AttributeGeoMapWidget
     public $title = 'Recent data geolocation map';
     public $category = 'events';
     public $render = 'WorldMap';
-    public $description = 'Geolocates recent MISP data onto a world map: IP indicators (GeoIP), domain ccTLDs, AS numbers, and country / threat-actor galaxy clusters attached to events. Each source is individually selectable.';
+    public $description = 'Geolocates recent MISP data onto a world map: IP indicators (GeoIP), domain ccTLDs, AS numbers, country / threat-actor galaxy clusters attached to events, geolocation-object country codes, and country-code object attributes. Each source is individually selectable.';
     public $width = 3;
     public $height = 4;
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
-        'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor". Defaults to all five.',
+        'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor", "geolocation", "country_code". Defaults to all seven.',
         'limit' => 'Per-source cap on the most-recent rows scanned, to avoid timeouts on large instances. Default 10000.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
         'projection' => 'Map projection: mercator / equirectangular (flat lon/lat grid) / naturalEarth (default) / robinson (rounded, less polar-distorted world views) / peters (Gall-Peters equal-area).',
@@ -130,7 +136,7 @@ class AttributeGeoMapWidget
     public $placeholder =
 '{
     "time_window": "30d",
-    "sources": ["ip", "domain_tld", "asn", "country_galaxy", "threat_actor"],
+    "sources": ["ip", "domain_tld", "asn", "country_galaxy", "threat_actor", "geolocation", "country_code"],
     "limit": 10000
 }';
 
@@ -141,7 +147,7 @@ class AttributeGeoMapWidget
     // GeoOpen-Country-ASN.mmdb by generate_asn_country_map.py.
     const ASN_COUNTRY_MAP_FILE = APP . 'files' . DS . 'geo-open' . DS . 'asn-country.json';
 
-    private $allSources = ['ip', 'domain_tld', 'asn', 'country_galaxy', 'threat_actor'];
+    private $allSources = ['ip', 'domain_tld', 'asn', 'country_galaxy', 'threat_actor', 'geolocation', 'country_code'];
     private $asnMapCache = null;
 
     public function handler($user, $options = array())
@@ -165,6 +171,12 @@ class AttributeGeoMapWidget
         }
         if (in_array('threat_actor', $sources, true)) {
             $this->mergeCounts($data, $this->eventGalaxyCounts('threat-actor', 'country', $since, $cap));
+        }
+        if (in_array('geolocation', $sources, true)) {
+            $this->mergeCounts($data, $this->geolocationCounts($since, $cap));
+        }
+        if (in_array('country_code', $sources, true)) {
+            $this->mergeCounts($data, $this->countryCodeCounts($since, $cap));
         }
 
         return [
@@ -488,8 +500,81 @@ class AttributeGeoMapWidget
             'order' => ['Event.timestamp' => 'DESC'],
             'limit' => $cap,
         ]);
+        return $this->tallyIso($isos);
+    }
+
+    /**
+     * Source 'geolocation' (#10817): ISO codes from the `countrycode`
+     * attribute of geolocation objects. value1 holds the ISO alpha-2;
+     * the free-text `country` name field is intentionally not used in v1.
+     */
+    private function geolocationCounts($since, $cap)
+    {
+        $attribute = ClassRegistry::init('MispAttribute');
+        $codes = $this->fetchObjectRelationValues($attribute, 'countrycode', 'geolocation', $since, $cap);
+        return $this->tallyIso($codes);
+    }
+
+    /**
+     * Source 'country_code' (#10817): ISO codes from any attribute
+     * carrying the `country-code` object_relation, regardless of which
+     * object template it lives in.
+     */
+    private function countryCodeCounts($since, $cap)
+    {
+        $attribute = ClassRegistry::init('MispAttribute');
+        $codes = $this->fetchObjectRelationValues($attribute, 'country-code', null, $since, $cap);
+        return $this->tallyIso($codes);
+    }
+
+    /**
+     * Capped, recency-bounded flat list of value1 for object attributes
+     * carrying a given object_relation, optionally restricted to a single
+     * object template by name. Bare fetch, no ACL (DD-11), mirroring
+     * fetchAttributeValues. object_id != 0 keeps it to object attributes.
+     */
+    private function fetchObjectRelationValues($attribute, $objectRelation, $objectName, $since, $cap)
+    {
+        $conditions = [
+            'Attribute.object_relation' => $objectRelation,
+            'Attribute.object_id !=' => 0,
+            'Attribute.deleted' => 0,
+        ];
+        if ($since !== null) {
+            $conditions['Attribute.timestamp >='] = $since;
+        }
+        $params = [
+            'fields' => ['Attribute.value1'],
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'order' => ['Attribute.timestamp' => 'DESC'],
+            'limit' => $cap,
+        ];
+        if ($objectName !== null) {
+            $params['joins'] = [
+                [
+                    'table' => 'objects',
+                    'alias' => 'MispObject',
+                    'type' => 'inner',
+                    'conditions' => [
+                        'MispObject.id = Attribute.object_id',
+                        'MispObject.name' => $objectName,
+                    ],
+                ],
+            ];
+        }
+        return $attribute->find('column', $params);
+    }
+
+    /**
+     * Tally a flat list of raw values into ISO alpha-2 counts: uppercased,
+     * trimmed, and accepted only if exactly two letters. Non-ISO values
+     * (names, alpha-3, empties) are dropped.
+     */
+    private function tallyIso(array $values)
+    {
         $counts = [];
-        foreach ($isos as $iso) {
+        foreach ($values as $iso) {
             $iso = is_string($iso) ? strtoupper(trim($iso)) : '';
             if (preg_match('/^[A-Z]{2}$/', $iso)) {
                 $counts[$iso] = (isset($counts[$iso]) ? $counts[$iso] : 0) + 1;

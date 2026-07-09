@@ -224,6 +224,14 @@ if ($field['data_path'] === 'Server.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'AuthKey.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($canCreateAuthkey);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;

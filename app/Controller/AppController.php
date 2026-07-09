@@ -888,7 +888,7 @@ class AppController extends Controller
             'style-src' => "'self' 'unsafe-inline'",
             'object-src' => "'none'",
             'frame-ancestors' => "'none'",
-            'worker-src' => "'none'",
+            'worker-src' => "blob:",
             'child-src' => "'none'",
             'frame-src' => "'none'",
             'base-uri' => "'self'",

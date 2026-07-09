@@ -2790,9 +2790,20 @@ function initEventForm(base) {
                     .then(function (html) {
                         preview.innerHTML     = html;
                         preview.style.display = '';
+                        bindCardClick();
                     })
                     .catch(function () { preview.style.display = 'none'; });
             }, 100);
+        }
+
+        /* Clicking the matched-event card copies its UUID into the input */
+        function bindCardClick() {
+            var card = preview.querySelector('.js-extends-event-card');
+            if (!card) { return; }
+            card.addEventListener('click', function () {
+                var uuid = card.dataset.extendsUuid;
+                if (uuid) { input.value = uuid; }
+            });
         }
 
         input.addEventListener('input', function () { fetchPreview(input.value); });

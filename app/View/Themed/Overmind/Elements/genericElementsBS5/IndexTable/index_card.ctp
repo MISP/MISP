@@ -67,7 +67,7 @@ foreach ($cardFields as $column => $field) {
 ?>
 
 <div class="ps-2 pe-2">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm idx-card">
 
         <div class="card-body">
 

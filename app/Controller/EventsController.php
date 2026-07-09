@@ -7536,7 +7536,7 @@ class EventsController extends AppController
         }
 
         $this->loadModel('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'Import');
+        $module = $this->Module->getEnabledModule($moduleName, 'Import', $this->Auth->user());
         if (!is_array($module)) {
             throw new MethodNotAllowedException($module);
         }
@@ -7647,6 +7647,10 @@ class EventsController extends AppController
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
+                        // TODO: route non-modifiers through proposals to match __pushFreetext().
+                        if (!$mayModify) {
+                            throw new ForbiddenException(__('You don\'t have permission to do that.'));
+                        }
                         $resolvedEvent = $this->Event->handleMispFormatFromModuleResult($result);
                         $resolvedEvent['Event'] = $event['Event'];
                         if ($this->_isRest()) {
@@ -7923,7 +7927,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
         $event = $this->Event->fetchSimpleEvent($user, $id, [
-            'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
             'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
         ]);
         if ($this->_isRest()) {

@@ -827,16 +827,6 @@ class NavbarHelper extends AppHelper {
                 'action' => 'index',
                 'requirement' => $isSiteAdmin,
                 'icon' => 'fas fa-file-pen',
-            ],
-            ['divider' => true, 'requirement' => $this->Acl->canAccess('logs', 'search')],
-            [
-                'type' => 'group',
-                'label' => __('Search logs'),
-                'url' => $baseurl . '/logs/search',
-                'controller' => 'logs',
-                'action' => 'index',
-                'requirement' => $this->Acl->canAccess('logs', 'search'),
-                'icon' => 'fas fa-search',
             ]
         ];
         return [
@@ -906,40 +896,18 @@ class NavbarHelper extends AppHelper {
 
         $resourcesChildren = [
             [
-                'type' => 'group',
-                'label' => __('News'),
-                'url' => $baseurl . '/news',
-                'controller' => 'news',
-                'action' => '',
-                'icon' => 'fas fa-newspaper',
+                'label' => __('User Guide'),
+                'url' => 'https://www.circl.lu/doc/misp/',
+                'icon' => 'fas fa-address-book'
+            ],
+            [
+                'label' => __('Categories & Types'),
+                'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                'controller' => 'doc',
+                'action' => 'categories_and_types',
+                'icon' => 'fas fa-table-list'
             ],
             ['divider' => true],
-            [
-                'type' => 'group',
-                'label' => __('Documentation'),
-                'icon' => 'fas fa-book',
-                'children' => [
-                    [
-                        'label' => __('User Guide'),
-                        'url' => 'https://www.circl.lu/doc/misp/',
-                        'icon' => 'fas fa-address-book'
-                    ],
-                    [
-                        'label' => __('Categories & Types'),
-                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
-                        'controller' => 'doc',
-                        'action' => 'categories_and_types',
-                        'icon' => 'fas fa-table-list'
-                    ],
-                    [
-                        'label' => __('Terms & Conditions'),
-                        'url' => $baseurl . '/users/terms',
-                        'controller' => 'users',
-                        'action' => 'terms',
-                        'icon' => 'fas fa-gavel'
-                    ]
-                ]
-            ],
             [
                 'type' => 'group',
                 'label' => __('Themes'),
