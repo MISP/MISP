@@ -465,7 +465,7 @@ class ACLComponent extends Component
             'enable' => array(),
             'massEnable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'massDisable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
-            'toggleEnable' => array('theming_enabled'),
+            'toggleEnable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'export' => array('*'),
             'forkTree' => array('*'),
             'index' => array('*'),
