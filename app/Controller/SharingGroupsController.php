@@ -22,7 +22,7 @@ class SharingGroupsController extends AppController
         'order' => array(
             'SharingGroup.id' => 'ASC'
         ),
-        'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active', 'SharingGroup.roaming'),
+        'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active', 'SharingGroup.roaming', 'SharingGroup.org_id', 'SharingGroup.confidential'),
         'contain' => array(
             'SharingGroupOrg' => array(
                 'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
@@ -62,6 +62,9 @@ class SharingGroupsController extends AppController
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
                     if (!empty($sg)) {
                         $sg = empty($sg) ? array() : $sg[0];
+                        // Confidential SG (#10818): never echo the roster to a
+                        // non-owner/non-admin in the post-save response.
+                        $sg = $this->SharingGroup->obscureConfidentialOrgs($this->Auth->user(), $sg);
                     }
                     return $this->RestResponse->viewData($sg, $this->response->type());
                 } else {
@@ -90,6 +93,7 @@ class SharingGroupsController extends AppController
             }
             $sg['active'] = $sg['active'] ? 1: 0;
             $sg['roaming'] = $sg['roaming'] ? 1: 0;
+            $sg['confidential'] = empty($sg['confidential']) ? 0 : 1;
             $sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
             $sg['local'] = 1;
             $sg['org_id'] = $this->Auth->user('org_id');
@@ -212,6 +216,9 @@ class SharingGroupsController extends AppController
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
+                    // Confidential SG (#10818): never echo the roster to a
+                    // non-owner/non-admin in the post-save response.
+                    $sg[0] = $this->SharingGroup->obscureConfidentialOrgs($this->Auth->user(), $sg[0]);
                     return $this->RestResponse->viewData($sg[0], $this->response->type());
                 } else {
                     return $this->RestResponse->saveFailResponse('SharingGroup', 'add', false, 'Could not save sharing group.', $this->response->type());
@@ -220,7 +227,8 @@ class SharingGroupsController extends AppController
                 $json = json_decode($this->request->data['SharingGroup']['json'], true);
                 $sg = $json['sharingGroup'];
                 $sg['id'] = $sharingGroup['SharingGroup']['id'];
-                $fields = array('name', 'releasability', 'description', 'active', 'roaming');
+                $sg['confidential'] = empty($sg['confidential']) ? 0 : 1;
+                $fields = array('name', 'releasability', 'description', 'active', 'roaming', 'confidential');
                 $existingSG = $this->SharingGroup->find('first', array('recursive' => -1, 'conditions' => array('SharingGroup.id' => $sharingGroup['SharingGroup']['id'])));
                 foreach ($fields as $field) {
                     $existingSG['SharingGroup'][$field] = $sg[$field];
@@ -451,6 +459,10 @@ class SharingGroupsController extends AppController
 
             $result[$k]['editable'] = $editable;
             $result[$k]['deletable'] = $deletable;
+            // Confidential SG (#10818): strip the roster for display after
+            // the edit-rights check above, so non-owner members of a
+            // confidential SG never see the other organisations.
+            $result[$k] = $this->SharingGroup->obscureConfidentialOrgs($this->Auth->user(), $result[$k]);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(['response' => $result], $this->response->type()); // 'response' to keep BC
@@ -524,6 +536,9 @@ class SharingGroupsController extends AppController
             }
         }
         if ($this->_isRest()) {
+            // Confidential SG (#10818): hide the member-org roster from
+            // everyone except the owning org and site admins.
+            $sg = $this->SharingGroup->obscureConfidentialOrgs($this->Auth->user(), $sg);
             return $this->RestResponse->viewData($sg, $this->response->type());
         }
 
@@ -558,6 +573,10 @@ class SharingGroupsController extends AppController
 
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
+        // Confidential SG (#10818): strip the roster for display after the
+        // edit-rights checks above (which legitimately read it), so a
+        // non-owner member never sees the other organisations.
+        $sg = $this->SharingGroup->obscureConfidentialOrgs($this->Auth->user(), $sg);
         $this->set('sg', $sg);
         $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'viewSG']);
     }

@@ -32,6 +32,11 @@ echo $this->element(
                 'type' => 'boolean'
             ],
             [
+                'key' => __('Confidential'),
+                'path' => 'SharingGroup.confidential',
+                'type' => 'boolean'
+            ],
+            [
                 'key' => __('Created by'),
                 'path' => 'Organisation',
                 'type' => 'org'

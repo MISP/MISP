@@ -3514,6 +3514,7 @@ function sgSubmitForm(action) {
             'description': $('#SharingGroupDescription').val(),
             'active': $('#SharingGroupActive').is(":checked"),
             'roaming': $('#SharingGroupRoaming').is(":checked"),
+            'confidential': $('#SharingGroupConfidential').is(":checked"),
         }
     };
     $('#SharingGroupJson').val(JSON.stringify(ajax));
@@ -3573,6 +3574,9 @@ function sharingGroupPopulateFromJson() {
     if (jsonparsed.sharingGroup.roaming == 1) {
         $("#SharingGroupRoaming").prop("checked", true);
         $('#serverList').show();
+    }
+    if (jsonparsed.sharingGroup.confidential == 1) {
+        $("#SharingGroupConfidential").prop("checked", true);
     }
     $('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
     $('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
