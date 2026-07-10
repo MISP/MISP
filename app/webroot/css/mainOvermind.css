@@ -430,9 +430,10 @@ body[data-controller="users"][data-action="login"] {
     top: 60px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;
+    /* Below the fixed-top navbar (Bootstrap z-index 1030) */
+    z-index: 1000;
     width: 100%;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 #flashContainer {
