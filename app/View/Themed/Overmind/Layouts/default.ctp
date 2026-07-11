@@ -134,6 +134,18 @@
             ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
             ['controller' => 'correlationRules', 'action' => 'executeRule'],
 
+            // Blocklist family — register both the camelCase (admin menu) and
+            // underscored (galaxies / analyst-data menus) controller casings
+            // because $this->params['controller'] mirrors the entry-URL casing.
+            ['controller' => 'eventBlocklists', 'action' => 'index'],
+            ['controller' => 'eventBlocklists', 'action' => 'add'],
+            ['controller' => 'eventBlocklists', 'action' => 'edit'],
+            ['controller' => 'eventBlocklists', 'action' => 'deleteSelection'],
+            ['controller' => 'event_blocklists', 'action' => 'index'],
+            ['controller' => 'event_blocklists', 'action' => 'add'],
+            ['controller' => 'event_blocklists', 'action' => 'edit'],
+            ['controller' => 'event_blocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],

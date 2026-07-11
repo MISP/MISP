@@ -136,6 +136,14 @@ if ($field['data_path'] === 'CorrelationExclusion.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'EventBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_add']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Tag.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

@@ -265,6 +265,12 @@ class ACLComponent extends Component
                     'host_org_user',
                     'perm_add'
                 ]
+            ],
+            'deleteSelection' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
             ]
         ),
         'eventDelegations' => array(
