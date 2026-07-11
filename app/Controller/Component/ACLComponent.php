@@ -168,6 +168,7 @@ class ACLComponent extends Component
             'edit' => [],
             'executeRule' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'view' => []
         ],
         'correlations' => [

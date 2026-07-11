@@ -127,6 +127,13 @@
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 
+            ['controller' => 'correlationRules', 'action' => 'index'],
+            ['controller' => 'correlationRules', 'action' => 'add'],
+            ['controller' => 'correlationRules', 'action' => 'edit'],
+            ['controller' => 'correlationRules', 'action' => 'delete'],
+            ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
+            ['controller' => 'correlationRules', 'action' => 'executeRule'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
