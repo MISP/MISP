@@ -568,6 +568,7 @@ class ACLComponent extends Component
             'add' => array(),
             'edit' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'admin_index' => array(),
             'index' => ['*'],
         ),

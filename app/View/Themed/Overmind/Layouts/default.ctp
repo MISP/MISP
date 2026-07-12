@@ -134,6 +134,12 @@
             ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
             ['controller' => 'correlationRules', 'action' => 'executeRule'],
 
+            ['controller' => 'news', 'action' => 'admin_index'],
+            ['controller' => 'news', 'action' => 'add'],
+            ['controller' => 'news', 'action' => 'edit'],
+            ['controller' => 'news', 'action' => 'delete'],
+            ['controller' => 'news', 'action' => 'deleteSelection'],
+
             // Blocklist family. Controller casing is normalised at match time
             // (see the $normalisePageKey loop below), so a single entry per
             // action covers every URL casing (camelCase admin menu, underscored
