@@ -113,6 +113,7 @@ class ACLComponent extends Component
         'bookmarks' => [
             'add' => ['*'],
             'delete' => ['*'],
+            'deleteSelection' => ['*'],
             'edit' => ['*'],
             'index' => ['*'],
             'view' => ['*'],

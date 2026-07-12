@@ -140,6 +140,13 @@
             ['controller' => 'news', 'action' => 'delete'],
             ['controller' => 'news', 'action' => 'deleteSelection'],
 
+            ['controller' => 'bookmarks', 'action' => 'index'],
+            ['controller' => 'bookmarks', 'action' => 'add'],
+            ['controller' => 'bookmarks', 'action' => 'edit'],
+            ['controller' => 'bookmarks', 'action' => 'view'],
+            ['controller' => 'bookmarks', 'action' => 'delete'],
+            ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
+
             // Blocklist family. Controller casing is normalised at match time
             // (see the $normalisePageKey loop below), so a single entry per
             // action covers every URL casing (camelCase admin menu, underscored

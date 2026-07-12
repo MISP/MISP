@@ -184,6 +184,17 @@ if ($field['data_path'] === 'News.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Bookmark.id') {
+    if (!isset($mayModify)){
+        // Mirror Bookmark::mayModify — owner, org admin over own org, or site admin.
+        $mayModify = $isSiteAdmin
+            || ($me['id'] == $row['Bookmark']['user_id'])
+            || (!empty($me['Role']['perm_admin']) && $me['org_id'] == $row['Bookmark']['org_id']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Tag.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
