@@ -799,6 +799,7 @@ class ACLComponent extends Component
             'index' => [],
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => []
         ],
         'sightings' => array(

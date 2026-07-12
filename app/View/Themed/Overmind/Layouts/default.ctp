@@ -153,6 +153,11 @@
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'edit'],
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'deleteSelection'],
 
+            ['controller' => 'sightingBlocklists', 'action' => 'index'],
+            ['controller' => 'sightingBlocklists', 'action' => 'add'],
+            ['controller' => 'sightingBlocklists', 'action' => 'edit'],
+            ['controller' => 'sightingBlocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
