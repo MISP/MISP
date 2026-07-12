@@ -158,6 +158,11 @@
             ['controller' => 'sightingBlocklists', 'action' => 'edit'],
             ['controller' => 'sightingBlocklists', 'action' => 'deleteSelection'],
 
+            ['controller' => 'analystDataBlocklists', 'action' => 'index'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'add'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'edit'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],

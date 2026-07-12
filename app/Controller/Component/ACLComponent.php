@@ -34,6 +34,7 @@ class ACLComponent extends Component
         'analystDataBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),
