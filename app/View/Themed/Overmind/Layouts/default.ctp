@@ -134,35 +134,24 @@
             ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
             ['controller' => 'correlationRules', 'action' => 'executeRule'],
 
-            // Blocklist family — register both the camelCase (admin menu) and
-            // underscored (galaxies / analyst-data menus) controller casings
-            // because $this->params['controller'] mirrors the entry-URL casing.
+            // Blocklist family. Controller casing is normalised at match time
+            // (see the $normalisePageKey loop below), so a single entry per
+            // action covers every URL casing (camelCase admin menu, underscored
+            // galaxies/analyst-data menus, PascalCase bookmarks, ...).
             ['controller' => 'eventBlocklists', 'action' => 'index'],
             ['controller' => 'eventBlocklists', 'action' => 'add'],
             ['controller' => 'eventBlocklists', 'action' => 'edit'],
             ['controller' => 'eventBlocklists', 'action' => 'deleteSelection'],
-            ['controller' => 'event_blocklists', 'action' => 'index'],
-            ['controller' => 'event_blocklists', 'action' => 'add'],
-            ['controller' => 'event_blocklists', 'action' => 'edit'],
-            ['controller' => 'event_blocklists', 'action' => 'deleteSelection'],
 
             ['controller' => 'orgBlocklists', 'action' => 'index'],
             ['controller' => 'orgBlocklists', 'action' => 'add'],
             ['controller' => 'orgBlocklists', 'action' => 'edit'],
             ['controller' => 'orgBlocklists', 'action' => 'deleteSelection'],
-            ['controller' => 'org_blocklists', 'action' => 'index'],
-            ['controller' => 'org_blocklists', 'action' => 'add'],
-            ['controller' => 'org_blocklists', 'action' => 'edit'],
-            ['controller' => 'org_blocklists', 'action' => 'deleteSelection'],
 
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'index'],
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'add'],
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'edit'],
             ['controller' => 'galaxyClusterBlocklists', 'action' => 'deleteSelection'],
-            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'index'],
-            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'add'],
-            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'edit'],
-            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'deleteSelection'],
 
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
@@ -254,12 +243,24 @@
         $currentController = $this->params['controller'];
         $currentAction = $this->params['action'];
 
+        // Normalise controller/action names so any URL casing of the same page
+        // matches its allowlist entry. $this->params reflect the exact casing of
+        // the request URL segment (e.g. /OrgBlocklists vs /orgBlocklists vs
+        // /org_blocklists all reach OrgBlocklistsController), so an exact string
+        // compare is fragile. Lowercasing + stripping underscores collapses every
+        // casing of a given controller/action to one key; distinct controllers
+        // never collide (the name itself is unique) and the themed view resolves
+        // from the controller class regardless of URL casing.
+        $normalisePageKey = function ($value) {
+            return strtolower(str_replace('_', '', (string)$value));
+        };
+
         $useBootstrap5 = false;
 
         foreach ($bootstrap5Pages as $page) {
             if (
-                $currentController === $page['controller'] &&
-                $currentAction === $page['action']
+                $normalisePageKey($currentController) === $normalisePageKey($page['controller']) &&
+                $normalisePageKey($currentAction) === $normalisePageKey($page['action'])
             ) {
                 $useBootstrap5 = true;
                 break;
