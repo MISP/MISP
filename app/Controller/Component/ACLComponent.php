@@ -638,6 +638,7 @@ class ACLComponent extends Component
         'orgBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
         ),

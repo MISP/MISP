@@ -146,6 +146,15 @@
             ['controller' => 'event_blocklists', 'action' => 'edit'],
             ['controller' => 'event_blocklists', 'action' => 'deleteSelection'],
 
+            ['controller' => 'orgBlocklists', 'action' => 'index'],
+            ['controller' => 'orgBlocklists', 'action' => 'add'],
+            ['controller' => 'orgBlocklists', 'action' => 'edit'],
+            ['controller' => 'orgBlocklists', 'action' => 'deleteSelection'],
+            ['controller' => 'org_blocklists', 'action' => 'index'],
+            ['controller' => 'org_blocklists', 'action' => 'add'],
+            ['controller' => 'org_blocklists', 'action' => 'edit'],
+            ['controller' => 'org_blocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
