@@ -1059,6 +1059,7 @@ class ACLComponent extends Component
         'workflowBlueprints' => [
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => [],
             'export' => [],
             'import' => [],

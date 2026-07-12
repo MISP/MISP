@@ -147,6 +147,13 @@
             ['controller' => 'bookmarks', 'action' => 'delete'],
             ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
 
+            ['controller' => 'workflowBlueprints', 'action' => 'index'],
+            ['controller' => 'workflowBlueprints', 'action' => 'add'],
+            ['controller' => 'workflowBlueprints', 'action' => 'edit'],
+            ['controller' => 'workflowBlueprints', 'action' => 'view'],
+            ['controller' => 'workflowBlueprints', 'action' => 'delete'],
+            ['controller' => 'workflowBlueprints', 'action' => 'deleteSelection'],
+
             // Blocklist family. Controller casing is normalised at match time
             // (see the $normalisePageKey loop below), so a single entry per
             // action covers every URL casing (camelCase admin menu, underscored
