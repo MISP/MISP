@@ -492,6 +492,7 @@ class ACLComponent extends Component
         'galaxyClusterBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),

@@ -152,6 +152,14 @@ if ($field['data_path'] === 'OrgBlocklist.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'GalaxyClusterBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_galaxy_editor']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Tag.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

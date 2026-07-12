@@ -155,6 +155,15 @@
             ['controller' => 'org_blocklists', 'action' => 'edit'],
             ['controller' => 'org_blocklists', 'action' => 'deleteSelection'],
 
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'index'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'add'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'edit'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'deleteSelection'],
+            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'index'],
+            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'add'],
+            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'edit'],
+            ['controller' => 'galaxy_cluster_blocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
