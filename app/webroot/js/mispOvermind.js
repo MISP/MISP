@@ -2852,11 +2852,62 @@ function initEventForm(base) {
         });
     }
 
+    /* Require a non-empty Event Info (name) before submitting */
+    function setupInfoValidation() {
+        var info = document.getElementById('EventInfo');
+        if (!info) { return; }
+        var form = info.form || (info.closest && info.closest('form'));
+        if (!form) { return; }
+
+        var errorId = 'EventInfoError';
+        var message = info.dataset.requiredMsg
+            || 'Please provide a name for the event.';
+
+        function showError() {
+            info.style.setProperty('border', '1px solid #dc3545', 'important');
+            info.style.setProperty('border-radius', '4px', 'important');
+            if (!document.getElementById(errorId)) {
+                var msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-center gap-1';
+                msg.style.fontSize  = '.75rem';
+                msg.style.marginTop = '.35rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                msg.appendChild(icon);
+                msg.appendChild(document.createTextNode(message));
+                info.parentNode.appendChild(msg);
+            }
+        }
+
+        function clearError() {
+            info.style.removeProperty('border');
+            info.style.removeProperty('border-radius');
+            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        form.addEventListener('submit', function (e) {
+            if (!info.value.trim()) {
+                e.preventDefault();
+                e.stopPropagation();
+                showError();
+                info.focus();
+            }
+        });
+
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { clearError(); }
+        });
+    }
+
     initDistributionSelect('distribution-select', null);
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
     setupUuidPreview();
     setupRadioCards();
     setupDateInput();
+    setupInfoValidation();
 }
 
 /*******************************
