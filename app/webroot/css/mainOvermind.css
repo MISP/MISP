@@ -1363,3 +1363,19 @@ tr.attr-proposal-row td:first-child {
     0%, 20% { background: rgba(var(--bs-warning-rgb), .35); }
     100%    { background: transparent; }
 }
+
+
+
+
+
+.analyst-hub-card {
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.analyst-hub-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12) !important;
+}
+.analyst-hub-card-active {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .18) !important;
+}

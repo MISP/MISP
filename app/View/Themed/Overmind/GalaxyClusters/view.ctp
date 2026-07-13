@@ -17,6 +17,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             ],
             'right' => [
                 'GalaxyClusters/View/galaxy_clusters_actions',
+                'GalaxyClusters/View/galaxy_clusters_analyst_data',
             ],
         ],
         [
