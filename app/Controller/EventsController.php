@@ -2527,7 +2527,19 @@ class EventsController extends AppController
             'paramType' => 'named',
         ];
 
-        $this->set('reports',   $result['EventReport']);
+        // Attach analyst data to each report so we can display the "Analyst data" column
+        $reports = $result['EventReport'];
+        if (!empty($reports)) {
+            $flatReports = array_map(function ($r) { return $r['EventReport']; }, $reports);
+            $flatReports = $this->EventReport->attachAnalystDataBulk($flatReports);
+            foreach ($reports as $i => $r) {
+                if (isset($flatReports[$i])) {
+                    $reports[$i]['EventReport'] = $flatReports[$i];
+                }
+            }
+        }
+
+        $this->set('reports',   $reports);
         $this->set('event',     $event);
         $this->set('mayModify', $mayModify);
         $this->set('total',     $total);

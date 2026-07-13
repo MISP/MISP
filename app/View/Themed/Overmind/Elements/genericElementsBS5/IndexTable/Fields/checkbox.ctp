@@ -240,6 +240,12 @@ if ($field['data_path'] === 'id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if (in_array($field['data_path'], ['Note.id', 'Opinion.id', 'Relationship.id'], true)) {
+    $mdl = strtok($field['data_path'], '.');
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = !empty($row[$mdl]['_canEdit']) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'existing_tag.Tag.id') {
     $checkboxAttrs['disabled'] = true;
 }

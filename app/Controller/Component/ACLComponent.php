@@ -22,6 +22,7 @@ class ACLComponent extends Component
         'analystData' => [
             'add' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'deleteSelection' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'edit' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'filterAnalystDataForPush' => ['perm_sync'],
             'getChildren' => ['*'],
@@ -30,6 +31,7 @@ class ACLComponent extends Component
             'indexMinimal' => ['*'],
             'pushAnalystData' => ['perm_sync'],
             'view' => ['*'],
+            'viewForObject' => ['theming_enabled'],
         ],
         'analystDataBlocklists' => array(
             'add' => array(),

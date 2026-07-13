@@ -207,6 +207,7 @@
             ['controller' => 'audit_logs', 'action' => 'admin_index'],
             ['controller' => 'access_logs', 'action' => 'admin_index'],
 
+            ['controller' => 'analystData', 'action' => 'index'],
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],

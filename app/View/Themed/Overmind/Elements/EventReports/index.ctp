@@ -48,6 +48,18 @@ $fields = [
         'display_in' => ['card']
     ],
     [
+        'name' => __('Analyst data'),
+        'element' => 'analyst_data_badges',
+        'note_path' => 'EventReport.Note',
+        'opinion_path' => 'EventReport.Opinion',
+        'relationship_path' => 'EventReport.Relationship',
+        'relationship_inbound_path' => 'EventReport.RelationshipInbound',
+        'uuid_path' => 'EventReport.uuid',
+        'object_type' => 'EventReport',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
+    ],
+    [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'EventReport.id',
@@ -74,6 +86,34 @@ $fields = [
                 'url' => $baseurl . '/event_reports/deleteSelection/%id%',
                 'class' => 'text-danger',
                 'requirement' => $me['Role']['perm_add']
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => !empty($me['Role']['perm_analyst_data'])
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add note'),
+                'icon' => 'note-sticky',
+                'url' => $baseurl . '/analystData/add/Note/%uuid%/EventReport',
+                'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
+                'requirement' => !empty($me['Role']['perm_analyst_data'])
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add opinion'),
+                'icon' => 'scale-balanced',
+                'url' => $baseurl . '/analystData/add/Opinion/%uuid%/EventReport',
+                'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
+                'requirement' => !empty($me['Role']['perm_analyst_data'])
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add relationship'),
+                'icon' => 'diagram-project',
+                'url' => $baseurl . '/analystData/add/Relationship/%uuid%/EventReport',
+                'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
+                'requirement' => !empty($me['Role']['perm_analyst_data'])
             ]
         ]
     ],

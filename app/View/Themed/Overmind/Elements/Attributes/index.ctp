@@ -56,6 +56,9 @@ $firstRow   = !empty($attributes) ? reset($attributes) : [];
 $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
+$_canAnalystData = !empty($me['Role']['perm_analyst_data']);
+// Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
+$inEventView = empty($show_event_id) && !empty($event['Event']['id']);
 
 $path = function($field) use ($model) {
     if (empty($model)) return $field;
@@ -205,6 +208,19 @@ $fields = array_merge($fields, [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Analyst data'),
+        'element' => 'analyst_data_badges',
+        'note_path' => $path('Note'),
+        'opinion_path' => $path('Opinion'),
+        'relationship_path' => $path('Relationship'),
+        'relationship_inbound_path' => $path('RelationshipInbound'),
+        'uuid_path' => $path('uuid'),
+        'object_type' => 'Attribute',
+        'requirement' => $inEventView,
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
+    ],
+    [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Attribute.id',
@@ -216,6 +232,42 @@ $fields = array_merge($fields, [
                 'icon' => 'copy',
                 'data_path' => $path('uuid'),
                 'copy_message' => __('UUID copied to clipboard'),
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add note'),
+                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add opinion'),
+                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
+                'url' => $baseurl . '/analystData/add/Opinion/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add relationship'),
+                'icon' => 'diagram-project',
+                'url' => $baseurl . '/analystData/add/Relationship/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
             ],
             [
                 'type' => 'modal',

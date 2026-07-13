@@ -141,9 +141,10 @@ if (isset($headerCountText)) {
                         ?>
 
                     <?php elseif ($action['type'] === 'modal'): ?>
+                        <?php $modalBtnClass = $action['class'] ?? 'btn btn-primary'; ?>
                         <a href="<?= h($action['url']) ?>"<?= $tabAttr ?>
                             onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');"
-                            class="btn btn-primary fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
+                            class="<?= h($modalBtnClass) ?> fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>
