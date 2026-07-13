@@ -24,7 +24,7 @@ class CacheExport
 		if ($options['scope'] === 'Event') {
 			$result = array();
 			foreach ($data['Attribute'] as $attribute) {
-                $temp = hash($hash_type, $data['Attribute']['value']);
+                $temp = hash($hash_type, $attribute['value']);
                 if (!empty($options['filters']['includeEventUuid'])) {
                     $temp .= ',' . $data['Event']['uuid'];
                 }
