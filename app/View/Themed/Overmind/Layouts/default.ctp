@@ -156,6 +156,11 @@
 
             ['controller' => 'userLoginProfiles', 'action' => 'index'],
 
+            ['controller' => 'roles', 'action' => 'index'],
+            ['controller' => 'roles', 'action' => 'view'],
+            ['controller' => 'roles', 'action' => 'admin_add'],
+            ['controller' => 'roles', 'action' => 'admin_edit'],
+
             // Blocklist family. Controller casing is normalised at match time
             // (see the $normalisePageKey loop below), so a single entry per
             // action covers every URL casing (camelCase admin menu, underscored
