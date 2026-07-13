@@ -32,16 +32,35 @@ class SightingBlocklistsController extends AppController
 
     public function add()
     {
-        return $this->BlockList->add($this->_isRest());
+        $response = $this->BlockList->add($this->_isRest());
+        if ($this->_isRest()) {
+            return $response;
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
     {
-        return $this->BlockList->edit($this->_isRest(), $id);
+        $response = $this->BlockList->edit($this->_isRest(), $id);
+        if ($this->_isRest()) {
+            return $response;
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function delete($id)
     {
         return $this->BlockList->delete($this->_isRest(), $id);
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->BlockList->deleteSelection($this->_isRest(), $id);
     }
 }

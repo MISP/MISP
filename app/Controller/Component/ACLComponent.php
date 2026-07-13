@@ -36,6 +36,7 @@ class ACLComponent extends Component
         'analystDataBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),
@@ -114,6 +115,7 @@ class ACLComponent extends Component
         'bookmarks' => [
             'add' => ['*'],
             'delete' => ['*'],
+            'deleteSelection' => ['*'],
             'edit' => ['*'],
             'index' => ['*'],
             'view' => ['*'],
@@ -170,6 +172,7 @@ class ACLComponent extends Component
             'edit' => [],
             'executeRule' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'view' => []
         ],
         'correlations' => [
@@ -262,6 +265,12 @@ class ACLComponent extends Component
                 ]
             ],
             'massDelete' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'deleteSelection' => [
                 'AND' => [
                     'host_org_user',
                     'perm_add'
@@ -487,6 +496,7 @@ class ACLComponent extends Component
         'galaxyClusterBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),
@@ -561,6 +571,7 @@ class ACLComponent extends Component
             'add' => array(),
             'edit' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'admin_index' => array(),
             'index' => ['*'],
         ),
@@ -633,6 +644,7 @@ class ACLComponent extends Component
         'orgBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
         ),
@@ -792,6 +804,7 @@ class ACLComponent extends Component
             'index' => [],
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => []
         ],
         'sightings' => array(
@@ -1048,6 +1061,7 @@ class ACLComponent extends Component
         'workflowBlueprints' => [
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => [],
             'export' => [],
             'import' => [],
