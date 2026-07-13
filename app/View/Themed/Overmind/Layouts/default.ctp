@@ -154,6 +154,8 @@
             ['controller' => 'workflowBlueprints', 'action' => 'delete'],
             ['controller' => 'workflowBlueprints', 'action' => 'deleteSelection'],
 
+            ['controller' => 'userLoginProfiles', 'action' => 'index'],
+
             // Blocklist family. Controller casing is normalised at match time
             // (see the $normalisePageKey loop below), so a single entry per
             // action covers every URL casing (camelCase admin menu, underscored
