@@ -252,7 +252,7 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
 
   # Appease the security audit, #hardening
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.disable_browser_cache" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.disable_browser_cache" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.check_sec_fetch_site_header" true
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.csp_enforce" true
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.advanced_authkeys" true

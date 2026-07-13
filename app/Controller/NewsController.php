@@ -77,6 +77,10 @@ class NewsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
@@ -89,6 +93,9 @@ class NewsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('newsItem', $this->request->data);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -98,5 +105,21 @@ class NewsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'News',
+            'restName' => 'News',
+            'itemName' => 'news item',
+            'view' => 'ajax/newsDeleteConfirmationForm',
+            'checkModifyCallback' => function () {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s news item deleted.', '%s news items deleted.', $count, $count);
+            }
+        ]);
     }
 }

@@ -606,6 +606,51 @@ class AnalystData extends AppModel
         return array_unique(array_merge($existingRelationships, $objectRelationships));
     }
 
+    /**
+     * Total analyst data attached to an object, counted RECURSIVELY: the object's 
+     * (direct notes/opinions/relationships, plus analyst data at any depth
+     */
+    public function countForObjectRecursive(array $user, string $objectUuid): int
+    {
+        $models = [
+            'Note' => ClassRegistry::init('Note'),
+            'Opinion' => ClassRegistry::init('Opinion'),
+            'Relationship' => ClassRegistry::init('Relationship'),
+        ];
+        $total = 0;
+        $frontier = [$objectUuid];
+        $seen = [$objectUuid => true];
+        // Walk the tree level by level
+        while (!empty($frontier)) {
+            $next = [];
+            foreach ($models as $alias => $model) {
+                $rows = $model->find('all', [
+                    'recursive' => -1,
+                    'fields' => [$alias . '.uuid'],
+                    'conditions' => array_merge(['object_uuid' => $frontier], $model->buildConditions($user)),
+                    'callbacks' => false,
+                ]);
+                foreach ($rows as $row) {
+                    $total++;
+                    $childUuid = $row[$alias]['uuid'];
+                    if (empty($seen[$childUuid])) {
+                        $seen[$childUuid] = true;
+                        $next[] = $childUuid;
+                    }
+                }
+            }
+            $frontier = $next;
+        }
+        // Inbound relationships (they point to this object; shown flat in the card).
+        $total += (int)$models['Relationship']->find('count', [
+            'recursive' => -1,
+            'conditions' => array_merge(['related_object_uuid' => $objectUuid], $models['Relationship']->buildConditions($user)),
+            'callbacks' => false,
+        ]);
+
+        return $total;
+    }
+
     public function getChildren($user, $uuid, $depth=2): array
     {
         $analystData = $this->fetchSimple($user, $uuid);

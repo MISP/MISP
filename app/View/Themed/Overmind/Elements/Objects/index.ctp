@@ -1,9 +1,4 @@
 <?php
-/**
- * BS5 object listing for event view2 (Overmind theme).
- *
- * Variables: $objects (flat array), $total, $page, $limit, $event
- */
 
 $eventId   = $event['Event']['id'];
 $total     = (int)($total ?? 0);
@@ -275,6 +270,15 @@ function _objDistBadge($dist) {
                                 <?= $delLabel ?>
                             </a>
                         <?php endif; ?>
+                        <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
+                            <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
+                                <?= $this->element('AnalystData/add_controls', [
+                                    'objectType' => 'Object',
+                                    'objectUuid' => $object['uuid'] ?? '',
+                                    'mode' => 'dropdown',
+                                ]) ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
@@ -518,6 +522,11 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
+                                                    <?= $this->element('AnalystData/add_controls', [
+                                                        'objectType' => 'Attribute',
+                                                        'objectUuid' => $attr['uuid'] ?? '',
+                                                        'mode' => 'menu_items',
+                                                    ]) ?>
                                                 </ul>
                                             </div>
                                         </div>

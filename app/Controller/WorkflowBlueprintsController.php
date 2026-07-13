@@ -49,6 +49,10 @@ class WorkflowBlueprintsController extends AppController
         }
         $this->set('fromEditor', !empty($fromEditor));
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'add']);
+        if ($this->theme === "Overmind" && empty($fromEditor)) {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
@@ -66,6 +70,9 @@ class WorkflowBlueprintsController extends AppController
         $this->request->data['WorkflowBlueprint']['data'] = JsonTool::encode($this->data['WorkflowBlueprint']['data']);
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'edit']);
         $this->set('id', $id);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -76,6 +83,22 @@ class WorkflowBlueprintsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'delete']);
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'WorkflowBlueprint',
+            'restName' => 'WorkflowBlueprints',
+            'itemName' => 'workflow blueprint',
+            'view' => 'ajax/workflowBlueprintDeleteConfirmationForm',
+            'checkModifyCallback' => function () {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s workflow blueprint deleted.', '%s workflow blueprints deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function view($id)

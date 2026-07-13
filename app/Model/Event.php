@@ -5615,8 +5615,8 @@ class Event extends AppModel
                     $data['Event']['timestamp'] == $existingEvent['Event']['timestamp'] &&
                     !empty($server['Server']['internal']) &&
                     $this->areLocalTagsDifferent(
-                        $existingEvent['EventTag'],
-                        $data['Event']['Tag']
+                        $existingEvent['EventTag'] ?? [],
+                        $data['Event']['Tag'] ?? []
                     )
                 )
             ) {
