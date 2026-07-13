@@ -723,7 +723,7 @@ set_misp_setting "Security.password_policy_complexity" '/^((?=.*\\d)|(?=.*\\W+))
 set_misp_setting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
 
 # Appease the security audit, #hardening
-set_misp_setting "Security.disable_browser_cache" true
+set_misp_setting "Security.disable_browser_cache" false
 set_misp_setting "Security.check_sec_fetch_site_header" true
 set_misp_setting "Security.csp_enforce" true
 set_misp_setting "Security.advanced_authkeys" true

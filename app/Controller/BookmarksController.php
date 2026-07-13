@@ -78,6 +78,10 @@ class BookmarksController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', ['menuList' => 'bookmarks', 'menuItem' => 'add']);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
@@ -100,7 +104,26 @@ class BookmarksController extends AppController
         }
         $this->set('menuData', ['menuList' => 'bookmarks', 'menuItem' => 'edit']);
         $this->set('id', $id);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Bookmark',
+            'restName' => 'Bookmarks',
+            'itemName' => 'bookmark',
+            'view' => 'ajax/bookmarkDeleteConfirmationForm',
+            'checkModifyCallback' => function ($itemId) {
+                return $this->Bookmark->mayModify($this->Auth->user(), intval($itemId));
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s bookmark deleted.', '%s bookmarks deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function delete($id)

@@ -195,6 +195,89 @@ class BlocklistComponent extends Component
         $this->controller->redirect(array('action' => 'index'));
     }
 
+    /**
+     * Modal-friendly deletion used by the Overmind BS5 index views.
+     *
+     * On GET it renders the themed confirmation fragment
+     * (ajax/<model>DeleteConfirmationForm); on POST/PUT/DELETE it removes the
+     * supplied id list (single row action or bulk multi-select) and redirects
+     * back to the index. Mirrors CRUDComponent::deleteSelection so the shared
+     * scaffold behaves identically for the blocklist family. The legacy
+     * delete()/massDelete() actions are left untouched for the Default theme.
+     */
+    public function deleteSelection($rest = false, $id = null)
+    {
+        $model = $this->controller->defaultModel;
+        $Model = $this->controller->{$model};
+        if ($this->controller->request->is(['post', 'put', 'delete'])) {
+            if (isset($this->controller->request->data['id'])) {
+                $this->controller->request->data[$model] = $this->controller->request->data;
+            }
+            if (!isset($id) && isset($this->controller->request->data[$model]['id'])) {
+                $idList = $this->controller->request->data[$model]['id'];
+                if (!is_array($idList)) {
+                    if (is_numeric($idList) || Validation::uuid($idList)) {
+                        $idList = [$idList];
+                    } else {
+                        $idList = json_decode($idList, true);
+                    }
+                }
+            } else {
+                $idList = [$id];
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+            $successes = array();
+            $fails = array();
+            foreach ($idList as $cid) {
+                $conditions = Validation::uuid($cid)
+                    ? array($Model->blocklistTarget . '_uuid' => $cid)
+                    : array($model . '.id' => $cid);
+                $item = $Model->find('first', array(
+                    'conditions' => $conditions,
+                    'recursive' => -1,
+                ));
+                if (empty($item)) {
+                    $fails[] = $cid;
+                    continue;
+                }
+                if ($Model->delete($item[$model]['id'])) {
+                    $successes[] = $cid;
+                } else {
+                    $fails[] = $cid;
+                }
+            }
+            $successCount = count($successes);
+            $failCount = count($fails);
+            if ($successCount) {
+                $message = __n('%s blocklist entry deleted.', '%s blocklist entries deleted.', $successCount, $successCount);
+                if ($failCount) {
+                    $message .= ' ' . __n('%s entry could not be deleted.', '%s entries could not be deleted.', $failCount, $failCount);
+                }
+            } else {
+                $message = __('No blocklist entries were deleted.');
+            }
+            if ($rest) {
+                if ($successCount) {
+                    return $this->RestResponse->saveSuccessResponse($model, 'deleteSelection', $id, false, $message);
+                }
+                return $this->RestResponse->saveFailResponse($model, 'deleteSelection', false, $message);
+            }
+            if ($successCount) {
+                $this->controller->Flash->success($message);
+            } else {
+                $this->controller->Flash->error($message);
+            }
+            return $this->controller->redirect(array('action' => 'index'));
+        }
+        $itemList = is_numeric($id) ? array($id) : json_decode($id, true);
+        $this->controller->request->data[$model]['id'] = json_encode($itemList);
+        $this->controller->set('idArray', $itemList);
+        $this->controller->layout = false;
+        return $this->controller->render('ajax/' . lcfirst($model) . 'DeleteConfirmationForm');
+    }
+
     public $controller;
 
     public function initialize(Controller $controller)
