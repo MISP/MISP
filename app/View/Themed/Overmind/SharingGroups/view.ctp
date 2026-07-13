@@ -14,6 +14,7 @@
                 ],
                 'right' => [
                     'SharingGroups/View/sharingGroups_actions',
+                    'SharingGroups/View/sharingGroups_analyst_data',
                 ]
             ]
         ]

@@ -136,6 +136,73 @@ if ($field['data_path'] === 'CorrelationExclusion.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'EventBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_add']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'OrgBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'GalaxyClusterBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin || !empty($me['Role']['perm_galaxy_editor']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'SightingBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'AnalystDataBlocklist.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'News.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Bookmark.id') {
+    if (!isset($mayModify)){
+        // Mirror Bookmark::mayModify — owner, org admin over own org, or site admin.
+        $mayModify = $isSiteAdmin
+            || ($me['id'] == $row['Bookmark']['user_id'])
+            || (!empty($me['Role']['perm_admin']) && $me['org_id'] == $row['Bookmark']['org_id']);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'WorkflowBlueprint.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Tag.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
@@ -238,6 +305,12 @@ if ($field['data_path'] === 'id') {
     }
     $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if (in_array($field['data_path'], ['Note.id', 'Opinion.id', 'Relationship.id'], true)) {
+    $mdl = strtok($field['data_path'], '.');
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = !empty($row[$mdl]['_canEdit']) ? '1' : '0';
 }
 
 if ($field['data_path'] === 'existing_tag.Tag.id') {

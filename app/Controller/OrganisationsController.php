@@ -110,6 +110,9 @@ class OrganisationsController extends AppController
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         $this->set('countries', $countries);
         $this->set('action', 'add');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
     }
 
     public function admin_edit($id)
@@ -159,6 +162,9 @@ class OrganisationsController extends AppController
         }
         $this->set('id', $id);
         $this->set('action', 'edit');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('admin_add');
     }
 
