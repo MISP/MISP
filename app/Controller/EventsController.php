@@ -3967,7 +3967,7 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
 
-        if ($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         } else {
             if (Configure::read('MISP.unpublishedprivate')) {

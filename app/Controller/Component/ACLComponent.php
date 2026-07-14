@@ -94,6 +94,7 @@ class ACLComponent extends Component
             'text' => array('*'),
             'toggleToIDS' => array('perm_add'),
             'updateAttributeValues' => array('perm_add'),
+            'validateValue' => array('AND' => ['perm_add', 'theming_enabled']),
             'view' => array('*'),
             'viewAnalystData' => ['*'],
             'viewPicture' => array('*'),

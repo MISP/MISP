@@ -2748,11 +2748,107 @@ function initAttributeForm(currentDist, isEdit) {
         });
     }
 
+    /* Live format validation of the Value field against the selected Type.
+     * Reuses the server-side AttributeValidationTool via an AJAX endpoint so
+     * the rules stay in sync with what MISP will actually accept. */
+    function setupValueValidation() {
+        var valueEl = document.getElementById('AttributeValue');
+        var typeEl  = document.getElementById('AttributeType');
+        if (!valueEl || !typeEl) { return; }
+
+        var batchEl = document.getElementById('AttributeBatchImport');
+        var form    = valueEl.form || (valueEl.closest && valueEl.closest('form'));
+        var base    = (typeof baseurl !== 'undefined') ? baseurl : '';
+        var errorId = 'AttributeValueError';
+        var lastValid = true;   // best-effort submit guard
+        var seq = 0;            // ignore out-of-order responses
+
+        function showError(message) {
+            lastValid = false;
+            valueEl.style.borderColor = '#dc3545';
+            var msg = document.getElementById(errorId);
+            if (!msg) {
+                msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-start gap-1 mt-1';
+                msg.style.fontSize = '.75rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                icon.style.marginTop = '.15rem';
+                msg.appendChild(icon);
+                msg.appendChild(document.createElement('span'));
+                valueEl.parentNode.appendChild(msg);
+            }
+            msg.querySelector('span').textContent = message;
+        }
+
+        function clearError() {
+            lastValid = true;
+            valueEl.style.borderColor = '#d8dde3';
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        function validate() {
+            var value = valueEl.value;
+            var type  = typeEl.value;
+            if (!type || !value.trim()) { clearError(); return; }
+
+            var mySeq = ++seq;
+            var params = new URLSearchParams();
+            params.append('type', type);
+            params.append('value', value);
+            if (batchEl && batchEl.checked) { params.append('batch', '1'); }
+
+            fetch(base + '/attributes/validateValue', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (mySeq !== seq) { return; } // a newer check superseded this
+                    if (res && res.valid === false) {
+                        showError(res.message
+                            || 'The value does not match the expected format.');
+                    } else {
+                        clearError();
+                    }
+                })
+                .catch(function () { /* network issue: don't block the user */ });
+        }
+
+        valueEl.addEventListener('blur', validate);
+        valueEl.addEventListener('input', function () {
+            /* remove stale error while the user is fixing the value */
+            if (!lastValid) { clearError(); }
+        });
+        typeEl.addEventListener('change', validate);
+        if (batchEl) { batchEl.addEventListener('change', validate); }
+
+        /* Block submission only when we already know the value is invalid. */
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (!lastValid && valueEl.value.trim() && typeEl.value) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    valueEl.focus();
+                }
+            });
+        }
+    }
+
     initCategorySelect();
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
     setupTemporalInputs();
+    setupValueValidation();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
     toggleSg(currentDist);
@@ -2852,11 +2948,62 @@ function initEventForm(base) {
         });
     }
 
+    /* Require a non-empty Event Info (name) before submitting */
+    function setupInfoValidation() {
+        var info = document.getElementById('EventInfo');
+        if (!info) { return; }
+        var form = info.form || (info.closest && info.closest('form'));
+        if (!form) { return; }
+
+        var errorId = 'EventInfoError';
+        var message = info.dataset.requiredMsg
+            || 'Please provide a name for the event.';
+
+        function showError() {
+            info.style.setProperty('border', '1px solid #dc3545', 'important');
+            info.style.setProperty('border-radius', '4px', 'important');
+            if (!document.getElementById(errorId)) {
+                var msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-center gap-1';
+                msg.style.fontSize  = '.75rem';
+                msg.style.marginTop = '.35rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                msg.appendChild(icon);
+                msg.appendChild(document.createTextNode(message));
+                info.parentNode.appendChild(msg);
+            }
+        }
+
+        function clearError() {
+            info.style.removeProperty('border');
+            info.style.removeProperty('border-radius');
+            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        form.addEventListener('submit', function (e) {
+            if (!info.value.trim()) {
+                e.preventDefault();
+                e.stopPropagation();
+                showError();
+                info.focus();
+            }
+        });
+
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { clearError(); }
+        });
+    }
+
     initDistributionSelect('distribution-select', null);
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
     setupUuidPreview();
     setupRadioCards();
     setupDateInput();
+    setupInfoValidation();
 }
 
 /*******************************
