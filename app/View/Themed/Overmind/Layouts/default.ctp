@@ -279,6 +279,11 @@
 
             ['controller' => 'analystData', 'action' => 'index'],
 
+            ['controller' => 'feeds', 'action' => 'index'],
+            ['controller' => 'feeds', 'action' => 'add'],
+            ['controller' => 'feeds', 'action' => 'edit'],
+            ['controller' => 'feeds', 'action' => 'view'],
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
 

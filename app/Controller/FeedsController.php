@@ -346,6 +346,10 @@ class FeedsController extends AppController
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
         $this->set('pull_scope', 'feed');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     private function __checkRegex($pattern)
@@ -510,6 +514,9 @@ class FeedsController extends AppController
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         }
         $this->set('pull_scope', 'feed');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
