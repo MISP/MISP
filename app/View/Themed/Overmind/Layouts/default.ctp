@@ -215,6 +215,8 @@
             ['controller' => 'taxiiServers', 'action' => 'edit'],
             ['controller' => 'taxiiServers', 'action' => 'delete'],
             ['controller' => 'taxiiServers', 'action' => 'view'],
+            ['controller' => 'taxiiServers', 'action' => 'collectionsIndex'],
+            ['controller' => 'taxiiServers', 'action' => 'objectsIndex'],
 
             ['controller' => 'cerebrates', 'action' => 'index'],
             ['controller' => 'cerebrates', 'action' => 'add'],
