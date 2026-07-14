@@ -25,6 +25,7 @@
                 ],
                 'right' => [
                     'EventReports/View/eventReport_actions',
+                    'EventReports/View/eventReport_analyst_data',
                 ],
             ],
             [

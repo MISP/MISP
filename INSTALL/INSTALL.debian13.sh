@@ -685,7 +685,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators." &>> $logfile
 
   # Appease the security audit, #hardening
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.disable_browser_cache" true &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.disable_browser_cache" false &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.check_sec_fetch_site_header" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.csp_enforce" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>> $logfile
