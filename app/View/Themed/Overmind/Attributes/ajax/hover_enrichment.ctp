@@ -15,7 +15,7 @@ $formatValue = function (array $attribute) {
 <?php else: ?>
     <?php foreach ($results as $enrichment_type => $enrichment_values): ?>
         <div class="mb-2">
-            <div class="text-event text-uppercase fw-semibold mb-1" style="font-size:.62rem; letter-spacing:.08em;">
+            <div class="text-enrichment text-uppercase fw-semibold mb-1" style="font-size:.62rem; letter-spacing:.08em;">
                 <i class="fas fa-wand-magic-sparkles me-1"></i><?= h(Inflector::humanize($enrichment_type)) ?>
             </div>
 

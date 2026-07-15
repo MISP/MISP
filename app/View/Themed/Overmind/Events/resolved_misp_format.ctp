@@ -136,15 +136,15 @@ $attrTableHead = function () use ($idsToggle) {
 
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->
 <div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event);">
+     style="background:rgba(72,67,92,.06);
+            border-bottom:2px solid var(--enrichment);">
     <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
+        <div class="text-enrichment text-uppercase fw-semibold mb-1"
              style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
             <?= h($type === 'Cortex' ? __('Cortex') : __('Enrichment')) ?>
         </div>
         <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-event" style="font-size:1.2rem;"></i>
+            <i class="fas fa-wand-magic-sparkles text-enrichment" style="font-size:1.2rem;"></i>
             <?= __('Enrichment results') ?>
         </h4>
         <div class="text-muted small mt-1">

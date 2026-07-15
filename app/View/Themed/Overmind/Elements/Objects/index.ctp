@@ -294,7 +294,7 @@ function _objDistBadge($dist) {
                             </a>
                             <?php if ($_enrichmentEnabled && !$isDeleted): ?>
                                 <a href="<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object"
-                                   class="btn btn-sm btn-outline-primary"
+                                   class="btn btn-sm btn-outline-enrichment"
                                    onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object');">
                                     <i class="fas fa-wand-magic-sparkles me-1"></i>
                                     <?= __('Enrich') ?>
@@ -539,7 +539,7 @@ function _objDistBadge($dist) {
                                                         <a class="dropdown-item justify-content-start"
                                                            href="#"
                                                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
-                                                            <i class="fas fa-wand-magic-sparkles me-2"></i>
+                                                            <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
                                                             <?= __('Enrich') ?>
                                                         </a>
                                                     </li>

@@ -12,15 +12,15 @@ usort($modules, function ($a, $b) {
 
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->
 <div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event);">
+     style="background:rgba(72,67,92,.06);
+            border-bottom:2px solid var(--enrichment);">
     <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
+        <div class="text-enrichment text-uppercase fw-semibold mb-1"
              style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
             <?= h($type === 'Cortex' ? __('Cortex') : __('Enrichment')) ?>
         </div>
         <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-event" style="font-size:1.2rem;"></i>
+            <i class="fas fa-wand-magic-sparkles text-enrichment" style="font-size:1.2rem;"></i>
             <?= __('Choose a module') ?>
             <?php if (!empty($modules)): ?>
                 <span class="badge rounded-pill text-bg-light border"><?= count($modules) ?></span>
@@ -55,8 +55,8 @@ usort($modules, function ($a, $b) {
                         data-result-url="<?= $resultUrl ?>"
                         title="<?= h($module['description']) ?>">
                     <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                          style="width:2.2rem;height:2.2rem;background:rgba(24,146,177,.1);">
-                        <i class="fas fa-puzzle-piece text-event"></i>
+                          style="width:2.2rem;height:2.2rem;background:rgba(72,67,92,.1);">
+                        <i class="fas fa-puzzle-piece text-enrichment"></i>
                     </span>
                     <span class="flex-grow-1">
                         <span class="fw-bold d-block"><?= h($module['name']) ?></span>
@@ -83,7 +83,7 @@ usort($modules, function ($a, $b) {
             // Swap the choice list for a spinner while the module is queried
             body.innerHTML =
                 '<div class="d-flex flex-column align-items-center justify-content-center gap-3" style="min-height:220px;">'
-              + '<div class="spinner-border text-event" role="status" style="width:2.5rem;height:2.5rem;"></div>'
+              + '<div class="spinner-border text-enrichment" role="status" style="width:2.5rem;height:2.5rem;"></div>'
               + '<div class="text-muted">' + loadingMsg + '</div>'
               + '</div>';
             openModal(url);

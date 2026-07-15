@@ -282,7 +282,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Enrich'),
-                'icon' => 'wand-magic-sparkles',
+                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
                 'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
                 'requirement' => function($row) use ($_canModify, $_enrichmentEnabled) {
                     return $_canModify && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
