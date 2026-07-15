@@ -134,7 +134,7 @@ class Oidc
                 $user['email'] = $mispUsername;
             }
 
-            if ($user['org_id'] != $organisationId) {
+            if ($user['org_id'] != $organisationId && $this->getConfig('update_user_organization', true)) {
                 $this->User->updateField($user, 'org_id', $organisationId);
                 $this->log($mispUsername, "User organisation changed from {$user['org_id']} to $organisationId.");
                 $user['org_id'] = $organisationId;
@@ -298,7 +298,7 @@ class Oidc
             }
         }
 
-        if ($update && $user['org_id'] != $organisationId) {
+        if ($update && $user['org_id'] != $organisationId && $this->getConfig('update_user_organization', true)) {
             $this->User->updateField($user, 'org_id', $organisationId);
             $this->log($user['email'], "User organisation changed from {$user['org_id']} to $organisationId.");
         }
