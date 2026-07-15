@@ -31,6 +31,9 @@ $canTagObj = isset($event)
     ? $this->Acl->canModifyTag($event)
     : false;
 
+$_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
+$_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
+
 // Inline helper: render a small distribution badge
 function _objDistBadge($dist) {
     static $map = [
@@ -269,6 +272,14 @@ function _objDistBadge($dist) {
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
+                            <?php if ($_enrichmentEnabled && !$isDeleted): ?>
+                                <a href="<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object"
+                                   class="btn btn-sm btn-outline-primary"
+                                   onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object');">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i>
+                                    <?= __('Enrich') ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
                             <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
@@ -500,6 +511,26 @@ function _objDistBadge($dist) {
                                                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
                                                             <i class="fas fa-comment-dots me-2"></i>
                                                             <?= __('Propose change') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
+                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
+                                                            <i class="fas fa-wand-magic-sparkles me-2"></i>
+                                                            <?= __('Enrich') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
+                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
+                                                            <i class="fas fa-eye me-2"></i>
+                                                            <?= __('Enrich (Cortex)') ?>
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
