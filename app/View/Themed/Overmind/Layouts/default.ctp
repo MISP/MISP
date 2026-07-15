@@ -215,6 +215,8 @@
             ['controller' => 'taxiiServers', 'action' => 'edit'],
             ['controller' => 'taxiiServers', 'action' => 'delete'],
             ['controller' => 'taxiiServers', 'action' => 'view'],
+            ['controller' => 'taxiiServers', 'action' => 'collectionsIndex'],
+            ['controller' => 'taxiiServers', 'action' => 'objectsIndex'],
 
             ['controller' => 'cerebrates', 'action' => 'index'],
             ['controller' => 'cerebrates', 'action' => 'add'],
@@ -276,6 +278,11 @@
             ['controller' => 'access_logs', 'action' => 'admin_index'],
 
             ['controller' => 'analystData', 'action' => 'index'],
+
+            ['controller' => 'feeds', 'action' => 'index'],
+            ['controller' => 'feeds', 'action' => 'add'],
+            ['controller' => 'feeds', 'action' => 'edit'],
+            ['controller' => 'feeds', 'action' => 'view'],
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
