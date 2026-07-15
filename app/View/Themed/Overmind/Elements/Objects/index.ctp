@@ -233,18 +233,38 @@ function _objDistBadge($dist) {
                                 </button>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['first_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-plus me-1"></i>
-                                <?= __('First seen: %s',
-                                    h($object['first_seen'])) ?>
+                        <?php
+                            $fmtSeen = function ($value) {
+                                $dt = date_create((string)$value);
+                                if ($dt === false) {
+                                    return ['date' => (string)$value, 'time' => ''];
+                                }
+                                return [
+                                    'date' => $dt->format('Y-m-d'),
+                                    'time' => $dt->format('H:i:s'),
+                                ];
+                            };
+                        ?>
+                        <?php if (!empty($object['first_seen'])): $fs = $fmtSeen($object['first_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['first_seen']) ?>">
+                                <i class="fas fa-calendar-plus text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('First seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($fs['date']) ?><?php if ($fs['time'] !== ''): ?><span class="text-muted ms-1"><?= h($fs['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['last_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-check me-1"></i>
-                                <?= __('Last seen: %s',
-                                    h($object['last_seen'])) ?>
+                        <?php if (!empty($object['last_seen'])): $ls = $fmtSeen($object['last_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['last_seen']) ?>">
+                                <i class="fas fa-calendar-check text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('Last seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($ls['date']) ?><?php if ($ls['time'] !== ''): ?><span class="text-muted ms-1"><?= h($ls['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
                         <?php if (!empty($object['template_version'])): ?>
