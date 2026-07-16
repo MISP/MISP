@@ -199,6 +199,8 @@
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
             ['controller' => 'servers', 'action' => 'delete'],
+            ['controller' => 'servers', 'action' => 'previewIndex'],
+            ['controller' => 'servers', 'action' => 'previewEvent'],
             // ['controller' => 'servers', 'action' => 'cache'],
             // ['controller' => 'servers', 'action' => 'pull'],
             // ['controller' => 'servers', 'action' => 'push'],

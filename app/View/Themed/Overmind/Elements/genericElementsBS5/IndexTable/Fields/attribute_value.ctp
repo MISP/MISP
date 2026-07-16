@@ -15,6 +15,12 @@ $proposals         = !empty($attribute['ShadowAttribute']) ? $attribute['ShadowA
 $isProposalRow     = !empty($attribute['is_proposal']);
 $canModifyProposal = !empty($isSiteAdmin) || !empty($mayModify);
 
+// Hover enrichment: when enabled, the value queries the hover modules and shows a floating popover
+$hoverEnrichId = (Configure::read('Plugin.Enrichment_hover_enable') && !empty($me['Role']['perm_add'])
+    && empty($isProposalRow) && !empty($attribute['id']))
+    ? (int)$attribute['id'] : null;
+$hoverClickOnly = (bool)Configure::read('Plugin.Enrichment_hover_popover_only');
+
 
 $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
     if (!$canModifyProposal) {
@@ -53,9 +59,29 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
             </span>
         <?php endif; ?>
 
-        <p class="mb-0">
-            <?= h($attribute['value']); ?>
-        </p>
+        <?php if ($hoverEnrichId && !$hoverClickOnly): ?>
+            <p class="mb-0 om-hover-enrichment"
+               data-hover-enrichment-id="<?= $hoverEnrichId ?>"
+               data-hover-trigger="hover"
+               style="cursor:help;"
+               title="<?= __('Hover to look up enrichment') ?>">
+                <?= h($attribute['value']); ?>
+            </p>
+        <?php elseif ($hoverEnrichId && $hoverClickOnly): ?>
+            <p class="mb-0">
+                <?= h($attribute['value']); ?>
+                <i class="fas fa-magnifying-glass-plus text-muted ms-1 om-hover-enrichment"
+                   role="button" tabindex="0"
+                   data-hover-enrichment-id="<?= $hoverEnrichId ?>"
+                   data-hover-trigger="click"
+                   style="font-size:.8em; cursor:pointer;"
+                   title="<?= __('Look up enrichment') ?>"></i>
+            </p>
+        <?php else: ?>
+            <p class="mb-0">
+                <?= h($attribute['value']); ?>
+            </p>
+        <?php endif; ?>
 
         <?php if ($isProposalRow): ?>
             <?php if (!empty($attribute['proposal_org_name'])): ?>

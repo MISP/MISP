@@ -16,6 +16,7 @@
 
 $eventId = (int)$event['Event']['id'];
 $scope = !empty($proposals) ? __('proposals') : __('attributes');
+$backUrl = !empty($backPath) ? ($baseurl . $backPath) : ($baseurl . '/events/populateFrom/' . $eventId);
 
 // Distribution visuals (icon + colours), same map as the "Add Object" cards.
 $distMeta = [
@@ -59,12 +60,24 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
         </div>
     <?php endif; ?>
 
-    <p class="text-muted">
-        <?= __('Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.') ?>
-    </p>
+    <?php if (!empty($resultArray)): ?>
+        <p class="text-muted">
+            <?= __('Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.') ?>
+        </p>
+    <?php endif; ?>
 
     <?php if (empty($resultArray)): ?>
-        <div class="alert alert-light border mb-0"><?= __('No indicators were detected in the provided text.') ?></div>
+        <?php
+            // The module's own explanation is surfaced here
+            $emptyMsg = !empty($moduleError)
+                ? $moduleError
+                : __('No indicators were detected in the provided text.');
+        ?>
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-circle-info mb-3" style="font-size:2rem; opacity:.35;"></i>
+            <p class="mb-1 fw-semibold text-body"><?= __('Nothing to import') ?></p>
+            <p class="mb-0" style="max-width:32rem; margin-inline:auto;"><?= h($emptyMsg) ?></p>
+        </div>
     <?php else: ?>
 
     <?php
@@ -312,7 +325,7 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="openModalChained('<?= $baseurl ?>/events/populateFrom/<?= $eventId ?>');">
+                    onclick="openModalChained('<?= $backUrl ?>');">
                 <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
