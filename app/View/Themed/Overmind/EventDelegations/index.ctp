@@ -55,7 +55,7 @@ $fields = [
     [
         'name' => __('Event'),
         'data_path' => 'EventDelegation.Event.id, EventDelegation.Event.info',
-        'element' => 'id_name',
+        'element' => 'event',
         'url' => $baseurl . '/events/view2/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
