@@ -67,6 +67,17 @@ class TasksController extends AppController
         if ($this->request->is('post')) {
             $task['Task']['enabled'] = !$task['Task']['enabled'];
             $result = $this->Task->save($task);
+            if ($this->theme === 'Overmind' && !$this->IndexFilter->isRest()) {
+                // The themed confirm fragment submits natively, so redirect back
+                // to the (themed) index with a flash instead of raw JSON.
+                if ($result) {
+                    $this->Flash->success($task['Task']['enabled'] ? __('Task enabled.') : __('Task disabled.'));
+                } else {
+                    $this->Flash->error(__('Could not toggle the task.'));
+                }
+                $this->redirect(['action' => 'index']);
+                return;
+            }
             if ($result) {
                 return $this->RestResponse->saveSuccessResponse('Task', 'toggleEnabled', $id, $this->response->type());
             } else {
@@ -76,9 +87,13 @@ class TasksController extends AppController
 
         $this->set('enabled', !$task['Task']['enabled']);
         $this->set('id', $id);
-        $this->autoRender = false;
         $this->layout = false;
-        $this->render('ajax/toggle_enabled');
+        if ($this->theme === 'Overmind') {
+            $this->render('ajax/toggleEnabledConfirmationForm');
+        } else {
+            $this->autoRender = false;
+            $this->render('ajax/toggle_enabled');
+        }
     }
 
     public function add()
@@ -104,6 +119,11 @@ class TasksController extends AppController
             'menuList' => 'admin',
             'menuItem' => 'tasks',
         ]);
+
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
@@ -193,6 +213,9 @@ class TasksController extends AppController
                 'menuList' => 'admin',
                 'menuItem' => 'tasks',
             ]);
+            if ($this->theme === 'Overmind') {
+                $this->layout = false;
+            }
             $this->render('add');
         }
     }
@@ -259,8 +282,13 @@ class TasksController extends AppController
             }
         } else {
             $this->set('task', $task);
+            $this->set('id', $id);
             $this->layout = false;
-            $this->render('ajax/force_run');
+            if ($this->theme === 'Overmind') {
+                $this->render('ajax/forceRunConfirmationForm');
+            } else {
+                $this->render('ajax/force_run');
+            }
         }
     }
 
@@ -308,7 +336,11 @@ class TasksController extends AppController
         $this->set('task', $task);
         $this->set('logs', $this->__getFailedJobLog($task['Job']['process_id']));
         $this->layout = false;
-        $this->render('ajax/view_logs');
+        if ($this->theme === 'Overmind') {
+            $this->render('ajax/viewLogs');
+        } else {
+            $this->render('ajax/view_logs');
+        }
     }
 
     private function __getFailedJobLog(string $id): array

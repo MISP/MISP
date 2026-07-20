@@ -289,6 +289,10 @@
             ['controller' => 'feeds', 'action' => 'edit'],
             ['controller' => 'feeds', 'action' => 'view'],
 
+            ['controller' => 'tasks', 'action' => 'index'],
+            ['controller' => 'tasks', 'action' => 'add'],
+            ['controller' => 'tasks', 'action' => 'edit'],
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
 
