@@ -153,14 +153,17 @@ $this->set('headerDescription', $headerDescription);
                         <span class="misp-icon misp-icon-user1 misp-hexagone"></span>
                         <?= __('Created by') ?>
                     </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <?= $this->OrgImg->getOrgLogoV2($orgc, 20, false) ?>
-                            <span class="fw-medium"><?= h($orgc['name'] ?? '') ?></span>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 py-1">
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <?php $logo = $this->OrgImg->getOrgLogoV2($orgc, 24); ?>
+                            <?= $logo !== '' ? $logo : '<i class="misp-icon misp-icon-organisation misp-simple text-muted"></i>' ?>
+                            <a href="<?= h($baseurl . '/organisations/view/' . $orgc['id']) ?>" 
+                               class="text-decoration-none fw-semibold text-primary"><?= h($orgc['name'] ?? '') ?>
+                            </a>
                         </div>
                         <div class="d-flex align-items-center gap-2 text-muted small">
-                            <span class="misp-icon misp-icon-user1 misp-simple"></span>
-                            <?= h($user['email'] ?? '') ?>
+                            <?php $email = h($user['email'] ?? '') ?>
+                            <?= $email !== '' ? '<span><i class="misp-icon misp-icon-user1 misp-simple"></i>' . $email . '</span>'  : '' ?>
                         </div>
                     </div>
                 </div>
