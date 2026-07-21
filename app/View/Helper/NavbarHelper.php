@@ -238,14 +238,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Statistics'),
-                'url' => $baseurl . '/users/statistics',
-                'controller' => 'users',
-                'action' => 'statistics',
-                'icon' => 'fas fa-pie-chart',
-            ]
+            // [
+            //     'type' => 'group',
+            //     'label' => __('Statistics'),
+            //     'url' => $baseurl . '/users/statistics',
+            //     'controller' => 'users',
+            //     'action' => 'statistics',
+            //     'icon' => 'fas fa-pie-chart',
+            // ]
         ];
 
         return [
@@ -317,19 +317,19 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-hourglass-half',
                 'children' => [
                     [
-                        'label' => __('Decaying Models Tools'),
-                        'url' => $baseurl . '/decayingModel/decayingTool',
-                        'controller' => 'decayingModel',
-                        'action' => 'decayingTool',
-                        'icon' => 'fas fa-toolbox'
-                    ],
-                    [
-                        'label' => __('List Decaying Models'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/decayingModel/index',
                         'controller' => 'decayingModel',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
-                    ]
+                    ],
+                    // [
+                    //     'label' => __('Decaying Models Tool'),
+                    //     'url' => $baseurl . '/decayingModel/decayingTool',
+                    //     'controller' => 'decayingModel',
+                    //     'action' => 'decayingTool',
+                    //     'icon' => 'fas fa-toolbox'
+                    // ]
                 ]
             ],
             ['divider' => true],

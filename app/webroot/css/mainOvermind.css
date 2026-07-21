@@ -1387,3 +1387,22 @@ tr.attr-proposal-row td:first-child {
 #preview-related-card .related-event-row:hover { 
     background: #f8fafc;
 }
+
+
+.dm-types .dm-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .12rem .6rem; border-radius: 999px; line-height: 1.5;
+    font-size: .74rem; font-weight: 600; text-decoration: none;
+    background: hsl(var(--h) 65% 92%);
+    color: hsl(var(--h) 60% 28%);
+    border: 1px solid hsl(var(--h) 65% 80%);
+}
+[data-bs-theme="dark"] .dm-types .dm-chip {
+    background: hsl(var(--h) 45% 20%);
+    color: hsl(var(--h) 75% 80%);
+    border-color: hsl(var(--h) 40% 34%);
+}
+.dm-types .dm-chip .dm-chip-dot {
+    width: .5rem; height: .5rem; border-radius: 50%;
+    background: hsl(var(--h) 62% 48%); flex: 0 0 auto;
+}

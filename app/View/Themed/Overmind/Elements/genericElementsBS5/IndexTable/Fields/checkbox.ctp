@@ -299,6 +299,19 @@ if ($field['data_path'] === 'AuthKey.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'DecayingModel.id') {
+    // Mirror DecayingModel::isEditableByCurrentUser(); default models can never
+    // be deleted (only site-admins may toggle them).
+    $dm = $row['DecayingModel'];
+    $editable = !empty($isSiteAdmin) || (
+        !empty($me['Role']['perm_decaying']) &&
+        empty($dm['default']) &&
+        $dm['org_id'] == $me['org_id']
+    );
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($editable && empty($dm['default'])) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;

@@ -279,6 +279,13 @@
 
             ['controller' => 'analystData', 'action' => 'index'],
 
+            ['controller' => 'decayingModel', 'action' => 'index'],
+            ['controller' => 'decayingModel', 'action' => 'view'],
+            ['controller' => 'decayingModel', 'action' => 'add'],
+            ['controller' => 'decayingModel', 'action' => 'edit'],
+            ['controller' => 'decayingModel', 'action' => 'import'],
+            //['controller' => 'decayingModel', 'action' => 'decayingTool'],
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
 
