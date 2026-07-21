@@ -1382,3 +1382,8 @@ tr.attr-proposal-row td:first-child {
     transform: translateY(-2px);
     box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .18) !important;
 }
+
+
+#preview-related-card .related-event-row:hover { 
+    background: #f8fafc;
+}
