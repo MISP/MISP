@@ -25,6 +25,15 @@ if ($canPickTemplate) {
     ];
     echo $this->element('eventTemplates/templatePickerModal');
 }
+if ($this->Acl->canAccess('events', 'importEvent')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Import Event'),
+        'icon' => 'file-import',
+        'url' => $baseurl . '/events/importEvent',
+        'class' => 'btn btn-outline-primary'
+    ];
+}
 if ($this->Acl->canAccess('events', 'add')) {
     $headerActions[] = [
         'type' => 'modal',

@@ -386,6 +386,7 @@ class ACLComponent extends Component
             'hids' => array('*'),
             'index' => array('*'),
             'importChoice' => array('*'),
+            'importEvent' => array('AND' => ['perm_modify', 'theming_enabled']),
             'importModule' => array('*'),
             'massDelete' => array(),
             'merge' => array('perm_modify'),
