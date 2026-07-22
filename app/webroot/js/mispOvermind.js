@@ -141,10 +141,164 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
 
-            let modal = new bootstrap.Modal(document.getElementById('mainModal'));
+            // Reuse the single instance for #mainModal — calling openModal again
+            // while a modal is already open must not spawn a second Bootstrap.Modal instance
+            let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mainModal'));
             modal.show();
         });
 }
+
+// Defensive backdrop reaper: once #mainModal is fully closed, guarantee that no
+// orphaned `.modal-backdrop` and no leftover scroll-lock survive. A stray
+// backdrop (e.g. from an older cached build, or any double-show) would otherwise
+// leave a grey veil that blocks the whole app. Bound once.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._backdropReaperBound) {
+        return;
+    }
+    modalEl._backdropReaperBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        window.setTimeout(function () {
+            if (document.querySelector('.modal.show')) {
+                return;
+            }
+            document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }, 300);
+    });
+})();
+
+// Hover enrichment
+(function () {
+    if (window._omHoverEnrichmentBound) {
+        return;
+    }
+    window._omHoverEnrichmentBound = true;
+
+    const SHOW_DELAY = 400;
+    const HIDE_DELAY = 250;
+    let showTimer = null;
+    let hideTimer = null;
+    let currentId = null;
+    const cache = {};
+    let pop = null;
+
+    function popover() {
+        if (!pop) {
+            pop = document.createElement('div');
+            pop.id = 'omHoverEnrichment';
+            pop.className = 'shadow border rounded bg-body';
+            pop.style.cssText = 'position:fixed; z-index:1090; width:min(520px,92vw); max-height:70vh; overflow:auto; display:none;';
+            pop.addEventListener('mouseenter', function () { window.clearTimeout(hideTimer); });
+            pop.addEventListener('mouseleave', hideSoon);
+            document.body.appendChild(pop);
+        }
+        return pop;
+    }
+
+    function place(anchor) {
+        const p = popover();
+        const r = anchor.getBoundingClientRect();
+        p.style.visibility = 'hidden';
+        p.style.display = 'block';
+        const pw = p.offsetWidth;
+        const ph = p.offsetHeight;
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+        let top = r.bottom + 6;
+        if (top + ph > window.innerHeight - 8) {
+            const above = r.top - 6 - ph;
+            top = above > 8 ? above : Math.max(8, window.innerHeight - ph - 8);
+        }
+        p.style.left = left + 'px';
+        p.style.top = top + 'px';
+        p.style.visibility = 'visible';
+    }
+
+    function show(anchor, id) {
+        currentId = id;
+        const p = popover();
+        if (cache[id] !== undefined) {
+            p.innerHTML = cache[id];
+            p.style.display = 'block';
+            place(anchor);
+            return;
+        }
+        p.innerHTML = '<div class="p-3 text-muted small d-flex align-items-center gap-2">'
+                    + '<span class="spinner-border spinner-border-sm"></span></div>';
+        p.style.display = 'block';
+        place(anchor);
+        fetch(baseurl + '/attributes/hoverEnrichment/' + encodeURIComponent(id), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                cache[id] = html;
+                if (currentId === id) { p.innerHTML = html; place(anchor); }
+            })
+            .catch(function () {
+                if (currentId === id) {
+                    p.innerHTML = '<div class="p-3 text-danger small">'
+                        + '<i class="fas fa-triangle-exclamation me-1"></i>Enrichment lookup failed.</div>';
+                }
+            });
+    }
+
+    function hideSoon() {
+        window.clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(function () {
+            if (pop) { pop.style.display = 'none'; }
+            currentId = null;
+        }, HIDE_DELAY);
+    }
+
+    function hideNow() {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+        if (pop) { pop.style.display = 'none'; }
+        currentId = null;
+    }
+
+    document.body.addEventListener('mouseover', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(hideTimer);
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (id === currentId) { return; }
+        window.clearTimeout(showTimer);
+        showTimer = window.setTimeout(function () { show(el, id); }, SHOW_DELAY);
+    });
+
+    document.body.addEventListener('mouseout', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(showTimer);
+        hideSoon();
+    });
+
+    document.body.addEventListener('click', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="click"]');
+        if (!el) { return; }
+        e.preventDefault();
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (pop && pop.style.display === 'block' && currentId === id) { hideNow(); return; }
+        show(el, id);
+    });
+
+    // Dismiss the popover on an outside click / Escape / page scroll.
+    document.addEventListener('click', function (e) {
+        if (!pop || pop.style.display !== 'block') { return; }
+        if (pop.contains(e.target)) { return; }
+        if (e.target.closest && e.target.closest('.om-hover-enrichment')) { return; }
+        hideNow();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hideNow(); } });
+    window.addEventListener('scroll', function (e) {
+        if (pop && pop.style.display === 'block' && !(pop.contains(e.target))) { hideNow(); }
+    }, true);
+})();
 
 // Close the currently-open #mainModal (if any) and then open `url` in it.
 // Used to chain modals without stacking a second Bootstrap backdrop.

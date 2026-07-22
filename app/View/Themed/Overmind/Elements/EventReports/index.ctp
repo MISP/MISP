@@ -27,7 +27,7 @@ $fields = [
         'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
-        'element' => 'id_name',
+        'element' => 'event',
         'url' => $baseurl . '/events/view2/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
@@ -94,7 +94,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'note-sticky',
+                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])
@@ -102,7 +102,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add opinion'),
-                'icon' => 'scale-balanced',
+                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
                 'url' => $baseurl . '/analystData/add/Opinion/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])

@@ -145,15 +145,15 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 
 <?php if ($showModalHeader): ?>
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-secondary bg-opacity-10"
-     style="border-bottom:2px solid var(--bs-secondary);">
+<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-analystData bg-opacity-10"
+     style="border-bottom:2px solid var(--analystData);">
     <div>
-        <div class="text-uppercase fw-semibold mb-1 text-secondary"
+        <div class="text-uppercase fw-semibold mb-1 text-analystData"
              style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
             <?= __('Analyst Data') ?>
         </div>
         <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-clipboard-list text-secondary" style="font-size:1.2rem;"></i>
+            <i class="fas fa-clipboard-list text-analystData" style="font-size:1.2rem;"></i>
             <?= h($objectType) ?>
         </h4>
         <p class="text-muted mb-0 font-monospace" style="font-size:.72rem;"><?= h($objectUuid) ?></p>
