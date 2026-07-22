@@ -280,11 +280,20 @@
             ['controller' => 'access_logs', 'action' => 'admin_index'],
 
             ['controller' => 'analystData', 'action' => 'index'],
+            ['controller' => 'analystData', 'action' => 'add'],
+            ['controller' => 'analystData', 'action' => 'edit'],
+            ['controller' => 'analystData', 'action' => 'view'],
+            ['controller' => 'analystData', 'action' => 'delete'],
+            ['controller' => 'analystData', 'action' => 'deleteSelection'],
 
             ['controller' => 'feeds', 'action' => 'index'],
             ['controller' => 'feeds', 'action' => 'add'],
             ['controller' => 'feeds', 'action' => 'edit'],
             ['controller' => 'feeds', 'action' => 'view'],
+
+            ['controller' => 'tasks', 'action' => 'index'],
+            ['controller' => 'tasks', 'action' => 'add'],
+            ['controller' => 'tasks', 'action' => 'edit'],
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
