@@ -7,6 +7,13 @@ $actions  = $field['actions'] ?? [];
 $seed     = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
 
+$renderIcon = function ($icon) {
+    $icon = (string)$icon;
+    $isFullClass = strpos($icon, ' ') !== false || strpos($icon, 'misp-icon') !== false;
+    $cls = $isFullClass ? $icon : 'fas fa-' . $icon;
+    return '<i class="' . h($cls) . ' me-2"></i>';
+};
+
 
 if ($field['data_path'] === 'Event.id') {
     $mayModify  = $this->Acl->canModifyEvent($row);
@@ -85,14 +92,14 @@ if ($field['data_path'] === 'Event.id') {
                         <?php if (!empty($action['download'])): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" download="<?= h($title_for_layout) . h($id) . '.json' ?>">
                                 <div>
-                                    <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                    <?= $renderIcon($action['icon']) ?>
                                     <?= h($action['label']) ?>
                                 </div>
                             </a>
                         <?php else: ?>
                             <a class="dropdown-item" href="<?= h($url) ?>">
                                 <div>
-                                    <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                    <?= $renderIcon($action['icon']) ?>
                                     <?= h($action['label']) ?>
                                 </div>
                             </a>
@@ -137,13 +144,13 @@ if ($field['data_path'] === 'Event.id') {
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
                                 <div>
-                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= $renderIcon($iconClass) ?>
                                     <?= h($label) ?>
                                 </div>
                             </a>
                         <?php else: ?>
                             <?= $this->Form->postLink(
-                                '<div><i class="fas fa-' . h($iconClass) . ' me-2"></i>' . h($label) . '</div>',
+                                '<div>' . $renderIcon($iconClass) . h($label) . '</div>',
                                 $url,
                                 [
                                     'escape' => false,
@@ -167,7 +174,7 @@ if ($field['data_path'] === 'Event.id') {
                            href="<?= h($url) ?>"
                            onclick="<?= h($onclick) ?>">
                             <div>
-                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
@@ -181,14 +188,14 @@ if ($field['data_path'] === 'Event.id') {
                            href="#"
                            onclick="event.preventDefault(); copyValueToClipboard('<?= h($copyValue) ?>', '<?= h($copyMessage) ?>');">
                             <div>
-                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
 
                     <?php elseif ($action['type'] === 'postLink'): ?>
                         <?= $this->Form->postLink(
-                            '<div><i class="fas fa-' . h($action['icon']) . ' me-2"></i>' . h($action['label']) . '</div>',
+                            '<div>' . $renderIcon($action['icon']) . h($action['label']) . '</div>',
                             $url,
                             [
                                 'escape' => false,

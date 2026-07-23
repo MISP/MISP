@@ -241,6 +241,8 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
             maxItems:     1,
             options:      [],
             loadThrottle: 300,
+            /* Use a different class name for the loading state to avoid a CSS collision.*/
+            loadingClass: 'ts-loading',
             /* When a galaxy is selected, even an empty query lists its clusters */
             shouldLoad:   function (q) {
                 return currentGalaxyId ? true : q.length >= 2;
@@ -255,7 +257,18 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
                     .then(function (json) { callback(json); })
                     .catch(function () { callback(); });
             },
-            render: { option: renderOpt, item: renderOpt, option_create: false },
+            render: {
+                option: renderOpt,
+                item: renderOpt,
+                option_create: false,
+                /* Use a custom loading spinner to avoid a CSS collision */
+                loading: function () {
+                    return '<div class="text-center py-2">'
+                        + '<span class="spinner-border spinner-border-sm '
+                        + 'text-galaxy" role="status" aria-hidden="true">'
+                        + '</span></div>';
+                }
+            },
             onItemAdd: function (value) {
                 var item = this.options[value];
                 if (item) { addCluster(item); render(); }

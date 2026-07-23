@@ -73,7 +73,8 @@ class RestSearchComponent extends Component
             'retry',
             'expiry',
             'minimum_ttl',
-            'ttl'
+            'ttl',
+            'hash_type'
         ],
         'Event' => [
             'returnFormat',
@@ -157,6 +158,7 @@ class RestSearchComponent extends Component
             'org.nationality',
             'galaxy.*',
             'attackGalaxy',
+            'hash_type'
         ],
         'Object' => [
             'returnFormat',

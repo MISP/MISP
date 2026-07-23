@@ -2527,7 +2527,19 @@ class EventsController extends AppController
             'paramType' => 'named',
         ];
 
-        $this->set('reports',   $result['EventReport']);
+        // Attach analyst data to each report so we can display the "Analyst data" column
+        $reports = $result['EventReport'];
+        if (!empty($reports)) {
+            $flatReports = array_map(function ($r) { return $r['EventReport']; }, $reports);
+            $flatReports = $this->EventReport->attachAnalystDataBulk($flatReports);
+            foreach ($reports as $i => $r) {
+                if (isset($flatReports[$i])) {
+                    $reports[$i]['EventReport'] = $flatReports[$i];
+                }
+            }
+        }
+
+        $this->set('reports',   $reports);
         $this->set('event',     $event);
         $this->set('mayModify', $mayModify);
         $this->set('total',     $total);
@@ -3955,7 +3967,7 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
 
-        if ($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         } else {
             if (Configure::read('MISP.unpublishedprivate')) {
@@ -7228,7 +7240,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
         }
         $this->loadModel('Module');
-        
+
         if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', ['name' => $module])) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
@@ -7271,7 +7283,15 @@ class EventsController extends AppController
             }
         }
 
-        if ($this->request->is('ajax')) {
+        // Overmind renders the whole expansion flow inside a modal:
+        // - the module choice step is loaded via openModal without a module
+        //   (module === '0'/false) -> render the themed enrichmentChoice fragment.
+        // - picking a module re-fetches this action WITH a module over ajax, which
+        //   must render the results screen as a body-only fragment (layout = false).
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+        $isEnrichmentChoiceStep = $module === false || $module === null || $module === '' || $module === '0' || $module === 0;
+
+        if ($this->request->is('ajax') && $isEnrichmentChoiceStep) {
             $modules = [];
 
             if ($model === 'Attribute' || $model === 'ShadowAttribute') {
@@ -7299,6 +7319,13 @@ class EventsController extends AppController
             $this->set('model', $model);
             $this->render('ajax/enrichmentChoice');
         } else {
+            if ($overmindModal) {
+                $this->layout = false;
+            }
+            // For the themed result view (allow the "Back" button to re-opens the module choice )
+            $this->set('type', $type);
+            $this->set('model', $model);
+            $this->set('sourceId', $id);
             $options = [];
             $format = 'simplified';
             foreach ($enabledModules['modules'] as $temp) {
@@ -7350,7 +7377,11 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            // On an Overmind modal (ajax) a session flash would only surface on the
+            // next full page load; the error is shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7401,7 +7432,10 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            //Don't show flash message for Overmind, message will be shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7447,7 +7481,11 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            // On an Overmind modal (ajax) a session flash would only surface on the
+            // next full page load; the error is shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7457,6 +7495,8 @@ class EventsController extends AppController
 
     private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false)
     {
+        $moduleError = (is_array($result) && isset($result['error'])) ? $result['error'] : null;
+
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
         if (!empty($result['comment'])) {
             $importComment = $result['comment'];
@@ -7465,8 +7505,9 @@ class EventsController extends AppController
         }
         $typeCategoryMapping = array();
         foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-            foreach ($cat['types'] as $type) {
-                $typeCategoryMapping[$type][$k] = $k;
+            // Use $typeName, not $type because it is reused below for the "Back" URL.
+            foreach ($cat['types'] as $typeName) {
+                $typeCategoryMapping[$typeName][$k] = $k;
             }
         }
         $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
@@ -7488,7 +7529,16 @@ class EventsController extends AppController
         $this->set('typeCategoryMapping', $typeCategoryMapping);
         $this->set('defaultAttributeDistribution', $this->Event->Attribute->defaultDistribution());
         $this->set('importComment', $importComment);
-        $this->render('resolved_attributes');
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->set('proposals', false);
+            $this->set('missingTldLists', []);
+            $this->set('moduleError', $moduleError);
+            $this->set('backPath', '/events/queryEnrichment/' . $attribute[0]['Attribute']['id'] . '/0/' . $type . '/Attribute');
+            $this->render('freetext_resolution');
+        } else {
+            $this->render('resolved_attributes');
+        }
     }
 
     public function handleModuleResults($id)

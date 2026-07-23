@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '186';
+    private $__queryVersion = '188';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -113,6 +113,10 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
+        // Environment variables are the highest priority source, so they are
+        // applied last to override both the config file and the database.
+        App::uses('EnvSetting', 'Tools');
+        EnvSetting::setGlobalSetting();
 
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');

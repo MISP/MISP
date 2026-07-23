@@ -63,6 +63,7 @@ $this->set('headerDescription', $headerDescription);
         $erBodyId      = 'er-general-body';
         $erOverlayId   = 'er-general-overlay';
         $erMaxH        = '300px';
+        $erCanAddReport = $this->Acl->canModifyEvent($data);
         ?>
         <div class="mb-4">
 
@@ -97,11 +98,14 @@ $this->set('headerDescription', $headerDescription);
                     <p class="mb-1 fw-semibold small">
                         <?= __("This event doesn't have a report for the moment") ?>
                     </p>
-                    <p class="small mb-0">
-                        <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>">
-                            <?= __('Create the first report') ?>
-                        </a>
-                    </p>
+                    <?php if ($erCanAddReport): ?>
+                        <p class="small mb-0">
+                            <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
+                               onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
+                                   <?= __('Create the first report') ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
 

@@ -22,6 +22,7 @@ class ACLComponent extends Component
         'analystData' => [
             'add' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'deleteSelection' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'edit' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'filterAnalystDataForPush' => ['perm_sync'],
             'getChildren' => ['*'],
@@ -30,10 +31,12 @@ class ACLComponent extends Component
             'indexMinimal' => ['*'],
             'pushAnalystData' => ['perm_sync'],
             'view' => ['*'],
+            'viewForObject' => ['theming_enabled'],
         ],
         'analystDataBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),
@@ -91,6 +94,7 @@ class ACLComponent extends Component
             'text' => array('*'),
             'toggleToIDS' => array('perm_add'),
             'updateAttributeValues' => array('perm_add'),
+            'validateValue' => array('AND' => ['perm_add', 'theming_enabled']),
             'view' => array('*'),
             'viewAnalystData' => ['*'],
             'viewPicture' => array('*'),
@@ -112,6 +116,7 @@ class ACLComponent extends Component
         'bookmarks' => [
             'add' => ['*'],
             'delete' => ['*'],
+            'deleteSelection' => ['*'],
             'edit' => ['*'],
             'index' => ['*'],
             'view' => ['*'],
@@ -168,6 +173,7 @@ class ACLComponent extends Component
             'edit' => [],
             'executeRule' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'view' => []
         ],
         'correlations' => [
@@ -260,6 +266,12 @@ class ACLComponent extends Component
                 ]
             ],
             'massDelete' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'deleteSelection' => [
                 'AND' => [
                     'host_org_user',
                     'perm_add'
@@ -463,9 +475,9 @@ class ACLComponent extends Component
             'deleteSelection' => array('AND' => ['perm_galaxy_editor', 'theming_enabled']),
             'disable' => array(),
             'enable' => array(),
-            'massEnable' => array('theming_enabled'),
-            'massDisable' => array('theming_enabled'),
-            'toggleEnable' => array('theming_enabled'),
+            'massEnable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
+            'massDisable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
+            'toggleEnable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'export' => array('*'),
             'forkTree' => array('*'),
             'index' => array('*'),
@@ -485,6 +497,7 @@ class ACLComponent extends Component
         'galaxyClusterBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
             'massDelete' => array(),
@@ -559,6 +572,7 @@ class ACLComponent extends Component
             'add' => array(),
             'edit' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'admin_index' => array(),
             'index' => ['*'],
         ),
@@ -631,6 +645,7 @@ class ACLComponent extends Component
         'orgBlocklists' => array(
             'add' => array(),
             'delete' => array(),
+            'deleteSelection' => array(),
             'edit' => array(),
             'index' => array(),
         ),
@@ -790,6 +805,7 @@ class ACLComponent extends Component
             'index' => [],
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => []
         ],
         'sightings' => array(
@@ -1046,6 +1062,7 @@ class ACLComponent extends Component
         'workflowBlueprints' => [
             'add' => [],
             'delete' => [],
+            'deleteSelection' => [],
             'edit' => [],
             'export' => [],
             'import' => [],

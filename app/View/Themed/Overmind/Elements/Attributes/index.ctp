@@ -56,6 +56,13 @@ $firstRow   = !empty($attributes) ? reset($attributes) : [];
 $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
+$_canAnalystData = !empty($me['Role']['perm_analyst_data']);
+// Enrichment / Cortex expansion (misp-modules): the "Enrich" actions are only
+// offered when the matching services plugin is enabled and the user can add data.
+$_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
+$_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
+// Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
+$inEventView = empty($show_event_id) && !empty($event['Event']['id']);
 
 $path = function($field) use ($model) {
     if (empty($model)) return $field;
@@ -205,6 +212,19 @@ $fields = array_merge($fields, [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Analyst data'),
+        'element' => 'analyst_data_badges',
+        'note_path' => $path('Note'),
+        'opinion_path' => $path('Opinion'),
+        'relationship_path' => $path('Relationship'),
+        'relationship_inbound_path' => $path('RelationshipInbound'),
+        'uuid_path' => $path('uuid'),
+        'object_type' => 'Attribute',
+        'requirement' => $inEventView,
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
+    ],
+    [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Attribute.id',
@@ -216,6 +236,66 @@ $fields = array_merge($fields, [
                 'icon' => 'copy',
                 'data_path' => $path('uuid'),
                 'copy_message' => __('UUID copied to clipboard'),
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add note'),
+                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add opinion'),
+                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
+                'url' => $baseurl . '/analystData/add/Opinion/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add relationship'),
+                'icon' => 'diagram-project',
+                'url' => $baseurl . '/analystData/add/Relationship/%uuid%/Attribute',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'requirement' => function($row) use ($inEventView, $_canAnalystData) {
+                    return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled, $_cortexEnabled) {
+                    return $_canModify && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich'),
+                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
+                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled) {
+                    return $_canModify && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich (Cortex)'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
+                'requirement' => function($row) use ($_canModify, $_cortexEnabled) {
+                    return $_canModify && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
             ],
             [
                 'type' => 'modal',

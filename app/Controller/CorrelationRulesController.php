@@ -26,6 +26,9 @@ class CorrelationRulesController extends AppController
             'selector_types' => $this->CorrelationRule->valid_types
         ];
         $this->set(compact('dropdownData'));
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -42,6 +45,9 @@ class CorrelationRulesController extends AppController
             'selector_types' => $this->CorrelationRule->valid_types
         ];
         $this->set(compact('dropdownData'));
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -50,7 +56,23 @@ class CorrelationRulesController extends AppController
         $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
-        }   
+        }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'CorrelationRule',
+            'restName' => 'CorrelationRules',
+            'itemName' => 'correlation rule',
+            'view' => 'ajax/correlationRuleDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s correlation rule deleted.', '%s correlation rules deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function index($filter = null)
@@ -108,7 +130,11 @@ class CorrelationRulesController extends AppController
             $this->set('question', __('Are you sure you want to execute the correlation rule and thereby decorrelate all events that match the rule with one another (currently: %d events)?', [$impact]));
             $this->set('actionName', __('Execute'));
             $this->layout = false;
-            $this->render('/genericTemplates/confirm');
+            if ($this->theme === "Overmind") {
+                $this->render('ajax/executeRuleConfirmationForm');
+            } else {
+                $this->render('/genericTemplates/confirm');
+            }
         }
     }
 }

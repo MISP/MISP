@@ -1,19 +1,22 @@
 <?php
-$paths = array_map('trim', explode(',', $field['data_path']));
-$id = Hash::get($row, $paths[0]);
-$name = isset($paths[1]) ? Hash::get($row, $paths[1]) : null;
-
+/**
+ * Event badge — canonical rendering for an event reference.
+ *
+ * Expected variables:
+ * - $id   (int|string)  Event id. Required — nothing renders without it.
+ * - $name (string|null) Event info / name shown as the subtitle.
+ * - $url  (string|null) Link target. Falls back to the canonical
+ *                       events/view2 route when omitted.
+ * - $org  (array|null)  Owner organisation (id|uuid|name) for the logo/link.
+ */
+$id = $id ?? null;
 if (empty($id)) {
     return;
 }
+$name = $name ?? null;
+$url = !empty($url) ? $url : $baseurl . '/events/view2/' . $id;
+$org = !empty($org) ? $org : [];
 
-$urlTemplate = $field['url'] ?? '';
-$currentUrl = str_replace(['%id%', '%event_id%'], $id, $urlTemplate);
-
-// Optional secondary data path pointing to an org 
-$org = !empty($field['org_data_path'])
-    ? Hash::extract($row, $field['org_data_path'])
-    : [];
 $orgBlock = '';
 if (!empty($org)) {
     $orgId = !empty($org['id'])
@@ -44,9 +47,10 @@ if (!empty($org)) {
     <div class="d-flex align-items-center gap-2 px-2 py-1" style="background:rgba(24,146,177,.07); border-bottom:1px solid rgba(24,146,177,.2);">
         <div class="d-flex align-items-center gap-2">
             <span class="fw-semibold text-uppercase" style="font-size:.6rem; letter-spacing:.08em; color:var(--primary);">
-                 Event            </span>
+                <?= __('Event') ?>
+            </span>
         </div>
-        <a href="<?= h($currentUrl) ?>" class="d-flex align-items-center gap-1 text-decoration-none" style="font-size:.7rem; color:var(--primary);" target="_blank">
+        <a href="<?= h($url) ?>" class="d-flex align-items-center gap-1 text-decoration-none" style="font-size:.7rem; color:var(--primary);" target="_blank">
             <span class="fw-semibold"><?= sprintf('#%s', h($id)) ?></span>
             <i class="fas fa-arrow-up-right-from-square" style="font-size:.6rem;"></i>
         </a>

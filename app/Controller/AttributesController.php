@@ -44,6 +44,7 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
         $this->Security->unlockedActions[] = 'editField';
+        $this->Security->unlockedActions[] = 'validateValue';
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -296,7 +297,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1923,6 +1924,83 @@ class AttributesController extends AppController
             throw new NotFoundException();
         }
         $this->set('fails', $this->MispAttribute->checkComposites());
+    }
+
+    /**
+     * Lightweight AJAX endpoint used by the add/edit attribute form to give the
+     * user immediate feedback on whether the entered value matches the format
+     * expected for the selected type. Reuses AttributeValidationTool so the
+     * client stays in sync with the server-side validation rules.
+     * Expects a POST with `type`, `value` and optional `batch` (one value per
+     * line). Returns JSON: {valid: bool, message: string}.
+     */
+    public function validateValue()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects a POST request.'));
+        }
+        $data = $this->request->data;
+        if (isset($data['Attribute'])) {
+            $data = $data['Attribute'];
+        }
+        $type = $data['type'] ?? '';
+        $value = $data['value'] ?? '';
+        $batch = !empty($data['batch']);
+
+        $response = ['valid' => true, 'message' => ''];
+
+        // Without a known type we cannot validate the format, so don't block.
+        if ($type === '' || !isset($this->MispAttribute->typeDefinitions[$type])) {
+            return $this->__jsonResponse($response);
+        }
+
+        $compositeTypes = $this->MispAttribute->getCompositeTypes();
+        $lines = $batch ? preg_split('/\r\n|\r|\n/', $value) : [$value];
+
+        foreach ($lines as $index => $line) {
+            if (trim($line) === '') {
+                continue; // ignore blank lines
+            }
+            $error = $this->__validateAttributeValue($type, $line, $compositeTypes);
+            if ($error !== true) {
+                $response['valid'] = false;
+                $response['message'] = $batch
+                    ? __('Line %s: %s', $index + 1, $error)
+                    : $error;
+                break;
+            }
+        }
+
+        return $this->__jsonResponse($response);
+    }
+
+    /**
+     * Validate a single value against a type, mirroring validTypesForValue().
+     * @return true|string True when valid, otherwise a human readable message.
+     */
+    private function __validateAttributeValue($type, $value, array $compositeTypes)
+    {
+        if (in_array($type, $compositeTypes, true) && substr_count($value, '|') !== 1) {
+            return __('This type expects a composite value in the format part1|part2.');
+        }
+        $modifiedValue = AttributeValidationTool::modifyBeforeValidation($type, $value);
+        $result = AttributeValidationTool::validate($type, $modifiedValue);
+        if ($result === true) {
+            return true;
+        }
+        if (is_string($result)) {
+            return $result;
+        }
+        return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst(str_replace('-', ' ', $type)));
+    }
+
+    private function __jsonResponse(array $body)
+    {
+        return new CakeResponse([
+            'body' => json_encode($body),
+            'status' => 200,
+            'type' => 'json',
+        ]);
     }
 
     public function downloadAttachment($key='download', $id)

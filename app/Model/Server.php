@@ -1021,7 +1021,9 @@ class Server extends AppModel
         $reindexed = [];
         foreach ($localEvents as $item) {
             $event = $item['Event'];
-            $event['EventTag'] = $item['EventTag'] ?? [];
+            if ($isInternal) {
+                $event['EventTag'] = $item['EventTag'] ?? [];
+            }
             $reindexed[$event['uuid']] = $event;
         }
         $localEvents = $reindexed;
@@ -1031,23 +1033,29 @@ class Server extends AppModel
             if (isset($localEvents[$uuid])) {
                 $isUnlocked = !$localEvents[$uuid]['locked'];
 
-                $localTs = $localEvents[$uuid]['timestamp'];
-                $incomingTs = $event['timestamp'];
+                $localTs = (int)$localEvents[$uuid]['timestamp'];
+                $incomingTs = (int)$event['timestamp'];
 
-                $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
-                $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+                if ($isInternal) {
+                    $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                    $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
 
-                $sameFingerprint =
-                    $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
-                    $localEventTagsFingerprint === $eventTagsFingerprint;
+                    $sameFingerprint =
+                        $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                        $localEventTagsFingerprint === $eventTagsFingerprint;
 
-                $shouldDiscard =
-                    $isUnlocked ||
-                    ($localTs > $incomingTs) || // strictly newer local event
-                    (
-                        $localTs === $incomingTs && // same timestamp handling
-                        (!$isInternal || $sameFingerprint)
-                    );
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs > $incomingTs) || // strictly newer local event
+                        (
+                            $localTs === $incomingTs && // same timestamp handling
+                            $sameFingerprint
+                        );
+                } else {
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs >= $incomingTs); // same timestamp handling
+                }
                 if ($shouldDiscard) {
                     unset($events[$k]);
                 }
@@ -2622,6 +2630,9 @@ class Server extends AppModel
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
         if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
+                if (Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+                    return true;
+                }
                 $this->getPubSubTool()->killService();
                 return true;
             }
@@ -2833,6 +2844,10 @@ class Server extends AppModel
         $cliOnly = isset($setting['cli_only']) && $setting['cli_only'];
         if (!$cli && $cliOnly) {
             return __('This setting can only changed via the CLI. Change request ignored.');
+        }
+        App::uses('EnvSetting', 'Tools');
+        if (EnvSetting::isSetViaEnv($setting['name'])) {
+            return __('This setting is set via an environment variable and cannot be changed here. Change request ignored.');
         }
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
@@ -4088,19 +4103,28 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        try {
-            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
-        } catch (Exception $e) {
-            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
-            $diagnostic_errors++;
-            return 2;
-        }
+        if (!Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+            try {
+                $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+            } catch (Exception $e) {
+                $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+                $diagnostic_errors++;
+                return 2;
+            }
 
-        if (!$isInstalled) {
-            $diagnostic_errors++;
-            return 2;
+            if (!$isInstalled) {
+                $diagnostic_errors++;
+                return 2;
+            }
         }
-        if ($pubSubTool->checkIfRunning()) {
+        try {
+            $status = $pubSubTool->statusCheck();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not running or not responding.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 3;
+        }
+        if (!empty($status)) {
             return 0;
         }
         $diagnostic_errors++;
@@ -8108,6 +8132,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_supervisor_managed' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting if the ZeroMQ server is managed by supervisor.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                    'cli_only' => true,
                 ),
                 'ZeroMQ_host' => array(
                     'level' => 2,

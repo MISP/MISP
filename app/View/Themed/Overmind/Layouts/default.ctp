@@ -127,10 +127,80 @@
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 
+            ['controller' => 'correlationRules', 'action' => 'index'],
+            ['controller' => 'correlationRules', 'action' => 'add'],
+            ['controller' => 'correlationRules', 'action' => 'edit'],
+            ['controller' => 'correlationRules', 'action' => 'delete'],
+            ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
+            ['controller' => 'correlationRules', 'action' => 'executeRule'],
+
+            ['controller' => 'news', 'action' => 'admin_index'],
+            ['controller' => 'news', 'action' => 'add'],
+            ['controller' => 'news', 'action' => 'edit'],
+            ['controller' => 'news', 'action' => 'delete'],
+            ['controller' => 'news', 'action' => 'deleteSelection'],
+
+            ['controller' => 'bookmarks', 'action' => 'index'],
+            ['controller' => 'bookmarks', 'action' => 'add'],
+            ['controller' => 'bookmarks', 'action' => 'edit'],
+            ['controller' => 'bookmarks', 'action' => 'view'],
+            ['controller' => 'bookmarks', 'action' => 'delete'],
+            ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
+
+            ['controller' => 'workflowBlueprints', 'action' => 'index'],
+            ['controller' => 'workflowBlueprints', 'action' => 'add'],
+            ['controller' => 'workflowBlueprints', 'action' => 'edit'],
+            ['controller' => 'workflowBlueprints', 'action' => 'view'],
+            ['controller' => 'workflowBlueprints', 'action' => 'delete'],
+            ['controller' => 'workflowBlueprints', 'action' => 'deleteSelection'],
+
+            ['controller' => 'userLoginProfiles', 'action' => 'index'],
+
+            ['controller' => 'roles', 'action' => 'index'],
+            ['controller' => 'roles', 'action' => 'view'],
+            ['controller' => 'roles', 'action' => 'admin_add'],
+            ['controller' => 'roles', 'action' => 'admin_edit'],
+
+            ['controller' => 'organisations', 'action' => 'index'],
+            ['controller' => 'organisations', 'action' => 'view'],
+            ['controller' => 'organisations', 'action' => 'admin_add'],
+            ['controller' => 'organisations', 'action' => 'admin_edit'],
+
+            // Blocklist family. Controller casing is normalised at match time
+            // (see the $normalisePageKey loop below), so a single entry per
+            // action covers every URL casing (camelCase admin menu, underscored
+            // galaxies/analyst-data menus, PascalCase bookmarks, ...).
+            ['controller' => 'eventBlocklists', 'action' => 'index'],
+            ['controller' => 'eventBlocklists', 'action' => 'add'],
+            ['controller' => 'eventBlocklists', 'action' => 'edit'],
+            ['controller' => 'eventBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'orgBlocklists', 'action' => 'index'],
+            ['controller' => 'orgBlocklists', 'action' => 'add'],
+            ['controller' => 'orgBlocklists', 'action' => 'edit'],
+            ['controller' => 'orgBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'index'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'add'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'edit'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'sightingBlocklists', 'action' => 'index'],
+            ['controller' => 'sightingBlocklists', 'action' => 'add'],
+            ['controller' => 'sightingBlocklists', 'action' => 'edit'],
+            ['controller' => 'sightingBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'analystDataBlocklists', 'action' => 'index'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'add'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'edit'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'deleteSelection'],
+
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
             ['controller' => 'servers', 'action' => 'edit'],
             ['controller' => 'servers', 'action' => 'delete'],
+            ['controller' => 'servers', 'action' => 'previewIndex'],
+            ['controller' => 'servers', 'action' => 'previewEvent'],
             // ['controller' => 'servers', 'action' => 'cache'],
             // ['controller' => 'servers', 'action' => 'pull'],
             // ['controller' => 'servers', 'action' => 'push'],
@@ -147,6 +217,8 @@
             ['controller' => 'taxiiServers', 'action' => 'edit'],
             ['controller' => 'taxiiServers', 'action' => 'delete'],
             ['controller' => 'taxiiServers', 'action' => 'view'],
+            ['controller' => 'taxiiServers', 'action' => 'collectionsIndex'],
+            ['controller' => 'taxiiServers', 'action' => 'objectsIndex'],
 
             ['controller' => 'cerebrates', 'action' => 'index'],
             ['controller' => 'cerebrates', 'action' => 'add'],
@@ -207,6 +279,21 @@
             ['controller' => 'audit_logs', 'action' => 'admin_index'],
             ['controller' => 'access_logs', 'action' => 'admin_index'],
 
+            ['controller' => 'analystData', 'action' => 'index'],
+            ['controller' => 'analystData', 'action' => 'add'],
+            ['controller' => 'analystData', 'action' => 'edit'],
+            ['controller' => 'analystData', 'action' => 'view'],
+            ['controller' => 'analystData', 'action' => 'delete'],
+            ['controller' => 'analystData', 'action' => 'deleteSelection'],
+
+            ['controller' => 'feeds', 'action' => 'index'],
+            ['controller' => 'feeds', 'action' => 'add'],
+            ['controller' => 'feeds', 'action' => 'edit'],
+            ['controller' => 'feeds', 'action' => 'view'],
+
+            ['controller' => 'tasks', 'action' => 'index'],
+            ['controller' => 'tasks', 'action' => 'add'],
+            ['controller' => 'tasks', 'action' => 'edit'],
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
@@ -217,12 +304,24 @@
         $currentController = $this->params['controller'];
         $currentAction = $this->params['action'];
 
+        // Normalise controller/action names so any URL casing of the same page
+        // matches its allowlist entry. $this->params reflect the exact casing of
+        // the request URL segment (e.g. /OrgBlocklists vs /orgBlocklists vs
+        // /org_blocklists all reach OrgBlocklistsController), so an exact string
+        // compare is fragile. Lowercasing + stripping underscores collapses every
+        // casing of a given controller/action to one key; distinct controllers
+        // never collide (the name itself is unique) and the themed view resolves
+        // from the controller class regardless of URL casing.
+        $normalisePageKey = function ($value) {
+            return strtolower(str_replace('_', '', (string)$value));
+        };
+
         $useBootstrap5 = false;
 
         foreach ($bootstrap5Pages as $page) {
             if (
-                $currentController === $page['controller'] &&
-                $currentAction === $page['action']
+                $normalisePageKey($currentController) === $normalisePageKey($page['controller']) &&
+                $normalisePageKey($currentAction) === $normalisePageKey($page['action'])
             ) {
                 $useBootstrap5 = true;
                 break;
@@ -236,7 +335,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
-                ['misp-iconify-font', ['preload' => true]]
+                ['misp-iconify', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],

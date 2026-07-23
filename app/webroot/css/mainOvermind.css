@@ -10,6 +10,8 @@
     --correlation: #E67F0D;
     --category: #EF476F;
     --type: #06D6A0;
+    --analystData: #8F2D56;
+    --enrichment: #48435C;
     --bs-link-color: var(--primary);
     --bs-link-hover-color: var(--primary);
     --bs-link-hover-color-rgb: 24, 146, 177;
@@ -430,9 +432,10 @@ body[data-controller="users"][data-action="login"] {
     top: 60px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;
+    /* Below the fixed-top navbar (Bootstrap z-index 1030) */
+    z-index: 1000;
     width: 100%;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 #flashContainer {
@@ -482,7 +485,7 @@ body[data-controller="users"][data-action="login"] {
 }
 
 .table-scroll {
-    max-height: 90vh;
+    height: 90vh;
     overflow-y: auto;
 }
 
@@ -1362,4 +1365,20 @@ tr.attr-proposal-row td:first-child {
 @keyframes ctFlash {
     0%, 20% { background: rgba(var(--bs-warning-rgb), .35); }
     100%    { background: transparent; }
+}
+
+
+
+
+
+.analyst-hub-card {
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.analyst-hub-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12) !important;
+}
+.analyst-hub-card-active {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .18) !important;
 }

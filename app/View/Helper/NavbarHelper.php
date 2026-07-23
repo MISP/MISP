@@ -60,12 +60,10 @@ class NavbarHelper extends AppHelper {
         'correlations'       => 'administration',
         'user_settings'      => 'administration',
         'users'              => [
-            'default'    => 'account',
-            'statistics' => 'datapoints',
-            'add'        => 'administration',
-            'index'      => 'administration',
-            'email'      => 'administration',
-            'terms'      => 'resources',
+            'default'       => 'account',
+            'admin_default' => 'administration', // any admin_* action (index, view, add, email, edit…)
+            'statistics'    => 'datapoints',
+            'terms'         => 'resources',
         ],
         // Logs
         'logs'        => 'logs',
@@ -1123,7 +1121,14 @@ class NavbarHelper extends AppHelper {
         if (is_string($entry)) {
             return $entry;
         }
-        return $entry[strtolower($action)] ?? $entry['default'] ?? null;
+        $action = strtolower($action);
+        if (isset($entry[$action])) {
+            return $entry[$action];
+        }
+        if (strpos($action, 'admin_') === 0 && isset($entry['admin_default'])) {
+            return $entry['admin_default'];
+        }
+        return $entry['default'] ?? null;
     }
 
     private function markActive(array $items, ?string $activeMenuId): array

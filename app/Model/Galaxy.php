@@ -1392,7 +1392,7 @@ class Galaxy extends AppModel
                     }
                 }
             }
-            $converted['version'] = $converted['version'] > $cluster['GalaxyCluster']['version'];
+            $converted['version'] = max($converted['version'], $cluster['GalaxyCluster']['version']);
             foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
                 if (isset($values[$i]['meta'][$element['key']])) {
                     if (is_array($values[$i]['meta'][$element['key']])) {

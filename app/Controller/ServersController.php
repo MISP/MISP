@@ -2215,7 +2215,7 @@ public function updateJSON()
             $results['message'] = __('Server updateJSON job queued. Job ID: %s', $jobId);
         } else {
             foreach ($this->Server->updateJSON() as $type => $result) {
-                $results[$type] = $results['success'];
+                $results[$type] = $result['success'];
             }
         }
 

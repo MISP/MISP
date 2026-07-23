@@ -9133,7 +9133,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "varchar(255)",
-                "column_default": "basic",
+                "column_default": "'basic'",
                 "extra": ""
             },
             {
@@ -11428,7 +11428,6 @@
             "id": true
         },
         "taxii_servers": {
-            "auth_type": false,
             "discovery_url": false,
             "id": true,
             "name": false,
