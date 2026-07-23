@@ -1,6 +1,13 @@
 <?php
 $org = Hash::extract($row, $field['data_path']);
 
+// Opt-in fallback mirroring the legacy org element's 'default_org' (e.g.
+// 'MISP' for default galaxy data owned by org 0): substituted when no real
+// organisation is attached at the data_path.
+if (empty($org['id']) && empty($org['uuid']) && empty($org['name']) && !empty($field['default_org'])) {
+    $org = ['name' => $field['default_org']];
+}
+
 if (empty($org)) {
     return;
 }
@@ -16,7 +23,9 @@ else {
 }
 
 if (empty($id)) {
-    if (!empty($org[0])) {
+    if (!empty($org['name'])) {
+        $name = $org['name'];
+    } elseif (!empty($org[0])) {
         $name = $org[0];
     } else {
         $name = null;
