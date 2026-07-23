@@ -295,6 +295,8 @@
             ['controller' => 'tasks', 'action' => 'add'],
             ['controller' => 'tasks', 'action' => 'edit'],
 
+            ['controller' => 'jobs', 'action' => 'index'],
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
 

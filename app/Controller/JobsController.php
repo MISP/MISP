@@ -34,28 +34,39 @@ class JobsController extends AppController
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
         $queues = ['email', 'default', 'cache', 'prio', 'update'];
+        $conditions = [];
         if ($queue && in_array($queue, $queues, true)) {
-            $this->paginate['conditions'] = ['Job.worker' => $queue];
+            $conditions['Job.worker'] = $queue;
         }
-        $jobs = $this->paginate();
-        foreach ($jobs as &$job) {
-            if (!empty($job['Job']['process_id'])) {
-                $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
-                $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
-            } else {
-                $job['Job']['job_status'] = 'Unknown';
-                $job['Job']['failed'] = null;
+        // Enrich every row with its live status (Redis / BackgroundJobsTool) and
+        // the worker health — the same post-processing the legacy index did, now
+        // hung off CRUD->index's afterFind hook.
+        $enrich = function (array $data) use ($workers) {
+            foreach ($data as &$job) {
+                if (!empty($job['Job']['process_id'])) {
+                    $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
+                    $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
+                } else {
+                    $job['Job']['job_status'] = 'Unknown';
+                    $job['Job']['failed'] = null;
+                }
+                if (Configure::read('SimpleBackgroundJobs.enabled')) {
+                    $job['Job']['worker_status'] = true;
+                } else {
+                    $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
+                }
             }
-            if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                $job['Job']['worker_status'] = true;
-            } else {
-                $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
-            }
-        }
+            unset($job);
+            return $data;
+        };
+        $this->CRUD->index([
+            'contain' => ['Org'],
+            'conditions' => $conditions,
+            'afterFind' => $enrich,
+        ]);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($jobs, $this->response->type());
+            return $this->restResponsePayload;
         }
-        $this->set('list', $jobs);
         $this->set('queue', $queue);
     }
 
