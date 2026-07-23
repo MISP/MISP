@@ -2286,7 +2286,7 @@
                                                    <tr>
                                                        <td><span class="label label-warning"><?php echo h($match['warninglist_name']); ?></span></td>
                                                        <td>
-                                                            <a href="#attributes" onclick="$('.nav-tabs a[href=\'#attributes\']').tab('show'); $('#beta-attr-search').val('<?php echo h($match['value']); ?>').trigger('keyup'); return false;" class="attr-value">
+                                                            <a href="#attributes" onclick="$('.nav-tabs a[href=\'#attributes\']').tab('show'); $('#beta-attr-search').val(<?php echo h(json_encode($match['value'])); ?>).trigger('keyup'); return false;" class="attr-value">
                                                                <?php echo h($match['value']); ?>
                                                            </a>
                                                        </td>
