@@ -978,7 +978,7 @@
                     data-object-type="<?php echo $dataType; ?>"
                     data-primary-id="<?php echo h($item['id']); ?>"
                     <?php if (!empty($item['uuid'])): ?>data-uuid="<?php echo h($item['uuid']); ?>"<?php endif; ?>
-                    <?php if ($isObject): ?>data-object-name="<?php echo $dataName; ?>" data-object-id="<?php echo h($item['id']); ?>"<?php else: ?>data-attribute-type="<?php echo $dataName; ?>"<?php endif; ?>>
+                    <?php if ($isObject): ?>data-object-name="<?php echo h($dataName); ?>" data-object-id="<?php echo h($item['id']); ?>"<?php else: ?>data-attribute-type="<?php echo h($dataName); ?>"<?php endif; ?>>
                     
                     <!-- Checkbox & Actions Dropdown -->
                     <td style="position: relative;" <?php if ($isObject) echo 'colspan="7"'; ?>>
