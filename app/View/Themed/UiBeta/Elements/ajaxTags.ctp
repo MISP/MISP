@@ -89,7 +89,7 @@
 
             $highlightedTagsString .= sprintf(
                 '<tr><td style="font-weight: bold;text-transform: uppercase;">%s</td></td><td>%s</td><td>%s</td></tr>',
-                $hTaxonomy['taxonomy']['Taxonomy']['namespace'],
+                h($hTaxonomy['taxonomy']['Taxonomy']['namespace']),
                 $hTags,
                 $hButtonData ? '<span style="white-space:nowrap">' . implode('', $hButtonData) . '</span>' : ''
             );
