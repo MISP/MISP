@@ -1243,7 +1243,7 @@
                             $hasGalaxies = !empty($subAttr['Galaxy']);
                             $attributeIsLast = $isLast && !$hasTags && !$hasGalaxies;
                         ?>
-                        <tr class="beta-attr-row object-attr-row" id="Attribute_<?php echo h($subAttr['id']); ?>_tr" data-object-type="attribute" data-primary-id="<?php echo h($subAttr['id']); ?>" data-uuid="<?php echo h($subAttr['uuid']); ?>" data-attribute-type="<?php echo h($subAttr['type']); ?>" data-parent-object-id="<?php echo h($item['id']); ?>" data-parent-object="<?php echo $dataName; ?>">
+                        <tr class="beta-attr-row object-attr-row" id="Attribute_<?php echo h($subAttr['id']); ?>_tr" data-object-type="attribute" data-primary-id="<?php echo h($subAttr['id']); ?>" data-uuid="<?php echo h($subAttr['uuid']); ?>" data-attribute-type="<?php echo h($subAttr['type']); ?>" data-parent-object-id="<?php echo h($item['id']); ?>" data-parent-object="<?php echo h($dataName); ?>">
                             <td class="tree-cell <?php echo $attributeIsLast ? 'last-item' : ''; ?>">
                                  <!-- Checkbox & Actions for Sub-Attribute -->
                                  <div class="beta-left-cell-stack">
