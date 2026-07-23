@@ -9,7 +9,7 @@
             if (!empty($missingTaxonomies)) {
                 echo __(
                     'Missing taxonomies: <span class="red bold">%s</span><br>',
-                    implode(', ', $missingTaxonomies)
+                    h(implode(', ', $missingTaxonomies))
                 );
             }
             break;
