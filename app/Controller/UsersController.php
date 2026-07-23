@@ -365,7 +365,7 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
-    
+
         $this->User->recursive = 0;
         $this->User->read(null, $id);
         $this->User->set('password', '');
@@ -376,6 +376,9 @@ class UsersController extends AppController
 
     public function admin_index()
     {
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
@@ -889,6 +892,10 @@ class UsersController extends AppController
                 }
             }
             $this->set('currentOrg', $this->Auth->user('org_id'));
+            // Pre-select an organisation when opened from an org view
+            if (!empty($this->passedArgs['organisation']) && $this->_isSiteAdmin() && empty($this->request->data['User']['org_id'])) {
+                $this->request->data['User']['org_id'] = $this->passedArgs['organisation'];
+            }
             $this->set('isSiteAdmin', $this->_isSiteAdmin());
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
@@ -1743,6 +1750,10 @@ class UsersController extends AppController
             $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
         }
 
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
+
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
@@ -1817,6 +1828,9 @@ class UsersController extends AppController
                 } else {
                     $this->Flash->success(__('E-mails sent.'));
                 }
+                if (!$this->_isRest() && $this->theme === 'Overmind') {
+                    $this->redirect('/admin/users/index');
+                }
             }
 
             $this->set('users', $temp);
@@ -1848,6 +1862,16 @@ class UsersController extends AppController
         if ($this->request->is('post')) {
             if (isset($this->request->data['User']['firstTime'])) {
                 $firstTime = $this->request->data['User']['firstTime'];
+            }
+            if (!$this->_isRest() && $this->theme === 'Overmind') {
+                // Redirect back with a flash message instead of the raw JSON
+                $success = $this->User->initiatePasswordReset($user, $firstTime, true);
+                if ($success) {
+                    $this->Flash->success(__('New credentials have been generated and sent to the user.'));
+                } else {
+                    $this->Flash->error(__('There was an error notifying the user. Their credentials were not altered.'));
+                }
+                $this->redirect($this->referer());
             }
             return new CakeResponse($this->User->initiatePasswordReset($user, $firstTime));
         } else {
@@ -3210,6 +3234,13 @@ class UsersController extends AppController
             }
             $this->Flash->success($message);
             $this->redirect($this->referer());
+        }
+
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->set('targetLabel', implode(', ', array_keys($userIds)));
+            $this->set('userId', $id);
+            return $this->render('/Users/ajax/user_destroy_confirmation');
         }
 
         $this->set(

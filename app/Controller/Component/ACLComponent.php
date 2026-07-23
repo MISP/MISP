@@ -656,6 +656,7 @@ class ACLComponent extends Component
         'organisations' => array(
             'admin_add' => array(),
             'admin_delete' => array(),
+            'admin_deleteSelection' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'admin_edit' => array(),
             'admin_generateuuid' => array(),
             'admin_merge' => array(),
@@ -692,8 +693,10 @@ class ACLComponent extends Component
         'roles' => array(
             'admin_add' => array(),
             'admin_delete' => array(),
+            'admin_deleteSelection' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'admin_edit' => array(),
             'admin_set_default' => array(),
+            'admin_togglePermission' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'index' => array('*'),
             'view' => array('*'),
         ),

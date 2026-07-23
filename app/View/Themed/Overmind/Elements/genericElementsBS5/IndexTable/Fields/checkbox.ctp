@@ -291,9 +291,25 @@ if ($field['data_path'] === 'Server.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Organisation.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'AuthKey.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin || !empty($canCreateAuthkey);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Role.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
     }
     $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';

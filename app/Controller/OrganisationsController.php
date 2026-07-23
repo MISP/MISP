@@ -24,7 +24,11 @@ class OrganisationsController extends AppController
 
     public function index()
     {
-        $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'local';
+        // The default theme lists only local organisations to keep the view
+        // focused; the Overmind theme defaults to all organisations because its
+        // filter bar makes narrowing the scope trivial.
+        $defaultScope = ($this->theme === 'Overmind') ? 'all' : 'local';
+        $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : $defaultScope;
         $conditions = [];
         if ($scope !== 'all') {
             $conditions['Organisation.local'] = $scope === 'external' ? 0 : 1;
@@ -178,6 +182,138 @@ class OrganisationsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    /**
+     * Mass-delete organisations from the Overmind index (also backs the single
+     * row "Delete" action). An organisation cannot be removed while it still has
+     * users or events attached (mirrors Organisation::beforeDelete); such rows
+     * are reported as blocked and skipped rather than silently failing.
+     *
+     * GET  (opened via openModal): renders the confirmation modal.
+     * POST (from that modal): deletes the deletable selection.
+     */
+    public function admin_deleteSelection($id = null)
+    {
+        if ($this->request->is(['post', 'put', 'delete'])) {
+            $idList = $this->request->data['Organisation']['id'] ?? $id;
+            if (!is_array($idList)) {
+                $idList = (is_numeric($idList)) ? [$idList] : json_decode($idList, true);
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+
+            $deleted = 0;
+            $failed = 0;
+            $blocked = [];
+            foreach ($idList as $orgId) {
+                $org = $this->Organisation->find('first', [
+                    'conditions' => ['Organisation.id' => $orgId],
+                    'recursive' => -1,
+                    'fields' => ['Organisation.id', 'Organisation.name'],
+                ]);
+                if (empty($org)) {
+                    $failed++;
+                    continue;
+                }
+                if ($this->__orgDeletionBlocker($org['Organisation']['id']) !== null) {
+                    $blocked[] = $org['Organisation']['name'];
+                    continue;
+                }
+                if ($this->Organisation->delete($org['Organisation']['id'])) {
+                    $deleted++;
+                } else {
+                    $failed++;
+                }
+            }
+
+            $messages = [];
+            if ($deleted) {
+                $messages[] = __n('%s organisation deleted.', '%s organisations deleted.', $deleted, $deleted);
+            }
+            if (!empty($blocked)) {
+                $messages[] = count($blocked) === 1
+                    ? __('Organisation "%s" was not deleted because it still has users or events attached.', $blocked[0])
+                    : __('%s organisations were not deleted because they still have users or events attached: %s', count($blocked), implode(', ', $blocked));
+            }
+            if ($failed) {
+                $messages[] = __n('%s organisation could not be deleted.', '%s organisations could not be deleted.', $failed, $failed);
+            }
+            $message = trim(implode(' ', $messages));
+
+            if ($this->IndexFilter->isRest()) {
+                if ($deleted) {
+                    return $this->RestResponse->saveSuccessResponse('Organisations', 'admin_deleteSelection', $id, $this->response->type(), $message);
+                }
+                return $this->RestResponse->saveFailResponse('Organisations', 'admin_deleteSelection', false, $message, $this->response->type());
+            }
+
+            if ($deleted && empty($blocked) && !$failed) {
+                $this->Flash->success($message);
+            } elseif ($deleted) {
+                $this->Flash->warning($message);
+            } else {
+                $this->Flash->error($message ?: __('No organisations were deleted.'));
+            }
+            return $this->redirect(['action' => 'index', 'admin' => false]);
+        }
+
+        // GET → build the confirmation modal.
+        $idList = is_numeric($id) ? [$id] : json_decode($id, true);
+        if (empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+        $orgs = $this->Organisation->find('all', [
+            'conditions' => ['Organisation.id' => $idList],
+            'recursive' => -1,
+            'fields' => ['Organisation.id', 'Organisation.name'],
+        ]);
+        $deletable = [];
+        $blocked = [];
+        foreach ($orgs as $org) {
+            $blocker = $this->__orgDeletionBlocker($org['Organisation']['id']);
+            if ($blocker !== null) {
+                $blocked[] = [
+                    'name' => $org['Organisation']['name'],
+                    'reason' => $blocker['reason'],
+                    'count' => $blocker['count'],
+                ];
+            } else {
+                $deletable[] = ['id' => $org['Organisation']['id'], 'name' => $org['Organisation']['name']];
+            }
+        }
+
+        $this->request->data['Organisation']['id'] = json_encode($idList);
+        $this->set('idArray', $idList);
+        $this->set('deletable', $deletable);
+        $this->set('blocked', $blocked);
+        $this->layout = false;
+        $this->render('/Organisations/ajax/orgDeleteConfirmationForm');
+    }
+
+    /**
+     * Returns null when the organisation can be deleted, otherwise the reason it
+     * is blocked ('users' or 'events') with the offending count. Mirrors the
+     * guards in Organisation::beforeDelete().
+     */
+    private function __orgDeletionBlocker($orgId)
+    {
+        $userCount = $this->Organisation->User->find('count', [
+            'conditions' => ['User.org_id' => $orgId],
+            'recursive' => -1,
+        ]);
+        if ($userCount) {
+            return ['reason' => 'users', 'count' => $userCount];
+        }
+        $eventCount = $this->Organisation->Event->find('count', [
+            'conditions' => ['OR' => ['Event.org_id' => $orgId, 'Event.orgc_id' => $orgId]],
+            'recursive' => -1,
+        ]);
+        if ($eventCount) {
+            return ['reason' => 'events', 'count' => $eventCount];
+        }
+        return null;
     }
 
     public function admin_generateuuid()

@@ -598,14 +598,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Users & Orgs'),
                 'icon' => 'fas fa-building-user',
                 'children' => [
-                    [
-                        'label' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add',
-                        'controller' => 'users',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('users', 'admin_add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add User'),
+                    //     'url' => $baseurl . '/admin/users/add',
+                    //     'controller' => 'users',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('users', 'admin_add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Users'),
                         'url' => $baseurl . '/admin/users/index',
@@ -613,14 +613,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'index',
                         'requirement' => $isAdmin,
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
-                    ],
-                    [
-                        'label' => __('Contact User'),
-                        'url' => $baseurl . '/admin/users/email',
-                        'controller' => 'users',
-                        'action' => 'email',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-envelope'
                     ],
                     [
                         'label' => __('List Organisations'),
