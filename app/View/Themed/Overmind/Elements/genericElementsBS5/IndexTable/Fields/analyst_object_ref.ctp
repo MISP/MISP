@@ -17,6 +17,8 @@ if ($uuid === '') {
 
 if (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
     $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;
+} elseif ($type === 'Event') {
+    $url = $baseurl . '/events/view2/' . $uuid;
 } else {
     $url = $baseurl . '/' . Inflector::tableize($type) . '/view/' . $uuid;
 }
