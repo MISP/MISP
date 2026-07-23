@@ -2605,7 +2605,7 @@
                 </div>
                 
                 <?php if (!empty($contributors)): ?>
-                    <p style="margin-bottom: 20px;"><strong><?php echo __('Contributors'); ?>:</strong> <?php echo implode(', ', $contributors); ?></p>
+                    <p style="margin-bottom: 20px;"><strong><?php echo __('Contributors'); ?>:</strong> <?php echo h(implode(', ', $contributors)); ?></p>
                 <?php endif; ?>
                 
                 <div id="history-content-container">
