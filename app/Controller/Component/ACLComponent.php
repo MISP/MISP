@@ -879,6 +879,7 @@ class ACLComponent extends Component
             'add' => array(),
             'edit' => array(),
             'delete' => array(),
+            'deleteSelection' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'toggleEnabled' => array(),
             'forceRun' => array(),
             'viewLogs' => array(),

@@ -315,6 +315,14 @@ if ($field['data_path'] === 'Role.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Task.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'DecayingModel.id') {
     // Mirror DecayingModel::isEditableByCurrentUser(); default models can never
     // be deleted (only site-admins may toggle them).
