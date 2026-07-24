@@ -545,7 +545,8 @@ class ACLComponent extends Component
             'getGenerateCorrelationProgress' => array(),
             'getProgress' => array('*'),
             'index' => array(),
-            'clearJobs' => array()
+            'clearJobs' => array(),
+            'deleteSelection' => array('AND' => ['perm_site_admin', 'theming_enabled']),
         ),
         'logs' => array(
             'admin_index' => array('perm_audit'),
