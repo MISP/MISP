@@ -33,14 +33,7 @@ $fields = [
         'element' => 'id',
         'url' => '#',
         'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Organisation name'),
-        'sort' => 'SightingBlocklist.org_name',
-        'data_path' => 'SightingBlocklist.org_name',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
+        'display_in' => ['card']
     ],
     [
         'name' => __('Organisation UUID'),
@@ -52,17 +45,19 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Comment'),
-        'sort' => 'SightingBlocklist.comment',
-        'data_path' => 'SightingBlocklist.comment',
-        'card_section' => 'links',
+        'name' => __('Organisation name'),
+        'sort' => 'SightingBlocklist.org_name',
+        'data_path' => 'SightingBlocklist.org_name, SightingBlocklist.comment',
+        'element' => 'name_description',
+        'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Blocked amount'),
         'sort' => 'SightingBlocklist.blocked_data.blocked_amount',
         'data_path' => 'SightingBlocklist.blocked_data.blocked_amount',
-        'card_section' => 'extra',
+        'element' => 'count',
+        'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
     [
@@ -70,7 +65,7 @@ $fields = [
         'sort' => 'SightingBlocklist.blocked_data.blocked_last_time',
         'data_path' => 'SightingBlocklist.blocked_data.blocked_last_time',
         'element' => 'datetime',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
@@ -78,7 +73,7 @@ $fields = [
         'sort' => 'SightingBlocklist.created',
         'data_path' => 'SightingBlocklist.created',
         'element' => 'datetime',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [

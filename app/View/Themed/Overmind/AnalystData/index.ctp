@@ -84,18 +84,18 @@ if ($m === 'Note') {
     ];
 } else if ($m === 'Relationship') {
     $fields[] = [
+        'name' => __('Relationship type'),
+        'sort' => $m . '.relationship_type',
+        'data_path' => $m . '.relationship_type',
+        'card_section' => 'links',
+        'display_in' => ['table', 'card'],
+    ];
+    $fields[] = [
         'name' => __('Related object'),
         'element' => 'analyst_object_ref',
         'type_path' => $m . '.related_object_type',
         'uuid_path' => $m . '.related_object_uuid',
         'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
-    ];
-    $fields[] = [
-        'name' => __('Relationship type'),
-        'sort' => $m . '.relationship_type',
-        'data_path' => $m . '.relationship_type',
-        'card_section' => 'links',
         'display_in' => ['table', 'card'],
     ];
 }

@@ -1382,3 +1382,79 @@ tr.attr-proposal-row td:first-child {
     transform: translateY(-2px);
     box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .18) !important;
 }
+
+
+#preview-related-card .related-event-row:hover { 
+    background: #f8fafc;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Decaying Models
+   ═══════════════════════════════════════════════════════════ */
+
+.dm-types .dm-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .12rem .6rem; border-radius: 999px; line-height: 1.5;
+    font-size: .74rem; font-weight: 600; text-decoration: none;
+    background: hsl(var(--h) 65% 92%);
+    color: hsl(var(--h) 60% 28%);
+    border: 1px solid hsl(var(--h) 65% 80%);
+}
+[data-bs-theme="dark"] .dm-types .dm-chip {
+    background: hsl(var(--h) 45% 20%);
+    color: hsl(var(--h) 75% 80%);
+    border-color: hsl(var(--h) 40% 34%);
+}
+.dm-types .dm-chip .dm-chip-dot {
+    width: .5rem; height: .5rem; border-radius: 50%;
+    background: hsl(var(--h) 62% 48%); flex: 0 0 auto;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Roles
+   ═══════════════════════════════════════════════════════════ */
+
+
+.perm-flag-toggle { 
+    cursor: pointer; 
+    transition: background-color .12s ease, border-color .12s ease; 
+}
+
+.perm-flag-toggle:hover { 
+    background-color: var(--bs-secondary-bg, #e9ecef); 
+    border-color: var(--bs-secondary-color, #adb5bd) !important; 
+}
+
+
+
+.perm-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .35rem .75rem;
+        border-radius: 2rem;
+        border: 1px solid #d8dde3;
+        background: #fff;
+        color: #6c757d;
+        font-size: .8rem;
+        line-height: 1.1;
+        cursor: pointer;
+        user-select: none;
+        margin: 0;
+        transition: border-color .12s ease, background .12s ease, color .12s ease;
+    }
+    .perm-pill:hover { border-color: #198754; color: #198754; }
+    .perm-pill .perm-pill-check { font-size: .7rem; opacity: 0; transition: opacity .12s ease; }
+    .perm-pill.granted {
+        background: rgba(25,135,84,.1);
+        border-color: #198754;
+        color: #157347;
+        font-weight: 600;
+    }
+    .perm-pill.granted .perm-pill-check { opacity: 1; }
+    .role-section-label {
+        font-size: .65rem;
+        letter-spacing: .1em;
+    }

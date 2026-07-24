@@ -28,9 +28,13 @@ if (!empty($currentController)) {
         }
     }
 }
-$title = isset($headerTitle)
-    ? h($headerTitle)
-    : (isset($currentController) ? ucfirst(h($currentController)) : '');
+
+// `headerTitleHtml` lets a view supply pre-built, already-escaped title markup
+$title = isset($headerTitleHtml)
+    ? $headerTitleHtml
+    : (isset($headerTitle)
+        ? h($headerTitle)
+        : (isset($currentController) ? ucfirst(h($currentController)) : ''));
 
 $paginatorCount = null;
 try {

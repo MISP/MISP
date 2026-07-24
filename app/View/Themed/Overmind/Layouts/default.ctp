@@ -124,6 +124,9 @@
             ['controller' => 'allowedlists', 'action' => 'index'],
             ['controller' => 'allowedlists', 'action' => 'admin_add'],
 
+            ['controller' => 'correlations', 'action' => 'top'],
+            ['controller' => 'correlations', 'action' => 'overCorrelations'],
+
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 
@@ -266,7 +269,9 @@
             ['controller' => 'users', 'action' => 'admin_edit'],
             ['controller' => 'users', 'action' => 'admin_add'],
             ['controller' => 'users', 'action' => 'admin_quickEmail'],
+            ['controller' => 'users', 'action' => 'admin_email'],
             ['controller' => 'users', 'action' => 'totp_new'],
+            ['controller' => 'users', 'action' => 'view_login_history'],
             ['controller' => 'auth_keys', 'action' => 'index'],
             ['controller' => 'auth_keys', 'action' => 'add'],
             ['controller' => 'auth_keys', 'action' => 'edit'],
@@ -296,6 +301,13 @@
             ['controller' => 'tasks', 'action' => 'edit'],
 
             ['controller' => 'jobs', 'action' => 'index'],
+
+            ['controller' => 'decayingModel', 'action' => 'index'],
+            ['controller' => 'decayingModel', 'action' => 'view'],
+            ['controller' => 'decayingModel', 'action' => 'add'],
+            ['controller' => 'decayingModel', 'action' => 'edit'],
+            ['controller' => 'decayingModel', 'action' => 'import'],
+            //['controller' => 'decayingModel', 'action' => 'decayingTool'],
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],

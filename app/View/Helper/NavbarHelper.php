@@ -238,14 +238,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Statistics'),
-                'url' => $baseurl . '/users/statistics',
-                'controller' => 'users',
-                'action' => 'statistics',
-                'icon' => 'fas fa-pie-chart',
-            ]
+            // [
+            //     'type' => 'group',
+            //     'label' => __('Statistics'),
+            //     'url' => $baseurl . '/users/statistics',
+            //     'controller' => 'users',
+            //     'action' => 'statistics',
+            //     'icon' => 'fas fa-pie-chart',
+            // ]
         ];
 
         return [
@@ -317,19 +317,19 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-hourglass-half',
                 'children' => [
                     [
-                        'label' => __('Decaying Models Tools'),
-                        'url' => $baseurl . '/decayingModel/decayingTool',
-                        'controller' => 'decayingModel',
-                        'action' => 'decayingTool',
-                        'icon' => 'fas fa-toolbox'
-                    ],
-                    [
-                        'label' => __('List Decaying Models'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/decayingModel/index',
                         'controller' => 'decayingModel',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
-                    ]
+                    ],
+                    // [
+                    //     'label' => __('Decaying Models Tool'),
+                    //     'url' => $baseurl . '/decayingModel/decayingTool',
+                    //     'controller' => 'decayingModel',
+                    //     'action' => 'decayingTool',
+                    //     'icon' => 'fas fa-toolbox'
+                    // ]
                 ]
             ],
             ['divider' => true],
@@ -598,14 +598,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Users & Orgs'),
                 'icon' => 'fas fa-building-user',
                 'children' => [
-                    [
-                        'label' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add',
-                        'controller' => 'users',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('users', 'admin_add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add User'),
+                    //     'url' => $baseurl . '/admin/users/add',
+                    //     'controller' => 'users',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('users', 'admin_add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Users'),
                         'url' => $baseurl . '/admin/users/index',
@@ -613,14 +613,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'index',
                         'requirement' => $isAdmin,
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
-                    ],
-                    [
-                        'label' => __('Contact User'),
-                        'url' => $baseurl . '/admin/users/email',
-                        'controller' => 'users',
-                        'action' => 'email',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-envelope'
                     ],
                     [
                         'label' => __('List Organisations'),
