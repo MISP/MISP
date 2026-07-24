@@ -124,6 +124,9 @@
             ['controller' => 'allowedlists', 'action' => 'index'],
             ['controller' => 'allowedlists', 'action' => 'admin_add'],
 
+            ['controller' => 'correlations', 'action' => 'top'],
+            ['controller' => 'correlations', 'action' => 'overCorrelations'],
+
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 

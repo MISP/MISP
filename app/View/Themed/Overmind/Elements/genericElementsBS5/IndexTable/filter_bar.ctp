@@ -4,10 +4,14 @@ if (empty($filter_bar)) {
     return;
 }
 
+// The action this bar drives — pagination/search/filter URLs are built against
+// `<item_url>/<action>`. Defaults to 'index';
+$filterAction = $filter_bar['action'] ?? 'index';
+
 $currentPath = $this->request->here(false);
 $currentFilters = [];
 
-if (preg_match('~/index/(.+)~', $currentPath, $matches)) {
+if (preg_match('~/' . preg_quote($filterAction, '~') . '/(.+)~', $currentPath, $matches)) {
     $segments = explode('/', $matches[1]);
     foreach ($segments as $segment) {
         if (strpos($segment, ':') !== false) {
@@ -198,7 +202,7 @@ foreach (($filter_bar['children'] ?? []) as $c) {
 $clearViaJs = false;
 if ($explicitActive !== null) {
     $activeToShow = $explicitActive;
-    $clearHref = $filter_bar['clear_url'] ?? ($item_url . '/index');
+    $clearHref = $filter_bar['clear_url'] ?? ($item_url . '/' . $filterAction);
 } elseif ($isAjaxBar) {
     // In an ajax tab, only this bar's own filters are removable; 
     // "Clear all" is handled in JS so it drops them while keeping the scope.
@@ -207,7 +211,7 @@ if ($explicitActive !== null) {
     $clearViaJs = true;
 } else {
     $activeToShow = $currentFilters;
-    $clearHref = $item_url . '/index';
+    $clearHref = $item_url . '/' . $filterAction;
 }
 ?>
 <?php if (!empty($activeToShow)): ?>
@@ -265,7 +269,7 @@ $hasMassActions = !empty($filter_bar['delete'])
 <?php endif; ?>
 
 <script>
-var baseIndexUrl = "<?= h($baseurl . $item_url . '/index') ?>";
+var baseIndexUrl = "<?= h($baseurl . $item_url . '/' . $filterAction) ?>";
 <?php if ($hasMassActions): ?>
 var selectedItems = new Map();
 <?php endif; ?>
@@ -309,7 +313,7 @@ function isMobile() {
     // Capture per-instance config locally
     const cfg = filterBarConfig;
     const base = baseIndexUrl;
-    const itemIndexPath = '<?= h($item_url . '/index') ?>';
+    const itemIndexPath = '<?= h($item_url . '/' . $filterAction) ?>';
 
     // Only wire the table/card view toggle when it is present.
     // Indexes using a custom view switch have no #viewCard and manage their
