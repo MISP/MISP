@@ -28,7 +28,9 @@
         </ul>
     </div>
     <?php
-        $data = array(
+        // NB: this local is named $topBarData (not $data) because the controller
+        // now hands the job list to the view as $data (CRUDComponent convention).
+        $topBarData = array(
             'children' => array(
                 array(
                     'children' => array(
@@ -68,7 +70,7 @@
         );
     ?>
     <div>
-        <?php echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data)); ?>
+        <?php echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $topBarData)); ?>
         <table class="table table-striped table-hover table-condensed">
         <tr>
             <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
@@ -84,7 +86,7 @@
             <th><?php echo $this->Paginator->sort('progress');?></th>
         </tr>
 <?php
-    foreach ($list as $k => $item):
+    foreach ($data as $k => $item):
         $progress = '100';
         $startRefreshing = false;
         if ($item['Job']['failed'] || $item['Job']['status'] == Job::STATUS_FAILED) {
