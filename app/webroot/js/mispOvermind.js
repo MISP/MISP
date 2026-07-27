@@ -364,13 +364,13 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe) {
+function multiSelectItems(url, suffixe, size = 'sm') {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
     const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
-    openModal(fullUrl, 'sm');
+    openModal(fullUrl, size);
 }
 
 function redirectToExportResult() {

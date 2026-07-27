@@ -243,6 +243,8 @@ if ($explicitActive !== null) {
 
 <?php
 $hasMassActions = !empty($filter_bar['delete'])
+    || !empty($filter_bar['accept'])
+    || !empty($filter_bar['discard'])
     || !empty($filter_bar['export'])
     || !empty($filter_bar['mass_edit'])
     || !empty($filter_bar['mass_tag'])

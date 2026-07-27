@@ -273,6 +273,7 @@
             ['controller' => 'users', 'action' => 'admin_email'],
             ['controller' => 'users', 'action' => 'totp_new'],
             ['controller' => 'users', 'action' => 'view_login_history'],
+            ['controller' => 'users', 'action' => 'registrations'],
             ['controller' => 'auth_keys', 'action' => 'index'],
             ['controller' => 'auth_keys', 'action' => 'add'],
             ['controller' => 'auth_keys', 'action' => 'edit'],

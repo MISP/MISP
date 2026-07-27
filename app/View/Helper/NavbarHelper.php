@@ -64,6 +64,7 @@ class NavbarHelper extends AppHelper {
             'admin_default' => 'administration', // any admin_* action (index, view, add, email, edit…)
             'statistics'    => 'datapoints',
             'terms'         => 'resources',
+            'registrations' => 'administration',
         ],
         // Logs
         'logs'        => 'logs',

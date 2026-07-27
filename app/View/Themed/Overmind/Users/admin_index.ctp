@@ -5,6 +5,14 @@ $canAdmin = !empty($isSiteAdmin) || !empty($me['Role']['perm_admin']);
 
 $headerActions = [];
 
+$headerActions[] = [
+    'type'  => 'navigate',
+    'label' => __('View registrations'),
+    'icon'  => 'person-circle-plus',
+    'url'   => $baseurl . '/users/registrations',
+];
+
+
 if ($canAdmin) {
     $headerActions[] = [
         'type'  => 'modal',

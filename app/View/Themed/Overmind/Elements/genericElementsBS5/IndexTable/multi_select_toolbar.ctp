@@ -181,6 +181,28 @@ $filter_bar = $filter_bar ?? [];
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['accept'])): ?>
+            <button id="mass-accept-button"
+                    class="btn btn-success btn-sm"
+                    title="<?= __('Process the selected registrations') ?>"
+                    aria-label="<?= __('Process the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['accept']) ?>', '', 'xl')">
+                <i class="fas fa-check"></i>
+                <span> <?= __('Process') ?></span>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['discard'])): ?>
+            <button id="mass-discard-button"
+                    class="btn btn-danger btn-sm"
+                    title="<?= __('Discard the selected registrations') ?>"
+                    aria-label="<?= __('Discard the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['discard']) ?>', '')">
+                <i class="fas fa-trash text-white"></i>
+                <span class="text-white"> <?= __('Discard') ?></span>
+            </button>
+        <?php endif; ?>
+
         <?php if (!empty($filter_bar['delete'])): ?>
             <?php
                 // `delete_url` overrides the constructed URL for indexes whose

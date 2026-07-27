@@ -2901,6 +2901,13 @@ class UsersController extends AppController
             if (empty($id) && !empty($this->params['named']['id'])) {
                 $id = $this->params['named']['id'];
             }
+            // Mass discard posts the selection as a JSON array
+            if (is_string($id) && isset($id[0]) && $id[0] === '[') {
+                $decoded = json_decode($id, true);
+                if (is_array($decoded)) {
+                    $id = $decoded;
+                }
+            }
             $this->loadModel('Inbox');
             if (!is_array($id)) {
                 $id = array($id);
@@ -2950,6 +2957,13 @@ class UsersController extends AppController
         if (empty($id) && !empty($this->params['named']['id'])) {
             $id = $this->params['named']['id'];
         }
+        // Mass accept posts the selection as a JSON array
+        if (is_string($id) && isset($id[0]) && $id[0] === '[') {
+            $decoded = json_decode($id, true);
+            if (is_array($decoded)) {
+                $id = $decoded;
+            }
+        }
         $this->loadModel('Inbox');
         if (Validation::uuid($id)) {
             $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
@@ -2971,6 +2985,8 @@ class UsersController extends AppController
             if ($this->request->is('get')) {
                 $suggestedOrg = $this->User->Organisation->checkDesiredOrg($suggestedOrg, $registrations[$k]);
                 $suggestedRole = $this->User->Role->checkDesiredRole($suggestedRole, $registrations[$k]);
+                $registrations[$k]['suggestedOrg'] = $this->User->Organisation->checkDesiredOrg(null, $registrations[$k]);
+                $registrations[$k]['suggestedRole'] = $this->User->Role->checkDesiredRole(null, $registrations[$k]);
             }
         }
         $default_role = $this->User->Role->find('first', array(
@@ -3011,11 +3027,30 @@ class UsersController extends AppController
             if (!empty($suggestedOrg)) {
                 $orgConditions['OR'][] = array('Organisation.id' => $suggestedOrg[0]);
             }
+            $suggestedOrgIds = array();
+            foreach ($registrations as $reg) {
+                if (!empty($reg['suggestedOrg']) && is_array($reg['suggestedOrg']) && !empty($reg['suggestedOrg'][0])) {
+                    $suggestedOrgIds[] = $reg['suggestedOrg'][0];
+                }
+            }
+            if (!empty($suggestedOrgIds)) {
+                $orgConditions['OR'][] = array('Organisation.id' => array_unique($suggestedOrgIds));
+            }
             $this->set('orgs', $this->User->Organisation->find('list', array(
                 'fields' => array('id', 'name'),
                 'recursive' => -1,
                 'conditions' => $orgConditions
             )));
+            $defaultRoleId = !empty($default_role) ? $default_role['Role']['id'] : null;
+            foreach ($registrations as $reg) {
+                $regId = $reg['Inbox']['id'];
+                $this->request->data['User'][$regId] = array(
+                    'org_id' => (!empty($reg['suggestedOrg']) && is_array($reg['suggestedOrg']) && !empty($reg['suggestedOrg'][0])) ? $reg['suggestedOrg'][0] : null,
+                    'role_id' => $defaultRoleId,
+                );
+            }
+            $this->set('registrations', $registrations);
+            $this->set('defaultRoleId', $defaultRoleId);
             $this->set('registration', $registrations[$k]);
             $this->set('suggestedOrg', $suggestedOrg);
             $this->set('suggestedRole', $suggestedRole);
@@ -3024,27 +3059,36 @@ class UsersController extends AppController
             $this->layout = false;
         } else {
             $results = array('successes' => 0, 'fails' => 0);
-            if (!isset($this->request->data['User']['role_id'])) {
-                if (!empty($default_role)) {
-                    $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+            $userData = isset($this->request->data['User']) ? $this->request->data['User'] : array();
+            $defaultRoleId = !empty($default_role) ? $default_role['Role']['id'] : null;
+            foreach ($registrations as $registration) {
+                $regId = $registration['Inbox']['id'];
+                // Overmind sends one org/role per user: data[User][<regId>][...].
+                // The legacy form sends a single org_id/role_id for the whole batch.
+                if (isset($userData[$regId]) && is_array($userData[$regId])) {
+                    $orgId = isset($userData[$regId]['org_id']) ? $userData[$regId]['org_id'] : null;
+                    $roleId = isset($userData[$regId]['role_id']) ? $userData[$regId]['role_id'] : null;
                 } else {
+                    $orgId = isset($userData['org_id']) ? $userData['org_id'] : null;
+                    $roleId = isset($userData['role_id']) ? $userData['role_id'] : null;
+                }
+                if (empty($roleId)) {
+                    $roleId = $defaultRoleId;
+                }
+                if (empty($roleId)) {
                     throw new BadRequestException(__('Role ID not provided and no default role exist on the instance'));
                 }
-            }
-            if (!isset($this->request->data['User']['org_id'])) {
-                throw new BadRequestException(__('No organisation selected. Supply an Organisation ID'));
-            } else {
-                if (Validation::uuid($this->request->data['User']['org_id'])) {
-                    $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);
-                    $this->request->data['User']['org_id'] = $id;
+                if (empty($orgId)) {
+                    throw new BadRequestException(__('No organisation selected. Supply an Organisation ID'));
                 }
-            }
-            foreach ($registrations as $registration) {
+                if (Validation::uuid($orgId)) {
+                    $orgId = $this->Toolbox->findIdByUuid($this->User->Organisation, $orgId);
+                }
                 $result = $this->User->registerUser(
                     $this->Auth->user(),
                     $registration['Inbox'],
-                    $this->request->data['User']['org_id'],
-                    $this->request->data['User']['role_id']
+                    $orgId,
+                    $roleId
                 );
                 $results[($result ? 'successes' : 'fails')] += 1;
             }
