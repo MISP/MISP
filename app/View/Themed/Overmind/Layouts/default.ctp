@@ -10,6 +10,8 @@
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
             ['controller' => 'users', 'action' => 'register'],
+            ['controller' => 'users', 'action' => 'forgot'],
+            ['controller' => 'users', 'action' => 'change_pw'],
 
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'add'],
@@ -325,7 +327,7 @@
         // Chrome-less authentication pages (login, self-registration): no navbar,
         // no footer, no headerSection — just the centered card over the gradient
         // background (styled in mainOvermind.css via the body data-action attr).
-        $isAuthPage = ($currentController === 'users' && in_array($currentAction, ['login', 'register'], true));
+        $isAuthPage = ($currentController === 'users' && in_array($currentAction, ['login', 'register', 'forgot', 'change_pw'], true));
 
         // Normalise controller/action names so any URL casing of the same page
         // matches its allowlist entry. $this->params reflect the exact casing of
