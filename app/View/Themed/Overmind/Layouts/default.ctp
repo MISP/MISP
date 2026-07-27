@@ -9,6 +9,7 @@
     <?php
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
+            ['controller' => 'users', 'action' => 'register'],
 
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'add'],
@@ -320,6 +321,11 @@
         $currentController = $this->params['controller'];
         $currentAction = $this->params['action'];
 
+        // Chrome-less authentication pages (login, self-registration): no navbar,
+        // no footer, no headerSection — just the centered card over the gradient
+        // background (styled in mainOvermind.css via the body data-action attr).
+        $isAuthPage = ($currentController === 'users' && in_array($currentAction, ['login', 'register'], true));
+
         // Normalise controller/action names so any URL casing of the same page
         // matches its allowlist entry. $this->params reflect the exact casing of
         // the request URL segment (e.g. /OrgBlocklists vs /orgBlocklists vs
@@ -393,8 +399,8 @@
         <header>
             <?php
                 if ($useBootstrap5){
-                    // Don't print the navbar for the login page
-                    if (!($currentController === 'users' && $currentAction === 'login')) {
+                    // Don't print the navbar for the authentication pages
+                    if (!$isAuthPage) {
                         $context = [
                             'me' => $me,
                             'baseurl' => $baseurl,
@@ -427,7 +433,7 @@
                 }
             ?>
         </header> 
-        <?php if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')): ?>
+        <?php if ($useBootstrap5 && !$isAuthPage): ?>
             <?php if (Configure::read('debug') > 0): ?>
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
@@ -480,7 +486,7 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
+                if ($useBootstrap5 && !$isAuthPage) {
                     echo $this->element('headerSection', [
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
@@ -501,9 +507,9 @@
     <!-- Footer -->
     <?php
         if ($useBootstrap5){
-            // Don't print the footer for the login page
-            if (!($currentController === 'users' && $currentAction === 'login')) {
-                echo $this->element('footerBS5'); 
+            // Don't print the footer for the authentication pages
+            if (!$isAuthPage) {
+                echo $this->element('footerBS5');
             }
         }
         else {

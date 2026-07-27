@@ -40,7 +40,8 @@ body{
     padding-top: 56px;
 }
 
-body[data-controller="users"][data-action="login"] {
+body[data-controller="users"][data-action="login"],
+body[data-controller="users"][data-action="register"] {
     background: linear-gradient(180deg, var(--primary) 0%, #12718E 50%, #0B394A 100%);
     min-height: 100vh;
     padding-top: 56px;  /* Adjust for fixed navbar height */
