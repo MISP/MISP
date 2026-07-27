@@ -615,6 +615,14 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
                     ],
                     [
+                        'label' => __('User Settings'),
+                        'url' => $baseurl . '/user_settings/index',
+                        'controller' => 'user_settings',
+                        'action' => 'index',
+                        'requirement' => $isAdmin,
+                        'icon' => 'fas fa-sliders'
+                    ],
+                    [
                         'label' => __('List Organisations'),
                         'url' => $baseurl . '/organisations/index',
                         'controller' => 'organisations',
@@ -747,29 +755,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'overCorrelations',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-hexagon-nodes-bolt'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'group',
-                'label' => __('Settings'),
-                'icon' => 'fas fa-sliders',
-                'children' => [
-                    [
-                        'label' => __('Set User Settings'),
-                        'url' => $baseurl . '/user_settings/setSetting',
-                        'controller' => 'user_settings',
-                        'action' => 'setSetting',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-gear'
-                    ],
-                    [
-                        'label' => __('List User Settings'),
-                        'url' => $baseurl . '/user_settings/index',
-                        'controller' => 'user_settings',
-                        'action' => 'index',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-users-gear'
                     ]
                 ]
             ]

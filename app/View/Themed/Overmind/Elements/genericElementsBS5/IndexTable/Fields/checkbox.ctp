@@ -323,6 +323,13 @@ if ($field['data_path'] === 'Task.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'UserSetting.id') {
+    // Deletability is resolved server-side (checkAccess + checkSettingAccess)
+    // and exposed as UserSetting._canDelete by UserSettingsController::index.
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = !empty($row['UserSetting']['_canDelete']) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Job.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

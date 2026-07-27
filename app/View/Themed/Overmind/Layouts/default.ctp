@@ -277,7 +277,9 @@
             ['controller' => 'auth_keys', 'action' => 'edit'],
             ['controller' => 'auth_keys', 'action' => 'view'],
             ['controller' => 'benchmarks', 'action' => 'index'],
-
+            ['controller' => 'user_settings', 'action' => 'index'],
+            ['controller' => 'user_settings', 'action' => 'setSetting'],
+            ['controller' => 'user_settings', 'action' => 'deleteSelection'],
 
             ['controller' => 'logs', 'action' => 'index'],
             ['controller' => 'logs', 'action' => 'admin_index'],

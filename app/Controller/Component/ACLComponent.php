@@ -1027,6 +1027,7 @@ class ACLComponent extends Component
             'setSetting' => array('not_read_only_authkey'),
             'getSetting' => array('*'),
             'delete' => array('not_read_only_authkey'),
+            'deleteSelection' => array('AND' => ['not_read_only_authkey', 'theming_enabled']),
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
             'setTheme' => ['*'],
