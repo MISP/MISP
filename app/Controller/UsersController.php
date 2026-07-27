@@ -949,18 +949,39 @@ class UsersController extends AppController
                 $this->request->data['User'] = $this->request->data;
             }
             $abortPost = false;
+            $isOvermindAjax = !$this->_isRest() && $this->request->is('ajax') && $this->theme === 'Overmind';
+            $jsonResponse = function (array $payload) {
+                return new CakeResponse(array(
+                    'body' => json_encode($payload),
+                    'status' => 200,
+                    'type' => 'json',
+                ));
+            };
             if (!$this->_isRest() || empty($this->request->header('Authorization'))) {
                 if (Configure::read('Security.require_password_confirmation')) {
+                    $currentPasswordError = false;
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                         if (!$hashed) {
                             $abortPost = true;
-                            $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                            $currentPasswordError = __('Incorrect password');
+                            if (!$isOvermindAjax) {
+                                $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                            }
                         }
                         unset($this->request->data['User']['current_password']);
                     } else {
                         $abortPost = true;
-                        $this->Flash->info('Please enter your current password to continue.');
+                        $currentPasswordError = __('Please enter your current password to continue.');
+                        if (!$isOvermindAjax) {
+                            $this->Flash->info('Please enter your current password to continue.');
+                        }
+                    }
+                    if ($abortPost && $isOvermindAjax) {
+                        return $jsonResponse(array(
+                            'success' => false,
+                            'errors' => array('current_password' => $currentPasswordError),
+                        ));
                     }
                 }
             }
@@ -981,7 +1002,14 @@ class UsersController extends AppController
                         }
                     }
                     if ($abortPost) {
-                        $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+                        $domainError = __('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']);
+                        if ($isOvermindAjax) {
+                            return $jsonResponse(array(
+                                'success' => false,
+                                'errors' => array('email' => $domainError),
+                            ));
+                        }
+                        $this->Flash->error($domainError);
                     }
                 }
             }
@@ -1107,6 +1135,9 @@ class UsersController extends AppController
                             unset($user['User']['authkey']);
                         }
                         return $this->RestResponse->viewData($user, $this->response->type());
+                    } elseif ($isOvermindAjax) {
+                        $this->Flash->success(__('The user has been saved'));
+                        return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
                         $this->redirect(array('action' => 'index'));
@@ -1114,6 +1145,12 @@ class UsersController extends AppController
                 } else {
                     if ($this->_isRest()) {
                         return $this->RestResponse->saveFailResponse('Users', 'admin_edit', $id, $this->User->validationErrors, $this->response->type());
+                    } elseif ($isOvermindAjax) {
+                        return $jsonResponse(array(
+                            'success' => false,
+                            'message' => __('The user could not be saved. Please, try again.'),
+                            'errors' => $this->User->validationErrors,
+                        ));
                     } else {
                         $this->Flash->error(__('The user could not be saved. Please, try again.'));
                     }

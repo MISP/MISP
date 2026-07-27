@@ -10,6 +10,12 @@ $customAuth = (bool)Configure::read('Plugin.CustomAuth_enable');
 $customAuthName = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
 $syncRoleIds = array_values(array_map('strval', array_keys($syncRoles)));
 
+// Strip PCRE delimiters from the complexity regex so it can feed a JS RegExp.
+$pwRegexBody = (string)$complexity;
+if (strlen($pwRegexBody) >= 2 && $pwRegexBody[0] === '/') {
+    $pwRegexBody = substr($pwRegexBody, 1, strrpos($pwRegexBody, '/') - 1);
+}
+
 // BS5 switch (checkbox) helper.
 $switch = function ($field, $label, $disabled = false) {
     $sid = 'sw_' . $field;
@@ -48,6 +54,14 @@ echo $this->Form->create('User', [
         </p>
     </div>
     <i class="fas fa-user-pen text-primary" style="font-size:2rem; opacity:.5;"></i>
+</div>
+
+<!-- Server-side errors returned by the AJAX submit (kept in the modal). -->
+<div class="px-4 pt-3 d-none" id="editUserAlertWrapper">
+    <div class="alert alert-danger d-flex align-items-start gap-2 mb-0">
+        <i class="fas fa-circle-exclamation mt-1"></i>
+        <div id="editUserAlert"></div>
+    </div>
 </div>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
@@ -159,18 +173,24 @@ echo $this->Form->create('User', [
                         <?= $this->Form->label('password', __('Password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('password', [
                             'class' => 'form-control bg-light',
+                            'id' => 'editPassword',
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
-                        <div class="form-text"><?= __('Min length %s — complexity: %s', h($length), h($complexity)) ?></div>
+                        <div class="form-text">
+                            <?= __('Min %s characters — upper & lower case and a number or symbol.', h($length)) ?>
+                        </div>
+                        <div id="editPasswordFeedback" class="small mt-1"></div>
                     </div>
                     <div class="col-md-6">
                         <?= $this->Form->label('confirm_password', __('Confirm password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('confirm_password', [
                             'class' => 'form-control bg-light',
+                            'id' => 'editConfirm',
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
+                        <div id="editConfirmFeedback" class="small mt-1"></div>
                     </div>
                 </div>
             </div>
@@ -241,9 +261,11 @@ echo $this->Form->create('User', [
                 <?= $this->Form->label('current_password', __('Enter your current password to save'), ['class' => 'form-label fw-semibold']) ?>
                 <?= $this->Form->password('current_password', [
                     'class' => 'form-control bg-light',
+                    'id' => 'editCurrentPassword',
                     'autocomplete' => 'current-password',
                     'value' => '',
                 ]) ?>
+                <div id="editCurrentPasswordFeedback" class="small mt-1"></div>
             </div>
         <?php endif; ?>
 
@@ -309,5 +331,136 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
         if (pwSection) pwSection.style.display = on ? 'none' : '';
     }
     if (extReq) { extReq.addEventListener('change', toggleExt); toggleExt(); }
+
+    // ── Real-time password validation ─────────────────────────────
+    var pw = document.getElementById('editPassword');
+    var cf = document.getElementById('editConfirm');
+    var pwFb = document.getElementById('editPasswordFeedback');
+    var cfFb = document.getElementById('editConfirmFeedback');
+    var PW_MIN = <?= (int)$length ?>;
+    var PW_RE = null;
+    try { PW_RE = new RegExp(<?= json_encode($pwRegexBody) ?>); } catch (e) { PW_RE = null; }
+    var MSG_SHORT = <?= json_encode(__('Too short — at least %s characters', '%N%')) ?>.replace('%N%', PW_MIN);
+    var MSG_WEAK  = <?= json_encode(__('Does not meet the complexity requirements')) ?>;
+    var MSG_OK    = <?= json_encode(__('Strong password')) ?>;
+    var MSG_NOMATCH = <?= json_encode(__('Passwords do not match')) ?>;
+    var MSG_MATCH   = <?= json_encode(__('Passwords match')) ?>;
+
+    function setState(input, fb, ok, msg) {
+        if (!input) return;
+        input.classList.remove('is-valid', 'is-invalid');
+        if (msg === '') { if (fb) { fb.textContent = ''; } return; }
+        input.classList.add(ok ? 'is-valid' : 'is-invalid');
+        if (fb) {
+            fb.textContent = msg;
+            fb.className = 'small mt-1 ' + (ok ? 'text-success' : 'text-danger');
+        }
+    }
+    function checkPw() {
+        if (!pw) return;
+        var v = pw.value;
+        if (v === '') { setState(pw, pwFb, false, ''); checkCf(); return; }
+        if (v.length < PW_MIN) { setState(pw, pwFb, false, MSG_SHORT); }
+        else if (PW_RE && !PW_RE.test(v)) { setState(pw, pwFb, false, MSG_WEAK); }
+        else { setState(pw, pwFb, true, MSG_OK); }
+        checkCf();
+    }
+    function checkCf() {
+        if (!cf) return;
+        if (cf.value === '') { setState(cf, cfFb, false, ''); return; }
+        var ok = !!pw && cf.value === pw.value;
+        setState(cf, cfFb, ok, ok ? MSG_MATCH : MSG_NOMATCH);
+    }
+    if (pw) { pw.addEventListener('input', checkPw); }
+    if (cf) { cf.addEventListener('input', checkCf); }
+
+    // ── AJAX submit: stay in the modal on a rejected save ─────────
+    if (!form.closest('#mainModal')) { return; }
+
+    var curPw = document.getElementById('editCurrentPassword');
+    var curFb = document.getElementById('editCurrentPasswordFeedback');
+    var alertWrapper = document.getElementById('editUserAlertWrapper');
+    var alertBox = document.getElementById('editUserAlert');
+
+    // Clear the "incorrect password" state as soon as the admin retypes.
+    if (curPw) { curPw.addEventListener('input', function () { setState(curPw, curFb, false, ''); }); }
+
+    function fieldFor(name) {
+        if (name === 'current_password') return curPw;
+        if (name === 'password') return pw;
+        if (name === 'confirm_password') return cf;
+        return form.querySelector('[name="data[User][' + name + ']"]');
+    }
+    function feedbackFor(name) {
+        if (name === 'current_password') return curFb;
+        if (name === 'password') return pwFb;
+        if (name === 'confirm_password') return cfFb;
+        return null;
+    }
+    function flatten(err) {
+        if (Array.isArray(err)) { return err.join(' '); }
+        if (err && typeof err === 'object') {
+            return Object.keys(err).map(function (k) { return flatten(err[k]); }).join(' ');
+        }
+        return String(err);
+    }
+    function showErrors(data) {
+        var errors = (data && data.errors) || {};
+        var leftovers = [];
+        var firstInput = null;
+        Object.keys(errors).forEach(function (name) {
+            var msg = flatten(errors[name]);
+            var input = fieldFor(name);
+            if (!input) { leftovers.push(msg); return; }
+            var fb = feedbackFor(name);
+            if (fb) {
+                setState(input, fb, false, msg);
+            } else {
+                input.classList.remove('is-valid');
+                input.classList.add('is-invalid');
+                leftovers.push(msg);
+            }
+            if (!firstInput) { firstInput = input; }
+        });
+        if (data && data.message && !Object.keys(errors).length) { leftovers.push(data.message); }
+        if (alertWrapper && alertBox) {
+            alertBox.textContent = leftovers.join(' ');
+            alertWrapper.classList.toggle('d-none', leftovers.length === 0);
+        }
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (alertWrapper) { alertWrapper.classList.add('d-none'); }
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) {
+            var ct = r.headers.get('Content-Type') || '';
+            return r.text().then(function (t) { return { ct: ct, text: t }; });
+        })
+        .then(function (res) {
+            if (res.ct.indexOf('application/json') !== -1) {
+                var d = null;
+                try { d = JSON.parse(res.text); } catch (err) { d = null; }
+                if (d && d.success) {
+                    window.location.href = '<?= $baseurl ?>/admin/users/index';
+                    return;
+                }
+                if (d) { showErrors(d); return; }
+            }
+            // Unexpected HTML (session expiry, exception page) → re-render in place.
+            if (typeof renderMainModalContent === 'function') {
+                renderMainModalContent(res.text);
+            }
+        })
+        .catch(function () { /* network error: leave the form as-is */ });
+    });
 })();
 </script>
