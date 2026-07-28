@@ -32,7 +32,19 @@ if (isset($field['highlight_path'])) {
     $checkboxAttrs['data-highlight'] = Hash::get($row, $field['highlight_path']) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Event.id') {
+/*
+ * Remote preview rows (server event index) are selectable for a mass fetch, but
+ * their id belongs to the remote instance — the ACL branches below would answer
+ * about whatever local record happens to share that id. Nothing local to delete
+ * either, so the delete-gated buttons stay hidden.
+ */
+$isRemoteRow = !empty($field['remote']);
+if ($isRemoteRow) {
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = '0';
+}
+
+if (!$isRemoteRow && $field['data_path'] === 'Event.id') {
     $mayModify = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
     $checkboxAttrs['data-item-id'] = $id;

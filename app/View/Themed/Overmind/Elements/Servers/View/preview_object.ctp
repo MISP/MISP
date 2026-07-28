@@ -70,6 +70,7 @@ $valueCell = function ($attr) {
             echo $this->element('genericElementsBS5/IndexTable/filter_bar', [
                 'scaffold_data' => [
                     'filter_bar' => [
+                        'skip_pagination' => true,
                         'children' => [
                             [
                                 'type' => 'search',

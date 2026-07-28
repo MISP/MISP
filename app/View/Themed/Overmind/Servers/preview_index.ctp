@@ -12,7 +12,11 @@ $serverName = !empty($server['Server']['name'])
 
 $previewBase = $baseurl . '/servers/previewIndex/' . $serverId;
 $eventViewURL = $baseurl . '/servers/previewEvent/' . $serverId . '/%id%';
-$eventPullURL = $baseurl . '/servers/pull/' . $serverId . '/%id%';
+$massPullURL = '/servers/pullSelectedEvents/' . $serverId;
+$eventPullURL = $baseurl . $massPullURL . '/%id%';
+
+// Pulling requires the server to allow it, and only a site admin may do it.
+$canPull = !empty($server['Server']['pull']) && !empty($isSiteAdmin);
 
 $headerTitle = h($server['Server']['name'] ?: $server['Server']['url']);
 $headerDescription = __('Remote instance event index preview');
@@ -29,6 +33,13 @@ $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);
 
 $fields = [
+    [
+        'element' => 'checkbox',
+        'data_path' => 'Event.id',
+        'remote' => true,
+        'requirement' => $canPull,
+        'card_section' => 'selector',
+    ],
     [
         'name' => __('ID'),
         'sort' => 'Event.id',
@@ -122,39 +133,37 @@ $fields = [
         'data_path' => 'Event.id',
         'card_section' => 'extra',
         'display_in' => ['table', 'card'],
-        'actions' => [
+        'actions' => array_values(array_filter([
             [
                 'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $eventViewURL
             ],
-            [
-                'type' => 'divider',
-                'url' => '#'
-            ],
-            [
-                'type' => 'postLink',
+            $canPull ? ['type' => 'divider'] : null,
+            $canPull ? [
+                'type' => 'modal',
                 'label' => __('Fetch this event'),
-                'icon' => 'arrow-circle-down',
+                'icon' => 'circle-arrow-down',
                 'url' => $eventPullURL,
-                'confirm' => __('Are you sure you want to fetch and save this event on your instance?'),
+                'size' => 'sm',
                 'requirement' => function ($row) {
                     return !empty($row['Event']['published']);
                 }
-            ],
-            [
-                'type' => 'postLink',
-                'label' => __('Fetch this event'),
-                'icon' => 'arrow-circle-down',
+            ] : null,
+            // Same target, flagged: the remote has not published this one yet.
+            $canPull ? [
+                'type' => 'modal',
+                'label' => __('Fetch this event (unpublished)'),
+                'icon' => 'circle-arrow-down',
                 'class' => 'text-warning',
                 'url' => $eventPullURL,
-                'confirm' => __('Are you sure you want to fetch and save this event on your instance? Warning: this event is not published on the remote end.'),
+                'size' => 'sm',
                 'requirement' => function ($row) {
                     return empty($row['Event']['published']);
                 }
-            ]
-        ]
+            ] : null,
+        ]))
     ],
 ];
 ?>
@@ -202,6 +211,21 @@ $fields = [
                         <?= __('Clear all') ?>
                     </a>
                 </div>
+            <?php endif; ?>
+
+            <?php if ($canPull): ?>
+                <?php
+                /*
+                 * The mass-action toolbar is rendered directly rather than through
+                 * filter_bar: this index is scoped by a positional server id, so the
+                 * filter bar's URL building (which targets /servers/index/...) does
+                 * not apply here.
+                 */
+                echo $this->element('genericElementsBS5/IndexTable/multi_select_toolbar', [
+                    'filter_bar' => ['fetch' => true, 'fetch_url' => $massPullURL],
+                    'item_url' => '/servers',
+                ]);
+                ?>
             <?php endif; ?>
         </div>
     </div>

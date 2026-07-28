@@ -253,16 +253,6 @@ $stats = [
 
     var chartDefs = [
         {
-            key:   'attributes',
-            tab:   '#tab-attributes',
-            title: <?= json_encode(__('Attributes')) ?>,
-            total: stats.attributes.total,
-            data:  stats.attributes.by_category,
-            icon:  'misp-icon misp-icon-attribute misp-hexagone',
-            color: '#97CC04',
-            empty: <?= json_encode(__('No attributes')) ?>
-        },
-        {
             key:   'objects',
             tab:   '#tab-attributes',
             title: <?= json_encode(__('Objects')) ?>,
@@ -271,6 +261,16 @@ $stats = [
             icon:  'misp-icon misp-icon-object misp-hexagone',
             color: '#524948',
             empty: <?= json_encode(__('No objects')) ?>
+        },
+        {
+            key:   'attributes',
+            tab:   '#tab-attributes',
+            title: <?= json_encode(__('Attributes')) ?>,
+            total: stats.attributes.total,
+            data:  stats.attributes.by_category,
+            icon:  'misp-icon misp-icon-attribute misp-hexagone',
+            color: '#97CC04',
+            empty: <?= json_encode(__('No attributes')) ?>
         }
     ];
 

@@ -12,8 +12,25 @@ $attributes = array_values(array_filter(
     }
 ));
 
+/*
+ * The caller loads the whole remote event — the tab counter and the
+ * attribute/object split both need it, because rearrangeEventForView truncates
+ * the merged objects array rather than each kind. Rendering every row is a
+ * different matter: one row costs ~10 kB of markup, so a 7.8k-attribute event
+ * produces an ~84 MB response. Cap what is rendered and say so; $viewAllUrl
+ * loads the remainder on demand.
+ */
+$attributeTotal = count($attributes);
+// ~10 kB of markup per row, so 200 keeps the fragment near 2 MB.
+$renderCap = 200;
+$showAll = !empty($showAllAttributes);
+$isCapped = !$showAll && $attributeTotal > $renderCap;
+if ($isCapped) {
+    $attributes = array_slice($attributes, 0, $renderCap);
+}
+
 $taggingEnabled = (bool)Configure::read('MISP.tagging');
-$uid = 'preview-attrs-' . h($data['Event']['id'] ?? '0');
+$uid = 'preview-attrs-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
 
 // Distinct categories / types present, for the "More filters" dropdowns.
 $catSet = [];
@@ -28,11 +45,26 @@ $catOptions  = ['' => __('All')] + array_combine(array_keys($catSet), array_keys
 $typeOptions = ['' => __('All')] + array_combine(array_keys($typeSet), array_keys($typeSet));
 
 
-$paging = $this->params['paging']['Server'] ?? [];
-$hasMorePages = !empty($paging['pageCount']) && $paging['pageCount'] > 1;
-$viewAllUrl = $baseurl . '/servers/previewEvent/'
-    . (int)($server['Server']['id'] ?? 0) . '/'
-    . h($data['Event']['id'] ?? '') . '/all#tab-attributes';
+// The controller pages the preview under its own model key (Server / Feed) and
+// builds the "show every attribute" URL, both carried by $previewContext.
+$ctx = $previewContext ?? [];
+$paging = $this->params['paging'][$ctx['pagingModel'] ?? 'Server'] ?? [];
+/*
+ * pageCount is computed from the default page size even when the caller asked
+ * for everything (rearrangeEventForView sets page=0, which lifts the limit but
+ * leaves pageCount alone), so compare what was actually rendered against the
+ * total instead: total_elements is post-truncation, count is not.
+ */
+$hasMorePages = $isCapped
+    || (isset($paging['count'], $paging['total_elements'])
+        && $paging['total_elements'] < $paging['count']);
+// An explicit null means the caller loads everything up front — there is nothing
+// to link to — so this cannot fall back with ??.
+$viewAllUrl = array_key_exists('viewAllUrl', $ctx)
+    ? $ctx['viewAllUrl']
+    : ($baseurl . '/servers/previewEvent/'
+        . (int)($server['Server']['id'] ?? 0) . '/'
+        . h($data['Event']['id'] ?? '') . '/all#tab-attributes');
 
 
 $fields = [
@@ -184,6 +216,9 @@ $children = [
                 'fields' => $fields,
                 'skip_pagination' => true,
                 'filter_bar' => [
+                    // Paging belongs to the preview request, not to this bar; the
+                    // "view all" link below is the way out of the first page.
+                    'skip_pagination' => true,
                     'children' => $children,
                 ],
             ]
@@ -197,13 +232,32 @@ $children = [
     <i class="fas fa-search me-1"></i><?= __('No attribute matches your search') ?>
 </div>
 
-<?php if ($hasMorePages): ?>
+<?php if ($hasMorePages && !empty($viewAllUrl)): ?>
     <div class="text-center pb-3">
-        <a href="<?= h($viewAllUrl) ?>" class="small text-decoration-none">
+        <?php if ($isCapped): ?>
+            <div class="text-muted small mb-1">
+                <?= __('Showing the first %1$s of %2$s attributes.', number_format($renderCap), number_format($attributeTotal)) ?>
+            </div>
+        <?php endif; ?>
+        <a href="<?= h($viewAllUrl) ?>" class="small text-decoration-none preview-attrs-view-all">
             <i class="fas fa-list me-1"></i>
-            <?= __('This event has more attributes — view all') ?>
+            <?= __('Load every attribute') ?>
         </a>
     </div>
+    <script>
+    (function () {
+        // Inside a lazily-loaded tab, swap the fragment in place instead of
+        // navigating the whole page away from the preview.
+        document.querySelectorAll('.preview-attrs-view-all').forEach(function (link) {
+            var container = link.closest('.ajax-tab-content');
+            if (!container || typeof reloadAjaxTabIndex !== 'function') { return; }
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                reloadAjaxTabIndex(container, link.getAttribute('href'));
+            });
+        });
+    }());
+    </script>
 <?php endif; ?>
 
 <?php if (!empty($attributes)): ?>
