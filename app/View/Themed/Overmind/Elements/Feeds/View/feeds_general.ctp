@@ -1,160 +1,180 @@
 <?php
-// view_layout only forwards `data` to the partial. $data is the Feed record.
 $feed = $data['Feed'] ?? [];
 
-// Decode the pull filter rules (tags/orgs OR/NOT) for a read-only summary,
-// mirroring the legacy view.ctp Rules row.
-$ruleLines = [];
-if (!empty($feed['rules'])) {
-    $decoded = json_decode($feed['rules'], true);
-    if (is_array($decoded)) {
-        $booleanColours = ['OR' => 'text-bg-success', 'NOT' => 'text-bg-danger'];
-        foreach (['tags', 'orgs'] as $scope) {
-            if (empty($decoded[$scope])) {
-                continue;
-            }
-            $ruleData = $decoded[$scope];
-            if (empty($ruleData['OR']) && empty($ruleData['NOT'])) {
-                continue;
-            }
-            $pills = '';
-            foreach (['OR', 'NOT'] as $booleanScope) {
-                if (empty($ruleData[$booleanScope])) {
-                    continue;
-                }
-                foreach ($ruleData[$booleanScope] as $ruleValue) {
-                    $pills .= sprintf(
-                        '<span class="badge %s me-1">%s</span>',
-                        $booleanColours[$booleanScope],
-                        h($ruleValue)
-                    );
-                }
-            }
-            $ruleLines[] = sprintf('<span class="fw-semibold me-1">%s:</span>%s', h(ucfirst($scope)), $pills);
-        }
-    }
-}
+$formatLabels = [
+    'misp' => 'MISP',
+    'freetext' => __('Freetext'),
+    'csv' => 'CSV',
+];
+$sourceLabels = [
+    'network' => ['label' => __('Network'), 'icon' => 'globe'],
+    'local' => ['label' => __('Local file'), 'icon' => 'hard-drive'],
+];
+$inputSource = $sourceLabels[$feed['input_source'] ?? ''] ?? null;
 
-// Pretty-print the settings JSON blob.
-$settingsPretty = '';
-if (!empty($feed['settings'])) {
-    $settingsDecoded = is_array($feed['settings']) ? $feed['settings'] : json_decode($feed['settings'], true);
-    if ($settingsDecoded !== null) {
-        $settingsPretty = json_encode($settingsDecoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-}
+$distribution = $feed['distribution'] ?? null;
+$isSharingGroup = (int)$distribution === 4;
 ?>
 <div class="card mb-3 shadow-sm">
     <div class="card-body p-4">
 
-        <!-- NAME + SOURCE FORMAT -->
-        <div class="d-flex align-items-start justify-content-between mb-4">
-            <div>
-                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Name') ?></div>
-                <div class="fw-semibold fs-5 d-flex align-items-center gap-2">
-                    <?= h($feed['name'] ?? '') ?>
-                    <?php if (!empty($feed['source_format'])): ?>
-                        <span class="badge text-bg-light border"><?= h($feed['source_format']) ?></span>
-                    <?php endif; ?>
-                </div>
+        <!-- NAME -->
+        <div class="mb-4">
+            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Name') ?></div>
+            <div class="fw-semibold fs-5 d-flex align-items-center flex-wrap gap-2">
+                <?= h($feed['name'] ?? '') ?>
+                <?php if (!empty($feed['default'])): ?>
+                    <span class="badge text-bg-light border" title="<?= h(__('Shipped with MISP')) ?>">
+                        <i class="fas fa-box me-1"></i><?= __('Default feed') ?>
+                    </span>
+                <?php endif; ?>
             </div>
         </div>
 
         <!-- URL -->
-        <?php if (!empty($feed['url'])): ?>
         <div class="mb-4">
             <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('URL') ?></div>
-            <?= $this->element('genericElementsBS5/Badges/links', [
-                'links' => [$feed['url']],
-                'object' => $feed,
-            ]); ?>
+            <?php if (!empty($feed['url'])): ?>
+                <?= $this->element('genericElementsBS5/Badges/links', [
+                    'links' => [$feed['url']],
+                    'object' => $feed,
+                ]) ?>
+            <?php else: ?>
+                <div class="text-muted">&mdash;</div>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
 
-        <!-- TAGS -->
-        <?php if (!empty($data['Tag']['id'])): ?>
+        <!-- CUSTOM HEADERS (site admins only — the controller masks the values) -->
+        <?php if (!empty($feed['headers'])): ?>
         <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Default tag') ?></div>
-            <?= $this->element('genericElementsBS5/Badges/tag', [
-                'tag' => $data['Tag'],
-                'local' => false,
-                'showFavourite' => false,
-            ]); ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- FILTER RULES -->
-        <?php if (!empty($ruleLines)): ?>
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Filter rules') ?></div>
-            <div class="bg-light border rounded p-3">
-                <?php foreach ($ruleLines as $line): ?>
-                    <div class="mb-1"><?= $line ?></div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- SETTINGS -->
-        <?php if ($settingsPretty !== '' && $settingsPretty !== '[]' && $settingsPretty !== 'null'): ?>
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Settings') ?></div>
-            <pre class="bg-light border rounded p-3 mb-0" style="white-space:pre-wrap;"><?= h($settingsPretty) ?></pre>
+            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('HTTP headers') ?></div>
+            <span class="badge bg-secondary-subtle text-secondary-emphasis d-inline-flex align-items-center gap-1"
+                  title="<?= h(__('This feed is pulled with custom HTTP headers. Their values are never displayed.')) ?>">
+                <i class="fas fa-lock"></i><?= __('Custom headers set') ?>
+            </span>
         </div>
         <?php endif; ?>
 
         <!-- META GRID -->
         <div class="row g-3">
+
+            <!-- ID -->
             <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold mb-1">ID</div>
                 <div class="bg-light rounded px-2 py-1 border"><?= h($feed['id'] ?? '') ?></div>
             </div>
-            <?php if (!empty($feed['provider'])): ?>
+
+            <!-- PROVIDER -->
             <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Provider') ?></div>
-                <div class="bg-light rounded px-2 py-1 border text-truncate"><?= h($feed['provider']) ?></div>
+                <div class="bg-light rounded px-2 py-1 border text-truncate">
+                    <?= !empty($feed['provider']) ? h($feed['provider']) : '<span class="text-muted">&mdash;</span>' ?>
+                </div>
+            </div>
+
+            <!-- SOURCE FORMAT -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Source format') ?></div>
+                <div class="py-1">
+                    <?php if (!empty($feed['source_format'])): ?>
+                        <?= $this->element('genericElementsBS5/Badges/format', [
+                            'formatName' => $formatLabels[$feed['source_format']] ?? $feed['source_format'],
+                            'hiddenClass' => '',
+                        ]) ?>
+                    <?php else: ?>
+                        <span class="text-muted">&mdash;</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- INPUT SOURCE -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Input source') ?></div>
+                <div class="bg-light rounded px-2 py-1 border d-flex align-items-center gap-2">
+                    <i class="fas fa-<?= h($inputSource['icon'] ?? 'question') ?> text-muted"></i>
+                    <?= h($inputSource['label'] ?? ($feed['input_source'] ?? '—')) ?>
+                </div>
+            </div>
+
+            <!-- CREATOR ORG -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Creator org') ?></div>
+                <?php if (!empty($data['Orgc']['id'])): ?>
+                    <?= $this->element('genericElementsBS5/IndexTable/Fields/organisation', [
+                        'row' => $data,
+                        'field' => ['data_path' => 'Orgc'],
+                    ]) ?>
+                <?php else: ?>
+                    <div class="bg-light rounded px-2 py-1 border text-muted"><?= __('None') ?></div>
+                <?php endif; ?>
+            </div>
+
+            <!-- DISTRIBUTION -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Distribution') ?></div>
+                <div class="py-1">
+                    <?php if ($distribution !== null && $distribution !== ''): ?>
+                        <?= $this->element('genericElementsBS5/Badges/distribution', [
+                            'distribution' => (int)$distribution,
+                            'full' => true,
+                        ]) ?>
+                    <?php else: ?>
+                        <span class="text-muted">&mdash;</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- SHARING GROUP (only meaningful at distribution level 4) -->
+            <?php if ($isSharingGroup): ?>
+            <div class="col-md-6">
+                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Sharing group') ?></div>
+                <?php if (!empty($data['SharingGroup']['id'])): ?>
+                    <div class="bg-light rounded px-2 py-1 border text-truncate">
+                        <a href="<?= h($baseurl . '/sharing_groups/view/' . $data['SharingGroup']['id']) ?>"
+                           class="text-decoration-none fw-semibold">
+                            <?= h($data['SharingGroup']['name']) ?>
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <div class="bg-light rounded px-2 py-1 border text-danger">
+                        <?= __('Distribution is set to sharing group, but none is selected.') ?>
+                    </div>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
-            <div class="col-md-3">
-                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Enabled') ?></div>
-                <div class="py-1">
-                    <?= $this->element('genericElementsBS5/Badges/boolean', [
-                        'boolean' => !empty($feed['enabled']),
-                        'full' => true,
-                        'true' => __('Yes'), 'false' => __('No'),
-                        'trueColor' => 'success', 'falseColor' => 'secondary',
-                        'trueIcon' => 'fa-check', 'falseIcon' => 'fa-xmark',
-                    ]); ?>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Caching enabled') ?></div>
-                <div class="py-1">
-                    <?= $this->element('genericElementsBS5/Badges/boolean', [
-                        'boolean' => !empty($feed['caching_enabled']),
-                        'full' => true,
-                        'true' => __('Yes'), 'false' => __('No'),
-                        'trueColor' => 'success', 'falseColor' => 'secondary',
-                        'trueIcon' => 'fa-check', 'falseIcon' => 'fa-xmark',
-                    ]); ?>
-                </div>
-            </div>
+
         </div>
 
-        <!-- COVERAGE BY OTHER FEEDS (read-only percentage; interactive compare tool is OUT) -->
-        <?php if (isset($feed['coverage_by_other_feeds'])): ?>
+        <!-- TAGGING: a feed tags its events either with one tag or a collection -->
         <div class="mt-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Coverage by other feeds') ?></div>
-            <div class="progress" style="height:1.25rem;">
-                <div class="progress-bar" role="progressbar"
-                     style="width: <?= h($feed['coverage_by_other_feeds']) ?>;"
-                     aria-valuenow="<?= h(rtrim($feed['coverage_by_other_feeds'], '%')) ?>"
-                     aria-valuemin="0" aria-valuemax="100">
-                    <?= h($feed['coverage_by_other_feeds']) ?>
+            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Tags applied to pulled events') ?></div>
+            <?php if (!empty($data['Tag']['id'])): ?>
+                <?= $this->element('genericElementsBS5/Badges/tag', [
+                    'tag' => $data['Tag'],
+                    'local' => false,
+                    'hiddenClass' => null,
+                    'showFavourite' => false,
+                ]) ?>
+            <?php elseif (!empty($tagCollection['TagCollection']['id'])): ?>
+                <div class="d-inline-flex flex-wrap align-items-center">
+                    <a class="badge bg-body border text-body-emphasis me-1 mb-1"
+                       href="<?= h($baseurl . '/tag_collections/view/' . $tagCollection['TagCollection']['id']) ?>"
+                       title="<?= h(__('Tag Collection')) ?>">
+                        <i class="fas fa-layer-group me-1"></i><?= h($tagCollection['TagCollection']['name']) ?>
+                    </a>
+                    <?php foreach (Hash::extract($tagCollection, 'TagCollectionTag.{n}.Tag') as $collectionTag): ?>
+                        <?= $this->element('genericElementsBS5/Badges/tag', [
+                            'tag' => $collectionTag,
+                            'local' => false,
+                            'hiddenClass' => null,
+                            'showFavourite' => false,
+                        ]) ?>
+                    <?php endforeach; ?>
                 </div>
-            </div>
+            <?php else: ?>
+                <div class="text-muted"><?= __('None') ?></div>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
 
     </div>
 </div>

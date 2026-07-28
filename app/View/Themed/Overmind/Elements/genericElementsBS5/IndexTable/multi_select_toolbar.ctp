@@ -22,6 +22,24 @@ $filter_bar = $filter_bar ?? [];
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['fetch'])): ?>
+            <?php
+                // Remote-preview indexes are scoped by a positional id, so they
+                // pass the whole path in `fetch_url` instead of a suffix.
+                $massFetchUrl = !empty($filter_bar['fetch_url'])
+                    ? ($baseurl . $filter_bar['fetch_url'])
+                    : ($baseurl . $item_url . $filter_bar['fetch']);
+            ?>
+            <button id="mass-fetch-button"
+                    class="btn btn-primary btn-sm ms-2 d-none"
+                    title="<?= __('Fetch the selected events') ?>"
+                    aria-label="<?= __('Fetch the selected events') ?>"
+                    onclick="multiSelectItems('<?= h($massFetchUrl) ?>', '')">
+                <i class="fas fa-circle-arrow-down"></i>
+                <?= __('Fetch') ?>
+            </button>
+        <?php endif; ?>
+
         <?php if (!empty($filter_bar['mass_edit'])): ?>
             <button id="mass-edit-button"
                     class="btn btn-secondary btn-sm d-none"
@@ -111,16 +129,30 @@ $filter_bar = $filter_bar ?? [];
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['enable'])): ?>
+            <?php
+                /*
+                 * Controllers exposing a single toggle endpoint that takes the
+                 * target state positionally (feeds: /toggleSelected/<on>/<cache>)
+                 * pass the whole path in `enable_url` / `disable_url` instead of
+                 * relying on the massEnable/massDisable convention.
+                 */
+                $massEnableUrl = !empty($filter_bar['enable_url'])
+                    ? ($baseurl . $filter_bar['enable_url'])
+                    : ($baseurl . $item_url . '/massEnable');
+                $massDisableUrl = !empty($filter_bar['disable_url'])
+                    ? ($baseurl . $filter_bar['disable_url'])
+                    : ($baseurl . $item_url . '/massDisable');
+            ?>
             <button id="mass-enable-button"
                     class="btn btn-outline-success btn-sm d-none"
                     title="<?= __('Enable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massEnableUrl) ?>', '')">
                 <i class="fas fa-play"></i> <?= __('Enable') ?>
             </button>
             <button id="mass-disable-button"
                     class="btn btn-outline-danger btn-sm d-none"
                     title="<?= __('Disable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massDisableUrl) ?>', '')">
                 <i class="fas fa-stop"></i> <?= __('Disable') ?>
             </button>
         <?php endif; ?>

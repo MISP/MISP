@@ -132,10 +132,14 @@ foreach ($filter_bar['children'] as $child) {
     <?php endforeach; ?>
 
     <div class="ms-auto">
-        <?= $this->element(
-            'genericElementsBS5/IndexTable/pagination_nav',
-            ['maxPages' => 5, 'size' => 'sm']
-        ) ?>
+        <?php
+        if (empty($filter_bar['skip_pagination'])) {
+            echo $this->element(
+                'genericElementsBS5/IndexTable/pagination_nav',
+                ['maxPages' => 5, 'size' => 'sm']
+            );
+        }
+        ?>
     </div>
 
     <div class="btn-group" role="group">
@@ -243,6 +247,7 @@ if ($explicitActive !== null) {
 
 <?php
 $hasMassActions = !empty($filter_bar['delete'])
+    || !empty($filter_bar['fetch'])
     || !empty($filter_bar['accept'])
     || !empty($filter_bar['discard'])
     || !empty($filter_bar['export'])

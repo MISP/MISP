@@ -283,6 +283,21 @@ if ($field['data_path'] === 'SharingGroupBlueprint.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Event.uuid') {
+    // Remote preview rows (feed manifest): selectable for a mass fetch, but
+    // there is nothing local to delete, so the delete-gated buttons stay hidden.
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = '0';
+}
+
+if ($field['data_path'] === 'Feed.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Server.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

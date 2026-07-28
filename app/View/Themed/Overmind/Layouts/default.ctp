@@ -301,6 +301,12 @@
             ['controller' => 'feeds', 'action' => 'add'],
             ['controller' => 'feeds', 'action' => 'edit'],
             ['controller' => 'feeds', 'action' => 'view'],
+            ['controller' => 'feeds', 'action' => 'importFeeds'],
+            ['controller' => 'feeds', 'action' => 'deleteSelection'],
+            ['controller' => 'feeds', 'action' => 'previewIndex'],
+            ['controller' => 'feeds', 'action' => 'previewEvent'],
+            ['controller' => 'feeds', 'action' => 'getSelectedEvents'],
+            ['controller' => 'feeds', 'action' => 'fetchSelectedFeeds'],
 
             ['controller' => 'tasks', 'action' => 'index'],
             ['controller' => 'tasks', 'action' => 'add'],
@@ -351,6 +357,17 @@
                 $useBootstrap5 = true;
                 break;
             }
+        }
+
+        /*
+         * Escape hatch for actions that render more than one view, only some of
+         * which are migrated (feeds/previewIndex renders the BS5 event-index
+         * preview for MISP feeds but the legacy freetext_index for freetext/CSV
+         * ones). Such an action sets forceLegacyLayout on the non-migrated
+         * branch so it keeps the legacy assets it was written against.
+         */
+        if ($useBootstrap5 && !empty($forceLegacyLayout)) {
+            $useBootstrap5 = false;
         }
 
         if ($useBootstrap5) {

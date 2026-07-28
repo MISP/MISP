@@ -106,40 +106,46 @@ if ($field['data_path'] === 'Event.id') {
                         <?php endif; ?>
                     <?php elseif ($action['type'] === 'toggle'): ?>
                         <?php
-                            if ($action['label_on'] === "Unpublish"){
-                                $state = Hash::get($row, $action['publish_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], [$state ? 'unpublish' : 'publish', $id], $url);
+                            /*
+                             * Resolve which boolean the action flips and which
+                             * endpoint to hit. Preferred form: the caller passes
+                             * state_path plus action_on/action_off. The label
+                             * matching below is the legacy form, kept for the
+                             * indexes that still rely on it.
+                             */
+                            if (!empty($action['state_path'])) {
+                                $statePath = $action['state_path'];
+                                $toggleAction = null;
+                            } elseif ($action['label_on'] === "Unpublish") {
+                                $statePath = $action['publish_path'];
+                                $toggleAction = null;
+                            } elseif ($action['label_on'] === "Disable") {
+                                $statePath = $action['enable_path'];
+                                $toggleAction = 'toggleEnable';
+                            } elseif ($action['label_on'] === "Optional") {
+                                $statePath = $action['require_path'];
+                                $toggleAction = 'toggleRequired';
+                            } elseif ($action['label_on'] === "Remove Highlight") {
+                                $statePath = $action['highlight_path'];
+                                $toggleAction = 'toggleHighlighted';
+                            } elseif ($action['label_on'] === "Deactivate") {
+                                $statePath = $action['active_path'];
+                                $toggleAction = 'toggleActive';
                             }
 
-                            if ($action['label_on'] === "Disable"){
-                                $state = Hash::get($row, $action['enable_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleEnable', $id], $url);
-                            }
+                            $state = Hash::get($row, $statePath);
+                            $label = $state ? $action['label_on'] : $action['label_off'];
+                            $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
 
-                            if ($action['label_on'] === "Optional"){
-                                $state = Hash::get($row, $action['require_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleRequired', $id], $url);
+                            if ($toggleAction === null) {
+                                // One endpoint per state rather than a single
+                                // toggle endpoint: publish/unpublish, and
+                                // whatever action_on/action_off name.
+                                $toggleAction = $state
+                                    ? ($action['action_on'] ?? 'unpublish')
+                                    : ($action['action_off'] ?? 'publish');
                             }
-
-                            if ($action['label_on'] === "Remove Highlight"){
-                                $state = Hash::get($row, $action['highlight_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleHighlighted', $id], $url);
-                            }
-
-                            if ($action['label_on'] === "Deactivate"){
-                                $state = Hash::get($row, $action['active_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleActive', $id], $url);
-                            }
+                            $url = str_replace(['%action%', '%id%'], [$toggleAction, $id], $url);
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
