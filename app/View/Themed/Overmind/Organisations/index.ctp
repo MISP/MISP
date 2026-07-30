@@ -7,6 +7,13 @@ $headerActions = [];
 if ($isSiteAdmin) {
     $headerActions[] = [
         'type' => 'modal',
+        'label' => __('Merge organisations'),
+        'icon' => 'code-merge',
+        'class' => 'btn btn-outline-danger',
+        'url' => $baseurl . '/admin/organisations/merge'
+    ];
+    $headerActions[] = [
+        'type' => 'modal',
         'label' => __('Add organisation'),
         'icon' => 'plus',
         'url' => $baseurl . '/admin/organisations/add'

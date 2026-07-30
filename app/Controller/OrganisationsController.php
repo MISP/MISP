@@ -438,13 +438,46 @@ class OrganisationsController extends AppController
         return new CakeResponse(array('body'=> json_encode($orgs), 'type' => 'json'));
     }
 
-    public function admin_merge($id, $target_id = false)
+    /**
+     * The legacy view is always opened for a given organisation, so the merge
+     * source comes from the URL. The Overmind modal is opened from the index
+     * header instead, where nothing is preselected: it posts both ends of the
+     * merge as plain organisation ids (sourceOrg / targetOrg), which are
+     * normalised below into the shape orgMerge() expects.
+     */
+    public function admin_merge($id = false, $target_id = false)
     {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if ($this->request->is('Post')) {
-            $result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
+            $data = $this->request->data;
+            $sourceId = $id ?: (isset($data['Organisation']['sourceOrg']) ? $data['Organisation']['sourceOrg'] : false);
+            if (!empty($data['Organisation']['targetOrg'])) {
+                $targetOrg = $this->Organisation->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('id', 'local'),
+                    'conditions' => array('Organisation.id' => $data['Organisation']['targetOrg'])
+                ));
+                if (empty($targetOrg)) {
+                    throw new NotFoundException(__('Invalid target organisation.'));
+                }
+                $targetIsLocal = !empty($targetOrg['Organisation']['local']);
+                $data['Organisation']['targetType'] = $targetIsLocal ? 0 : 1;
+                $data['Organisation'][$targetIsLocal ? 'orgsLocal' : 'orgsExternal'] = $targetOrg['Organisation']['id'];
+            }
+            $targetId = empty($data['Organisation']['targetType'])
+                ? (isset($data['Organisation']['orgsLocal']) ? $data['Organisation']['orgsLocal'] : false)
+                : (isset($data['Organisation']['orgsExternal']) ? $data['Organisation']['orgsExternal'] : false);
+            if (empty($sourceId) || empty($targetId)) {
+                $this->Flash->error(__('Both the organisation to be merged and the organisation to merge it into have to be selected.'));
+                $this->redirect(array('admin' => false, 'action' => 'index'));
+            }
+            if ($sourceId == $targetId) {
+                $this->Flash->error(__('An organisation cannot be merged into itself.'));
+                $this->redirect(array('admin' => false, 'action' => 'index'));
+            }
+            $result = $this->Organisation->orgMerge($sourceId, $data, $this->Auth->user());
             if ($result) {
                 $this->Flash->success(__('The organisation has been successfully merged.'));
                 $this->redirect(array('admin' => false, 'action' => 'view', $result));
@@ -452,7 +485,33 @@ class OrganisationsController extends AppController
                 $this->Flash->error(__('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file'));
             }
             $this->redirect(array('admin' => false, 'action' => 'index'));
+        } elseif ($this->theme === 'Overmind') {
+            $this->Organisation->addCountField('user_count', $this->Organisation->User, array('User.org_id = Organisation.id'));
+            $orgs = $this->Organisation->find('all', array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'uuid', 'local', 'user_count'),
+                'order' => 'lower(Organisation.name) ASC'
+            ));
+            $mergeOrgs = array();
+            foreach ($orgs as $org) {
+                $mergeOrgs[] = array(
+                    'id' => (int)$org['Organisation']['id'],
+                    'name' => $org['Organisation']['name'],
+                    'uuid' => $org['Organisation']['uuid'],
+                    'local' => !empty($org['Organisation']['local']),
+                    'user_count' => (int)$org['Organisation']['user_count'],
+                );
+            }
+            $this->set('mergeOrgs', $mergeOrgs);
+            $this->set('mergeSourceId', $id ? (int)$id : null);
+            $this->set('mergeTargetId', $target_id ? (int)$target_id : null);
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('ajax/merge');
         } else {
+            if (empty($id)) {
+                throw new NotFoundException(__('Invalid organisation.'));
+            }
             $currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
             $orgs['local'] = $this->Organisation->find('all', array(
                     'fields' => array('id', 'name', 'uuid'),
