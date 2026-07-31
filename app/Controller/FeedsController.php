@@ -1307,9 +1307,9 @@ class FeedsController extends AppController
      * @param string $eventUuid
      * @return void
      */
-    public function previewEventAttributes($feedId, $eventUuid)
+    public function previewEventAttributes($feedId, $eventUuid, $all = false)
     {
-        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_attributes');
+        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_attributes', $all);
     }
 
     /**
@@ -1319,9 +1319,9 @@ class FeedsController extends AppController
      * @param string $eventUuid
      * @return void
      */
-    public function previewEventObjects($feedId, $eventUuid)
+    public function previewEventObjects($feedId, $eventUuid, $all = false)
     {
-        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_objects');
+        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_objects', $all);
     }
 
     /**
@@ -1333,7 +1333,7 @@ class FeedsController extends AppController
      * @param string $view themed view under Feeds/ajax/
      * @return void
      */
-    private function __previewEventFragment($feedId, $eventUuid, $view)
+    private function __previewEventFragment($feedId, $eventUuid, $view, $all = false)
     {
         $feed = $this->Feed->find('first', [
             'conditions' => ['Feed.id' => $feedId],
@@ -1361,6 +1361,7 @@ class FeedsController extends AppController
         $this->params->params['paging'] = array('Feed' => $params);
         $this->set('event', $event);
         $this->set('feed', $feed);
+        $this->set('showAllAttributes', !empty($all));
         $this->set('previewContext', $this->__feedPreviewContext($feed, $eventUuid));
         $this->layout = false;
         $this->render('ajax/' . $view);
@@ -1388,8 +1389,9 @@ class FeedsController extends AppController
             'tagFilterUrl' => $baseurl . '/feeds/previewIndex/' . $feedId . '/searchall:%tag%',
             'tagFilterKey' => 'name',
             'pagingModel' => 'Feed',
-            // Everything is loaded up front, so there is no "view all" to offer.
-            'viewAllUrl' => null,
+            // The attributes tab caps how many rows it renders; this reloads it uncapped.
+            'viewAllUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId
+                . '/' . $eventUuid . '/all',
             'fetchUrl' => $canFetch
                 ? $baseurl . '/feeds/getSelectedEvents/' . $feedId . '/' . $eventUuid
                 : null,

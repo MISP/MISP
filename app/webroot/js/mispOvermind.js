@@ -449,6 +449,7 @@ function updateMultiSelectToolbar() {
     const objectButton   = scope.querySelector('#mass-object-button');
     const relationshipButton = scope.querySelector('#mass-relationship-button');
     const sightingButton = scope.querySelector('#mass-sighting-button');
+    const fetchButton    = scope.querySelector('#mass-fetch-button');
     const enableButton   = scope.querySelector('#mass-enable-button');
     const disableButton  = scope.querySelector('#mass-disable-button');
     const requireButton   = scope.querySelector('#mass-require-button');
@@ -496,6 +497,8 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
+
+    fetchButton?.classList.toggle('d-none', !allEnabled);
 
     if (enableButton && disableButton) {
         if (allDisabled) {
