@@ -50,6 +50,7 @@ class NavbarHelper extends AppHelper {
         'roles'              => 'administration',
         'auth_keys'          => 'administration',
         'workflows'          => 'administration',
+        'workflowblueprints' => 'administration',
         'jobs'               => 'administration',
         'tasks'              => 'administration',
         'benchmarks'         => 'administration',
@@ -664,9 +665,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Workflow'),
-                        'url' => $baseurl . '/workflows/triggers',
+                        'url' => $baseurl . '/workflows/index',
                         'controller' => 'workflows',
-                        'action' => 'triggers',
+                        'action' => 'index',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-project-diagram'
                     ],

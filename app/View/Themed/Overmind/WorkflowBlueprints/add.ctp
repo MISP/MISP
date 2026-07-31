@@ -19,6 +19,28 @@ echo $this->Form->create('WorkflowBlueprint', [
                     <?= $edit ? __('Edit workflow blueprint') : __('Add workflow blueprint') ?>
                 </h3>
 
+                <?php
+                /*
+                 * Surface field errors up front — an import lands here
+                 * with the offending values already filled in.
+                 */
+                $errors = $this->validationErrors['WorkflowBlueprint'] ?? [];
+                ?>
+                <?php if (!empty($errors)): ?>
+                    <div class="alert alert-danger py-2" role="alert">
+                        <div class="fw-semibold mb-1">
+                            <i class="fas fa-circle-exclamation me-1"></i><?= __('The blueprint could not be saved.') ?>
+                        </div>
+                        <ul class="mb-0 small">
+                            <?php foreach ($errors as $errField => $messages): ?>
+                                <?php foreach ((array)$messages as $message): ?>
+                                    <li><strong><?= h($errField) ?></strong>: <?= h($message) ?></li>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
                 <div class="form-text mb-3">
                     <?= __('Workflow blueprints are re-usable blocks of workflow logic. The data field holds the blueprint graph as JSON; it is normally produced by the workflow editor.') ?>
                 </div>

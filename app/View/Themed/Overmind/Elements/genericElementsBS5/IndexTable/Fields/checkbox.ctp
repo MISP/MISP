@@ -207,6 +207,14 @@ if ($field['data_path'] === 'Bookmark.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Workflow.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'WorkflowBlueprint.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;

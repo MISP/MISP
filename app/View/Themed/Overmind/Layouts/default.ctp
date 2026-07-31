@@ -153,7 +153,20 @@
             ['controller' => 'bookmarks', 'action' => 'delete'],
             ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
 
+            ['controller' => 'workflows', 'action' => 'index'],
+            ['controller' => 'workflows', 'action' => 'triggers'],
+            ['controller' => 'workflows', 'action' => 'adhoc'],
+            ['controller' => 'workflows', 'action' => 'add'],
+            ['controller' => 'workflows', 'action' => 'edit'],
+            ['controller' => 'workflows', 'action' => 'executeWorkflow'],
+            ['controller' => 'workflows', 'action' => 'moduleIndex'],
+            ['controller' => 'workflows', 'action' => 'editor'],
+            ['controller' => 'workflows', 'action' => 'massToggleTrigger'],
+            ['controller' => 'workflows', 'action' => 'massToggleModule'],
+            ['controller' => 'workflows', 'action' => 'toggleDebugMode'],
+
             ['controller' => 'workflowBlueprints', 'action' => 'index'],
+            ['controller' => 'workflowBlueprints', 'action' => 'import'],
             ['controller' => 'workflowBlueprints', 'action' => 'add'],
             ['controller' => 'workflowBlueprints', 'action' => 'edit'],
             ['controller' => 'workflowBlueprints', 'action' => 'view'],
@@ -507,7 +520,12 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !$isAuthPage) {
+                /*
+                 * `hideHeaderSection` is for pages that own the whole viewport
+                 * and carry their own title bar — the workflow editor, whose
+                 * canvas must fill the space the header strip would take.
+                 */
+                if ($useBootstrap5 && !$isAuthPage && empty($hideHeaderSection)) {
                     echo $this->element('headerSection', [
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,

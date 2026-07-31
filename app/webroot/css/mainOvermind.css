@@ -1431,34 +1431,180 @@ tr.attr-proposal-row td:first-child {
     border-color: var(--bs-secondary-color, #adb5bd) !important; 
 }
 
-
-
 .perm-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        padding: .35rem .75rem;
-        border-radius: 2rem;
-        border: 1px solid #d8dde3;
-        background: #fff;
-        color: #6c757d;
-        font-size: .8rem;
-        line-height: 1.1;
-        cursor: pointer;
-        user-select: none;
-        margin: 0;
-        transition: border-color .12s ease, background .12s ease, color .12s ease;
-    }
-    .perm-pill:hover { border-color: #198754; color: #198754; }
-    .perm-pill .perm-pill-check { font-size: .7rem; opacity: 0; transition: opacity .12s ease; }
-    .perm-pill.granted {
-        background: rgba(25,135,84,.1);
-        border-color: #198754;
-        color: #157347;
-        font-weight: 600;
-    }
-    .perm-pill.granted .perm-pill-check { opacity: 1; }
-    .role-section-label {
-        font-size: .65rem;
-        letter-spacing: .1em;
-    }
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .75rem;
+    border-radius: 2rem;
+    border: 1px solid #d8dde3;
+    background: #fff;
+    color: #6c757d;
+    font-size: .8rem;
+    line-height: 1.1;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    transition: border-color .12s ease, background .12s ease, color .12s ease;
+}
+
+.perm-pill:hover {
+    border-color: #198754;
+    color: #198754;
+}
+
+.perm-pill .perm-pill-check {
+    font-size: .7rem;
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+.perm-pill.granted {
+    background: rgba(25,135,84,.1);
+    border-color: #198754;
+    color: #157347;
+    font-weight: 600;
+}
+
+.perm-pill.granted .perm-pill-check {
+    opacity: 1;
+}
+
+.role-section-label {
+    font-size: .65rem;
+    letter-spacing: .1em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Workflows
+   ═══════════════════════════════════════════════════════════ */
+
+.wf-scope {
+    --wf-auto: var(--primary, #1892B1);
+    --wf-manual: #E67F0D;
+    --wf-module: #8B5CF6;
+    --wf-blueprint: #4DA167;
+}
+
+.wf-scope .wf-accent-auto      { --wf-accent: var(--wf-auto); }
+.wf-scope .wf-accent-manual    { --wf-accent: var(--wf-manual); }
+.wf-scope .wf-accent-module    { --wf-accent: var(--wf-module); }
+.wf-scope .wf-accent-blueprint { --wf-accent: var(--wf-blueprint); }
+
+/* ---- anatomy diagram (modal) ---- */
+.wf-scope .wf-flow { 
+    display: flex; 
+    align-items: stretch; 
+    gap: .25rem; 
+}
+.wf-scope .wf-lane {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .45rem;
+    padding: .7rem; border-radius: .6rem;
+    border: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg);
+}
+.wf-scope .wf-link {
+    flex: 0 0 1.5rem; display: flex; align-items: center; justify-content: center;
+    color: var(--bs-secondary-color); font-size: 1rem;
+}
+.wf-scope .wf-lane-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.wf-scope .wf-step {
+    flex: 0 0 auto; width: 1.3rem; height: 1.3rem; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .68rem; font-weight: 700;
+    background: var(--bs-secondary-bg); color: var(--bs-body-color);
+}
+.wf-scope .wf-lane-title {
+    font-size: .68rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--bs-body-color);
+}
+.wf-scope .wf-cardinality {
+    font-size: .66rem; font-variant-numeric: tabular-nums;
+    padding: 0 .4rem; border-radius: 999px;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg); color: var(--bs-secondary-color);
+}
+.wf-scope .wf-node {
+    display: flex; gap: .55rem; align-items: flex-start; flex: 1 1 auto;
+    padding: .55rem .65rem; border-radius: .4rem;
+    /* Plain fallbacks first: a browser without color-mix() drops the tinted
+        declarations and keeps a neutral but complete card. */
+    border: 1px solid var(--bs-border-color);
+    border-left: 3px solid var(--wf-accent, var(--bs-border-color));
+    background: var(--bs-body-bg);
+    border-color: color-mix(in srgb, var(--wf-accent, var(--bs-border-color)) 40%, var(--bs-border-color));
+    border-left-color: var(--wf-accent, var(--bs-border-color));
+    background: color-mix(in srgb, var(--wf-accent, var(--bs-secondary-bg)) 7%, var(--bs-body-bg));
+}
+.wf-scope .wf-node > i { color: var(--wf-accent, var(--bs-secondary-color)); margin-top: .1rem; }
+.wf-scope .wf-node-title { font-size: .8rem; font-weight: 600; line-height: 1.2; }
+.wf-scope .wf-node-sub { font-size: .71rem; color: var(--bs-secondary-color); line-height: 1.35; }
+.wf-scope .wf-node-dashed { border-style: dashed; border-left-style: solid; }
+.wf-scope .wf-node-neutral {
+    border-color: var(--bs-border-color); border-left-color: var(--bs-secondary-color);
+    background: var(--bs-body-bg);
+}
+.wf-scope .wf-or {
+    font-size: .64rem; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--bs-secondary-color); text-align: center;
+}
+.wf-scope .wf-feeds { position: relative; margin-bottom: .2rem; }
+.wf-scope .wf-feeds::after {
+    content: '\f107'; font: 900 .8rem/1 'Font Awesome 7 Free', 'Font Awesome 5 Free';
+    position: absolute; left: 50%; bottom: -.72rem; transform: translateX(-50%);
+    color: var(--wf-blueprint); background: var(--bs-tertiary-bg); padding: 0 .15rem;
+}
+
+/* ---- destination cards ---- */
+.wf-scope .wf-dest {
+    position: relative; height: 100%;
+    border: 1px solid var(--bs-border-color);
+    border-top: 3px solid var(--wf-accent);
+    transition: box-shadow .15s ease-in-out;
+}
+.wf-scope .wf-dest:hover { box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .09); }
+.wf-scope .wf-dest-icon {
+    flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: .6rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: var(--wf-accent);
+    background: var(--bs-tertiary-bg);
+    background: color-mix(in srgb, var(--wf-accent) 13%, transparent);
+}
+.wf-scope .wf-dest-eyebrow {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--wf-accent);
+}
+.wf-scope .wf-dest-value { font-size: 1.6rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.wf-scope .wf-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .7rem; padding: .1rem .45rem; border-radius: 999px;
+    background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); white-space: nowrap;
+}
+.wf-scope a.wf-chip:hover { color: var(--bs-body-color); }
+.wf-scope .wf-chip-auto,
+.wf-scope .wf-chip-manual {
+    border: 1px solid var(--wf-accent);
+    color: var(--wf-accent);
+    background: var(--bs-tertiary-bg);
+    background: color-mix(in srgb, var(--wf-accent) 12%, transparent);
+}
+.wf-scope .wf-chip-auto   { --wf-accent: var(--wf-auto); }
+.wf-scope .wf-chip-manual { --wf-accent: var(--wf-manual); }
+.wf-scope a.wf-chip-auto:hover,
+.wf-scope a.wf-chip-manual:hover {
+    color: var(--wf-accent);
+    background: color-mix(in srgb, var(--wf-accent) 22%, transparent);
+}
+.wf-scope .wf-dest-cta { color: var(--wf-accent); font-size: .82rem; font-weight: 600; }
+
+.wf-scope .wf-meta { font-size: .78rem; color: var(--bs-secondary-color); }
+.wf-scope .wf-meta strong { color: var(--bs-body-color); font-variant-numeric: tabular-nums; }
+.wf-scope .accordion-button { font-size: .9rem; font-weight: 600; }
+.wf-scope .accordion-button:not(.collapsed) { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+.wf-scope .accordion-button:focus { box-shadow: none; }
+
+@media (max-width: 991.98px) {
+    .wf-scope .wf-flow { flex-direction: column; }
+    .wf-scope .wf-link { flex-basis: 1.25rem; }
+    .wf-scope .wf-link i { transform: rotate(90deg); }
+    .wf-scope .wf-feeds::after { display: none; }
+}
