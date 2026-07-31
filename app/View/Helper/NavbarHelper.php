@@ -50,6 +50,7 @@ class NavbarHelper extends AppHelper {
         'roles'              => 'administration',
         'auth_keys'          => 'administration',
         'workflows'          => 'administration',
+        'workflowblueprints' => 'administration',
         'jobs'               => 'administration',
         'tasks'              => 'administration',
         'benchmarks'         => 'administration',
@@ -64,6 +65,7 @@ class NavbarHelper extends AppHelper {
             'admin_default' => 'administration', // any admin_* action (index, view, add, email, edit…)
             'statistics'    => 'datapoints',
             'terms'         => 'resources',
+            'registrations' => 'administration',
         ],
         // Logs
         'logs'        => 'logs',
@@ -615,6 +617,14 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
                     ],
                     [
+                        'label' => __('User Settings'),
+                        'url' => $baseurl . '/user_settings/index',
+                        'controller' => 'user_settings',
+                        'action' => 'index',
+                        'requirement' => $isAdmin,
+                        'icon' => 'fas fa-sliders'
+                    ],
+                    [
                         'label' => __('List Organisations'),
                         'url' => $baseurl . '/organisations/index',
                         'controller' => 'organisations',
@@ -655,9 +665,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Workflow'),
-                        'url' => $baseurl . '/workflows/triggers',
+                        'url' => $baseurl . '/workflows/index',
                         'controller' => 'workflows',
-                        'action' => 'triggers',
+                        'action' => 'index',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-project-diagram'
                     ],
@@ -747,29 +757,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'overCorrelations',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-hexagon-nodes-bolt'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'group',
-                'label' => __('Settings'),
-                'icon' => 'fas fa-sliders',
-                'children' => [
-                    [
-                        'label' => __('Set User Settings'),
-                        'url' => $baseurl . '/user_settings/setSetting',
-                        'controller' => 'user_settings',
-                        'action' => 'setSetting',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-gear'
-                    ],
-                    [
-                        'label' => __('List User Settings'),
-                        'url' => $baseurl . '/user_settings/index',
-                        'controller' => 'user_settings',
-                        'action' => 'index',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-users-gear'
                     ]
                 ]
             ]

@@ -1,15 +1,12 @@
 <?php
-/**
- *
- * Read-only related events card for a remote event preview (right column).
- *
- */
-
 $related = $data['RelatedEvent'] ?? [];
 
-$serverId    = (int)($server['Server']['id'] ?? 0);
-$previewBase = $baseurl . '/servers/previewEvent/' . $serverId . '/';
-$uid = 'preview-related-' . h($data['Event']['id'] ?? '0');
+$ctx = $previewContext ?? [];
+$eventUrl = $ctx['eventUrl']
+    ?? ($baseurl . '/servers/previewEvent/' . (int)($server['Server']['id'] ?? 0) . '/%id%');
+$eventKey = $ctx['eventKey'] ?? 'id';
+
+$uid = 'preview-related-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
 
 // Normalise each related row to a flat Event array (remote JSON may nest a list).
 $rows = [];
@@ -18,7 +15,7 @@ foreach ($related as $relatedEvent) {
     if (isset($ev[0])) {
         $ev = $ev[0];
     }
-    if (!empty($ev['id'])) {
+    if (!empty($ev[$eventKey])) {
         $rows[] = $ev;
     }
 }
@@ -67,7 +64,7 @@ $distMap = [
         <?php else: ?>
             <div class="d-flex flex-column">
                 <?php foreach ($rows as $i => $ev):
-                    $evId    = (int)($ev['id'] ?? 0);
+                    $evUrl   = str_replace('%id%', rawurlencode((string)$ev[$eventKey]), $eventUrl);
                     $info    = h($ev['info'] ?? '');
                     $date    = h($ev['date'] ?? '');
                     $orgName = h($ev['Orgc']['name'] ?? $ev['Org']['name'] ?? '');
@@ -75,7 +72,7 @@ $distMap = [
                     $dist    = $distMap[$distId] ?? $distMap[0];
                     $hidden  = $i >= $limit;
                     ?>
-                    <a href="<?= h($previewBase . $evId) ?>"
+                    <a href="<?= h($evUrl) ?>"
                        class="d-flex align-items-start gap-3 px-3 py-2 text-decoration-none text-dark border-bottom related-event-row <?= $hidden ? 'd-none' : '' ?>"
                        style="transition:background .15s;">
 

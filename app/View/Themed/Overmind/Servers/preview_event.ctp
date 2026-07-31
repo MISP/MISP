@@ -1,10 +1,4 @@
 <?php
-/**
- *
- * Remote server event preview (Overmind).
- *
- */
-
 $serverId   = (int)$server['Server']['id'];
 $serverName = !empty($server['Server']['name'])
     ? sprintf('"%s" (%s)', $server['Server']['name'], $server['Server']['url'])
@@ -16,7 +10,7 @@ $eventInfo = $event['Event']['info'] ?? '';
 echo $this->element('genericElements/assetLoader', [
     'js' => ['Chart.min']
 ]);
-
+$this->set('headerCountText', '');
 $headerTitle = h($eventInfo);
 $headerActions = [
     [
@@ -28,6 +22,23 @@ $headerActions = [
 ];
 $this->set('headerTitle', $headerTitle);
 $this->set('headerActions', $headerActions);
+
+/*
+ * How the shared Servers/View/preview_* partials should address this remote
+ * source. A server previews events by id and can filter its remote index on a
+ * tag id; the feed preview passes a uuid-based context instead.
+ */
+$eventId = $event['Event']['id'] ?? '';
+$this->set('previewContext', [
+    'eventUrl' => $baseurl . '/servers/previewEvent/' . $serverId . '/%id%',
+    'eventKey' => 'id',
+    'tagFilterUrl' => $baseurl . '/servers/previewIndex/' . $serverId . '/searchtag:%tag%',
+    'tagFilterKey' => 'id',
+    'pagingModel' => 'Server',
+    // The attributes tab caps how many rows it renders; this reloads it uncapped.
+    'viewAllUrl' => $baseurl . '/servers/previewEventAttributes/' . $serverId
+        . '/' . h($eventId) . '/all',
+]);
 
 // rearrangeEventForView() merges attributes/objects/proposals into $event['objects']
 // (each tagged with objectType) and unsets Event.Attribute. The Attributes tab
@@ -78,7 +89,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'icon' => 'misp-icon misp-icon-object misp-simple',
             'count' => $objectCount,
             'left' => [
-                'Servers/View/preview_object',
+                ['ajax' => $baseurl . '/servers/previewEventObjects/' . $serverId . '/' . h($eventId)],
             ],
         ],
         [
@@ -87,7 +98,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'icon' => 'misp-icon misp-icon-attribute misp-simple',
             'count' => $attributeCount,
             'left' => [
-                'Servers/View/preview_attributes',
+                ['ajax' => $baseurl . '/servers/previewEventAttributes/' . $serverId . '/' . h($eventId)],
             ],
         ],
     ]

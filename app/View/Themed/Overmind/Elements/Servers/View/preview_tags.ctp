@@ -14,8 +14,12 @@ $tags = array_values(array_filter(
     function ($t) { return !empty($t['name']) && empty($t['is_galaxy']); }
 ));
 
-$serverId = (int)($server['Server']['id'] ?? 0);
-$uid = 'preview-tags-' . h($data['Event']['id'] ?? '0');
+$ctx = $previewContext ?? [];
+$tagFilterUrl = $ctx['tagFilterUrl']
+    ?? ($baseurl . '/servers/previewIndex/' . (int)($server['Server']['id'] ?? 0) . '/searchtag:%tag%');
+$tagFilterKey = $ctx['tagFilterKey'] ?? 'id';
+
+$uid = 'preview-tags-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
 ?>
 
 <div class="card shadow-sm mb-3" id="preview-tags-card">
@@ -60,21 +64,29 @@ $uid = 'preview-tags-' . h($data['Event']['id'] ?? '0');
         <?php else: ?>
             <div class="d-flex flex-wrap align-items-center" data-tag-list>
                 <?php foreach ($tags as $tag):
-                    $filterUrl = $baseurl . '/servers/previewIndex/' . $serverId
-                        . '/searchtag:' . h($tag['id']);
+                    $badge = $this->element('genericElementsBS5/Badges/tag', [
+                        'tag' => $tag,
+                        'local' => !empty($tag['local']),
+                        'hiddenClass' => '',
+                        'showFavourite' => false
+                    ]);
+                    // Without the key the remote index cannot be filtered on this
+                    // tag, so render the badge on its own rather than a dead link.
+                    $filterKey = $tag[$tagFilterKey] ?? null;
                     ?>
-                    <a href="<?= h($filterUrl) ?>"
-                       class="text-decoration-none"
-                       data-tag-item
-                       data-tag-name="<?= h(strtolower($tag['name'])) ?>"
-                       title="<?= __('Filter the remote instance on the tag: %s', h($tag['name'])) ?>">
-                        <?= $this->element('genericElementsBS5/Badges/tag', [
-                            'tag' => $tag,
-                            'local' => !empty($tag['local']),
-                            'hiddenClass' => '',
-                            'showFavourite' => false
-                        ]); ?>
-                    </a>
+                    <?php if ($filterKey === null || $filterKey === ''): ?>
+                        <span data-tag-item data-tag-name="<?= h(strtolower($tag['name'])) ?>">
+                            <?= $badge ?>
+                        </span>
+                    <?php else: ?>
+                        <a href="<?= h(str_replace('%tag%', rawurlencode((string)$filterKey), $tagFilterUrl)) ?>"
+                           class="text-decoration-none"
+                           data-tag-item
+                           data-tag-name="<?= h(strtolower($tag['name'])) ?>"
+                           title="<?= __('Filter the remote instance on the tag: %s', h($tag['name'])) ?>">
+                            <?= $badge ?>
+                        </a>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
             <div class="text-center text-muted py-3 small d-none" data-tag-noresult>

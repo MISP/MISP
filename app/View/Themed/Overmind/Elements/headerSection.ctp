@@ -92,7 +92,8 @@ if (isset($headerCountText)) {
                 <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem; word-break:break-word; max-width:100%;">
                     <?= $title ?>
                 </h1>
-                <?php if ($countDisplay !== null): ?>
+                <?php // headerCountText => '' is the opt-out for pages whose paginator counts something other than the page's subject ?>
+                <?php if ($countDisplay !== null && $countDisplay !== ''): ?>
                     <span class="badge rounded-pill bg-primary fw-semibold px-3">
                         <?= h($countDisplay) ?>
                     </span>
@@ -152,6 +153,59 @@ if (isset($headerCountText)) {
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>
+
+                    <?php elseif ($action['type'] === 'dropdown'): ?>
+                        <?php
+                        /*
+                         * Groups page-level operations that would otherwise crowd
+                         * the header strip. Each child takes the same shape as a
+                         * top-level action: navigate | action (postLink) | modal,
+                         * plus 'divider'.
+                         */
+                        $dropdownBtnClass = $action['class'] ?? 'btn btn-outline-dark';
+                        ?>
+                        <div class="dropdown<?= $tabHidden ?>"<?= $tabAttr ?>>
+                            <button class="<?= h($dropdownBtnClass) ?> fw-semibold d-flex align-items-center gap-2 dropdown-toggle"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <?php if (!empty($action['icon'])): ?>
+                                    <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                                <?php endif; ?>
+                                <?= h($action['label']) ?>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <?php foreach (($action['children'] ?? []) as $child): ?>
+                                    <?php if (($child['type'] ?? '') === 'divider'): ?>
+                                        <li><hr class="dropdown-divider"></li>
+                                    <?php else: ?>
+                                        <li>
+                                            <?php
+                                            $childIcon = empty($child['icon'])
+                                                ? ''
+                                                : '<i class="fas fa-' . h($child['icon']) . ' me-2"></i>';
+                                            $childClass = trim('dropdown-item ' . ($child['class'] ?? ''));
+                                            ?>
+                                            <?php if (($child['type'] ?? '') === 'action'): ?>
+                                                <?= $this->Form->postLink(
+                                                    $childIcon . h($child['label']),
+                                                    $child['url'],
+                                                    ['class' => $childClass, 'escape' => false],
+                                                    $child['confirm'] ?? false
+                                                ) ?>
+                                            <?php elseif (($child['type'] ?? '') === 'modal'): ?>
+                                                <a class="<?= h($childClass) ?>" href="<?= h($child['url']) ?>"
+                                                   onclick="event.preventDefault(); openModal('<?= h($child['url']) ?>'<?= empty($child['size']) ? '' : ", '" . h($child['size']) . "'" ?>);">
+                                                    <?= $childIcon ?><?= h($child['label']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <a class="<?= h($childClass) ?>" href="<?= h($child['url']) ?>">
+                                                    <?= $childIcon ?><?= h($child['label']) ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
 
                     <?php endif; ?>
 

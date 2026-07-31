@@ -33,6 +33,7 @@ class WorkflowBlueprintsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'index']);
+        $this->set('title_for_layout', __('Workflow Blueprints'));
     }
 
     public function add($fromEditor = false)
@@ -136,6 +137,10 @@ class WorkflowBlueprintsController extends AppController
             }
             $this->request->data = $workflowBlueprintData;
             $this->add();
+            return;
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
         }
     }
 

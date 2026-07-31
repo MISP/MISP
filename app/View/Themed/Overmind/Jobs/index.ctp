@@ -1,10 +1,7 @@
 <?php
-// Overmind BS5 index for background jobs. Migrates the legacy hand-rolled
-// Paginator table (app/View/Jobs/index.ctp) to the parametrised BS5 scaffold.
-// Read-only: index() is site-admin only and offers no per-row delete — only the
-// bulk purge (Completed / All) header actions and the queue filter tabs. The
-// live progress bars self-refresh via getGenerateCorrelationProgress (CSRF-exempt),
-// polled with a plain fetch since jQuery isn't loaded under Overmind.
+
+$isSiteAdmin = $this->viewVars['isSiteAdmin'] ?? false;
+
 $this->set('headerTitle', __('Jobs'));
 $this->set('headerDescription', __('Background jobs queued or executed on this instance. Job entries are log records and have no impact on running jobs; purging them is safe.'));
 $this->set('headerActions', [
@@ -24,82 +21,126 @@ $this->set('headerActions', [
     ],
 ]);
 
-// Queue filter tabs (positional arg on /jobs/index/<queue>).
-$queues = [
-    ''        => __('All'),
-    'default' => __('Default'),
-    'prio'    => __('Prio'),
-    'email'   => __('Email'),
-    'cache'   => __('Cache'),
-];
-$queueButtons = [];
-foreach ($queues as $q => $qLabel) {
-    $active = ($q === '') ? empty($queue) : ($queue === $q);
-    $queueButtons[] = [
-        'type'  => 'button',
-        'label' => $qLabel,
-        'url'   => $baseurl . '/jobs/index' . ($q === '' ? '' : '/' . $q),
-        'class' => 'btn ' . ($active ? 'btn-primary' : 'btn-outline-primary') . ' fw-semibold',
-    ];
-}
+// Colour a queue name consistently between the badge column and the filter.
+$workerVariant = function ($worker) {
+    switch ($worker) {
+        case 'prio':    return 'danger';
+        case 'email':   return 'info';
+        case 'cache':   return 'warning';
+        case 'update':  return 'primary';
+        case 'default': return 'secondary';
+        default:        return 'light';
+    }
+};
 
 $fields = [
     [
-        'name' => __('ID'),
-        'sort' => 'id',
+        'element' => 'checkbox',
         'data_path' => 'Job.id',
+        'card_section' => 'selector',
     ],
     [
-        'name' => __('Date created'),
-        'sort' => 'date_created',
-        'data_path' => 'Job.date_created',
-        'element' => 'datetime',
+        'name' => __('ID'),
+        'sort' => 'Job.id',
+        'data_path' => 'Job.id',
+        'element' => 'id',
+        'url' => '#',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Date modified'),
-        'sort' => 'date_modified',
-        'data_path' => 'Job.date_modified',
-        'element' => 'datetime',
-    ],
-    [
-        'name' => __('Process ID'),
-        'sort' => 'process_id',
+        'name' => __('ID'),
+        'sort' => 'Job.process_id',
         'data_path' => 'Job.process_id',
+        'element' => 'uuid',
+        'url' => '#',
+        'card_section' => 'top',
+        'display_in' => ['card']
     ],
     [
-        'name' => __('Worker'),
+        'name' => __('Queue / Type'),
         'sort' => 'worker',
-        'data_path' => 'Job.worker',
+        'element' => 'custom',
+        'card_section' => 'attribute',
+        'display_in' => ['table', 'card'],
+        'function' => function (array $row) use ($workerVariant) {
+            $worker = $row['Job']['worker'] ?? '';
+            $type = $row['Job']['job_type'] ?? '';
+            $out = '<div class="d-flex flex-column gap-1">';
+            if ($worker !== '') {
+                $out .= '<span class="badge rounded-pill text-bg-' . $workerVariant($worker)
+                    . ' align-self-start"><i class="fas fa-diagram-project me-1"></i>'
+                    . h($worker) . '</span>';
+            }
+            if ($type !== '') {
+                $out .= '<span class="font-monospace small text-body-secondary text-break">'
+                    . h($type) . '</span>';
+            }
+            $out .= '</div>';
+            return $out;
+        },
     ],
     [
-        'name' => __('Job type'),
-        'sort' => 'job_type',
-        'data_path' => 'Job.job_type',
-    ],
-    [
-        'name' => __('Input'),
-        'sort' => 'job_input',
-        'data_path' => 'Job.job_input',
-    ],
-    [
-        'name' => __('Message'),
-        'sort' => 'message',
-        'data_path' => 'Job.message',
+        'name' => __('Details'),
+        'element' => 'custom',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
+        'style' => 'max-width: 320px;',
+        'function' => function (array $row) {
+            $input = trim((string)($row['Job']['job_input'] ?? ''));
+            $message = trim((string)($row['Job']['message'] ?? ''));
+            if ($input === '' && $message === '') {
+                return '<span class="text-muted">' . h(__('N/A')) . '</span>';
+            }
+            $out = '<div class="d-flex flex-column gap-1">';
+            if ($input !== '') {
+                $out .= '<code class="d-inline-block text-truncate" style="max-width: 320px;" title="'
+                    . h($input) . '">' . h($input) . '</code>';
+            }
+            if ($message !== '') {
+                $out .= '<span class="text-body-secondary small text-truncate" style="max-width: 320px;" title="'
+                    . h($message) . '">' . h($message) . '</span>';
+            }
+            $out .= '</div>';
+            return $out;
+        },
     ],
     [
         'name' => __('Organisation'),
         'sort' => 'Org.name',
         'element' => 'custom',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
         'function' => function (array $row) {
             return isset($row['Org']['name'])
-                ? '<span>' . h($row['Org']['name']) . '</span>'
-                : '<span class="text-muted">' . h(__('SYSTEM')) . '</span>';
+                ? '<span class="d-inline-flex align-items-center"><i class="fas fa-building me-1 text-muted"></i>'
+                    . h($row['Org']['name']) . '</span>'
+                : '<span class="text-muted d-inline-flex align-items-center"><i class="fas fa-gear me-1"></i>'
+                    . h(__('SYSTEM')) . '</span>';
         },
+    ],
+    [
+        'name' => __('Created'),
+        'sort' => 'date_created',
+        'data_path' => 'Job.date_created',
+        'element' => 'datetime',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
+    ],
+    [
+        'name' => __('Modified'),
+        'sort' => 'date_modified',
+        'data_path' => 'Job.date_modified',
+        'element' => 'datetime',
+        'card_section' => 'meta',
+        'display_in' => ['card'],
     ],
     [
         'name' => __('Status'),
         'sort' => 'status',
         'element' => 'custom',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card'],
         'function' => function (array $row) use ($baseurl) {
             $status = $row['Job']['job_status'] ?? __('Unknown');
             $failed = !empty($row['Job']['failed'])
@@ -131,6 +172,8 @@ $fields = [
         'sort' => 'progress',
         'element' => 'progress',
         'style' => 'min-width: 200px;',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card'],
         'function' => function (array $row) {
             $job = $row['Job'];
             $failed = !empty($job['failed'])
@@ -155,15 +198,66 @@ $fields = [
     ],
 ];
 
+if ($isSiteAdmin) {
+    $fields[] = [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Job.id',
+        'actions' => [
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'size' => 'md',
+                'url' => $baseurl . '/jobs/deleteSelection/%id%',
+                'class' => 'text-danger',
+            ],
+        ],
+    ];
+}
+
+$scaffoldFilterBar = [
+    'children' => [
+        [
+            'type' => 'search',
+            'mode' => 'quickFilter',
+            'name' => 'quickFilter',
+            'placeholder' => __('Search worker, type, input, message or process ID'),
+        ],
+        [
+            'type' => 'more_filters',
+            'label' => __('More filters'),
+            'children' => [
+                [
+                    'type' => 'dropdown',
+                    'name' => 'worker',
+                    'label' => __('Queue'),
+                    'options' => [
+                        ''        => __('All queues'),
+                        'default' => __('Default'),
+                        'prio'    => __('Prio'),
+                        'email'   => __('Email'),
+                        'cache'   => __('Cache'),
+                        'update'  => __('Update'),
+                    ],
+                ],
+            ],
+        ],
+    ],
+];
+
+if ($isSiteAdmin) {
+    $scaffoldFilterBar['delete'] = '/deleteSelection';
+    $scaffoldFilterBar['delete_url'] = '/jobs/deleteSelection';
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
             'primary_id_path' => 'Job.id',
             'fields' => $fields,
-            'filter_bar' => [
-                'children' => $queueButtons,
-            ],
+            'filter_bar' => $scaffoldFilterBar,
         ],
     ],
     'item_url' => '/jobs',

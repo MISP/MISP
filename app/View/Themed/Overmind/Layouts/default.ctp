@@ -9,6 +9,9 @@
     <?php
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
+            ['controller' => 'users', 'action' => 'register'],
+            ['controller' => 'users', 'action' => 'forgot'],
+            ['controller' => 'users', 'action' => 'change_pw'],
 
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'add'],
@@ -150,7 +153,20 @@
             ['controller' => 'bookmarks', 'action' => 'delete'],
             ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
 
+            ['controller' => 'workflows', 'action' => 'index'],
+            ['controller' => 'workflows', 'action' => 'triggers'],
+            ['controller' => 'workflows', 'action' => 'adhoc'],
+            ['controller' => 'workflows', 'action' => 'add'],
+            ['controller' => 'workflows', 'action' => 'edit'],
+            ['controller' => 'workflows', 'action' => 'executeWorkflow'],
+            ['controller' => 'workflows', 'action' => 'moduleIndex'],
+            ['controller' => 'workflows', 'action' => 'editor'],
+            ['controller' => 'workflows', 'action' => 'massToggleTrigger'],
+            ['controller' => 'workflows', 'action' => 'massToggleModule'],
+            ['controller' => 'workflows', 'action' => 'toggleDebugMode'],
+
             ['controller' => 'workflowBlueprints', 'action' => 'index'],
+            ['controller' => 'workflowBlueprints', 'action' => 'import'],
             ['controller' => 'workflowBlueprints', 'action' => 'add'],
             ['controller' => 'workflowBlueprints', 'action' => 'edit'],
             ['controller' => 'workflowBlueprints', 'action' => 'view'],
@@ -204,6 +220,7 @@
             ['controller' => 'servers', 'action' => 'delete'],
             ['controller' => 'servers', 'action' => 'previewIndex'],
             ['controller' => 'servers', 'action' => 'previewEvent'],
+            ['controller' => 'servers', 'action' => 'pullSelectedEvents'],
             // ['controller' => 'servers', 'action' => 'cache'],
             // ['controller' => 'servers', 'action' => 'pull'],
             // ['controller' => 'servers', 'action' => 'push'],
@@ -272,12 +289,15 @@
             ['controller' => 'users', 'action' => 'admin_email'],
             ['controller' => 'users', 'action' => 'totp_new'],
             ['controller' => 'users', 'action' => 'view_login_history'],
+            ['controller' => 'users', 'action' => 'registrations'],
             ['controller' => 'auth_keys', 'action' => 'index'],
             ['controller' => 'auth_keys', 'action' => 'add'],
             ['controller' => 'auth_keys', 'action' => 'edit'],
             ['controller' => 'auth_keys', 'action' => 'view'],
             ['controller' => 'benchmarks', 'action' => 'index'],
-
+            ['controller' => 'user_settings', 'action' => 'index'],
+            ['controller' => 'user_settings', 'action' => 'setSetting'],
+            ['controller' => 'user_settings', 'action' => 'deleteSelection'],
 
             ['controller' => 'logs', 'action' => 'index'],
             ['controller' => 'logs', 'action' => 'admin_index'],
@@ -295,6 +315,12 @@
             ['controller' => 'feeds', 'action' => 'add'],
             ['controller' => 'feeds', 'action' => 'edit'],
             ['controller' => 'feeds', 'action' => 'view'],
+            ['controller' => 'feeds', 'action' => 'importFeeds'],
+            ['controller' => 'feeds', 'action' => 'deleteSelection'],
+            ['controller' => 'feeds', 'action' => 'previewIndex'],
+            ['controller' => 'feeds', 'action' => 'previewEvent'],
+            ['controller' => 'feeds', 'action' => 'getSelectedEvents'],
+            ['controller' => 'feeds', 'action' => 'fetchSelectedFeeds'],
 
             ['controller' => 'tasks', 'action' => 'index'],
             ['controller' => 'tasks', 'action' => 'add'],
@@ -318,6 +344,11 @@
         $currentController = $this->params['controller'];
         $currentAction = $this->params['action'];
 
+        // Chrome-less authentication pages (login, self-registration): no navbar,
+        // no footer, no headerSection — just the centered card over the gradient
+        // background (styled in mainOvermind.css via the body data-action attr).
+        $isAuthPage = ($currentController === 'users' && in_array($currentAction, ['login', 'register', 'forgot', 'change_pw'], true));
+
         // Normalise controller/action names so any URL casing of the same page
         // matches its allowlist entry. $this->params reflect the exact casing of
         // the request URL segment (e.g. /OrgBlocklists vs /orgBlocklists vs
@@ -340,6 +371,17 @@
                 $useBootstrap5 = true;
                 break;
             }
+        }
+
+        /*
+         * Escape hatch for actions that render more than one view, only some of
+         * which are migrated (feeds/previewIndex renders the BS5 event-index
+         * preview for MISP feeds but the legacy freetext_index for freetext/CSV
+         * ones). Such an action sets forceLegacyLayout on the non-migrated
+         * branch so it keeps the legacy assets it was written against.
+         */
+        if ($useBootstrap5 && !empty($forceLegacyLayout)) {
+            $useBootstrap5 = false;
         }
 
         if ($useBootstrap5) {
@@ -391,8 +433,8 @@
         <header>
             <?php
                 if ($useBootstrap5){
-                    // Don't print the navbar for the login page
-                    if (!($currentController === 'users' && $currentAction === 'login')) {
+                    // Don't print the navbar for the authentication pages
+                    if (!$isAuthPage) {
                         $context = [
                             'me' => $me,
                             'baseurl' => $baseurl,
@@ -425,7 +467,7 @@
                 }
             ?>
         </header> 
-        <?php if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')): ?>
+        <?php if ($useBootstrap5 && !$isAuthPage): ?>
             <?php if (Configure::read('debug') > 0): ?>
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
@@ -478,7 +520,12 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
+                /*
+                 * `hideHeaderSection` is for pages that own the whole viewport
+                 * and carry their own title bar — the workflow editor, whose
+                 * canvas must fill the space the header strip would take.
+                 */
+                if ($useBootstrap5 && !$isAuthPage && empty($hideHeaderSection)) {
                     echo $this->element('headerSection', [
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
@@ -499,9 +546,9 @@
     <!-- Footer -->
     <?php
         if ($useBootstrap5){
-            // Don't print the footer for the login page
-            if (!($currentController === 'users' && $currentAction === 'login')) {
-                echo $this->element('footerBS5'); 
+            // Don't print the footer for the authentication pages
+            if (!$isAuthPage) {
+                echo $this->element('footerBS5');
             }
         }
         else {

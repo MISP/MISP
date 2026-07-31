@@ -32,7 +32,19 @@ if (isset($field['highlight_path'])) {
     $checkboxAttrs['data-highlight'] = Hash::get($row, $field['highlight_path']) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Event.id') {
+/*
+ * Remote preview rows (server event index) are selectable for a mass fetch, but
+ * their id belongs to the remote instance — the ACL branches below would answer
+ * about whatever local record happens to share that id. Nothing local to delete
+ * either, so the delete-gated buttons stay hidden.
+ */
+$isRemoteRow = !empty($field['remote']);
+if ($isRemoteRow) {
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = '0';
+}
+
+if (!$isRemoteRow && $field['data_path'] === 'Event.id') {
     $mayModify = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
     $checkboxAttrs['data-item-id'] = $id;
@@ -195,6 +207,14 @@ if ($field['data_path'] === 'Bookmark.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Workflow.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'WorkflowBlueprint.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
@@ -283,6 +303,21 @@ if ($field['data_path'] === 'SharingGroupBlueprint.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Event.uuid') {
+    // Remote preview rows (feed manifest): selectable for a mass fetch, but
+    // there is nothing local to delete, so the delete-gated buttons stay hidden.
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = '0';
+}
+
+if ($field['data_path'] === 'Feed.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Server.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
@@ -310,6 +345,37 @@ if ($field['data_path'] === 'AuthKey.id') {
 if ($field['data_path'] === 'Role.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Task.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'UserSetting.id') {
+    // Deletability is resolved server-side (checkAccess + checkSettingAccess)
+    // and exposed as UserSetting._canDelete by UserSettingsController::index.
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = !empty($row['UserSetting']['_canDelete']) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Job.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Inbox.id') {
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin ?? false;
     }
     $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';

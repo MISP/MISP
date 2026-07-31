@@ -364,13 +364,13 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe) {
+function multiSelectItems(url, suffixe, size = 'sm') {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
     const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
-    openModal(fullUrl, 'sm');
+    openModal(fullUrl, size);
 }
 
 function redirectToExportResult() {
@@ -449,6 +449,7 @@ function updateMultiSelectToolbar() {
     const objectButton   = scope.querySelector('#mass-object-button');
     const relationshipButton = scope.querySelector('#mass-relationship-button');
     const sightingButton = scope.querySelector('#mass-sighting-button');
+    const fetchButton    = scope.querySelector('#mass-fetch-button');
     const enableButton   = scope.querySelector('#mass-enable-button');
     const disableButton  = scope.querySelector('#mass-disable-button');
     const requireButton   = scope.querySelector('#mass-require-button');
@@ -496,6 +497,8 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
+
+    fetchButton?.classList.toggle('d-none', !allEnabled);
 
     if (enableButton && disableButton) {
         if (allDisabled) {

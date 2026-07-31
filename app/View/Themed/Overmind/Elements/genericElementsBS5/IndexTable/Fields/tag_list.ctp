@@ -20,11 +20,40 @@ if ($allowAddTag) {
     }
 }
 
-if (empty($data) && empty($addUrl)) {
-    return;
+$data = $data ?: [];
+if (isset($data['name'])) {
+    $data = [$data];
+}
+$normalised = [];
+foreach ($data as $entry) {
+    if (!is_array($entry)) {
+        continue;
+    }
+    if (isset($entry['Tag'])) {
+        $normalised[] = $entry;
+    } elseif (isset($entry['name'])) {
+        $normalised[] = ['Tag' => $entry, 'local' => $entry['local'] ?? false];
+    }
+}
+$data = $normalised;
+
+/*
+ * Some records carry a tag collection instead of a tag (feeds, servers).
+ */
+$tagCollection = null;
+if (empty($data) && !empty($field['tag_collection_path'])) {
+    $collections = Hash::get($row, $field['tag_collection_path']);
+    if (!empty($collections[0]['TagCollection'])) {
+        $tagCollection = $collections[0]['TagCollection'];
+        foreach (Hash::extract($collections[0], 'TagCollectionTag.{n}.Tag') as $tag) {
+            $data[] = ['Tag' => $tag, 'local' => false];
+        }
+    }
 }
 
-$data = $data ?: [];
+if (empty($data) && empty($tagCollection) && empty($addUrl)) {
+    return;
+}
 
 $maxVisible = 4;
 // Count only real tags, not galaxy-tags
@@ -37,6 +66,16 @@ $hiddenCount = max(0, $totalTags - $maxVisible);
 ?>
 
 <div class="tag-container d-inline-flex flex-wrap align-items-center">
+
+<?php if (!empty($tagCollection)): ?>
+    <a
+        class="badge bg-body border text-body-emphasis me-1 mb-1"
+        href="<?= h($baseurl . '/tag_collections/view/' . $tagCollection['id']) ?>"
+        title="<?= h(__('Tag Collection')) ?>"
+    >
+        <i class="fas fa-layer-group me-1"></i><?= h($tagCollection['name']) ?>
+    </a>
+<?php endif; ?>
 
 <?php
 $visibleIndex = 0;
