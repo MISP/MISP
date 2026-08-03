@@ -673,6 +673,14 @@ th .sort-icon::before {
     background-color: #b56ef8 !important;
 }
 
+[data-bs-theme="dark"] 
+.default-color {
+    color: #ddbefa !important;
+}
+.default-bg {
+    background-color: #5c3a7d !important;
+}
+
 .btn-danger-subtle {
     background: #f4c7c7;
 }
