@@ -5,7 +5,6 @@ $canModify = !empty($canCreateAuthkey);
 // Show the User cloumn only if we are not viewing the main index
 $showUserColumn = empty($user_id) && (!empty($me['Role']['perm_admin']) || !empty($me['Role']['perm_site_admin']));
 
-
 $fields = [
     [
         'element' => 'checkbox',
@@ -88,6 +87,23 @@ $rowActions = [
         'icon' => 'pen-to-square',
         'url' => $baseurl . '/auth_keys/edit/%id%',
         'requirement' => $canModify,
+    ],
+    [
+        // Revoking expires the key on the spot. If it is
+        // already expired, the action is hidden.
+        'type' => 'modal',
+        'label' => __('Revoke'),
+        'icon' => 'ban',
+        'class' => 'text-warning-emphasis',
+        'size' => 'md',
+        'url' => $baseurl . '/auth_keys/revoke/%id%',
+        'requirement' => function ($row) use ($canModify) {
+            if (!$canModify) {
+                return false;
+            }
+            $expiration = (int)(Hash::get($row, 'AuthKey.expiration') ?? 0);
+            return $expiration === 0 || $expiration > time();
+        },
     ],
     [
         'type' => 'divider',
