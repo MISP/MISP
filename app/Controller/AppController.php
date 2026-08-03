@@ -1170,7 +1170,7 @@ class AppController extends Controller
                                 $leftover = substr($existingParamKey, strlen($param)-1);
                                 if (
                                     $root == substr($existingParamKey, 0, strlen($root)) &&
-                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                    preg_match('/^[\w.\- ]+$/', $leftover) == 1
                                 ) {
                                     $data[$existingParamKey] = $temp[$existingParamKey];
                                     break;
