@@ -1616,3 +1616,278 @@ tr.attr-proposal-row td:first-child {
     .wf-scope .wf-link i { transform: rotate(90deg); }
     .wf-scope .wf-feeds::after { display: none; }
 }
+
+/* ============================================================
+   SERVER SETTINGS  (servers/serverSettings — Overmind)
+   Scoped under .ss-scope so nothing leaks into other pages.
+   ============================================================ */
+
+/* ---- overall health cards (same treatment as the workflow hub cards) ---- */
+.ss-scope .ss-health-card {
+    --ss-accent: var(--bs-secondary);
+    border: 1px solid var(--bs-border-color);
+    border-top: 3px solid var(--ss-accent);
+    transition: box-shadow .15s ease-in-out;
+}
+.ss-scope .ss-health-card:hover { box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .09); }
+.ss-scope .ss-health-icon {
+    flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: .6rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: var(--ss-accent);
+    background: var(--bs-tertiary-bg);
+    background: color-mix(in srgb, var(--ss-accent) 13%, transparent);
+}
+.ss-scope .ss-health-eyebrow {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ss-accent);
+}
+.ss-scope .ss-health-value {
+    font-size: 1.75rem; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- section cards ---- */
+.ss-scope .ss-section {
+    --ss-accent: var(--bs-secondary);
+    border: 1px solid var(--bs-border-color);
+    border-left: 4px solid var(--ss-accent);
+    overflow: hidden;
+}
+.ss-scope .ss-section-header {
+    display: flex; align-items: center; gap: .75rem; cursor: pointer;
+    background: color-mix(in srgb, var(--ss-accent) 10%, var(--bs-body-bg));
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.ss-scope .ss-section-header.collapsed { border-bottom-color: transparent; }
+.ss-scope .ss-section-header:hover {
+    background: color-mix(in srgb, var(--ss-accent) 17%, var(--bs-body-bg));
+}
+.ss-scope .ss-section-icon {
+    flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: .5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; background: var(--ss-accent); font-size: .85rem;
+}
+.ss-scope .ss-chevron { transition: transform .2s ease-in-out; color: var(--bs-secondary-color); }
+.ss-scope .ss-section-header.collapsed .ss-chevron { transform: rotate(180deg); }
+
+.ss-scope .ss-section-alert {
+    padding: .4rem .75rem; font-size: .78rem; font-weight: 600;
+    color: var(--bs-danger); border-bottom: 1px solid var(--bs-border-color);
+    background: color-mix(in srgb, var(--bs-danger) 9%, transparent);
+}
+/* The workers view reuses the strip for healthy/unknown queue states too. */
+.ss-scope .ss-section-alert.ss-alert-ok {
+    color: var(--bs-success);
+    background: color-mix(in srgb, var(--bs-success) 9%, transparent);
+}
+.ss-scope .ss-section-alert.ss-alert-warn {
+    color: #b8860b;
+    background: color-mix(in srgb, var(--bs-warning) 14%, transparent);
+}
+
+/* ---- settings table ---- */
+.ss-scope .ss-table { font-size: .82rem; }
+.ss-scope .ss-table thead th {
+    font-size: .66rem; letter-spacing: .07em; text-transform: uppercase;
+    font-weight: 700; color: var(--bs-secondary-color);
+    border-bottom: 1px solid var(--bs-border-color); white-space: nowrap;
+}
+.ss-scope .ss-col-priority { width: 8.5rem; }
+.ss-scope .ss-col-setting  { width: 20rem; }
+.ss-scope .ss-col-value    { width: 16rem; }
+.ss-scope .ss-col-error    { width: 11rem; }
+
+.ss-scope .ss-row-error.ss-lvl-0 > td { background: color-mix(in srgb, var(--bs-danger) 7%, transparent); }
+.ss-scope .ss-row-error.ss-lvl-1 > td { background: color-mix(in srgb, var(--bs-warning) 10%, transparent); }
+.ss-scope .ss-row-error.ss-lvl-2 > td { background: color-mix(in srgb, var(--bs-success) 8%, transparent); }
+
+.ss-scope .ss-setting-name {
+    font-family: var(--bs-font-monospace); font-size: .78rem; overflow-wrap: anywhere;
+}
+.ss-scope .ss-posture { font-size: .6rem; vertical-align: middle; }
+.ss-scope .ss-error-msg { color: var(--bs-danger); font-size: .75rem; }
+.ss-scope .ss-col-description { font-size: .76rem; }
+
+/* ---- priority pill ---- */
+.ss-scope .ss-prio {
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+    font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 999px;
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.ss-scope .ss-prio.ss-lvl-0 { color: var(--bs-danger); }
+.ss-scope .ss-prio.ss-lvl-1 { color: #b8860b; }
+.ss-scope .ss-prio.ss-lvl-2 { color: var(--bs-success); }
+.ss-scope .ss-prio.ss-lvl-3 { color: var(--bs-secondary-color); }
+
+/* ---- inline value editing ---- */
+.ss-scope .ss-col-value { word-break: break-word; }
+.ss-scope .ss-editable { cursor: pointer; position: relative; }
+.ss-scope .ss-editable .ss-edit-hint {
+    opacity: 0; margin-left: .4rem; font-size: .7rem;
+    color: var(--bs-primary); transition: opacity .12s ease-in-out;
+}
+.ss-scope .ss-editable:hover .ss-edit-hint,
+.ss-scope .ss-editable:focus-visible .ss-edit-hint { opacity: 1; }
+.ss-scope .ss-editable:hover > .ss-value {
+    text-decoration: underline dotted var(--bs-primary);
+    text-underline-offset: .2rem;
+}
+.ss-scope .ss-editing { background: color-mix(in srgb, var(--bs-primary) 8%, transparent) !important; }
+.ss-scope .ss-edit-form .form-control,
+.ss-scope .ss-edit-form .form-select { font-size: .8rem; }
+
+/* ---- correlations tab ---- */
+.crl-scope .crl-stat {
+    padding: 1rem 1.25rem;
+    border-right: 1px solid var(--bs-border-color);
+}
+.crl-scope .crl-stat:last-child { border-right: 0; }
+@media (max-width: 991.98px) {
+    .crl-scope .crl-stat:nth-child(even) { border-right: 0; }
+    .crl-scope .crl-stat:nth-child(-n+2) { border-bottom: 1px solid var(--bs-border-color); }
+}
+.crl-scope .crl-stat-label {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bs-secondary-color);
+}
+/* Proportional figures: a standalone value reads loose with tabular-nums. */
+.crl-scope .crl-stat-value {
+    font-size: 1.6rem; font-weight: 700; line-height: 1.2;
+    word-break: break-word;
+}
+.crl-scope .crl-stat-value a { color: inherit; }
+.crl-scope .crl-stat-value a:hover { color: var(--bs-primary); }
+.crl-scope .crl-stat-sub { font-size: .75rem; color: var(--bs-secondary-color); }
+
+.crl-scope .crl-table + .crl-table {
+    margin-top: .9rem; padding-top: .9rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+.crl-scope .crl-figures { font-size: .75rem; font-variant-numeric: tabular-nums; }
+
+/* Meter: fill carries the severity, the track is the same hue much lighter, so
+   the state reads across the whole bar even when the fill is a sliver. */
+.crl-scope .crl-meter {
+    --crl-fill: var(--bs-success);
+    height: .5rem; border-radius: 999px; overflow: hidden;
+    /* Kept faint, with a ring, so an empty track never reads as a full bar —
+       these saturations sit near 0% and must look like headroom. */
+    background: color-mix(in srgb, var(--crl-fill) 8%, var(--bs-tertiary-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--crl-fill) 22%, transparent);
+}
+.crl-scope .crl-meter-fill {
+    height: 100%; min-width: .35rem; border-radius: 999px;
+    background: var(--crl-fill);
+}
+
+.crl-scope .crl-dormant { border: 1px solid var(--bs-border-color); }
+.crl-scope .crl-dormant .card-header { background: var(--bs-tertiary-bg); }
+.crl-scope .crl-dormant-icon {
+    background: var(--bs-secondary-bg); color: var(--bs-secondary-color);
+}
+
+/* ---- manage files tab ---- */
+.fl-scope .fl-meta { font-size: .78rem; color: var(--bs-secondary-color); }
+.fl-scope .fl-meta code { font-size: .74rem; }
+.fl-scope .fl-figures { font-size: .74rem; }
+.fl-scope .fl-block-title {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bs-secondary-color); margin-bottom: .35rem;
+}
+.fl-scope .fl-expected {
+    border: 1px solid var(--bs-border-color); border-radius: .5rem;
+    padding: .6rem .75rem; background: var(--bs-tertiary-bg);
+}
+.fl-scope .fl-expected-row + .fl-expected-row { margin-top: .3rem; }
+
+.fl-scope .fl-tile {
+    position: relative; display: flex; flex-direction: column;
+    border: 1px solid var(--bs-border-color); border-radius: .5rem; overflow: hidden;
+    transition: box-shadow .15s ease-in-out, border-color .15s ease-in-out;
+}
+.fl-scope .fl-tile:hover {
+    border-color: color-mix(in srgb, var(--bs-primary) 40%, var(--bs-border-color));
+    box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .08);
+}
+/* Checkerboard so a transparent logo is not mistaken for a white one. */
+.fl-scope .fl-thumb {
+    height: 6.5rem; display: flex; align-items: center; justify-content: center;
+    padding: .6rem; font-size: 1.5rem;
+    background-color: var(--bs-body-bg);
+    background-image:
+        linear-gradient(45deg, var(--bs-tertiary-bg) 25%, transparent 25%, transparent 75%, var(--bs-tertiary-bg) 75%),
+        linear-gradient(45deg, var(--bs-tertiary-bg) 25%, transparent 25%, transparent 75%, var(--bs-tertiary-bg) 75%);
+    background-size: 14px 14px;
+    background-position: 0 0, 7px 7px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.fl-scope .fl-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.fl-scope .fl-tile-body { padding: .5rem .6rem .6rem; }
+.fl-scope .fl-tile-name {
+    font-family: var(--bs-font-monospace); font-size: .74rem; font-weight: 600;
+    overflow-wrap: anywhere; padding-right: 1.5rem;
+}
+.fl-scope .fl-tile-delete {
+    position: absolute; top: .4rem; right: .4rem;
+    opacity: 0; transition: opacity .12s ease-in-out;
+    --bs-btn-padding-y: .1rem; --bs-btn-padding-x: .35rem; --bs-btn-font-size: .7rem;
+}
+.fl-scope .fl-tile:hover .fl-tile-delete,
+.fl-scope .fl-tile-delete:focus-visible { opacity: 1; }
+
+/* ---- diagnostics tab ---- */
+.dg-scope .dg-card .ss-section-header { gap: .75rem; }
+.dg-scope .dg-stat-label {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bs-secondary-color);
+}
+.dg-scope .dg-version {
+    font-family: var(--bs-font-monospace); font-size: 1.15rem; font-weight: 700;
+    letter-spacing: .02em;
+}
+.dg-scope .dg-figures { font-size: .74rem; font-variant-numeric: tabular-nums; }
+.dg-scope .dg-block-title {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bs-secondary-color);
+    margin: .25rem 0 .4rem;
+}
+.dg-scope .dg-row {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .3rem 0; border-bottom: 1px solid var(--bs-border-color);
+    font-size: .8rem; min-width: 0;
+}
+.dg-scope .dg-row:last-child { border-bottom: 0; }
+.dg-scope .dg-row-label { color: var(--bs-body-color); }
+.dg-scope .dg-row-boxed {
+    border: 1px solid var(--bs-border-color); border-radius: .4rem;
+    padding: .3rem .5rem; background: var(--bs-tertiary-bg);
+}
+
+.dg-scope .dg-finding {
+    display: flex; padding: .5rem .65rem; border-radius: .4rem;
+    border: 1px solid var(--bs-border-color); margin-bottom: .4rem;
+}
+.dg-scope .dg-finding.dg-lvl-0 {
+    border-color: color-mix(in srgb, var(--bs-danger) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-danger) 7%, transparent);
+}
+.dg-scope .dg-finding.dg-lvl-1 {
+    border-color: color-mix(in srgb, var(--bs-warning) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-warning) 10%, transparent);
+}
+.dg-scope .dg-finding.dg-lvl-3 {
+    border-color: color-mix(in srgb, var(--bs-info) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-info) 7%, transparent);
+}
+
+.dg-scope .dg-sql {
+    font-size: .7rem; margin: .2rem 0 .5rem; padding: .35rem .5rem;
+    background: var(--bs-tertiary-bg); border-radius: .3rem;
+    border: 1px solid var(--bs-border-color); overflow-x: auto;
+}
+.dg-scope .dg-diffs { max-height: 22rem; overflow-y: auto; }
+/* Legacy fragments (submodule table, deprecation stats) land here as-is. */
+.dg-scope .dg-raw { font-size: .8rem; overflow-x: auto; }
+.dg-scope .dg-raw table { width: 100%; }
+.dg-scope .dg-submodules { font-size: .8rem; overflow-x: auto; }

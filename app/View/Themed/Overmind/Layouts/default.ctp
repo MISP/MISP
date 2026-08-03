@@ -268,6 +268,7 @@
             ['controller' => 'SharingGroupBlueprints', 'action' => 'encodeSyncRule'],
 
             ['controller' => 'servers', 'action' => 'idTranslator'],
+            ['controller' => 'servers', 'action' => 'serverSettings'],
             ['controller' => 'event_templates', 'action' => 'index'],
             ['controller' => 'event_templates', 'action' => 'view'],
             ['controller' => 'event_templates', 'action' => 'import'],
