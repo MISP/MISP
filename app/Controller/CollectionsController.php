@@ -136,6 +136,20 @@ class CollectionsController extends AppController
 
     private function __attachElementToCollection($collectionId, $elementType, $elementUuid)
     {
+        if ($elementType === 'Event') {
+            // Mirror CollectionElementsController::addElementToCollection()'s visibility
+            // check: without it, a user could attach a UUID they cannot see to a
+            // collection they control, and probe for the existence of arbitrary event
+            // UUIDs (view() only ever renders ACL-filtered fetchSimpleEvents() output,
+            // so this does not itself grant read access to the event's content).
+            $this->loadModel('Event');
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $elementUuid, [
+                'fields' => ['Event.id']
+            ]);
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid event or not authorized.'));
+            }
+        }
         $this->Collection->CollectionElement->create();
         try {
             $this->Collection->CollectionElement->save([
