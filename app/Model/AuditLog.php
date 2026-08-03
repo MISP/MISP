@@ -347,7 +347,7 @@ class AuditLog extends AppModel
             return; // Table is missing when updating, so this is intentional
         }
         if ($this->save(['AuditLog' => $data], ['atomic' => false]) === false) {
-            throw new Exception($this->validationErrors);
+            throw new Exception("Could not save audit log because of validation errors: " . JsonTool::encode($this->validationErrors));
         }
     }
 
