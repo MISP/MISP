@@ -531,6 +531,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         // Check if the user can see the object, if we're looking at an object attribute
         if (
             $correlation[$prefix . 'object_id'] &&
+            $correlation[$prefix . 'org_id'] != $user['org_id'] &&
             (
                 $correlation[$prefix . 'object_distribution'] == 0 ||
                 (
@@ -544,6 +545,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
 
         // Check if the user can see the attribute
         if (
+            $correlation[$prefix . 'org_id'] != $user['org_id'] &&
             (
                 $correlation[$prefix . 'distribution'] == 0 ||
                 (
