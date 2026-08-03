@@ -209,6 +209,7 @@ class CollectionElement extends AppModel
         // from the remote by Collection::captureCollection(), so element saves/
         // deletes here must NOT bump it to the local now (D5 / D6 dedup).
         $this->skipCollectionModifiedBump = true;
+        try {
         $temp = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
@@ -282,8 +283,9 @@ class CollectionElement extends AppModel
                 $data['Collection']['CollectionElement'][] = $element['CollectionElement'];
             }
         }
-
-        $this->skipCollectionModifiedBump = false;
+        } finally {
+            $this->skipCollectionModifiedBump = false;
+        }
         return $data;
     }
 }
