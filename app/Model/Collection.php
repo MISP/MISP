@@ -147,7 +147,7 @@ class Collection extends AppModel
         if (in_array($collection['Collection']['distribution'], [1,2,3])) {
             return true;
         }
-        if ($collection['Collection']['distribution'] === 4) {
+        if ((int)$collection['Collection']['distribution'] === 4) {
             $SharingGroup = ClassRegistry::init('SharingGroup');
             $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'uuid');
             if (isset($sgs[$collection['Collection']['sharing_group_id']])) {
