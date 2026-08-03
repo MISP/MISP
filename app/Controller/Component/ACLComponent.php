@@ -814,7 +814,7 @@ class ACLComponent extends Component
             'saveElementSorting' => array('perm_template'),
             'submitEventPopulation' => array('perm_add'),
             'templateChoices' => array('*'),
-            'uploadFile' => array('*'),
+            'uploadFile' => array('perm_add'),
             'view' => array('*'),
         ),
         'threads' => array(
