@@ -2994,7 +2994,7 @@ class Event extends AppModel
                 $eventReportCondSelect => $user['org_id']
             );
         }
-        if ($options['distribution']) {
+        if (isset($options['distribution'])) {
             $conditions['AND'][] = array('Event.distribution' => $options['distribution']);
             $conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
             $conditionsObjects['AND'][] = array('Object.distribution' => $options['distribution']);
