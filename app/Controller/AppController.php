@@ -304,25 +304,14 @@ class AppController extends Controller
                     }
                 }
                 $this->set('theme', $currentTheme);
-                $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
+                $availableThemes = MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug'));
+                $this->set('themes', $availableThemes);
 
-                $userSetting = ClassRegistry::init('UserSetting');
-                $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
-                foreach ($themes as $t) {
-                    if ($t === 'Default') {
+                foreach ($availableThemes as $availableTheme) {
+                    if ($availableTheme->name === 'Default') {
                         continue;
                     }
-                    $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
-                    if (file_exists($themeFile)) {
-                        $themeConfig = include $themeFile;
-                        if (!empty($themeConfig['label'])) {
-                            $themeLabels[$t] = $themeConfig['label'];
-                        }
-                    }
-                    if (!isset($themeLabels[$t])) {
-                        $themeLabels[$t] = $t . ' UI';
-
-                    }
+                    $themeLabels[$availableTheme->name] = $availableTheme->label;
                 }
             } else {
                 $this->set('themes', []);
