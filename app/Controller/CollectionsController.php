@@ -175,12 +175,6 @@ class CollectionsController extends AppController
                 $this->request->data = ['Collection' => $this->request->data];
             }
             $data = $this->request->data;
-            if (
-                isset($data['Collection']['modified']) &&
-                $data['Collection']['modified'] <= $oldCollection['Collection']['modified']
-            ) {
-                throw new ForbiddenException(__('Collection received older or same as local version.'));
-            }
             // The sharing-group authorisation check must run against the EFFECTIVE distribution
             // and sharing group after the edit, not only when 'distribution' is present in the
             // body. CRUDComponent::edit() retains the stored value for any field the request
