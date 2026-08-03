@@ -105,6 +105,7 @@ class ACLComponent extends Component
             'deleteSelection' => ['AND' => ['perm_auth', 'not_read_only_authkey', 'theming_enabled']],
             'edit' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
             'pin' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
+            'revoke' => ['AND' => ['perm_auth', 'not_read_only_authkey', 'theming_enabled']],
             'index' => ['perm_auth'],
             'view' => ['perm_auth'],
         ],
