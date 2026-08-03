@@ -1645,9 +1645,9 @@ class AttributesController extends AppController
         $clusters_ids_remove = json_decode($requestData['clusters_ids_remove']);
         $clusters_ids_add = json_decode($requestData['clusters_ids_add']);
         $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
-            || ($tags_ids_add === null || count($tags_ids_add) > 0)
-            || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
-            || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+            || ($tags_ids_add !== null && count($tags_ids_add) > 0)
+            || ($clusters_ids_remove !== null && count($clusters_ids_remove) > 0)
+            || ($clusters_ids_add !== null && count($clusters_ids_add) > 0);
 
         $changeInAttribute = ($requestData['to_ids'] != 2) || ($requestData['distribution'] != 6) || ($requestData['comment'] != null) || ($requestData['disable_correlation'] != 2);
 
