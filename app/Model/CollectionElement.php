@@ -246,10 +246,28 @@ class CollectionElement extends AppModel
                 if (empty($element['CollectionElement']['id'])) {
                     $this->create();
                 }
-                try{
-                    $this->save($element);
+                try {
+                    if (!$this->save($element)) {
+                        $this->log(
+                            sprintf(
+                                'Could not save CollectionElement %s for collection %s: %s',
+                                $element['CollectionElement']['uuid'] ?? '',
+                                $data['Collection']['id'],
+                                json_encode($this->validationErrors)
+                            ),
+                            LOG_WARNING
+                        );
+                    }
                 } catch (PDOException $e) {
-                    // duplicate value?
+                    $this->log(
+                        sprintf(
+                            'Could not save CollectionElement %s for collection %s: %s',
+                            $element['CollectionElement']['uuid'] ?? '',
+                            $data['Collection']['id'],
+                            $e->getMessage()
+                        ),
+                        LOG_WARNING
+                    );
                 }
             }
             foreach ($oldElements as $toDelete) {
