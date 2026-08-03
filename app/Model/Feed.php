@@ -1423,8 +1423,8 @@ class Feed extends AppModel
                     $attributesToDelete[$k]['Attribute']['deleted'] = 1;
                     unset($attributesToDelete[$k]['Attribute']['timestamp']);
                 }
-                $this->Event->Attribute->saveMany($attributesToDelete); // We need to trigger callback methods
-                if (!empty($attributesToDelete)) {
+                $saved = $this->Event->Attribute->saveMany($attributesToDelete); // We need to trigger callback methods
+                if (!empty($attributesToDelete) && $saved) {
                     $this->Event->unpublishEvent($feed['Feed']['event_id']);
                 }
             }
