@@ -2505,5 +2505,25 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "name": "TweetFeed",
+      "provider": "tweetfeed.live",
+      "url": "https://tweetfeed.live/misp",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    }
   }
 ]
