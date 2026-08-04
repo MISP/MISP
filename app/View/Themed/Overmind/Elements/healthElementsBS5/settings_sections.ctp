@@ -150,8 +150,10 @@ $rowIndex = 0;
 
     <div class="card shadow-sm d-none" data-ss-no-result>
         <div class="card-body text-center text-muted py-5">
-            <i class="fas fa-magnifying-glass fa-2x mb-3 d-block opacity-50"></i>
-            <?= __('No setting matches the search.') ?>
+            <div class="d-flex justify-content-center flex-column align-items-center">
+                <i class="fas fa-magnifying-glass fa-2x mb-3 d-block opacity-50"></i>
+                <?= __('No setting matches the search.') ?>
+            </div>
         </div>
     </div>
 
