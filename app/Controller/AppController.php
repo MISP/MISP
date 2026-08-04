@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '186';
+    private $__queryVersion = '192';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -113,6 +113,10 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
+        // Environment variables are the highest priority source, so they are
+        // applied last to override both the config file and the database.
+        App::uses('EnvSetting', 'Tools');
+        EnvSetting::setGlobalSetting();
 
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
@@ -884,7 +888,7 @@ class AppController extends Controller
             'style-src' => "'self' 'unsafe-inline'",
             'object-src' => "'none'",
             'frame-ancestors' => "'none'",
-            'worker-src' => "'none'",
+            'worker-src' => "blob:",
             'child-src' => "'none'",
             'frame-src' => "'none'",
             'base-uri' => "'self'",
@@ -1166,7 +1170,7 @@ class AppController extends Controller
                                 $leftover = substr($existingParamKey, strlen($param)-1);
                                 if (
                                     $root == substr($existingParamKey, 0, strlen($root)) &&
-                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                    preg_match('/^[\w.\- ]+$/', $leftover) == 1
                                 ) {
                                     $data[$existingParamKey] = $temp[$existingParamKey];
                                     break;

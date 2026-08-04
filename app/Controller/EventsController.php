@@ -2527,7 +2527,19 @@ class EventsController extends AppController
             'paramType' => 'named',
         ];
 
-        $this->set('reports',   $result['EventReport']);
+        // Attach analyst data to each report so we can display the "Analyst data" column
+        $reports = $result['EventReport'];
+        if (!empty($reports)) {
+            $flatReports = array_map(function ($r) { return $r['EventReport']; }, $reports);
+            $flatReports = $this->EventReport->attachAnalystDataBulk($flatReports);
+            foreach ($reports as $i => $r) {
+                if (isset($flatReports[$i])) {
+                    $reports[$i]['EventReport'] = $flatReports[$i];
+                }
+            }
+        }
+
+        $this->set('reports',   $reports);
         $this->set('event',     $event);
         $this->set('mayModify', $mayModify);
         $this->set('total',     $total);
@@ -3955,7 +3967,7 @@ class EventsController extends AppController
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
 
-        if ($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         } else {
             if (Configure::read('MISP.unpublishedprivate')) {
@@ -3993,6 +4005,50 @@ class EventsController extends AppController
         $this->set('published', $this->Event->data['Event']['published'] ?? false);
     }
 
+    // Overmind-only combined import modal. Renders three accordion forms
+    public function importEvent()
+    {
+        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $initialDistribution = 0;
+        if (Configure::read('MISP.default_event_distribution') != null) {
+            $initialDistribution = Configure::read('MISP.default_event_distribution');
+        }
+        $this->set('initialDistribution', $initialDistribution);
+
+        $distributionLevels = $this->Event->distributionLevels;
+        if (empty($sgs)) {
+            unset($distributionLevels[4]);
+        }
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('sharingGroups', $sgs);
+
+        // STIX conversion options (shared by the 1.x and 2.x accordions).
+        $this->set('forceContextualDataOptions', [
+            0 => __("Conversion library's decision"),
+            1 => __('As contextual MISP data'),
+        ]);
+        $this->set('forceContextualDataDescriptions', [
+            0 => __('Let the conversion library decide if the STIX objects should be converted as Galaxy Cluster or MISP Object.'),
+            1 => __('STIX objects that could either be converted as Galaxy Cluster or MISP Object depending on the context will be converted here anyway as Galaxy Cluster (and also as MISP object if applicable).'),
+        ]);
+        $this->set('galaxiesOptions', [
+            0 => __('As MISP standard format'),
+            1 => __('As tag names'),
+        ]);
+        $this->set('galaxiesOptionsDescriptions', [
+            0 => __('Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.'),
+            1 => __('Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'),
+        ]);
+        $this->set('debugOptions', [
+            0 => __('Standard debugging'),
+            1 => __('Advanced debugging'),
+        ]);
+
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+    }
+
     public function add_misp_export()
     {
         if ($this->request->is('post')) {
@@ -4009,7 +4065,7 @@ class EventsController extends AppController
                     $file = $this->request->data['Event']['submittedfile'];
                     if ($file['error'] === UPLOAD_ERR_NO_FILE) {
                         $this->Flash->error(__('No file was uploaded.'));
-                        $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
+                        $this->redirect(['controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'index' : 'add_misp_export']);
                     }
 
                     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -4039,7 +4095,7 @@ class EventsController extends AppController
                         $fingerprint = $this->CryptographicKey->validateString($data, $signature, $this->Auth->user());
                         if (empty($fingerprint)) {
                             $this->Flash->error(__('The signature could not be validated.'));
-                            $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
+                            $this->redirect(['controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'index' : 'add_misp_export']);
                         }
                     }
                 } else {
@@ -4056,10 +4112,47 @@ class EventsController extends AppController
                 } catch (Exception $e) {
                     $this->log("Exception during processing MISP file import: {$e->getMessage()}");
                     $this->Flash->error(__('Could not process MISP export file. %s', $e->getMessage()));
-                    $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
+                    $this->redirect(['controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'index' : 'add_misp_export']);
                 }
             }
             $this->set('results', $results);
+            if ($this->theme === 'Overmind') {
+                $created = [];
+                $existing = 0;
+                $failed = 0;
+                foreach ($results as $result) {
+                    if ($result['result'] === true) {
+                        $created[] = $result['id'];
+                    } elseif (is_numeric($result['result'])) {
+                        $existing++;
+                    } else {
+                        $failed++;
+                    }
+                }
+                if (count($created) === 1 && $existing === 0 && $failed === 0) {
+                    $this->Flash->success(__('The event has been imported.'));
+                    $this->redirect(['action' => 'view2', $created[0]]);
+                }
+                $summary = [];
+                if (!empty($created)) {
+                    $summary[] = __('%s imported', count($created));
+                }
+                if ($existing) {
+                    $summary[] = __('%s already existing', $existing);
+                }
+                if ($failed) {
+                    $summary[] = __('%s failed', $failed);
+                }
+                $message = empty($summary)
+                    ? __('No event was imported.')
+                    : __('MISP export import finished: %s.', implode(', ', $summary));
+                if ($failed || empty($summary)) {
+                    $this->Flash->error($message);
+                } else {
+                    $this->Flash->success($message);
+                }
+                $this->redirect(['action' => 'index']);
+            }
             $this->render('add_misp_export_result');
         }
         $this->set('title_for_layout', __('Import from MISP Export File'));
@@ -4173,6 +4266,9 @@ class EventsController extends AppController
                     );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view2', $result));
+                        }
                         $this->redirect(array('action' => 'view', $result));
                     } else {
                         $this->Flash->error(__('Could not import STIX document: %s', $result));
@@ -4184,6 +4280,11 @@ class EventsController extends AppController
                     }
                     $this->Flash->error(__('File upload failed. Make sure that you select a STIX file to be uploaded and that the file doesn\'t exceed the maximum file size of %s MB.', $maxUploadSize));
                 }
+            }
+            // Send the user back to the index (the standalone STIX form is replaced by
+            // the import modal) with the flash error already set above.
+            if ($this->theme === 'Overmind' && !$this->_isRest()) {
+                $this->redirect(array('action' => 'index'));
             }
         }
         $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
@@ -7228,7 +7329,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
         }
         $this->loadModel('Module');
-        
+
         if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', ['name' => $module])) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
@@ -7271,7 +7372,15 @@ class EventsController extends AppController
             }
         }
 
-        if ($this->request->is('ajax')) {
+        // Overmind renders the whole expansion flow inside a modal:
+        // - the module choice step is loaded via openModal without a module
+        //   (module === '0'/false) -> render the themed enrichmentChoice fragment.
+        // - picking a module re-fetches this action WITH a module over ajax, which
+        //   must render the results screen as a body-only fragment (layout = false).
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
+        $isEnrichmentChoiceStep = $module === false || $module === null || $module === '' || $module === '0' || $module === 0;
+
+        if ($this->request->is('ajax') && $isEnrichmentChoiceStep) {
             $modules = [];
 
             if ($model === 'Attribute' || $model === 'ShadowAttribute') {
@@ -7299,6 +7408,13 @@ class EventsController extends AppController
             $this->set('model', $model);
             $this->render('ajax/enrichmentChoice');
         } else {
+            if ($overmindModal) {
+                $this->layout = false;
+            }
+            // For the themed result view (allow the "Back" button to re-opens the module choice )
+            $this->set('type', $type);
+            $this->set('model', $model);
+            $this->set('sourceId', $id);
             $options = [];
             $format = 'simplified';
             foreach ($enabledModules['modules'] as $temp) {
@@ -7350,7 +7466,11 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            // On an Overmind modal (ajax) a session flash would only surface on the
+            // next full page load; the error is shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7401,7 +7521,10 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            //Don't show flash message for Overmind, message will be shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7447,7 +7570,11 @@ class EventsController extends AppController
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
-            $this->Flash->error($result['error']);
+            // On an Overmind modal (ajax) a session flash would only surface on the
+            // next full page load; the error is shown inside the modal instead.
+            if (!($this->request->is('ajax') && $this->theme === 'Overmind')) {
+                $this->Flash->error($result['error']);
+            }
         }
         if (!is_array($result)) {
             throw new Exception($result);
@@ -7457,6 +7584,8 @@ class EventsController extends AppController
 
     private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false)
     {
+        $moduleError = (is_array($result) && isset($result['error'])) ? $result['error'] : null;
+
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
         if (!empty($result['comment'])) {
             $importComment = $result['comment'];
@@ -7465,8 +7594,9 @@ class EventsController extends AppController
         }
         $typeCategoryMapping = array();
         foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-            foreach ($cat['types'] as $type) {
-                $typeCategoryMapping[$type][$k] = $k;
+            // Use $typeName, not $type because it is reused below for the "Back" URL.
+            foreach ($cat['types'] as $typeName) {
+                $typeCategoryMapping[$typeName][$k] = $k;
             }
         }
         $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
@@ -7488,7 +7618,16 @@ class EventsController extends AppController
         $this->set('typeCategoryMapping', $typeCategoryMapping);
         $this->set('defaultAttributeDistribution', $this->Event->Attribute->defaultDistribution());
         $this->set('importComment', $importComment);
-        $this->render('resolved_attributes');
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->set('proposals', false);
+            $this->set('missingTldLists', []);
+            $this->set('moduleError', $moduleError);
+            $this->set('backPath', '/events/queryEnrichment/' . $attribute[0]['Attribute']['id'] . '/0/' . $type . '/Attribute');
+            $this->render('freetext_resolution');
+        } else {
+            $this->render('resolved_attributes');
+        }
     }
 
     public function handleModuleResults($id)
@@ -7927,7 +8066,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
         $event = $this->Event->fetchSimpleEvent($user, $id, [
-            'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
             'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
         ]);
         if ($this->_isRest()) {

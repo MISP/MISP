@@ -4,6 +4,25 @@ $report = $data['EventReport'] ?? [];
 $event = $data['Event'] ?? [];
 $sharingGroup = $data['SharingGroup'] ?? [];
 
+
+$descParts = [];
+if (!empty($report['date'])) {
+    $descParts[] = '<span>'
+        . '<i class="fas fa-calendar-day me-1 opacity-50"></i>'
+        . h($report['date'])
+        . '</span>';
+}
+if (!empty($report['timestamp'])) {
+    $descParts[] = '<span>'
+        . '<i class="fas fa-edit me-1 opacity-50"></i>'
+        . $this->Time->time($report['timestamp'])
+        . '</span>';
+}
+$headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
+    . implode('', $descParts)
+    . '</span>';
+$this->set('headerDescription', $headerDescription);
+
 ?>
 
 <div class="card mb-3 shadow-sm">
@@ -68,30 +87,12 @@ $sharingGroup = $data['SharingGroup'] ?? [];
                 <div class="text-muted small text-uppercase fw-bold mb-1">
                     <?= __('Event') ?>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <a class="text-decoration-underline fw-semibold text-dark"
-                       href="<?= h($baseurl . '/events/view2/' . ($report['event_id'] ?? '')) ?>">
-                        #<?= h($report['event_id'] ?? '') ?>
-                    </a>
-                    <?php if (!empty($event['info'])): ?>
-                        <span class="text-muted small">
-                            <?= h($event['info']) ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- LAST UPDATED -->
-            <div class="col-md-3">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Last Updated') ?>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-history text-muted"></i>
-                    <?= !empty($report['timestamp'])
-                        ? $this->Time->time($report['timestamp'])
-                        : '' ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Badges/event', [
+                    'id' => $report['event_id'] ?? null,
+                    'name' => $event['info'] ?? null,
+                    'url' => $baseurl . '/events/view2/' . ($report['event_id'] ?? ''),
+                    'org' => $event['Org'] ?? []
+                ]); ?>
             </div>
 
             <?php if (!empty($report['deleted'])): ?>

@@ -141,10 +141,164 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
 
-            let modal = new bootstrap.Modal(document.getElementById('mainModal'));
+            // Reuse the single instance for #mainModal — calling openModal again
+            // while a modal is already open must not spawn a second Bootstrap.Modal instance
+            let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mainModal'));
             modal.show();
         });
 }
+
+// Defensive backdrop reaper: once #mainModal is fully closed, guarantee that no
+// orphaned `.modal-backdrop` and no leftover scroll-lock survive. A stray
+// backdrop (e.g. from an older cached build, or any double-show) would otherwise
+// leave a grey veil that blocks the whole app. Bound once.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._backdropReaperBound) {
+        return;
+    }
+    modalEl._backdropReaperBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        window.setTimeout(function () {
+            if (document.querySelector('.modal.show')) {
+                return;
+            }
+            document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }, 300);
+    });
+})();
+
+// Hover enrichment
+(function () {
+    if (window._omHoverEnrichmentBound) {
+        return;
+    }
+    window._omHoverEnrichmentBound = true;
+
+    const SHOW_DELAY = 400;
+    const HIDE_DELAY = 250;
+    let showTimer = null;
+    let hideTimer = null;
+    let currentId = null;
+    const cache = {};
+    let pop = null;
+
+    function popover() {
+        if (!pop) {
+            pop = document.createElement('div');
+            pop.id = 'omHoverEnrichment';
+            pop.className = 'shadow border rounded bg-body';
+            pop.style.cssText = 'position:fixed; z-index:1090; width:min(520px,92vw); max-height:70vh; overflow:auto; display:none;';
+            pop.addEventListener('mouseenter', function () { window.clearTimeout(hideTimer); });
+            pop.addEventListener('mouseleave', hideSoon);
+            document.body.appendChild(pop);
+        }
+        return pop;
+    }
+
+    function place(anchor) {
+        const p = popover();
+        const r = anchor.getBoundingClientRect();
+        p.style.visibility = 'hidden';
+        p.style.display = 'block';
+        const pw = p.offsetWidth;
+        const ph = p.offsetHeight;
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+        let top = r.bottom + 6;
+        if (top + ph > window.innerHeight - 8) {
+            const above = r.top - 6 - ph;
+            top = above > 8 ? above : Math.max(8, window.innerHeight - ph - 8);
+        }
+        p.style.left = left + 'px';
+        p.style.top = top + 'px';
+        p.style.visibility = 'visible';
+    }
+
+    function show(anchor, id) {
+        currentId = id;
+        const p = popover();
+        if (cache[id] !== undefined) {
+            p.innerHTML = cache[id];
+            p.style.display = 'block';
+            place(anchor);
+            return;
+        }
+        p.innerHTML = '<div class="p-3 text-muted small d-flex align-items-center gap-2">'
+                    + '<span class="spinner-border spinner-border-sm"></span></div>';
+        p.style.display = 'block';
+        place(anchor);
+        fetch(baseurl + '/attributes/hoverEnrichment/' + encodeURIComponent(id), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                cache[id] = html;
+                if (currentId === id) { p.innerHTML = html; place(anchor); }
+            })
+            .catch(function () {
+                if (currentId === id) {
+                    p.innerHTML = '<div class="p-3 text-danger small">'
+                        + '<i class="fas fa-triangle-exclamation me-1"></i>Enrichment lookup failed.</div>';
+                }
+            });
+    }
+
+    function hideSoon() {
+        window.clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(function () {
+            if (pop) { pop.style.display = 'none'; }
+            currentId = null;
+        }, HIDE_DELAY);
+    }
+
+    function hideNow() {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+        if (pop) { pop.style.display = 'none'; }
+        currentId = null;
+    }
+
+    document.body.addEventListener('mouseover', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(hideTimer);
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (id === currentId) { return; }
+        window.clearTimeout(showTimer);
+        showTimer = window.setTimeout(function () { show(el, id); }, SHOW_DELAY);
+    });
+
+    document.body.addEventListener('mouseout', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(showTimer);
+        hideSoon();
+    });
+
+    document.body.addEventListener('click', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="click"]');
+        if (!el) { return; }
+        e.preventDefault();
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (pop && pop.style.display === 'block' && currentId === id) { hideNow(); return; }
+        show(el, id);
+    });
+
+    // Dismiss the popover on an outside click / Escape / page scroll.
+    document.addEventListener('click', function (e) {
+        if (!pop || pop.style.display !== 'block') { return; }
+        if (pop.contains(e.target)) { return; }
+        if (e.target.closest && e.target.closest('.om-hover-enrichment')) { return; }
+        hideNow();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hideNow(); } });
+    window.addEventListener('scroll', function (e) {
+        if (pop && pop.style.display === 'block' && !(pop.contains(e.target))) { hideNow(); }
+    }, true);
+})();
 
 // Close the currently-open #mainModal (if any) and then open `url` in it.
 // Used to chain modals without stacking a second Bootstrap backdrop.
@@ -210,13 +364,13 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe) {
+function multiSelectItems(url, suffixe, size = 'sm') {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
     const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
-    openModal(fullUrl, 'sm');
+    openModal(fullUrl, size);
 }
 
 function redirectToExportResult() {
@@ -295,6 +449,7 @@ function updateMultiSelectToolbar() {
     const objectButton   = scope.querySelector('#mass-object-button');
     const relationshipButton = scope.querySelector('#mass-relationship-button');
     const sightingButton = scope.querySelector('#mass-sighting-button');
+    const fetchButton    = scope.querySelector('#mass-fetch-button');
     const enableButton   = scope.querySelector('#mass-enable-button');
     const disableButton  = scope.querySelector('#mass-disable-button');
     const requireButton   = scope.querySelector('#mass-require-button');
@@ -342,6 +497,8 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
+
+    fetchButton?.classList.toggle('d-none', !allEnabled);
 
     if (enableButton && disableButton) {
         if (allDisabled) {
@@ -2748,11 +2905,107 @@ function initAttributeForm(currentDist, isEdit) {
         });
     }
 
+    /* Live format validation of the Value field against the selected Type.
+     * Reuses the server-side AttributeValidationTool via an AJAX endpoint so
+     * the rules stay in sync with what MISP will actually accept. */
+    function setupValueValidation() {
+        var valueEl = document.getElementById('AttributeValue');
+        var typeEl  = document.getElementById('AttributeType');
+        if (!valueEl || !typeEl) { return; }
+
+        var batchEl = document.getElementById('AttributeBatchImport');
+        var form    = valueEl.form || (valueEl.closest && valueEl.closest('form'));
+        var base    = (typeof baseurl !== 'undefined') ? baseurl : '';
+        var errorId = 'AttributeValueError';
+        var lastValid = true;   // best-effort submit guard
+        var seq = 0;            // ignore out-of-order responses
+
+        function showError(message) {
+            lastValid = false;
+            valueEl.style.borderColor = '#dc3545';
+            var msg = document.getElementById(errorId);
+            if (!msg) {
+                msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-start gap-1 mt-1';
+                msg.style.fontSize = '.75rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                icon.style.marginTop = '.15rem';
+                msg.appendChild(icon);
+                msg.appendChild(document.createElement('span'));
+                valueEl.parentNode.appendChild(msg);
+            }
+            msg.querySelector('span').textContent = message;
+        }
+
+        function clearError() {
+            lastValid = true;
+            valueEl.style.borderColor = '#d8dde3';
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        function validate() {
+            var value = valueEl.value;
+            var type  = typeEl.value;
+            if (!type || !value.trim()) { clearError(); return; }
+
+            var mySeq = ++seq;
+            var params = new URLSearchParams();
+            params.append('type', type);
+            params.append('value', value);
+            if (batchEl && batchEl.checked) { params.append('batch', '1'); }
+
+            fetch(base + '/attributes/validateValue', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (mySeq !== seq) { return; } // a newer check superseded this
+                    if (res && res.valid === false) {
+                        showError(res.message
+                            || 'The value does not match the expected format.');
+                    } else {
+                        clearError();
+                    }
+                })
+                .catch(function () { /* network issue: don't block the user */ });
+        }
+
+        valueEl.addEventListener('blur', validate);
+        valueEl.addEventListener('input', function () {
+            /* remove stale error while the user is fixing the value */
+            if (!lastValid) { clearError(); }
+        });
+        typeEl.addEventListener('change', validate);
+        if (batchEl) { batchEl.addEventListener('change', validate); }
+
+        /* Block submission only when we already know the value is invalid. */
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (!lastValid && valueEl.value.trim() && typeEl.value) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    valueEl.focus();
+                }
+            });
+        }
+    }
+
     initCategorySelect();
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
     setupTemporalInputs();
+    setupValueValidation();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
     toggleSg(currentDist);
@@ -2790,9 +3043,20 @@ function initEventForm(base) {
                     .then(function (html) {
                         preview.innerHTML     = html;
                         preview.style.display = '';
+                        bindCardClick();
                     })
                     .catch(function () { preview.style.display = 'none'; });
             }, 100);
+        }
+
+        /* Clicking the matched-event card copies its UUID into the input */
+        function bindCardClick() {
+            var card = preview.querySelector('.js-extends-event-card');
+            if (!card) { return; }
+            card.addEventListener('click', function () {
+                var uuid = card.dataset.extendsUuid;
+                if (uuid) { input.value = uuid; }
+            });
         }
 
         input.addEventListener('input', function () { fetchPreview(input.value); });
@@ -2841,11 +3105,62 @@ function initEventForm(base) {
         });
     }
 
+    /* Require a non-empty Event Info (name) before submitting */
+    function setupInfoValidation() {
+        var info = document.getElementById('EventInfo');
+        if (!info) { return; }
+        var form = info.form || (info.closest && info.closest('form'));
+        if (!form) { return; }
+
+        var errorId = 'EventInfoError';
+        var message = info.dataset.requiredMsg
+            || 'Please provide a name for the event.';
+
+        function showError() {
+            info.style.setProperty('border', '1px solid #dc3545', 'important');
+            info.style.setProperty('border-radius', '4px', 'important');
+            if (!document.getElementById(errorId)) {
+                var msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-center gap-1';
+                msg.style.fontSize  = '.75rem';
+                msg.style.marginTop = '.35rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                msg.appendChild(icon);
+                msg.appendChild(document.createTextNode(message));
+                info.parentNode.appendChild(msg);
+            }
+        }
+
+        function clearError() {
+            info.style.removeProperty('border');
+            info.style.removeProperty('border-radius');
+            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        form.addEventListener('submit', function (e) {
+            if (!info.value.trim()) {
+                e.preventDefault();
+                e.stopPropagation();
+                showError();
+                info.focus();
+            }
+        });
+
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { clearError(); }
+        });
+    }
+
     initDistributionSelect('distribution-select', null);
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
     setupUuidPreview();
     setupRadioCards();
     setupDateInput();
+    setupInfoValidation();
 }
 
 /*******************************

@@ -50,6 +50,7 @@ class NavbarHelper extends AppHelper {
         'roles'              => 'administration',
         'auth_keys'          => 'administration',
         'workflows'          => 'administration',
+        'workflowblueprints' => 'administration',
         'jobs'               => 'administration',
         'tasks'              => 'administration',
         'benchmarks'         => 'administration',
@@ -60,12 +61,11 @@ class NavbarHelper extends AppHelper {
         'correlations'       => 'administration',
         'user_settings'      => 'administration',
         'users'              => [
-            'default'    => 'account',
-            'statistics' => 'datapoints',
-            'add'        => 'administration',
-            'index'      => 'administration',
-            'email'      => 'administration',
-            'terms'      => 'resources',
+            'default'       => 'account',
+            'admin_default' => 'administration', // any admin_* action (index, view, add, email, edit…)
+            'statistics'    => 'datapoints',
+            'terms'         => 'resources',
+            'registrations' => 'administration',
         ],
         // Logs
         'logs'        => 'logs',
@@ -240,14 +240,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Statistics'),
-                'url' => $baseurl . '/users/statistics',
-                'controller' => 'users',
-                'action' => 'statistics',
-                'icon' => 'fas fa-pie-chart',
-            ]
+            // [
+            //     'type' => 'group',
+            //     'label' => __('Statistics'),
+            //     'url' => $baseurl . '/users/statistics',
+            //     'controller' => 'users',
+            //     'action' => 'statistics',
+            //     'icon' => 'fas fa-pie-chart',
+            // ]
         ];
 
         return [
@@ -319,19 +319,19 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-hourglass-half',
                 'children' => [
                     [
-                        'label' => __('Decaying Models Tools'),
-                        'url' => $baseurl . '/decayingModel/decayingTool',
-                        'controller' => 'decayingModel',
-                        'action' => 'decayingTool',
-                        'icon' => 'fas fa-toolbox'
-                    ],
-                    [
-                        'label' => __('List Decaying Models'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/decayingModel/index',
                         'controller' => 'decayingModel',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
-                    ]
+                    ],
+                    // [
+                    //     'label' => __('Decaying Models Tool'),
+                    //     'url' => $baseurl . '/decayingModel/decayingTool',
+                    //     'controller' => 'decayingModel',
+                    //     'action' => 'decayingTool',
+                    //     'icon' => 'fas fa-toolbox'
+                    // ]
                 ]
             ],
             ['divider' => true],
@@ -600,14 +600,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Users & Orgs'),
                 'icon' => 'fas fa-building-user',
                 'children' => [
-                    [
-                        'label' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add',
-                        'controller' => 'users',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('users', 'admin_add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add User'),
+                    //     'url' => $baseurl . '/admin/users/add',
+                    //     'controller' => 'users',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('users', 'admin_add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Users'),
                         'url' => $baseurl . '/admin/users/index',
@@ -617,12 +617,12 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
                     ],
                     [
-                        'label' => __('Contact User'),
-                        'url' => $baseurl . '/admin/users/email',
-                        'controller' => 'users',
-                        'action' => 'email',
+                        'label' => __('User Settings'),
+                        'url' => $baseurl . '/user_settings/index',
+                        'controller' => 'user_settings',
+                        'action' => 'index',
                         'requirement' => $isAdmin,
-                        'icon' => 'fas fa-envelope'
+                        'icon' => 'fas fa-sliders'
                     ],
                     [
                         'label' => __('List Organisations'),
@@ -665,9 +665,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Workflow'),
-                        'url' => $baseurl . '/workflows/triggers',
+                        'url' => $baseurl . '/workflows/index',
                         'controller' => 'workflows',
-                        'action' => 'triggers',
+                        'action' => 'index',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-project-diagram'
                     ],
@@ -759,29 +759,6 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-hexagon-nodes-bolt'
                     ]
                 ]
-            ],
-            [
-                'type' => 'group',
-                'label' => __('Settings'),
-                'icon' => 'fas fa-sliders',
-                'children' => [
-                    [
-                        'label' => __('Set User Settings'),
-                        'url' => $baseurl . '/user_settings/setSetting',
-                        'controller' => 'user_settings',
-                        'action' => 'setSetting',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-gear'
-                    ],
-                    [
-                        'label' => __('List User Settings'),
-                        'url' => $baseurl . '/user_settings/index',
-                        'controller' => 'user_settings',
-                        'action' => 'index',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-users-gear'
-                    ]
-                ]
             ]
         ];
         return [
@@ -827,16 +804,6 @@ class NavbarHelper extends AppHelper {
                 'action' => 'index',
                 'requirement' => $isSiteAdmin,
                 'icon' => 'fas fa-file-pen',
-            ],
-            ['divider' => true, 'requirement' => $this->Acl->canAccess('logs', 'search')],
-            [
-                'type' => 'group',
-                'label' => __('Search logs'),
-                'url' => $baseurl . '/logs/search',
-                'controller' => 'logs',
-                'action' => 'index',
-                'requirement' => $this->Acl->canAccess('logs', 'search'),
-                'icon' => 'fas fa-search',
             ]
         ];
         return [
@@ -906,40 +873,18 @@ class NavbarHelper extends AppHelper {
 
         $resourcesChildren = [
             [
-                'type' => 'group',
-                'label' => __('News'),
-                'url' => $baseurl . '/news',
-                'controller' => 'news',
-                'action' => '',
-                'icon' => 'fas fa-newspaper',
+                'label' => __('User Guide'),
+                'url' => 'https://www.circl.lu/doc/misp/',
+                'icon' => 'fas fa-address-book'
+            ],
+            [
+                'label' => __('Categories & Types'),
+                'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                'controller' => 'doc',
+                'action' => 'categories_and_types',
+                'icon' => 'fas fa-table-list'
             ],
             ['divider' => true],
-            [
-                'type' => 'group',
-                'label' => __('Documentation'),
-                'icon' => 'fas fa-book',
-                'children' => [
-                    [
-                        'label' => __('User Guide'),
-                        'url' => 'https://www.circl.lu/doc/misp/',
-                        'icon' => 'fas fa-address-book'
-                    ],
-                    [
-                        'label' => __('Categories & Types'),
-                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
-                        'controller' => 'doc',
-                        'action' => 'categories_and_types',
-                        'icon' => 'fas fa-table-list'
-                    ],
-                    [
-                        'label' => __('Terms & Conditions'),
-                        'url' => $baseurl . '/users/terms',
-                        'controller' => 'users',
-                        'action' => 'terms',
-                        'icon' => 'fas fa-gavel'
-                    ]
-                ]
-            ],
             [
                 'type' => 'group',
                 'label' => __('Themes'),
@@ -1155,7 +1100,14 @@ class NavbarHelper extends AppHelper {
         if (is_string($entry)) {
             return $entry;
         }
-        return $entry[strtolower($action)] ?? $entry['default'] ?? null;
+        $action = strtolower($action);
+        if (isset($entry[$action])) {
+            return $entry[$action];
+        }
+        if (strpos($action, 'admin_') === 0 && isset($entry['admin_default'])) {
+            return $entry['admin_default'];
+        }
+        return $entry['default'] ?? null;
     }
 
     private function markActive(array $items, ?string $activeMenuId): array

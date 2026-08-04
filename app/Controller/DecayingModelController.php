@@ -79,6 +79,10 @@ class DecayingModelController extends AppController
                 $this->Flash->error(__('Error while importing model.'));
             }
             $this->redirect(array('action' => 'index'));
+        } else {
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
         }
     }
 
@@ -88,13 +92,28 @@ class DecayingModelController extends AppController
         if (empty($decaying_model)) {
             throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
         }
-        $this->set('id', $id);
-        $this->set('decaying_model', $decaying_model);
         $available_formulas = $this->DecayingModel->listAvailableFormulas();
         $this->set('available_formulas', $available_formulas);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($decaying_model, 'application/json');
         }
+        // Resolve the owning organisation so the Overmind view can render a proper logo/name.
+        $this->loadModel('Organisation');
+        $org = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Organisation.id' => $decaying_model['DecayingModel']['org_id']),
+            'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid')
+        ));
+        if (!empty($org)) {
+            $decaying_model['Organisation'] = $org['Organisation'];
+        }
+        $decaying_model['DecayingModel']['isEditable'] = $this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $decaying_model);
+        // Let the themed view colour the assigned attribute-type chips by their default category
+        $this->loadModel('MispAttribute');
+        $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $this->set('id', $id);
+        $this->set('decaying_model', $decaying_model);
     }
 
     // Sets pagination condition for url parameters
@@ -113,7 +132,7 @@ class DecayingModelController extends AppController
                 case 'default_models':
                     $passedArgsArray[$k] = $v;
                     if ($v) {
-                        $this->paginate['conditions']['AND'] = array('not' => array('DecayingModel.uuid' => null));
+                        $this->paginate['conditions']['AND'] = array('DecayingModel.default' => 1);
                     }
                     break;
                 case 'all_orgs':
@@ -145,13 +164,46 @@ class DecayingModelController extends AppController
             ));
         }
         $passedArgsArray = $this->__setIndexFilterConditions($this->passedArgs);
+
+        if (!empty($this->passedArgs['quickFilter'])) {
+            $quickFilter = $this->passedArgs['quickFilter'];
+            $passedArgsArray['quickFilter'] = $quickFilter;
+            $this->paginate['conditions'][] = array(
+                'OR' => array(
+                    'DecayingModel.name LIKE' => '%' . $quickFilter . '%',
+                    'DecayingModel.description LIKE' => '%' . $quickFilter . '%',
+                )
+            );
+        }
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->set('decayingModels', $this->paginate());
+        $decayingModels = $this->paginate();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($decayingModels, 'application/json');
+        }
+
+        $orgsById = array();
+        $orgIds = array_unique(Hash::extract($decayingModels, '{n}.DecayingModel.org_id'));
+        if (!empty($orgIds)) {
+            $this->loadModel('Organisation');
+            $orgs = $this->Organisation->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('Organisation.id' => $orgIds),
+                'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid')
+            ));
+            $orgsById = Hash::combine($orgs, '{n}.Organisation.id', '{n}.Organisation');
+        }
+        foreach ($decayingModels as $i => $model) {
+            $orgId = $model['DecayingModel']['org_id'];
+            $decayingModels[$i]['Organisation'] = $orgsById[$orgId]
+                ?? array('id' => $orgId, 'name' => $orgId);
+            $decayingModels[$i]['DecayingModel']['attribute_type_count'] = count(
+                (array)($model['DecayingModel']['attribute_types'] ?? array())
+            );
+        }
+        $this->set('orgsById', $orgsById);
+        $this->set('decayingModels', $decayingModels);
         $available_formulas = $this->DecayingModel->listAvailableFormulas();
         $this->set('available_formulas', $available_formulas);
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($this->paginate(), 'application/json');
-        }
     }
 
     public function add()
@@ -217,6 +269,9 @@ class DecayingModelController extends AppController
                 $formulas[$formulaName] = $formulaName;
             }
             $this->set('available_formulas', $formulas);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
         }
     }
 
@@ -286,6 +341,9 @@ class DecayingModelController extends AppController
                 $formulas[$formulaName] = $formulaName;
             }
             $this->set('available_formulas', $formulas);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
             $this->render('add');
         }
     }
@@ -413,6 +471,9 @@ class DecayingModelController extends AppController
             $this->redirect(array('action' => 'index'));
         } else {
             $this->set('model', $decaying_model['DecayingModel']);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
             $this->render('ajax/enable_form');
         }
     }
@@ -458,8 +519,82 @@ class DecayingModelController extends AppController
             $this->redirect(array('action' => 'index'));
         } else {
             $this->set('model', $decaying_model['DecayingModel']);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
             $this->render('ajax/disable_form');
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, array(
+            'modelName' => 'DecayingModel',
+            'restName' => 'DecayingModel',
+            'itemName' => 'decaying model',
+            'view' => 'ajax/delete_confirmation',
+            'checkModifyCallback' => function ($itemId, $item) {
+                return empty($item['DecayingModel']['default'])
+                    && $this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $item);
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s decaying model deleted.', '%s decaying models deleted.', $count, $count);
+            }
+        ));
+    }
+
+    public function massEnable($idList = null)
+    {
+        return $this->__massToggleState($idList, 1);
+    }
+
+    public function massDisable($idList = null)
+    {
+        return $this->__massToggleState($idList, 0);
+    }
+
+    private function __massToggleState($idList = null, $state = 1)
+    {
+        $cleanIdList = htmlspecialchars_decode(urldecode((string)$idList));
+        $ids = json_decode($cleanIdList, true);
+        if (empty($ids) || !is_array($ids)) {
+            $message = __('Invalid IDs provided.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('DecayingModel', 'massToggle', false, $message, $this->response->type());
+            }
+            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successCount = 0;
+            foreach ($ids as $id) {
+                $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id);
+                if (empty($model) || !$this->DecayingModel->isEditableByCurrentUser($this->Auth->user(), $model)) {
+                    continue;
+                }
+                $model['DecayingModel']['enabled'] = $state;
+                if ($this->DecayingModel->save($model)) {
+                    $successCount++;
+                }
+            }
+            $actionText = $state ? __('enabled') : __('disabled');
+            $message = __('%s decaying model(s) successfully %s.', $successCount, $actionText);
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('DecayingModel', 'massToggle', false, $this->response->type(), $message);
+            }
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => $message)), 'status' => 200, 'type' => 'json'));
+            }
+            $this->Flash->success($message);
+            return $this->redirect($this->referer(array('action' => 'index')));
+        }
+
+        $this->layout = false;
+        $this->set('actionText', $state ? __('enable') : __('disable'));
+        $this->set('idArray', $ids);
+        $this->set('state', $state);
+        $this->set('url', '/decayingModel/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        $this->render('ajax/toggle_confirmation');
     }
 
     public function decayingTool()

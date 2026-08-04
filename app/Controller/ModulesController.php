@@ -18,7 +18,10 @@ class ModulesController extends AppController
             throw new MethodNotAllowedException('No module chosen. The request body has to have the module key set.');
         }
         $modname = $data['module'];
-        $module = $this->Module->getEnabledModule($modname, 'hover');
+        $module = $this->Module->getEnabledModule($modname, 'hover', $this->Auth->user());
+        if (!is_array($module)) {
+            throw new MethodNotAllowedException('Module not found or not available.');
+        }
         if (!Configure::read('Plugin.Enrichment_' . $modname . '_enabled')) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }

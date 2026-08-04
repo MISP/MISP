@@ -56,6 +56,15 @@ foreach ($data['data'] as $k => $data_row) {
 }
 ?>
 
+<?php if (empty($data['data'])): ?>
+
+<div class="d-flex flex-column align-items-center text-secondary py-5">
+    <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+    <?= __('No items to display') ?>
+</div>
+
+<?php else: ?>
+
 <div class="table-responsive table-scroll">
     <table id="<?= h($tableId) ?>" class="table table-hover align-middle mb-0"
         <?= $dblclickUrl !== null ? 'data-dblclick-url="' . h($dblclickUrl) . '"' : '' ?>>
@@ -76,7 +85,9 @@ foreach ($data['data'] as $k => $data_row) {
     </table>
 </div>
 
-<?php if ($dblclickUrl !== null): ?>
+<?php endif; ?>
+
+<?php if (!empty($data['data']) && $dblclickUrl !== null): ?>
 <script>
 (function () {
     var table = document.getElementById(<?= json_encode($tableId) ?>);

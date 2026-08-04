@@ -357,6 +357,9 @@ class SharingGroupsController extends AppController
 
     public function index($passive = false)
     {
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $passive = $passive === 'true';
         $authorizedSgIds = $this->SharingGroup->authorizedIds($this->Auth->user());
         $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);

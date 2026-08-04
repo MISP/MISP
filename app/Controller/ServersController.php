@@ -156,7 +156,16 @@ class ServersController extends AppController
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
         if (!empty($total_count)) {
-            $params['pageCount'] = ceil($total_count / $params['limit']);
+            /*
+             * createPaginationRules() can only count what this page returned (60
+             * rows), but the remote reports the real total in X-Result-Count. Take
+             * it over, otherwise the header badge and the record counter both read
+             * "60" and hasNext() is false so page 2 is unreachable.
+             */
+            $params['count'] = (int)$total_count;
+            $params['pageCount'] = (int)ceil($total_count / $params['limit']);
+            $params['prevPage'] = $params['page'] > 1;
+            $params['nextPage'] = $params['page'] < $params['pageCount'];
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         if (count($events) > 60) {
@@ -207,6 +216,11 @@ class ServersController extends AppController
         }
 
         $this->loadModel('Event');
+        if ($this->theme === 'Overmind') {
+            // The Overmind preview loads the attribute/object tabs over ajax, so
+            // the page itself needs the complete set
+            $all = true;
+        }
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
         $this->__removeGalaxyClusterTags($event);
         $this->params->params['paging'] = array('Server' => $params);
@@ -231,6 +245,183 @@ class ServersController extends AppController
         }
         $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('title_for_layout', __('Remote event preview'));
+    }
+
+    public function previewEventAttributes($serverId, $eventId, $all = false)
+    {
+        $this->__previewEventFragment($serverId, $eventId, 'preview_event_attributes', $all);
+    }
+
+    public function previewEventObjects($serverId, $eventId, $all = false)
+    {
+        $this->__previewEventFragment($serverId, $eventId, 'preview_event_objects', $all);
+    }
+
+    /**
+     * One attribute/object tab of the remote event preview, rendered on its own
+     * so the page does not have to carry a large event up front.
+     *
+     * @param int $serverId
+     * @param int $eventId remote event id
+     * @param string $view fragment view name under Servers/ajax/
+     * @param bool $all render every row instead of the capped default
+     */
+    private function __previewEventFragment($serverId, $eventId, $view, $all = false)
+    {
+        $server = $this->Server->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+            'recursive' => -1,
+        ));
+        if (empty($server)) {
+            throw new NotFoundException(__('Invalid server ID.'));
+        }
+        try {
+            $event = $this->Server->previewEvent($server, $eventId);
+        } catch (Exception $e) {
+            throw new NotFoundException(__("Event '%s' not found.", $eventId));
+        }
+
+        $this->loadModel('Warninglist');
+        if (isset($event['Event']['Attribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+        }
+        if (isset($event['Event']['ShadowAttribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['ShadowAttribute']);
+        }
+
+        $this->loadModel('Event');
+        /*
+         * Always rearrange with everything: the truncation applies to the merged
+         * attribute+object array, so a 60-row slice of a large event would leave
+         * the Objects tab all but empty. The view caps what it renders instead.
+         */
+        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, true);
+        $this->__removeGalaxyClusterTags($event);
+        $this->params->params['paging'] = array('Server' => $params);
+        $this->set('event', $event);
+        $this->set('server', $server);
+        $this->set('showAllAttributes', !empty($all));
+        $this->set('previewContext', $this->__serverPreviewContext($server, $eventId));
+        $this->layout = false;
+        $this->render('ajax/' . $view);
+    }
+
+    /**
+     * How the shared Servers/View/preview_* partials should address this remote
+     * source: events are keyed by remote id and the remote index filters on tag id.
+     *
+     * @param array $server
+     * @param int $eventId
+     * @return array
+     */
+    private function __serverPreviewContext(array $server, $eventId)
+    {
+        $baseurl = $this->baseurl;
+        $serverId = (int)$server['Server']['id'];
+
+        return [
+            'eventUrl' => $baseurl . '/servers/previewEvent/' . $serverId . '/%id%',
+            'eventKey' => 'id',
+            'tagFilterUrl' => $baseurl . '/servers/previewIndex/' . $serverId . '/searchtag:%tag%',
+            'tagFilterKey' => 'id',
+            'pagingModel' => 'Server',
+            // Reloads this same fragment uncapped, in place.
+            'viewAllUrl' => $baseurl . '/servers/previewEventAttributes/'
+                . $serverId . '/' . $eventId . '/all',
+        ];
+    }
+
+    /**
+     * Pull one or several events from a remote server. GET renders the
+     * confirmation modal, POST performs the pull. Drives both the preview index
+     * row action and its selection toolbar.
+     */
+    public function pullSelectedEvents($serverId, $idList = null)
+    {
+        $server = $this->Server->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+            'recursive' => -1,
+        ));
+        if (empty($server)) {
+            throw new NotFoundException(__('Invalid server ID.'));
+        }
+
+        $isPost = $this->request->is(array('post', 'put'));
+        if ($isPost && isset($this->request->data['Server']['event_ids'])) {
+            $idList = $this->request->data['Server']['event_ids'];
+        }
+        if (!is_array($idList)) {
+            $idList = is_numeric($idList) ? array($idList) : json_decode($idList, true);
+        }
+        $eventIds = array();
+        foreach ((array)$idList as $eventId) {
+            if (is_numeric($eventId)) {
+                $eventIds[] = (int)$eventId;
+            }
+        }
+        if (empty($eventIds)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        if (!$isPost) {
+            $this->request->data['Server']['event_ids'] = json_encode($eventIds);
+            $this->set('server', $server);
+            $this->set('eventIds', $eventIds);
+            $this->layout = false;
+            return $this->render('ajax/pullEventsConfirmationForm');
+        }
+
+        if (empty($server['Server']['pull'])) {
+            $message = __('Pull setting not enabled for this server.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Servers', 'pullSelectedEvents', false, $message, $this->response->type());
+            }
+            $this->Flash->error($message);
+            return $this->redirect(array('action' => 'previewIndex', $serverId));
+        }
+
+        /*
+         * Server::pull() takes a single numeric event id as its "technique" and
+         * pulls just that event, so the selection is walked one event at a time.
+         * Only full/update techniques also pull proposals, sightings and clusters,
+         * which keeps each of these calls to the event itself.
+         */
+        $pulled = 0;
+        $failed = 0;
+        foreach ($eventIds as $eventId) {
+            try {
+                $result = $this->Server->pull($this->Auth->user(), $eventId, $server);
+            } catch (Exception $e) {
+                $this->Server->logException("Could not pull event #$eventId from server #$serverId.", $e);
+                $result = false;
+            }
+            if (!is_array($result) || empty($result[0])) {
+                $failed++;
+            } else {
+                $pulled += count($result[0]);
+            }
+        }
+
+        $messages = array();
+        if ($pulled) {
+            $messages[] = __n('%s event pulled.', '%s events pulled.', $pulled, $pulled);
+        }
+        if ($failed) {
+            $messages[] = __n('%s event could not be pulled.', '%s events could not be pulled.', $failed, $failed);
+        }
+        $message = implode(' ', $messages);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+        }
+        if (!$pulled) {
+            $this->Flash->error($message ?: __('No event was pulled.'));
+        } elseif ($failed) {
+            $this->Flash->warning($message);
+        } else {
+            $this->Flash->success($message);
+        }
+        $this->redirect(array('action' => 'previewIndex', $serverId));
     }
 
     private function __removeGalaxyClusterTags(array &$event)
@@ -2215,7 +2406,7 @@ public function updateJSON()
             $results['message'] = __('Server updateJSON job queued. Job ID: %s', $jobId);
         } else {
             foreach ($this->Server->updateJSON() as $type => $result) {
-                $results[$type] = $results['success'];
+                $results[$type] = $result['success'];
             }
         }
 

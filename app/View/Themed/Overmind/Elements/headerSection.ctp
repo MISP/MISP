@@ -1,11 +1,22 @@
 <?php
 $breadcrumb = '';
+$unclickableControllers = ['pages'];
 if (!empty($currentController)) {
     if ($currentController === 'galaxy_clusters') {
         $currentController = 'galaxies';
         $middle = 'clusters';
     }
     $controllerUrl = $this->Html->url('/' . $currentController);
+    if ($currentController === 'users') {
+        if (!empty($me['Role']['perm_site_admin'])) {
+            $controllerUrl = $this->Html->url('/admin/' . $currentController);
+        } else {
+            $controllerUrl = $this->Html->url('#');
+        }
+    }
+    if (in_array($currentController, $unclickableControllers)) {
+        $controllerUrl = '#';
+    }
     $breadcrumb = '<a href="' . $controllerUrl . '" '
         . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
         . ucfirst(h($currentController)) . '</a>';
@@ -17,9 +28,13 @@ if (!empty($currentController)) {
         }
     }
 }
-$title = isset($headerTitle)
-    ? h($headerTitle)
-    : (isset($currentController) ? ucfirst(h($currentController)) : '');
+
+// `headerTitleHtml` lets a view supply pre-built, already-escaped title markup
+$title = isset($headerTitleHtml)
+    ? $headerTitleHtml
+    : (isset($headerTitle)
+        ? h($headerTitle)
+        : (isset($currentController) ? ucfirst(h($currentController)) : ''));
 
 $paginatorCount = null;
 try {
@@ -31,6 +46,35 @@ try {
     // no paginator on this page
 }
 $totalCount = $headerCount ?? $paginatorCount;
+
+// Compact count formatting (1,4K, ...)
+// Count prefixed with "+" to denote an estimate.
+$abbreviateCount = function ($num) {
+    $num = (int)$num;
+    if ($num < 1000) {
+        return (string)$num;
+    }
+    foreach ([['T', 1e12], ['B', 1e9], ['M', 1e6], ['K', 1e3]] as [$suffix, $scale]) {
+        if ($num >= $scale) {
+            $v = floor($num / $scale * 10) / 10; // one decimal, truncated
+            $s = rtrim(rtrim(number_format($v, 1, ',', ''), '0'), ',');
+            return $s . $suffix;
+        }
+    }
+    return (string)$num;
+};
+
+$countDisplay = null;
+if (isset($headerCountText)) {
+    $countDisplay = $headerCountText;
+} elseif (isset($headerCountApprox)) {
+    $n = $headerCount ?? $paginatorCount;
+    if ($n !== null && $n < PHP_INT_MAX) {
+        $countDisplay = ($headerCountApprox ? '+' : '') . $abbreviateCount($n);
+    }
+} elseif ($totalCount !== null && $totalCount < PHP_INT_MAX) {
+    $countDisplay = number_format($totalCount, 0, ',', ' ');
+}
 ?>
 
 <div class="container-fluid py-3">
@@ -45,18 +89,19 @@ $totalCount = $headerCount ?? $paginatorCount;
                 </span>
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 ">
-                <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem;">
+                <h1 class="mb-0 fw-bold lh-1 d-flex" style="font-size:2rem; word-break:break-word; max-width:100%;">
                     <?= $title ?>
                 </h1>
-                <?php if ($totalCount !== null): ?>
+                <?php // headerCountText => '' is the opt-out for pages whose paginator counts something other than the page's subject ?>
+                <?php if ($countDisplay !== null && $countDisplay !== ''): ?>
                     <span class="badge rounded-pill bg-primary fw-semibold px-3">
-                        <?= number_format($totalCount, 0, ',', ' ') ?>
+                        <?= h($countDisplay) ?>
                     </span>
                 <?php endif; ?>
             </div>
 
             <?php if (!empty($headerDescription)): ?>
-                <p class="text-muted text-center mt-1" style="font-size:0.85rem;">
+                <p class="text-muted mt-1" style="font-size:0.85rem;">
                     <?= $headerDescription ?>
                 </p>
             <?php else: //small space, just to match the size of the Flash messages ?>
@@ -67,16 +112,20 @@ $totalCount = $headerCount ?? $paginatorCount;
         <?php if (!empty($headerActions)): ?>
             <div class="d-flex gap-2 align-items-center flex-wrap">
                 <?php foreach ($headerActions as $action): ?>
+                    <?php
+                        $tabAttr = !empty($action['tab']) ? ' data-header-tab="' . h($action['tab']) . '"' : '';
+                        $tabHidden = !empty($action['tab']) ? ' d-none' : '';
+                    ?>
 
                     <?php if ($action['type'] === 'navigate'): ?>
-                        <a href="<?= h($action['url']) ?>"
+                        <a href="<?= h($action['url']) ?>"<?= $tabAttr ?>
                             <?php if (!empty($action['onClick'])): ?>
                                 onclick="event.preventDefault(); <?= h($action['onClick']) ?>();"
                             <?php endif; ?>
                             <?php if (!empty($action['id'])): ?>
                                 id="<?= h($action['id']) ?>"
                             <?php endif; ?>
-                            class="btn btn-outline-dark fw-semibold d-flex align-items-center gap-2">
+                            class="btn btn-outline-dark fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>
@@ -87,22 +136,76 @@ $totalCount = $headerCount ?? $paginatorCount;
                                 '<i class="fas fa-' . h($action['icon']) . '"></i> '
                                     . h($action['label']),
                                 $action['url'],
-                                [
+                                array_merge([
                                     'class' => 'btn btn-outline-primary fw-semibold'
-                                        . ' d-flex align-items-center gap-2',
+                                        . ' d-flex align-items-center gap-2' . $tabHidden,
                                     'escape' => false,
-                                ],
+                                ], !empty($action['tab']) ? ['data-header-tab' => $action['tab']] : []),
                                 $action['confirm'] ?? false
                             );
                         ?>
 
                     <?php elseif ($action['type'] === 'modal'): ?>
-                        <a href="<?= h($action['url']) ?>"
+                        <?php $modalBtnClass = $action['class'] ?? 'btn btn-primary'; ?>
+                        <a href="<?= h($action['url']) ?>"<?= $tabAttr ?>
                             onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');"
-                            class="btn btn-primary fw-semibold d-flex align-items-center gap-2">
+                            class="<?= h($modalBtnClass) ?> fw-semibold d-flex align-items-center gap-2<?= $tabHidden ?>">
                             <i class="fas fa-<?= h($action['icon']) ?>"></i>
                             <?= h($action['label']) ?>
                         </a>
+
+                    <?php elseif ($action['type'] === 'dropdown'): ?>
+                        <?php
+                        /*
+                         * Groups page-level operations that would otherwise crowd
+                         * the header strip. Each child takes the same shape as a
+                         * top-level action: navigate | action (postLink) | modal,
+                         * plus 'divider'.
+                         */
+                        $dropdownBtnClass = $action['class'] ?? 'btn btn-outline-dark';
+                        ?>
+                        <div class="dropdown<?= $tabHidden ?>"<?= $tabAttr ?>>
+                            <button class="<?= h($dropdownBtnClass) ?> fw-semibold d-flex align-items-center gap-2 dropdown-toggle"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <?php if (!empty($action['icon'])): ?>
+                                    <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                                <?php endif; ?>
+                                <?= h($action['label']) ?>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <?php foreach (($action['children'] ?? []) as $child): ?>
+                                    <?php if (($child['type'] ?? '') === 'divider'): ?>
+                                        <li><hr class="dropdown-divider"></li>
+                                    <?php else: ?>
+                                        <li>
+                                            <?php
+                                            $childIcon = empty($child['icon'])
+                                                ? ''
+                                                : '<i class="fas fa-' . h($child['icon']) . ' me-2"></i>';
+                                            $childClass = trim('dropdown-item ' . ($child['class'] ?? ''));
+                                            ?>
+                                            <?php if (($child['type'] ?? '') === 'action'): ?>
+                                                <?= $this->Form->postLink(
+                                                    $childIcon . h($child['label']),
+                                                    $child['url'],
+                                                    ['class' => $childClass, 'escape' => false],
+                                                    $child['confirm'] ?? false
+                                                ) ?>
+                                            <?php elseif (($child['type'] ?? '') === 'modal'): ?>
+                                                <a class="<?= h($childClass) ?>" href="<?= h($child['url']) ?>"
+                                                   onclick="event.preventDefault(); openModal('<?= h($child['url']) ?>'<?= empty($child['size']) ? '' : ", '" . h($child['size']) . "'" ?>);">
+                                                    <?= $childIcon ?><?= h($child['label']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <a class="<?= h($childClass) ?>" href="<?= h($child['url']) ?>">
+                                                    <?= $childIcon ?><?= h($child['label']) ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
 
                     <?php endif; ?>
 
@@ -146,7 +249,7 @@ $totalCount = $headerCount ?? $paginatorCount;
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($stat['icon'])): ?>
-                                <i class="fas fa-<?= h($stat['icon']) ?> text-<?= $color ?> opacity-25 fa-xl"></i>
+                                <i class="fas fa-<?= h($stat['icon']) ?> text-<?= $color ?> opacity-25" style="font-size:1.25rem;"></i>
                             <?php endif; ?>
                         </div>
                     </div>

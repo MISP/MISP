@@ -42,6 +42,11 @@ The objective of MISP is to foster the sharing of structured information within 
   </tr><tr>
      <td>License</td>
   <td><img src="https://img.shields.io/github/license/MISP/MISP.svg" height="25" /></td>
+    </tr><tr>
+    <td>Software Heritage ID</td>
+  <td> <a href="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/MISP/MISP">
+  <img src="https://archive.softwareheritage.org/badge/origin/https://github.com/MISP/MISP/" alt="Archived | https://github.com/MISP/MISP"/>
+</a> </td>
 </tr>
 </table>
 

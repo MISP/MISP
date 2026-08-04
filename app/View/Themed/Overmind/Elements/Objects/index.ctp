@@ -1,9 +1,4 @@
 <?php
-/**
- * BS5 object listing for event view2 (Overmind theme).
- *
- * Variables: $objects (flat array), $total, $page, $limit, $event
- */
 
 $eventId   = $event['Event']['id'];
 $total     = (int)($total ?? 0);
@@ -35,6 +30,9 @@ $canEdit = isset($event)
 $canTagObj = isset($event)
     ? $this->Acl->canModifyTag($event)
     : false;
+
+$_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
+$_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
 
 // Inline helper: render a small distribution badge
 function _objDistBadge($dist) {
@@ -235,18 +233,38 @@ function _objDistBadge($dist) {
                                 </button>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['first_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-plus me-1"></i>
-                                <?= __('First seen: %s',
-                                    h($object['first_seen'])) ?>
+                        <?php
+                            $fmtSeen = function ($value) {
+                                $dt = date_create((string)$value);
+                                if ($dt === false) {
+                                    return ['date' => (string)$value, 'time' => ''];
+                                }
+                                return [
+                                    'date' => $dt->format('Y-m-d'),
+                                    'time' => $dt->format('H:i:s'),
+                                ];
+                            };
+                        ?>
+                        <?php if (!empty($object['first_seen'])): $fs = $fmtSeen($object['first_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['first_seen']) ?>">
+                                <i class="fas fa-calendar-plus text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('First seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($fs['date']) ?><?php if ($fs['time'] !== ''): ?><span class="text-muted ms-1"><?= h($fs['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['last_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-check me-1"></i>
-                                <?= __('Last seen: %s',
-                                    h($object['last_seen'])) ?>
+                        <?php if (!empty($object['last_seen'])): $ls = $fmtSeen($object['last_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['last_seen']) ?>">
+                                <i class="fas fa-calendar-check text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('Last seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($ls['date']) ?><?php if ($ls['time'] !== ''): ?><span class="text-muted ms-1"><?= h($ls['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
                         <?php if (!empty($object['template_version'])): ?>
@@ -274,6 +292,23 @@ function _objDistBadge($dist) {
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
+                            <?php if ($_enrichmentEnabled && !$isDeleted): ?>
+                                <a href="<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object"
+                                   class="btn btn-sm btn-outline-enrichment"
+                                   onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object');">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i>
+                                    <?= __('Enrich') ?>
+                                </a>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
+                            <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
+                                <?= $this->element('AnalystData/add_controls', [
+                                    'objectType' => 'Object',
+                                    'objectUuid' => $object['uuid'] ?? '',
+                                    'mode' => 'dropdown',
+                                ]) ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
@@ -499,6 +534,26 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
+                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
+                                                            <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
+                                                            <?= __('Enrich') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
+                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
+                                                            <i class="fas fa-eye me-2"></i>
+                                                            <?= __('Enrich (Cortex)') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
                                                     <?php if ($canEdit): ?>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
@@ -518,6 +573,11 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
+                                                    <?= $this->element('AnalystData/add_controls', [
+                                                        'objectType' => 'Attribute',
+                                                        'objectUuid' => $attr['uuid'] ?? '',
+                                                        'mode' => 'menu_items',
+                                                    ]) ?>
                                                 </ul>
                                             </div>
                                         </div>

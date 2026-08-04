@@ -15,6 +15,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             ],
             'right' => [
                 'Galaxies/View/galaxies_actions',
+                'Galaxies/View/galaxies_analyst_data',
             ],
         ],
         [

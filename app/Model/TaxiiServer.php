@@ -303,7 +303,7 @@ class TaxiiServer extends AppModel
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $server_id]
         ]);
-        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/' . $collection_id . '/objects/' . $id . '/';
+        $taxii_server['TaxiiServer']['path'] = '/collections/' . $collection_id . '/objects/' . $id . '/';
         $response = $this->queryInstance([
             'TaxiiServer' => $taxii_server['TaxiiServer'],
             'type' => 'get'

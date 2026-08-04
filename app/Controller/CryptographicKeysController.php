@@ -58,11 +58,30 @@ class CryptographicKeysController extends AppController
         $instanceKey = file_exists(APP . 'webroot/gpg.asc') ? FileAccessTool::readFromFile(APP . 'webroot/gpg.asc') : '';
         $this->set('instanceKey', $instanceKey);
         $this->set('menuData', array('menuList' => 'cryptographic_keys', 'menuItem' => 'add_cryptographic_key'));
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function delete($id)
     {
         $user = $this->Auth->user();
+        if (
+            $this->theme === 'Overmind' &&
+            !$this->IndexFilter->isRest() &&
+            !$this->request->is('post') &&
+            !$this->request->is('delete')
+        ) {
+            // Overmind: render the BS5 confirmation fragment for the delete
+            // modal. The actual deletion (POST) still flows through
+            // CRUD->delete below, so the ownership gate in beforeDelete is
+            // unchanged - this branch only themes the confirm dialog.
+            $this->layout = false;
+            $this->set('id', $id);
+            $this->render('ajax/cryptographicKeyDeleteConfirmationForm');
+            return;
+        }
         $this->CRUD->delete($id, [
             'beforeDelete' => function ($data) use($user) {
                 $parent_type = $data['CryptographicKey']['parent_type'];
@@ -108,7 +127,11 @@ class CryptographicKeysController extends AppController
             )
         );
         $this->layout = false;
-        $this->render('/genericTemplates/display');
+        if ($this->theme === 'Overmind') {
+            $this->render('view');
+        } else {
+            $this->render('/genericTemplates/display');
+        }
     }
 
     public function serverSign()
