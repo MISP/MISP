@@ -185,6 +185,19 @@ if ($field['data_path'] === 'Event.id') {
                             </div>
                         </a>
 
+                    <?php elseif ($action['type'] === 'js'): ?>
+                        <?php
+                            $onclick = str_replace('%id%', $id, $action['onclick']);
+                        ?>
+                        <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
+                           href="#"
+                           onclick="event.preventDefault(); <?= h($onclick) ?>">
+                            <div>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
                     <?php elseif ($action['type'] === 'copy'): ?>
                         <?php
                             $copyValue = Hash::get($row, $action['data_path'] ?? '');

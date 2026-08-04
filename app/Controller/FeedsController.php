@@ -1182,6 +1182,18 @@ class FeedsController extends AppController
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
 
+        if (!empty($this->params['named']['searchall'])) {
+            $searchAll = trim(mb_strtolower($this->params['named']['searchall']));
+            $resultArray = array_values(array_filter($resultArray, function (array $item) use ($searchAll) {
+                foreach (array('value', 'default_type', 'category', 'comment') as $field) {
+                    if (!empty($item[$field]) && strpos(mb_strtolower($item[$field]), $searchAll) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
+
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($resultArray, array('page' => $currentPage, 'limit' => 60), 'Feed', $sort = false);
@@ -1212,6 +1224,13 @@ class FeedsController extends AppController
             'fields' => array('Event.id', 'Event.info'),
             'conditions' => array('Event.id' => $correlatingEvents)
         ));
+        if ((int)$feed['Feed']['distribution'] === 4 && !empty($feed['Feed']['sharing_group_id'])) {
+            $feed['SharingGroup'] = $this->Feed->SharingGroup->find('first', array(
+                'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id']),
+                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+                'recursive' => -1,
+            ))['SharingGroup'] ?? array('name' => __('Unknown sharing group'));
+        }
         $this->set('correlatingEventInfos', $correlatingEventInfos);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
         $this->set('feed', $feed);
@@ -1219,7 +1238,6 @@ class FeedsController extends AppController
             return $this->RestResponse->viewData($resultArray, $this->response->type());
         }
         $this->set('attributes', $resultArray);
-        $this->set('forceLegacyLayout', true);
         $this->render('freetext_index');
     }
 
@@ -1494,6 +1512,11 @@ class FeedsController extends AppController
             $this->Flash->success(__('Data pulled.'));
         } catch (Exception $e) {
             $this->Flash->error(__('Could not pull the selected data. Reason: %s', $e->getMessage()));
+        }
+        if ($this->theme === 'Overmind') {
+            // Back to the preview the selection was made in, where the pulled
+            // values now show up as correlations.
+            $this->redirect(array('controller' => 'feeds', 'action' => 'previewIndex', $id));
         }
         $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }
