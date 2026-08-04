@@ -955,13 +955,13 @@ class NavbarHelper extends AppHelper {
             'icon' => 'fas fa-home'
         ];
 
-        $bookmarksChildren[] = [
-            'label' => __('Add Bookmark'),
-            'url' => $baseurl . '/bookmarks/add',
-            'controller' => 'bookmarks',
-            'action' => 'add',
-            'icon' => 'fas fa-plus'
-        ];
+        // $bookmarksChildren[] = [
+        //     'label' => __('Add Bookmark'),
+        //     'url' => $baseurl . '/bookmarks/add',
+        //     'controller' => 'bookmarks',
+        //     'action' => 'add',
+        //     'icon' => 'fas fa-plus'
+        // ];
         $bookmarksChildren[] = [
             'label' => __('Manage Bookmarks'),
             'url' => $baseurl . '/bookmarks/index',
