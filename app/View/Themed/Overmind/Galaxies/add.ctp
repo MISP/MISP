@@ -9,12 +9,9 @@ $currentDist = $this->request->data['Galaxy']['distribution']
     ?? ($galaxy['Galaxy']['distribution'] ?? $initialDistribution);
 $initDist = (int)$currentDist;
 
-$distIconMap = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-];
+// Only the levels $distributionLevels offers are rendered — the loop below
+// drives the cards and looks the presentation up here by level.
+$distIconMap = $this->DistributionLevel->all();
 
 echo $this->Form->create('Galaxy', [
     'id' => 'galaxyAddForm',

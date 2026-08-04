@@ -1,4 +1,5 @@
 <?php
+App::uses('DistributionLevel', 'Tools');
 
 $eventId   = $event['Event']['id'];
 $total     = (int)($total ?? 0);
@@ -34,17 +35,10 @@ $canTagObj = isset($event)
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
 
-// Inline helper: render a small distribution badge
+// Inline helper: render a small distribution badge. A named function has no
+// $this, so the lib is called statically rather than through the helper.
 function _objDistBadge($dist) {
-    static $map = [
-        0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-        1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-        2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-        3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-        4 => ['bg' => '#6a96ee', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-        5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork'],
-    ];
-    $c = $map[(int)$dist] ?? ['bg' => '#f1f1f1', 'color' => '#333', 'icon' => 'fas fa-question'];
+    $c = DistributionLevel::get($dist);
     return sprintf(
         '<span class="badge d-inline-flex align-items-center px-2 py-1"'
         . ' style="background:%s;color:%s;border:1px solid %s20;font-weight:500;">'

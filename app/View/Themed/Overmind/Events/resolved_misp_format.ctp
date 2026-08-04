@@ -18,15 +18,8 @@ if (!empty($event['Object'])) {
     }
 }
 
-// Distribution colour map
-$distMeta = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'fas fa-building',      'label' => __('Your organisation only')],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users',         'label' => __('This community only')],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired', 'label' => __('Connected communities')],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe',         'label' => __('All communities')],
-    4 => ['bg' => '#6a96ee', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple', 'label' => __('Sharing group')],
-    5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork',     'label' => __('Inherited')],
-];
+// Distribution colour map, also handed to JS further down via json_encode.
+$distMeta = $this->DistributionLevel->all();
 
 $distPicker = function ($scope, $selected) use ($distributions, $sgs) {
     $selected = ($selected === null || $selected === '') ? array_key_first($distributions) : (int)$selected;
@@ -423,7 +416,9 @@ $attrTableHead = function () use ($idsToggle) {
 
     form.addEventListener('submit', function (e) { e.preventDefault(); });
 
-    var distMeta = <?= json_encode($distMeta) ?>;
+    // JSON_FORCE_OBJECT keeps this a keyed object: the levels are contiguous
+    // from 0, so json_encode would otherwise emit an array.
+    var distMeta = <?= json_encode($distMeta, JSON_FORCE_OBJECT) ?>;
     var distFallback = { bg: '#f1f1f1', color: '#333', icon: 'fas fa-question', label: '?' };
 
     // Rebuild the coloured index badge
