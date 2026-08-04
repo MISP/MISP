@@ -1,0 +1,94 @@
+# Requirements: mkdocs >1.x && mkdocs-material && markdown_include
+
+# Project information
+site_name: MISP Install Documentation
+site_description: MISP Project - Install Guides
+site_author: MISP Project
+site_url: https://www.misp-project.org/
+
+# Repository
+repo_name: MISP/MISP
+repo_url: https://github.com/MISP/MISP
+edit_uri: ""
+
+#dev_addr: "192.168.10.34:8000"
+
+# Copyright
+copyright: "Copyright &copy; 2022 MISP Project"
+
+# Options
+extra:
+  search:
+    languages: "en"
+  social:
+    - type: globe
+      link: https://www.misp-project.org/
+    - type: github-alt
+      link: https://github.com/MISP
+    - type: twitter
+      link: https://twitter.com/MISPProject
+
+theme:
+  name: material
+  language: en
+  favicon: img/favicon.ico
+  logo: img/misp.png
+
+# Extensions
+markdown_extensions:
+  - markdown_include.include:
+      base_path: docs
+  - mkdcomments
+  - markdown.extensions.admonition
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown.extensions.def_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.meta
+  - markdown.extensions.toc:
+      permalink: true
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+    - Home: 'index.md'
+    - Install Guides:
+      - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
+      - 'Ubuntu 20.04': 'INSTALL.ubuntu2004.md'
+      - 'Kali Linux': 'INSTALL.kali.md'
+      - 'RHEL8/CentOS8': 'INSTALL.rhel8.md'
+      - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
+    - xInstall Guides: 
+      - 'Warning': 'xINSTALL.md'
+      - 'Debian 10': 'xINSTALL.debian10.md'
+      - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
+      - 'OpenBSD 7.0': 'xINSTALL.OpenBSD.md'
+      - 'Ubuntu 22.04': 'xINSTALL.ubuntu2204.md'
+    - Config Guides:
+      - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
+      - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
+      - 'S/MIME': 'CONFIG.SMIME.md'
+    - Update MISP: 'UPDATE.md'
+    - Upgrading MISP: 'UPGRADE.md'
+    - Migrating BG Jobs: 'background-jobs-migration-guide.md'
+    - Old guides:
+      - 'Ubuntu 18.04 \w webmin': 'archive/xINSTALL.ubuntu1804.with.webmin.md'
+      - 'Debian 9': 'archive/xINSTALL.debian9.md'
+      - 'FreeBSD': 'archive/xINSTALL.FreeBSD.md'
+    - About:
+      - 'MISP Release Notes': 'Changelog.md'
+      - 'License': 'license.md'

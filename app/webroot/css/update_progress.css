@@ -1,0 +1,83 @@
+.headerUpdateBlock {
+    border: #ccc solid 1px;
+    border-bottom: 1px solid transparent;
+    background: #e6e6e6;
+    padding: 0px 6px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.bodyUpdateBlock {
+    border: #ccc solid 1px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background: #fbfbfb;
+    padding: 6px;
+    margin-bottom: 10px;
+}
+
+.div-terminal {
+    background-color: #303030;
+    color: white;
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.div-terminal > span {
+    display: block;
+}
+
+.terminal-res {
+    margin-top: 5px;
+    margin-left: 25px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.terminal-res-icon {
+    position: absolute;
+    transform: rotate(90deg);
+    font-size: large;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+table.updateProgressTable > tbody > tr > td:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+table.updateProgressTable .small-pb-in-td {
+    width: calc(100% + 16px);
+    height: 4px;
+    position: relative;
+    left: -8px;
+    top: 26px;
+    background-color: #f3f3f3;
+}
+
+table.updateProgressTable .small-state-text-in-td {
+    position: relative;
+    display: inline-block;
+    float: right;
+
+}
+
+.single-update-pb {
+    height: 100%;
+    background: #149bdf;
+    transition: width 0.6s ease;
+    transform: rotateZ(360deg);
+}
+
+.back-and-forth-animation {
+    position: relative;
+    animation: backandforthAnim 2.0s infinite;
+}
+
+@keyframes backandforthAnim {
+    0% {left: 0;}
+    50% {left: calc(95%);}
+    100% {left: 0;}
+}

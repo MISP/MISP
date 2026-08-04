@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json",
+  "type": "object",
+  "properties": {
+    "Event": {
+      "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event",
+      "type": "object",
+      "properties": {
+        "id": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/id",
+          "type": "string"
+        },
+        "org": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/org",
+          "type": "string"
+        },
+        "date": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/date",
+          "type": "string"
+        },
+        "threat_level_id": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/threat_level_id",
+          "type": "string"
+        },
+        "info": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/info",
+          "type": "string"
+        },
+        "published": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/published",
+          "type": "boolean"
+        },
+        "uuid": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/uuid",
+          "type": "string"
+        },
+        "attribute_count": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/attribute_count",
+          "type": "string"
+        },
+        "analysis": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/analysis",
+          "type": "string"
+        },
+        "timestamp": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/timestamp",
+          "type": "string"
+        },
+        "distribution": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/distribution",
+          "type": "string"
+        },
+        "proposal_email_lock": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/proposal_email_lock",
+          "type": "boolean"
+        },
+        "orgc": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/orgc",
+          "type": "string"
+        },
+        "locked": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/locked",
+          "type": "boolean"
+        },
+        "publish_timestamp": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/publish_timestamp",
+          "type": "string"
+        },
+        "Attribute": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute",
+          "type": "array",
+          "items": {
+            "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0",
+            "type": "object",
+            "properties": {
+              "id": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/id",
+                "type": "string"
+              },
+              "type": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/type",
+                "type": "string"
+              },
+              "category": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/category",
+                "type": "string"
+              },
+              "to_ids": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/to_ids",
+                "type": "boolean"
+              },
+              "uuid": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/uuid",
+                "type": "string"
+              },
+              "event_id": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/event_id",
+                "type": "string"
+              },
+              "distribution": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/distribution",
+                "type": "string"
+              },
+              "timestamp": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/timestamp",
+                "type": "string"
+              },
+              "comment": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/comment",
+                "type": "string"
+              },
+              "value": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/value",
+                "type": "string"
+              },
+              "ShadowAttribute": {
+                "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/Attribute/0/ShadowAttribute",
+                "type": "array",
+                "items": []
+              }
+            }
+          }
+        },
+        "ShadowAttribute": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/ShadowAttribute",
+          "type": "array",
+          "items": []
+        },
+        "RelatedEvent": {
+          "id": "https://www.github.com/MISP/MISP/format/2.3/schema.json/Event/RelatedEvent",
+          "type": "array",
+          "items": []
+        }
+      },
+      "required": [
+        "id",
+        "org",
+        "date",
+        "threat_level_id",
+        "info",
+        "published",
+        "uuid",
+        "attribute_count",
+        "analysis",
+        "timestamp",
+        "distribution",
+        "proposal_email_lock",
+        "orgc",
+        "locked",
+        "publish_timestamp",
+        "Attribute",
+        "ShadowAttribute",
+        "RelatedEvent"
+      ]
+    }
+  },
+  "required": [
+    "Event"
+  ]
+}

@@ -1,0 +1,298 @@
+<?php
+App::uses('AppController', 'Controller');
+
+/**
+ * @property Correlation $Correlation
+ */
+class CorrelationsController extends AppController
+{
+    public $components = array('RequestHandler');
+
+    public function top()
+    {
+        $query = [
+            'limit' => 50,
+            'page' => 1
+        ];
+        if (!empty($this->params['named']['limit'])) {
+            $query['limit'] = $this->params['named']['limit'];
+        }
+        if (!empty($this->params['named']['page'])) {
+            $query['page'] = $this->params['named']['page'];
+        }
+        if ($this->_isRest()) {
+            $data = $this->Correlation->findTop($query);
+            return $this->RestResponse->viewData($data, 'json');
+        } else {
+            $data = $this->Correlation->findTop($query);
+            $age = $this->Correlation->getTopTime();
+            $age = time() - $age;
+            $unit = 's';
+            if ($age >= 60) {
+                $age = ceil($age / 60);
+                $unit = 'm';
+                if ($age >= 60) {
+                    $age = ceil($age / 60);
+                    $unit = 'h';
+                    if ($age >= 24) {
+                        $age = ceil($age / 24);
+                        $unit = 'd';
+                        if ($age >= 365) {
+                            $age = ceil($age / 365);
+                            $unit = 'y';
+                        }
+                    }
+                }
+            }
+
+            $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
+            $this->set('onDemandEngine', $this->Correlation->onDemandEngine());
+            $this->set('age', $age);
+            $this->set('age_unit', $unit);
+            $this->set('data', $data);
+            $this->set('title_for_layout', __('Top correlations index'));
+            $this->set('menuData', [
+                'menuList' => 'correlationExclusions',
+                'menuItem' => 'top'
+            ]);
+        }
+    }
+
+    public function generateTopCorrelations()
+    {
+        $result = $this->Correlation->generateTopCorrelationsRouter();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($result, 'json');
+        } else {
+            if ($result === false) {
+                $message = __('No correlations found. Nothing to rank.');
+            } else if ($result === true) {
+                $message = __('Top correlation list regenerated.');
+            } else {
+                $message = __('Top correlation list generation queued for background processing. Job ID: %s.', $result);
+            }
+            $this->Flash->success($message);
+            $this->redirect(['controller' => 'correlations', 'action' => 'top']);
+        }
+    }
+
+    public function overCorrelations()
+    {
+        $query = [
+            'limit' => 50,
+            'page' => 1
+        ];
+        foreach ($query as $customParam => $foo) {
+            if (isset($this->request->params['named'][$customParam])) {
+                $query[$customParam] = $this->request->params['named'][$customParam];
+            }
+        }
+        $query['order'] = 'occurrence desc';
+        if (isset($this->request->params['named']['scope'])) {
+            $limit = $this->Correlation->OverCorrelatingValue->getLimit();
+            if ($this->request->params['named']['scope'] === 'over_correlating') {
+                $scope = 'over_correlating';
+                $query['conditions'][] = ['occurrence >=' => $limit];
+            } else if ($this->request->params['named']['scope'] === 'not_over_correlating') {
+                $query['conditions'][] = ['occurrence <' => $limit];
+                $scope = 'not_over_correlating';
+            }
+        } else {
+            $scope = 'all';
+        }
+        if (!empty($this->request->params['named']['quickFilter'])) {
+            $query['conditions'][] = ['value LIKE' => '%' . $this->request->params['named']['quickFilter'] . '%'];
+        }
+        $data = $this->Correlation->OverCorrelatingValue->getOverCorrelations($query);
+        $data = $this->Correlation->attachExclusionsToOverCorrelations($data);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, 'json');
+        }
+
+        $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
+        $this->set('data', $data);
+        $this->set('scope', $scope);
+        $this->set('title_for_layout', __('Index of over correlating values'));
+        $this->set('menuData', [
+            'menuList' => 'correlationExclusions',
+            'menuItem' => 'over'
+        ]);
+    }
+
+    public function switchEngine(string $engine)
+    {
+        $this->loadModel('Server');
+        if (!isset($this->Correlation->validEngines[$engine])) {
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+        }
+        if ($this->request->is('post')) {
+            $setting = $this->Server->getSettingData('MISP.correlation_engine');
+            $result = $this->Server->serverSettingsEditValue($this->Auth->user(), $setting, $engine);
+            if ($result === true) {
+                $message = __('Engine switched.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Correlations', 'switchEngine', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'correlations']);
+                }
+            } else {
+                $message = __('Couldn\'t switch to the requested engine.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Correlations', 'switchEngine', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'correlations']);
+                }
+            }
+        } else {
+            $this->set('engine', $engine);
+            $this->render('ajax/switch_engine_confirmation');
+        }
+    }
+
+    public function truncate(string $engine)
+    {
+        if (!isset($this->Correlation->validEngines[$engine])) {
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+        }
+        if ($this->request->is('post')) {
+            if (!Configure::read('MISP.background_jobs')) {
+                $result = $this->Correlation->truncate($this->Auth->user(), $engine);
+                $message = $result ? __('Table truncated.') : __('Could not truncate table');
+                if ($this->_isRest()) {
+                    if ($result) {
+                        $this->RestResponse->saveSuccessResponse('Correlations', 'truncate', false, $this->response->type(), $message);
+                    } else {
+                        $this->RestResponse->saveFailResponse('Correlations', 'truncate', false, $message, $this->response->type());
+                    }
+                } else {
+                    $this->Flash->{$result ? 'success' : 'error'}($message);
+                    $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'correlations']);
+                }
+            } else {
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    'SYSTEM',
+                    Job::WORKER_DEFAULT,
+                    'truncate table',
+                    $this->Correlation->validEngines[$engine],
+                    'Job created.'
+                );
+
+                $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_ADMIN,
+                    [
+                        'truncateTable',
+                        $this->Auth->user('id'),
+                        $engine,
+                        $jobId
+                    ],
+                    true,
+                    $jobId
+                );
+
+                $message = __('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Correlations', 'truncate', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'correlations']);
+                }
+            }
+        } else {
+            $this->set('engine', $engine);
+            $this->set('table_name', $this->Correlation->validEngines[$engine]);
+            $this->render('ajax/truncate_confirmation');
+        }
+    }
+
+    public function generateOccurrences()
+    {
+        $this->loadModel('OverCorrelatingValue');
+        $this->OverCorrelatingValue->generateOccurrencesRouter();
+        if (Configure::read('MISP.background_jobs')) {
+            $message = __('Job queued.');
+        } else {
+            $message = __('Over-correlations counted successfully.');
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Correlations', 'generateOccurrences', false, $this->response->type(), $message);
+        }
+        $this->Flash->info($message);
+        $this->redirect(['controller' => 'correlations', 'action' => 'overCorrelations']);
+    }
+
+    public function eventCorrelations($eventId)
+    {
+        if (!$this->Auth->user()) {
+            throw new ForbiddenException();
+        }
+        $this->loadModel('Event');
+        $sgids = $this->Event->SharingGroup->authorizedIds($this->Auth->user());
+        $correlations = $this->Correlation->getAttributesRelatedToEvent($this->Auth->user(), $eventId, $sgids);
+        $extended = filter_var($this->request->query('extended'), FILTER_VALIDATE_BOOLEAN);
+        $includeAttributes = $extended || filter_var($this->request->query('include_attributes'), FILTER_VALIDATE_BOOLEAN);
+        $includeOrgNames = $extended || filter_var($this->request->query('include_org_names'), FILTER_VALIDATE_BOOLEAN);
+        if ($includeAttributes || $includeOrgNames) {
+            $attributeIds = [];
+            $orgIds = [];
+            foreach ($correlations as $parentId => $relations) {
+                foreach ($relations as $rel) {
+                    if ($includeAttributes) {
+                        $attributeIds[] = $rel['attribute_id'];
+                    }
+                    if ($includeOrgNames && !empty($rel['org_id'])) {
+                        $orgIds[(int)$rel['org_id']] = (int)$rel['org_id'];
+                    }
+                }
+            }
+            if ($includeAttributes && !empty($attributeIds)) {
+                $this->loadModel('MispAttribute');
+                $attributes = $this->MispAttribute->find('all', [
+                    'conditions' => ['Attribute.id' => $attributeIds],
+                    'contain' => [
+                        'AttributeTag' => ['Tag'],
+                        'SharingGroup' => ['fields' => ['SharingGroup.name']],
+                        'Object' => ['fields' => ['Object.id', 'Object.name', 'Object.uuid']]
+                    ]
+                ]);
+                $attributeDetails = [];
+                foreach ($attributes as $attr) {
+                    $attributeDetails[$attr['Attribute']['id']] = $attr;
+                }
+                foreach ($correlations as $parentId => &$relations) {
+                    foreach ($relations as &$rel) {
+                        if (isset($attributeDetails[$rel['attribute_id']])) {
+                            $rel['Attribute'] = $attributeDetails[$rel['attribute_id']]['Attribute'];
+                            $rel['Attribute']['AttributeTag'] = $attributeDetails[$rel['attribute_id']]['AttributeTag'];
+                            $rel['Attribute']['SharingGroup'] = $attributeDetails[$rel['attribute_id']]['SharingGroup'];
+                            if (!empty($attributeDetails[$rel['attribute_id']]['Object'])) {
+                                $rel['Attribute']['Object'] = $attributeDetails[$rel['attribute_id']]['Object'];
+                            }
+                        }
+                    }
+                }
+            }
+            if ($includeOrgNames && !empty($orgIds)) {
+                $this->loadModel('Organisation');
+                $organisations = $this->Organisation->find('list', [
+                    'recursive' => -1,
+                    'conditions' => ['Organisation.id' => array_values($orgIds)],
+                    'fields' => ['Organisation.id', 'Organisation.name']
+                ]);
+                foreach ($correlations as &$relations) {
+                    foreach ($relations as &$rel) {
+                        if (!empty($rel['org_id']) && isset($organisations[$rel['org_id']])) {
+                            $rel['org_name'] = $organisations[$rel['org_id']];
+                        }
+                    }
+                }
+                unset($relations, $rel);
+            }
+        }
+        return $this->RestResponse->viewData($correlations, 'json');
+    }
+}

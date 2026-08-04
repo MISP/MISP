@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+#DEBHELPER#
+
+. /usr/share/debconf/confmodule
+
+a2enmod rewrite || true
+a2enmod headers || true

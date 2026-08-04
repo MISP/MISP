@@ -1,0 +1,3777 @@
+<?php
+App::uses('AppController', 'Controller');
+App::uses('Folder', 'Utility');
+App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
+App::uses('GalaxyColour', 'Tools');
+
+/**
+ * @property MispAttribute $Attribute
+ */
+class AttributesController extends AppController
+{
+    public $uses = 'MispAttribute';
+
+    public $components = array('RequestHandler');
+
+    public $paginate = [
+        'limit' => 60,
+        'maxLimit' => 9999,
+        'conditions' => array('AND' => array('Attribute.deleted' => 0)),
+        'order' => 'Attribute.event_id DESC',
+        'recursive' => -1,
+        'contain' => array(
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+            ),
+            'AttributeTag',
+            'Object' => array(
+                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+            ),
+            'SharingGroup' => ['fields' => ['SharingGroup.name']],
+        ),
+    ];
+
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+
+        // permit reuse of CSRF tokens on the search page.
+        if ('search' === $this->request->params['action']) {
+            $this->Security->csrfCheck = false;
+        }
+        $this->Security->unlockedActions[] = 'getMassEditForm';
+        $this->Security->unlockedActions[] = 'search';
+        $this->Security->unlockedActions[] = 'index';
+        $this->Security->unlockedActions[] = 'editField';
+
+        if ($this->request->action === 'add_attachment') {
+            $this->Security->unlockedFields = array('values');
+        } elseif ($this->request->action === 'viewPicture') {
+            $this->Security->doNotGenerateToken = true;
+        }
+    }
+
+    private function __massageSearchFilters(array $filters): array
+    {
+        $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
+        foreach ($multiLineFields as $field) {
+            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+                $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
+            }
+        }
+        return $filters;
+    }
+
+    private function __cleanDefaultFormValues(array $filters): array
+    {
+        foreach ($filters as $key => $value) {
+            if (in_array($key, ['type', 'category']) && $value === 'ALL') {
+                unset($filters[$key]);
+            }
+            if ($value === '') {
+                unset($filters[$key]);
+            }
+            if ($key === 'to_ids' && $value === '0') {
+                unset($filters[$key]);
+            }
+            if ($key === 'enforceWarninglist' && $value === '0') {
+                unset($filters[$key]);
+            }
+            if (is_array($value)) {
+                $filters[$key] = $this->__cleanDefaultFormValues($value);
+            } elseif ($value === '') {
+                unset($filters[$key]);
+            }
+        }
+        return $filters;
+    }
+
+    public function index()
+    {
+        if (isset($this->request->data['Attribute'])) {
+            $this->request->data = $this->request->data['Attribute'];
+        }
+        $user = $this->Auth->user();
+        $params = [];
+        $params['conditions'][] = ['AND' => array('Attribute.deleted' => 0)];
+        if (!$this->_isRest()) {
+            $params = array_merge_recursive($params, $this->paginate);
+        }
+        $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
+        $paramArray = [
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+        ];
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->request->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!$this->_isRest()) {
+            $search_filters = $this->request->data;
+            if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
+                $search_filters['to_ids'] = [0,1];
+            }
+            $search_filters['published'] = [0,1];
+            $search_filters['flatten'] = true;
+            if ($this->request->is('post') && empty($filters['search_token'])) {
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
+                $this->set('search_token', $search_token);
+            } elseif (!empty($filters['search_token'])) {
+                $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                $this->set('search_token', $filters['search_token']);
+            } elseif (!empty($filters)) {
+                $search_filters = array_merge($filters, $search_filters);
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
+                $this->set('search_token', $search_token);
+            }
+        }
+        if (!$this->_isRest()) {
+            $filters = $this->__cleanDefaultFormValues($filters);
+            $filters = $this->__massageSearchFilters($filters);
+        }
+        $request_filters = $filters;
+        $conditions = $this->paginate['conditions'];
+        $subqueryElements = $this->MispAttribute->Event->harvestSubqueryElements($filters);
+        $filters = $this->MispAttribute->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+        $request_filters = $filters;
+        $params = array_merge($filters, [
+            'limit' => $this->paginate['limit'] ?? null,
+            'page' => $this->paginate['page'] ?? 1
+        ]);
+        if (empty($params['deleted'])) {
+            $params['deleted'] = 1;
+        }
+        $this->set('params', $params);
+        $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
+        if (!empty($filters['direction'])) {
+            $params['direction'] = $filters['direction'];
+        }
+        if (!empty($filters['sort'])) {
+            $params['sort'] = $filters['sort'];
+            $valid_sort_keys = ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Event.orgc_id', 'Attribute.timestamp'];
+            if (in_array($filters['sort'], $valid_sort_keys)) {
+                $params['order'] = array_combine($valid_sort_keys, $valid_sort_keys)[$filters['sort']] . ' ' . ($params['direction'] === 'asc' ? 'asc' : 'desc');
+            }
+        }
+        if (!empty($conditions)) {
+            $params['conditions'] = $conditions;
+        }
+        $params['flatten'] = 1;
+        $params['includeWarninglistHits'] = 1;
+        if ($this->_isRest()) {
+            if (!empty($filters['page'])) {
+                $params['page'] = $filters['page'];
+            }
+            if (!empty($filters['limit'])) {
+                $params['limit'] = $filters['limit'];
+            }
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+        } else {
+            $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
+            $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
+            $this->paginate['conditions'] = $conditions;
+            $attributeCount = 0;
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params, $attributeCount, true);
+            App::uses('CustomPaginationTool', 'Tools');
+            $customPagination = new CustomPaginationTool();
+            $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
+            if (count($attributes) >= $params['limit']) {
+                $params['nextPage'] = true;
+                $params['prevPage'] = ($params['page'] > 1) ? true : false;
+                $params['current'] = count($attributes);
+            }
+            $this->params->params['paging'] = array($this->modelClass => $params);
+            $parts = explode('?', $_SERVER['REQUEST_URI'], 2);
+            if (count($parts) == 2) {
+                $url['?'] = $parts[1];
+            }
+            $this->MispAttribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
+        }
+
+        if ($this->_isRest()) {
+            $attributes = array_column($attributes, 'Attribute');
+            return $this->RestResponse->viewData($attributes, $this->response->type());
+        }
+
+        $this->MispAttribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
+        $orgTable = $this->MispAttribute->Event->Orgc->find('all', [
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+        ]);
+        $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
+        $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
+        foreach ($attributes as &$attribute) {
+            if (isset($orgTable[$attribute['Event']['orgc_id']])) {
+                $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
+            }
+            $temp = $this->MispAttribute->Correlation->getRelatedAttributes(
+                $user,
+                $sgids,
+                $attribute['Attribute'],
+                [],
+                true
+            );
+            foreach ($temp as &$t) {
+                $t['info'] = $t['Event']['info'];
+                $t['org_id'] = $t['Event']['org_id'];
+                $t['date'] = $t['Event']['date'];
+            }
+            $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
+        }
+
+        list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
+        $exports = array_keys($this->MispAttribute->validFormats);
+        $this->set('exports', $exports);
+        $request_filters = array_diff_key($request_filters, array_flip(['direction', 'page', 'limit', 'sort']));
+        $export_filters = '/';
+        if (!empty($request_filters)) {
+            foreach ($request_filters as $k => $v) {
+                if (is_array($v)) {
+                    foreach ($v as $vv) {
+                        $export_filters .= urlencode($k) . '[]:' . urlencode($vv) . '/';
+                    }
+                } else {
+                    $export_filters .= urlencode($k) . ':' . urlencode($v) . '/';
+                }
+            }
+        }
+        if (empty($request_filters['to_ids'])) {
+            $request_filters['to_ids'] = [0,1];
+        }
+        if (empty($request_filters['published'])) {
+            $request_filters['published'] = [0,1];
+        }
+        $this->set('request_filters', $request_filters);
+        $this->set('paramArray', $paramArray);
+        $this->set('passedArgsArray', $this->passedArgs);
+        $this->set('export_filters', $export_filters);
+        $this->set('sightingsData', $sightingsData);
+        $this->set('orgTable', array_column($orgTable, 'name', 'id'));
+        $this->set('shortDist', $this->MispAttribute->shortDist);
+        $this->set('attributes', $attributes);
+        $this->set('headerCount', $attributeCount);
+        $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
+    }
+
+    public function add($eventId = false)
+    {
+        if ($this->request->is('get') && $this->_isRest()) {
+            return $this->RestResponse->describe('Attributes', 'add', false, $this->response->type());
+        }
+        if ($eventId === false) {
+            throw new MethodNotAllowedException(__('No event ID set.'));
+        }
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+        }
+        if ($this->request->is('ajax')) {
+            $this->set('ajax', true);
+            $this->layout = false;
+        } else {
+            $this->set('ajax', false);
+        }
+        if ($this->request->is('post')) {
+            if ($this->request->is('ajax')) {
+                $this->autoRender = false;
+            }
+            if (!isset($this->request->data['Attribute'])) {
+                $this->request->data = array('Attribute' => $this->request->data);
+            }
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
+            //
+            // multiple attributes in batch import
+            //
+            if (!empty($this->request->data['Attribute']['batch_import']) || (!empty($this->request->data['Attribute']['value']) && is_array($this->request->data['Attribute']['value']))) {
+                $attributes = array();
+                if (is_array($this->request->data['Attribute']['value'])) {
+                    $values = $this->request->data['Attribute']['value'];
+                } else {
+                    $values = explode("\n", rtrim($this->request->data['Attribute']['value'], "\n"));
+                }
+                $temp = $this->request->data['Attribute'];
+                foreach ($values as $value) {
+                    $temp['value'] = $value;
+                    $attributes[] = $temp;
+                }
+            } else {
+                $attributes = $this->request->data['Attribute'];
+            }
+            if (!isset($attributes[0])) {
+                $attributes = array(0 => $attributes);
+            }
+            $fails = [];
+            $successes = 0;
+            $attributeCount = count($attributes);
+            $insertedIds = array();
+            foreach ($attributes as $k => $attribute) {
+                $validationErrors = array();
+                $this->MispAttribute->captureAttribute($attribute, $event['Event']['id'], $this->Auth->user(), false, false, $event, $validationErrors, $this->params['named']);
+                if (empty($validationErrors)) {
+                    $insertedIds[] = $this->MispAttribute->id;
+                    $successes++;
+                } else {
+                    $fails["attribute_" . $k] = $validationErrors;
+                }
+            }
+            if ($successes !== 0) {
+                $this->MispAttribute->Event->unpublishEvent($event);
+            }
+            if ($this->_isRest()) {
+                if ($successes !== 0) {
+                    $attributes = $this->MispAttribute->find('all', array(
+                        'recursive' => -1,
+                        'conditions' => array('Attribute.id' => $insertedIds),
+                        'contain' => array(
+                            'AttributeTag' => array(
+                                'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
+                            )
+                        )
+                    ));
+                    if (count($attributes) === 1) {
+                        $attributes = $attributes[0];
+                    } else {
+                        $result = array('Attribute' => array());
+                        foreach ($attributes as $attribute) {
+                            $temp = $attribute['Attribute'];
+                            if (!empty($attribute['AttributeTag'])) {
+                                foreach ($attribute['AttributeTag'] as $at) {
+                                    $temp['Tag'][] = $at['Tag'];
+                                }
+                            }
+                            $result['Attribute'][] = $temp;
+                        }
+                        $attributes = $result;
+                        unset($result);
+                    }
+                    return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
+                } else {
+                    if ($attributeCount === 1) {
+                        return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails["attribute_0"], $this->response->type());
+                    } else {
+                        return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails, $this->response->type());
+                    }
+                }
+            } else {
+                if (empty($fails)) {
+                    $message = __('Attributes saved.');
+                } else {
+                    if ($attributeCount > 1) {
+                        $flashErrorMessage = [];
+                        foreach ($attributes as $k => $attribute) {
+                            if (isset($fails["attribute_$k"])) {
+                                $reason = '';
+                                foreach ($fails["attribute_" . $k] as $failKey => $failData) {
+                                    $reason = $failKey . ': ' . $failData[0];
+                                }
+                                $flashErrorMessage[] = '<span class="red bold">' . h($attribute["value"]) . '</span> (' . h($reason) . ')';
+                            } else {
+                                $flashErrorMessage[] = '<span class="green bold">' . h($attribute["value"]) . '</span>';
+                            }
+                        }
+                        $flashErrorMessage = implode('<br>', $flashErrorMessage);
+                        $this->Session->write('flashErrorMessage', $flashErrorMessage);
+
+                        if ($successes === 0) {
+                            $message = __('Attributes could not be saved. Click $flashErrorMessage for more info');
+                        } else {
+                            $message = __('Attributes saved, however, %s attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
+                        }
+                    } else {
+                        $message = __('Attribute could not be saved.');
+                    }
+                }
+                if ($this->request->is('ajax')) {
+                    if (!empty($successes)) {
+                        $data = ['saved' => true, 'success' => $message];
+                    } else {
+                        $message = $attributeCount > 1 ? $message : $this->MispAttribute->validationErrors;
+                        $data = ['saved' => false, 'errors' => $message];
+                        if (!empty($flashErrorMessage)) {
+                            $data['full_errors'] = $flashErrorMessage;
+                        }
+                    }
+                    return $this->RestResponse->viewData($data, 'json');
+                }
+                if (empty($fails)) {
+                    $this->Flash->success($message);
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                    }
+                } else {
+                    $this->Flash->error($message);
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
+                    }
+                }
+                if ($successes > 0) {
+                    if($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+                    }
+                }
+            }
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
+        // combobox for types
+        $types = $this->MispAttribute->getNonAttachmentTypes();
+        $types = $this->_arrayToValuesIndexArray($types);
+        $this->set('types', $types);
+        // combobox for categories
+        $categories = array_keys($this->MispAttribute->categoryDefinitions);
+        $categories = $this->_arrayToValuesIndexArray($categories);
+        $this->set('categories', $categories);
+        $this->__common();
+        $this->set('title_for_layout', __('Add attribute'));
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
+        $this->set('event', $event);
+        $this->set('action', $this->request->action);
+    }
+
+    public function download($id = null)
+    {
+        $conditions = $this->__idToConditions($id);
+        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => $conditions, 'flatten' => true));
+        if (empty($attributes)) {
+            throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
+        }
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
+    }
+
+    private function __downloadAttachment(array $attribute)
+    {
+        $file = $this->MispAttribute->getAttachmentFile($attribute);
+
+        if ('attachment' === $attribute['type']) {
+            $filename = $attribute['value'];
+            $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
+            $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
+        } elseif ('malware-sample' === $attribute['type']) {
+            $filenameHash = explode('|', $attribute['value']);
+            $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+            $fileExt = "zip";
+        } else {
+            throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
+        }
+
+        $download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
+        return $this->RestResponse->sendFile($file, $fileExt, $download_attachments_on_load, $filename . '.' . $fileExt);
+    }
+
+    public function add_attachment($eventId = null)
+    {
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
+
+            $fails = array();
+            $success = 0;
+
+            $malware = !empty($this->request->data['Attribute']['malware']);
+            $pool = $malware ? 'malicious' : 'non_malicious';
+            // Back-compat: when no template is posted (legacy REST callers), fall back to
+            // the pool default — the `file` object for malware samples, and the flat
+            // `attachment` attribute (null sentinel) for the non-malicious path.
+            if ($malware) {
+                $templateUuid = isset($this->request->data['Attribute']['object_template_malicious'])
+                    ? $this->request->data['Attribute']['object_template_malicious']
+                    : null;
+                if (empty($templateUuid)) {
+                    $templateUuid = MispAttribute::ATTACHMENT_OBJECT_TEMPLATES['malicious'][0]['uuid'];
+                }
+            } else {
+                $templateUuid = isset($this->request->data['Attribute']['object_template_non_malicious'])
+                    ? $this->request->data['Attribute']['object_template_non_malicious']
+                    : null;
+                if ($templateUuid === '') {
+                    $templateUuid = null;
+                }
+            }
+
+            foreach ($this->request->data['Attribute']['values'] as $value) {
+                // Check if there were problems with the file upload
+                // only keep the last part of the filename, this should prevent directory attacks
+                $filename = basename($value['name']);
+                $tmpfile = new File($value['tmp_name']);
+                if ((isset($value['error']) && $value['error'] == 0) ||
+                    (!empty($value['tmp_name']) && $value['tmp_name'] != 'none')
+                ) {
+                    if (!is_uploaded_file($tmpfile->path)) {
+                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                    }
+                } else {
+                    $fails[] = $filename;
+                    continue;
+                }
+
+                try {
+                    $result = $this->MispAttribute->buildAttachmentPayload(
+                        $pool,
+                        $templateUuid,
+                        $event['Event']['id'],
+                        $this->request->data['Attribute'],
+                        $filename,
+                        $tmpfile
+                    );
+                } catch (InvalidArgumentException $e) {
+                    // Invalid or not-yet-implemented template — the same choice applies to every
+                    // file in the batch, so fail the whole request with a 400 rather than looping.
+                    throw new BadRequestException($e->getMessage());
+                }
+
+                $fileSucceeded = false;
+
+                foreach ($result['Attribute'] as $attribute) {
+                    $this->MispAttribute->create();
+                    if ($this->MispAttribute->save(array('Attribute' => $attribute))) {
+                        $fileSucceeded = true;
+                    }
+                }
+
+                if (!empty($result['Object'])) {
+                    foreach ($result['Object'] as $object) {
+                        $object['distribution'] = $this->request->data['Attribute']['distribution'];
+                        if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
+                            $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+                        }
+                        foreach ($object['Attribute'] as $ka => $attribute) {
+                            $object['Attribute'][$ka]['distribution'] = 5;
+                        }
+                        $this->MispAttribute->Object->captureObject(array('Object' => $object), $event['Event']['id'], $this->Auth->user());
+                    }
+                    $fileSucceeded = true;
+                }
+
+                if (!empty($result['ObjectReference'])) {
+                    foreach ($result['ObjectReference'] as $reference) {
+                        $this->MispAttribute->Object->ObjectReference->smartSave($reference, $event['Event']['id']);
+                    }
+                }
+
+                if ($fileSucceeded) {
+                    $success++;
+                } else {
+                    $fails[] = $filename;
+                }
+            }
+            $message = __n('The attachment have been uploaded.', 'The attachments have been uploaded.', $success);
+            if (!empty($fails)) {
+                $message = __('Some of the attachments failed to upload. The failed files were: %s - This can be caused by the attachments already existing in the event.', implode(', ', $fails));
+            }
+            if (empty($success)) {
+                if (empty($fails)) {
+                    $message = __('The attachment(s) could not be saved. Please contact your administrator.');
+                }
+            } else {
+                $this->MispAttribute->Event->unpublishEvent($event);
+            }
+            if (empty($success) && !empty($fails)) {
+                $this->Flash->error($message);
+            } else {
+                $this->Flash->success($message);
+            }
+            if (!$this->_isRest()) {
+                $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+            }
+            if ($this->theme === "Overmind") {
+                $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
+            } else {
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+            }
+        } else {
+            // set the event_id in the form
+            $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
+        }
+
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+        }
+
+        // Filter categories that contains attachment type
+        $selectedCategories = array();
+        foreach ($this->MispAttribute->categoryDefinitions as $category => $values) {
+            foreach ($values['types'] as $type) {
+                if ($this->MispAttribute->typeIsAttachment($type)) {
+                    $selectedCategories[] = $category;
+                    break;
+                }
+            }
+        }
+
+        // Create list of categories that should be marked as malware sample by default
+        $isMalwareSampleCategory = [];
+        foreach ($selectedCategories as $category) {
+            $possibleMalwareSample = false;
+            foreach ($this->MispAttribute->categoryDefinitions[$category]['types'] as $type) {
+                if ($this->MispAttribute->typeIsMalware($type)) {
+                    $possibleMalwareSample = true;
+                    break;
+                }
+            }
+            $isMalwareSampleCategory[$category] = $possibleMalwareSample;
+        }
+
+        $categories = $this->_arrayToValuesIndexArray($selectedCategories);
+        $this->set('categories', $categories);
+
+        $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
+        $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        $this->set('attachmentObjectTemplates', MispAttribute::ATTACHMENT_OBJECT_TEMPLATES);
+        $this->__common();
+        $this->set('title_for_layout', __('Add attachment'));
+        $this->set('event', $event);
+    }
+
+    private function __common()
+    {
+        $distributionData = $this->MispAttribute->fetchDistributionData($this->Auth->user());
+        $this->set('sharingGroups', $distributionData['sgs']);
+        $this->set('distributionLevels', $distributionData['levels']);
+        $this->set('initialDistribution', $distributionData['initial']);
+        $this->set('fieldDesc', $this->__fieldDesc());
+        $this->set('nonCorrelatingTypes', MispAttribute::NON_CORRELATING_TYPES);
+
+        $this->loadModel('Noticelist');
+        $notice_list_triggers = $this->Noticelist->getTriggerData();
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
+    }
+
+    /**
+     * @return array|array[]
+     */
+    private function __fieldDesc()
+    {
+        $fieldDesc = ['category' => [], 'type' => [], 'distribution' => []];
+        foreach ($this->MispAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->MispAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->MispAttribute->distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->MispAttribute->distributionDescriptions[$key]['formdesc'];
+        }
+        return $fieldDesc;
+    }
+
+    // Imports the CSV threatConnect file to multiple attributes
+    public function add_threatconnect($eventId = null)
+    {
+        if ($this->request->is('post')) {
+            $this->loadModel('Event');
+            $this->Event->id = $eventId;
+            $this->Event->recursive = -1;
+            $this->Event->read();
+            if (!$this->__canModifyEvent($this->Event->data)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+            //
+            // File upload
+            //
+            // Check if there were problems with the file upload
+            $tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
+            if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
+                    (!empty($this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
+            ) {
+                if (!is_uploaded_file($tmpfile->path)) {
+                    throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                }
+            } else {
+                $this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+            }
+            // verify mime type
+            $file_info = $tmpfile->info();
+            if ($file_info['mime'] != 'text/plain') {
+                $this->Flash->error('File not in CSV format.', 'default', array(), 'error');
+                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+            }
+
+            // parse uploaded csv file
+            $filename = $tmpfile->path;
+            $header = null;
+            $entries = array();
+            if (($handle = fopen($filename, 'r')) !== false) {
+                while (($row = fgetcsv($handle, 0, ',', '"')) !== false) {
+                    if (!$header) {
+                        $header = $row;
+                    } else {
+                        $entries[] = array_combine($header, $row);
+                    }
+                }
+                fclose($handle);
+            }
+            // verify header of the file (first row)
+            $required_headers = array('Type', 'Value', 'Confidence', 'Description', 'Source');
+
+            // TODO i18n
+            if (count(array_intersect($header, $required_headers)) != count($required_headers)) {
+                $this->Flash->error('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
+                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+            }
+
+            //
+            // import attributes
+            //
+            $attributes = array();  // array with all the attributes we're going to save
+            foreach ($entries as $entry) {
+                $attribute = array();
+                // Pin to the route event that __canModifyEvent() authorised above; the
+                // body's event_id is attacker-controlled and would otherwise redirect the
+                // imported attributes into an event the user cannot modify. (Jeroen Pinoy)
+                $attribute['event_id'] = $eventId;
+                $attribute['value'] = $entry['Value'];
+                $attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
+                $attribute['comment'] = $entry['Description'];
+                $attribute['distribution'] = '3'; // 'All communities'
+                if (Configure::read('MISP.default_attribute_distribution') != null) {
+                    if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+                        $attribute['distribution'] = $this->Event->data['Event']['distribution'];
+                    } else {
+                        $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                    }
+                }
+                switch ($entry['Type']) {
+                    case 'Address':
+                        $attribute['category'] = 'Network activity';
+                        $attribute['type'] = 'ip-dst';
+                        break;
+                    case 'Host':
+                        $attribute['category'] = 'Network activity';
+                        $attribute['type'] = 'domain';
+                        break;
+                    case 'EmailAddress':
+                        $attribute['category'] = 'Payload delivery';
+                        $attribute['type'] = 'email-src';
+                        break;
+                    case 'File':
+                        $attribute['category'] = 'Artifacts dropped';
+                        $attribute['value'] = strtolower($attribute['value']);
+                        if (preg_match("#^[0-9a-f]{32}$#", $attribute['value'])) {
+                            $attribute['type'] = 'md5';
+                        } elseif (preg_match("#^[0-9a-f]{40}$#", $attribute['value'])) {
+                            $attribute['type'] = 'sha1';
+                        } elseif (preg_match("#^[0-9a-f]{64}$#", $attribute['value'])) {
+                            $attribute['type'] = 'sha256';
+                        } else {
+                            // do not keep attributes that do not have a match
+                            $attribute=null;
+                        }
+                        break;
+                    case 'URL':
+                        $attribute['category'] = 'Network activity';
+                        $attribute['type'] = 'url';
+                        break;
+                    default:
+                        // do not keep attributes that do not have a match
+                        $attribute=null;
+                }
+                // add attribute to the array that will be saved
+                if ($attribute) {
+                    $attributes[] = $attribute;
+                }
+            }
+
+            //
+            // import source info:
+            //
+            // 1/ iterate over all the sources, unique
+            // 2/ add uniques as 'Internal reference'
+            // 3/ if url format -> 'link'
+            //    else 'comment'
+            $references = array();
+            foreach ($entries as $entry) {
+                if (empty($entry['Source'])) {
+                    continue;
+                }
+                $references[$entry['Source']] = true;
+            }
+            $references = array_keys($references);
+            // generate the Attributes
+            foreach ($references as $reference) {
+                $attribute = array();
+                // route-pinned event_id (see attribute loop above) — never trust the body
+                $attribute['event_id'] = $eventId;
+                $attribute['category'] = 'Internal reference';
+                if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $reference)) {
+                    $attribute['type'] = 'link';
+                } else {
+                    $attribute['type'] = 'comment';
+                }
+                $attribute['value'] = $reference;
+                $attribute['distribution'] = 3; // 'All communities'
+                // add attribute to the array that will be saved
+                $attributes[] = $attribute;
+            }
+
+            //
+            // finally save all the attributes at once, and continue if there are validation errors
+            //
+
+            $results = array('successes' => 0, 'fails' => 0);
+            foreach ($attributes as $attribute) {
+                $this->MispAttribute->create();
+                $result = $this->MispAttribute->save($attribute);
+                if (!$result) {
+                    $results['fails']++;
+                } else {
+                    $results['successes']++;
+                }
+            }
+            // data imported (with or without errors)
+            // remove the published flag from the event
+            $this->loadModel('Event');
+            // unpublish the route event we imported into, not a body-supplied id — the
+            // latter let a user unpublish an arbitrary event they cannot modify.
+            $this->Event->id = $eventId;
+            $this->Event->saveField('published', 0);
+
+            // everything is done, now redirect to event view
+            $message = __('The ThreatConnect data has been imported.');
+            if ($results['successes'] != 0) {
+                $flashType = 'success';
+                $temp = sprintf(__('%s entries imported.'), $results['successes']);
+                $message .= ' ' . $temp;
+            }
+            if ($results['fails'] != 0) {
+                $temp = sprintf(__('%s entries could not be imported.'), $results['fails']);
+                $message .= ' ' . $temp;
+            }
+            $this->Flash->{empty($flashType) ? 'error' : $flashType}($message);
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+        } else {
+            // set the event_id in the form
+            $this->request->data['Attribute']['event_id'] = $eventId;
+        }
+
+        // form not submitted, show page
+        $this->loadModel('Event');
+        $events = $this->Event->findById($eventId);
+        $this->set('published', $events['Event']['published']);
+    }
+
+    public function edit($id = null)
+    {
+        if ($this->request->is('get') && $this->_isRest()) {
+            return $this->RestResponse->describe('Attributes', 'edit', false, $this->response->type());
+        }
+        $attribute = $this->__fetchAttribute($id);
+        if (empty($attribute)) {
+            throw new NotFoundException('Invalid attribute');
+        }
+        $this->MispAttribute->data = $attribute;
+        if ($this->MispAttribute->data['Attribute']['deleted']) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $this->MispAttribute->id = $attribute['Attribute']['id'];
+        if (!$this->__canModifyEvent($attribute)) {
+            $message = __('You do not have permission to do that.');
+            if ($this->_isRest()) {
+                throw new ForbiddenException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+            }
+        }
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $this->MispAttribute->data['Attribute']['event_id']);
+        }
+        $eventId = $this->MispAttribute->data['Attribute']['event_id'];
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['Attribute'])) {
+                $this->request->data = array('Attribute' => $this->request->data);
+            }
+            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
+            $dateObj = new DateTime();
+            $existingAttribute = $this->MispAttribute->find('first', [
+                    'conditions' => [
+                        'Attribute.uuid' => $this->MispAttribute->data['Attribute']['uuid']
+                    ],
+                    'recursive' => -1
+                ]
+            );
+            // check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
+            // check which attribute is newer
+            if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
+                $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+                $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
+                $this->request->data['Attribute']['object_id'] = $existingAttribute['Attribute']['object_id'];
+                $this->request->data['Attribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
+                $skipTimeCheck = false;
+                if (!isset($this->request->data['Attribute']['timestamp'])) {
+                    $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
+                    $skipTimeCheck = true;
+                }
+                if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+                    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'first_seen', 'last_seen');
+                    foreach ($recoverFields as $rF) {
+                        if (!isset($this->request->data['Attribute'][$rF])) {
+                            $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+                        }
+                    }
+                    // carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
+                } else {
+                    // the old one is newer or the same, replace the request's attribute with the old one
+                    throw new MethodNotAllowedException(__('Attribute could not be saved: Attribute in the request not newer than the local copy.'));
+                }
+            } else {
+                if ($this->_isRest() || $this->response->type() === 'application/json') {
+                    throw new NotFoundException(__('Invalid attribute.'));
+                } else {
+                    $this->Flash->error(__('Invalid attribute.'));
+                    $this->redirect(array('controller' => 'events', 'action' => 'index'));
+                }
+            }
+            if ($existingAttribute['Attribute']['object_id']) {
+                $result = $this->MispAttribute->save($this->request->data, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
+                if ($result) {
+                    $this->MispAttribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
+                    $this->MispAttribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
+                }
+                $this->MispAttribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
+            } else {
+                $result = $this->MispAttribute->save($this->request->data, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
+                if ($result) {
+                    $this->MispAttribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
+                    $this->MispAttribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
+                }
+                if ($this->request->is('ajax')) {
+                    $this->autoRender = false;
+                    if ($result) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute updated.')),'status' => 200, 'type' => 'json'));
+                    } else {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->MispAttribute->validationErrors))),'status' => 200, 'type' => 'json'));
+                    }
+                }
+            }
+            if ($result) {
+                $this->Flash->success(__('The attribute has been saved'));
+                // remove the published flag from the event
+                $this->MispAttribute->Event->unpublishEvent($eventId, false, $dateObj->getTimestamp());
+                if (!empty($this->MispAttribute->data['Attribute']['object_id'])) {
+                    $this->MispAttribute->Object->updateTimestamp($this->MispAttribute->data['Attribute']['object_id'], $dateObj->getTimestamp());
+                }
+                if ($this->_isRest()) {
+                  $saved_attribute = $this->MispAttribute->find('first', array(
+                          'conditions' => array('id' => $this->MispAttribute->id),
+                          'recursive' => -1,
+                          'contain' => array('AttributeTag' => array('Tag'))
+                  ));
+                  if ($this->response->type() === 'application/json') {
+                      $type = 'json';
+                  } else {
+                      $type = 'xml';
+                  }
+                  App::uses(strtoupper($type) . 'ConverterTool', 'Tools');
+                  $tool = strtoupper($type) . 'ConverterTool';
+                  $converter = new $tool();
+                  $saved_attribute = $converter->convertAttribute($saved_attribute, true);
+                  return $this->RestResponse->viewData($saved_attribute, $type);
+                } else {
+                    if($this->theme === "Overmind") {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                    }
+                }
+            } else {
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Attributes', 'edit', false, $this->MispAttribute->validationErrors);
+                } else {
+                    if (!CakeSession::read('Message.flash')) {
+                        $this->Flash->error(__('The attribute could not be saved. Please, try again.'));
+                        if($this->theme === "Overmind") {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                        }
+                    } else {
+                        $this->request->data = $this->MispAttribute->read(null, $id);
+                    }
+                }
+            }
+        } else {
+            $this->request->data = $this->MispAttribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id]
+            ]);
+        }
+        $this->set('attribute', $this->request->data);
+        if (!empty($this->request->data['Attribute']['object_id'])) {
+            $this->set('objectAttribute', true);
+        } else {
+            $this->set('objectAttribute', false);
+        }
+        // enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
+        $this->set('event', $attribute); // Attribute contains 'Event' field
+        // needed for RBAC
+        // combobox for types
+        $isAttachment = $this->MispAttribute->typeIsAttachment($attribute['Attribute']['type']);
+        $this->set('attachment', $isAttachment);
+        if ($isAttachment) {
+            $types = [$attribute['Attribute']['type'] => $attribute['Attribute']['type']];
+        } else {
+            $types = $this->MispAttribute->getNonAttachmentTypes();
+            $types = $this->_arrayToValuesIndexArray($types);
+        }
+        $this->set('types', $types);
+        $this->__common();
+        $this->set('title_for_layout', __('Edit attribute'));
+        $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $categoryDefinitions = $this->MispAttribute->categoryDefinitions;
+        $categories = array_keys($categoryDefinitions);
+        $categories = $this->_arrayToValuesIndexArray($categories);
+        if (!empty($this->request->data['Attribute']['object_id'])) {
+            foreach ($categoryDefinitions as $k => $v) {
+                if (!in_array($this->request->data['Attribute']['type'], $v['types'])) {
+                    unset($categoryDefinitions[$k]);
+                }
+            }
+            foreach ($categories as $k => $v) {
+                if (!isset($categoryDefinitions[$k])) {
+                    unset($categories[$k]);
+                }
+            }
+        }
+        $this->set('categories', $categories);
+        $this->set('categoryDefinitions', $categoryDefinitions);
+        $this->set('action', $this->action);
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
+        $this->render('add');
+    }
+
+    // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
+    public function editField($id)
+    {
+        $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $id],
+        ]);
+        if (empty($attribute)) {
+            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status' => 200, 'type' => 'json'));
+        }
+        if (!$this->__canModifyEvent($attribute)) {
+            return new CakeResponse(array('body' => json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status' => 200, 'type' => 'json'));
+        }
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+        }
+        if (empty($this->request->data['Attribute'])) {
+            $this->request->data = array('Attribute' => $this->request->data);
+            if (empty($this->request->data['Attribute'])) {
+                throw new MethodNotAllowedException(__('Invalid input.'));
+            }
+        }
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen', 'disable_correlation');
+        $changed = false;
+        foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
+            if (!in_array($changedKey, $validFields, true)) {
+                throw new MethodNotAllowedException(__('Invalid field.'));
+            }
+            if ($attribute['Attribute'][$changedKey] == $changedField) {
+                return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+            }
+            $attribute['Attribute'][$changedKey] = $changedField;
+            $changed = true;
+        }
+        if (!$changed) {
+            return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+        }
+        $time = time();
+        $attribute['Attribute']['timestamp'] = $time;
+
+        if ($this->MispAttribute->save($attribute)) {
+            $this->MispAttribute->Event->unpublishEvent($attribute['Attribute']['event_id'], false, $time);
+
+            if ($attribute['Attribute']['object_id'] != 0) {
+                $this->MispAttribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $time);
+            }
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        } else {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->MispAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
+        }
+    }
+
+    public function view($id)
+    {
+        if ($this->request->is('head')) { // Just check if attribute exists
+            $attribute = $this->MispAttribute->fetchAttributesSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id),
+                'fields' => ['Attribute.id'],
+            ]);
+            return new CakeResponse(['status' => $attribute ? 200 : 404]);
+        }
+
+        $attribute = $this->__fetchAttribute($id);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException(__('Invalid attribute'));
+        }
+        if ($this->_isRest()) {
+            if (isset($attribute['AttributeTag'])) {
+                foreach ($attribute['AttributeTag'] as $k => $tag) {
+                    $attribute['Attribute']['Tag'][$k] = $tag['Tag'];
+                }
+            }
+            unset($attribute['Attribute']['value1']);
+            unset($attribute['Attribute']['value2']);
+            $this->set('Attribute', $attribute['Attribute']);
+            $this->set('_serialize', array('Attribute'));
+        } else {
+            $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
+        }
+    }
+
+    public function viewPicture($id, $thumbnail=false)
+    {
+        $user = $this->_closeSession();
+        $conditions = $this->__idToConditions($id);
+        $conditions['Attribute.type'] = 'attachment';
+
+        if ($this->_isRest()) {
+            $options = array(
+                'conditions' => $conditions,
+                'includeAllTags' => false,
+                'includeAttributeUuid' => true,
+                'flatten' => true,
+                'deleted' => [0, 1],
+                'withAttachments' => true,
+            );
+            $attribute = $this->MispAttribute->fetchAttributes($user, $options);
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException('Invalid attribute');
+            }
+            $attribute = $attribute[0];
+            if (!$this->MispAttribute->isImage($attribute['Attribute'])) {
+                throw new NotFoundException("Attribute is not an image.");
+            }
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
+        }
+
+        $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'],
+        ]);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        if (!$this->MispAttribute->isImage($attribute['Attribute'])) {
+            throw new NotFoundException("Attribute is not an image.");
+        }
+
+        if ($thumbnail) {
+            $extension = $thumbnail === 'webp' ? 'webp' : 'png';
+            $maxWidth = $this->request->params['named']['width'] ?? null;
+            $maxHeight = $this->request->params['named']['height'] ?? null;
+            $imageData = $this->MispAttribute->getThumbnail($attribute, $extension, $maxWidth, $maxHeight);
+        } else {
+            $imageData = $this->MispAttribute->getPictureData($attribute);
+            $extension = strtolower(pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION));
+        }
+
+        if ($imageData instanceof File) {
+            return $this->RestResponse->sendFile($imageData, $extension);
+        }
+
+        $this->response->body($imageData);
+        $this->response->type($extension);
+        return $this->response;
+    }
+
+    public function delete($id, $hard = false)
+    {
+        if (isset($this->params['named']['hard'])) {
+            $hard = $this->params['named']['hard'];
+        }
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
+
+        $conditions = $this->__idToConditions($id);
+        if (!$hard) {
+            $conditions['deleted'] = 0;
+        }
+        $attribute = $this->MispAttribute->find('first', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'fields' => array('id', 'event_id'),
+        ));
+        if (empty($attribute)) {
+            throw new NotFoundException('Invalid attribute');
+        }
+        $this->set('id', $attribute['Attribute']['id']);
+        if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+            if ($this->request->is('post')) {
+                if ($this->MispAttribute->deleteAttribute($attribute['Attribute']['id'], $this->Auth->user(), $hard)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
+                }
+            } else {
+                $this->set('hard', $hard);
+                $this->set('event_id', $attribute['Attribute']['event_id']);
+                if ($this->theme === 'Overmind') {
+                    $this->layout = false;
+                    $this->render('ajax/attributeDeleteConfirmationForm');
+                } else {
+                    $this->render('ajax/attributeConfirmationForm');
+                }
+            }
+        } else {
+            if (!$this->request->is('post') && !$this->request->is('delete')) {
+                throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
+            }
+            if ($this->MispAttribute->deleteAttribute($attribute['Attribute']['id'], $this->Auth->user(), $hard)) {
+                if ($this->_isRest() || $this->response->type() === 'application/json') {
+                    $this->set('message', 'Attribute deleted.');
+                    $this->set('_serialize', array('message'));
+                } else {
+                    $this->Flash->success(__('Attribute deleted'));
+                    $this->redirect($this->referer());
+                }
+            } else {
+                if ($this->_isRest() || $this->response->type() === 'application/json') {
+                    throw new Exception(__('Attribute was not deleted'));
+                } else {
+                    $this->Flash->error(__('Attribute was not deleted'));
+                    $this->redirect(array('action' => 'index'));
+                }
+                $this->Flash->success(__('Attribute deleted'));
+            }
+        }
+    }
+
+    public function deleteSelection($id = null, $hard = false)
+    {
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
+
+        if ($this->request->is('post')) {
+            $idList = null;
+            if (isset($this->request->data['Attribute']['ids'])) {
+                $idList = $this->_jsonDecode($this->request->data['Attribute']['ids']);
+            } elseif (!empty($id)) {
+                $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+            }
+            if (empty($idList) || !is_array($idList)) {
+                throw new NotFoundException(__('No matching attributes found.'));
+            }
+            $user      = $this->_closeSession();
+            $successes = [];
+            $fails     = [];
+            foreach ($idList as $attrId) {
+                if ($this->MispAttribute->deleteAttribute(
+                    (int)$attrId, $user, (bool)$hard
+                )) {
+                    $successes[] = (int)$attrId;
+                } else {
+                    $fails[] = (int)$attrId;
+                }
+            }
+            $n = count($successes);
+            if (empty($fails)) {
+                return new CakeResponse([
+                    'body'   => json_encode([
+                        'saved'   => true,
+                        'success' => __n(
+                            '%s attribute deleted.',
+                            '%s attributes deleted.',
+                            $n, $n
+                        ),
+                        'ids'     => $successes,
+                    ]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            } else {
+                return new CakeResponse([
+                    'body'   => json_encode([
+                        'saved'  => false,
+                        'errors' => __n(
+                            '%s attribute could not be deleted.',
+                            '%s attributes could not be deleted.',
+                            count($fails), count($fails)
+                        ),
+                        'ids'    => $successes,
+                    ]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            }
+        } else {
+            $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+            if (empty($idList) || !is_array($idList)) {
+                throw new NotFoundException(__('Invalid attribute ID.'));
+            }
+            $this->layout = false;
+            $this->set('idArray', $idList);
+            $this->set('hard', (bool)$hard);
+            $this->render('ajax/attributeDeleteConfirmationForm');
+        }
+    }
+
+    public function restore($id = null)
+    {
+        $attribute = $this->MispAttribute->find('first', array(
+                'conditions' => array('Attribute.id' => $id),
+                'recursive' => -1,
+                'fields' => array('Attribute.id', 'Attribute.event_id'),
+                'contain' => array(
+                    'Event' => array(
+                        'fields' => array('Event.orgc_id')
+                    )
+                )
+        ));
+        if (empty($attribute) || !$this->__canModifyEvent($attribute)) {
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
+            } else {
+                throw new MethodNotAllowedException(__('Invalid Attribute'));
+            }
+        }
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+        }
+        if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+            if ($this->request->is('post')) {
+                $result = $this->MispAttribute->restore($id, $this->Auth->user());
+                if ($result === true) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute restored.')), 'type' => 'json' ,'status'=>200));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'type' => 'json', 'status'=>200));
+                }
+            } else {
+                $this->layout = false;
+                $this->set('id', $id);
+                $this->set('event_id', $attribute['Attribute']['event_id']);
+                $this->render('ajax/attributeRestorationForm');
+            }
+        } else {
+            if (!$this->request->is('post') && !$this->_isRest()) {
+                throw new MethodNotAllowedException();
+            }
+            if ($this->MispAttribute->restore($id, $this->Auth->user())) {
+                $this->redirect(array('action' => 'view', $id));
+            } else {
+                throw new NotFoundException(__('Could not restore the attribute'));
+            }
+        }
+    }
+
+    public function deleteSelected($eventId = false, $hard = false)
+    {
+        if ($this->request->is('get')) {
+            return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
+        } else if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
+        }
+        // get a json object with a list of attribute IDs to be deleted
+        // check each of them and return a json object with the successful deletes and the failed ones.
+        if ($this->_isRest()) {
+            if (empty($this->request->data['Attribute'])) {
+                $this->request->data['Attribute'] = $this->request->data;
+            }
+            if (isset($this->request->data['Attribute']['id'])) {
+                $ids = $this->request->data['Attribute']['id'];
+            } else {
+                $ids = $this->request->data['Attribute'];
+            }
+            if (empty($eventId) && isset($this->request->data['Attribute']['event_id']) && is_numeric($this->request->data['Attribute']['event_id'])) {
+                $eventId = $this->request->data['Attribute']['event_id'];
+            }
+        } else {
+            $ids = $this->_jsonDecode($this->request->data['Attribute']['ids_delete']);
+        }
+        if (empty($ids)) {
+            throw new NotFoundException(__('No matching attributes found.'));
+        }
+        if (empty($eventId)) {
+            throw new MethodNotAllowedException(__('No event ID set.'));
+        }
+        if (!$this->_isSiteAdmin()) {
+            $event = $this->MispAttribute->Event->find('first', [
+                'conditions' => ['id' => $eventId],
+                'recursive' => -1,
+                'fields' => ['id', 'orgc_id', 'user_id'],
+            ]);
+            if (!$event) {
+                throw new NotFoundException(__('Invalid event'));
+            }
+            if (!$this->__canModifyEvent($event)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+        }
+        $conditions = ['id' => $ids, 'event_id' => $eventId];
+        if ($ids === 'all') {
+            unset($conditions['id']);
+        }
+        if ($hard || ($this->_isRest() && empty($this->request->data['Attribute']['allow_hard_delete']))) {
+            $conditions['deleted'] = 0;
+        }
+        // find all attributes from the ID list that also match the provided event ID.
+        $attributes = $this->MispAttribute->find('list', [
+            'conditions' => $conditions,
+            'fields' => ['id', 'deleted'],
+        ]);
+        if (empty($attributes)) {
+            throw new NotFoundException(__('No matching attributes found.'));
+        }
+        if ($ids === 'all') {
+            $ids = array_keys($attributes);
+        }
+        $user = $this->_closeSession();
+        $successes = [];
+        foreach ($attributes as $attributeId => $deleted) {
+            if ($this->MispAttribute->deleteAttribute($attributeId, $user, $hard || $deleted == 1)) {
+                $successes[] = $attributeId;
+            }
+        }
+        $fails = array_diff($ids, $successes);
+        if (empty($fails) && count($successes) > 0) {
+            $message = __n('%s attribute deleted.', '%s attributes deleted', count($successes), count($successes));
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Attributes', 'deleteSelected', $eventId, false, $message);
+            }
+            return $this->RestResponse->viewData(['saved' => true, 'success' => $message], 'json');
+        } else {
+            $message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.';
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $message);
+            }
+            return $this->RestResponse->viewData(['saved' => false, 'errors' => $message], 'json');
+        }
+    }
+
+    public function getMassEditForm($eventId)
+    {
+        if (!$this->request->is('ajax') || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX and POST.'));
+        }
+        if (!isset($eventId)) {
+            throw new MethodNotAllowedException(__('No event ID provided.'));
+        }
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array(
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp')
+        ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+        $selectedAttributeIds = $this->_jsonDecode($this->request->data['selected_ids']);
+        if (empty($selectedAttributeIds)) {
+            throw new MethodNotAllowedException(__('No attributes selected'));
+        }
+
+        $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $selectedAttributeIds, 'Attribute.event_id' => $event['Event']['id']],
+            'flatten' => true,
+        ]);
+
+        // tags to remove
+        $tags = $this->MispAttribute->AttributeTag->getAttributesTags($attributes);
+        $tagItemsRemove = array();
+        foreach ($tags as $tag) {
+            $tagName = $tag['name'];
+            $tagItemsRemove[] = array(
+                'name' => $tagName,
+                'value' => $tag['id'],
+                'template' => array(
+                    'name' => array(
+                        'name' => $tagName,
+                        'label' => array(
+                            'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                        )
+                    ),
+                )
+            );
+        }
+        unset($tags);
+
+        // clusters to remove
+        $clusters = $this->MispAttribute->AttributeTag->getAttributesClusters($this->Auth->user(), $attributes);
+        $clusterItemsRemove = array();
+        foreach ($clusters as $cluster) {
+            $name = $cluster['value'];
+            $optionName = $cluster['value'];
+            $synom = $cluster['synonyms_string'] !== '' ? " ({$cluster['synonyms_string']})" : '';
+            $optionName .= $synom;
+
+            $temp = array(
+                'name' => $optionName,
+                'value' => $cluster['id'],
+                'template' => array(
+                    'name' => $name,
+                    'infoExtra' => $cluster['description']
+                )
+            );
+            if ($cluster['synonyms_string'] !== '') {
+                $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+            }
+            $clusterItemsRemove[] = $temp;
+        }
+
+        // clusters to add
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
+            'fields' => array('value', 'id'),
+            'conditions' => array('published' => true)
+        ));
+        $clusterItemsAdd = array();
+        foreach ($clusters as $cluster) {
+            $clusterItemsAdd[] = array(
+                'name' => $cluster['GalaxyCluster']['value'],
+                'value' => $cluster['GalaxyCluster']['id']
+            );
+        }
+
+        $tags = $this->MispAttribute->AttributeTag->Tag->fetchUsableTags($this->Auth->user(), false);
+        $tagItemsAdd = array();
+        foreach ($tags as $tag) {
+            $tagName = $tag['Tag']['name'];
+            $tagItemsAdd[] = array(
+                'name' => $tagName,
+                'value' => $tag['Tag']['id'],
+                'template' => array(
+                    'name' => array(
+                        'name' => $tagName,
+                        'label' => array(
+                            'background' => isset($tag['Tag']['colour']) ? $tag['Tag']['colour'] : '#ffffff'
+                        )
+                    ),
+                )
+
+            );
+        }
+
+        $this->layout = false;
+        $this->set('id', $eventId);
+        $this->set('selectedAttributeIds', $selectedAttributeIds);
+        $this->set('sgs', $this->MispAttribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->set('distributionDescriptions', $this->MispAttribute->distributionDescriptions);
+        $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+        $this->set('tagItemsRemove', $tagItemsRemove);
+        $this->set('tagItemsAdd', $tagItemsAdd);
+        $this->set('clusterItemsAdd', $clusterItemsAdd);
+        $this->set('clusterItemsRemove', $clusterItemsRemove);
+        $this->set('options', array( // set chosen (select picker) options
+            'multiple' => -1,
+            'autofocus' => false,
+            'disabledSubmitButton' => true,
+            'flag_redraw_chosen' => true,
+            'select_options' => array(
+                'additionalData' => array(
+                    'event_id' => $eventId,
+                ),
+            ),
+        ));
+        $this->render('ajax/attributeEditMassForm');
+    }
+
+    public function editSelected($eventId)
+    {
+        $this->request->allowMethod(['post']);
+
+        $event = $this->MispAttribute->Event->find('first', array(
+            'conditions' => array('id' => $eventId),
+            'recursive' => -1,
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'uuid')
+        ));
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+
+        $requestData = $this->request->data['Attribute'];
+        $attribute_ids = $this->_jsonDecode($requestData['attribute_ids']);
+        $attributes = $this->MispAttribute->find('all', array(
+            'conditions' => array(
+                'id' => $attribute_ids,
+                'event_id' => $eventId,
+            ),
+            'recursive' => -1,
+        ));
+
+        $tags_ids_remove = json_decode($requestData['tags_ids_remove']);
+        $tags_ids_add = json_decode($requestData['tags_ids_add']);
+        $clusters_ids_remove = json_decode($requestData['clusters_ids_remove']);
+        $clusters_ids_add = json_decode($requestData['clusters_ids_add']);
+        $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
+            || ($tags_ids_add === null || count($tags_ids_add) > 0)
+            || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
+            || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+
+        $changeInAttribute = ($requestData['to_ids'] != 2) || ($requestData['distribution'] != 6) || ($requestData['comment'] != null) || ($requestData['disable_correlation'] != 2);
+
+        if (!$changeInAttribute && !$changeInTagOrCluster) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+        }
+
+        if ($requestData['to_ids'] != 2) {
+            $toIds = $requestData['to_ids'] == 0 ? false : true;
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['to_ids'] = $toIds;
+            }
+        }
+
+        if ($requestData['distribution'] != 6) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['distribution'] = $requestData['distribution'];
+            }
+            if ($requestData['distribution'] == 4) {
+                $sharingGroupId = $requestData['sharing_group_id'];
+                if (!$this->__canUseSharingGroup($sharingGroupId)) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+
+                foreach ($attributes as $key => $attribute) {
+                    $attributes[$key]['Attribute']['sharing_group_id'] = $sharingGroupId;
+                }
+            } else {
+                foreach ($attributes as $key => $attribute) {
+                    $attributes[$key]['Attribute']['sharing_group_id'] = 0;
+                }
+            }
+        }
+
+        if ($requestData['comment'] != null) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['comment'] = $requestData['comment'];
+            }
+        }
+
+        if ($requestData['disable_correlation'] != 2) {
+            $disableCorrelation = $requestData['disable_correlation'] === '0' ? false : true;
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['disable_correlation'] = $disableCorrelation;
+            }
+        }
+
+        $timestamp = time();
+        foreach ($attributes as $key => $attribute) {
+            $attributes[$key]['Attribute']['timestamp'] = $timestamp;
+        }
+
+        if ($changeInAttribute) {
+            if ($requestData['is_proposal']) { // create ShadowAttributes instead
+                $shadowAttributes = array();
+                foreach ($attributes as $attribute) {
+                    $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
+                    unset($shadowAttribute['ShadowAttribute']['id']);
+                    $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
+                    $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
+                    $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
+                    $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
+                    $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
+                    $shadowAttributes[] = $shadowAttribute;
+                }
+                $saveSuccess = $this->MispAttribute->Event->ShadowAttribute->saveMany($shadowAttributes);
+            } else {
+                $saveSuccess = $this->MispAttribute->saveMany($attributes);
+            }
+            if ($saveSuccess) {
+                if (!$this->_isRest()) {
+                    $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+                }
+                $this->MispAttribute->Event->unpublishEvent($event, false, $timestamp);
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->MispAttribute->validationErrors)), 'status' => 200, 'type' => 'json'));
+            }
+        }
+
+        // apply changes in tag/cluster
+        foreach ($attributes as $attribute) {
+            foreach ($tags_ids_remove as $tag_id) {
+                $this->removeTag($attribute['Attribute']['id'], $tag_id);
+            }
+            foreach ($tags_ids_add as $tag_id) {
+                $this->addTag($attribute['Attribute']['id'], $tag_id);
+            }
+            $this->Galaxy = ClassRegistry::init('Galaxy');
+            foreach ($clusters_ids_remove as $cluster_id) {
+                $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attribute['Attribute']['id'], $cluster_id);
+            }
+            foreach ($clusters_ids_add as $cluster_id) {
+                $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attribute['Attribute']['id'], $cluster_id);
+            }
+        }
+
+        return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+    }
+
+    private function __getSearchFilters(&$exception)
+    {
+        if (isset($this->request->data['Attribute'])) {
+            $this->request->data = $this->request->data['Attribute'];
+        }
+        $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
+        foreach ($checkForEmpty as $field) {
+            if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
+                unset($this->request->data[$field]);
+            }
+        }
+        if (empty($this->request->data['to_ids'])) {
+            unset($this->request->data['to_ids']);
+            $this->request->data['ignore'] = 1;
+        }
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->request->params['named'],
+            'paramArray' => $paramArray,
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($filters['uuid'])) {
+            if (!is_array($filters['uuid'])) {
+                $filters['uuid'] = array($filters['uuid']);
+            }
+            $uuid = array();
+            $ids = array();
+            foreach ($filters['uuid'] as $k => $filter) {
+                if ($filter[0] === '!') {
+                    $filter = substr($filter, 1);
+                }
+                if (Validation::uuid($filter)) {
+                    $uuid[] = $filters['uuid'][$k];
+                } else {
+                    $ids[] = $filters['uuid'][$k];
+                }
+            }
+            if (empty($uuid)) {
+                unset($filters['uuid']);
+            } else {
+                $filters['uuid'] = $uuid;
+            }
+            if (!empty($ids)) {
+                $filters['eventid'] = $ids;
+            }
+        }
+        return $filters;
+    }
+
+    public function search()
+    {
+        if ($this->_isRest()) {
+            // This functionality no longer does any searching, pass it simply on to the index method
+            return call_user_func_array([$this, 'index'], func_get_args());
+        }
+        $orgTable = $this->MispAttribute->Event->Orgc->find('all', [
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+        ]);
+        $types = $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->typeDefinitions));
+        ksort($types);
+        $this->set('types', array_merge(['ALL' => 'ALL'], $types));
+        $categories = array_merge(['ALL' => 'ALL'], $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->categoryDefinitions)));
+        $this->set('categories', $categories);
+        $categoryDefinition = $this->MispAttribute->categoryDefinitions;
+        $categoryDefinition = array_merge(["ALL" => ['types' => array_keys($this->MispAttribute->typeDefinitions), 'formdesc' => '']], $categoryDefinition);
+        foreach ($categoryDefinition as &$def) {
+            $def['types'] = array_merge(['ALL'], $def['types']);
+        }
+        $this->set('categoryDefinitions', $categoryDefinition);
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $this->set('fieldDesc', $this->__fieldDesc());
+        $this->set('orgTable', array_column($orgTable, 'name', 'id'));
+        $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+        $this->set('shortDist', $this->MispAttribute->shortDist);
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->render('search');
+    }
+
+    /**
+     * @param array $attributes
+     * @param array $user
+     * @return array|array[]
+     */
+    private function __searchUI(array $attributes, array $user)
+    {
+        if (empty($attributes)) {
+            return [[], []];
+        }
+
+        $this->Feed = ClassRegistry::init('Feed');
+
+        $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
+        $galaxyTags = [];
+        foreach ($attributes as &$attribute) {
+            if ($this->MispAttribute->isImage($attribute['Attribute'])) {
+                if (extension_loaded('gd')) {
+                    // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $attribute['Attribute']['image'] = true; // tell the view that it is an image despite not having the actual data
+                } else {
+                    $attribute['Attribute']['image'] = $this->MispAttribute->base64EncodeAttachment($attribute['Attribute']);
+                }
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attribute['Attribute']['infected'] = $infected;
+            }
+
+            if ($attribute['Attribute']['distribution'] == 4) {
+                $attribute['Attribute']['SharingGroup'] = $attribute['SharingGroup'];
+            }
+
+            $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
+            foreach ($attribute['Attribute']['AttributeTag'] as $at) {
+                if ($at['Tag']['is_galaxy']) {
+                    $galaxyTags[$at['Tag']['id']] = $at['Tag']['name'];
+                }
+            }
+            unset($attribute['AttributeTag']);
+        }
+        unset($attribute);
+
+        // Fetch galaxy clusters in one query
+        if (!empty($galaxyTags)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, false);
+            $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+        } else {
+            $clusters = [];
+        }
+
+        // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
+        // and then take information back to original attribute structure.
+        $fakeEventArray = [];
+        $attributesWithFeedCorrelations = $this->Feed->attachFeedCorrelations(array_column($attributes, 'Attribute'), $user, $fakeEventArray);
+
+        foreach ($attributes as $k => $attribute) {
+            // Assign galaxies
+            $galaxies = [];
+            foreach ($attribute['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+                if (!isset($clusters[$attributeTag['Tag']['id']])) {
+                    continue;
+                }
+                $cluster = $clusters[$attributeTag['Tag']['id']];
+                $galaxyId = $cluster['Galaxy']['id'];
+                $cluster['local'] = $attributeTag['local'] ?? false;
+                $cluster['attribute_tag_id'] = $attributeTag['id'];
+                if (isset($attribute['Attribute']['Galaxy'][$galaxyId])) {
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
+                } else {
+                    $galaxies[$galaxyId] = $cluster['Galaxy'];
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
+                }
+                unset($attributes[$k]['Attribute']['AttributeTag'][$k2]); // remove galaxy tag
+            }
+            $attributes[$k]['Attribute']['Galaxy'] = array_values($galaxies);
+
+            if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
+                $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
+            }
+        }
+        $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
+        return [$attributes, $sightingsData];
+    }
+
+    public function checkComposites()
+    {
+        if (!self::_isAdmin()) {
+            throw new NotFoundException();
+        }
+        $this->set('fails', $this->MispAttribute->checkComposites());
+    }
+
+    public function downloadAttachment($key='download', $id)
+    {
+        if ($key != null && $key != 'download') {
+            $user = $this->_checkAuthUser($key);
+        } else {
+            if (!$this->Auth->user()) {
+                throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
+            }
+            $user = $this->Auth->user();
+        }
+        // if the user is authorised to use the api key then user will be populated with the user's account
+        // in addition we also set a flag indicating whether or not the user is a site admin.
+        if (!$user) {
+            throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
+        }
+        $conditions = $this->__idToConditions($id);
+        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $attributes = $this->MispAttribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => true));
+        if (empty($attributes)) {
+            throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
+        }
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
+    }
+
+    // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
+    // Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
+    // The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<event_id>/<type>/<signature flag>
+    // The signature flag is off by default, enabling it will only return attributes that have the to_ids flag set to true.
+    public function returnAttributes()
+    {
+        //$key='download', $id, $type = null, $sigOnly = false
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'id', 'type', 'sigOnly'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'xml'
+            ),
+            'alias' => array(
+                'id' => 'eventid'
+            )
+        ));
+        if (!empty($this->_legacyParams['sigOnly'])) {
+            $this->_legacyParams['to_ids'] = 1;
+        } else {
+            $this->_legacyParams['to_ids'] = [0,1];
+        }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
+        }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
+        }
+        if ($this->response->type() === 'application/json') {
+            $this->_legacyParams['returnFormat'] = 'json';
+        }
+        return $this->restSearch();
+    }
+
+    public function text()
+    {
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last', 'enforceWarninglist', 'allowNotPublished'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'text'
+            ),
+            'alias' => array(
+                'eventId' => 'eventid'
+            )
+        ));
+        if (!empty($this->_legacyParams['allowNonIDS'])) {
+            $this->_legacyParams['to_ids'] = [0,1];
+        }
+        if (!empty($this->_legacyParams['allowNotPublished'])) {
+            $this->_legacyParams['published'] = [0,1];
+        }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
+        }
+        return $this->restSearch();
+    }
+
+    public function rpz()
+    {
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'tags', 'eventid', 'from', 'to', 'policy', 'walled_garden', 'ns',
+                'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl',
+                'enforceWarninglist', 'ns_alt'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'rpz'
+            )
+        ));
+        return $this->restSearch();
+    }
+
+    public function bro($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false)
+    {
+        if ($this->request->is('post')) {
+            if ($this->request->input('json_decode', true)) {
+                $data = $this->request->input('json_decode', true);
+            } else {
+                $data = $this->request->data;
+            }
+            if (!empty($data) && !isset($data['request'])) {
+                $data = array('request' => $data);
+            }
+            $paramArray = array('type', 'tags', 'eventId', 'from', 'to', 'last', 'enforceWarninglist');
+            foreach ($paramArray as $p) {
+                if (isset($data['request'][$p])) {
+                    ${$p} = $data['request'][$p];
+                }
+            }
+        }
+        $simpleFalse = array('type', 'tags', 'eventId', 'from', 'to', 'last', 'enforceWarninglist');
+        foreach ($simpleFalse as $sF) {
+            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
+                ${$sF} = false;
+            }
+        }
+        if ($type === 'null' || $type === '0' || $type === 'false') {
+            $type = 'all';
+        }
+        if ($from) {
+            $from = $this->MispAttribute->Event->dateFieldCheck($from);
+        }
+        if ($to) {
+            $to = $this->MispAttribute->Event->dateFieldCheck($to);
+        }
+        if ($last) {
+            $last = $this->MispAttribute->Event->resolveTimeDelta($last);
+        }
+        if ($key != 'download') {
+            // check if the key is valid -> search for users based on key
+            $user = $this->_checkAuthUser($key);
+            if (!$user) {
+                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
+            }
+        } else {
+            if (!$this->Auth->user('id')) {
+                throw new UnauthorizedException(__('You have to be logged in to do that.'));
+            }
+        }
+        $filename = 'misp.' . $type . '.intel';
+        if ($eventId) {
+            $filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
+        }
+        $responseFile = implode(PHP_EOL, $this->MispAttribute->bro($this->Auth->user(), $type, $tags, $eventId, $from, $to, $last, $enforceWarninglist)) . PHP_EOL;
+        $this->response->body($responseFile);
+        $this->response->type('txt');
+        $this->response->download($filename);
+        return $this->response;
+    }
+
+    public function reportValidationIssuesAttributes($eventId = false)
+    {
+        // search for validation problems in the attributes
+        $this->set('result', iterator_to_array($this->MispAttribute->reportValidationIssuesAttributes($eventId)));
+    }
+
+    public function generateCorrelation()
+    {
+        if ($this->request->is('post')) {
+            if (!Configure::read('MISP.background_jobs')) {
+                $k = $this->MispAttribute->Correlation->generateCorrelation();
+                $message = __('All done. %s attributes processed.', $k);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->successResponse(0, $message);
+                }
+
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+            } else {
+                /** @var Job $job */
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    'SYSTEM',
+                    Job::WORKER_DEFAULT,
+                    'generate correlation',
+                    'All attributes',
+                    'Job created.'
+                );
+
+                $this->MispAttribute->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_ADMIN,
+                    [
+                        'jobGenerateCorrelation',
+                        $jobId
+                    ],
+                    true,
+                    $jobId
+                );
+
+                $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
+                $this->redirect(Router::url($this->referer(), true));
+            }
+        } else {
+            $this->render('ajax/recorrelationConfirmation');
+        }
+    }
+
+    public function fetchViewValue($id, $field = null)
+    {
+        $user = $this->_closeSession();
+        $validFields = ['value', 'comment', 'type', 'category', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
+        if (!isset($field) || !in_array($field, $validFields, true)) {
+            throw new MethodNotAllowedException(__('Invalid field requested.'));
+        }
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
+        }
+
+        $fieldsToFetch = ['id', $field];
+        if ($field === 'value') {
+            $fieldsToFetch[] = 'to_ids'; // for warninglist
+            $fieldsToFetch[] = 'type'; // for view
+            $fieldsToFetch[] = 'category'; // for view
+        }
+
+        $params = array(
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => $fieldsToFetch,
+            'contain' => ['Event'],
+            'flatten' => 1,
+        );
+        $attribute = $this->MispAttribute->fetchAttributes($user, $params);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $attribute[0];
+        $result = $attribute['Attribute'][$field];
+        if ($field === 'distribution') {
+            $this->set('shortDist', $this->MispAttribute->shortDist);
+        } elseif ($field === 'value') {
+            $this->loadModel('Warninglist');
+            $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
+        }
+
+        $this->set('value', $result);
+        $this->set('object', $attribute);
+        $this->set('field', $field);
+        $this->layout = false;
+        $this->render('ajax/attributeViewFieldForm');
+    }
+
+    public function fetchEditForm($id, $field = null)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
+        }
+
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        if (!isset($field) || !in_array($field, $validFields, true)) {
+            throw new NotFoundException(__('Invalid field requested.'));
+        }
+        $fieldsToFetch = array('id', 'event_id');
+        if ($field === 'category' || $field === 'type') {
+            $fieldsToFetch[] = 'type';
+            $fieldsToFetch[] = 'category';
+            if ($field === 'type') {
+                $fieldsToFetch[] = 'value';
+            }
+        } else {
+            $fieldsToFetch[] = $field;
+        }
+        $params = array(
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => $fieldsToFetch,
+            'flatten' => 1,
+            'contain' => array(
+                'Event' => array(
+                    'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),
+                )
+            )
+        );
+        $attribute = $this->MispAttribute->fetchAttributes($this->Auth->user(), $params);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $attribute[0];
+        if (!$this->__canModifyEvent($attribute)) {
+            throw new ForbiddenException(__('You do not have permission to do that'));
+        }
+        $this->layout = false;
+        if ($field === 'distribution') {
+            $distributionLevels = $this->MispAttribute->shortDist;
+            unset($distributionLevels[4]);
+            $this->set('distributionLevels', $distributionLevels);
+        } elseif ($field === 'category') {
+            $possibleCategories = [];
+            foreach ($this->MispAttribute->categoryDefinitions as $k => $category) {
+                if (in_array($attribute['Attribute']['type'], $category['types'], true)) {
+                    $possibleCategories[] = $k;
+                }
+            }
+            $this->set('possibleCategories', $possibleCategories);
+        } elseif ($field === 'type') {
+            $possibleTypes = $this->MispAttribute->categoryDefinitions[$attribute['Attribute']['category']]['types'];
+            $validTypes = AttributeValidationTool::validTypesForValue($possibleTypes, $this->MispAttribute->getCompositeTypes(), $attribute['Attribute']['value']);
+            $options = [];
+            foreach ($possibleTypes as $possibleType) {
+                if ($this->MispAttribute->typeIsAttachment($possibleType)) {
+                    continue; // skip attachment types
+                }
+                $options[] = [
+                    'name' => $possibleType,
+                    'value' => $possibleType,
+                    'disabled' => !in_array($possibleType, $validTypes, true),
+                ];
+            }
+            $this->set('options', $options);
+        }
+        $this->set('object', $attribute['Attribute']);
+        $fieldURL = ucfirst($field);
+        $this->render('ajax/attributeEdit' . $fieldURL . 'Form');
+    }
+
+
+    public function attributeReplace($id)
+    {
+        $event = $this->MispAttribute->Event->find('first', array(
+            'conditions' => array('Event.id' => $id),
+            'fields' => array('id', 'orgc_id', 'distribution', 'user_id'),
+            'recursive' => -1
+        ));
+        if (empty($event) || !$this->__canModifyEvent($event)) {
+            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
+        }
+        $this->set('event_id', $id);
+        if ($this->request->is('get')) {
+            $this->layout = false;
+            $this->request->data['Attribute']['event_id'] = $id;
+
+            // combobox for types
+            $types = array_keys($this->MispAttribute->typeDefinitions);
+            $types = $this->_arrayToValuesIndexArray($types);
+            $this->set('types', $types);
+            // combobox for categories
+            $categories = array_keys($this->MispAttribute->categoryDefinitions);
+            $categories = $this->_arrayToValuesIndexArray($categories);
+            $this->set('categories', $categories);
+            $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+            $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+            $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
+
+        } elseif ($this->request->is('post')) {
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This action can only be accessed via AJAX.'));
+            }
+
+            $newValues = explode(PHP_EOL, $this->request->data['Attribute']['value']);
+            $category = $this->request->data['Attribute']['category'];
+            $type = $this->request->data['Attribute']['type'];
+            $to_ids = $this->request->data['Attribute']['to_ids'];
+
+            $oldAttributes = $this->MispAttribute->find('all', array(
+                'conditions' => array(
+                    'event_id' => $id,
+                    'category' => $category,
+                    'type' => $type,
+                ),
+                'fields' => array('id', 'event_id', 'category', 'type', 'value'),
+                'recursive' => -1,
+            ));
+            $results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
+
+            $newValues = array_map('trim', $newValues);
+
+            foreach ($newValues as $value) {
+                $found = false;
+                foreach ($oldAttributes as $old) {
+                    if ($value == $old['Attribute']['value']) {
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    $attribute = array(
+                        'value' => $value,
+                        'event_id' => $id,
+                        'category' => $category,
+                        'type' => $type,
+                        'distribution' => $event['Event']['distribution'],
+                        'to_ids' => $to_ids,
+                    );
+                    $this->MispAttribute->create();
+                    if ($this->MispAttribute->save(array('Attribute' => $attribute))) {
+                        $results['created']++;
+                    } else {
+                        $results['createdFail']++;
+                    }
+                }
+            }
+
+            foreach ($oldAttributes as $old) {
+                if (!in_array($old['Attribute']['value'], $newValues)) {
+                    if ($this->MispAttribute->delete($old['Attribute']['id'])) {
+                        $results['deleted']++;
+                        $results['untouched']--;
+                    } else {
+                        $results['deletedFail']++;
+                    }
+                }
+            }
+            $message = '';
+            $success = true;
+            if (($results['created'] > 0 || $results['deleted'] > 0) && $results['createdFail'] == 0 && $results['deletedFail'] == 0) {
+                $message .= 'Update completed without any issues.';
+                $this->MispAttribute->Event->unpublishEvent($id);
+            } else {
+                $message .= 'Update completed with some errors.';
+                $success = false;
+            }
+
+            if ($results['created']) {
+                $message .= $results['created'] . ' attribute' . $this->__checkCountForOne($results['created']) . ' created. ';
+            }
+            if ($results['createdFail']) {
+                $message .= $results['createdFail'] . ' attribute' . $this->__checkCountForOne($results['createdFail']) . ' could not be created. ';
+            }
+            if ($results['deleted']) {
+                $message .= $results['deleted'] . ' attribute' . $this->__checkCountForOne($results['deleted']) . ' deleted.';
+            }
+            if ($results['deletedFail']) {
+                $message .= $results['deletedFail'] . ' attribute' . $this->__checkCountForOne($results['deletedFail']) . ' could not be deleted. ';
+            }
+            $message .= $results['untouched'] . ' attributes left untouched. ';
+
+            $this->autoRender = false;
+            $this->layout = false;
+            if ($success) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+            }
+        }
+    }
+
+    private function __checkCountForOne($number)
+    {
+        if ($number != 1) {
+            return 's';
+        }
+        return '';
+    }
+
+    // download a sample by passing along an md5
+    public function downloadSample($hash=false, $allSamples=false, $eventID=false)
+    {
+        if (!$this->userRole['perm_auth']) {
+            throw new MethodNotAllowedException(__('This functionality requires API key access.'));
+        }
+        $error = false;
+        if ($this->response->type() === 'application/json') {
+            $data = $this->request->input('json_decode', true);
+        } elseif ($this->response->type() === 'application/xml') {
+            $data = $this->request->data;
+        } else {
+            throw new BadRequestException(__('This action is for the API only. Please refer to the automation page for information on how to use it.'));
+        }
+        if (!$hash && isset($data['request']['hash'])) {
+            $hash = $data['request']['hash'];
+        }
+        if (!$allSamples && isset($data['request']['allSamples'])) {
+            $allSamples = $data['request']['allSamples'];
+        }
+        if (!$eventID && isset($data['request']['eventID'])) {
+            $eventID = $data['request']['eventID'];
+        }
+        if (!$eventID && !$hash) {
+            throw new MethodNotAllowedException(__('No hash or event ID received. You need to set at least one of the two.'));
+        }
+        if (!$hash) {
+            $allSamples = true;
+        }
+
+
+        $simpleFalse = array('hash', 'allSamples', 'eventID');
+        foreach ($simpleFalse as $sF) {
+            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
+                ${$sF} = false;
+            }
+        }
+
+        // valid combinations of settings are:
+        // hash
+        // eventID + all samples
+        // hash + eventID
+        // hash + eventID + all samples
+
+        $searchConditions = array();
+        $types = array();
+        if ($hash) {
+            $validTypes = $this->MispAttribute->resolveHashType($hash);
+            if ($allSamples) {
+                if (empty($validTypes)) {
+                    $error = 'Invalid hash format (valid options are ' . implode(', ', array_keys(MispAttribute::FILE_HASH_TYPES)) . ')';
+                } else {
+                    foreach ($validTypes as $t) {
+                        if ($t === 'md5') {
+                            $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
+                        } else {
+                            $types = array_merge($types, array('filename|' . $t, $t));
+                        }
+                    }
+                }
+                if (empty($error)) {
+                    $event_ids = $this->MispAttribute->find('column', array(
+                        'recursive' => -1,
+                        'contain' => array('Event'),
+                        'fields' => array('Event.id'),
+                        'conditions' => array(
+                            'OR' => array(
+                                'AND' => array(
+                                    'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+                                    'Attribute.value2' => '',
+                                ),
+                                'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+                            )
+                        ),
+                    ));
+                    $searchConditions = array(
+                        'AND' => array('Event.id' => $event_ids)
+                    );
+                    if (empty($event_ids)) {
+                        $error = 'No hits with the given parameters.';
+                    }
+                }
+            } else {
+                if (!in_array('md5', $validTypes)) {
+                    $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
+                }
+                if (empty($error)) {
+                    $searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
+                }
+            }
+        }
+
+        if (!empty($eventID)) {
+            $searchConditions['AND'][] = array('Event.id' => $eventID);
+        }
+
+        if (empty($error)) {
+            $attributes = $this->MispAttribute->fetchAttributes(
+                $this->Auth->user(),
+                array(
+                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+                    'conditions' => array(
+                        'AND' => array(
+                            $searchConditions,
+                            array('Attribute.type' => 'malware-sample')
+                        )
+                    ),
+                    'contain' => array('Event'),
+                    'flatten' => 1
+                )
+            );
+            if (empty($attributes)) {
+                $error = 'No hits with the given parameters.';
+            }
+
+            $results = array();
+            foreach ($attributes as $attribute) {
+                $found = false;
+                foreach ($results as $previous) {
+                    if ($previous['md5'] == $attribute['Attribute']['value2']) {
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    $results[] = array(
+                        'md5' => $attribute['Attribute']['value2'],
+                        'base64' => $this->MispAttribute->base64EncodeAttachment($attribute['Attribute']),
+                        'filename' => $attribute['Attribute']['value1'],
+                        'attribute_id' => $attribute['Attribute']['id'],
+                        'event_id' => $attribute['Attribute']['event_id'],
+                        'event_info' => $attribute['Event']['info'],
+                    );
+                }
+            }
+            if ($error) {
+                $this->set('message', $error);
+                $this->set('_serialize', array('message'));
+            } else {
+                $this->set('result', $results);
+                $this->set('_serialize', array('result'));
+            }
+        } else {
+            $this->set('message', $error);
+            $this->set('_serialize', array('message'));
+        }
+    }
+
+    public function pruneOrphanedAttributes()
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+        }
+        $events = array_keys($this->MispAttribute->Event->find('list'));
+        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
+        if (count($orphans) > 0) {
+            $this->MispAttribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
+        }
+        $this->Flash->success('Removed ' . count($orphans) . ' attribute(s).');
+        $this->redirect(Router::url($this->referer(), true));
+    }
+
+    public function checkOrphanedAttributes()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+        }
+        $this->loadModel('MispAttribute');
+        $events = array_keys($this->MispAttribute->Event->find('list'));
+        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
+        return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));
+    }
+
+    public function updateAttributeValues($script)
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+        }
+        switch ($script) {
+            case 'urlSanitisation':
+                $replaceConditions = array(
+                    array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+                    array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
+                );
+                break;
+            default:
+                throw new Exception(__('Invalid script.'));
+        }
+        $counter = 0;
+        foreach ($replaceConditions as $rC) {
+            $searchPattern = '';
+            if (in_array($rC['condition'], array('endsWith', 'contains'))) {
+                $searchPattern .= '%';
+            }
+            $searchPattern .= $rC['from'];
+            if (in_array($rC['condition'], array('startsWith', 'contains'))) {
+                $searchPattern .= '%';
+            }
+            $attributes = $this->MispAttribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
+            foreach ($attributes as $attribute) {
+                $regex = '/';
+                if (!in_array($rC['condition'], array('startsWith', 'contains'))) {
+                    $regex .= '^';
+                }
+                $regex .= $rC['from'];
+                if (!in_array($rC['condition'], array('endsWith', 'contains'))) {
+                    $regex .= '$';
+                }
+                $regex .= '/';
+                if ($rC['ci']) {
+                    $regex .= 'i';
+                }
+                $attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
+                $this->MispAttribute->save($attribute);
+                $counter++;
+            }
+        }
+        $this->Flash->success('Updated ' . $counter . ' attribute(s).');
+        $this->redirect('/pages/display/administration');
+    }
+
+    public function hoverEnrichment($id, $persistent = false)
+    {
+        $attribute = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1, 'includeEventTags' => 1));
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid Attribute'));
+        }
+        $this->loadModel('Module');
+        $modules = $this->Module->getEnabledModules($this->Auth->user());
+        $validTypes = array();
+        if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
+            $validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
+        }
+        $resultArray = array();
+        foreach ($validTypes as $type) {
+            $options = array();
+            $found = false;
+            foreach ($modules['modules'] as $temp) {
+                if ($temp['name'] === $type) {
+                    $found = true;
+                    $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
+                    if (isset($temp['meta']['config'])) {
+                        foreach ($temp['meta']['config'] as $conf) {
+                            $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
+                        }
+                    }
+                    break;
+                }
+            }
+            if (!$found) {
+                throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
+            }
+            $data = array('module' => $type);
+            if ($persistent) {
+                $data['persistent'] = 1;
+            }
+            if (!empty($options)) {
+                $data['config'] = $options;
+            }
+            if ($format == 'misp_standard') {
+                $data['attribute'] = in_array('value', $attribute) ? $attribute : $attribute[0]['Attribute'];
+            } else {
+                $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
+            }
+            $result = $this->Module->queryModuleServer($data, true, 'Enrichment', false, $attribute[0]);
+            if ($result) {
+                if (!is_array($result)) {
+                    $resultArray[$type] = ['error' => $result];
+                    continue;
+                }
+            } else {
+                // TODO: i18n?
+                $resultArray[$type] = ['error' => 'Enrichment service not reachable.'];
+                continue;
+            }
+            $current_result = array();
+            if (isset($result['results']['Object'])) {
+                if (!empty($result['results']['Object'])) {
+                    $objects = array();
+                    foreach ($result['results']['Object'] as $object) {
+                        if (isset($object['Attribute']) && !empty($object['Attribute'])) {
+                            $object_attributes = array();
+                            foreach($object['Attribute'] as $object_attribute) {
+                                $object_attributes[] = [
+                                    'object_relation' => $object_attribute['object_relation'],
+                                    'value' => $object_attribute['value'],
+                                    'type' => $object_attribute['type'],
+                                ];
+                            }
+                            $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
+                        }
+                    }
+                    $current_result['Object'] = $objects;
+                }
+                unset($result['results']['Object']);
+            }
+            if (isset($result['results']['Attribute'])) {
+                if (!empty($result['results']['Attribute'])) {
+                    $attributes = array();
+                    foreach($result['results']['Attribute'] as $result_attribute) {
+                        $attributes[] = array('type' => $result_attribute['type'], 'value' => $result_attribute['value']);
+                    }
+                    $current_result['Attribute'] = $attributes;
+                }
+                unset($result['results']['Attribute']);
+            }
+            $resultArray[$type] = $current_result;
+            if (!empty($result['results'])) {
+                foreach ($result['results'] as $r) {
+                    if (is_array($r['values']) && !empty($r['values'])) {
+                        $tempArray = array();
+                        foreach ($r['values'] as $k => $v) {
+                            if (is_array($v)) {
+                                $v = 'Array returned';
+                            }
+                            $tempArray[$k] = $v;
+                        }
+                        $resultArray[$type][] = array($type => $tempArray);
+                    } elseif ($r['values'] == null) {
+                        $resultArray[$type][] = array($type => 'No result');
+                    } else {
+                        $resultArray[$type][] = array($type => $r['values']);
+                    }
+                }
+            }
+        }
+        $this->set('persistent', $persistent);
+        $this->set('results', $resultArray);
+        $this->layout = false;
+        $this->render('ajax/hover_enrichment');
+    }
+
+    public function describeTypes()
+    {
+        return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
+    }
+
+    public function attributeStatistics($type = 'type', $percentage = false)
+    {
+        $validTypes = array('type', 'category');
+        if (!in_array($type, $validTypes)) {
+            throw new MethodNotAllowedException(__('Invalid type requested.'));
+        }
+        $totalAttributes = $this->MispAttribute->find('count', array());
+        $attributes = $this->MispAttribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array($type, 'COUNT(id) as attribute_count'),
+            'group' => array($type),
+            'order' => ''
+        ));
+        $results = array();
+        foreach ($attributes as $attribute) {
+            if ($percentage) {
+                $results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 3) . '%';
+            } else {
+                $results[$attribute['Attribute'][$type]] = strval($attribute[0]['attribute_count']);
+            }
+        }
+        ksort($results);
+        return $this->RestResponse->viewData($results, 'json');
+    }
+
+    /**
+     * Overmind modal for editing the tags attached to a single attribute.
+     *
+     * GET  → renders the Bootstrap 5 modal with two TomSelect inputs
+     *        (global tags + local tags) pre-selected with the current state.
+     * POST → accepts { global_ids: int[], local_ids: int[] } as JSON,
+     *        diffs against the current state and calls attach/detach.
+     *
+     * Mirrors EventsController::editEventTags, scoped to one attribute.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeTags($id = null)
+    {
+        $user = $this->Auth->user();
+        if ($id === null) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+            'conditions' => $this->__idToConditions($id),
+            'contain' => [
+                'Event',
+                'Object',
+                'AttributeTag' => [
+                    'Tag'   => ['order' => false],
+                    'order' => false,
+                ],
+            ],
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $mayModify    = $this->__canModifyTag($attribute);
+        $attributeId  = (int)$attribute['Attribute']['id'];
+        $eventId      = (int)$attribute['Attribute']['event_id'];
+
+        /* ── POST: apply the desired tag state ── */
+        if ($this->request->is('post')) {
+            if (!$mayModify) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved' => false,
+                                             'errors' => __('Forbidden')]),
+                    'status' => 403,
+                    'type'   => 'json',
+                ]);
+            }
+
+            $desiredGlobal = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['global_ids'] ?? [])))));
+            $desiredLocal  = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['local_ids'] ?? [])))));
+
+            /* Split current non-galaxy attribute tags by locality */
+            $currentGlobal = [];
+            $currentLocal  = [];
+            foreach ($attribute['AttributeTag'] as $at) {
+                if (!empty($at['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                if (!empty($at['local'])) {
+                    $currentLocal[(int)$at['tag_id']] = true;
+                } else {
+                    $currentGlobal[(int)$at['tag_id']] = true;
+                }
+            }
+
+            $toAddGlobal    = array_diff($desiredGlobal, array_keys($currentGlobal));
+            $toAddLocal     = array_diff($desiredLocal,  array_keys($currentLocal));
+            $toRemoveGlobal = array_diff(array_keys($currentGlobal), $desiredGlobal);
+            $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
+
+            $AttributeTag = $this->MispAttribute->AttributeTag;
+            foreach ($toAddGlobal as $tagId) {
+                $AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false);
+            }
+            foreach ($toAddLocal as $tagId) {
+                $AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, true);
+            }
+            foreach ($toRemoveGlobal as $tagId) {
+                $AttributeTag->detachTagFromAttribute($attributeId, $eventId, $tagId, false);
+            }
+            foreach ($toRemoveLocal as $tagId) {
+                $AttributeTag->detachTagFromAttribute($attributeId, $eventId, $tagId, true);
+            }
+
+            /* Only global tag changes bump the attribute (and unpublish the event) */
+            if ($toAddGlobal || $toRemoveGlobal) {
+                $this->MispAttribute->touch($attribute);
+            }
+
+            return new CakeResponse([
+                'body'   => json_encode([
+                    'saved'         => true,
+                    'success'       => __('Tags updated.'),
+                    'check_publish' => true,
+                ]),
+                'status' => 200,
+                'type'   => 'json',
+            ]);
+        }
+
+        /* ── GET: build the category-keyed option lists for the modal ── */
+        $tagModel = $this->MispAttribute->AttributeTag->Tag;
+
+        /* All Tags: non-galaxy, visible, globally attachable */
+        $allConditions                   = $tagModel->createConditions($user);
+        $allConditions['Tag.is_galaxy']  = 0;
+        $allConditions['Tag.hide_tag']   = 0;
+        $allConditions['Tag.local_only'] = 0;
+        $allRaw = $tagModel->find('all', [
+            'conditions' => $allConditions,
+            'recursive'  => -1,
+            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
+            'order'      => ['Tag.name asc'],
+        ]);
+        $allTags = [];
+        foreach ($allRaw as $t) {
+            $allTags[] = [
+                'id'     => (int)$t['Tag']['id'],
+                'name'   => $t['Tag']['name'],
+                'colour' => $t['Tag']['colour'] ?: '#0088cc',
+            ];
+        }
+
+        /* Custom Tags: tags that do not belong to any taxonomy */
+        $this->loadModel('Taxonomy');
+        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
+            true, $user, true, true, false
+        );
+        $customTags = [];
+        foreach ($customRaw as $t) {
+            $tag = $t['Tag'];
+            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
+                continue;
+            }
+            $customTags[] = [
+                'id'     => (int)$tag['id'],
+                'name'   => $tag['name'],
+                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+            ];
+        }
+
+        /* Tag Collections: each expands to its member tags */
+        $this->loadModel('TagCollection');
+        $collRaw = $this->TagCollection->fetchTagCollection($user, [
+            'contain' => [
+                'TagCollectionTag' => [
+                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
+                ],
+            ],
+        ]);
+        $tagCollections = [];
+        foreach ($collRaw as $c) {
+            $members = [];
+            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
+                $tg = $cct['Tag'] ?? null;
+                if (empty($tg) || !empty($tg['hide_tag'])) {
+                    continue;
+                }
+                $members[] = [
+                    'id'     => (int)$tg['id'],
+                    'name'   => $tg['name'],
+                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
+                ];
+            }
+            $tagCollections[] = [
+                'id'   => (int)$c['TagCollection']['id'],
+                'name' => $c['TagCollection']['name'],
+                'tags' => $members,
+            ];
+        }
+
+        /* Currently attached non-galaxy tags, split by locality (pre-selected) */
+        $currentGlobalTags = [];
+        $currentLocalTags  = [];
+        foreach ($attribute['AttributeTag'] as $at) {
+            if (!empty($at['Tag']['is_galaxy'])) {
+                continue;
+            }
+            $tag   = $at['Tag'];
+            $entry = [
+                'id'     => (int)$tag['id'],
+                'name'   => $tag['name'],
+                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+            ];
+            if (!empty($at['local'])) {
+                $currentLocalTags[] = $entry;
+            } else {
+                $currentGlobalTags[] = $entry;
+            }
+        }
+
+        $this->set('allTags',           $allTags);
+        $this->set('customTags',        $customTags);
+        $this->set('tagCollections',    $tagCollections);
+        $this->set('currentGlobalTags', $currentGlobalTags);
+        $this->set('currentLocalTags',  $currentLocalTags);
+        $this->set('attributeId',       $attributeId);
+        $this->set('mayModify',         $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind modal for editing the galaxy clusters attached to an attribute.
+     *
+     * GET  → renders the Bootstrap 5 modal with two TomSelect remote pickers
+     *        (global clusters + local clusters) pre-selected with the current
+     *        state. The picker reuses /events/searchGalaxyClusters.
+     * POST → accepts { global_ids: int[], local_ids: int[] } as JSON,
+     *        diffs against the current state and calls attach/detach with the
+     *        'attribute' target scope.
+     *
+     * Mirrors EventsController::editEventGalaxies, scoped to one attribute.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeGalaxies($id = null)
+    {
+        $user = $this->Auth->user();
+        if ($id === null) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+            'conditions' => $this->__idToConditions($id),
+            'contain' => [
+                'Event',
+                'Object',
+                'AttributeTag' => [
+                    'Tag'   => ['order' => false],
+                    'order' => false,
+                ],
+            ],
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $mayModify   = $this->__canModifyTag($attribute);
+        $attributeId = (int)$attribute['Attribute']['id'];
+
+        /* Current galaxy clusters attached to the attribute, split by locality */
+        $galaxyTagNames = [];
+        foreach ($attribute['AttributeTag'] as $at) {
+            if (!empty($at['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$at['Tag']['id']] = $at['Tag']['name'];
+            }
+        }
+        $this->loadModel('GalaxyCluster');
+        $currentGlobalClusters = [];
+        $currentLocalClusters  = [];
+        $currentGlobalIds      = [];
+        $currentLocalIds       = [];
+        if (!empty($galaxyTagNames)) {
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, true, false
+            );
+            $clustersByTagId = array_column(
+                array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
+            );
+            foreach ($attribute['AttributeTag'] as $at) {
+                if (empty($at['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                $tagId = $at['Tag']['id'];
+                if (!isset($clustersByTagId[$tagId])) {
+                    continue;
+                }
+                $gc         = $clustersByTagId[$tagId];
+                $cid        = (int)$gc['id'];
+                $galaxyName = $gc['Galaxy']['name'] ?? '';
+                $entry = [
+                    'id'     => $cid,
+                    'name'   => $gc['value'],
+                    'galaxy' => $galaxyName,
+                    'hue'    => GalaxyColour::hue($galaxyName),
+                ];
+                if (!empty($at['local'])) {
+                    $currentLocalClusters[] = $entry;
+                    $currentLocalIds[]      = $cid;
+                } else {
+                    $currentGlobalClusters[] = $entry;
+                    $currentGlobalIds[]      = $cid;
+                }
+            }
+        }
+
+        /* ── POST: apply the desired cluster state ── */
+        if ($this->request->is('post')) {
+            if (!$mayModify) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved' => false,
+                                             'errors' => __('Forbidden')]),
+                    'status' => 403,
+                    'type'   => 'json',
+                ]);
+            }
+
+            $desiredGlobal = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['global_ids'] ?? [])))));
+            $desiredLocal  = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['local_ids'] ?? [])))));
+
+            $toAddGlobal    = array_diff($desiredGlobal, $currentGlobalIds);
+            $toAddLocal     = array_diff($desiredLocal,  $currentLocalIds);
+            $toRemoveGlobal = array_diff($currentGlobalIds, $desiredGlobal);
+            $toRemoveLocal  = array_diff($currentLocalIds,  $desiredLocal);
+
+            $this->loadModel('Galaxy');
+            try {
+                /*
+                 * Detach before attaching: attachCluster() refuses to attach a
+                 * cluster whose tag is already on the attribute (regardless of
+                 * the local flag), so a global→local move must remove the old
+                 * row first.
+                 */
+                foreach (array_merge($toRemoveGlobal, $toRemoveLocal) as $cid) {
+                    $this->Galaxy->detachCluster(
+                        $user, 'attribute', $attributeId, $cid
+                    );
+                }
+                if (!empty($toAddGlobal) || !empty($toAddLocal)) {
+                    $target = $this->Galaxy->fetchTarget($user, 'attribute', $attributeId);
+                    if (empty($target)) {
+                        throw new NotFoundException(__('Invalid attribute'));
+                    }
+                    foreach ($toAddGlobal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, 'attribute', $target, $cid, false
+                        );
+                    }
+                    foreach ($toAddLocal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, 'attribute', $target, $cid, true
+                        );
+                    }
+                }
+            } catch (Exception $e) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved'  => false,
+                                             'errors' => $e->getMessage()]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            }
+
+            return new CakeResponse([
+                'body'   => json_encode([
+                    'saved'         => true,
+                    'success'       => __('Galaxy clusters updated.'),
+                    'check_publish' => true,
+                ]),
+                'status' => 200,
+                'type'   => 'json',
+            ]);
+        }
+
+        /* ── GET: build the modal ── */
+        /* Galaxy list for the per-galaxy category buttons */
+        $this->loadModel('Galaxy');
+        $galaxyRows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields'    => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
+            'order'     => ['Galaxy.name asc'],
+        ]);
+        $galaxyList = [];
+        foreach ($galaxyRows as $g) {
+            $galaxyList[] = [
+                'id'   => (int)$g['Galaxy']['id'],
+                'name' => $g['Galaxy']['name'],
+                'icon' => !empty($g['Galaxy']['icon']) ? $g['Galaxy']['icon'] : 'meteor',
+            ];
+        }
+
+        $this->set('currentGlobalClusters', $currentGlobalClusters);
+        $this->set('currentLocalClusters',  $currentLocalClusters);
+        $this->set('galaxyList',            $galaxyList);
+        $this->set('attributeId',           $attributeId);
+        $this->set('mayModify',             $mayModify);
+        $this->layout = false;
+    }
+
+    public function addTag($id = false, $tag_id = false)
+    {
+        $rearrangeRules = array(
+            'request' => false,
+            'Attribute' => false,
+            'tag_id' => 'tag',
+            'attribute_id' => 'attribute',
+            'id' => 'attribute'
+        );
+        $RearrangeTool = new RequestRearrangeTool();
+        $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+        $local = empty($this->request->params['named']['local']) ? 0 : 1;
+        if (!$this->request->is('post')) {
+            if ($id === false) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $this->set('local', $local);
+            $this->set('object_id', $id);
+            $this->set('scope', 'Attribute');
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Events/add_tag');
+        } else {
+            if ($id === false) {
+                if (!isset($this->request->data['attribute'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $id = $this->request->data['attribute'];
+            }
+            if ($id === 'selected') {
+                if (!isset($this->request->data['attribute_ids'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $idList = json_decode($this->request->data['attribute_ids'], true);
+            }
+            if ($tag_id === false) {
+                if (!isset($this->request->data['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
+                $tag_id = $this->request->data['tag'];
+            }
+            if (!is_numeric($tag_id)) {
+                if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                    $tagChoice = explode('_', $tag_id)[1];
+                    $this->loadModel('TagCollection');
+                    $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                    if (empty($tagCollection)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
+                } else {
+                    // try to parse json array
+                    $tag_ids = json_decode($tag_id);
+                    if ($tag_ids !== null) { // can decode json
+                        $tag_id_list = array();
+                        foreach ($tag_ids as $tag_id) {
+                            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                                $tagChoice = explode('_', $tag_id)[1];
+                                $this->loadModel('TagCollection');
+                                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                                if (empty($tagCollection)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list = array_merge($tag_id_list, array_column($tagCollection[0]['TagCollectionTag'], 'tag_id'));
+                            } else if(is_numeric($tag_id)){
+                                $tag_id_list[] = $tag_id;
+                            } else {
+                                $tagId = $this->MispAttribute->AttributeTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                                if (empty($tagId)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list[] = $tagId;
+                            }
+                        }
+                    } else {
+                        $tagId = $this->MispAttribute->AttributeTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                        if (empty($tagId)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        }
+                        $tag_id = $tagId;
+                    }
+                }
+            }
+            if (!isset($idList)) {
+                $idList = array($id);
+            }
+            if (empty($tag_id_list)) {
+                $tag_id_list = array($tag_id);
+            }
+
+            $conditions = $this->MispAttribute->AttributeTag->Tag->createConditions($this->Auth->user());
+            $conditions['Tag.id'] = $tag_id_list;
+            $tags = $this->MispAttribute->AttributeTag->Tag->find('list', array(
+                'conditions' => $conditions,
+                'fields' => ['Tag.id', 'Tag.name'],
+            ));
+
+            $success = 0;
+            $fails = 0;
+            $this->Taxonomy = ClassRegistry::init('Taxonomy');
+            foreach ($idList as $id) {
+                $conditions = $this->__idToConditions($id);
+                $conditions['Attribute.deleted'] = 0;
+                $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
+                    'conditions' => $conditions,
+                ]);
+                if (empty($attribute)) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $id = $attribute['Attribute']['id'];
+                if (!$this->__canModifyTag($attribute, $local)) {
+                    $fails++;
+                    continue;
+                }
+                if (!$this->_isRest()) {
+                    $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
+                }
+                $changeTimestamp = false;
+                foreach ($tag_id_list as $tag_id) {
+                    if (!isset($tags[$tag_id])) {
+                        // Tag not found or user don't have permission to add it.
+                        $fails++;
+                        continue;
+                    }
+                    $tagName = $tags[$tag_id];
+                    $found = $this->MispAttribute->AttributeTag->hasAny([
+                        'attribute_id' => $id,
+                        'tag_id' => $tag_id,
+                    ]);
+                    if ($found) {
+                        // Tag is already assigned to given attribute.
+                        $fails++;
+                        continue;
+                    }
+                    $tagsOnAttribute = $this->MispAttribute->AttributeTag->find('column', array(
+                        'conditions' => array(
+                            'AttributeTag.attribute_id' => $id,
+                            'AttributeTag.local' => $local,
+                        ),
+                        'contain' => 'Tag',
+                        'fields' => array('Tag.name'),
+                    ));
+                    $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tagName, $tagsOnAttribute);
+                    if (!$exclusiveTestPassed) {
+                        $fails++;
+                        continue;
+                    }
+                    $this->MispAttribute->AttributeTag->create();
+                    if ($this->MispAttribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $attribute['Event']['id'], 'local' => $local))) {
+                        if (!$local) {
+                            $changeTimestamp = true;
+                        }
+                        $log = ClassRegistry::init('Log');
+                        $log->createLogEntry(
+                            $this->Auth->user(),
+                            'tag',
+                            'Attribute',
+                            $id,
+                            sprintf(
+                                'Attached%s tag (%s) "%s" to attribute (%s)',
+                                $local ? ' local' : '',
+                                $tag_id,
+                                $tagName,
+                                $id
+                            ),
+                            sprintf(
+                                'Attribute (%s) tagged as Tag (%s)%s',
+                                $id,
+                                $tag_id,
+                                $local ? ' locally' : ''
+                            )
+                        );
+                        $success++;
+                    } else {
+                        $fails++;
+                    }
+                }
+                if ($changeTimestamp) {
+                    $this->MispAttribute->touch($attribute);
+                }
+            }
+            if ($fails === 0) {
+                $message = __n('Tag added.', '%s tags added', $success, $success);
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+            } else {
+                $message = __n('Tag could not be added.', '%s tags could not be added.', $fails, $fails);
+                if ($success > 0) {
+                    $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
+                }
+                return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+            }
+        }
+    }
+
+    public function removeTag($id = false, $tag_id = false)
+    {
+        if (!$this->request->is('post')) {
+            $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id)
+            ]);
+            if (!$attribute) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $attributeTag = $this->MispAttribute->AttributeTag->find('first', array(
+                'conditions' => array(
+                    'attribute_id' => $attribute['Attribute']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$attributeTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $attributeTag['AttributeTag']['local']);
+            $this->set('tag', $attributeTag);
+            $this->set('id', $attribute['Attribute']['id']);
+            $this->set('tag_id', $tag_id);
+            $this->set('model', 'Attribute');
+            $this->set('model_name', $attribute['Attribute']['id']);
+            $this->render('ajax/tagRemoveConfirmation');
+        } else {
+            $rearrangeRules = array(
+                'request' => false,
+                'Attribute' => false,
+                'tag_id' => 'tag',
+                'attribute_id' => 'attribute',
+                'id' => 'attribute'
+            );
+            $RearrangeTool = new RequestRearrangeTool();
+            $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+            if ($id === false) {
+                if (!isset($this->request->data['attribute'])) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $id = $this->request->data['attribute'];
+            }
+            if ($tag_id === false) {
+                if (!isset($this->request->data['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
+                $tag_id = $this->request->data['tag'];
+            }
+            $attribute = $this->MispAttribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id],
+                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Attribute.type', 'Attribute.disable_correlation', 'Attribute.value', 'Event.orgc_id', 'Event.user_id'],
+                'contain' => ['Event'],
+            ]);
+            if (empty($attribute) || $attribute['Attribute']['deleted']) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            if (empty($tag_id)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
+            }
+            if (!is_numeric($tag_id)) {
+                $tag = $this->MispAttribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
+                if (empty($tag)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
+                }
+                $tag_id = $tag['Tag']['id'];
+            }
+            if (!is_numeric($id)) {
+                $id = $this->request->data['Attribute']['id'];
+            }
+            if (!$this->_isRest()) {
+                $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+            }
+            $attributeTag = $this->MispAttribute->AttributeTag->find('first', array(
+                'conditions' => array(
+                    'attribute_id' => $id,
+                    'tag_id' => $tag_id
+                ),
+                'recursive' => -1,
+            ));
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (!$this->__canModifyTag($attribute, !empty($attributeTag['AttributeTag']['local']))) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
+            }
+            if (empty($attributeTag)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));
+            }
+            if ($this->MispAttribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
+                if (empty($attributeTag['AttributeTag']['local'])) {
+                    $this->MispAttribute->touch($attribute);
+                }
+
+                $tag = $this->MispAttribute->AttributeTag->Tag->find('first', array(
+                    'conditions' => array('Tag.id' => $tag_id),
+                    'recursive' => -1,
+                    'fields' => array('Tag.name')
+                ));
+                $log = ClassRegistry::init('Log');
+                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local']))), 'status' => 200, 'type'=> 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
+            }
+        }
+    }
+
+    public function toggleCorrelation($id)
+    {
+        if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {
+            throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
+        }
+        $attribute = $this->MispAttribute->find('first', array(
+            'conditions' => array('Attribute.id' => $id),
+            'recursive' => -1,
+            'contain' => array('Event')
+        ));
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid Attribute.'));
+        }
+        if (!$this->__canModifyEvent($attribute)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
+        }
+        if ($this->request->is('post')) {
+            if ($attribute['Attribute']['disable_correlation']) {
+                $attribute['Attribute']['disable_correlation'] = 0;
+            } else {
+                $attribute['Attribute']['disable_correlation'] = 1;
+            }
+            $this->MispAttribute->save($attribute, ['parentEvent' => $attribute]);
+            $this->MispAttribute->touch($attribute);
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ('Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled')), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            }
+        } else {
+            $this->set('attribute', $attribute);
+            $this->render('ajax/toggle_correlation');
+        }
+    }
+
+    public function toggleToIDS($id)
+    {
+        return $this->fetchEditForm($id, 'to_ids');
+    }
+
+    public function checkAttachments()
+    {
+        $attributes = $this->MispAttribute->find(
+                'all',
+                array(
+                    'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
+                    'contain' => ['Event.orgc_id', 'Event.org_id'],
+                    'recursive' => -1
+                )
+            );
+        $counter = 0;
+        $attachmentTool = new AttachmentTool();
+        $results = [];
+        foreach ($attributes as $attribute) {
+            $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+            if (!$exists) {
+                $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
+                $results['affectedAttributes'][] = $attribute['Attribute']['id'];
+                foreach (['orgc', 'org'] as $type) {
+                    if (empty($results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']])) {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
+                    } else {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
+                    }
+                }
+                $counter++;
+            }
+        }
+        if (!empty($results)) {
+            $results['affectedEvents'] = array_values($results['affectedEvents']);
+            rsort($results['affectedEvents']);
+            rsort($results['affectedAttributes']);
+            foreach (['orgc', 'org'] as $type) {
+                arsort($results['affectedOrgs'][$type]);
+            }
+        }
+        file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
+        return new CakeResponse(array('body' => $counter, 'status' => 200));
+    }
+
+    public function exportSearch($type = false)
+    {
+        $filters = $this->Session->read('search_attributes_filters');
+        if ($filters === null) {
+            throw new NotFoundException('No search to export.');
+        }
+
+        if (empty($type)) {
+            $exports = array_keys($this->MispAttribute->validFormats);
+            $this->set('exports', $exports);
+            $this->render('ajax/exportSearch');
+        } else {
+            $filters = $this->_jsonDecode($filters);
+            $final = $this->MispAttribute->restSearch($this->Auth->user(), $type, $filters);
+            $responseType = $this->MispAttribute->validFormats[$type][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
+        }
+    }
+
+    /**
+     * @param int|string $id Attribute ID or UUID
+     * @return array
+     * @throws Exception
+     */
+    private function __fetchAttribute($id)
+    {
+        $options = array(
+            'conditions' => $this->__idToConditions($id),
+            'contain' => array(
+                'Event',
+            ),
+            'withAttachments' => $this->_isRest(),
+            'flatten' => true,
+            'includeAllTags' => false,
+            'includeAttributeUuid' => true,
+            'limit' => 1,
+        );
+        $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), $options);
+        if (!empty($attributes)) {
+            return $attributes[0];
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @param int|string $id Attribute ID or UUID
+     * @return array
+     */
+    private function __idToConditions($id)
+    {
+        if (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid attribute ID.'));
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param int $sharingGroupId
+     * @return bool
+     */
+    private function __canUseSharingGroup($sharingGroupId)
+    {
+        $sg = $this->MispAttribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
+        return !empty($sg);
+    }
+
+    private function __setIndexFilterConditions($filters = [])
+    {
+        // search by attribute value
+        if (isset($this->request->params['named']['searchvalue'])) {
+            $v = $this->request->params['named']['searchvalue'];
+            $this->paginate['conditions']['AND'][] = [
+                'OR' => [
+                    ['Attribute.value1' => $v],
+                    ['Attribute.value2' => $v],
+                ]
+            ];
+        }
+        foreach ($filters as $filter => $value) {
+            if (($filter === 'type' || $filter === 'category') && $value = 'ALL') {
+                continue;
+            }
+            if ($value === '') {
+                continue;
+            }
+            $this->paginate['conditions']['AND'][] = ['Attribute.' . $filter => $value];
+        }
+    }
+
+    public function viewAnalystData($id, $seed = null)
+    {
+        $this->MispAttribute->includeAnalystDataRecursive = true;
+        $attribute = $this->MispAttribute->fetchAttributes(
+            $this->Auth->user(),
+            [
+                'conditions' => $this->__idToConditions($id),
+                'flatten' => true
+            ]
+        );
+        if(empty($attribute)) {
+            throw new NotFoundException(__('Invalid Attribute.'));
+        } else {
+            $attribute[0]['Attribute'] = array_merge_recursive($attribute[0]['Attribute'], $this->MispAttribute->attachAnalystData($attribute[0]['Attribute']));
+        }
+        if ($this->_isRest()) {
+            $validFields = ['Note', 'Opinion', 'Relationship'];
+            $results = [];
+            foreach ($validFields as $field) {
+                if (!empty($attribute[0]['Attribute'][$field])) {
+                    $results[$field] = $attribute[0]['Attribute'][$field];
+                }
+            }
+            return $this->RestResponse->viewData($results, $this->response->type());
+        }
+        $this->layout = null;
+        $this->set('shortDist', $this->MispAttribute->shortDist);
+        $this->set('object', $attribute[0]['Attribute']);
+        $this->set('seed', $seed);
+    }
+
+    public function enrich($id)
+    {
+        $conditions = $this->__idToConditions($id);
+        $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), ['conditions' => $conditions, 'flatten' => true]);
+        if (empty($attributes)) {
+            throw new MethodNotAllowedException(__('Invalid Attribute'));
+        }
+        $attribute = $attributes[0];
+        if (!$this->request->is('post') || !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
+        }
+        $modules = [];
+        foreach ($this->request->data as $module => $enabled) {
+            if ($enabled) {
+                $modules[] = $module;
+            }
+        }
+        $result = $this->MispAttribute->enrichmentRouter([
+            'user' => $this->Auth->user(),
+            'id' => $attribute['Attribute']['id'],
+            'modules' => $modules
+        ]);
+        return $this->RestResponse->successResponse(0, $result);
+    }
+
+    public function getInstanceCache($lastId = null)
+    {
+
+        $conditions = ['Attribute.deleted' => 0];
+        if ($lastId) {
+            $conditions['Attribute.id >'] = (int)$lastId;
+        }
+        $conditions['AND'][] = $this->MispAttribute->buildConditions($this->Auth->user());
+
+        $this->MispAttribute->virtualFields['md5_value1'] = 'MD5(Attribute.value1)';
+        $this->MispAttribute->virtualFields['md5_value2'] = "MD5(NULLIF(Attribute.value2, ''))";
+
+        $rows = $this->MispAttribute->find('all', [
+            'conditions' => $conditions,
+            'recursive'  => -1,
+            'contain'    => ['Event', 'Object.distribution', 'Object.sharing_group_id'],
+            'fields'     => [
+                'Attribute.id',
+                'Attribute.md5_value1',
+                'Attribute.md5_value2',
+                'Event.uuid',
+            ],
+            'order'      => ['Attribute.id' => 'ASC'],
+            'limit'      => 100000,
+        ]);
+
+        unset($this->MispAttribute->virtualFields['md5_value1'], $this->MispAttribute->virtualFields['md5_value2']);
+
+        $fh = fopen('php://temp', 'w+');
+
+        $lastProcessedId = $lastId ? (int)$lastId : null;
+
+        foreach ($rows as $row) {
+            $lastProcessedId = (int)$row['Attribute']['id'];
+
+            fwrite($fh, $row['Attribute']['md5_value1'] . ',' . $row['Event']['uuid'] . "\n");
+            if ($row['Attribute']['md5_value2'] !== null) {
+                fwrite($fh, $row['Attribute']['md5_value2'] . ',' . $row['Event']['uuid'] . "\n");
+            }
+        }
+        $headers = [];
+        if ($lastProcessedId !== null) {
+            $headers['X-MISP-Last-ID'] = (string)$lastProcessedId;
+        }
+
+        rewind($fh);
+        $out = stream_get_contents($fh);
+        fclose($fh);
+        return $this->RestResponse->viewData($out, 'text', false, true, false, $headers);
+    }
+
+    /**
+     * Get attribute and details by attribute value
+     * Searches directly in the database using indexed value1 column for efficiency
+     * 
+     * @param string $base64Value Base64 encoded attribute value to search for
+     * @return CakeResponse
+     * @throws NotFoundException If no matching attribute is found
+     * @throws MethodNotAllowedException If not an API request
+     */
+    public function getAttributeByB64Value($base64Value)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__("This action is available only via API."));
+        }
+        
+        // Decode the base64 value
+        $decodedValue = base64_decode($base64Value, true);
+        if ($decodedValue === false) {
+            throw new NotFoundException(__("Invalid base64 encoding."));
+        }
+        
+        $user = $this->Auth->user();
+        
+        // Build efficient query conditions - search directly on indexed value1 column
+        // Also check value2 for composite attributes (e.g., ip|port)
+        $conditions = [
+            "AND" => [
+                $this->MispAttribute->buildConditions($user),
+                "Attribute.deleted" => 0,
+                "OR" => [
+                    "Attribute.value1" => $decodedValue,
+                    "Attribute.value2" => $decodedValue,
+                    // For composite values like "ip|port", also search on the virtual value field
+                    "CONCAT(Attribute.value1, '|', Attribute.value2)" => $decodedValue
+                ]
+            ]
+        ];
+        
+        // Fetch attributes with the search conditions
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
+            "conditions" => $conditions,
+            "flatten" => true,
+            "limit" => 100 // Limit results for performance
+        ]);
+        
+        if (empty($attributes)) {
+            throw new NotFoundException(__("Attribute not found."));
+        }
+        
+        // Format response
+        $results = [];
+        foreach ($attributes as $attr) {
+            unset($attr["Attribute"]["value1"]);
+            unset($attr["Attribute"]["value2"]);
+            $results[] = $attr["Attribute"];
+        }
+        
+        return $this->RestResponse->viewData($results, $this->response->type());
+    }
+}
+

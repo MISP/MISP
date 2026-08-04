@@ -1,0 +1,271 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://misp-project.org/schemas/event-template-v1.json",
+  "title": "MISP Event Template v1",
+  "description": "Structural schema for a MISP event template's `definition` document (PRD §7). Semantic validation (attribute category+type validity, object template existence at minimum_version, cross-element id references, info_template variable ids pointing at real elements) is performed by the server-side EventTemplateValidator, not here.",
+  "type": "object",
+  "required": ["schema_version", "uuid", "name", "event_defaults", "structure"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "uuid":           { "type": "string", "format": "uuid" },
+    "name":           { "type": "string", "minLength": 1 },
+    "description":    { "type": ["string", "null"] },
+    "misp_default":   { "type": "boolean", "description": "Library-managed flag — see docs/dev/event-template-library-prd.md §5.3. When true on import, the row is auto-updated by `Update from library`; when false, library updates skip it (operator-forked or locally authored). The column is named `misp_default` rather than `default` because the latter is a MySQL reserved word." },
+    "library_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provenance + applicability metadata for templates that came from the misp-event-templates submodule. Ignored by core import; used by the library loader.",
+      "properties": {
+        "compatible_misp_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name":    { "type": "string", "minLength": 1 },
+              "contact": { "type": "string" }
+            }
+          }
+        },
+        "tags": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "event_defaults": { "$ref": "#/definitions/event_defaults" },
+    "structure": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/element" }
+    }
+  },
+  "definitions": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+    "info_template": {
+      "type": "string",
+      "description": "Plain text with optional {{date}} / {{now}} / {{user}} / {{field:<id>}} variables. Malformed {{...}} sequences are rejected.",
+      "pattern": "^(?:[^{]+|\\{(?!\\{)|\\{\\{(?:date|now|user|field:[a-zA-Z_][a-zA-Z0-9_]*)\\}\\})*$"
+    },
+    "event_defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "info_template":    { "$ref": "#/definitions/info_template" },
+        "distribution":     { "type": "integer", "enum": [0, 1, 2, 3, 4], "description": "Default event distribution: 0 your org, 1 community, 2 connected communities, 3 all, 4 sharing group." },
+        "sharing_group_id": { "type": ["integer", "null"] },
+        "threat_level_id":  { "type": "integer", "enum": [1, 2, 3, 4] },
+        "analysis":         { "type": "integer", "enum": [0, 1, 2] },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name":   { "type": "string", "minLength": 1 },
+              "locked": { "type": "boolean" }
+            }
+          }
+        },
+        "galaxy_clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["galaxy_type", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "galaxy_type": { "type": "string", "minLength": 1 },
+              "value":       { "type": "string", "minLength": 1 },
+              "locked":      { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": { "distribution": { "const": 4 } },
+        "required": ["distribution"]
+      },
+      "then": {
+        "required": ["sharing_group_id"],
+        "properties": {
+          "sharing_group_id": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "element": {
+      "oneOf": [
+        { "$ref": "#/definitions/element_section" },
+        { "$ref": "#/definitions/element_text_block" },
+        { "$ref": "#/definitions/element_attribute_field" },
+        { "$ref": "#/definitions/element_object_field" },
+        { "$ref": "#/definitions/element_tag_field" },
+        { "$ref": "#/definitions/element_galaxy_field" },
+        { "$ref": "#/definitions/element_file_field" },
+        { "$ref": "#/definitions/element_event_report" },
+        { "$ref": "#/definitions/element_object_reference" }
+      ]
+    },
+    "element_section": {
+      "type": "object",
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":  { "const": "section" },
+        "id":    { "$ref": "#/definitions/identifier" },
+        "label": { "type": "string", "minLength": 1 },
+        "help":  { "type": ["string", "null"] }
+      }
+    },
+    "element_text_block": {
+      "type": "object",
+      "required": ["type", "id", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "const": "text_block" },
+        "id":      { "$ref": "#/definitions/identifier" },
+        "content": { "type": "string" }
+      }
+    },
+    "element_attribute_field": {
+      "type": "object",
+      "required": ["type", "id", "label", "misp"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "const": "attribute_field" },
+        "id":         { "$ref": "#/definitions/identifier" },
+        "parent":     { "$ref": "#/definitions/identifier" },
+        "label":      { "type": "string", "minLength": 1 },
+        "help":       { "type": ["string", "null"] },
+        "mandatory":  { "type": "boolean" },
+        "repeatable": { "type": "boolean" },
+        "misp": {
+          "type": "object",
+          "required": ["category", "type"],
+          "additionalProperties": false,
+          "properties": {
+            "category":         { "type": "string", "minLength": 1 },
+            "type":             { "type": "string", "minLength": 1 },
+            "to_ids_default":   { "type": "boolean" },
+            "comment_template": { "type": ["string", "null"] },
+            "default_value":    { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "element_object_field": {
+      "type": "object",
+      "required": ["type", "id", "label", "object_template"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "const": "object_field" },
+        "id":         { "$ref": "#/definitions/identifier" },
+        "parent":     { "$ref": "#/definitions/identifier" },
+        "label":      { "type": "string", "minLength": 1 },
+        "help":       { "type": ["string", "null"] },
+        "mandatory":  { "type": "boolean" },
+        "repeatable": { "type": "boolean" },
+        "object_template": {
+          "type": "object",
+          "required": ["uuid", "name", "minimum_version"],
+          "additionalProperties": false,
+          "properties": {
+            "uuid":           { "type": "string", "format": "uuid" },
+            "name":           { "type": "string", "minLength": 1 },
+            "minimum_version": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["object_relation"],
+            "additionalProperties": false,
+            "properties": {
+              "object_relation": { "type": "string", "minLength": 1 },
+              "mandatory":       { "type": "boolean" },
+              "default_value":   { "type": ["string", "null"] },
+              "hidden":          { "type": "boolean" },
+              "label_override":  { "type": ["string", "null"] },
+              "help_override":   { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "element_tag_field": {
+      "type": "object",
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":                { "const": "tag_field" },
+        "id":                  { "$ref": "#/definitions/identifier" },
+        "parent":              { "$ref": "#/definitions/identifier" },
+        "label":               { "type": "string", "minLength": 1 },
+        "help":                { "type": ["string", "null"] },
+        "restrict_taxonomies": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "multiple":            { "type": "boolean" },
+        "mandatory":           { "type": "boolean" }
+      }
+    },
+    "element_galaxy_field": {
+      "type": "object",
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":                  { "const": "galaxy_field" },
+        "id":                    { "$ref": "#/definitions/identifier" },
+        "parent":                { "$ref": "#/definitions/identifier" },
+        "label":                 { "type": "string", "minLength": 1 },
+        "help":                  { "type": ["string", "null"] },
+        "restrict_galaxy_types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "multiple":              { "type": "boolean" },
+        "mandatory":             { "type": "boolean" }
+      }
+    },
+    "element_file_field": {
+      "type": "object",
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "const": "file_field" },
+        "id":         { "$ref": "#/definitions/identifier" },
+        "parent":     { "$ref": "#/definitions/identifier" },
+        "label":      { "type": "string", "minLength": 1 },
+        "help":       { "type": ["string", "null"] },
+        "as":         { "type": "string", "enum": ["malware-sample", "attachment"] },
+        "repeatable": { "type": "boolean" },
+        "mandatory":  { "type": "boolean" }
+      }
+    },
+    "element_event_report": {
+      "type": "object",
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":            { "const": "event_report" },
+        "id":              { "$ref": "#/definitions/identifier" },
+        "parent":          { "$ref": "#/definitions/identifier" },
+        "label":           { "type": "string", "minLength": 1 },
+        "help":            { "type": ["string", "null"] },
+        "mandatory":       { "type": "boolean" },
+        "default_content": { "type": ["string", "null"], "description": "Markdown body the user starts editing from on instantiation. Filled value creates an EventReport row attached to the resulting event." }
+      }
+    },
+    "element_object_reference": {
+      "type": "object",
+      "required": ["type", "id", "from", "to", "relationship_type"],
+      "additionalProperties": false,
+      "properties": {
+        "type":              { "const": "object_reference" },
+        "id":                { "$ref": "#/definitions/identifier" },
+        "from":              { "$ref": "#/definitions/identifier" },
+        "to":                { "$ref": "#/definitions/identifier" },
+        "relationship_type": { "type": "string", "minLength": 1 },
+        "comment":           { "type": ["string", "null"] }
+      }
+    }
+  }
+}

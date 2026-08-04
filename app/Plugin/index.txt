@@ -1,0 +1,4 @@
+https://github.com/markstory/acl_extras
+https://github.com/eskil-saatvedt/CakePHP-Assets (LogableBehavior)
+http://bakery.cakephp.org/articles/rikdc/2010/06/07/syslog-component
+http://xp-dev.com/trac/cakephp/browser/cakephp/libs/magic_tools

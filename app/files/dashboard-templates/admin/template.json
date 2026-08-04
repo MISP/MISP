@@ -1,0 +1,203 @@
+{
+    "uuid": "5000487b-3e75-46e4-8c43-96da9dc2268b",
+    "name": "Administrator",
+    "description": "A comprehensive site-administrator overview: live resource monitors (CPU, memory, disk), instance usage statistics, system health rollup, sync test and cache freshness, worker queues, mail log, recent logins, API activity, and the latest users to join. Visible to site admins only.",
+    "selectable": true,
+    "restrict_to_org_id": 0,
+    "restrict_to_role_id": 0,
+    "restrict_to_permission_flag": "perm_site_admin",
+    "value": [
+        {
+            "instance_id": "w_1",
+            "widget": "UsageDataWidget",
+            "config": {
+                "alias": "Usage"
+            },
+            "position": {
+                "x": 2,
+                "y": 6,
+                "w": 4,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_2",
+            "widget": "NewUsersWidget",
+            "config": {
+                "alias": "Latest users",
+                "fields": [
+                    "id",
+                    "date_created",
+                    "Organisation.name",
+                    "email"
+                ]
+            },
+            "position": {
+                "x": 2,
+                "y": 0,
+                "w": 4,
+                "h": 6
+            }
+        },
+        {
+            "instance_id": "w_5",
+            "widget": "LoginsWidget",
+            "config": {
+                "alias": "Logins this month"
+            },
+            "position": {
+                "x": 9,
+                "y": 4,
+                "w": 3,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_6",
+            "widget": "APIActivityWidget",
+            "config": {
+                "alias": "API activity",
+                "filter": []
+            },
+            "position": {
+                "x": 9,
+                "y": 7,
+                "w": 3,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_7",
+            "widget": "BenchmarkTopListWidget",
+            "config": {
+                "alias": "",
+                "refresh_delay": "",
+                "days": "10",
+                "field": "sql_time"
+            },
+            "position": {
+                "x": 0,
+                "y": 9,
+                "w": 3,
+                "h": 6
+            }
+        },
+        {
+            "instance_id": "w_8",
+            "widget": "MispAdminSyncTestWidget",
+            "config": [],
+            "position": {
+                "x": 6,
+                "y": 7,
+                "w": 3,
+                "h": 4
+            }
+        },
+        {
+            "instance_id": "w_10",
+            "widget": "MispAdminWorkerWidget",
+            "config": {
+                "alias": "",
+                "refresh_delay": ""
+            },
+            "position": {
+                "x": 9,
+                "y": 10,
+                "w": 3,
+                "h": 5
+            }
+        },
+        {
+            "instance_id": "w_11",
+            "widget": "CpuLoadMonitorWidget",
+            "config": {
+                "alias": "",
+                "window": 180,
+                "interval": 3
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "w": 2,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_12",
+            "widget": "MemoryUsageMonitorWidget",
+            "config": {
+                "alias": "",
+                "window": 180,
+                "interval": 3
+            },
+            "position": {
+                "x": 0,
+                "y": 3,
+                "w": 2,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_13",
+            "widget": "DiskUsageMonitorWidget",
+            "config": {
+                "path": "",
+                "threshold": 85
+            },
+            "position": {
+                "x": 0,
+                "y": 6,
+                "w": 2,
+                "h": 3
+            }
+        },
+        {
+            "instance_id": "w_14",
+            "widget": "LoggedInUsersWidget",
+            "config": [],
+            "position": {
+                "x": 9,
+                "y": 0,
+                "w": 3,
+                "h": 4
+            }
+        },
+        {
+            "instance_id": "w_15",
+            "widget": "MispAdminHealthWidget",
+            "config": [],
+            "position": {
+                "x": 6,
+                "y": 0,
+                "w": 3,
+                "h": 7
+            }
+        },
+        {
+            "instance_id": "w_16",
+            "widget": "MispCacheStatusWidget",
+            "config": [],
+            "position": {
+                "x": 6,
+                "y": 11,
+                "w": 3,
+                "h": 4
+            }
+        },
+        {
+            "instance_id": "w_17",
+            "widget": "MispMailLogWidget",
+            "config": {
+                "log_path": "",
+                "limit": 20,
+                "lookback_bytes": 65536
+            },
+            "position": {
+                "x": 3,
+                "y": 9,
+                "w": 3,
+                "h": 6
+            }
+        }
+    ]
+}

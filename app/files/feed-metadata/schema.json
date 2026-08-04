@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "title": "Validator for MISP feed metadata",
+  "id": "https://github.com/MISP/MISP/blob/2.4/app/files/feed-metadata/schema.json",
+  "defs": {
+    "feed": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "rules": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "tag_id": {
+          "type": "string"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "source_format": {
+          "type": "string",
+          "enum": [
+            "misp",
+            "csv",
+            "freetext"
+          ]
+        },
+        "fixed_event": {
+          "type": "boolean"
+        },
+        "delta_merge": {
+          "type": "boolean"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "publish": {
+          "type": "boolean"
+        },
+        "override_ids": {
+          "type": "boolean"
+        },
+        "settings": {
+          "type": "string"
+        },
+        "input_source": {
+          "type": "string",
+          "enum": [
+            "network",
+            "local"
+          ]
+        },
+        "delete_local_file": {
+          "type": "boolean"
+        },
+        "lookup_visible": {
+          "type": "boolean"
+        },
+        "cache_timestamp": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "string"
+        },
+        "caching_enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "provider",
+        "url",
+        "rules",
+        "enabled",
+        "distribution",
+        "default",
+        "source_format",
+        "fixed_event",
+        "delta_merge",
+        "publish",
+        "override_ids",
+        "settings",
+        "input_source",
+        "delete_local_file",
+        "lookup_visible"
+      ]
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "colour": {
+          "type": "string"
+        },
+        "exportable": {
+          "type": "boolean"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "hide_tag": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "colour",
+        "exportable",
+        "hide_tag"
+      ]
+    }
+  },
+  "type": "array",
+  "uniqueItems": true,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "Feed": {
+        "$ref": "#/defs/feed"
+      },
+      "Tag": {
+        "$ref": "#/defs/tag"
+      }
+    },
+    "required": [
+      "Feed"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Attribute>
+	<event_id>30</event_id>
+	<type>ip-src</type>
+	<category>Network activity</category>
+	<to_ids>0</to_ids>
+	<distribution>1</distribution>
+	<comment>This is a sample Attribute</comment>
+	<value>8.8.4.4</value>
+</Attribute>

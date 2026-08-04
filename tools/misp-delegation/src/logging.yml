@@ -1,0 +1,25 @@
+version: 1
+formatters:
+    simple:
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    verbose:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: verbose
+        stream: ext://sys.stdout
+    file:
+        class: logging.handlers.TimedRotatingFileHandler
+        level: INFO
+        formatter: simple
+        when: D
+        filename: 'misp-delegation.log'
+loggers:
+    misp-delegation:
+        level: DEBUG
+        handlers: [file]
+root:
+    level: DEBUG
+    handlers: [console]

@@ -1,0 +1,6200 @@
+@font-face {
+    font-family: "MISP Icons";
+    src: url("../webfonts/misp-iconify.woff2") format("woff2"),
+        url("../webfonts/misp-iconify.woff") format("woff");
+    font-display: block;
+}
+
+.misp-icon {
+    font-family: "MISP Icons";
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    line-height: 1;
+
+    display: inline-block;
+    vertical-align: middle;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.misp-fw {
+    width: 1.25em;
+    text-align: center;
+}
+
+
+/* --- hexagone icons --- */
+
+.misp-icon-analyst-note.misp-hexagone::before {
+    content: "\e001";
+}
+
+.misp-icon-analyst-note.misp-hexagone {
+    --misp-icon: "\e001";
+}
+
+.misp-icon-analyst-opinion.misp-hexagone::before {
+    content: "\e002";
+}
+
+.misp-icon-analyst-opinion.misp-hexagone {
+    --misp-icon: "\e002";
+}
+
+.misp-icon-attribute.misp-hexagone::before {
+    content: "\e003";
+}
+
+.misp-icon-attribute.misp-hexagone {
+    --misp-icon: "\e003";
+}
+
+.misp-icon-event.misp-hexagone::before {
+    content: "\e004";
+}
+
+.misp-icon-event.misp-hexagone {
+    --misp-icon: "\e004";
+}
+
+.misp-icon-galaxy.misp-hexagone::before {
+    content: "\e005";
+}
+
+.misp-icon-galaxy.misp-hexagone {
+    --misp-icon: "\e005";
+}
+
+.misp-icon-misp.misp-hexagone::before {
+    content: "\e006";
+}
+
+.misp-icon-misp.misp-hexagone {
+    --misp-icon: "\e006";
+}
+
+.misp-icon-object.misp-hexagone::before {
+    content: "\e007";
+}
+
+.misp-icon-object.misp-hexagone {
+    --misp-icon: "\e007";
+}
+
+.misp-icon-organisation.misp-hexagone::before {
+    content: "\e008";
+}
+
+.misp-icon-organisation.misp-hexagone {
+    --misp-icon: "\e008";
+}
+
+.misp-icon-report.misp-hexagone::before {
+    content: "\e009";
+}
+
+.misp-icon-report.misp-hexagone {
+    --misp-icon: "\e009";
+}
+
+.misp-icon-sharing-group.misp-hexagone::before {
+    content: "\e00a";
+}
+
+.misp-icon-sharing-group.misp-hexagone {
+    --misp-icon: "\e00a";
+}
+
+.misp-icon-sighting.misp-hexagone::before {
+    content: "\e00b";
+}
+
+.misp-icon-sighting.misp-hexagone {
+    --misp-icon: "\e00b";
+}
+
+.misp-icon-tag.misp-hexagone::before {
+    content: "\e00c";
+}
+
+.misp-icon-tag.misp-hexagone {
+    --misp-icon: "\e00c";
+}
+
+.misp-icon-taxonomy.misp-hexagone::before {
+    content: "\e00d";
+}
+
+.misp-icon-taxonomy.misp-hexagone {
+    --misp-icon: "\e00d";
+}
+
+.misp-icon-user1.misp-hexagone::before {
+    content: "\e00e";
+}
+
+.misp-icon-user1.misp-hexagone {
+    --misp-icon: "\e00e";
+}
+
+.misp-icon-user2.misp-hexagone::before {
+    content: "\e00f";
+}
+
+.misp-icon-user2.misp-hexagone {
+    --misp-icon: "\e00f";
+}
+
+.misp-icon-user3.misp-hexagone::before {
+    content: "\e010";
+}
+
+.misp-icon-user3.misp-hexagone {
+    --misp-icon: "\e010";
+}
+
+/* --- simple icons --- */
+
+.misp-icon-analyst-note.misp-simple::before {
+    content: "\e011";
+}
+
+.misp-icon-analyst-note.misp-simple {
+    --misp-icon: "\e011";
+}
+
+.misp-icon-analyst-opinion.misp-simple::before {
+    content: "\e012";
+}
+
+.misp-icon-analyst-opinion.misp-simple {
+    --misp-icon: "\e012";
+}
+
+.misp-icon-attribute.misp-simple::before {
+    content: "\e013";
+}
+
+.misp-icon-attribute.misp-simple {
+    --misp-icon: "\e013";
+}
+
+.misp-icon-event.misp-simple::before {
+    content: "\e014";
+}
+
+.misp-icon-event.misp-simple {
+    --misp-icon: "\e014";
+}
+
+.misp-icon-galaxy.misp-simple::before {
+    content: "\e015";
+}
+
+.misp-icon-galaxy.misp-simple {
+    --misp-icon: "\e015";
+}
+
+.misp-icon-misp.misp-simple::before {
+    content: "\e016";
+}
+
+.misp-icon-misp.misp-simple {
+    --misp-icon: "\e016";
+}
+
+.misp-icon-object.misp-simple::before {
+    content: "\e017";
+}
+
+.misp-icon-object.misp-simple {
+    --misp-icon: "\e017";
+}
+
+.misp-icon-organisation.misp-simple::before {
+    content: "\e018";
+}
+
+.misp-icon-organisation.misp-simple {
+    --misp-icon: "\e018";
+}
+
+.misp-icon-report.misp-simple::before {
+    content: "\e019";
+}
+
+.misp-icon-report.misp-simple {
+    --misp-icon: "\e019";
+}
+
+.misp-icon-sharing-group.misp-simple::before {
+    content: "\e01a";
+}
+
+.misp-icon-sharing-group.misp-simple {
+    --misp-icon: "\e01a";
+}
+
+.misp-icon-sighting.misp-simple::before {
+    content: "\e01b";
+}
+
+.misp-icon-sighting.misp-simple {
+    --misp-icon: "\e01b";
+}
+
+.misp-icon-tag.misp-simple::before {
+    content: "\e01c";
+}
+
+.misp-icon-tag.misp-simple {
+    --misp-icon: "\e01c";
+}
+
+.misp-icon-taxonomy.misp-simple::before {
+    content: "\e01d";
+}
+
+.misp-icon-taxonomy.misp-simple {
+    --misp-icon: "\e01d";
+}
+
+.misp-icon-user1.misp-simple::before {
+    content: "\e01e";
+}
+
+.misp-icon-user1.misp-simple {
+    --misp-icon: "\e01e";
+}
+
+.misp-icon-user2.misp-simple::before {
+    content: "\e01f";
+}
+
+.misp-icon-user2.misp-simple {
+    --misp-icon: "\e01f";
+}
+
+.misp-icon-user3.misp-simple::before {
+    content: "\e020";
+}
+
+.misp-icon-user3.misp-simple {
+    --misp-icon: "\e020";
+}
+
+/* --- attribute type icons --- */
+
+.misp-icon-as.misp-attributes::before {
+    content: "\e021";
+}
+
+.misp-icon-as.misp-attributes {
+    --misp-icon: "\e021";
+}
+
+.misp-icon-attachment.misp-attributes::before {
+    content: "\e022";
+}
+
+.misp-icon-attachment.misp-attributes {
+    --misp-icon: "\e022";
+}
+
+.misp-icon-btc.misp-attributes::before {
+    content: "\e023";
+}
+
+.misp-icon-btc.misp-attributes {
+    --misp-icon: "\e023";
+}
+
+.misp-icon-campaign-name.misp-attributes::before {
+    content: "\e024";
+}
+
+.misp-icon-campaign-name.misp-attributes {
+    --misp-icon: "\e024";
+}
+
+.misp-icon-cc-number.misp-attributes::before {
+    content: "\e025";
+}
+
+.misp-icon-cc-number.misp-attributes {
+    --misp-icon: "\e025";
+}
+
+.misp-icon-comment.misp-attributes::before {
+    content: "\e026";
+}
+
+.misp-icon-comment.misp-attributes {
+    --misp-icon: "\e026";
+}
+
+.misp-icon-cookie.misp-attributes::before {
+    content: "\e027";
+}
+
+.misp-icon-cookie.misp-attributes {
+    --misp-icon: "\e027";
+}
+
+.misp-icon-cpe.misp-attributes::before {
+    content: "\e028";
+}
+
+.misp-icon-cpe.misp-attributes {
+    --misp-icon: "\e028";
+}
+
+.misp-icon-datetime.misp-attributes::before {
+    content: "\e029";
+}
+
+.misp-icon-datetime.misp-attributes {
+    --misp-icon: "\e029";
+}
+
+.misp-icon-domain-ip.misp-attributes::before {
+    content: "\e02a";
+}
+
+.misp-icon-domain-ip.misp-attributes {
+    --misp-icon: "\e02a";
+}
+
+.misp-icon-domain.misp-attributes::before {
+    content: "\e02b";
+}
+
+.misp-icon-domain.misp-attributes {
+    --misp-icon: "\e02b";
+}
+
+.misp-icon-email-dst.misp-attributes::before {
+    content: "\e02c";
+}
+
+.misp-icon-email-dst.misp-attributes {
+    --misp-icon: "\e02c";
+}
+
+.misp-icon-email-src.misp-attributes::before {
+    content: "\e02d";
+}
+
+.misp-icon-email-src.misp-attributes {
+    --misp-icon: "\e02d";
+}
+
+.misp-icon-email.misp-attributes::before {
+    content: "\e02e";
+}
+
+.misp-icon-email.misp-attributes {
+    --misp-icon: "\e02e";
+}
+
+.misp-icon-filename-md5.misp-attributes::before {
+    content: "\e02f";
+}
+
+.misp-icon-filename-md5.misp-attributes {
+    --misp-icon: "\e02f";
+}
+
+.misp-icon-filename-sha256.misp-attributes::before {
+    content: "\e030";
+}
+
+.misp-icon-filename-sha256.misp-attributes {
+    --misp-icon: "\e030";
+}
+
+.misp-icon-filename.misp-attributes::before {
+    content: "\e031";
+}
+
+.misp-icon-filename.misp-attributes {
+    --misp-icon: "\e031";
+}
+
+.misp-icon-full-name.misp-attributes::before {
+    content: "\e032";
+}
+
+.misp-icon-full-name.misp-attributes {
+    --misp-icon: "\e032";
+}
+
+.misp-icon-github-username.misp-attributes::before {
+    content: "\e033";
+}
+
+.misp-icon-github-username.misp-attributes {
+    --misp-icon: "\e033";
+}
+
+.misp-icon-hostname.misp-attributes::before {
+    content: "\e034";
+}
+
+.misp-icon-hostname.misp-attributes {
+    --misp-icon: "\e034";
+}
+
+.misp-icon-iban.misp-attributes::before {
+    content: "\e035";
+}
+
+.misp-icon-iban.misp-attributes {
+    --misp-icon: "\e035";
+}
+
+.misp-icon-ip-dst-port.misp-attributes::before {
+    content: "\e036";
+}
+
+.misp-icon-ip-dst-port.misp-attributes {
+    --misp-icon: "\e036";
+}
+
+.misp-icon-ip-dst.misp-attributes::before {
+    content: "\e037";
+}
+
+.misp-icon-ip-dst.misp-attributes {
+    --misp-icon: "\e037";
+}
+
+.misp-icon-ip-src.misp-attributes::before {
+    content: "\e038";
+}
+
+.misp-icon-ip-src.misp-attributes {
+    --misp-icon: "\e038";
+}
+
+.misp-icon-link.misp-attributes::before {
+    content: "\e039";
+}
+
+.misp-icon-link.misp-attributes {
+    --misp-icon: "\e039";
+}
+
+.misp-icon-mac-address.misp-attributes::before {
+    content: "\e03a";
+}
+
+.misp-icon-mac-address.misp-attributes {
+    --misp-icon: "\e03a";
+}
+
+.misp-icon-malware-sample.misp-attributes::before {
+    content: "\e03b";
+}
+
+.misp-icon-malware-sample.misp-attributes {
+    --misp-icon: "\e03b";
+}
+
+.misp-icon-md5.misp-attributes::before {
+    content: "\e03c";
+}
+
+.misp-icon-md5.misp-attributes {
+    --misp-icon: "\e03c";
+}
+
+.misp-icon-mutex.misp-attributes::before {
+    content: "\e03d";
+}
+
+.misp-icon-mutex.misp-attributes {
+    --misp-icon: "\e03d";
+}
+
+.misp-icon-pattern-in-file.misp-attributes::before {
+    content: "\e03e";
+}
+
+.misp-icon-pattern-in-file.misp-attributes {
+    --misp-icon: "\e03e";
+}
+
+.misp-icon-pgp-public-key.misp-attributes::before {
+    content: "\e03f";
+}
+
+.misp-icon-pgp-public-key.misp-attributes {
+    --misp-icon: "\e03f";
+}
+
+.misp-icon-phone-number.misp-attributes::before {
+    content: "\e040";
+}
+
+.misp-icon-phone-number.misp-attributes {
+    --misp-icon: "\e040";
+}
+
+.misp-icon-port.misp-attributes::before {
+    content: "\e041";
+}
+
+.misp-icon-port.misp-attributes {
+    --misp-icon: "\e041";
+}
+
+.misp-icon-regkey.misp-attributes::before {
+    content: "\e042";
+}
+
+.misp-icon-regkey.misp-attributes {
+    --misp-icon: "\e042";
+}
+
+.misp-icon-sha1.misp-attributes::before {
+    content: "\e043";
+}
+
+.misp-icon-sha1.misp-attributes {
+    --misp-icon: "\e043";
+}
+
+.misp-icon-sha256.misp-attributes::before {
+    content: "\e044";
+}
+
+.misp-icon-sha256.misp-attributes {
+    --misp-icon: "\e044";
+}
+
+.misp-icon-sigma.misp-attributes::before {
+    content: "\e045";
+}
+
+.misp-icon-sigma.misp-attributes {
+    --misp-icon: "\e045";
+}
+
+.misp-icon-snort.misp-attributes::before {
+    content: "\e046";
+}
+
+.misp-icon-snort.misp-attributes {
+    --misp-icon: "\e046";
+}
+
+.misp-icon-ssh-fingerprint.misp-attributes::before {
+    content: "\e047";
+}
+
+.misp-icon-ssh-fingerprint.misp-attributes {
+    --misp-icon: "\e047";
+}
+
+.misp-icon-text.misp-attributes::before {
+    content: "\e048";
+}
+
+.misp-icon-text.misp-attributes {
+    --misp-icon: "\e048";
+}
+
+.misp-icon-threat-actor.misp-attributes::before {
+    content: "\e049";
+}
+
+.misp-icon-threat-actor.misp-attributes {
+    --misp-icon: "\e049";
+}
+
+.misp-icon-twitter-id.misp-attributes::before {
+    content: "\e04a";
+}
+
+.misp-icon-twitter-id.misp-attributes {
+    --misp-icon: "\e04a";
+}
+
+.misp-icon-uri.misp-attributes::before {
+    content: "\e04b";
+}
+
+.misp-icon-uri.misp-attributes {
+    --misp-icon: "\e04b";
+}
+
+.misp-icon-url.misp-attributes::before {
+    content: "\e04c";
+}
+
+.misp-icon-url.misp-attributes {
+    --misp-icon: "\e04c";
+}
+
+.misp-icon-user-agent.misp-attributes::before {
+    content: "\e04d";
+}
+
+.misp-icon-user-agent.misp-attributes {
+    --misp-icon: "\e04d";
+}
+
+.misp-icon-vulnerability.misp-attributes::before {
+    content: "\e04e";
+}
+
+.misp-icon-vulnerability.misp-attributes {
+    --misp-icon: "\e04e";
+}
+
+.misp-icon-windows-scheduled-task.misp-attributes::before {
+    content: "\e04f";
+}
+
+.misp-icon-windows-scheduled-task.misp-attributes {
+    --misp-icon: "\e04f";
+}
+
+.misp-icon-windows-service-name.misp-attributes::before {
+    content: "\e050";
+}
+
+.misp-icon-windows-service-name.misp-attributes {
+    --misp-icon: "\e050";
+}
+
+.misp-icon-x509-fingerprint-sha1.misp-attributes::before {
+    content: "\e051";
+}
+
+.misp-icon-x509-fingerprint-sha1.misp-attributes {
+    --misp-icon: "\e051";
+}
+
+.misp-icon-yara.misp-attributes::before {
+    content: "\e052";
+}
+
+.misp-icon-yara.misp-attributes {
+    --misp-icon: "\e052";
+}
+
+/* --- object icons (framed variant) --- */
+
+.misp-icon-android-app.misp-objects-framed::before {
+    content: "\e053";
+}
+
+.misp-icon-android-app.misp-objects-framed {
+    --misp-icon: "\e053";
+}
+
+.misp-icon-android-permission.misp-objects-framed::before {
+    content: "\e054";
+}
+
+.misp-icon-android-permission.misp-objects-framed {
+    --misp-icon: "\e054";
+}
+
+.misp-icon-annotation.misp-objects-framed::before {
+    content: "\e055";
+}
+
+.misp-icon-annotation.misp-objects-framed {
+    --misp-icon: "\e055";
+}
+
+.misp-icon-apk.misp-objects-framed::before {
+    content: "\e056";
+}
+
+.misp-icon-apk.misp-objects-framed {
+    --misp-icon: "\e056";
+}
+
+.misp-icon-artifact.misp-objects-framed::before {
+    content: "\e057";
+}
+
+.misp-icon-artifact.misp-objects-framed {
+    --misp-icon: "\e057";
+}
+
+.misp-icon-asn.misp-objects-framed::before {
+    content: "\e058";
+}
+
+.misp-icon-asn.misp-objects-framed {
+    --misp-icon: "\e058";
+}
+
+.misp-icon-attack-pattern.misp-objects-framed::before {
+    content: "\e059";
+}
+
+.misp-icon-attack-pattern.misp-objects-framed {
+    --misp-icon: "\e059";
+}
+
+.misp-icon-av-signature.misp-objects-framed::before {
+    content: "\e05a";
+}
+
+.misp-icon-av-signature.misp-objects-framed {
+    --misp-icon: "\e05a";
+}
+
+.misp-icon-bank-account.misp-objects-framed::before {
+    content: "\e05b";
+}
+
+.misp-icon-bank-account.misp-objects-framed {
+    --misp-icon: "\e05b";
+}
+
+.misp-icon-blog.misp-objects-framed::before {
+    content: "\e05c";
+}
+
+.misp-icon-blog.misp-objects-framed {
+    --misp-icon: "\e05c";
+}
+
+.misp-icon-btc-transaction.misp-objects-framed::before {
+    content: "\e05d";
+}
+
+.misp-icon-btc-transaction.misp-objects-framed {
+    --misp-icon: "\e05d";
+}
+
+.misp-icon-btc-wallet.misp-objects-framed::before {
+    content: "\e05e";
+}
+
+.misp-icon-btc-wallet.misp-objects-framed {
+    --misp-icon: "\e05e";
+}
+
+.misp-icon-c2-list.misp-objects-framed::before {
+    content: "\e05f";
+}
+
+.misp-icon-c2-list.misp-objects-framed {
+    --misp-icon: "\e05f";
+}
+
+.misp-icon-chat-message.misp-objects-framed::before {
+    content: "\e060";
+}
+
+.misp-icon-chat-message.misp-objects-framed {
+    --misp-icon: "\e060";
+}
+
+.misp-icon-coin-address.misp-objects-framed::before {
+    content: "\e061";
+}
+
+.misp-icon-coin-address.misp-objects-framed {
+    --misp-icon: "\e061";
+}
+
+.misp-icon-command-line.misp-objects-framed::before {
+    content: "\e062";
+}
+
+.misp-icon-command-line.misp-objects-framed {
+    --misp-icon: "\e062";
+}
+
+.misp-icon-command.misp-objects-framed::before {
+    content: "\e063";
+}
+
+.misp-icon-command.misp-objects-framed {
+    --misp-icon: "\e063";
+}
+
+.misp-icon-cookie.misp-objects-framed::before {
+    content: "\e064";
+}
+
+.misp-icon-cookie.misp-objects-framed {
+    --misp-icon: "\e064";
+}
+
+.misp-icon-course-of-action.misp-objects-framed::before {
+    content: "\e065";
+}
+
+.misp-icon-course-of-action.misp-objects-framed {
+    --misp-icon: "\e065";
+}
+
+.misp-icon-cpe-asset.misp-objects-framed::before {
+    content: "\e066";
+}
+
+.misp-icon-cpe-asset.misp-objects-framed {
+    --misp-icon: "\e066";
+}
+
+.misp-icon-credential.misp-objects-framed::before {
+    content: "\e067";
+}
+
+.misp-icon-credential.misp-objects-framed {
+    --misp-icon: "\e067";
+}
+
+.misp-icon-credit-card.misp-objects-framed::before {
+    content: "\e068";
+}
+
+.misp-icon-credit-card.misp-objects-framed {
+    --misp-icon: "\e068";
+}
+
+.misp-icon-crypto-material.misp-objects-framed::before {
+    content: "\e069";
+}
+
+.misp-icon-crypto-material.misp-objects-framed {
+    --misp-icon: "\e069";
+}
+
+.misp-icon-data-url.misp-objects-framed::before {
+    content: "\e06a";
+}
+
+.misp-icon-data-url.misp-objects-framed {
+    --misp-icon: "\e06a";
+}
+
+.misp-icon-ddos-config.misp-objects-framed::before {
+    content: "\e06b";
+}
+
+.misp-icon-ddos-config.misp-objects-framed {
+    --misp-icon: "\e06b";
+}
+
+.misp-icon-ddos.misp-objects-framed::before {
+    content: "\e06c";
+}
+
+.misp-icon-ddos.misp-objects-framed {
+    --misp-icon: "\e06c";
+}
+
+.misp-icon-decoded-barcode.misp-objects-framed::before {
+    content: "\e06d";
+}
+
+.misp-icon-decoded-barcode.misp-objects-framed {
+    --misp-icon: "\e06d";
+}
+
+.misp-icon-decoded-qrcode.misp-objects-framed::before {
+    content: "\e06e";
+}
+
+.misp-icon-decoded-qrcode.misp-objects-framed {
+    --misp-icon: "\e06e";
+}
+
+.misp-icon-device.misp-objects-framed::before {
+    content: "\e06f";
+}
+
+.misp-icon-device.misp-objects-framed {
+    --misp-icon: "\e06f";
+}
+
+.misp-icon-diamond.misp-objects-framed::before {
+    content: "\e070";
+}
+
+.misp-icon-diamond.misp-objects-framed {
+    --misp-icon: "\e070";
+}
+
+.misp-icon-directory.misp-objects-framed::before {
+    content: "\e071";
+}
+
+.misp-icon-directory.misp-objects-framed {
+    --misp-icon: "\e071";
+}
+
+.misp-icon-dkim.misp-objects-framed::before {
+    content: "\e072";
+}
+
+.misp-icon-dkim.misp-objects-framed {
+    --misp-icon: "\e072";
+}
+
+.misp-icon-dns-record.misp-objects-framed::before {
+    content: "\e073";
+}
+
+.misp-icon-dns-record.misp-objects-framed {
+    --misp-icon: "\e073";
+}
+
+.misp-icon-domain-ip.misp-objects-framed::before {
+    content: "\e074";
+}
+
+.misp-icon-domain-ip.misp-objects-framed {
+    --misp-icon: "\e074";
+}
+
+.misp-icon-elf.misp-objects-framed::before {
+    content: "\e075";
+}
+
+.misp-icon-elf.misp-objects-framed {
+    --misp-icon: "\e075";
+}
+
+.misp-icon-email.misp-objects-framed::before {
+    content: "\e076";
+}
+
+.misp-icon-email.misp-objects-framed {
+    --misp-icon: "\e076";
+}
+
+.misp-icon-employee.misp-objects-framed::before {
+    content: "\e077";
+}
+
+.misp-icon-employee.misp-objects-framed {
+    --misp-icon: "\e077";
+}
+
+.misp-icon-event.misp-objects-framed::before {
+    content: "\e078";
+}
+
+.misp-icon-event.misp-objects-framed {
+    --misp-icon: "\e078";
+}
+
+.misp-icon-exploit-poc.misp-objects-framed::before {
+    content: "\e079";
+}
+
+.misp-icon-exploit-poc.misp-objects-framed {
+    --misp-icon: "\e079";
+}
+
+.misp-icon-exploit.misp-objects-framed::before {
+    content: "\e07a";
+}
+
+.misp-icon-exploit.misp-objects-framed {
+    --misp-icon: "\e07a";
+}
+
+.misp-icon-facebook-account.misp-objects-framed::before {
+    content: "\e07b";
+}
+
+.misp-icon-facebook-account.misp-objects-framed {
+    --misp-icon: "\e07b";
+}
+
+.misp-icon-facebook-group.misp-objects-framed::before {
+    content: "\e07c";
+}
+
+.misp-icon-facebook-group.misp-objects-framed {
+    --misp-icon: "\e07c";
+}
+
+.misp-icon-facebook-page.misp-objects-framed::before {
+    content: "\e07d";
+}
+
+.misp-icon-facebook-page.misp-objects-framed {
+    --misp-icon: "\e07d";
+}
+
+.misp-icon-facebook-post.misp-objects-framed::before {
+    content: "\e07e";
+}
+
+.misp-icon-facebook-post.misp-objects-framed {
+    --misp-icon: "\e07e";
+}
+
+.misp-icon-facebook-reaction.misp-objects-framed::before {
+    content: "\e07f";
+}
+
+.misp-icon-facebook-reaction.misp-objects-framed {
+    --misp-icon: "\e07f";
+}
+
+.misp-icon-favicon.misp-objects-framed::before {
+    content: "\e080";
+}
+
+.misp-icon-favicon.misp-objects-framed {
+    --misp-icon: "\e080";
+}
+
+.misp-icon-file-7z.misp-objects-framed::before {
+    content: "\e081";
+}
+
+.misp-icon-file-7z.misp-objects-framed {
+    --misp-icon: "\e081";
+}
+
+.misp-icon-file-apk.misp-objects-framed::before {
+    content: "\e082";
+}
+
+.misp-icon-file-apk.misp-objects-framed {
+    --misp-icon: "\e082";
+}
+
+.misp-icon-file-bat.misp-objects-framed::before {
+    content: "\e083";
+}
+
+.misp-icon-file-bat.misp-objects-framed {
+    --misp-icon: "\e083";
+}
+
+.misp-icon-file-css.misp-objects-framed::before {
+    content: "\e084";
+}
+
+.misp-icon-file-css.misp-objects-framed {
+    --misp-icon: "\e084";
+}
+
+.misp-icon-file-csv.misp-objects-framed::before {
+    content: "\e085";
+}
+
+.misp-icon-file-csv.misp-objects-framed {
+    --misp-icon: "\e085";
+}
+
+.misp-icon-file-dll.misp-objects-framed::before {
+    content: "\e086";
+}
+
+.misp-icon-file-dll.misp-objects-framed {
+    --misp-icon: "\e086";
+}
+
+.misp-icon-file-doc.misp-objects-framed::before {
+    content: "\e087";
+}
+
+.misp-icon-file-doc.misp-objects-framed {
+    --misp-icon: "\e087";
+}
+
+.misp-icon-file-docx.misp-objects-framed::before {
+    content: "\e088";
+}
+
+.misp-icon-file-docx.misp-objects-framed {
+    --misp-icon: "\e088";
+}
+
+.misp-icon-file-elf.misp-objects-framed::before {
+    content: "\e089";
+}
+
+.misp-icon-file-elf.misp-objects-framed {
+    --misp-icon: "\e089";
+}
+
+.misp-icon-file-eml.misp-objects-framed::before {
+    content: "\e08a";
+}
+
+.misp-icon-file-eml.misp-objects-framed {
+    --misp-icon: "\e08a";
+}
+
+.misp-icon-file-exe.misp-objects-framed::before {
+    content: "\e08b";
+}
+
+.misp-icon-file-exe.misp-objects-framed {
+    --misp-icon: "\e08b";
+}
+
+.misp-icon-file-gif.misp-objects-framed::before {
+    content: "\e08c";
+}
+
+.misp-icon-file-gif.misp-objects-framed {
+    --misp-icon: "\e08c";
+}
+
+.misp-icon-file-gz.misp-objects-framed::before {
+    content: "\e08d";
+}
+
+.misp-icon-file-gz.misp-objects-framed {
+    --misp-icon: "\e08d";
+}
+
+.misp-icon-file-html.misp-objects-framed::before {
+    content: "\e08e";
+}
+
+.misp-icon-file-html.misp-objects-framed {
+    --misp-icon: "\e08e";
+}
+
+.misp-icon-file-iso.misp-objects-framed::before {
+    content: "\e08f";
+}
+
+.misp-icon-file-iso.misp-objects-framed {
+    --misp-icon: "\e08f";
+}
+
+.misp-icon-file-jar.misp-objects-framed::before {
+    content: "\e090";
+}
+
+.misp-icon-file-jar.misp-objects-framed {
+    --misp-icon: "\e090";
+}
+
+.misp-icon-file-jpg.misp-objects-framed::before {
+    content: "\e091";
+}
+
+.misp-icon-file-jpg.misp-objects-framed {
+    --misp-icon: "\e091";
+}
+
+.misp-icon-file-json.misp-objects-framed::before {
+    content: "\e092";
+}
+
+.misp-icon-file-json.misp-objects-framed {
+    --misp-icon: "\e092";
+}
+
+.misp-icon-file-js.misp-objects-framed::before {
+    content: "\e093";
+}
+
+.misp-icon-file-js.misp-objects-framed {
+    --misp-icon: "\e093";
+}
+
+.misp-icon-file-lnk.misp-objects-framed::before {
+    content: "\e094";
+}
+
+.misp-icon-file-lnk.misp-objects-framed {
+    --misp-icon: "\e094";
+}
+
+.misp-icon-file-mp3.misp-objects-framed::before {
+    content: "\e095";
+}
+
+.misp-icon-file-mp3.misp-objects-framed {
+    --misp-icon: "\e095";
+}
+
+.misp-icon-file-mp4.misp-objects-framed::before {
+    content: "\e096";
+}
+
+.misp-icon-file-mp4.misp-objects-framed {
+    --misp-icon: "\e096";
+}
+
+.misp-icon-file-msg.misp-objects-framed::before {
+    content: "\e097";
+}
+
+.misp-icon-file-msg.misp-objects-framed {
+    --misp-icon: "\e097";
+}
+
+.misp-icon-file-pcap.misp-objects-framed::before {
+    content: "\e098";
+}
+
+.misp-icon-file-pcap.misp-objects-framed {
+    --misp-icon: "\e098";
+}
+
+.misp-icon-file-pdf.misp-objects-framed::before {
+    content: "\e099";
+}
+
+.misp-icon-file-pdf.misp-objects-framed {
+    --misp-icon: "\e099";
+}
+
+.misp-icon-file-png.misp-objects-framed::before {
+    content: "\e09a";
+}
+
+.misp-icon-file-png.misp-objects-framed {
+    --misp-icon: "\e09a";
+}
+
+.misp-icon-file-ppt.misp-objects-framed::before {
+    content: "\e09b";
+}
+
+.misp-icon-file-ppt.misp-objects-framed {
+    --misp-icon: "\e09b";
+}
+
+.misp-icon-file-pptx.misp-objects-framed::before {
+    content: "\e09c";
+}
+
+.misp-icon-file-pptx.misp-objects-framed {
+    --misp-icon: "\e09c";
+}
+
+.misp-icon-file-ps1.misp-objects-framed::before {
+    content: "\e09d";
+}
+
+.misp-icon-file-ps1.misp-objects-framed {
+    --misp-icon: "\e09d";
+}
+
+.misp-icon-file-py.misp-objects-framed::before {
+    content: "\e09e";
+}
+
+.misp-icon-file-py.misp-objects-framed {
+    --misp-icon: "\e09e";
+}
+
+.misp-icon-file-rar.misp-objects-framed::before {
+    content: "\e09f";
+}
+
+.misp-icon-file-rar.misp-objects-framed {
+    --misp-icon: "\e09f";
+}
+
+.misp-icon-file-rtf.misp-objects-framed::before {
+    content: "\e0a0";
+}
+
+.misp-icon-file-rtf.misp-objects-framed {
+    --misp-icon: "\e0a0";
+}
+
+.misp-icon-file-sh.misp-objects-framed::before {
+    content: "\e0a1";
+}
+
+.misp-icon-file-sh.misp-objects-framed {
+    --misp-icon: "\e0a1";
+}
+
+.misp-icon-file.misp-objects-framed::before {
+    content: "\e0a2";
+}
+
+.misp-icon-file.misp-objects-framed {
+    --misp-icon: "\e0a2";
+}
+
+.misp-icon-file-svg.misp-objects-framed::before {
+    content: "\e0a3";
+}
+
+.misp-icon-file-svg.misp-objects-framed {
+    --misp-icon: "\e0a3";
+}
+
+.misp-icon-file-txt.misp-objects-framed::before {
+    content: "\e0a4";
+}
+
+.misp-icon-file-txt.misp-objects-framed {
+    --misp-icon: "\e0a4";
+}
+
+.misp-icon-file-vbs.misp-objects-framed::before {
+    content: "\e0a5";
+}
+
+.misp-icon-file-vbs.misp-objects-framed {
+    --misp-icon: "\e0a5";
+}
+
+.misp-icon-file-xls.misp-objects-framed::before {
+    content: "\e0a6";
+}
+
+.misp-icon-file-xls.misp-objects-framed {
+    --misp-icon: "\e0a6";
+}
+
+.misp-icon-file-xlsx.misp-objects-framed::before {
+    content: "\e0a7";
+}
+
+.misp-icon-file-xlsx.misp-objects-framed {
+    --misp-icon: "\e0a7";
+}
+
+.misp-icon-file-xml.misp-objects-framed::before {
+    content: "\e0a8";
+}
+
+.misp-icon-file-xml.misp-objects-framed {
+    --misp-icon: "\e0a8";
+}
+
+.misp-icon-file-zip.misp-objects-framed::before {
+    content: "\e0a9";
+}
+
+.misp-icon-file-zip.misp-objects-framed {
+    --misp-icon: "\e0a9";
+}
+
+.misp-icon-forensic-case.misp-objects-framed::before {
+    content: "\e0aa";
+}
+
+.misp-icon-forensic-case.misp-objects-framed {
+    --misp-icon: "\e0aa";
+}
+
+.misp-icon-forensic-evidence.misp-objects-framed::before {
+    content: "\e0ab";
+}
+
+.misp-icon-forensic-evidence.misp-objects-framed {
+    --misp-icon: "\e0ab";
+}
+
+.misp-icon-forged-document.misp-objects-framed::before {
+    content: "\e0ac";
+}
+
+.misp-icon-forged-document.misp-objects-framed {
+    --misp-icon: "\e0ac";
+}
+
+.misp-icon-geojson.misp-objects-framed::before {
+    content: "\e0ad";
+}
+
+.misp-icon-geojson.misp-objects-framed {
+    --misp-icon: "\e0ad";
+}
+
+.misp-icon-geolocation.misp-objects-framed::before {
+    content: "\e0ae";
+}
+
+.misp-icon-geolocation.misp-objects-framed {
+    --misp-icon: "\e0ae";
+}
+
+.misp-icon-ghidra-function.misp-objects-framed::before {
+    content: "\e0af";
+}
+
+.misp-icon-ghidra-function.misp-objects-framed {
+    --misp-icon: "\e0af";
+}
+
+.misp-icon-github-action.misp-objects-framed::before {
+    content: "\e0b0";
+}
+
+.misp-icon-github-action.misp-objects-framed {
+    --misp-icon: "\e0b0";
+}
+
+.misp-icon-github-repo.misp-objects-framed::before {
+    content: "\e0b1";
+}
+
+.misp-icon-github-repo.misp-objects-framed {
+    --misp-icon: "\e0b1";
+}
+
+.misp-icon-github-user.misp-objects-framed::before {
+    content: "\e0b2";
+}
+
+.misp-icon-github-user.misp-objects-framed {
+    --misp-icon: "\e0b2";
+}
+
+.misp-icon-gitlab-user.misp-objects-framed::before {
+    content: "\e0b3";
+}
+
+.misp-icon-gitlab-user.misp-objects-framed {
+    --misp-icon: "\e0b3";
+}
+
+.misp-icon-google-account.misp-objects-framed::before {
+    content: "\e0b4";
+}
+
+.misp-icon-google-account.misp-objects-framed {
+    --misp-icon: "\e0b4";
+}
+
+.misp-icon-google-threat-intelligence-report.misp-objects-framed::before {
+    content: "\e0b5";
+}
+
+.misp-icon-google-threat-intelligence-report.misp-objects-framed {
+    --misp-icon: "\e0b5";
+}
+
+.misp-icon-gpx.misp-objects-framed::before {
+    content: "\e0b6";
+}
+
+.misp-icon-gpx.misp-objects-framed {
+    --misp-icon: "\e0b6";
+}
+
+.misp-icon-http-request.misp-objects-framed::before {
+    content: "\e0b7";
+}
+
+.misp-icon-http-request.misp-objects-framed {
+    --misp-icon: "\e0b7";
+}
+
+.misp-icon-identity.misp-objects-framed::before {
+    content: "\e0b8";
+}
+
+.misp-icon-identity.misp-objects-framed {
+    --misp-icon: "\e0b8";
+}
+
+.misp-icon-image.misp-objects-framed::before {
+    content: "\e0b9";
+}
+
+.misp-icon-image.misp-objects-framed {
+    --misp-icon: "\e0b9";
+}
+
+.misp-icon-impersonation.misp-objects-framed::before {
+    content: "\e0ba";
+}
+
+.misp-icon-impersonation.misp-objects-framed {
+    --misp-icon: "\e0ba";
+}
+
+.misp-icon-incident.misp-objects-framed::before {
+    content: "\e0bb";
+}
+
+.misp-icon-incident.misp-objects-framed {
+    --misp-icon: "\e0bb";
+}
+
+.misp-icon-infrastructure.misp-objects-framed::before {
+    content: "\e0bc";
+}
+
+.misp-icon-infrastructure.misp-objects-framed {
+    --misp-icon: "\e0bc";
+}
+
+.misp-icon-instagram-account.misp-objects-framed::before {
+    content: "\e0bd";
+}
+
+.misp-icon-instagram-account.misp-objects-framed {
+    --misp-icon: "\e0bd";
+}
+
+.misp-icon-instant-message.misp-objects-framed::before {
+    content: "\e0be";
+}
+
+.misp-icon-instant-message.misp-objects-framed {
+    --misp-icon: "\e0be";
+}
+
+.misp-icon-intelligence-report.misp-objects-framed::before {
+    content: "\e0bf";
+}
+
+.misp-icon-intelligence-report.misp-objects-framed {
+    --misp-icon: "\e0bf";
+}
+
+.misp-icon-intrusion-set.misp-objects-framed::before {
+    content: "\e0c0";
+}
+
+.misp-icon-intrusion-set.misp-objects-framed {
+    --misp-icon: "\e0c0";
+}
+
+.misp-icon-iot-device.misp-objects-framed::before {
+    content: "\e0c1";
+}
+
+.misp-icon-iot-device.misp-objects-framed {
+    --misp-icon: "\e0c1";
+}
+
+.misp-icon-iot-firmware.misp-objects-framed::before {
+    content: "\e0c2";
+}
+
+.misp-icon-iot-firmware.misp-objects-framed {
+    --misp-icon: "\e0c2";
+}
+
+.misp-icon-ip-port.misp-objects-framed::before {
+    content: "\e0c3";
+}
+
+.misp-icon-ip-port.misp-objects-framed {
+    --misp-icon: "\e0c3";
+}
+
+.misp-icon-irc.misp-objects-framed::before {
+    content: "\e0c4";
+}
+
+.misp-icon-irc.misp-objects-framed {
+    --misp-icon: "\e0c4";
+}
+
+.misp-icon-ja3.misp-objects-framed::before {
+    content: "\e0c5";
+}
+
+.misp-icon-ja3.misp-objects-framed {
+    --misp-icon: "\e0c5";
+}
+
+.misp-icon-keybase-account.misp-objects-framed::before {
+    content: "\e0c6";
+}
+
+.misp-icon-keybase-account.misp-objects-framed {
+    --misp-icon: "\e0c6";
+}
+
+.misp-icon-leaked-document.misp-objects-framed::before {
+    content: "\e0c7";
+}
+
+.misp-icon-leaked-document.misp-objects-framed {
+    --misp-icon: "\e0c7";
+}
+
+.misp-icon-legal-entity.misp-objects-framed::before {
+    content: "\e0c8";
+}
+
+.misp-icon-legal-entity.misp-objects-framed {
+    --misp-icon: "\e0c8";
+}
+
+.misp-icon-lnk.misp-objects-framed::before {
+    content: "\e0c9";
+}
+
+.misp-icon-lnk.misp-objects-framed {
+    --misp-icon: "\e0c9";
+}
+
+.misp-icon-macho.misp-objects-framed::before {
+    content: "\e0ca";
+}
+
+.misp-icon-macho.misp-objects-framed {
+    --misp-icon: "\e0ca";
+}
+
+.misp-icon-malicious-website.misp-objects-framed::before {
+    content: "\e0cb";
+}
+
+.misp-icon-malicious-website.misp-objects-framed {
+    --misp-icon: "\e0cb";
+}
+
+.misp-icon-malware-analysis.misp-objects-framed::before {
+    content: "\e0cc";
+}
+
+.misp-icon-malware-analysis.misp-objects-framed {
+    --misp-icon: "\e0cc";
+}
+
+.misp-icon-malware-config.misp-objects-framed::before {
+    content: "\e0cd";
+}
+
+.misp-icon-malware-config.misp-objects-framed {
+    --misp-icon: "\e0cd";
+}
+
+.misp-icon-malware.misp-objects-framed::before {
+    content: "\e0ce";
+}
+
+.misp-icon-malware.misp-objects-framed {
+    --misp-icon: "\e0ce";
+}
+
+.misp-icon-microblog.misp-objects-framed::before {
+    content: "\e0cf";
+}
+
+.misp-icon-microblog.misp-objects-framed {
+    --misp-icon: "\e0cf";
+}
+
+.misp-icon-mutex.misp-objects-framed::before {
+    content: "\e0d0";
+}
+
+.misp-icon-mutex.misp-objects-framed {
+    --misp-icon: "\e0d0";
+}
+
+.misp-icon-netflow.misp-objects-framed::before {
+    content: "\e0d1";
+}
+
+.misp-icon-netflow.misp-objects-framed {
+    --misp-icon: "\e0d1";
+}
+
+.misp-icon-network-connection.misp-objects-framed::before {
+    content: "\e0d2";
+}
+
+.misp-icon-network-connection.misp-objects-framed {
+    --misp-icon: "\e0d2";
+}
+
+.misp-icon-network-data.misp-objects-framed::before {
+    content: "\e0d3";
+}
+
+.misp-icon-network-data.misp-objects-framed {
+    --misp-icon: "\e0d3";
+}
+
+.misp-icon-network-profile.misp-objects-framed::before {
+    content: "\e0d4";
+}
+
+.misp-icon-network-profile.misp-objects-framed {
+    --misp-icon: "\e0d4";
+}
+
+.misp-icon-network-socket.misp-objects-framed::before {
+    content: "\e0d5";
+}
+
+.misp-icon-network-socket.misp-objects-framed {
+    --misp-icon: "\e0d5";
+}
+
+.misp-icon-network-traffic.misp-objects-framed::before {
+    content: "\e0d6";
+}
+
+.misp-icon-network-traffic.misp-objects-framed {
+    --misp-icon: "\e0d6";
+}
+
+.misp-icon-news-agency.misp-objects-framed::before {
+    content: "\e0d7";
+}
+
+.misp-icon-news-agency.misp-objects-framed {
+    --misp-icon: "\e0d7";
+}
+
+.misp-icon-news-media.misp-objects-framed::before {
+    content: "\e0d8";
+}
+
+.misp-icon-news-media.misp-objects-framed {
+    --misp-icon: "\e0d8";
+}
+
+.misp-icon-nse-script.misp-objects-framed::before {
+    content: "\e0d9";
+}
+
+.misp-icon-nse-script.misp-objects-framed {
+    --misp-icon: "\e0d9";
+}
+
+.misp-icon-organization.misp-objects-framed::before {
+    content: "\e0da";
+}
+
+.misp-icon-organization.misp-objects-framed {
+    --misp-icon: "\e0da";
+}
+
+.misp-icon-passive-dns-dnsdbflex.misp-objects-framed::before {
+    content: "\e0db";
+}
+
+.misp-icon-passive-dns-dnsdbflex.misp-objects-framed {
+    --misp-icon: "\e0db";
+}
+
+.misp-icon-passive-dns.misp-objects-framed::before {
+    content: "\e0dc";
+}
+
+.misp-icon-passive-dns.misp-objects-framed {
+    --misp-icon: "\e0dc";
+}
+
+.misp-icon-passive-ssh.misp-objects-framed::before {
+    content: "\e0dd";
+}
+
+.misp-icon-passive-ssh.misp-objects-framed {
+    --misp-icon: "\e0dd";
+}
+
+.misp-icon-paste.misp-objects-framed::before {
+    content: "\e0de";
+}
+
+.misp-icon-paste.misp-objects-framed {
+    --misp-icon: "\e0de";
+}
+
+.misp-icon-personification.misp-objects-framed::before {
+    content: "\e0df";
+}
+
+.misp-icon-personification.misp-objects-framed {
+    --misp-icon: "\e0df";
+}
+
+.misp-icon-person.misp-objects-framed::before {
+    content: "\e0e0";
+}
+
+.misp-icon-person.misp-objects-framed {
+    --misp-icon: "\e0e0";
+}
+
+.misp-icon-pe-section.misp-objects-framed::before {
+    content: "\e0e1";
+}
+
+.misp-icon-pe-section.misp-objects-framed {
+    --misp-icon: "\e0e1";
+}
+
+.misp-icon-pe.misp-objects-framed::before {
+    content: "\e0e2";
+}
+
+.misp-icon-pe.misp-objects-framed {
+    --misp-icon: "\e0e2";
+}
+
+.misp-icon-phishing-kit.misp-objects-framed::before {
+    content: "\e0e3";
+}
+
+.misp-icon-phishing-kit.misp-objects-framed {
+    --misp-icon: "\e0e3";
+}
+
+.misp-icon-phishing.misp-objects-framed::before {
+    content: "\e0e4";
+}
+
+.misp-icon-phishing.misp-objects-framed {
+    --misp-icon: "\e0e4";
+}
+
+.misp-icon-phone-number.misp-objects-framed::before {
+    content: "\e0e5";
+}
+
+.misp-icon-phone-number.misp-objects-framed {
+    --misp-icon: "\e0e5";
+}
+
+.misp-icon-phone.misp-objects-framed::before {
+    content: "\e0e6";
+}
+
+.misp-icon-phone.misp-objects-framed {
+    --misp-icon: "\e0e6";
+}
+
+.misp-icon-physical-impact.misp-objects-framed::before {
+    content: "\e0e7";
+}
+
+.misp-icon-physical-impact.misp-objects-framed {
+    --misp-icon: "\e0e7";
+}
+
+.misp-icon-postal-address.misp-objects-framed::before {
+    content: "\e0e8";
+}
+
+.misp-icon-postal-address.misp-objects-framed {
+    --misp-icon: "\e0e8";
+}
+
+.misp-icon-process.misp-objects-framed::before {
+    content: "\e0e9";
+}
+
+.misp-icon-process.misp-objects-framed {
+    --misp-icon: "\e0e9";
+}
+
+.misp-icon-query.misp-objects-framed::before {
+    content: "\e0ea";
+}
+
+.misp-icon-query.misp-objects-framed {
+    --misp-icon: "\e0ea";
+}
+
+.misp-icon-reddit-account.misp-objects-framed::before {
+    content: "\e0eb";
+}
+
+.misp-icon-reddit-account.misp-objects-framed {
+    --misp-icon: "\e0eb";
+}
+
+.misp-icon-reddit-comment.misp-objects-framed::before {
+    content: "\e0ec";
+}
+
+.misp-icon-reddit-comment.misp-objects-framed {
+    --misp-icon: "\e0ec";
+}
+
+.misp-icon-reddit-post.misp-objects-framed::before {
+    content: "\e0ed";
+}
+
+.misp-icon-reddit-post.misp-objects-framed {
+    --misp-icon: "\e0ed";
+}
+
+.misp-icon-reddit-subreddit.misp-objects-framed::before {
+    content: "\e0ee";
+}
+
+.misp-icon-reddit-subreddit.misp-objects-framed {
+    --misp-icon: "\e0ee";
+}
+
+.misp-icon-regexp.misp-objects-framed::before {
+    content: "\e0ef";
+}
+
+.misp-icon-regexp.misp-objects-framed {
+    --misp-icon: "\e0ef";
+}
+
+.misp-icon-registry-key.misp-objects-framed::before {
+    content: "\e0f0";
+}
+
+.misp-icon-registry-key.misp-objects-framed {
+    --misp-icon: "\e0f0";
+}
+
+.misp-icon-registry-key-value.misp-objects-framed::before {
+    content: "\e0f1";
+}
+
+.misp-icon-registry-key-value.misp-objects-framed {
+    --misp-icon: "\e0f1";
+}
+
+.misp-icon-report.misp-objects-framed::before {
+    content: "\e0f2";
+}
+
+.misp-icon-report.misp-objects-framed {
+    --misp-icon: "\e0f2";
+}
+
+.misp-icon-risk-assessment-report.misp-objects-framed::before {
+    content: "\e0f3";
+}
+
+.misp-icon-risk-assessment-report.misp-objects-framed {
+    --misp-icon: "\e0f3";
+}
+
+.misp-icon-sandbox-report.misp-objects-framed::before {
+    content: "\e0f4";
+}
+
+.misp-icon-sandbox-report.misp-objects-framed {
+    --misp-icon: "\e0f4";
+}
+
+.misp-icon-scan-result.misp-objects-framed::before {
+    content: "\e0f5";
+}
+
+.misp-icon-scan-result.misp-objects-framed {
+    --misp-icon: "\e0f5";
+}
+
+.misp-icon-scheduled-event.misp-objects-framed::before {
+    content: "\e0f6";
+}
+
+.misp-icon-scheduled-event.misp-objects-framed {
+    --misp-icon: "\e0f6";
+}
+
+.misp-icon-scheduled-task.misp-objects-framed::before {
+    content: "\e0f7";
+}
+
+.misp-icon-scheduled-task.misp-objects-framed {
+    --misp-icon: "\e0f7";
+}
+
+.misp-icon-script.misp-objects-framed::before {
+    content: "\e0f8";
+}
+
+.misp-icon-script.misp-objects-framed {
+    --misp-icon: "\e0f8";
+}
+
+.misp-icon-service.misp-objects-framed::before {
+    content: "\e0f9";
+}
+
+.misp-icon-service.misp-objects-framed {
+    --misp-icon: "\e0f9";
+}
+
+.misp-icon-shell-commands.misp-objects-framed::before {
+    content: "\e0fa";
+}
+
+.misp-icon-shell-commands.misp-objects-framed {
+    --misp-icon: "\e0fa";
+}
+
+.misp-icon-shortened-link.misp-objects-framed::before {
+    content: "\e0fb";
+}
+
+.misp-icon-shortened-link.misp-objects-framed {
+    --misp-icon: "\e0fb";
+}
+
+.misp-icon-software-package.misp-objects-framed::before {
+    content: "\e0fc";
+}
+
+.misp-icon-software-package.misp-objects-framed {
+    --misp-icon: "\e0fc";
+}
+
+.misp-icon-software.misp-objects-framed::before {
+    content: "\e0fd";
+}
+
+.misp-icon-software.misp-objects-framed {
+    --misp-icon: "\e0fd";
+}
+
+.misp-icon-spearphishing-attachment.misp-objects-framed::before {
+    content: "\e0fe";
+}
+
+.misp-icon-spearphishing-attachment.misp-objects-framed {
+    --misp-icon: "\e0fe";
+}
+
+.misp-icon-spearphishing-campaign.misp-objects-framed::before {
+    content: "\e0ff";
+}
+
+.misp-icon-spearphishing-campaign.misp-objects-framed {
+    --misp-icon: "\e0ff";
+}
+
+.misp-icon-spearphishing-link.misp-objects-framed::before {
+    content: "\e100";
+}
+
+.misp-icon-spearphishing-link.misp-objects-framed {
+    --misp-icon: "\e100";
+}
+
+.misp-icon-splunk.misp-objects-framed::before {
+    content: "\e101";
+}
+
+.misp-icon-splunk.misp-objects-framed {
+    --misp-icon: "\e101";
+}
+
+.misp-icon-ssh-authorized-keys.misp-objects-framed::before {
+    content: "\e102";
+}
+
+.misp-icon-ssh-authorized-keys.misp-objects-framed {
+    --misp-icon: "\e102";
+}
+
+.misp-icon-stix2-pattern.misp-objects-framed::before {
+    content: "\e103";
+}
+
+.misp-icon-stix2-pattern.misp-objects-framed {
+    --misp-icon: "\e103";
+}
+
+.misp-icon-suricata.misp-objects-framed::before {
+    content: "\e104";
+}
+
+.misp-icon-suricata.misp-objects-framed {
+    --misp-icon: "\e104";
+}
+
+.misp-icon-task.misp-objects-framed::before {
+    content: "\e105";
+}
+
+.misp-icon-task.misp-objects-framed {
+    --misp-icon: "\e105";
+}
+
+.misp-icon-telegram-account.misp-objects-framed::before {
+    content: "\e106";
+}
+
+.misp-icon-telegram-account.misp-objects-framed {
+    --misp-icon: "\e106";
+}
+
+.misp-icon-telegram-bot.misp-objects-framed::before {
+    content: "\e107";
+}
+
+.misp-icon-telegram-bot.misp-objects-framed {
+    --misp-icon: "\e107";
+}
+
+.misp-icon-temporal-event.misp-objects-framed::before {
+    content: "\e108";
+}
+
+.misp-icon-temporal-event.misp-objects-framed {
+    --misp-icon: "\e108";
+}
+
+.misp-icon-terminal-output.misp-objects-framed::before {
+    content: "\e109";
+}
+
+.misp-icon-terminal-output.misp-objects-framed {
+    --misp-icon: "\e109";
+}
+
+.misp-icon-timestamp.misp-objects-framed::before {
+    content: "\e10a";
+}
+
+.misp-icon-timestamp.misp-objects-framed {
+    --misp-icon: "\e10a";
+}
+
+.misp-icon-tor-hiddenservice.misp-objects-framed::before {
+    content: "\e10b";
+}
+
+.misp-icon-tor-hiddenservice.misp-objects-framed {
+    --misp-icon: "\e10b";
+}
+
+.misp-icon-tor-node.misp-objects-framed::before {
+    content: "\e10c";
+}
+
+.misp-icon-tor-node.misp-objects-framed {
+    --misp-icon: "\e10c";
+}
+
+.misp-icon-transaction.misp-objects-framed::before {
+    content: "\e10d";
+}
+
+.misp-icon-transaction.misp-objects-framed {
+    --misp-icon: "\e10d";
+}
+
+.misp-icon-translation.misp-objects-framed::before {
+    content: "\e10e";
+}
+
+.misp-icon-translation.misp-objects-framed {
+    --misp-icon: "\e10e";
+}
+
+.misp-icon-transport-ticket.misp-objects-framed::before {
+    content: "\e10f";
+}
+
+.misp-icon-transport-ticket.misp-objects-framed {
+    --misp-icon: "\e10f";
+}
+
+.misp-icon-twitter-account.misp-objects-framed::before {
+    content: "\e110";
+}
+
+.misp-icon-twitter-account.misp-objects-framed {
+    --misp-icon: "\e110";
+}
+
+.misp-icon-twitter-list.misp-objects-framed::before {
+    content: "\e111";
+}
+
+.misp-icon-twitter-list.misp-objects-framed {
+    --misp-icon: "\e111";
+}
+
+.misp-icon-twitter-post.misp-objects-framed::before {
+    content: "\e112";
+}
+
+.misp-icon-twitter-post.misp-objects-framed {
+    --misp-icon: "\e112";
+}
+
+.misp-icon-uav.misp-objects-framed::before {
+    content: "\e113";
+}
+
+.misp-icon-uav.misp-objects-framed {
+    --misp-icon: "\e113";
+}
+
+.misp-icon-url.misp-objects-framed::before {
+    content: "\e114";
+}
+
+.misp-icon-url.misp-objects-framed {
+    --misp-icon: "\e114";
+}
+
+.misp-icon-user-account.misp-objects-framed::before {
+    content: "\e115";
+}
+
+.misp-icon-user-account.misp-objects-framed {
+    --misp-icon: "\e115";
+}
+
+.misp-icon-user-action.misp-objects-framed::before {
+    content: "\e116";
+}
+
+.misp-icon-user-action.misp-objects-framed {
+    --misp-icon: "\e116";
+}
+
+.misp-icon-vehicle.misp-objects-framed::before {
+    content: "\e117";
+}
+
+.misp-icon-vehicle.misp-objects-framed {
+    --misp-icon: "\e117";
+}
+
+.misp-icon-victim.misp-objects-framed::before {
+    content: "\e118";
+}
+
+.misp-icon-victim.misp-objects-framed {
+    --misp-icon: "\e118";
+}
+
+.misp-icon-virustotal-graph.misp-objects-framed::before {
+    content: "\e119";
+}
+
+.misp-icon-virustotal-graph.misp-objects-framed {
+    --misp-icon: "\e119";
+}
+
+.misp-icon-virustotal-report.misp-objects-framed::before {
+    content: "\e11a";
+}
+
+.misp-icon-virustotal-report.misp-objects-framed {
+    --misp-icon: "\e11a";
+}
+
+.misp-icon-virustotal-submission.misp-objects-framed::before {
+    content: "\e11b";
+}
+
+.misp-icon-virustotal-submission.misp-objects-framed {
+    --misp-icon: "\e11b";
+}
+
+.misp-icon-vulnerability.misp-objects-framed::before {
+    content: "\e11c";
+}
+
+.misp-icon-vulnerability.misp-objects-framed {
+    --misp-icon: "\e11c";
+}
+
+.misp-icon-weakness.misp-objects-framed::before {
+    content: "\e11d";
+}
+
+.misp-icon-weakness.misp-objects-framed {
+    --misp-icon: "\e11d";
+}
+
+.misp-icon-whois.misp-objects-framed::before {
+    content: "\e11e";
+}
+
+.misp-icon-whois.misp-objects-framed {
+    --misp-icon: "\e11e";
+}
+
+.misp-icon-wifi-connection.misp-objects-framed::before {
+    content: "\e11f";
+}
+
+.misp-icon-wifi-connection.misp-objects-framed {
+    --misp-icon: "\e11f";
+}
+
+.misp-icon-windows-service.misp-objects-framed::before {
+    content: "\e120";
+}
+
+.misp-icon-windows-service.misp-objects-framed {
+    --misp-icon: "\e120";
+}
+
+.misp-icon-x509.misp-objects-framed::before {
+    content: "\e121";
+}
+
+.misp-icon-x509.misp-objects-framed {
+    --misp-icon: "\e121";
+}
+
+.misp-icon-x-header.misp-objects-framed::before {
+    content: "\e122";
+}
+
+.misp-icon-x-header.misp-objects-framed {
+    --misp-icon: "\e122";
+}
+
+.misp-icon-yara.misp-objects-framed::before {
+    content: "\e123";
+}
+
+.misp-icon-yara.misp-objects-framed {
+    --misp-icon: "\e123";
+}
+
+.misp-icon-youtube-channel.misp-objects-framed::before {
+    content: "\e124";
+}
+
+.misp-icon-youtube-channel.misp-objects-framed {
+    --misp-icon: "\e124";
+}
+
+.misp-icon-youtube-comment.misp-objects-framed::before {
+    content: "\e125";
+}
+
+.misp-icon-youtube-comment.misp-objects-framed {
+    --misp-icon: "\e125";
+}
+
+.misp-icon-youtube-playlist.misp-objects-framed::before {
+    content: "\e126";
+}
+
+.misp-icon-youtube-playlist.misp-objects-framed {
+    --misp-icon: "\e126";
+}
+
+.misp-icon-youtube-video.misp-objects-framed::before {
+    content: "\e127";
+}
+
+.misp-icon-youtube-video.misp-objects-framed {
+    --misp-icon: "\e127";
+}
+
+/* --- object icons --- */
+
+.misp-icon-android-app.misp-objects::before {
+    content: "\e128";
+}
+
+.misp-icon-android-app.misp-objects {
+    --misp-icon: "\e128";
+}
+
+.misp-icon-android-permission.misp-objects::before {
+    content: "\e129";
+}
+
+.misp-icon-android-permission.misp-objects {
+    --misp-icon: "\e129";
+}
+
+.misp-icon-annotation.misp-objects::before {
+    content: "\e12a";
+}
+
+.misp-icon-annotation.misp-objects {
+    --misp-icon: "\e12a";
+}
+
+.misp-icon-apk.misp-objects::before {
+    content: "\e12b";
+}
+
+.misp-icon-apk.misp-objects {
+    --misp-icon: "\e12b";
+}
+
+.misp-icon-artifact.misp-objects::before {
+    content: "\e12c";
+}
+
+.misp-icon-artifact.misp-objects {
+    --misp-icon: "\e12c";
+}
+
+.misp-icon-asn.misp-objects::before {
+    content: "\e12d";
+}
+
+.misp-icon-asn.misp-objects {
+    --misp-icon: "\e12d";
+}
+
+.misp-icon-attack-pattern.misp-objects::before {
+    content: "\e12e";
+}
+
+.misp-icon-attack-pattern.misp-objects {
+    --misp-icon: "\e12e";
+}
+
+.misp-icon-av-signature.misp-objects::before {
+    content: "\e12f";
+}
+
+.misp-icon-av-signature.misp-objects {
+    --misp-icon: "\e12f";
+}
+
+.misp-icon-bank-account.misp-objects::before {
+    content: "\e130";
+}
+
+.misp-icon-bank-account.misp-objects {
+    --misp-icon: "\e130";
+}
+
+.misp-icon-blog.misp-objects::before {
+    content: "\e131";
+}
+
+.misp-icon-blog.misp-objects {
+    --misp-icon: "\e131";
+}
+
+.misp-icon-btc-transaction.misp-objects::before {
+    content: "\e132";
+}
+
+.misp-icon-btc-transaction.misp-objects {
+    --misp-icon: "\e132";
+}
+
+.misp-icon-btc-wallet.misp-objects::before {
+    content: "\e133";
+}
+
+.misp-icon-btc-wallet.misp-objects {
+    --misp-icon: "\e133";
+}
+
+.misp-icon-c2-list.misp-objects::before {
+    content: "\e134";
+}
+
+.misp-icon-c2-list.misp-objects {
+    --misp-icon: "\e134";
+}
+
+.misp-icon-chat-message.misp-objects::before {
+    content: "\e135";
+}
+
+.misp-icon-chat-message.misp-objects {
+    --misp-icon: "\e135";
+}
+
+.misp-icon-coin-address.misp-objects::before {
+    content: "\e136";
+}
+
+.misp-icon-coin-address.misp-objects {
+    --misp-icon: "\e136";
+}
+
+.misp-icon-command-line.misp-objects::before {
+    content: "\e137";
+}
+
+.misp-icon-command-line.misp-objects {
+    --misp-icon: "\e137";
+}
+
+.misp-icon-command.misp-objects::before {
+    content: "\e138";
+}
+
+.misp-icon-command.misp-objects {
+    --misp-icon: "\e138";
+}
+
+.misp-icon-cookie.misp-objects::before {
+    content: "\e139";
+}
+
+.misp-icon-cookie.misp-objects {
+    --misp-icon: "\e139";
+}
+
+.misp-icon-course-of-action.misp-objects::before {
+    content: "\e13a";
+}
+
+.misp-icon-course-of-action.misp-objects {
+    --misp-icon: "\e13a";
+}
+
+.misp-icon-cpe-asset.misp-objects::before {
+    content: "\e13b";
+}
+
+.misp-icon-cpe-asset.misp-objects {
+    --misp-icon: "\e13b";
+}
+
+.misp-icon-credential.misp-objects::before {
+    content: "\e13c";
+}
+
+.misp-icon-credential.misp-objects {
+    --misp-icon: "\e13c";
+}
+
+.misp-icon-credit-card.misp-objects::before {
+    content: "\e13d";
+}
+
+.misp-icon-credit-card.misp-objects {
+    --misp-icon: "\e13d";
+}
+
+.misp-icon-crypto-material.misp-objects::before {
+    content: "\e13e";
+}
+
+.misp-icon-crypto-material.misp-objects {
+    --misp-icon: "\e13e";
+}
+
+.misp-icon-data-url.misp-objects::before {
+    content: "\e13f";
+}
+
+.misp-icon-data-url.misp-objects {
+    --misp-icon: "\e13f";
+}
+
+.misp-icon-ddos-config.misp-objects::before {
+    content: "\e140";
+}
+
+.misp-icon-ddos-config.misp-objects {
+    --misp-icon: "\e140";
+}
+
+.misp-icon-ddos.misp-objects::before {
+    content: "\e141";
+}
+
+.misp-icon-ddos.misp-objects {
+    --misp-icon: "\e141";
+}
+
+.misp-icon-decoded-barcode.misp-objects::before {
+    content: "\e142";
+}
+
+.misp-icon-decoded-barcode.misp-objects {
+    --misp-icon: "\e142";
+}
+
+.misp-icon-decoded-qrcode.misp-objects::before {
+    content: "\e143";
+}
+
+.misp-icon-decoded-qrcode.misp-objects {
+    --misp-icon: "\e143";
+}
+
+.misp-icon-device.misp-objects::before {
+    content: "\e144";
+}
+
+.misp-icon-device.misp-objects {
+    --misp-icon: "\e144";
+}
+
+.misp-icon-diamond.misp-objects::before {
+    content: "\e145";
+}
+
+.misp-icon-diamond.misp-objects {
+    --misp-icon: "\e145";
+}
+
+.misp-icon-directory.misp-objects::before {
+    content: "\e146";
+}
+
+.misp-icon-directory.misp-objects {
+    --misp-icon: "\e146";
+}
+
+.misp-icon-dkim.misp-objects::before {
+    content: "\e147";
+}
+
+.misp-icon-dkim.misp-objects {
+    --misp-icon: "\e147";
+}
+
+.misp-icon-dns-record.misp-objects::before {
+    content: "\e148";
+}
+
+.misp-icon-dns-record.misp-objects {
+    --misp-icon: "\e148";
+}
+
+.misp-icon-domain-ip.misp-objects::before {
+    content: "\e149";
+}
+
+.misp-icon-domain-ip.misp-objects {
+    --misp-icon: "\e149";
+}
+
+.misp-icon-elf.misp-objects::before {
+    content: "\e14a";
+}
+
+.misp-icon-elf.misp-objects {
+    --misp-icon: "\e14a";
+}
+
+.misp-icon-email.misp-objects::before {
+    content: "\e14b";
+}
+
+.misp-icon-email.misp-objects {
+    --misp-icon: "\e14b";
+}
+
+.misp-icon-employee.misp-objects::before {
+    content: "\e14c";
+}
+
+.misp-icon-employee.misp-objects {
+    --misp-icon: "\e14c";
+}
+
+.misp-icon-event.misp-objects::before {
+    content: "\e14d";
+}
+
+.misp-icon-event.misp-objects {
+    --misp-icon: "\e14d";
+}
+
+.misp-icon-exploit-poc.misp-objects::before {
+    content: "\e14e";
+}
+
+.misp-icon-exploit-poc.misp-objects {
+    --misp-icon: "\e14e";
+}
+
+.misp-icon-exploit.misp-objects::before {
+    content: "\e14f";
+}
+
+.misp-icon-exploit.misp-objects {
+    --misp-icon: "\e14f";
+}
+
+.misp-icon-facebook-account.misp-objects::before {
+    content: "\e150";
+}
+
+.misp-icon-facebook-account.misp-objects {
+    --misp-icon: "\e150";
+}
+
+.misp-icon-facebook-group.misp-objects::before {
+    content: "\e151";
+}
+
+.misp-icon-facebook-group.misp-objects {
+    --misp-icon: "\e151";
+}
+
+.misp-icon-facebook-page.misp-objects::before {
+    content: "\e152";
+}
+
+.misp-icon-facebook-page.misp-objects {
+    --misp-icon: "\e152";
+}
+
+.misp-icon-facebook-post.misp-objects::before {
+    content: "\e153";
+}
+
+.misp-icon-facebook-post.misp-objects {
+    --misp-icon: "\e153";
+}
+
+.misp-icon-facebook-reaction.misp-objects::before {
+    content: "\e154";
+}
+
+.misp-icon-facebook-reaction.misp-objects {
+    --misp-icon: "\e154";
+}
+
+.misp-icon-favicon.misp-objects::before {
+    content: "\e155";
+}
+
+.misp-icon-favicon.misp-objects {
+    --misp-icon: "\e155";
+}
+
+.misp-icon-file-7z.misp-objects::before {
+    content: "\e156";
+}
+
+.misp-icon-file-7z.misp-objects {
+    --misp-icon: "\e156";
+}
+
+.misp-icon-file-apk.misp-objects::before {
+    content: "\e157";
+}
+
+.misp-icon-file-apk.misp-objects {
+    --misp-icon: "\e157";
+}
+
+.misp-icon-file-bat.misp-objects::before {
+    content: "\e158";
+}
+
+.misp-icon-file-bat.misp-objects {
+    --misp-icon: "\e158";
+}
+
+.misp-icon-file-css.misp-objects::before {
+    content: "\e159";
+}
+
+.misp-icon-file-css.misp-objects {
+    --misp-icon: "\e159";
+}
+
+.misp-icon-file-csv.misp-objects::before {
+    content: "\e15a";
+}
+
+.misp-icon-file-csv.misp-objects {
+    --misp-icon: "\e15a";
+}
+
+.misp-icon-file-dll.misp-objects::before {
+    content: "\e15b";
+}
+
+.misp-icon-file-dll.misp-objects {
+    --misp-icon: "\e15b";
+}
+
+.misp-icon-file-doc.misp-objects::before {
+    content: "\e15c";
+}
+
+.misp-icon-file-doc.misp-objects {
+    --misp-icon: "\e15c";
+}
+
+.misp-icon-file-docx.misp-objects::before {
+    content: "\e15d";
+}
+
+.misp-icon-file-docx.misp-objects {
+    --misp-icon: "\e15d";
+}
+
+.misp-icon-file-elf.misp-objects::before {
+    content: "\e15e";
+}
+
+.misp-icon-file-elf.misp-objects {
+    --misp-icon: "\e15e";
+}
+
+.misp-icon-file-eml.misp-objects::before {
+    content: "\e15f";
+}
+
+.misp-icon-file-eml.misp-objects {
+    --misp-icon: "\e15f";
+}
+
+.misp-icon-file-exe.misp-objects::before {
+    content: "\e160";
+}
+
+.misp-icon-file-exe.misp-objects {
+    --misp-icon: "\e160";
+}
+
+.misp-icon-file-gif.misp-objects::before {
+    content: "\e161";
+}
+
+.misp-icon-file-gif.misp-objects {
+    --misp-icon: "\e161";
+}
+
+.misp-icon-file-gz.misp-objects::before {
+    content: "\e162";
+}
+
+.misp-icon-file-gz.misp-objects {
+    --misp-icon: "\e162";
+}
+
+.misp-icon-file-html.misp-objects::before {
+    content: "\e163";
+}
+
+.misp-icon-file-html.misp-objects {
+    --misp-icon: "\e163";
+}
+
+.misp-icon-file-iso.misp-objects::before {
+    content: "\e164";
+}
+
+.misp-icon-file-iso.misp-objects {
+    --misp-icon: "\e164";
+}
+
+.misp-icon-file-jar.misp-objects::before {
+    content: "\e165";
+}
+
+.misp-icon-file-jar.misp-objects {
+    --misp-icon: "\e165";
+}
+
+.misp-icon-file-jpg.misp-objects::before {
+    content: "\e166";
+}
+
+.misp-icon-file-jpg.misp-objects {
+    --misp-icon: "\e166";
+}
+
+.misp-icon-file-json.misp-objects::before {
+    content: "\e167";
+}
+
+.misp-icon-file-json.misp-objects {
+    --misp-icon: "\e167";
+}
+
+.misp-icon-file-js.misp-objects::before {
+    content: "\e168";
+}
+
+.misp-icon-file-js.misp-objects {
+    --misp-icon: "\e168";
+}
+
+.misp-icon-file-lnk.misp-objects::before {
+    content: "\e169";
+}
+
+.misp-icon-file-lnk.misp-objects {
+    --misp-icon: "\e169";
+}
+
+.misp-icon-file-mp3.misp-objects::before {
+    content: "\e16a";
+}
+
+.misp-icon-file-mp3.misp-objects {
+    --misp-icon: "\e16a";
+}
+
+.misp-icon-file-mp4.misp-objects::before {
+    content: "\e16b";
+}
+
+.misp-icon-file-mp4.misp-objects {
+    --misp-icon: "\e16b";
+}
+
+.misp-icon-file-msg.misp-objects::before {
+    content: "\e16c";
+}
+
+.misp-icon-file-msg.misp-objects {
+    --misp-icon: "\e16c";
+}
+
+.misp-icon-file-pcap.misp-objects::before {
+    content: "\e16d";
+}
+
+.misp-icon-file-pcap.misp-objects {
+    --misp-icon: "\e16d";
+}
+
+.misp-icon-file-pdf.misp-objects::before {
+    content: "\e16e";
+}
+
+.misp-icon-file-pdf.misp-objects {
+    --misp-icon: "\e16e";
+}
+
+.misp-icon-file-png.misp-objects::before {
+    content: "\e16f";
+}
+
+.misp-icon-file-png.misp-objects {
+    --misp-icon: "\e16f";
+}
+
+.misp-icon-file-ppt.misp-objects::before {
+    content: "\e170";
+}
+
+.misp-icon-file-ppt.misp-objects {
+    --misp-icon: "\e170";
+}
+
+.misp-icon-file-pptx.misp-objects::before {
+    content: "\e171";
+}
+
+.misp-icon-file-pptx.misp-objects {
+    --misp-icon: "\e171";
+}
+
+.misp-icon-file-ps1.misp-objects::before {
+    content: "\e172";
+}
+
+.misp-icon-file-ps1.misp-objects {
+    --misp-icon: "\e172";
+}
+
+.misp-icon-file-py.misp-objects::before {
+    content: "\e173";
+}
+
+.misp-icon-file-py.misp-objects {
+    --misp-icon: "\e173";
+}
+
+.misp-icon-file-rar.misp-objects::before {
+    content: "\e174";
+}
+
+.misp-icon-file-rar.misp-objects {
+    --misp-icon: "\e174";
+}
+
+.misp-icon-file-rtf.misp-objects::before {
+    content: "\e175";
+}
+
+.misp-icon-file-rtf.misp-objects {
+    --misp-icon: "\e175";
+}
+
+.misp-icon-file-sh.misp-objects::before {
+    content: "\e176";
+}
+
+.misp-icon-file-sh.misp-objects {
+    --misp-icon: "\e176";
+}
+
+.misp-icon-file.misp-objects::before {
+    content: "\e177";
+}
+
+.misp-icon-file.misp-objects {
+    --misp-icon: "\e177";
+}
+
+.misp-icon-file-svg.misp-objects::before {
+    content: "\e178";
+}
+
+.misp-icon-file-svg.misp-objects {
+    --misp-icon: "\e178";
+}
+
+.misp-icon-file-txt.misp-objects::before {
+    content: "\e179";
+}
+
+.misp-icon-file-txt.misp-objects {
+    --misp-icon: "\e179";
+}
+
+.misp-icon-file-vbs.misp-objects::before {
+    content: "\e17a";
+}
+
+.misp-icon-file-vbs.misp-objects {
+    --misp-icon: "\e17a";
+}
+
+.misp-icon-file-xls.misp-objects::before {
+    content: "\e17b";
+}
+
+.misp-icon-file-xls.misp-objects {
+    --misp-icon: "\e17b";
+}
+
+.misp-icon-file-xlsx.misp-objects::before {
+    content: "\e17c";
+}
+
+.misp-icon-file-xlsx.misp-objects {
+    --misp-icon: "\e17c";
+}
+
+.misp-icon-file-xml.misp-objects::before {
+    content: "\e17d";
+}
+
+.misp-icon-file-xml.misp-objects {
+    --misp-icon: "\e17d";
+}
+
+.misp-icon-file-zip.misp-objects::before {
+    content: "\e17e";
+}
+
+.misp-icon-file-zip.misp-objects {
+    --misp-icon: "\e17e";
+}
+
+.misp-icon-forensic-case.misp-objects::before {
+    content: "\e17f";
+}
+
+.misp-icon-forensic-case.misp-objects {
+    --misp-icon: "\e17f";
+}
+
+.misp-icon-forensic-evidence.misp-objects::before {
+    content: "\e180";
+}
+
+.misp-icon-forensic-evidence.misp-objects {
+    --misp-icon: "\e180";
+}
+
+.misp-icon-forged-document.misp-objects::before {
+    content: "\e181";
+}
+
+.misp-icon-forged-document.misp-objects {
+    --misp-icon: "\e181";
+}
+
+.misp-icon-geojson.misp-objects::before {
+    content: "\e182";
+}
+
+.misp-icon-geojson.misp-objects {
+    --misp-icon: "\e182";
+}
+
+.misp-icon-geolocation.misp-objects::before {
+    content: "\e183";
+}
+
+.misp-icon-geolocation.misp-objects {
+    --misp-icon: "\e183";
+}
+
+.misp-icon-ghidra-function.misp-objects::before {
+    content: "\e184";
+}
+
+.misp-icon-ghidra-function.misp-objects {
+    --misp-icon: "\e184";
+}
+
+.misp-icon-github-action.misp-objects::before {
+    content: "\e185";
+}
+
+.misp-icon-github-action.misp-objects {
+    --misp-icon: "\e185";
+}
+
+.misp-icon-github-repo.misp-objects::before {
+    content: "\e186";
+}
+
+.misp-icon-github-repo.misp-objects {
+    --misp-icon: "\e186";
+}
+
+.misp-icon-github-user.misp-objects::before {
+    content: "\e187";
+}
+
+.misp-icon-github-user.misp-objects {
+    --misp-icon: "\e187";
+}
+
+.misp-icon-gitlab-user.misp-objects::before {
+    content: "\e188";
+}
+
+.misp-icon-gitlab-user.misp-objects {
+    --misp-icon: "\e188";
+}
+
+.misp-icon-google-account.misp-objects::before {
+    content: "\e189";
+}
+
+.misp-icon-google-account.misp-objects {
+    --misp-icon: "\e189";
+}
+
+.misp-icon-google-threat-intelligence-report.misp-objects::before {
+    content: "\e18a";
+}
+
+.misp-icon-google-threat-intelligence-report.misp-objects {
+    --misp-icon: "\e18a";
+}
+
+.misp-icon-gpx.misp-objects::before {
+    content: "\e18b";
+}
+
+.misp-icon-gpx.misp-objects {
+    --misp-icon: "\e18b";
+}
+
+.misp-icon-http-request.misp-objects::before {
+    content: "\e18c";
+}
+
+.misp-icon-http-request.misp-objects {
+    --misp-icon: "\e18c";
+}
+
+.misp-icon-identity.misp-objects::before {
+    content: "\e18d";
+}
+
+.misp-icon-identity.misp-objects {
+    --misp-icon: "\e18d";
+}
+
+.misp-icon-image.misp-objects::before {
+    content: "\e18e";
+}
+
+.misp-icon-image.misp-objects {
+    --misp-icon: "\e18e";
+}
+
+.misp-icon-impersonation.misp-objects::before {
+    content: "\e18f";
+}
+
+.misp-icon-impersonation.misp-objects {
+    --misp-icon: "\e18f";
+}
+
+.misp-icon-incident.misp-objects::before {
+    content: "\e190";
+}
+
+.misp-icon-incident.misp-objects {
+    --misp-icon: "\e190";
+}
+
+.misp-icon-infrastructure.misp-objects::before {
+    content: "\e191";
+}
+
+.misp-icon-infrastructure.misp-objects {
+    --misp-icon: "\e191";
+}
+
+.misp-icon-instagram-account.misp-objects::before {
+    content: "\e192";
+}
+
+.misp-icon-instagram-account.misp-objects {
+    --misp-icon: "\e192";
+}
+
+.misp-icon-instant-message.misp-objects::before {
+    content: "\e193";
+}
+
+.misp-icon-instant-message.misp-objects {
+    --misp-icon: "\e193";
+}
+
+.misp-icon-intelligence-report.misp-objects::before {
+    content: "\e194";
+}
+
+.misp-icon-intelligence-report.misp-objects {
+    --misp-icon: "\e194";
+}
+
+.misp-icon-intrusion-set.misp-objects::before {
+    content: "\e195";
+}
+
+.misp-icon-intrusion-set.misp-objects {
+    --misp-icon: "\e195";
+}
+
+.misp-icon-iot-device.misp-objects::before {
+    content: "\e196";
+}
+
+.misp-icon-iot-device.misp-objects {
+    --misp-icon: "\e196";
+}
+
+.misp-icon-iot-firmware.misp-objects::before {
+    content: "\e197";
+}
+
+.misp-icon-iot-firmware.misp-objects {
+    --misp-icon: "\e197";
+}
+
+.misp-icon-ip-port.misp-objects::before {
+    content: "\e198";
+}
+
+.misp-icon-ip-port.misp-objects {
+    --misp-icon: "\e198";
+}
+
+.misp-icon-irc.misp-objects::before {
+    content: "\e199";
+}
+
+.misp-icon-irc.misp-objects {
+    --misp-icon: "\e199";
+}
+
+.misp-icon-ja3.misp-objects::before {
+    content: "\e19a";
+}
+
+.misp-icon-ja3.misp-objects {
+    --misp-icon: "\e19a";
+}
+
+.misp-icon-keybase-account.misp-objects::before {
+    content: "\e19b";
+}
+
+.misp-icon-keybase-account.misp-objects {
+    --misp-icon: "\e19b";
+}
+
+.misp-icon-leaked-document.misp-objects::before {
+    content: "\e19c";
+}
+
+.misp-icon-leaked-document.misp-objects {
+    --misp-icon: "\e19c";
+}
+
+.misp-icon-legal-entity.misp-objects::before {
+    content: "\e19d";
+}
+
+.misp-icon-legal-entity.misp-objects {
+    --misp-icon: "\e19d";
+}
+
+.misp-icon-lnk.misp-objects::before {
+    content: "\e19e";
+}
+
+.misp-icon-lnk.misp-objects {
+    --misp-icon: "\e19e";
+}
+
+.misp-icon-macho.misp-objects::before {
+    content: "\e19f";
+}
+
+.misp-icon-macho.misp-objects {
+    --misp-icon: "\e19f";
+}
+
+.misp-icon-malicious-website.misp-objects::before {
+    content: "\e1a0";
+}
+
+.misp-icon-malicious-website.misp-objects {
+    --misp-icon: "\e1a0";
+}
+
+.misp-icon-malware-analysis.misp-objects::before {
+    content: "\e1a1";
+}
+
+.misp-icon-malware-analysis.misp-objects {
+    --misp-icon: "\e1a1";
+}
+
+.misp-icon-malware-config.misp-objects::before {
+    content: "\e1a2";
+}
+
+.misp-icon-malware-config.misp-objects {
+    --misp-icon: "\e1a2";
+}
+
+.misp-icon-malware.misp-objects::before {
+    content: "\e1a3";
+}
+
+.misp-icon-malware.misp-objects {
+    --misp-icon: "\e1a3";
+}
+
+.misp-icon-microblog.misp-objects::before {
+    content: "\e1a4";
+}
+
+.misp-icon-microblog.misp-objects {
+    --misp-icon: "\e1a4";
+}
+
+.misp-icon-mutex.misp-objects::before {
+    content: "\e1a5";
+}
+
+.misp-icon-mutex.misp-objects {
+    --misp-icon: "\e1a5";
+}
+
+.misp-icon-netflow.misp-objects::before {
+    content: "\e1a6";
+}
+
+.misp-icon-netflow.misp-objects {
+    --misp-icon: "\e1a6";
+}
+
+.misp-icon-network-connection.misp-objects::before {
+    content: "\e1a7";
+}
+
+.misp-icon-network-connection.misp-objects {
+    --misp-icon: "\e1a7";
+}
+
+.misp-icon-network-data.misp-objects::before {
+    content: "\e1a8";
+}
+
+.misp-icon-network-data.misp-objects {
+    --misp-icon: "\e1a8";
+}
+
+.misp-icon-network-profile.misp-objects::before {
+    content: "\e1a9";
+}
+
+.misp-icon-network-profile.misp-objects {
+    --misp-icon: "\e1a9";
+}
+
+.misp-icon-network-socket.misp-objects::before {
+    content: "\e1aa";
+}
+
+.misp-icon-network-socket.misp-objects {
+    --misp-icon: "\e1aa";
+}
+
+.misp-icon-network-traffic.misp-objects::before {
+    content: "\e1ab";
+}
+
+.misp-icon-network-traffic.misp-objects {
+    --misp-icon: "\e1ab";
+}
+
+.misp-icon-news-agency.misp-objects::before {
+    content: "\e1ac";
+}
+
+.misp-icon-news-agency.misp-objects {
+    --misp-icon: "\e1ac";
+}
+
+.misp-icon-news-media.misp-objects::before {
+    content: "\e1ad";
+}
+
+.misp-icon-news-media.misp-objects {
+    --misp-icon: "\e1ad";
+}
+
+.misp-icon-nse-script.misp-objects::before {
+    content: "\e1ae";
+}
+
+.misp-icon-nse-script.misp-objects {
+    --misp-icon: "\e1ae";
+}
+
+.misp-icon-organization.misp-objects::before {
+    content: "\e1af";
+}
+
+.misp-icon-organization.misp-objects {
+    --misp-icon: "\e1af";
+}
+
+.misp-icon-passive-dns-dnsdbflex.misp-objects::before {
+    content: "\e1b0";
+}
+
+.misp-icon-passive-dns-dnsdbflex.misp-objects {
+    --misp-icon: "\e1b0";
+}
+
+.misp-icon-passive-dns.misp-objects::before {
+    content: "\e1b1";
+}
+
+.misp-icon-passive-dns.misp-objects {
+    --misp-icon: "\e1b1";
+}
+
+.misp-icon-passive-ssh.misp-objects::before {
+    content: "\e1b2";
+}
+
+.misp-icon-passive-ssh.misp-objects {
+    --misp-icon: "\e1b2";
+}
+
+.misp-icon-paste.misp-objects::before {
+    content: "\e1b3";
+}
+
+.misp-icon-paste.misp-objects {
+    --misp-icon: "\e1b3";
+}
+
+.misp-icon-personification.misp-objects::before {
+    content: "\e1b4";
+}
+
+.misp-icon-personification.misp-objects {
+    --misp-icon: "\e1b4";
+}
+
+.misp-icon-person.misp-objects::before {
+    content: "\e1b5";
+}
+
+.misp-icon-person.misp-objects {
+    --misp-icon: "\e1b5";
+}
+
+.misp-icon-pe-section.misp-objects::before {
+    content: "\e1b6";
+}
+
+.misp-icon-pe-section.misp-objects {
+    --misp-icon: "\e1b6";
+}
+
+.misp-icon-pe.misp-objects::before {
+    content: "\e1b7";
+}
+
+.misp-icon-pe.misp-objects {
+    --misp-icon: "\e1b7";
+}
+
+.misp-icon-phishing-kit.misp-objects::before {
+    content: "\e1b8";
+}
+
+.misp-icon-phishing-kit.misp-objects {
+    --misp-icon: "\e1b8";
+}
+
+.misp-icon-phishing.misp-objects::before {
+    content: "\e1b9";
+}
+
+.misp-icon-phishing.misp-objects {
+    --misp-icon: "\e1b9";
+}
+
+.misp-icon-phone-number.misp-objects::before {
+    content: "\e1ba";
+}
+
+.misp-icon-phone-number.misp-objects {
+    --misp-icon: "\e1ba";
+}
+
+.misp-icon-phone.misp-objects::before {
+    content: "\e1bb";
+}
+
+.misp-icon-phone.misp-objects {
+    --misp-icon: "\e1bb";
+}
+
+.misp-icon-physical-impact.misp-objects::before {
+    content: "\e1bc";
+}
+
+.misp-icon-physical-impact.misp-objects {
+    --misp-icon: "\e1bc";
+}
+
+.misp-icon-postal-address.misp-objects::before {
+    content: "\e1bd";
+}
+
+.misp-icon-postal-address.misp-objects {
+    --misp-icon: "\e1bd";
+}
+
+.misp-icon-process.misp-objects::before {
+    content: "\e1be";
+}
+
+.misp-icon-process.misp-objects {
+    --misp-icon: "\e1be";
+}
+
+.misp-icon-query.misp-objects::before {
+    content: "\e1bf";
+}
+
+.misp-icon-query.misp-objects {
+    --misp-icon: "\e1bf";
+}
+
+.misp-icon-reddit-account.misp-objects::before {
+    content: "\e1c0";
+}
+
+.misp-icon-reddit-account.misp-objects {
+    --misp-icon: "\e1c0";
+}
+
+.misp-icon-reddit-comment.misp-objects::before {
+    content: "\e1c1";
+}
+
+.misp-icon-reddit-comment.misp-objects {
+    --misp-icon: "\e1c1";
+}
+
+.misp-icon-reddit-post.misp-objects::before {
+    content: "\e1c2";
+}
+
+.misp-icon-reddit-post.misp-objects {
+    --misp-icon: "\e1c2";
+}
+
+.misp-icon-reddit-subreddit.misp-objects::before {
+    content: "\e1c3";
+}
+
+.misp-icon-reddit-subreddit.misp-objects {
+    --misp-icon: "\e1c3";
+}
+
+.misp-icon-regexp.misp-objects::before {
+    content: "\e1c4";
+}
+
+.misp-icon-regexp.misp-objects {
+    --misp-icon: "\e1c4";
+}
+
+.misp-icon-registry-key.misp-objects::before {
+    content: "\e1c5";
+}
+
+.misp-icon-registry-key.misp-objects {
+    --misp-icon: "\e1c5";
+}
+
+.misp-icon-registry-key-value.misp-objects::before {
+    content: "\e1c6";
+}
+
+.misp-icon-registry-key-value.misp-objects {
+    --misp-icon: "\e1c6";
+}
+
+.misp-icon-report.misp-objects::before {
+    content: "\e1c7";
+}
+
+.misp-icon-report.misp-objects {
+    --misp-icon: "\e1c7";
+}
+
+.misp-icon-risk-assessment-report.misp-objects::before {
+    content: "\e1c8";
+}
+
+.misp-icon-risk-assessment-report.misp-objects {
+    --misp-icon: "\e1c8";
+}
+
+.misp-icon-sandbox-report.misp-objects::before {
+    content: "\e1c9";
+}
+
+.misp-icon-sandbox-report.misp-objects {
+    --misp-icon: "\e1c9";
+}
+
+.misp-icon-scan-result.misp-objects::before {
+    content: "\e1ca";
+}
+
+.misp-icon-scan-result.misp-objects {
+    --misp-icon: "\e1ca";
+}
+
+.misp-icon-scheduled-event.misp-objects::before {
+    content: "\e1cb";
+}
+
+.misp-icon-scheduled-event.misp-objects {
+    --misp-icon: "\e1cb";
+}
+
+.misp-icon-scheduled-task.misp-objects::before {
+    content: "\e1cc";
+}
+
+.misp-icon-scheduled-task.misp-objects {
+    --misp-icon: "\e1cc";
+}
+
+.misp-icon-script.misp-objects::before {
+    content: "\e1cd";
+}
+
+.misp-icon-script.misp-objects {
+    --misp-icon: "\e1cd";
+}
+
+.misp-icon-service.misp-objects::before {
+    content: "\e1ce";
+}
+
+.misp-icon-service.misp-objects {
+    --misp-icon: "\e1ce";
+}
+
+.misp-icon-shell-commands.misp-objects::before {
+    content: "\e1cf";
+}
+
+.misp-icon-shell-commands.misp-objects {
+    --misp-icon: "\e1cf";
+}
+
+.misp-icon-shortened-link.misp-objects::before {
+    content: "\e1d0";
+}
+
+.misp-icon-shortened-link.misp-objects {
+    --misp-icon: "\e1d0";
+}
+
+.misp-icon-software-package.misp-objects::before {
+    content: "\e1d1";
+}
+
+.misp-icon-software-package.misp-objects {
+    --misp-icon: "\e1d1";
+}
+
+.misp-icon-software.misp-objects::before {
+    content: "\e1d2";
+}
+
+.misp-icon-software.misp-objects {
+    --misp-icon: "\e1d2";
+}
+
+.misp-icon-spearphishing-attachment.misp-objects::before {
+    content: "\e1d3";
+}
+
+.misp-icon-spearphishing-attachment.misp-objects {
+    --misp-icon: "\e1d3";
+}
+
+.misp-icon-spearphishing-campaign.misp-objects::before {
+    content: "\e1d4";
+}
+
+.misp-icon-spearphishing-campaign.misp-objects {
+    --misp-icon: "\e1d4";
+}
+
+.misp-icon-spearphishing-link.misp-objects::before {
+    content: "\e1d5";
+}
+
+.misp-icon-spearphishing-link.misp-objects {
+    --misp-icon: "\e1d5";
+}
+
+.misp-icon-splunk.misp-objects::before {
+    content: "\e1d6";
+}
+
+.misp-icon-splunk.misp-objects {
+    --misp-icon: "\e1d6";
+}
+
+.misp-icon-ssh-authorized-keys.misp-objects::before {
+    content: "\e1d7";
+}
+
+.misp-icon-ssh-authorized-keys.misp-objects {
+    --misp-icon: "\e1d7";
+}
+
+.misp-icon-stix2-pattern.misp-objects::before {
+    content: "\e1d8";
+}
+
+.misp-icon-stix2-pattern.misp-objects {
+    --misp-icon: "\e1d8";
+}
+
+.misp-icon-suricata.misp-objects::before {
+    content: "\e1d9";
+}
+
+.misp-icon-suricata.misp-objects {
+    --misp-icon: "\e1d9";
+}
+
+.misp-icon-task.misp-objects::before {
+    content: "\e1da";
+}
+
+.misp-icon-task.misp-objects {
+    --misp-icon: "\e1da";
+}
+
+.misp-icon-telegram-account.misp-objects::before {
+    content: "\e1db";
+}
+
+.misp-icon-telegram-account.misp-objects {
+    --misp-icon: "\e1db";
+}
+
+.misp-icon-telegram-bot.misp-objects::before {
+    content: "\e1dc";
+}
+
+.misp-icon-telegram-bot.misp-objects {
+    --misp-icon: "\e1dc";
+}
+
+.misp-icon-temporal-event.misp-objects::before {
+    content: "\e1dd";
+}
+
+.misp-icon-temporal-event.misp-objects {
+    --misp-icon: "\e1dd";
+}
+
+.misp-icon-terminal-output.misp-objects::before {
+    content: "\e1de";
+}
+
+.misp-icon-terminal-output.misp-objects {
+    --misp-icon: "\e1de";
+}
+
+.misp-icon-timestamp.misp-objects::before {
+    content: "\e1df";
+}
+
+.misp-icon-timestamp.misp-objects {
+    --misp-icon: "\e1df";
+}
+
+.misp-icon-tor-hiddenservice.misp-objects::before {
+    content: "\e1e0";
+}
+
+.misp-icon-tor-hiddenservice.misp-objects {
+    --misp-icon: "\e1e0";
+}
+
+.misp-icon-tor-node.misp-objects::before {
+    content: "\e1e1";
+}
+
+.misp-icon-tor-node.misp-objects {
+    --misp-icon: "\e1e1";
+}
+
+.misp-icon-transaction.misp-objects::before {
+    content: "\e1e2";
+}
+
+.misp-icon-transaction.misp-objects {
+    --misp-icon: "\e1e2";
+}
+
+.misp-icon-translation.misp-objects::before {
+    content: "\e1e3";
+}
+
+.misp-icon-translation.misp-objects {
+    --misp-icon: "\e1e3";
+}
+
+.misp-icon-transport-ticket.misp-objects::before {
+    content: "\e1e4";
+}
+
+.misp-icon-transport-ticket.misp-objects {
+    --misp-icon: "\e1e4";
+}
+
+.misp-icon-twitter-account.misp-objects::before {
+    content: "\e1e5";
+}
+
+.misp-icon-twitter-account.misp-objects {
+    --misp-icon: "\e1e5";
+}
+
+.misp-icon-twitter-list.misp-objects::before {
+    content: "\e1e6";
+}
+
+.misp-icon-twitter-list.misp-objects {
+    --misp-icon: "\e1e6";
+}
+
+.misp-icon-twitter-post.misp-objects::before {
+    content: "\e1e7";
+}
+
+.misp-icon-twitter-post.misp-objects {
+    --misp-icon: "\e1e7";
+}
+
+.misp-icon-uav.misp-objects::before {
+    content: "\e1e8";
+}
+
+.misp-icon-uav.misp-objects {
+    --misp-icon: "\e1e8";
+}
+
+.misp-icon-url.misp-objects::before {
+    content: "\e1e9";
+}
+
+.misp-icon-url.misp-objects {
+    --misp-icon: "\e1e9";
+}
+
+.misp-icon-user-account.misp-objects::before {
+    content: "\e1ea";
+}
+
+.misp-icon-user-account.misp-objects {
+    --misp-icon: "\e1ea";
+}
+
+.misp-icon-user-action.misp-objects::before {
+    content: "\e1eb";
+}
+
+.misp-icon-user-action.misp-objects {
+    --misp-icon: "\e1eb";
+}
+
+.misp-icon-vehicle.misp-objects::before {
+    content: "\e1ec";
+}
+
+.misp-icon-vehicle.misp-objects {
+    --misp-icon: "\e1ec";
+}
+
+.misp-icon-victim.misp-objects::before {
+    content: "\e1ed";
+}
+
+.misp-icon-victim.misp-objects {
+    --misp-icon: "\e1ed";
+}
+
+.misp-icon-virustotal-graph.misp-objects::before {
+    content: "\e1ee";
+}
+
+.misp-icon-virustotal-graph.misp-objects {
+    --misp-icon: "\e1ee";
+}
+
+.misp-icon-virustotal-report.misp-objects::before {
+    content: "\e1ef";
+}
+
+.misp-icon-virustotal-report.misp-objects {
+    --misp-icon: "\e1ef";
+}
+
+.misp-icon-virustotal-submission.misp-objects::before {
+    content: "\e1f0";
+}
+
+.misp-icon-virustotal-submission.misp-objects {
+    --misp-icon: "\e1f0";
+}
+
+.misp-icon-vulnerability.misp-objects::before {
+    content: "\e1f1";
+}
+
+.misp-icon-vulnerability.misp-objects {
+    --misp-icon: "\e1f1";
+}
+
+.misp-icon-weakness.misp-objects::before {
+    content: "\e1f2";
+}
+
+.misp-icon-weakness.misp-objects {
+    --misp-icon: "\e1f2";
+}
+
+.misp-icon-whois.misp-objects::before {
+    content: "\e1f3";
+}
+
+.misp-icon-whois.misp-objects {
+    --misp-icon: "\e1f3";
+}
+
+.misp-icon-wifi-connection.misp-objects::before {
+    content: "\e1f4";
+}
+
+.misp-icon-wifi-connection.misp-objects {
+    --misp-icon: "\e1f4";
+}
+
+.misp-icon-windows-service.misp-objects::before {
+    content: "\e1f5";
+}
+
+.misp-icon-windows-service.misp-objects {
+    --misp-icon: "\e1f5";
+}
+
+.misp-icon-x509.misp-objects::before {
+    content: "\e1f6";
+}
+
+.misp-icon-x509.misp-objects {
+    --misp-icon: "\e1f6";
+}
+
+.misp-icon-x-header.misp-objects::before {
+    content: "\e1f7";
+}
+
+.misp-icon-x-header.misp-objects {
+    --misp-icon: "\e1f7";
+}
+
+.misp-icon-yara.misp-objects::before {
+    content: "\e1f8";
+}
+
+.misp-icon-yara.misp-objects {
+    --misp-icon: "\e1f8";
+}
+
+.misp-icon-youtube-channel.misp-objects::before {
+    content: "\e1f9";
+}
+
+.misp-icon-youtube-channel.misp-objects {
+    --misp-icon: "\e1f9";
+}
+
+.misp-icon-youtube-comment.misp-objects::before {
+    content: "\e1fa";
+}
+
+.misp-icon-youtube-comment.misp-objects {
+    --misp-icon: "\e1fa";
+}
+
+.misp-icon-youtube-playlist.misp-objects::before {
+    content: "\e1fb";
+}
+
+.misp-icon-youtube-playlist.misp-objects {
+    --misp-icon: "\e1fb";
+}
+
+.misp-icon-youtube-video.misp-objects::before {
+    content: "\e1fc";
+}
+
+.misp-icon-youtube-video.misp-objects {
+    --misp-icon: "\e1fc";
+}
+
+/* --- galaxy icons --- */
+
+.misp-icon-360net.misp-galaxies::before {
+    content: "\e1fd";
+}
+
+.misp-icon-360net.misp-galaxies {
+    --misp-icon: "\e1fd";
+}
+
+.misp-icon-agent-threat-rules.misp-galaxies::before {
+    content: "\e1fe";
+}
+
+.misp-icon-agent-threat-rules.misp-galaxies {
+    --misp-icon: "\e1fe";
+}
+
+.misp-icon-ammunitions.misp-galaxies::before {
+    content: "\e1ff";
+}
+
+.misp-icon-ammunitions.misp-galaxies {
+    --misp-icon: "\e1ff";
+}
+
+.misp-icon-android.misp-galaxies::before {
+    content: "\e200";
+}
+
+.misp-icon-android.misp-galaxies {
+    --misp-icon: "\e200";
+}
+
+.misp-icon-atrm.misp-galaxies::before {
+    content: "\e201";
+}
+
+.misp-icon-atrm.misp-galaxies {
+    --misp-icon: "\e201";
+}
+
+.misp-icon-attck4fraud.misp-galaxies::before {
+    content: "\e202";
+}
+
+.misp-icon-attck4fraud.misp-galaxies {
+    --misp-icon: "\e202";
+}
+
+.misp-icon-backdoor.misp-galaxies::before {
+    content: "\e203";
+}
+
+.misp-icon-backdoor.misp-galaxies {
+    --misp-icon: "\e203";
+}
+
+.misp-icon-banker.misp-galaxies::before {
+    content: "\e204";
+}
+
+.misp-icon-banker.misp-galaxies {
+    --misp-icon: "\e204";
+}
+
+.misp-icon-bhadra-framework.misp-galaxies::before {
+    content: "\e205";
+}
+
+.misp-icon-bhadra-framework.misp-galaxies {
+    --misp-icon: "\e205";
+}
+
+.misp-icon-bitns.misp-galaxies::before {
+    content: "\e206";
+}
+
+.misp-icon-bitns.misp-galaxies {
+    --misp-icon: "\e206";
+}
+
+.misp-icon-botnet.misp-galaxies::before {
+    content: "\e207";
+}
+
+.misp-icon-botnet.misp-galaxies {
+    --misp-icon: "\e207";
+}
+
+.misp-icon-branded-vulnerability.misp-galaxies::before {
+    content: "\e208";
+}
+
+.misp-icon-branded-vulnerability.misp-galaxies {
+    --misp-icon: "\e208";
+}
+
+.misp-icon-cancer.misp-galaxies::before {
+    content: "\e209";
+}
+
+.misp-icon-cancer.misp-galaxies {
+    --misp-icon: "\e209";
+}
+
+.misp-icon-cert-eu-govsector.misp-galaxies::before {
+    content: "\e20a";
+}
+
+.misp-icon-cert-eu-govsector.misp-galaxies {
+    --misp-icon: "\e20a";
+}
+
+.misp-icon-china-defence-universities.misp-galaxies::before {
+    content: "\e20b";
+}
+
+.misp-icon-china-defence-universities.misp-galaxies {
+    --misp-icon: "\e20b";
+}
+
+.misp-icon-cloak.misp-galaxies::before {
+    content: "\e20c";
+}
+
+.misp-icon-cloak.misp-galaxies {
+    --misp-icon: "\e20c";
+}
+
+.misp-icon-cmtmf-attack-pattern.misp-galaxies::before {
+    content: "\e20d";
+}
+
+.misp-icon-cmtmf-attack-pattern.misp-galaxies {
+    --misp-icon: "\e20d";
+}
+
+.misp-icon-country.misp-galaxies::before {
+    content: "\e20e";
+}
+
+.misp-icon-country.misp-galaxies {
+    --misp-icon: "\e20e";
+}
+
+.misp-icon-cryptominers.misp-galaxies::before {
+    content: "\e20f";
+}
+
+.misp-icon-cryptominers.misp-galaxies {
+    --misp-icon: "\e20f";
+}
+
+.misp-icon-cti-cmm-1-3.misp-galaxies::before {
+    content: "\e210";
+}
+
+.misp-icon-cti-cmm-1-3.misp-galaxies {
+    --misp-icon: "\e210";
+}
+
+.misp-icon-cyfun-assurance-requirements-2023.misp-galaxies::before {
+    content: "\e211";
+}
+
+.misp-icon-cyfun-assurance-requirements-2023.misp-galaxies {
+    --misp-icon: "\e211";
+}
+
+.misp-icon-cyfun-control-catalogue-2023.misp-galaxies::before {
+    content: "\e212";
+}
+
+.misp-icon-cyfun-control-catalogue-2023.misp-galaxies {
+    --misp-icon: "\e212";
+}
+
+.misp-icon-dima-techniques.misp-galaxies::before {
+    content: "\e213";
+}
+
+.misp-icon-dima-techniques.misp-galaxies {
+    --misp-icon: "\e213";
+}
+
+.misp-icon-disarm-actortypes.misp-galaxies::before {
+    content: "\e214";
+}
+
+.misp-icon-disarm-actortypes.misp-galaxies {
+    --misp-icon: "\e214";
+}
+
+.misp-icon-disarm-countermeasures.misp-galaxies::before {
+    content: "\e215";
+}
+
+.misp-icon-disarm-countermeasures.misp-galaxies {
+    --misp-icon: "\e215";
+}
+
+.misp-icon-disarm-detections.misp-galaxies::before {
+    content: "\e216";
+}
+
+.misp-icon-disarm-detections.misp-galaxies {
+    --misp-icon: "\e216";
+}
+
+.misp-icon-disarm-techniques.misp-galaxies::before {
+    content: "\e217";
+}
+
+.misp-icon-disarm-techniques.misp-galaxies {
+    --misp-icon: "\e217";
+}
+
+.misp-icon-election-guidelines.misp-galaxies::before {
+    content: "\e218";
+}
+
+.misp-icon-election-guidelines.misp-galaxies {
+    --misp-icon: "\e218";
+}
+
+.misp-icon-entity.misp-galaxies::before {
+    content: "\e219";
+}
+
+.misp-icon-entity.misp-galaxies {
+    --misp-icon: "\e219";
+}
+
+.misp-icon-exercise-world.misp-galaxies::before {
+    content: "\e21a";
+}
+
+.misp-icon-exercise-world.misp-galaxies {
+    --misp-icon: "\e21a";
+}
+
+.misp-icon-exploit-kit.misp-galaxies::before {
+    content: "\e21b";
+}
+
+.misp-icon-exploit-kit.misp-galaxies {
+    --misp-icon: "\e21b";
+}
+
+.misp-icon-firearms.misp-galaxies::before {
+    content: "\e21c";
+}
+
+.misp-icon-firearms.misp-galaxies {
+    --misp-icon: "\e21c";
+}
+
+.misp-icon-first-csirt-services-framework.misp-galaxies::before {
+    content: "\e21d";
+}
+
+.misp-icon-first-csirt-services-framework.misp-galaxies {
+    --misp-icon: "\e21d";
+}
+
+.misp-icon-first-dns.misp-galaxies::before {
+    content: "\e21e";
+}
+
+.misp-icon-first-dns.misp-galaxies {
+    --misp-icon: "\e21e";
+}
+
+.misp-icon-gsma-motif.misp-galaxies::before {
+    content: "\e21f";
+}
+
+.misp-icon-gsma-motif.misp-galaxies {
+    --misp-icon: "\e21f";
+}
+
+.misp-icon-handicap.misp-galaxies::before {
+    content: "\e220";
+}
+
+.misp-icon-handicap.misp-galaxies {
+    --misp-icon: "\e220";
+}
+
+.misp-icon-human-kill-chain.misp-galaxies::before {
+    content: "\e221";
+}
+
+.misp-icon-human-kill-chain.misp-galaxies {
+    --misp-icon: "\e221";
+}
+
+.misp-icon-intelligence-agencies.misp-galaxies::before {
+    content: "\e222";
+}
+
+.misp-icon-intelligence-agencies.misp-galaxies {
+    --misp-icon: "\e222";
+}
+
+.misp-icon-interpol-dwva.misp-galaxies::before {
+    content: "\e223";
+}
+
+.misp-icon-interpol-dwva.misp-galaxies {
+    --misp-icon: "\e223";
+}
+
+.misp-icon-it-infrastructure-equipment.misp-galaxies::before {
+    content: "\e224";
+}
+
+.misp-icon-it-infrastructure-equipment.misp-galaxies {
+    --misp-icon: "\e224";
+}
+
+.misp-icon-malpedia.misp-galaxies::before {
+    content: "\e225";
+}
+
+.misp-icon-malpedia.misp-galaxies {
+    --misp-icon: "\e225";
+}
+
+.misp-icon-microsoft-activity-group.misp-galaxies::before {
+    content: "\e226";
+}
+
+.misp-icon-microsoft-activity-group.misp-galaxies {
+    --misp-icon: "\e226";
+}
+
+.misp-icon-misinfosec-amitt-misinformation-pattern.misp-galaxies::before {
+    content: "\e227";
+}
+
+.misp-icon-misinfosec-amitt-misinformation-pattern.misp-galaxies {
+    --misp-icon: "\e227";
+}
+
+.misp-icon-mitre-analytic.misp-galaxies::before {
+    content: "\e228";
+}
+
+.misp-icon-mitre-analytic.misp-galaxies {
+    --misp-icon: "\e228";
+}
+
+.misp-icon-mitre-atlas-attack-pattern.misp-galaxies::before {
+    content: "\e229";
+}
+
+.misp-icon-mitre-atlas-attack-pattern.misp-galaxies {
+    --misp-icon: "\e229";
+}
+
+.misp-icon-mitre-atlas-course-of-action.misp-galaxies::before {
+    content: "\e22a";
+}
+
+.misp-icon-mitre-atlas-course-of-action.misp-galaxies {
+    --misp-icon: "\e22a";
+}
+
+.misp-icon-mitre-attack-pattern.misp-galaxies::before {
+    content: "\e22b";
+}
+
+.misp-icon-mitre-attack-pattern.misp-galaxies {
+    --misp-icon: "\e22b";
+}
+
+.misp-icon-mitre-course-of-action.misp-galaxies::before {
+    content: "\e22c";
+}
+
+.misp-icon-mitre-course-of-action.misp-galaxies {
+    --misp-icon: "\e22c";
+}
+
+.misp-icon-mitre-d3fend.misp-galaxies::before {
+    content: "\e22d";
+}
+
+.misp-icon-mitre-d3fend.misp-galaxies {
+    --misp-icon: "\e22d";
+}
+
+.misp-icon-mitre-data-component.misp-galaxies::before {
+    content: "\e22e";
+}
+
+.misp-icon-mitre-data-component.misp-galaxies {
+    --misp-icon: "\e22e";
+}
+
+.misp-icon-mitre-data-source.misp-galaxies::before {
+    content: "\e22f";
+}
+
+.misp-icon-mitre-data-source.misp-galaxies {
+    --misp-icon: "\e22f";
+}
+
+.misp-icon-mitre-detection-strategy.misp-galaxies::before {
+    content: "\e230";
+}
+
+.misp-icon-mitre-detection-strategy.misp-galaxies {
+    --misp-icon: "\e230";
+}
+
+.misp-icon-mitre-engage-framework.misp-galaxies::before {
+    content: "\e231";
+}
+
+.misp-icon-mitre-engage-framework.misp-galaxies {
+    --misp-icon: "\e231";
+}
+
+.misp-icon-mitre-enterprise-attack-attack-pattern.misp-galaxies::before {
+    content: "\e232";
+}
+
+.misp-icon-mitre-enterprise-attack-attack-pattern.misp-galaxies {
+    --misp-icon: "\e232";
+}
+
+.misp-icon-mitre-enterprise-attack-course-of-action.misp-galaxies::before {
+    content: "\e233";
+}
+
+.misp-icon-mitre-enterprise-attack-course-of-action.misp-galaxies {
+    --misp-icon: "\e233";
+}
+
+.misp-icon-mitre-enterprise-attack-intrusion-set.misp-galaxies::before {
+    content: "\e234";
+}
+
+.misp-icon-mitre-enterprise-attack-intrusion-set.misp-galaxies {
+    --misp-icon: "\e234";
+}
+
+.misp-icon-mitre-enterprise-attack-malware.misp-galaxies::before {
+    content: "\e235";
+}
+
+.misp-icon-mitre-enterprise-attack-malware.misp-galaxies {
+    --misp-icon: "\e235";
+}
+
+.misp-icon-mitre-enterprise-attack-tool.misp-galaxies::before {
+    content: "\e236";
+}
+
+.misp-icon-mitre-enterprise-attack-tool.misp-galaxies {
+    --misp-icon: "\e236";
+}
+
+.misp-icon-mitre-fraud-framework.misp-galaxies::before {
+    content: "\e237";
+}
+
+.misp-icon-mitre-fraud-framework.misp-galaxies {
+    --misp-icon: "\e237";
+}
+
+.misp-icon-mitre-ics-assets.misp-galaxies::before {
+    content: "\e238";
+}
+
+.misp-icon-mitre-ics-assets.misp-galaxies {
+    --misp-icon: "\e238";
+}
+
+.misp-icon-mitre-ics-groups.misp-galaxies::before {
+    content: "\e239";
+}
+
+.misp-icon-mitre-ics-groups.misp-galaxies {
+    --misp-icon: "\e239";
+}
+
+.misp-icon-mitre-ics-levels.misp-galaxies::before {
+    content: "\e23a";
+}
+
+.misp-icon-mitre-ics-levels.misp-galaxies {
+    --misp-icon: "\e23a";
+}
+
+.misp-icon-mitre-ics-software.misp-galaxies::before {
+    content: "\e23b";
+}
+
+.misp-icon-mitre-ics-software.misp-galaxies {
+    --misp-icon: "\e23b";
+}
+
+.misp-icon-mitre-ics-tactics.misp-galaxies::before {
+    content: "\e23c";
+}
+
+.misp-icon-mitre-ics-tactics.misp-galaxies {
+    --misp-icon: "\e23c";
+}
+
+.misp-icon-mitre-ics-techniques.misp-galaxies::before {
+    content: "\e23d";
+}
+
+.misp-icon-mitre-ics-techniques.misp-galaxies {
+    --misp-icon: "\e23d";
+}
+
+.misp-icon-mitre-intrusion-set.misp-galaxies::before {
+    content: "\e23e";
+}
+
+.misp-icon-mitre-intrusion-set.misp-galaxies {
+    --misp-icon: "\e23e";
+}
+
+.misp-icon-mitre-malware.misp-galaxies::before {
+    content: "\e23f";
+}
+
+.misp-icon-mitre-malware.misp-galaxies {
+    --misp-icon: "\e23f";
+}
+
+.misp-icon-mitre-mobile-attack-attack-pattern.misp-galaxies::before {
+    content: "\e240";
+}
+
+.misp-icon-mitre-mobile-attack-attack-pattern.misp-galaxies {
+    --misp-icon: "\e240";
+}
+
+.misp-icon-mitre-mobile-attack-course-of-action.misp-galaxies::before {
+    content: "\e241";
+}
+
+.misp-icon-mitre-mobile-attack-course-of-action.misp-galaxies {
+    --misp-icon: "\e241";
+}
+
+.misp-icon-mitre-mobile-attack-intrusion-set.misp-galaxies::before {
+    content: "\e242";
+}
+
+.misp-icon-mitre-mobile-attack-intrusion-set.misp-galaxies {
+    --misp-icon: "\e242";
+}
+
+.misp-icon-mitre-mobile-attack-malware.misp-galaxies::before {
+    content: "\e243";
+}
+
+.misp-icon-mitre-mobile-attack-malware.misp-galaxies {
+    --misp-icon: "\e243";
+}
+
+.misp-icon-mitre-mobile-attack-tool.misp-galaxies::before {
+    content: "\e244";
+}
+
+.misp-icon-mitre-mobile-attack-tool.misp-galaxies {
+    --misp-icon: "\e244";
+}
+
+.misp-icon-mitre-pre-attack-attack-pattern.misp-galaxies::before {
+    content: "\e245";
+}
+
+.misp-icon-mitre-pre-attack-attack-pattern.misp-galaxies {
+    --misp-icon: "\e245";
+}
+
+.misp-icon-mitre-pre-attack-intrusion-set.misp-galaxies::before {
+    content: "\e246";
+}
+
+.misp-icon-mitre-pre-attack-intrusion-set.misp-galaxies {
+    --misp-icon: "\e246";
+}
+
+.misp-icon-mitre-tool.misp-galaxies::before {
+    content: "\e247";
+}
+
+.misp-icon-mitre-tool.misp-galaxies {
+    --misp-icon: "\e247";
+}
+
+.misp-icon-nace.misp-galaxies::before {
+    content: "\e248";
+}
+
+.misp-icon-nace.misp-galaxies {
+    --misp-icon: "\e248";
+}
+
+.misp-icon-naics.misp-galaxies::before {
+    content: "\e249";
+}
+
+.misp-icon-naics.misp-galaxies {
+    --misp-icon: "\e249";
+}
+
+.misp-icon-nato.misp-galaxies::before {
+    content: "\e24a";
+}
+
+.misp-icon-nato.misp-galaxies {
+    --misp-icon: "\e24a";
+}
+
+.misp-icon-nice-framework-competency-areas.misp-galaxies::before {
+    content: "\e24b";
+}
+
+.misp-icon-nice-framework-competency-areas.misp-galaxies {
+    --misp-icon: "\e24b";
+}
+
+.misp-icon-nice-framework-knowledges.misp-galaxies::before {
+    content: "\e24c";
+}
+
+.misp-icon-nice-framework-knowledges.misp-galaxies {
+    --misp-icon: "\e24c";
+}
+
+.misp-icon-nice-framework-opm-codes.misp-galaxies::before {
+    content: "\e24d";
+}
+
+.misp-icon-nice-framework-opm-codes.misp-galaxies {
+    --misp-icon: "\e24d";
+}
+
+.misp-icon-nice-framework-skills.misp-galaxies::before {
+    content: "\e24e";
+}
+
+.misp-icon-nice-framework-skills.misp-galaxies {
+    --misp-icon: "\e24e";
+}
+
+.misp-icon-nice-framework-tasks.misp-galaxies::before {
+    content: "\e24f";
+}
+
+.misp-icon-nice-framework-tasks.misp-galaxies {
+    --misp-icon: "\e24f";
+}
+
+.misp-icon-nice-framework-work-roles.misp-galaxies::before {
+    content: "\e250";
+}
+
+.misp-icon-nice-framework-work-roles.misp-galaxies {
+    --misp-icon: "\e250";
+}
+
+.misp-icon-o365-exchange-techniques.misp-galaxies::before {
+    content: "\e251";
+}
+
+.misp-icon-o365-exchange-techniques.misp-galaxies {
+    --misp-icon: "\e251";
+}
+
+.misp-icon-online-service.misp-galaxies::before {
+    content: "\e252";
+}
+
+.misp-icon-online-service.misp-galaxies {
+    --misp-icon: "\e252";
+}
+
+.misp-icon-operating-system.misp-galaxies::before {
+    content: "\e253";
+}
+
+.misp-icon-operating-system.misp-galaxies {
+    --misp-icon: "\e253";
+}
+
+.misp-icon-plot4ai.misp-galaxies::before {
+    content: "\e254";
+}
+
+.misp-icon-plot4ai.misp-galaxies {
+    --misp-icon: "\e254";
+}
+
+.misp-icon-preventive-measure.misp-galaxies::before {
+    content: "\e255";
+}
+
+.misp-icon-preventive-measure.misp-galaxies {
+    --misp-icon: "\e255";
+}
+
+.misp-icon-producer.misp-galaxies::before {
+    content: "\e256";
+}
+
+.misp-icon-producer.misp-galaxies {
+    --misp-icon: "\e256";
+}
+
+.misp-icon-ransomware.misp-galaxies::before {
+    content: "\e257";
+}
+
+.misp-icon-ransomware.misp-galaxies {
+    --misp-icon: "\e257";
+}
+
+.misp-icon-rat.misp-galaxies::before {
+    content: "\e258";
+}
+
+.misp-icon-rat.misp-galaxies {
+    --misp-icon: "\e258";
+}
+
+.misp-icon-region.misp-galaxies::before {
+    content: "\e259";
+}
+
+.misp-icon-region.misp-galaxies {
+    --misp-icon: "\e259";
+}
+
+.misp-icon-rmm-tool.misp-galaxies::before {
+    content: "\e25a";
+}
+
+.misp-icon-rmm-tool.misp-galaxies {
+    --misp-icon: "\e25a";
+}
+
+.misp-icon-rsit.misp-galaxies::before {
+    content: "\e25b";
+}
+
+.misp-icon-rsit.misp-galaxies {
+    --misp-icon: "\e25b";
+}
+
+.misp-icon-scor-about.misp-galaxies::before {
+    content: "\e25c";
+}
+
+.misp-icon-scor-about.misp-galaxies {
+    --misp-icon: "\e25c";
+}
+
+.misp-icon-scor-attack-paths.misp-galaxies::before {
+    content: "\e25d";
+}
+
+.misp-icon-scor-attack-paths.misp-galaxies {
+    --misp-icon: "\e25d";
+}
+
+.misp-icon-scor-detection-signatures.misp-galaxies::before {
+    content: "\e25e";
+}
+
+.misp-icon-scor-detection-signatures.misp-galaxies {
+    --misp-icon: "\e25e";
+}
+
+.misp-icon-scor-exposure-domain.misp-galaxies::before {
+    content: "\e25f";
+}
+
+.misp-icon-scor-exposure-domain.misp-galaxies {
+    --misp-icon: "\e25f";
+}
+
+.misp-icon-scor-incidents.misp-galaxies::before {
+    content: "\e260";
+}
+
+.misp-icon-scor-incidents.misp-galaxies {
+    --misp-icon: "\e260";
+}
+
+.misp-icon-scor-resilience-measures.misp-galaxies::before {
+    content: "\e261";
+}
+
+.misp-icon-scor-resilience-measures.misp-galaxies {
+    --misp-icon: "\e261";
+}
+
+.misp-icon-scor-tens.misp-galaxies::before {
+    content: "\e262";
+}
+
+.misp-icon-scor-tens.misp-galaxies {
+    --misp-icon: "\e262";
+}
+
+.misp-icon-sector.misp-galaxies::before {
+    content: "\e263";
+}
+
+.misp-icon-sector.misp-galaxies {
+    --misp-icon: "\e263";
+}
+
+.misp-icon-sigma-rules.misp-galaxies::before {
+    content: "\e264";
+}
+
+.misp-icon-sigma-rules.misp-galaxies {
+    --misp-icon: "\e264";
+}
+
+.misp-icon-social-dark-patterns.misp-galaxies::before {
+    content: "\e265";
+}
+
+.misp-icon-social-dark-patterns.misp-galaxies {
+    --misp-icon: "\e265";
+}
+
+.misp-icon-sod-matrix.misp-galaxies::before {
+    content: "\e266";
+}
+
+.misp-icon-sod-matrix.misp-galaxies {
+    --misp-icon: "\e266";
+}
+
+.misp-icon-software-vendor.misp-galaxies::before {
+    content: "\e267";
+}
+
+.misp-icon-software-vendor.misp-galaxies {
+    --misp-icon: "\e267";
+}
+
+.misp-icon-sparta-mitigations.misp-galaxies::before {
+    content: "\e268";
+}
+
+.misp-icon-sparta-mitigations.misp-galaxies {
+    --misp-icon: "\e268";
+}
+
+.misp-icon-sparta-tactics.misp-galaxies::before {
+    content: "\e269";
+}
+
+.misp-icon-sparta-tactics.misp-galaxies {
+    --misp-icon: "\e269";
+}
+
+.misp-icon-sparta-techniques.misp-galaxies::before {
+    content: "\e26a";
+}
+
+.misp-icon-sparta-techniques.misp-galaxies {
+    --misp-icon: "\e26a";
+}
+
+.misp-icon-stalkerware.misp-galaxies::before {
+    content: "\e26b";
+}
+
+.misp-icon-stalkerware.misp-galaxies {
+    --misp-icon: "\e26b";
+}
+
+.misp-icon-stealer.misp-galaxies::before {
+    content: "\e26c";
+}
+
+.misp-icon-stealer.misp-galaxies {
+    --misp-icon: "\e26c";
+}
+
+.misp-icon-surveillance-vendor.misp-galaxies::before {
+    content: "\e26d";
+}
+
+.misp-icon-surveillance-vendor.misp-galaxies {
+    --misp-icon: "\e26d";
+}
+
+.misp-icon-target-information.misp-galaxies::before {
+    content: "\e26e";
+}
+
+.misp-icon-target-information.misp-galaxies {
+    --misp-icon: "\e26e";
+}
+
+.misp-icon-taxonomy-of-fraud.misp-galaxies::before {
+    content: "\e26f";
+}
+
+.misp-icon-taxonomy-of-fraud.misp-galaxies {
+    --misp-icon: "\e26f";
+}
+
+.misp-icon-tds.misp-galaxies::before {
+    content: "\e270";
+}
+
+.misp-icon-tds.misp-galaxies {
+    --misp-icon: "\e270";
+}
+
+.misp-icon-tea-matrix.misp-galaxies::before {
+    content: "\e271";
+}
+
+.misp-icon-tea-matrix.misp-galaxies {
+    --misp-icon: "\e271";
+}
+
+.misp-icon-terrorist-groups.misp-galaxies::before {
+    content: "\e272";
+}
+
+.misp-icon-terrorist-groups.misp-galaxies {
+    --misp-icon: "\e272";
+}
+
+.misp-icon-threat-actor.misp-galaxies::before {
+    content: "\e273";
+}
+
+.misp-icon-threat-actor.misp-galaxies {
+    --misp-icon: "\e273";
+}
+
+.misp-icon-tidal-campaigns.misp-galaxies::before {
+    content: "\e274";
+}
+
+.misp-icon-tidal-campaigns.misp-galaxies {
+    --misp-icon: "\e274";
+}
+
+.misp-icon-tidal-groups.misp-galaxies::before {
+    content: "\e275";
+}
+
+.misp-icon-tidal-groups.misp-galaxies {
+    --misp-icon: "\e275";
+}
+
+.misp-icon-tidal-references.misp-galaxies::before {
+    content: "\e276";
+}
+
+.misp-icon-tidal-references.misp-galaxies {
+    --misp-icon: "\e276";
+}
+
+.misp-icon-tidal-software.misp-galaxies::before {
+    content: "\e277";
+}
+
+.misp-icon-tidal-software.misp-galaxies {
+    --misp-icon: "\e277";
+}
+
+.misp-icon-tidal-tactic.misp-galaxies::before {
+    content: "\e278";
+}
+
+.misp-icon-tidal-tactic.misp-galaxies {
+    --misp-icon: "\e278";
+}
+
+.misp-icon-tidal-technique.misp-galaxies::before {
+    content: "\e279";
+}
+
+.misp-icon-tidal-technique.misp-galaxies {
+    --misp-icon: "\e279";
+}
+
+.misp-icon-tmss.misp-galaxies::before {
+    content: "\e27a";
+}
+
+.misp-icon-tmss.misp-galaxies {
+    --misp-icon: "\e27a";
+}
+
+.misp-icon-tool.misp-galaxies::before {
+    content: "\e27b";
+}
+
+.misp-icon-tool.misp-galaxies {
+    --misp-icon: "\e27b";
+}
+
+.misp-icon-uavs.misp-galaxies::before {
+    content: "\e27c";
+}
+
+.misp-icon-uavs.misp-galaxies {
+    --misp-icon: "\e27c";
+}
+
+.misp-icon-ukhsa-culture-collections.misp-galaxies::before {
+    content: "\e27d";
+}
+
+.misp-icon-ukhsa-culture-collections.misp-galaxies {
+    --misp-icon: "\e27d";
+}
+
+.misp-icon-veris-framework.misp-galaxies::before {
+    content: "\e27e";
+}
+
+.misp-icon-veris-framework.misp-galaxies {
+    --misp-icon: "\e27e";
+}
+
+.misp-icon-wiper.misp-galaxies::before {
+    content: "\e27f";
+}
+
+.misp-icon-wiper.misp-galaxies {
+    --misp-icon: "\e27f";
+}
+
+/* --- galaxy icons (orbit variant) --- */
+
+.misp-icon-360net.misp-galaxies-orbit::before {
+    content: "\e280";
+}
+
+.misp-icon-360net.misp-galaxies-orbit {
+    --misp-icon: "\e280";
+}
+
+.misp-icon-agent-threat-rules.misp-galaxies-orbit::before {
+    content: "\e281";
+}
+
+.misp-icon-agent-threat-rules.misp-galaxies-orbit {
+    --misp-icon: "\e281";
+}
+
+.misp-icon-ammunitions.misp-galaxies-orbit::before {
+    content: "\e282";
+}
+
+.misp-icon-ammunitions.misp-galaxies-orbit {
+    --misp-icon: "\e282";
+}
+
+.misp-icon-android.misp-galaxies-orbit::before {
+    content: "\e283";
+}
+
+.misp-icon-android.misp-galaxies-orbit {
+    --misp-icon: "\e283";
+}
+
+.misp-icon-atrm.misp-galaxies-orbit::before {
+    content: "\e284";
+}
+
+.misp-icon-atrm.misp-galaxies-orbit {
+    --misp-icon: "\e284";
+}
+
+.misp-icon-attck4fraud.misp-galaxies-orbit::before {
+    content: "\e285";
+}
+
+.misp-icon-attck4fraud.misp-galaxies-orbit {
+    --misp-icon: "\e285";
+}
+
+.misp-icon-backdoor.misp-galaxies-orbit::before {
+    content: "\e286";
+}
+
+.misp-icon-backdoor.misp-galaxies-orbit {
+    --misp-icon: "\e286";
+}
+
+.misp-icon-banker.misp-galaxies-orbit::before {
+    content: "\e287";
+}
+
+.misp-icon-banker.misp-galaxies-orbit {
+    --misp-icon: "\e287";
+}
+
+.misp-icon-bhadra-framework.misp-galaxies-orbit::before {
+    content: "\e288";
+}
+
+.misp-icon-bhadra-framework.misp-galaxies-orbit {
+    --misp-icon: "\e288";
+}
+
+.misp-icon-bitns.misp-galaxies-orbit::before {
+    content: "\e289";
+}
+
+.misp-icon-bitns.misp-galaxies-orbit {
+    --misp-icon: "\e289";
+}
+
+.misp-icon-botnet.misp-galaxies-orbit::before {
+    content: "\e28a";
+}
+
+.misp-icon-botnet.misp-galaxies-orbit {
+    --misp-icon: "\e28a";
+}
+
+.misp-icon-branded-vulnerability.misp-galaxies-orbit::before {
+    content: "\e28b";
+}
+
+.misp-icon-branded-vulnerability.misp-galaxies-orbit {
+    --misp-icon: "\e28b";
+}
+
+.misp-icon-cancer.misp-galaxies-orbit::before {
+    content: "\e28c";
+}
+
+.misp-icon-cancer.misp-galaxies-orbit {
+    --misp-icon: "\e28c";
+}
+
+.misp-icon-cert-eu-govsector.misp-galaxies-orbit::before {
+    content: "\e28d";
+}
+
+.misp-icon-cert-eu-govsector.misp-galaxies-orbit {
+    --misp-icon: "\e28d";
+}
+
+.misp-icon-china-defence-universities.misp-galaxies-orbit::before {
+    content: "\e28e";
+}
+
+.misp-icon-china-defence-universities.misp-galaxies-orbit {
+    --misp-icon: "\e28e";
+}
+
+.misp-icon-cloak.misp-galaxies-orbit::before {
+    content: "\e28f";
+}
+
+.misp-icon-cloak.misp-galaxies-orbit {
+    --misp-icon: "\e28f";
+}
+
+.misp-icon-cmtmf-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e290";
+}
+
+.misp-icon-cmtmf-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e290";
+}
+
+.misp-icon-country.misp-galaxies-orbit::before {
+    content: "\e291";
+}
+
+.misp-icon-country.misp-galaxies-orbit {
+    --misp-icon: "\e291";
+}
+
+.misp-icon-cryptominers.misp-galaxies-orbit::before {
+    content: "\e292";
+}
+
+.misp-icon-cryptominers.misp-galaxies-orbit {
+    --misp-icon: "\e292";
+}
+
+.misp-icon-cti-cmm-1-3.misp-galaxies-orbit::before {
+    content: "\e293";
+}
+
+.misp-icon-cti-cmm-1-3.misp-galaxies-orbit {
+    --misp-icon: "\e293";
+}
+
+.misp-icon-cyfun-assurance-requirements-2023.misp-galaxies-orbit::before {
+    content: "\e294";
+}
+
+.misp-icon-cyfun-assurance-requirements-2023.misp-galaxies-orbit {
+    --misp-icon: "\e294";
+}
+
+.misp-icon-cyfun-control-catalogue-2023.misp-galaxies-orbit::before {
+    content: "\e295";
+}
+
+.misp-icon-cyfun-control-catalogue-2023.misp-galaxies-orbit {
+    --misp-icon: "\e295";
+}
+
+.misp-icon-dima-techniques.misp-galaxies-orbit::before {
+    content: "\e296";
+}
+
+.misp-icon-dima-techniques.misp-galaxies-orbit {
+    --misp-icon: "\e296";
+}
+
+.misp-icon-disarm-actortypes.misp-galaxies-orbit::before {
+    content: "\e297";
+}
+
+.misp-icon-disarm-actortypes.misp-galaxies-orbit {
+    --misp-icon: "\e297";
+}
+
+.misp-icon-disarm-countermeasures.misp-galaxies-orbit::before {
+    content: "\e298";
+}
+
+.misp-icon-disarm-countermeasures.misp-galaxies-orbit {
+    --misp-icon: "\e298";
+}
+
+.misp-icon-disarm-detections.misp-galaxies-orbit::before {
+    content: "\e299";
+}
+
+.misp-icon-disarm-detections.misp-galaxies-orbit {
+    --misp-icon: "\e299";
+}
+
+.misp-icon-disarm-techniques.misp-galaxies-orbit::before {
+    content: "\e29a";
+}
+
+.misp-icon-disarm-techniques.misp-galaxies-orbit {
+    --misp-icon: "\e29a";
+}
+
+.misp-icon-election-guidelines.misp-galaxies-orbit::before {
+    content: "\e29b";
+}
+
+.misp-icon-election-guidelines.misp-galaxies-orbit {
+    --misp-icon: "\e29b";
+}
+
+.misp-icon-entity.misp-galaxies-orbit::before {
+    content: "\e29c";
+}
+
+.misp-icon-entity.misp-galaxies-orbit {
+    --misp-icon: "\e29c";
+}
+
+.misp-icon-exercise-world.misp-galaxies-orbit::before {
+    content: "\e29d";
+}
+
+.misp-icon-exercise-world.misp-galaxies-orbit {
+    --misp-icon: "\e29d";
+}
+
+.misp-icon-exploit-kit.misp-galaxies-orbit::before {
+    content: "\e29e";
+}
+
+.misp-icon-exploit-kit.misp-galaxies-orbit {
+    --misp-icon: "\e29e";
+}
+
+.misp-icon-firearms.misp-galaxies-orbit::before {
+    content: "\e29f";
+}
+
+.misp-icon-firearms.misp-galaxies-orbit {
+    --misp-icon: "\e29f";
+}
+
+.misp-icon-first-csirt-services-framework.misp-galaxies-orbit::before {
+    content: "\e2a0";
+}
+
+.misp-icon-first-csirt-services-framework.misp-galaxies-orbit {
+    --misp-icon: "\e2a0";
+}
+
+.misp-icon-first-dns.misp-galaxies-orbit::before {
+    content: "\e2a1";
+}
+
+.misp-icon-first-dns.misp-galaxies-orbit {
+    --misp-icon: "\e2a1";
+}
+
+.misp-icon-gsma-motif.misp-galaxies-orbit::before {
+    content: "\e2a2";
+}
+
+.misp-icon-gsma-motif.misp-galaxies-orbit {
+    --misp-icon: "\e2a2";
+}
+
+.misp-icon-handicap.misp-galaxies-orbit::before {
+    content: "\e2a3";
+}
+
+.misp-icon-handicap.misp-galaxies-orbit {
+    --misp-icon: "\e2a3";
+}
+
+.misp-icon-human-kill-chain.misp-galaxies-orbit::before {
+    content: "\e2a4";
+}
+
+.misp-icon-human-kill-chain.misp-galaxies-orbit {
+    --misp-icon: "\e2a4";
+}
+
+.misp-icon-intelligence-agencies.misp-galaxies-orbit::before {
+    content: "\e2a5";
+}
+
+.misp-icon-intelligence-agencies.misp-galaxies-orbit {
+    --misp-icon: "\e2a5";
+}
+
+.misp-icon-interpol-dwva.misp-galaxies-orbit::before {
+    content: "\e2a6";
+}
+
+.misp-icon-interpol-dwva.misp-galaxies-orbit {
+    --misp-icon: "\e2a6";
+}
+
+.misp-icon-it-infrastructure-equipment.misp-galaxies-orbit::before {
+    content: "\e2a7";
+}
+
+.misp-icon-it-infrastructure-equipment.misp-galaxies-orbit {
+    --misp-icon: "\e2a7";
+}
+
+.misp-icon-malpedia.misp-galaxies-orbit::before {
+    content: "\e2a8";
+}
+
+.misp-icon-malpedia.misp-galaxies-orbit {
+    --misp-icon: "\e2a8";
+}
+
+.misp-icon-microsoft-activity-group.misp-galaxies-orbit::before {
+    content: "\e2a9";
+}
+
+.misp-icon-microsoft-activity-group.misp-galaxies-orbit {
+    --misp-icon: "\e2a9";
+}
+
+.misp-icon-misinfosec-amitt-misinformation-pattern.misp-galaxies-orbit::before {
+    content: "\e2aa";
+}
+
+.misp-icon-misinfosec-amitt-misinformation-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2aa";
+}
+
+.misp-icon-mitre-analytic.misp-galaxies-orbit::before {
+    content: "\e2ab";
+}
+
+.misp-icon-mitre-analytic.misp-galaxies-orbit {
+    --misp-icon: "\e2ab";
+}
+
+.misp-icon-mitre-atlas-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e2ac";
+}
+
+.misp-icon-mitre-atlas-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2ac";
+}
+
+.misp-icon-mitre-atlas-course-of-action.misp-galaxies-orbit::before {
+    content: "\e2ad";
+}
+
+.misp-icon-mitre-atlas-course-of-action.misp-galaxies-orbit {
+    --misp-icon: "\e2ad";
+}
+
+.misp-icon-mitre-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e2ae";
+}
+
+.misp-icon-mitre-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2ae";
+}
+
+.misp-icon-mitre-course-of-action.misp-galaxies-orbit::before {
+    content: "\e2af";
+}
+
+.misp-icon-mitre-course-of-action.misp-galaxies-orbit {
+    --misp-icon: "\e2af";
+}
+
+.misp-icon-mitre-d3fend.misp-galaxies-orbit::before {
+    content: "\e2b0";
+}
+
+.misp-icon-mitre-d3fend.misp-galaxies-orbit {
+    --misp-icon: "\e2b0";
+}
+
+.misp-icon-mitre-data-component.misp-galaxies-orbit::before {
+    content: "\e2b1";
+}
+
+.misp-icon-mitre-data-component.misp-galaxies-orbit {
+    --misp-icon: "\e2b1";
+}
+
+.misp-icon-mitre-data-source.misp-galaxies-orbit::before {
+    content: "\e2b2";
+}
+
+.misp-icon-mitre-data-source.misp-galaxies-orbit {
+    --misp-icon: "\e2b2";
+}
+
+.misp-icon-mitre-detection-strategy.misp-galaxies-orbit::before {
+    content: "\e2b3";
+}
+
+.misp-icon-mitre-detection-strategy.misp-galaxies-orbit {
+    --misp-icon: "\e2b3";
+}
+
+.misp-icon-mitre-engage-framework.misp-galaxies-orbit::before {
+    content: "\e2b4";
+}
+
+.misp-icon-mitre-engage-framework.misp-galaxies-orbit {
+    --misp-icon: "\e2b4";
+}
+
+.misp-icon-mitre-enterprise-attack-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e2b5";
+}
+
+.misp-icon-mitre-enterprise-attack-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2b5";
+}
+
+.misp-icon-mitre-enterprise-attack-course-of-action.misp-galaxies-orbit::before {
+    content: "\e2b6";
+}
+
+.misp-icon-mitre-enterprise-attack-course-of-action.misp-galaxies-orbit {
+    --misp-icon: "\e2b6";
+}
+
+.misp-icon-mitre-enterprise-attack-intrusion-set.misp-galaxies-orbit::before {
+    content: "\e2b7";
+}
+
+.misp-icon-mitre-enterprise-attack-intrusion-set.misp-galaxies-orbit {
+    --misp-icon: "\e2b7";
+}
+
+.misp-icon-mitre-enterprise-attack-malware.misp-galaxies-orbit::before {
+    content: "\e2b8";
+}
+
+.misp-icon-mitre-enterprise-attack-malware.misp-galaxies-orbit {
+    --misp-icon: "\e2b8";
+}
+
+.misp-icon-mitre-enterprise-attack-tool.misp-galaxies-orbit::before {
+    content: "\e2b9";
+}
+
+.misp-icon-mitre-enterprise-attack-tool.misp-galaxies-orbit {
+    --misp-icon: "\e2b9";
+}
+
+.misp-icon-mitre-fraud-framework.misp-galaxies-orbit::before {
+    content: "\e2ba";
+}
+
+.misp-icon-mitre-fraud-framework.misp-galaxies-orbit {
+    --misp-icon: "\e2ba";
+}
+
+.misp-icon-mitre-ics-assets.misp-galaxies-orbit::before {
+    content: "\e2bb";
+}
+
+.misp-icon-mitre-ics-assets.misp-galaxies-orbit {
+    --misp-icon: "\e2bb";
+}
+
+.misp-icon-mitre-ics-groups.misp-galaxies-orbit::before {
+    content: "\e2bc";
+}
+
+.misp-icon-mitre-ics-groups.misp-galaxies-orbit {
+    --misp-icon: "\e2bc";
+}
+
+.misp-icon-mitre-ics-levels.misp-galaxies-orbit::before {
+    content: "\e2bd";
+}
+
+.misp-icon-mitre-ics-levels.misp-galaxies-orbit {
+    --misp-icon: "\e2bd";
+}
+
+.misp-icon-mitre-ics-software.misp-galaxies-orbit::before {
+    content: "\e2be";
+}
+
+.misp-icon-mitre-ics-software.misp-galaxies-orbit {
+    --misp-icon: "\e2be";
+}
+
+.misp-icon-mitre-ics-tactics.misp-galaxies-orbit::before {
+    content: "\e2bf";
+}
+
+.misp-icon-mitre-ics-tactics.misp-galaxies-orbit {
+    --misp-icon: "\e2bf";
+}
+
+.misp-icon-mitre-ics-techniques.misp-galaxies-orbit::before {
+    content: "\e2c0";
+}
+
+.misp-icon-mitre-ics-techniques.misp-galaxies-orbit {
+    --misp-icon: "\e2c0";
+}
+
+.misp-icon-mitre-intrusion-set.misp-galaxies-orbit::before {
+    content: "\e2c1";
+}
+
+.misp-icon-mitre-intrusion-set.misp-galaxies-orbit {
+    --misp-icon: "\e2c1";
+}
+
+.misp-icon-mitre-malware.misp-galaxies-orbit::before {
+    content: "\e2c2";
+}
+
+.misp-icon-mitre-malware.misp-galaxies-orbit {
+    --misp-icon: "\e2c2";
+}
+
+.misp-icon-mitre-mobile-attack-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e2c3";
+}
+
+.misp-icon-mitre-mobile-attack-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2c3";
+}
+
+.misp-icon-mitre-mobile-attack-course-of-action.misp-galaxies-orbit::before {
+    content: "\e2c4";
+}
+
+.misp-icon-mitre-mobile-attack-course-of-action.misp-galaxies-orbit {
+    --misp-icon: "\e2c4";
+}
+
+.misp-icon-mitre-mobile-attack-intrusion-set.misp-galaxies-orbit::before {
+    content: "\e2c5";
+}
+
+.misp-icon-mitre-mobile-attack-intrusion-set.misp-galaxies-orbit {
+    --misp-icon: "\e2c5";
+}
+
+.misp-icon-mitre-mobile-attack-malware.misp-galaxies-orbit::before {
+    content: "\e2c6";
+}
+
+.misp-icon-mitre-mobile-attack-malware.misp-galaxies-orbit {
+    --misp-icon: "\e2c6";
+}
+
+.misp-icon-mitre-mobile-attack-tool.misp-galaxies-orbit::before {
+    content: "\e2c7";
+}
+
+.misp-icon-mitre-mobile-attack-tool.misp-galaxies-orbit {
+    --misp-icon: "\e2c7";
+}
+
+.misp-icon-mitre-pre-attack-attack-pattern.misp-galaxies-orbit::before {
+    content: "\e2c8";
+}
+
+.misp-icon-mitre-pre-attack-attack-pattern.misp-galaxies-orbit {
+    --misp-icon: "\e2c8";
+}
+
+.misp-icon-mitre-pre-attack-intrusion-set.misp-galaxies-orbit::before {
+    content: "\e2c9";
+}
+
+.misp-icon-mitre-pre-attack-intrusion-set.misp-galaxies-orbit {
+    --misp-icon: "\e2c9";
+}
+
+.misp-icon-mitre-tool.misp-galaxies-orbit::before {
+    content: "\e2ca";
+}
+
+.misp-icon-mitre-tool.misp-galaxies-orbit {
+    --misp-icon: "\e2ca";
+}
+
+.misp-icon-nace.misp-galaxies-orbit::before {
+    content: "\e2cb";
+}
+
+.misp-icon-nace.misp-galaxies-orbit {
+    --misp-icon: "\e2cb";
+}
+
+.misp-icon-naics.misp-galaxies-orbit::before {
+    content: "\e2cc";
+}
+
+.misp-icon-naics.misp-galaxies-orbit {
+    --misp-icon: "\e2cc";
+}
+
+.misp-icon-nato.misp-galaxies-orbit::before {
+    content: "\e2cd";
+}
+
+.misp-icon-nato.misp-galaxies-orbit {
+    --misp-icon: "\e2cd";
+}
+
+.misp-icon-nice-framework-competency-areas.misp-galaxies-orbit::before {
+    content: "\e2ce";
+}
+
+.misp-icon-nice-framework-competency-areas.misp-galaxies-orbit {
+    --misp-icon: "\e2ce";
+}
+
+.misp-icon-nice-framework-knowledges.misp-galaxies-orbit::before {
+    content: "\e2cf";
+}
+
+.misp-icon-nice-framework-knowledges.misp-galaxies-orbit {
+    --misp-icon: "\e2cf";
+}
+
+.misp-icon-nice-framework-opm-codes.misp-galaxies-orbit::before {
+    content: "\e2d0";
+}
+
+.misp-icon-nice-framework-opm-codes.misp-galaxies-orbit {
+    --misp-icon: "\e2d0";
+}
+
+.misp-icon-nice-framework-skills.misp-galaxies-orbit::before {
+    content: "\e2d1";
+}
+
+.misp-icon-nice-framework-skills.misp-galaxies-orbit {
+    --misp-icon: "\e2d1";
+}
+
+.misp-icon-nice-framework-tasks.misp-galaxies-orbit::before {
+    content: "\e2d2";
+}
+
+.misp-icon-nice-framework-tasks.misp-galaxies-orbit {
+    --misp-icon: "\e2d2";
+}
+
+.misp-icon-nice-framework-work-roles.misp-galaxies-orbit::before {
+    content: "\e2d3";
+}
+
+.misp-icon-nice-framework-work-roles.misp-galaxies-orbit {
+    --misp-icon: "\e2d3";
+}
+
+.misp-icon-o365-exchange-techniques.misp-galaxies-orbit::before {
+    content: "\e2d4";
+}
+
+.misp-icon-o365-exchange-techniques.misp-galaxies-orbit {
+    --misp-icon: "\e2d4";
+}
+
+.misp-icon-online-service.misp-galaxies-orbit::before {
+    content: "\e2d5";
+}
+
+.misp-icon-online-service.misp-galaxies-orbit {
+    --misp-icon: "\e2d5";
+}
+
+.misp-icon-operating-system.misp-galaxies-orbit::before {
+    content: "\e2d6";
+}
+
+.misp-icon-operating-system.misp-galaxies-orbit {
+    --misp-icon: "\e2d6";
+}
+
+.misp-icon-plot4ai.misp-galaxies-orbit::before {
+    content: "\e2d7";
+}
+
+.misp-icon-plot4ai.misp-galaxies-orbit {
+    --misp-icon: "\e2d7";
+}
+
+.misp-icon-preventive-measure.misp-galaxies-orbit::before {
+    content: "\e2d8";
+}
+
+.misp-icon-preventive-measure.misp-galaxies-orbit {
+    --misp-icon: "\e2d8";
+}
+
+.misp-icon-producer.misp-galaxies-orbit::before {
+    content: "\e2d9";
+}
+
+.misp-icon-producer.misp-galaxies-orbit {
+    --misp-icon: "\e2d9";
+}
+
+.misp-icon-ransomware.misp-galaxies-orbit::before {
+    content: "\e2da";
+}
+
+.misp-icon-ransomware.misp-galaxies-orbit {
+    --misp-icon: "\e2da";
+}
+
+.misp-icon-rat.misp-galaxies-orbit::before {
+    content: "\e2db";
+}
+
+.misp-icon-rat.misp-galaxies-orbit {
+    --misp-icon: "\e2db";
+}
+
+.misp-icon-region.misp-galaxies-orbit::before {
+    content: "\e2dc";
+}
+
+.misp-icon-region.misp-galaxies-orbit {
+    --misp-icon: "\e2dc";
+}
+
+.misp-icon-rmm-tool.misp-galaxies-orbit::before {
+    content: "\e2dd";
+}
+
+.misp-icon-rmm-tool.misp-galaxies-orbit {
+    --misp-icon: "\e2dd";
+}
+
+.misp-icon-rsit.misp-galaxies-orbit::before {
+    content: "\e2de";
+}
+
+.misp-icon-rsit.misp-galaxies-orbit {
+    --misp-icon: "\e2de";
+}
+
+.misp-icon-scor-about.misp-galaxies-orbit::before {
+    content: "\e2df";
+}
+
+.misp-icon-scor-about.misp-galaxies-orbit {
+    --misp-icon: "\e2df";
+}
+
+.misp-icon-scor-attack-paths.misp-galaxies-orbit::before {
+    content: "\e2e0";
+}
+
+.misp-icon-scor-attack-paths.misp-galaxies-orbit {
+    --misp-icon: "\e2e0";
+}
+
+.misp-icon-scor-detection-signatures.misp-galaxies-orbit::before {
+    content: "\e2e1";
+}
+
+.misp-icon-scor-detection-signatures.misp-galaxies-orbit {
+    --misp-icon: "\e2e1";
+}
+
+.misp-icon-scor-exposure-domain.misp-galaxies-orbit::before {
+    content: "\e2e2";
+}
+
+.misp-icon-scor-exposure-domain.misp-galaxies-orbit {
+    --misp-icon: "\e2e2";
+}
+
+.misp-icon-scor-incidents.misp-galaxies-orbit::before {
+    content: "\e2e3";
+}
+
+.misp-icon-scor-incidents.misp-galaxies-orbit {
+    --misp-icon: "\e2e3";
+}
+
+.misp-icon-scor-resilience-measures.misp-galaxies-orbit::before {
+    content: "\e2e4";
+}
+
+.misp-icon-scor-resilience-measures.misp-galaxies-orbit {
+    --misp-icon: "\e2e4";
+}
+
+.misp-icon-scor-tens.misp-galaxies-orbit::before {
+    content: "\e2e5";
+}
+
+.misp-icon-scor-tens.misp-galaxies-orbit {
+    --misp-icon: "\e2e5";
+}
+
+.misp-icon-sector.misp-galaxies-orbit::before {
+    content: "\e2e6";
+}
+
+.misp-icon-sector.misp-galaxies-orbit {
+    --misp-icon: "\e2e6";
+}
+
+.misp-icon-sigma-rules.misp-galaxies-orbit::before {
+    content: "\e2e7";
+}
+
+.misp-icon-sigma-rules.misp-galaxies-orbit {
+    --misp-icon: "\e2e7";
+}
+
+.misp-icon-social-dark-patterns.misp-galaxies-orbit::before {
+    content: "\e2e8";
+}
+
+.misp-icon-social-dark-patterns.misp-galaxies-orbit {
+    --misp-icon: "\e2e8";
+}
+
+.misp-icon-sod-matrix.misp-galaxies-orbit::before {
+    content: "\e2e9";
+}
+
+.misp-icon-sod-matrix.misp-galaxies-orbit {
+    --misp-icon: "\e2e9";
+}
+
+.misp-icon-software-vendor.misp-galaxies-orbit::before {
+    content: "\e2ea";
+}
+
+.misp-icon-software-vendor.misp-galaxies-orbit {
+    --misp-icon: "\e2ea";
+}
+
+.misp-icon-sparta-mitigations.misp-galaxies-orbit::before {
+    content: "\e2eb";
+}
+
+.misp-icon-sparta-mitigations.misp-galaxies-orbit {
+    --misp-icon: "\e2eb";
+}
+
+.misp-icon-sparta-tactics.misp-galaxies-orbit::before {
+    content: "\e2ec";
+}
+
+.misp-icon-sparta-tactics.misp-galaxies-orbit {
+    --misp-icon: "\e2ec";
+}
+
+.misp-icon-sparta-techniques.misp-galaxies-orbit::before {
+    content: "\e2ed";
+}
+
+.misp-icon-sparta-techniques.misp-galaxies-orbit {
+    --misp-icon: "\e2ed";
+}
+
+.misp-icon-stalkerware.misp-galaxies-orbit::before {
+    content: "\e2ee";
+}
+
+.misp-icon-stalkerware.misp-galaxies-orbit {
+    --misp-icon: "\e2ee";
+}
+
+.misp-icon-stealer.misp-galaxies-orbit::before {
+    content: "\e2ef";
+}
+
+.misp-icon-stealer.misp-galaxies-orbit {
+    --misp-icon: "\e2ef";
+}
+
+.misp-icon-surveillance-vendor.misp-galaxies-orbit::before {
+    content: "\e2f0";
+}
+
+.misp-icon-surveillance-vendor.misp-galaxies-orbit {
+    --misp-icon: "\e2f0";
+}
+
+.misp-icon-target-information.misp-galaxies-orbit::before {
+    content: "\e2f1";
+}
+
+.misp-icon-target-information.misp-galaxies-orbit {
+    --misp-icon: "\e2f1";
+}
+
+.misp-icon-taxonomy-of-fraud.misp-galaxies-orbit::before {
+    content: "\e2f2";
+}
+
+.misp-icon-taxonomy-of-fraud.misp-galaxies-orbit {
+    --misp-icon: "\e2f2";
+}
+
+.misp-icon-tds.misp-galaxies-orbit::before {
+    content: "\e2f3";
+}
+
+.misp-icon-tds.misp-galaxies-orbit {
+    --misp-icon: "\e2f3";
+}
+
+.misp-icon-tea-matrix.misp-galaxies-orbit::before {
+    content: "\e2f4";
+}
+
+.misp-icon-tea-matrix.misp-galaxies-orbit {
+    --misp-icon: "\e2f4";
+}
+
+.misp-icon-terrorist-groups.misp-galaxies-orbit::before {
+    content: "\e2f5";
+}
+
+.misp-icon-terrorist-groups.misp-galaxies-orbit {
+    --misp-icon: "\e2f5";
+}
+
+.misp-icon-threat-actor.misp-galaxies-orbit::before {
+    content: "\e2f6";
+}
+
+.misp-icon-threat-actor.misp-galaxies-orbit {
+    --misp-icon: "\e2f6";
+}
+
+.misp-icon-tidal-campaigns.misp-galaxies-orbit::before {
+    content: "\e2f7";
+}
+
+.misp-icon-tidal-campaigns.misp-galaxies-orbit {
+    --misp-icon: "\e2f7";
+}
+
+.misp-icon-tidal-groups.misp-galaxies-orbit::before {
+    content: "\e2f8";
+}
+
+.misp-icon-tidal-groups.misp-galaxies-orbit {
+    --misp-icon: "\e2f8";
+}
+
+.misp-icon-tidal-references.misp-galaxies-orbit::before {
+    content: "\e2f9";
+}
+
+.misp-icon-tidal-references.misp-galaxies-orbit {
+    --misp-icon: "\e2f9";
+}
+
+.misp-icon-tidal-software.misp-galaxies-orbit::before {
+    content: "\e2fa";
+}
+
+.misp-icon-tidal-software.misp-galaxies-orbit {
+    --misp-icon: "\e2fa";
+}
+
+.misp-icon-tidal-tactic.misp-galaxies-orbit::before {
+    content: "\e2fb";
+}
+
+.misp-icon-tidal-tactic.misp-galaxies-orbit {
+    --misp-icon: "\e2fb";
+}
+
+.misp-icon-tidal-technique.misp-galaxies-orbit::before {
+    content: "\e2fc";
+}
+
+.misp-icon-tidal-technique.misp-galaxies-orbit {
+    --misp-icon: "\e2fc";
+}
+
+.misp-icon-tmss.misp-galaxies-orbit::before {
+    content: "\e2fd";
+}
+
+.misp-icon-tmss.misp-galaxies-orbit {
+    --misp-icon: "\e2fd";
+}
+
+.misp-icon-tool.misp-galaxies-orbit::before {
+    content: "\e2fe";
+}
+
+.misp-icon-tool.misp-galaxies-orbit {
+    --misp-icon: "\e2fe";
+}
+
+.misp-icon-uavs.misp-galaxies-orbit::before {
+    content: "\e2ff";
+}
+
+.misp-icon-uavs.misp-galaxies-orbit {
+    --misp-icon: "\e2ff";
+}
+
+.misp-icon-ukhsa-culture-collections.misp-galaxies-orbit::before {
+    content: "\e300";
+}
+
+.misp-icon-ukhsa-culture-collections.misp-galaxies-orbit {
+    --misp-icon: "\e300";
+}
+
+.misp-icon-veris-framework.misp-galaxies-orbit::before {
+    content: "\e301";
+}
+
+.misp-icon-veris-framework.misp-galaxies-orbit {
+    --misp-icon: "\e301";
+}
+
+.misp-icon-wiper.misp-galaxies-orbit::before {
+    content: "\e302";
+}
+
+.misp-icon-wiper.misp-galaxies-orbit {
+    --misp-icon: "\e302";
+}

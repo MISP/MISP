@@ -1,0 +1,55 @@
+<?php
+$org = Hash::extract($row, $field['data_path']);
+
+if (empty($org)) {
+    return;
+}
+
+if (!empty($org['id'])){
+    $id = $org['id'];
+}
+elseif (!empty($org['uuid'])){
+    $id = $org['uuid'];
+}
+else {
+    $id = null;
+}
+
+if (empty($id)) {
+    if (!empty($org[0])) {
+        $name = $org[0];
+    } else {
+        $name = null;
+    }
+}
+$isCreator = $data_path === 'Orgc';
+$isCard = isset($viewMode) && $viewMode === 'card';
+
+
+?>
+
+<div class="d-flex flex-column gap-1">
+
+    <?php if ($isCard): ?>
+        <div class="text-muted small">
+            <?= $isCreator ? __('Creator Org') : __('Owner Org') ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="d-inline-flex align-items-center gap-2 text-nowrap">
+
+        <?= $this->OrgImg->getOrgLogoV2($org, 24)?>
+
+        <?php if (!empty($id)): ?>
+            <a href="<?= $baseurl ?>/organisations/view/<?= h($id) ?>"
+                class="text-decoration-none fw-semibold text-primary">
+                <?= h($org['name']) ?>
+            </a>
+        <?php else: ?>
+            <p class="text-decoration-none fw-semibold text-primary mb-0">
+                <?= h($name) ?>
+            </p>
+        <?php endif; ?>
+    </div>
+
+</div>

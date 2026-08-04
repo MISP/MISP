@@ -1,0 +1,17 @@
+cff-version: 1.1.0
+message: "If you use MISP or the MISP standard format, please cite it as below."
+authors:
+  - family-names: Wagner
+    given-names: Cynthia
+  - family-names: Dulaunoy
+    given-names: Alexandre
+    orcid: https://orcid.org/0000-0002-5437-4652
+  - family-names: Wagener
+    given-names: Gérard
+  - family-names: Iklody
+    given-names: Andras
+title: "Misp: The design and implementation of a collaborative threat intelligence sharing platform"
+version: 2.4.1
+doi: 10.1145/2994539.2994542
+url: https://www.misp-project.org/
+date-released: 2016-10-24

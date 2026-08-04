@@ -1,0 +1,69 @@
+{
+    "prefer-stable": true,
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=8.1.0,<9.0.0",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-xml": "*",
+        "ext-dom": "*",
+        "ext-simplexml": "*",
+        "ext-pcre": "*",
+        "ext-curl": "*",
+        "iglocska/cake-resque": ">=4.2.1",
+        "pear/crypt_gpg": "1.6.7",
+        "monolog/monolog": "^2.5.0 || ^3.0.0",
+        "spomky-labs/otphp": "^10.0",
+        "bacon/bacon-qr-code": "^2.0",
+        "geoip2/geoip2": "~2.0",
+        "browscap/browscap-php": "^7.0",
+        "matthiasmullie/scrapbook": ">=1.5.3",
+        "league/flysystem": ">=1.0",
+        "supervisorphp/supervisor": "^4.0",
+        "guzzlehttp/guzzle": "^7.4.5",
+        "lstrojny/fxmlrpc": "*",
+        "php-http/message": "*",
+        "php-http/message-factory": "*",
+        "league/commonmark": "^2.8",
+        "justinrainbow/json-schema": "^6.8"
+    },
+    "_comments": [
+        "Browscap-php v6 and v7 are NOT backwards compatible, so needs to test.",
+        "Monolog upgrade from 1.25.3 to 2.5 or 3 is also to be tested",
+        "Doctrine simple cache no longer supported, switched to scrapbook"
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^8",
+        "php-parallel-lint/php-parallel-lint": "^1.2",
+        "cakephp/debug_kit": "^2.2.0"
+    },
+    "suggest": {
+        "ext-posix": "For process info fetching",
+        "ext-gd": "For creating image thumbnails",
+        "ext-openssl": "Enabling the openssl extension allows you to access HTTPS URLs",
+        "ext-redis": "For working background jobs and feed and warninglist caches",
+        "ext-zip": "Enabling processing feeds that are ZIP compressed",
+        "ext-zlib": "Allow gzip compression of HTTP responses",
+        "ext-brotli": "Allow brotli compression of HTTP responses and audit logs",
+        "ext-zstd": "For better and faster compression when fetching data from remote servers",
+        "ext-intl": "For handling IDN domain names",
+        "ext-ssdeep": "For ssdeep hashes correlation",
+        "ext-bcmath": "For faster validating IBAN numbers",
+        "ext-rdkafka": "Required for publishing events to Kafka broker",
+        "ext-apcu": "To cache data in memory instead of file system",
+        "ext-simdjson": "To decode JSON structures faster",
+        "ext-curl": "For faster fetching data from remote servers and feeds",
+        "elasticsearch/elasticsearch": "For logging to elasticsearch",
+        "aws/aws-sdk-php": "To upload samples to S3",
+        "jakub-onderka/openid-connect-php": "To enable OIDC authentication",
+        "iglocska/cake-resque": "If you would like to use the old background worker system install this. But this is advised against."
+    },
+    "config": {
+        "vendor-dir": "Vendor",
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "composer/installers": true,
+            "php-http/discovery": true
+        }
+    }
+}

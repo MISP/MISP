@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Event>
+	<id>25</id>
+	<date>2015-04-14</date>
+	<threat_level_id>1</threat_level_id>
+	<info>This is a sample event</info>
+	<published>0</published>
+	<analysis>0</analysis>
+	<distribution>1</distribution>
+	<orgc>Iglocska</orgc>
+	<Attribute>
+		<id>7</id>
+		<type>ip-src</type>
+		<category>Network activity</category>
+		<to_ids>0</to_ids>
+		<event_id>9</event_id>
+		<distribution>1</distribution>
+		<comment>This is a sample attribute</comment>
+		<value>8.8.8.8</value>
+	</Attribute>
+</Event>

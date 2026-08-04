@@ -1,0 +1,1 @@
+{"Attribute":{"type": "ip-dst","event_id": "30","category": "Network activity","to_ids": "1","distribution": "1","value": "8.8.4.4","comment": "This is a sample attribute"}}

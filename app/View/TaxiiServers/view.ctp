@@ -1,0 +1,88 @@
+<?php
+echo $this->element(
+    'genericElements/SingleViews/single_view',
+    [
+        'title' => 'Taxii Server view',
+        'data' => $data,
+        'fields' => [
+            [
+                'key' => __('Id'),
+                'path' => 'TaxiiServer.id'
+            ],
+            [
+                'key' => __('Name'),
+                'path' => 'TaxiiServer.name'
+            ],
+            [
+                'key' => __('Owner'),
+                'path' => 'TaxiiServer.owner'
+            ],
+            [
+                'key' => __('Skip Proxy'),
+                'path' => 'TaxiiServer.skip_proxy',
+                'type' => 'json'
+            ],
+            [
+                'key' => __('Enabled'),
+                'path' => 'TaxiiServer.enabled',
+                'type' => 'json'
+            ],
+            [
+                'key' => __('Discovery URL'),
+                'path' => 'TaxiiServer.discovery_url'
+            ],
+            [
+                'key' => __('API Root'),
+                'path' => 'TaxiiServer.api_root'
+            ],
+            [
+                'key' => __('Selected Collection'),
+                'path' => 'TaxiiServer.collection'
+            ],
+            [
+                'key' => __('Description'),
+                'path' => 'TaxiiServer.description'
+            ],
+            [
+                'key' => __('Filters'),
+                'path' => 'TaxiiServer.filters',
+                'type' => 'json'
+            ],
+            [
+                'key' => __('Owner Organisation'),
+                'path' => 'TaxiiServer.Cerebrate.org_id',
+                'pathName' => 'Organisation.name',
+                'type' => 'model',
+                'model' => 'organisations'
+            ],
+            [
+                'key' => __('Authentication Type'),
+                'path' => 'TaxiiServer.auth_type',
+                'callback' => 'ucfirst'
+            ],
+            [
+                'key' => __('Token'),
+                'path' => 'TaxiiServer.api_key',
+                'privacy' => true
+            ],
+            [
+                'key' => __('Description'),
+                'path' => 'TaxiiServer.Cerebrate.description'
+            ],
+        ],
+        'children' => [
+            [
+                'url' => '/taxii_servers/collectionsIndex/{{0}}/',
+                'url_params' => ['TaxiiServer.id'],
+                'title' => __('Collections'),
+                'elementId' => 'taxii_collections'
+            ],
+            [
+                'url' => '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
+                'url_params' => ['TaxiiServer.id', 'TaxiiServer.collection'],
+                'title' => __('Objects in selected Collection'),
+                'elementId' => 'taxii_objects'
+            ],
+        ]
+    ]
+);

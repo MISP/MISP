@@ -1,0 +1,148 @@
+/*
+ * Overmind theme — minimal dashboard overlay (Phase 0.3 demo).
+ *
+ * Self-contained CSS that styles the overridden Overmind widget
+ * wrapper (`Themed/Overmind/Elements/dashboard/widget/wrapper.ctp`).
+ * Loaded conditionally by the prototype index when ?ui_theme=Overmind.
+ * In production this kind of overlay would join the Overmind theme's
+ * existing CSS chain.
+ *
+ * Token redefinition: a heavier theme typically also retones the
+ * design tokens (Level 1) here. We bump radius and shadow to lean
+ * more BS5-card-like, leave colours alone — Overmind ships its own
+ * palette in the main theme stylesheet outside the dashboard scope.
+ */
+
+:root[data-ui-theme="Overmind"] {
+  --misp-dash-radius-md: 8px;
+  --misp-dash-radius-lg: 12px;
+  --misp-dash-shadow-sm: 0 2px 4px rgba(13, 110, 253, 0.06);
+  --misp-dash-shadow-md: 0 4px 12px rgba(13, 110, 253, 0.10);
+}
+
+/* ============================================================
+ * BS5-style card body — minimal so the override renders coherently
+ * without the full Bootstrap 5 stylesheet loaded.
+ * ============================================================ */
+.card.misp-widget--overmind {
+  position: relative;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow var(--misp-dash-transition-fast);
+}
+.card.misp-widget--overmind:hover {
+  box-shadow: var(--misp-dash-shadow-md);
+}
+/* Mirror of the default theme's export-menu clip lift: a 1-row-tall
+ * card would clip the export dropdown against this card's
+ * `overflow: hidden` (the rounded-corner clip). Lift it only while the
+ * menu is open so the panel escapes, then re-clip on close. The menu
+ * class (`.misp-widget-menu`) is shared across both wrappers. */
+.card.misp-widget--overmind:has(.misp-widget-menu.is-open) {
+  overflow: visible;
+}
+
+.misp-widget--overmind .card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  /* Calm chrome: blend the header into the card surface — no fill, no
+   * divider (mirrors the default theme's .misp-widget-titlebar). The
+   * action icons reveal on hover/focus in view mode, stay in edit. */
+  background: transparent;
+  border-bottom: 0;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  /* Without `user-select: none` a mousedown on the title text starts
+   * a browser text selection and PDD never sees the drag intent —
+   * mirrors the default theme's `.misp-widget-titlebar` rule. */
+  user-select: none;
+  cursor: default;
+}
+
+.misp-widget--overmind .card-title {
+  flex: 1;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.misp-widget--overmind__iconbtn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--misp-dash-text-muted);
+  width: 24px; height: 24px;
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  /* These are .btn.btn-link buttons (BS5 link-styled), which ship
+   * text-decoration: underline — kill it so the icon glyphs don't
+   * read as underlined links. The :hover/:focus overrides below match
+   * BS's .btn-link:hover specificity and win on source order. */
+  text-decoration: none;
+  transition: background var(--misp-dash-transition-fast);
+}
+.misp-widget--overmind__iconbtn:hover {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+}
+/* Match BS5's .btn-link:hover/:focus specificity so the underline
+ * stays off in every interaction state (source order wins the tie). */
+.misp-widget--overmind__iconbtn:focus,
+.misp-widget--overmind__iconbtn:focus-visible {
+  text-decoration: none;
+}
+
+[data-misp-board-mode="edit"] .misp-widget--overmind .card-header[data-drag-handle] {
+  cursor: move;
+}
+[data-misp-board-mode="view"] .misp-widget--overmind .misp-widget-iconbtn-edit-only {
+  display: none;
+}
+
+/* View mode: the action button group reveals on hover / keyboard
+ * focus; always shown in edit mode. Mirrors the default theme's
+ * calm-chrome rule (opacity, not display, so the header doesn't
+ * reflow; :focus-within keeps the controls keyboard-reachable). */
+[data-misp-board-mode="view"] .misp-widget--overmind .card-header .btn-group {
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+[data-misp-board-mode="view"] .card.misp-widget--overmind:hover .card-header .btn-group,
+[data-misp-board-mode="view"] .card.misp-widget--overmind:focus-within .card-header .btn-group {
+  opacity: 1;
+}
+
+.misp-widget--overmind__body {
+  flex: 1;
+  padding: var(--misp-dash-space-3);
+  overflow: auto;
+  min-height: 0;
+}
+
+.misp-widget--overmind__resize {
+  position: absolute;
+  right: 0; bottom: 0;
+  width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--misp-dash-text-muted) 50%);
+  opacity: 0.35;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+.misp-widget--overmind__resize:hover {
+  opacity: 0.75;
+}
+[data-misp-board-mode="view"] .misp-widget--overmind__resize {
+  display: none;
+}

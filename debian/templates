@@ -1,0 +1,41 @@
+Template: misp/information
+Type: note
+Description: MISP has been installed on your system.
+ However it will not work unless you configure the following file:
+ .
+ /usr/share/misp/app/Config/database.php
+
+Template: misp/configure_mariadb
+Type: select
+Choices: Yes, No
+Description: Would you like to configure MariaDB for MISP?
+
+Template: misp/mariadb_host
+Type: string
+Default: 127.0.0.1
+Description: MariaDB Host
+
+Template: misp/mariadb_rootpwd
+Type: password
+Description: MariaDB root user password
+
+Template: misp/mariadb_mispdb
+Type: string
+Default: misp
+Description: MISP Database name
+
+Template: misp/mariadb_mispdbuser
+Type: string
+Default: misp
+Description: MISP Database user
+
+Template: misp/mariadb_setmisppwd
+Type: password
+Description: Set your MariaDB MISP user password
+
+Template: misp/base_url
+Type: string
+Default: http://127.0.0.1
+Description: MISP Base URL.
+ The Base URL is where MISP points to when it redirects to another page.
+

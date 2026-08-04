@@ -1,0 +1,20 @@
+path {
+    stroke-width: 1;
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+circle {
+  stroke-width: 1;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: grey;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.legend, .label, .hover-text{
+    font-size: x-small;
+    background-color: white;
+}

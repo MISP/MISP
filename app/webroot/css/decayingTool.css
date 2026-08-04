@@ -1,0 +1,181 @@
+/* decaying tool */
+#table_type_search {
+    width: 250px;
+    margin-left: 5px;
+}
+
+.AttributeTypeTableContainer {
+    height: calc(100vh - 175px - 25px);
+    overflow-y: scroll;
+    resize: vertical;
+}
+
+.decayingGraphLine {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+.decayingGraphLineThres {
+    fill: none;
+    stroke: firebrick;
+    stroke-width: 2px;
+}
+
+.decayingGraphArea {
+    fill: lightsteelblue;
+}
+
+.decayingGraphAreaThres {
+    fill: firebrick;
+}
+
+.decayingGraphDot{
+    stroke: #ffffff;
+    fill: #da4f49;
+    stroke-width: 2px;
+}
+
+.decayingGraphHandleDot{
+    stroke: #ffffff;
+    fill: steelblue;
+    stroke-width: 2px;
+}
+
+.decayingGraphAxis path {
+    stroke-width: 2px;
+    stroke: #000;
+    fill: none;
+}
+
+.decayingGraphAxis line {
+  stroke: #000;
+}
+
+.decayingGraphAxis text {
+    user-select: none;
+}
+
+.decayingGraphAxis.grid line {
+    stroke: lightgrey;
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+
+.decayingGraphAxis.grid path {
+    stroke-width: 0;
+}
+
+
+/* decaying basescore */
+#basescore_configurator {
+    overflow: auto;
+    padding: 15px;
+    max-height: 90vh;
+}
+
+#basescore_configurator > div.taxonomyTableContainer {
+    height: calc(90vh);
+    overflow-y: scroll;
+    border: 1px solid #ddd;
+}
+
+#basescore_configurator #body_taxonomies .taxonomySlider {
+    display: inline-block;
+    margin-left: 5px;
+    margin: 0px;
+    width: 40px;
+}
+
+#basescore_configurator #body_taxonomies span.numerical-value-label {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    margin-top: -9px;
+}
+
+#treemapGraphTax {
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    text-align: center;
+}
+
+#basescore_configurator div.org-source-confidence-placeholder {
+    margin-bottom: 5px;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    text-align: center;
+    background-color: white;
+}
+
+#basescore_configurator #tableExamples td.basescore-example-score {
+    position: relative;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.decayingExampleTags {
+    margin-bottom: 3px;
+}
+
+/* decaying simulation */
+div.simulationSubContainer{
+    padding: 15px;
+    height: 90vh;
+    min-width: 1600px;
+    display: flex;
+    flex-direction: column;
+}
+
+#select_model_to_simulate_infobox {
+    padding: 4px;
+    height: fit-content;
+    margin-left: 5px;
+}
+
+#simulationContainer #restSearchTextarea {
+    margin-bottom: 0px;
+    margin-left: 4px;
+    flex-grow: 3;
+    width: auto;
+}
+
+div.loading-spinner-container {
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    min-width: 500px;
+    height: 100%;
+    padding-bottom: 100%; /* aspect ratio */
+    vertical-align: top;
+    overflow: hidden;
+}
+
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    left: 0;
+}
+
+svg text.axis-label {
+    font: 10px sans-serif;
+    fill: #999;
+}
+
+.tableRadioFilterOptionsContainer {
+    display: inline-block;
+    padding: 0 5px;
+    margin-left: 10px;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}

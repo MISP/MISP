@@ -1,0 +1,28 @@
+.misp-fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 60px;
+    display: block;
+    pointer-events: none;
+    z-index: 2147483647;
+    overflow: visible;
+}
+
+.misp-firework-particle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: hsl(var(--hue), 95%, 65%);
+    box-shadow: 0 0 6px hsla(var(--hue), 95%, 65%, 0.8);
+    animation: misp-firework-fly 1100ms ease-out forwards;
+}
+
+@keyframes misp-firework-fly {
+    to {
+        transform: translate(var(--dx), var(--dy));
+        opacity: 0;
+    }
+}

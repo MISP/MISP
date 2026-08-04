@@ -1,0 +1,59 @@
+---
+
+- name: Install all needed packages
+  apt: 
+    pkg: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items: 
+    - nginx
+    - php5-fpm
+
+######### WEB-SERVER CONFIGURATION #########
+
+- name: Make NGINX SSL directory
+  file: 
+    path: /etc/nginx/ssl
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+  register: nginx_init
+
+- name: Remove default NGINX configuration
+  file:
+    path: /etc/nginx/{{item}}
+    state: absent
+  with_items:
+    - sites-enabled/default
+    - sites-available/default
+  register: nginx_init
+
+- name: Copy Nginx site configurations
+  template: 
+    src: nginx/{{item}}
+    dest: /etc/nginx/sites-available/{{item}}
+    force: no
+    mode: 0644
+  with_items:
+    - misp
+  register: nginx_init
+
+- name: Create NGINX configuration symlinks
+  file:
+    src: /etc/nginx/sites-available/{{item}}
+    dest: /etc/nginx/sites-enabled/{{item}}
+    state: link
+  with_items:
+    - misp
+  register: nginx_init
+
+- name: Create self-signed SSL certificate for Nginx
+  command: openssl req -new -nodes -x509 -subj "/C=XX/ST=AAAAAAA/L=BBBBBB/O=Organization/CN={{servername}}" -days 3650 -newkey rsa:4096 -keyout /etc/nginx/ssl/misp.key -out /etc/nginx/ssl/misp.crt
+  when: nginx_init.changed
+
+- name: Restart Nginx
+  service:
+    name: mysql
+    state: restarted
+  when: nginx_init.changed

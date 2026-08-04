@@ -1,0 +1,75 @@
+Developers
+----------
+
+* Christophe Vandeplas <christophe@vandeplas.com> (original author)
+* Andras Iklody <andras.iklody@gmail.com> (lead developer)
+* Many more
+
+Contributors
+------------
+
+Aaron Kaplan
+Andreas Ziegler
+Airbus Group CERT (AiG CERT)
+Alexander Jaeger
+Alexandre Dulaunoy
+Alexandru Ciobanu
+Andras Iklody
+Andreas Ziegler
+Andrzej Dereszowski
+Bâkır Emre
+Chris Clark
+Christian Studer
+Christophe Vandeplas
+David André
+Guilherme Capilé
+Gábor Molnár
+Iglocska
+Jakub Onderka
+Koen Van Impe
+L. Aaron Kaplan
+Noud de Brouwer
+Raphaël Vinot
+Richard van den Berg
+Sami Mokaddem
+Steve Clement
+nullprobe
+remg427
+
+
+* Copyright (C) 2012-2020 Christophe Vandeplas
+* Copyright (C) 2012 Belgian Defence
+* Copyright (C) 2012 NATO / NCIRC
+* Copyright (C) 2013-2020 Andras Iklody
+* Copyright (C) 2015-2020 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2016 Andreas Ziegler
+* Copyright (C) 2018-2020 Sami Mokaddem
+* Copyright (C) 2018-2020 Christian Studer
+* Copyright (C) 2015-2020 Alexandre Dulaunoy
+* Copyright (C) 2018-2020 Steve Clement
+* Copyright (C) 2020 Jakub Onderka
+
+MISP is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE version 3.
+
+
+History
+=======
+
+This project started around May 2011 when Christophe Vandeplas had a frustration that way to many IOCs were shared by email, or in pdf documents and were not parseable by automatic machines. So at home he started to play around with CakePHP and made a proof of concept of his idea. He called it CyDefSIG: Cyber Defence Signatures.
+
+Mid July 2011 he presented his personal project at work (Belgian Defence) where the feedback was rather positive. After giving access to CyDefSIG running on his personal server the Belgian Defence started to use CyDefSIG officially starting mid August 2011.
+Christophe was then allowed to spend some time on CyDefSIG during his work-hours, while still working on it at home.
+
+At some point NATO heard about this project. On January 2012 a first presentation was done to introduce them in more depth to the project. They looked at other products that the market offered, but it seemed they deemed the openness of CyDefSIG to be of a great advantage. Andrzej Dereszowski was the first part-time developer from NATO side.
+
+One thing led to another and some months later NATO hired a full-time developer to improve the code and add more features. A collaborative development started from that date.
+As with many personal projects the license was not explicitly written yet, it was collaboratively decided that the project would be released publicly as Affero GPL. This to share the code with as many people as possible and to protect it from any harm.
+
+The project was then renamed to MISP: Malware Information Sharing Project, a name invented by Alex Vandurme from NATO.
+
+In January 2013 Andras Iklody became the main full-time developer of MISP, during the day hired by NATO and during the evening and week-end contributor to an open source project.
+
+Meanwhile other organisations started to adopt the software and promoted it around the CERT world.  (CERT-EU, CIRCL, and many others ...)
+
+Nowadays, Andras Iklody is the lead developer of the MISP project and works for CIRCL.
+

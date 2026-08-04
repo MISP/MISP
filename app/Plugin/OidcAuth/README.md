@@ -1,0 +1,87 @@
+# MISP OpenID Connect Authentication
+
+This plugin provides ability to use OpenID as Single sign-on for login users to MISP.
+When plugin is enabled, users are directly redirected to SSO provider and it is not possible
+to login with passwords stored in MISP.
+
+## Usage
+
+1. Install required library using composer
+
+```bash 
+cd app
+php composer.phar require certmichelin/openid-connect-php:1.3.0
+```
+
+2. Enable Oidc plugin in `app/Config/bootstrap.php`, add the following line to the end:
+
+```php
+CakePlugin::load('OidcAuth');
+```
+
+3. Enable in `app/Config/config.php`
+
+```php
+$config = array(
+    ...
+    'Security' => array(
+        ...
+        'auth' => array('OidcAuth.Oidc'),
+    ),
+    ...
+```
+
+4. Configure in `app/Config/config.php` (replace variables in `{{ }}` with your values)
+
+```php
+$config = array(
+    ...
+    'OidcAuth' => [
+        'provider_url' => '{{ OIDC_PROVIDER }}',
+        'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
+        'client_id' => '{{ OIDC_CLIENT_ID }}',
+        'client_secret' => '{{ OIDC_CLIENT_SECRET }}',
+        'role_mapper' => [ // if user has multiple roles, first role that matches will be assigned to user. In below example, lowest privileged role (misp-user) will be assigned, if the IdP says the user has both misp-user and misp-admin role. You might want to sort the opposite way, if you want the highest privileged role to get priority.
+            'misp-user' => 3, // User
+            'misp-admin' => 1, // Admin
+        ],
+        'default_org' => '{{ MISP_ORG }}',
+        'disable_request_object' => true, //Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers. (False by default)
+        'disable_pushed_authorization_request' => true, // Disable the use of Pushed Authorization Requests (PAR) and send authorization request parameters directly to the authorization endpoint instead. This can be used for compatibility with OpenID Connect providers where PAR should not be used. (False by default)
+        'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
+        'login_button_text' => 'Login with OIDC', // Optional, custom label for the login button shown when `mixedAuth` is enabled (defaults to "Login with OIDC")
+    ],
+    ...
+```
+
+5. Other MISP settings
+
+You might want to change or set the following MISP config values once the single sign on integration works (you can do this via GUI):
+
+```generic
+Security.require_password_confirmation false
+Security.auth_enforced true
+```
+
+For avoiding redirect loops when trying to logout, you can configure the `Plugin.CustomAuth_custom_logout` setting with the logout url of your IdP.
+
+6. Mixed Auth
+
+Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
+
+7. Proxy
+Set `OidcAuth.skipProxy` to `false` to use global MISP proxy settings when sending requests to your OIDC provider. By default global proxy settings are ignored. 
+
+8. Custom login button text
+
+When `OidcAuth.mixedAuth` is enabled, a login button is shown on the login page. Set `OidcAuth.login_button_text` to customise its label (for example `Login with Authentik` or `Login with Company SSO`). If unset or empty, it defaults to `Login with OIDC`.
+
+## Caveats
+
+When user is blocked in SSO (IdM), he/she will be not blocked in MISP. He could not log in, but users authentication keys will still work and also he/she will still receive all emails. 
+
+To solve this problem:
+
+1) set `OidcAuth.offline_access` to `true` - with that, IdP will be requested to provide offline access token
+2) set `OidcAuth.check_user_validity` to number of seconds, after which user will be revalidated if he is still active in IdP. Zero means that this functionality is disabled. Recommended value is `300`.
+3) because offline tokens will expire when not used, you can run `cake user check_user_validity` to check all user in one call

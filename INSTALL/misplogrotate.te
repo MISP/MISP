@@ -1,0 +1,16 @@
+module misplogrotate 1.2;
+require {
+	type httpd_t;
+	type logrotate_t;
+	type httpd_log_t;
+	type httpd_sys_script_t;
+	type httpd_sys_content_t;
+	type httpd_sys_rw_content_t;
+	class dir { ioctl read getattr lock search open remove_name };
+	class file { unlink write rename };
+}
+#============= logrotate_t ==============
+allow logrotate_t httpd_sys_content_t:dir { ioctl read getattr lock search open };
+allow logrotate_t httpd_sys_rw_content_t:dir { ioctl read getattr lock search open };
+allow httpd_t httpd_log_t:dir remove_name;
+allow { httpd_t httpd_sys_script_t } httpd_log_t:file { unlink write rename };

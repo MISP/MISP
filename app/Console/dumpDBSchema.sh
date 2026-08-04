@@ -1,0 +1,1 @@
+./cake admin dumpCurrentDatabaseSchema

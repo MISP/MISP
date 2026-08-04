@@ -1,0 +1,35 @@
+@CHARSET "UTF-8";
+
+.treemapdiv {
+	
+	margin: 0px;
+}
+
+#treemapSettings {
+	margin-top:10px;
+	margin-bottom:10px;
+	border: 1px solid black;
+	width: 960px;
+}
+
+#taxonomydt {
+	width: 20px;	
+}
+
+#taxonomydd {
+	width: 100%;
+}
+
+#treemapGraph {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	width: 960px;
+}
+
+.node {
+	border: solid 1px white;
+	font: 10px sans-serif;
+	line-height: 12px;
+	overflow: hidden;
+	position: absolute;
+	text-indent: 2px;
+}

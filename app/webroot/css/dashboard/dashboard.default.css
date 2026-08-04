@@ -1,0 +1,3934 @@
+/*
+ * MISP dashboard default stylesheet
+ *
+ * Phase 0.3 prototype — PRD §8.1 token catalogue + base styling.
+ * Self-contained: depends on no Bootstrap version, no preset typography
+ * stack. Themes opt in to one of four override levels (PRD §8.1–§8.4):
+ *
+ *   Level 1 — drop a stylesheet that redefines the tokens below.
+ *             Nothing else changes. Charts retheme automatically
+ *             because the ECharts theme is derived from these tokens.
+ *
+ *   Level 2 — additionally register a named ECharts theme JSON for
+ *             finer chart-palette control.
+ *
+ *   Level 3 — override individual .ctp files under
+ *             View/Themed/<Name>/Elements/dashboard/...
+ *
+ *   Level 4 — supply parallel framework-version generic primitives
+ *             (BS5, etc.) under View/Themed/<Name>/Elements/dashboard/generic/.
+ *
+ * Token names are a stable contract; bumps go through deprecation
+ * notice. Dashboard JS reads a few of them (--misp-dash-accent etc.)
+ * via getComputedStyle to drive ECharts theme registration at boot.
+ */
+
+:root {
+  /* ---- Surface ---- */
+  --misp-dash-surface:        #f7f8fa;
+  --misp-dash-surface-raised: #ffffff;
+  --misp-dash-surface-sunken: #eef0f3;
+
+  /* ---- Border ---- */
+  --misp-dash-border:         #d8dde4;
+  --misp-dash-border-strong:  #b6bdc7;
+
+  /* ---- Text ---- */
+  --misp-dash-text:           #1d2025;
+  --misp-dash-text-muted:     #6b7280;
+  --misp-dash-text-on-accent: #ffffff;
+
+  /* ---- Accent + status ---- */
+  --misp-dash-accent:         #2563eb;
+  --misp-dash-accent-hover:   #1d4ed8;
+  --misp-dash-accent-muted:   rgba(37, 99, 235, 0.10);
+  --misp-dash-success:        #16a34a;
+  --misp-dash-danger:         #dc2626;
+  --misp-dash-warning:        #d97706;
+  --misp-dash-info:           #0891b2;
+  /* Translucent low-ends for the semantic colours, mirroring
+     --misp-dash-accent-muted. Used as the low stop of the WorldMap
+     choropleth ramp when a widget selects a named palette (DD-13). */
+  --misp-dash-success-muted:  rgba(22, 163, 74, 0.12);
+  --misp-dash-danger-muted:   rgba(220, 38, 38, 0.12);
+  --misp-dash-warning-muted:  rgba(217, 119, 6, 0.12);
+  --misp-dash-info-muted:     rgba(8, 145, 178, 0.12);
+
+  /* ---- Spacing scale ---- */
+  --misp-dash-space-1: 4px;
+  --misp-dash-space-2: 8px;
+  --misp-dash-space-3: 12px;
+  --misp-dash-space-4: 16px;
+  --misp-dash-space-5: 24px;
+
+  /* ---- Radii ---- */
+  --misp-dash-radius-sm: 3px;
+  --misp-dash-radius-md: 6px;
+  --misp-dash-radius-lg: 10px;
+
+  /* ---- Shadows ---- */
+  --misp-dash-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --misp-dash-shadow-md: 0 1px 6px rgba(0, 0, 0, 0.08);
+  --misp-dash-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  /* ---- Typography ---- */
+  --misp-dash-fs-xs:    11px;
+  --misp-dash-fs-sm:    12px;
+  --misp-dash-fs-base:  14px;
+  --misp-dash-fs-lg:    16px;
+  --misp-dash-fs-xl:    20px;
+  --misp-dash-fw-normal: 400;
+  --misp-dash-fw-medium: 500;
+  --misp-dash-fw-bold:   600;
+
+  /* ---- Motion ---- */
+  --misp-dash-transition-fast: 0.10s ease;
+  --misp-dash-transition-base: 0.18s ease;
+
+  /* ---- Grid runtime hints (consumed by GridModule JS) ---- */
+  --misp-dash-grid-cols: 12;
+  --misp-dash-grid-row-h: 80px;
+  --misp-dash-grid-gap:   var(--misp-dash-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --misp-dash-transition-fast: 0s;
+    --misp-dash-transition-base: 0s;
+  }
+}
+
+/* ============================================================
+ * Base — page shell
+ * ============================================================ */
+
+body.misp-dashboard-page {
+  margin: 0;
+  background: var(--misp-dash-surface);
+  /* Typography is scoped to the dashboard's own content surfaces
+   * below (.misp-dashboard-header / .misp-dashboard-main /
+   * .misp-configure-panel), NOT applied
+   * here on body. The proto ran standalone so a body-wide rule
+   * was fine; once Layouts/dashboard.ctp wraps the dashboard in
+   * MISP's chrome (global_menu + footer), any body-level font-size
+   * / line-height / color cascades into the chrome's inheritance-
+   * driven bits (menu link text, footer text). Background and
+   * margin stay here — they don't propagate to text styling, and
+   * the surface fills the inter-chrome gap harmlessly. */
+}
+
+/* Dashboard content typography. Applied per top-level surface so it
+ * inherits naturally into descendants (widget bodies, menu items,
+ * configure form fields, empty-state copy) without leaking into the
+ * MISP chrome above/below. font-family deliberately omitted so the
+ * host theme's choice flows through. */
+.misp-dashboard-header,
+.misp-dashboard-main,
+.misp-configure-panel {
+  color:       var(--misp-dash-text);
+  font-size:   var(--misp-dash-fs-base);
+  line-height: 1.5;
+}
+
+/* Scrollbars. The dashboard's scroll containers (widget bodies, the
+ * Attack matrix, list widgets, the configure panel) get a thin,
+ * token-driven scrollbar so it retones with the theme — otherwise the
+ * browser-default scrollbar renders light against the midnight dark
+ * surface. `scrollbar-width`/`scrollbar-color` are INHERITED standard
+ * props, so setting them on the content surfaces cascades into every
+ * scroll container; the tokens mean the midnight overlay retones them
+ * for free (no midnight.css rule). Scoped to the dashboard's own
+ * surfaces (NOT body) for the same reason the typography above is — a
+ * body-level rule would leak into the MISP chrome's scrollbar + the main
+ * viewport. Standard props only (no `::-webkit-scrollbar` pseudo): same
+ * browser vintage as the `:has()` this sheet already relies on, they
+ * render a clean button-less thin bar shared across Chromium/Firefox/
+ * Safari; older engines just keep the default scrollbar (no worse than
+ * before). */
+.misp-dashboard-main,
+.misp-configure-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--misp-dash-border-strong) transparent;
+}
+
+.misp-dashboard-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-4);
+  /* Compact top bar: space-2 (8px) block padding, down from space-3 (12px),
+     to tighten the vertical space above/below the global filter area. */
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-5);
+  background: var(--misp-dash-surface-raised);
+  border-bottom: 1px solid var(--misp-dash-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.misp-dashboard-title {
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+}
+
+.misp-dashboard-pill {
+  display: inline-block;
+  padding: 1px var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.misp-dashboard-toolbar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  /* space-1 (4px) block padding, down from space-2 (8px) — trims the filter
+     box's own height to match the tighter header padding above. */
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  min-height: 32px;
+}
+.misp-dashboard-toolbar-empty {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  font-style: italic;
+}
+
+.misp-dashboard-modecontrols {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+}
+
+/* Edit-mode-aware button visibility. BoardModule mirrors the
+ * `data-misp-board-mode` attribute from the board root to <body>
+ * on every mode change so the header (a sibling of the board, not
+ * an ancestor) can react via CSS without JS visibility flips. */
+.misp-dashboard-modecontrols-edit { display: none; }
+body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-edit { display: inline-flex; }
+body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: none; }
+
+.misp-dashboard-btn {
+  appearance: none;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-btn:hover {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-dashboard-btn:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-dashboard-btn[aria-pressed="true"] {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+/* When a .misp-dashboard-btn is an <a> (e.g. the template-gallery header
+ * actions: "Back to dashboard", "Save current dashboard as template",
+ * "Import starter templates"), suppress the host theme's global link styling
+ * — these read as buttons, not links, so they must never underline nor adopt
+ * the link / link-hover colour. Anchor-scoped so the <button> toggles'
+ * aria-pressed colours are untouched; the primary override follows so its
+ * on-accent text wins by source order. */
+a.misp-dashboard-btn,
+a.misp-dashboard-btn:hover,
+a.misp-dashboard-btn:focus,
+a.misp-dashboard-btn:visited {
+  color: var(--misp-dash-text);
+  text-decoration: none;
+}
+a.misp-dashboard-btn-primary,
+a.misp-dashboard-btn-primary:hover,
+a.misp-dashboard-btn-primary:focus,
+a.misp-dashboard-btn-primary:visited {
+  color: var(--misp-dash-text-on-accent);
+}
+
+/* Icon-only button flavour (e.g. the "⋯ More" trigger): square,
+ * larger glyph, same hover/focus posture as the regular dashboard
+ * button. Used in the header next to "Edit layout". */
+.misp-dashboard-btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.misp-dashboard-btn-icon[aria-expanded="true"] {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+
+/* Auto-refresh pause toggle (PRD F3.2). Two glyphs live in the
+ * button — one shown when refresh is running (pause icon), the
+ * other when paused (play icon). aria-pressed controls which is
+ * visible. Each glyph is wrapped in a flex-centred span so the
+ * 16×16 SVG sits cleanly in the 32×32 icon button. */
+.misp-dashboard-btn-refresh-toggle .misp-dashboard-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.misp-dashboard-btn-refresh-toggle .misp-dashboard-btn-glyph-paused {
+  display: none;
+}
+.misp-dashboard-btn-refresh-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-running {
+  display: none;
+}
+.misp-dashboard-btn-refresh-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-paused {
+  display: inline-flex;
+}
+
+/* Light/dark toggle (DD-51). Mirrors the refresh-toggle's two-glyph
+ * pattern: a sun (light active) and a moon (dark active) share the
+ * button; aria-pressed (= dark-active) controls which is visible. */
+.misp-dashboard-btn-theme-toggle .misp-dashboard-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.misp-dashboard-btn-theme-toggle .misp-dashboard-btn-glyph-dark {
+  display: none;
+}
+.misp-dashboard-btn-theme-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-light {
+  display: none;
+}
+.misp-dashboard-btn-theme-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-dark {
+  display: inline-flex;
+}
+
+.misp-dashboard-menubutton-glyph {
+  font-size: var(--misp-dash-fs-xl);
+  line-height: 0.4;
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+ * Header menu dropdown ("⋯ More", DD-08)
+ * ============================================================
+ *
+ * WAI-ARIA Menu Button pattern. The trigger is a square icon
+ * button using .misp-dashboard-btn-icon above; the panel below
+ * is positioned absolutely against the menubutton wrapper.
+ */
+
+.misp-dashboard-menubutton {
+  position: relative;
+  display: inline-block;
+}
+
+.misp-dashboard-menu {
+  position: absolute;
+  top: calc(100% + var(--misp-dash-space-2));
+  right: 0;
+  min-width: 240px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-lg);
+  padding: var(--misp-dash-space-1) 0;
+  z-index: 30;
+  /* The header is sticky with z-index 20; the menu must paint above
+   * it, and above the board content below the header. */
+}
+.misp-dashboard-menu[hidden] { display: none !important; }
+
+.misp-dashboard-menuitem {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-4);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  transition: background var(--misp-dash-transition-fast),
+              color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-menuitem:hover,
+.misp-dashboard-menuitem:focus {
+  /* unify hover and focus baseline; focus-visible adds the outline */
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  outline: none;
+}
+.misp-dashboard-menuitem:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: -2px;
+}
+
+.misp-dashboard-menuitem-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--misp-dash-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-menuitem:hover .misp-dashboard-menuitem-icon,
+.misp-dashboard-menuitem:focus-visible .misp-dashboard-menuitem-icon {
+  color: var(--misp-dash-accent);
+}
+.misp-dashboard-menuitem-label { flex: 1; }
+
+.misp-dashboard-menu-separator {
+  border: 0;
+  border-top: 1px solid var(--misp-dash-border);
+  margin: var(--misp-dash-space-1) 0;
+}
+
+/* ============================================================
+ * Board grid + widgets
+ * ============================================================ */
+
+.misp-dashboard-main {
+  position: relative;
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+  /* Grid layout properties (display, grid-template-columns,
+   * grid-auto-rows, gap) are set inline by GridModule because they
+   * depend on JS-resolved tile counts and runtime measurements.
+   * Do not duplicate them here. */
+}
+
+.misp-widget {
+  position: relative;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow var(--misp-dash-transition-fast);
+}
+.misp-widget:hover {
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-widget.dgrid-dragging {
+  opacity: 0.5;
+}
+.misp-widget.dgrid-resizing {
+  box-shadow: var(--misp-dash-shadow-md);
+  outline: 2px solid var(--misp-dash-accent-muted);
+  outline-offset: -2px;
+}
+
+.misp-widget-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  /* Calm chrome: the titlebar blends into the widget surface — no
+   * fill, no divider. The title still reads; the action icons reveal
+   * on hover/focus in view mode (see .misp-widget-actions below) and
+   * stay shown in edit mode. */
+  background: transparent;
+  border-bottom: 0;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  user-select: none;
+  cursor: default;
+}
+.misp-widget-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drag handle visible only in edit mode. The leading grip glyph
+ * also appears only in edit mode. */
+[data-misp-board-mode="edit"] .misp-widget-titlebar[data-drag-handle] {
+  cursor: move;
+}
+[data-misp-board-mode="edit"] .misp-widget-titlebar[data-drag-handle]::before {
+  content: "⠿";
+  color: var(--misp-dash-text-muted);
+  margin-right: var(--misp-dash-space-1);
+}
+
+.misp-widget-actions {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+}
+
+/* View mode: action buttons stay hidden until the user hovers the
+ * widget or moves keyboard focus into it. `:focus-within` keeps them
+ * reachable for keyboard + screen-reader users (hover alone would
+ * strand them); opacity (not `display`) preserves the titlebar layout
+ * so nothing reflows when they appear. In edit mode they're always
+ * visible — this rule only matches `[data-misp-board-mode="view"]`. */
+[data-misp-board-mode="view"] .misp-widget-actions {
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+[data-misp-board-mode="view"] .misp-widget:hover .misp-widget-actions,
+[data-misp-board-mode="view"] .misp-widget:focus-within .misp-widget-actions {
+  opacity: 1;
+}
+
+/* "Updated Ns ago" chip — sits between the title and the action
+ * buttons in the titlebar. Small + muted so it informs without
+ * competing with the title. `font-variant-numeric: tabular-nums`
+ * keeps the chip width steady while the digit ticks (e.g. "9s"
+ * → "10s" doesn't shake the layout). Hidden via :empty when the
+ * tile hasn't rendered yet — RefreshIndicator writes textContent
+ * only after the first widget-rendered event. */
+.misp-widget-refresh-indicator {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-regular, 400);
+  color: var(--misp-dash-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.misp-widget-refresh-indicator:empty {
+  display: none;
+}
+
+.misp-widget-iconbtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  width: 22px; height: 22px;
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--misp-dash-transition-fast),
+              color var(--misp-dash-transition-fast);
+}
+.misp-widget-iconbtn:hover {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+}
+.misp-widget-iconbtn:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+
+/* "edit-only" buttons (Remove, etc.) hide outside edit mode. */
+[data-misp-board-mode="view"] .misp-widget-iconbtn-edit-only {
+  display: none;
+}
+
+/* Export (download) menu — the action-row trigger is a normal
+ * .misp-widget-iconbtn (inherits sizing + hover-reveal from its
+ * siblings); only the popup panel needs styling here. menu-button.
+ * module.mjs toggles `hidden` + `.is-open`; visibility keys off
+ * `.is-open` so the base `display:none` always wins over the UA
+ * `[hidden]` rule regardless of source order. Styled with the shared
+ * tokens so the Overmind overlay retones it automatically. Shared
+ * across both themes (both load dashboard.default.css). */
+.misp-widget-export {
+  position: relative;
+  display: inline-flex;
+}
+.misp-widget-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  min-width: 132px;
+  padding: var(--misp-dash-space-1);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  box-shadow: var(--misp-dash-shadow-md);
+}
+.misp-widget-menu.is-open {
+  display: flex;
+}
+/* The export menu drops below the titlebar; on a 1-row-tall widget
+ * (80px) it would extend past the widget's bottom edge and be clipped
+ * by `.misp-widget { overflow: hidden }` (which exists only to clip the
+ * 6px rounded corners). Lift that clip transiently, and only while the
+ * menu is open, so the panel can escape; the corners re-clip the moment
+ * it closes. The body keeps its own `overflow: auto`, so its scrolling
+ * content stays clipped regardless of the widget-level overflow. */
+.misp-widget:has(.misp-widget-menu.is-open) {
+  overflow: visible;
+}
+.misp-widget-menuitem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  text-align: left;
+  white-space: nowrap;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+}
+.misp-widget-menuitem:hover {
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-widget-menuitem:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: -2px;
+  background: var(--misp-dash-surface-sunken);
+}
+
+.misp-widget-body {
+  flex: 1;
+  padding: var(--misp-dash-space-3);
+  overflow: auto;
+  min-height: 0;
+}
+/* Unclassed anchors inside widget bodies pick up the accent token
+ * instead of the browser-default blue/visited-purple combo. Mostly
+ * relevant for legacy widgets like MispStatusWidget that emit raw
+ * `<a href>` in their data's `html` field — Phase 2's $schema
+ * backfill migrates those to DD-03 `drilldown` keys which the
+ * SimpleList renderer wraps in `.misp-list-link`. */
+.misp-widget-body a,
+.misp-widget-body a:visited {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-widget-body a:hover {
+  border-bottom-color: currentColor;
+}
+.misp-widget-loading {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  font-style: italic;
+  text-align: center;
+  padding: var(--misp-dash-space-4) 0;
+}
+
+.misp-widget-resize {
+  position: absolute;
+  right: 0; bottom: 0;
+  width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--misp-dash-text-muted) 50%);
+  opacity: 0.35;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+.misp-widget-resize:hover {
+  opacity: 0.75;
+}
+[data-misp-board-mode="view"] .misp-widget-resize {
+  display: none;
+}
+
+/* ============================================================
+ * GridModule ghost (drag/resize preview)
+ * ============================================================ */
+.dgrid-ghost {
+  position: absolute;
+  pointer-events: none;
+  border: 2px dashed var(--misp-dash-accent);
+  background: var(--misp-dash-accent-muted);
+  border-radius: var(--misp-dash-radius-md);
+  z-index: 10;
+  display: none;
+  transition: left var(--misp-dash-transition-fast),
+              top var(--misp-dash-transition-fast),
+              width var(--misp-dash-transition-fast),
+              height var(--misp-dash-transition-fast);
+}
+.dgrid-ghost.dgrid-ghost-invalid {
+  border-color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+
+/* ============================================================
+ * Empty state — "No widgets yet"
+ * ============================================================
+ *
+ * Rendered inside .misp-dashboard-main (a CSS grid) when the
+ * resolved layout is empty. Spans every column so it dominates
+ * the otherwise-empty board area, and uses muted typography +
+ * a soft outline glyph so it reads as guidance rather than
+ * an error state.
+ */
+
+.misp-dashboard-emptystate {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--misp-dash-space-5) var(--misp-dash-space-4);
+  min-height: 50vh;
+  color: var(--misp-dash-text-muted);
+}
+.misp-dashboard-emptystate-glyph {
+  color: var(--misp-dash-border-strong);
+  margin-bottom: var(--misp-dash-space-4);
+}
+.misp-dashboard-emptystate-title {
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-dashboard-emptystate-body {
+  margin: 0;
+  font-size: var(--misp-dash-fs-base);
+  max-width: 32em;
+  line-height: 1.6;
+}
+
+/* ============================================================
+ * SimpleList renderer
+ * ============================================================ */
+.misp-list-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--misp-dash-space-1);
+  padding: 2px 0;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-list-title {
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+}
+.misp-list-sep {
+  color: var(--misp-dash-text-muted);
+}
+.misp-list-value {
+  color: var(--misp-dash-accent);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-list-link {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-list-link:hover {
+  border-bottom-color: currentColor;
+}
+.misp-list-delta-positive {
+  color: var(--misp-dash-success);
+  font-weight: var(--misp-dash-fw-medium);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-list-delta-negative {
+  color: var(--misp-dash-danger);
+  font-weight: var(--misp-dash-fw-medium);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-list-gap {
+  height: var(--misp-dash-space-3);
+}
+.misp-list-empty,
+.misp-widget-error {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--misp-dash-space-3) 0;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-widget-error {
+  color: var(--misp-dash-danger);
+  font-style: normal;
+}
+
+/* ============================================================
+ * StatGrid renderer — KPI metric cards (DD-31). Same {title, value,
+ * change} data shape as SimpleList, laid out as a responsive grid of
+ * cards that wrap to the widget's width: one column when narrow, more
+ * as it widens (auto-fill / minmax). Token-driven, so the midnight
+ * theme retones it via the --misp-dash-* overrides alone.
+ * ============================================================ */
+.misp-stat-grid {
+  display: grid;
+  /* min(120px, 100%) lets a single column shrink below 120px when the
+     widget is resized very narrow, so the grid never forces a
+     horizontal scrollbar. */
+  grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+/* The grid is NOT its own scroll/size container: .misp-widget-body
+   already owns padding + the single overflow:auto, so the grid stays a
+   plain block that flows to its content height. Declaring width/height
+   100% + padding here re-introduced an outer (body) h+v scroll plus a
+   redundant inner scrollbar. */
+.misp-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Card-as-drilldown-link (DD-03): inherit text colour, lift on hover. */
+a.misp-stat-card {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-stat-card:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-md);
+}
+.misp-stat-label {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Per-metric glyph that replaces the text label (DD-32); the full
+   field name lives on the card's title= tooltip. Inline SVG inherits
+   colour via currentColor. */
+.misp-stat-glyph {
+  display: inline-flex;
+  color: var(--misp-dash-text-muted);
+  transition: color var(--misp-dash-transition-fast);
+}
+.misp-stat-glyph-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+/* misp-iconify glyph (AD-21): .misp-icon is a 1em masked-SVG square coloured
+   by currentColor, so it inherits the .misp-stat-glyph muted/accent colour;
+   size it to match the 22px inline-SVG glyph. */
+.misp-stat-glyph .misp-icon {
+  font-size: 22px;
+}
+.misp-stat-card:hover .misp-stat-glyph,
+a.misp-stat-card:hover .misp-stat-glyph {
+  color: var(--misp-dash-accent);
+}
+/* Opt-in glyph + label header (AD-21): glyph left, uppercase label beside
+   it. min-width:0 lets the label wrap/ellipsis instead of overflowing the
+   card. Used only when a widget sets $statGridLabels. */
+.misp-stat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  min-width: 0;
+}
+/* In labeled mode the label is the card's primary text, so give it room:
+   the grid uses wider columns and the label wraps to 2 lines (then
+   ellipsis) rather than the dense glyph-only grid's hard single-line clip. */
+.misp-stat-grid-labeled {
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+}
+.misp-stat-head .misp-stat-label {
+  margin: 0;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.misp-stat-valuerow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-2);
+}
+.misp-stat-value {
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1.1;
+  color: var(--misp-dash-text);
+  overflow-wrap: anywhere;
+}
+.misp-stat-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-stat-delta-up {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-stat-delta-down {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-stat-arrow {
+  font-size: 9px;
+  line-height: 1;
+}
+.misp-stat-html {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+/* gap row → full-width section break across all grid columns. */
+.misp-stat-section {
+  grid-column: 1 / -1;
+  padding-bottom: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+.misp-stat-section-blank {
+  border-bottom: 0;
+  margin-top: 0;
+}
+
+/* ============================================================
+ * Trending renderer (analyst track — AD-W1 / AD-01) — a ranked-row
+ * list for "what is rising" widgets. Each row: a left-anchored volume
+ * fill bar (width = the data, carried inline as --misp-trending-fill)
+ * behind the label, then the count + a ▲/▼ momentum delta badge. The
+ * badge style mirrors .misp-stat-delta (DD-31); token-driven so the
+ * midnight theme retones by only redefining --misp-dash-* tokens.
+ * ============================================================ */
+.misp-trending-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-trending-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  /* clip the fill bar to the row's rounded corners. */
+  overflow: hidden;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-trending-row:hover,
+a.misp-trending-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-trending-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+/* The volume fill: width is the data (--misp-trending-fill), set inline
+   per row; everything else (colour, position) lives here. Behind the
+   text via z-index, and non-interactive so it never eats row clicks. */
+.misp-trending-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--misp-trending-fill, 0);
+  background: var(--misp-dash-accent-muted);
+  z-index: 0;
+  pointer-events: none;
+}
+/* Leading galaxy glyph (galaxy dimensions — W3/W4). Above the fill bar
+   (z-index) and muted so the label/count stay the focus; sized off the
+   small font token so it tracks the row's type scale. */
+.misp-trending-icon {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-trending-label {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-trending-meta {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+}
+.misp-trending-count {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.misp-trending-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-trending-delta-up {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-trending-delta-down {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-trending-arrow {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* ============================================================
+ * Index renderer — tabular records emitted by widgets that declare
+ * `$render = 'Index'`. Body scrolls vertically; sticky header keeps
+ * column names visible. Cell padding stays compact for dense data.
+ * ============================================================ */
+.misp-index {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+.misp-index-description {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  margin-bottom: var(--misp-dash-space-2);
+}
+.misp-index-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-index-th {
+  position: sticky;
+  top: 0;
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  font-weight: var(--misp-dash-fw-medium);
+  text-align: left;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-bottom: 1px solid var(--misp-dash-border);
+  white-space: nowrap;
+}
+.misp-index-tr + .misp-index-tr .misp-index-td {
+  border-top: 1px solid var(--misp-dash-border-subtle, var(--misp-dash-border));
+}
+.misp-index-td {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  vertical-align: top;
+  color: var(--misp-dash-text);
+}
+.misp-index-link {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-index-link:hover {
+  border-bottom-color: currentColor;
+}
+.misp-index-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 1px 2px 1px 0;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+}
+.misp-index-muted {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+}
+
+/* ============================================================
+ * EventCards renderer (analyst track — AD-W6 / AD-08) — a flat,
+ * reverse-chronological stack of event cards for the analyst event
+ * stream. Each card has three rows: (1) threat-level dot + label · org ·
+ * relative time · #id, (2) truncated Event.info, (3) tag chips (capped)
+ * + attribute count. Read-only; filters live on the dashboard toolbar.
+ * Token-driven so the midnight theme retones by only redefining the
+ * --misp-dash-* tokens; the threat-dot colours map to MISP's threat-level
+ * palette through the semantic danger/info/success/muted tokens.
+ * ============================================================ */
+.misp-eventcards-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+.misp-eventcards-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Row 1 — threat dot + label · org · time, with #id pushed to the right. */
+.misp-eventcards-row1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-eventcards-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--misp-dash-text-muted);
+}
+.misp-eventcards-dot--high      { background: var(--misp-dash-danger); }
+.misp-eventcards-dot--medium    { background: var(--misp-dash-info); }
+.misp-eventcards-dot--low       { background: var(--misp-dash-success); }
+.misp-eventcards-dot--undefined { background: var(--misp-dash-text-muted); }
+.misp-eventcards-threat {
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+}
+.misp-eventcards-sep {
+  color: var(--misp-dash-border-strong);
+}
+.misp-eventcards-org {
+  color: var(--misp-dash-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-eventcards-time {
+  color: var(--misp-dash-text-muted);
+  white-space: nowrap;
+}
+.misp-eventcards-id {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--misp-dash-accent);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+a.misp-eventcards-id:hover {
+  border-bottom-color: currentColor;
+}
+/* Overlap badge (analyst track — AD-W8 / OverlapWithMyOrgWidget). Present
+   only on cards carrying the optional `_analyst_overlap` payload key; absent
+   on the plain Event Card Stream (W6). Token-driven accent pill, mirroring
+   .misp-trending-delta so the two analyst surfaces read consistently. */
+.misp-eventcards-overlap {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--misp-dash-accent);
+  background: var(--misp-dash-accent-muted);
+  border-radius: var(--misp-dash-radius-sm);
+  white-space: nowrap;
+}
+/* Row 2 — the event title / info. */
+.misp-eventcards-info {
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+/* Row 3 — tag chips (left, wrap) + attribute count (right). flex-start so
+   the attribute count anchors to the first tag line rather than floating at
+   the vertical centre when the chips wrap to several lines. */
+.misp-eventcards-row3 {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-eventcards-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.misp-eventcards-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.misp-eventcards-more {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+}
+.misp-eventcards-attrcount {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
+ * FeedList renderer (analyst track — AD-17 / W10–W12) — a reverse-
+ * chronological feed of "recently added" items (event reports, analyst
+ * data, new local galaxy clusters). Each item: an optional leading glyph,
+ * a title line, a meta line (org · relative-time · context + chips) and an
+ * optional snippet; the whole item links out (→ affordance) when a safe
+ * drilldown is present. Read-only; filters live on the dashboard toolbar.
+ * Token-driven so the midnight theme retones by only redefining the
+ * --misp-dash-* tokens.
+ * ============================================================ */
+.misp-feedlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+.misp-feedlist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-sm);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-feedlist-item:hover,
+a.misp-feedlist-item:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-feedlist-item:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+/* Leading glyph — muted so the title stays the focus; nudged down a hair
+   to sit on the title's cap height. */
+.misp-feedlist-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  margin-top: 1px;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-feedlist-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-feedlist-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.misp-feedlist-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+.misp-feedlist-org {
+  color: var(--misp-dash-text);
+  min-width: 0;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-feedlist-time {
+  white-space: nowrap;
+}
+.misp-feedlist-context {
+  color: var(--misp-dash-text-muted);
+  white-space: nowrap;
+}
+.misp-feedlist-sep {
+  color: var(--misp-dash-border-strong);
+}
+.misp-feedlist-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+}
+.misp-feedlist-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+}
+.misp-feedlist-snippet {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+/* The → link affordance, right-aligned and accent-coloured. */
+.misp-feedlist-go {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: var(--misp-dash-space-1);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-base);
+  line-height: 1;
+}
+
+/* ============================================================
+ * Button renderer — link-styled tile that fills the widget body.
+ * ButtonWidget is a 3×2 shortcut primitive; the button consumes the
+ * full available space so a one-handed click target is huge. Anchor-
+ * styled-as-button (no nested <button> inside <a>) — semantic + a11y.
+ * Invalid-URL state surfaces as a muted, non-interactive tile so the
+ * misconfiguration is visible in the dashboard.
+ * ============================================================ */
+.misp-button-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.misp-button {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  text-decoration: none;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-medium);
+  line-height: 1.3;
+  word-break: break-word;
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+.misp-button:hover,
+.misp-button:focus-visible {
+  background: var(--misp-dash-accent-hover);
+  color: var(--misp-dash-text-on-accent);
+  text-decoration: none;
+}
+.misp-button:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-button:active {
+  transform: translateY(1px);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-button--invalid {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+}
+.misp-button--invalid:hover,
+.misp-button--invalid:focus-visible {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+}
+
+/* ============================================================
+ * Achievements renderer — two-section badges list (unlocked + locked).
+ * Each row is a 48×48 icon + title + (locked-only) "Read more" link.
+ * AchievementsWidget is 4×10 (tall) — the list scrolls when content
+ * exceeds the widget body. No bullets; section headings collapse to
+ * widget-body type scale.
+ * ============================================================ */
+.misp-achievements-section {
+  margin: 0 0 var(--misp-dash-space-4) 0;
+}
+.misp-achievements-section:last-of-type {
+  margin-bottom: 0;
+}
+.misp-achievements-heading {
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding: 0;
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+  letter-spacing: 0.01em;
+}
+.misp-achievements-empty {
+  margin: 0;
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-achievements-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+.misp-achievements-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}
+.misp-achievements-icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+.misp-achievements-icon--missing {
+  background: var(--misp-dash-surface-sunken);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-achievements-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-achievements-title {
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.4;
+}
+.misp-achievements-help {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  align-self: flex-start;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-achievements-help:hover,
+.misp-achievements-help:focus-visible {
+  border-bottom-color: currentColor;
+  color: var(--misp-dash-accent-hover);
+}
+.misp-achievements-help:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+  border-radius: var(--misp-dash-radius-sm);
+}
+
+/* ============================================================
+ * OrgsPictures renderer — grid of org logos / letter chips.
+ * Auto-fill columns at 64px width so the widget body packs in as
+ * many cells as fit. Each cell links to the org view; logo cells
+ * are 48×48 with object-fit contain, letter chips are square with
+ * the org's first character.
+ * ============================================================ */
+.misp-orgs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 64px);
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+.misp-orgs-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+.misp-orgs-cell:hover,
+.misp-orgs-cell:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+.misp-orgs-cell:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-orgs-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+.misp-orgs-chip {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+.misp-orgs-srlabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+ * UserList renderer — a "people list": avatar + name + meta + an
+ * optional badge pill, one row per user (LoggedInUsersWidget first).
+ * The avatar is the user's org logo, else an initials chip. NOT its
+ * own scroll container — .misp-widget-body owns padding + overflow.
+ * ============================================================ */
+.misp-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+/* Summary header line: a live "online" dot + a muted count string. */
+.misp-user-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--misp-dash-success);
+  box-shadow: 0 0 0 3px var(--misp-dash-success-muted);
+}
+.misp-user-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The row is the card; .misp-user-main is the (flex) drilldown link that
+ * fills it, with an optional action button as a sibling on the right. */
+.misp-user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+.misp-user-main {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+/* The client-side search filter hides non-matching rows via the `hidden`
+ * attribute. `.misp-user-row { display:flex }` would otherwise win over
+ * the UA `[hidden]{display:none}` rule, so make the hide explicit. */
+.misp-user-row[hidden] {
+  display: none;
+}
+.misp-user-row:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-user-main:hover {
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+.misp-user-main:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-user-row.misp-user-muted {
+  opacity: 0.55;
+}
+.misp-user-avatar {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+}
+.misp-user-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: var(--misp-dash-radius-sm);
+  display: block;
+}
+.misp-user-chip {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+/* DD-41 — status-tinted glyph variant of the avatar.  Same square
+ * footprint as .misp-user-chip / .misp-user-logo so the row layout
+ * doesn't shift.  Token-driven (.misp-user-glyph-{check|warn|danger|
+ * info}); each pulls the corresponding --misp-dash-{success|warning|
+ * danger|info} pair so themes that only retone the tokens get correct
+ * status colours for free. */
+.misp-user-glyph {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-user-glyph svg { width: 22px; height: 22px; display: block; }
+.misp-user-glyph-check  { background: var(--misp-dash-success-muted); color: var(--misp-dash-success); }
+.misp-user-glyph-warn   { background: var(--misp-dash-warning-muted); color: var(--misp-dash-warning); }
+.misp-user-glyph-danger { background: var(--misp-dash-danger-muted);  color: var(--misp-dash-danger);  }
+.misp-user-glyph-info   { background: var(--misp-dash-info-muted);    color: var(--misp-dash-info);    }
+/* min-width:0 lets the name/meta truncate instead of stretching the row. */
+.misp-user-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.misp-user-name {
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-user-meta {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-user-badge {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--misp-dash-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+.misp-user-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-4);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-message-title {
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-user-message-text {
+  font-size: var(--misp-dash-fs-sm);
+}
+/* DD-41 — inline disclosure for an empty-state's setup recipe.  Pure
+ * HTML <details>; click on the summary expands the recipe below.
+ * Left-aligned inside the centred .misp-user-message column.  Recipe
+ * entries are either prose <p> steps or verbatim <pre> snippets
+ * (multi-line strings); both styled to read as operator-facing setup
+ * material. */
+.misp-user-help {
+  width: 100%;
+  margin-top: var(--misp-dash-space-2);
+  text-align: left;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-user-help summary {
+  cursor: pointer;
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  padding: var(--misp-dash-space-1) 0;
+  list-style: revert;
+}
+.misp-user-help summary:hover { color: var(--misp-dash-accent); }
+.misp-user-help-step {
+  margin: var(--misp-dash-space-2) 0;
+  color: var(--misp-dash-text-muted);
+  word-break: break-word;
+}
+.misp-user-help-code {
+  margin: var(--misp-dash-space-2) 0;
+  padding: var(--misp-dash-space-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Client-side filter box (DD-36); wired by user-list.module.mjs. */
+.misp-user-searchbar {
+  padding: 0 var(--misp-dash-space-1) var(--misp-dash-space-1);
+}
+/* Selectors scoped under .misp-user-searchbar (specificity 0,2,0) so the
+ * box-sizing beats Bootstrap's `input[type="search"] { box-sizing:
+ * content-box }` (0,1,1) — otherwise width:100% + our padding/border
+ * overflow the input ~14px to the right (off-centre filter box). */
+.misp-user-searchbar .misp-user-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-user-searchbar .misp-user-search:focus {
+  outline: none;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+/* Per-row destructive action button (invalidate sessions, DD-36).
+ * Muted by default, danger-tinted on hover/focus. */
+.misp-user-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--misp-dash-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--misp-dash-radius-sm);
+  transition: color var(--misp-dash-transition-fast),
+              background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-user-action:hover,
+.misp-user-action:focus-visible {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+  border-color: var(--misp-dash-danger);
+  outline: none;
+}
+.misp-user-action-icon {
+  display: block;
+}
+/* Confirm form fragment (invalidate_user_sessions.ctp) shown in the
+ * dashboard side panel. */
+.misp-user-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+}
+.misp-user-confirm-text {
+  margin: 0;
+  font-size: var(--misp-dash-fs-base);
+  color: var(--misp-dash-text);
+}
+.misp-user-confirm-sub {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-confirm-form {
+  margin: 0;
+}
+.misp-user-confirm-actions {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-2);
+}
+.misp-user-confirm-btn {
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-4);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+}
+.misp-user-confirm-btn:hover {
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-user-confirm-btn--danger {
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-danger);
+  border-color: var(--misp-dash-danger);
+}
+.misp-user-confirm-btn--danger:hover {
+  filter: brightness(0.94);
+  border-color: var(--misp-dash-danger);
+}
+
+/* ============================================================
+ * Attack renderer — MITRE ATT&CK heatmap (default tab only).
+ * Columns = tactics; cells = LABELED technique blocks shaded on a
+ * single red ramp (√-scaled, computed per-cell inline — opaque, so
+ * theme-independent; text colour is luminance-picked per cell).
+ * Inactive techniques are omitted; sub-techniques roll up into their
+ * parent and unfold on click (native <details>/<summary>, no JS).
+ * A legend keys the shading. Wide matrices overflow horizontally.
+ * ============================================================ */
+.misp-attack {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-attack-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  flex: 0 0 auto;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+.misp-attack-legend-cap {
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-attack-legend-bar {
+  flex: 0 1 120px;
+  height: 8px;
+  border-radius: var(--misp-dash-radius-sm);
+  border: 1px solid var(--misp-dash-border);
+}
+.misp-attack-legend-min,
+.misp-attack-legend-max {
+  font-variant-numeric: tabular-nums;
+}
+.misp-attack-scroll {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+.misp-attack-grid {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+  align-items: flex-start;
+  min-width: 100%;
+}
+.misp-attack-col {
+  flex: 0 0 168px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  padding: var(--misp-dash-space-1);
+}
+.misp-attack-col-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-1);
+  border-bottom: 1px solid var(--misp-dash-border);
+  padding-bottom: var(--misp-dash-space-1);
+}
+.misp-attack-col-name {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-attack-col-count {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-accent);
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  line-height: 1.2;
+  flex: 0 0 auto;
+}
+.misp-attack-col-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* Labeled heat cell — background-color + text colour are set inline
+ * per-cell (opaque red ramp); everything else is token-driven. */
+.misp-attack-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  min-height: 22px;
+  padding: 2px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  line-height: 1.15;
+  overflow: hidden;
+  transition: box-shadow var(--misp-dash-transition-fast);
+}
+.misp-attack-cell-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.misp-attack-cell-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+.misp-attack-cell-tid {
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.misp-attack-cell-count {
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.misp-attack-cell:hover {
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Unfoldable parent group (native <details>) — strip the default marker,
+ * add a rotating caret on the parent cell. */
+.misp-attack-group {
+  display: block;
+}
+.misp-attack-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: block;
+}
+.misp-attack-group > summary::-webkit-details-marker {
+  display: none;
+}
+.misp-attack-cell--parent::after {
+  content: "\25B8"; /* ▸ */
+  flex: 0 0 auto;
+  font-size: 9px;
+  opacity: 0.85;
+  transition: transform var(--misp-dash-transition-fast);
+}
+.misp-attack-group[open] > summary .misp-attack-cell--parent::after {
+  transform: rotate(90deg);
+}
+.misp-attack-subs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 0 8px;
+  padding-left: 6px;
+  border-left: 2px solid var(--misp-dash-border);
+}
+.misp-attack-cell--sub {
+  min-height: 18px;
+}
+
+/* ============================================================
+ * sharing_group_filter picker.
+ * Used by both the configure form's typed-fields tier and the
+ * toolbar's per-canonical chip popover. Async-loaded SG list →
+ * loading placeholder swaps to a search input + scrollable
+ * checkbox list once /dashboards/listSharingGroups resolves.
+ * ============================================================ */
+.misp-sg-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-sg-filter-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-sg-filter-search:focus,
+.misp-sg-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-sg-filter-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  padding: var(--misp-dash-space-1);
+  display: flex;
+  flex-direction: column;
+}
+.misp-sg-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+}
+.misp-sg-filter-row:hover {
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-sg-filter-row input[type="checkbox"] {
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--misp-dash-accent);
+}
+.misp-sg-filter-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-sg-filter-loading,
+.misp-sg-filter-empty {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-2);
+  text-align: center;
+}
+
+/* ============================================================
+ * galaxy_cluster_filter picker.
+ * Galaxy-type dropdown + search input + suggestion list +
+ * chips for selected clusters. Used in both the configure
+ * form's typed-fields tier and the toolbar chip popover.
+ * ============================================================ */
+.misp-gc-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-gc-filter-row {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  align-items: stretch;
+}
+.misp-gc-filter-scope {
+  flex: 0 0 auto;
+  min-width: 180px;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+}
+.misp-gc-filter-scope:focus,
+.misp-gc-filter-scope:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-gc-filter-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+}
+.misp-gc-filter-search:disabled {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  cursor: not-allowed;
+}
+.misp-gc-filter-search:focus,
+.misp-gc-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-gc-filter-suggestions {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  display: flex;
+  flex-direction: column;
+}
+.misp-gc-filter-suggestions:empty {
+  display: none;
+}
+.misp-gc-filter-suggestion {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--misp-dash-border);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.misp-gc-filter-suggestion:last-child {
+  border-bottom: 0;
+}
+.misp-gc-filter-suggestion:hover,
+.misp-gc-filter-suggestion:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  outline: none;
+}
+.misp-gc-filter-suggestion--selected {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-gc-filter-suggestions-empty {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-2);
+  text-align: center;
+}
+.misp-gc-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  min-height: 0;
+}
+.misp-gc-filter-chips:empty {
+  display: none;
+}
+.misp-gc-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-1) 2px var(--misp-dash-space-2);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  max-width: 100%;
+}
+.misp-gc-filter-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.misp-gc-filter-chip-remove {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: var(--misp-dash-fs-base);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-gc-filter-chip-remove:hover,
+.misp-gc-filter-chip-remove:focus-visible {
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  outline: none;
+}
+
+/* ============================================================
+ * org_filter picker (10th canonical, PRD §5.5 — refined naming)
+ *
+ * Two-axis canonical: match_via dropdown + typeahead search +
+ * chip list. Each chip toggles include/exclude on click; chip
+ * carries identity (uuid/id/name) as data-* attrs for readback.
+ * ============================================================ */
+.misp-org-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-org-filter-row {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  align-items: stretch;
+}
+.misp-org-filter-match-via {
+  flex: 0 0 auto;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface);
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface);
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-search:focus,
+.misp-org-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+.misp-org-filter-suggestions {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-org-filter-suggestions:empty {
+  display: none;
+}
+.misp-org-filter-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-suggestion:hover,
+.misp-org-filter-suggestion:focus-visible {
+  background: var(--misp-dash-surface-raised);
+  outline: none;
+}
+.misp-org-filter-suggestion--selected {
+  opacity: 0.55;
+  font-style: italic;
+}
+.misp-org-filter-suggestion-name {
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-org-filter-suggestion-sub {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  font-family: var(--misp-dash-font-mono, monospace);
+}
+.misp-org-filter-suggestions-empty {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-style: italic;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-org-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+}
+.misp-org-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  padding: 0 0 0 var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-org-filter-chip--negated {
+  background: var(--misp-dash-danger);
+}
+.misp-org-filter-chip-label {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 2px var(--misp-dash-space-1);
+  font: inherit;
+  cursor: pointer;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-org-filter-chip-label:focus-visible {
+  outline: 1px solid var(--misp-dash-text-on-accent);
+  outline-offset: -1px;
+}
+.misp-org-filter-chip-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1;
+  padding: 0 var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-org-filter-chip-remove:hover,
+.misp-org-filter-chip-remove:focus-visible {
+  background: rgba(0, 0, 0, 0.20);
+  outline: none;
+}
+
+/* ============================================================
+ * Chart container — ECharts mounts inside, fills the widget body.
+ * Renderers under Elements/dashboard/Widgets/ emit a static
+ * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
+ * charts.module.mjs scans for these after each render and creates
+ * the ECharts instance. Padding is owned by .misp-widget-body, so
+ * the chart fills 100% of that box.
+ * ============================================================ */
+.misp-chart {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+}
+
+
+/* ============================================================
+ * Configure side panel (DD-06 two-tier form)
+ *
+ * Slides in from the right; backdrop dims the rest of the page so
+ * focus is unambiguous, but the dashboard underneath stays visible
+ * (live-preview intent of DD-06). Themes can override either markup
+ * or these rules; the data-misp-configure-* hooks are stable.
+ * ============================================================ */
+.misp-configure-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.30);
+  z-index: 100;
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-base);
+}
+.misp-configure-backdrop[hidden] { display: none !important; }
+.misp-configure-backdrop.is-open { opacity: 1; }
+
+.misp-configure-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(820px, 100vw);
+  background: var(--misp-dash-surface-raised);
+  border-left: 1px solid var(--misp-dash-border);
+  box-shadow: var(--misp-dash-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+  transform: translateX(100%);
+  transition: transform var(--misp-dash-transition-base);
+}
+.misp-configure-panel[hidden] { display: none !important; }
+.misp-configure-panel.is-open { transform: translateX(0); }
+
+.misp-configure-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+.misp-configure-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+}
+
+/* Two-column layout container — wraps the form body and the
+ * live-preview pane so they sit side by side in form mode. Gallery
+ * mode keeps the body full-width via the rules at the bottom of this
+ * stylesheet. */
+.misp-configure-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.misp-configure-body {
+  flex: 0 0 360px;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--misp-dash-space-4);
+  border-right: 1px solid var(--misp-dash-border);
+}
+
+/* Live-preview pane (PRD §5.4 / DD-06). The body container inside
+ * carries [data-misp-widget-content]; the ConfigureModule mounts a
+ * wrapper-shaped proxy whose render target is that container. */
+.misp-configure-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-configure-preview-header {
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-bottom: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+}
+.misp-configure-preview-title {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.misp-configure-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--misp-dash-space-4);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+/* The proxy <div data-misp-widget> inside the preview body fills
+ * available space so charts + tables can size themselves correctly.
+ * No card chrome — the preview is the bare body, not a duplicate of
+ * the live tile's wrapper. */
+.misp-configure-preview-body > [data-misp-widget] {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.misp-configure-preview-body [data-misp-widget-content] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Responsive: on narrow viewports collapse the panel to full-width
+ * and stack the form / preview vertically so the form remains usable. */
+@media (max-width: 720px) {
+  .misp-configure-panel { width: 100vw; }
+  .misp-configure-content { flex-direction: column; }
+  .misp-configure-body {
+    flex: 0 0 auto;
+    max-height: 50%;
+    border-right: none;
+    border-bottom: 1px solid var(--misp-dash-border);
+  }
+}
+
+.misp-configure-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-top: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-sunken);
+}
+
+.misp-dashboard-btn-primary {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-dashboard-btn-primary:hover {
+  background: var(--misp-dash-accent-hover);
+  border-color: var(--misp-dash-accent-hover);
+}
+
+.misp-configure-tier {
+  margin-bottom: var(--misp-dash-space-5);
+}
+.misp-configure-tier-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--misp-dash-text-muted);
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding-bottom: var(--misp-dash-space-1);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+
+.misp-field {
+  display: block;
+  margin-bottom: var(--misp-dash-space-3);
+}
+.misp-field-label {
+  display: block;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  margin-bottom: var(--misp-dash-space-1);
+}
+.misp-field-help {
+  display: block;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  margin-top: var(--misp-dash-space-1);
+}
+
+.misp-field-input,
+.misp-field-select {
+  width: 100%;
+  /* border-box keeps padding+border inside the declared width so the
+   * input never overflows its parent (the popover body is only
+   * 256px content-width). */
+  box-sizing: border-box;
+  appearance: none;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-base);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-field-input:focus,
+.misp-field-select:focus {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+.misp-field-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--misp-dash-text-muted) 50%),
+    linear-gradient(-45deg, transparent 50%, var(--misp-dash-text-muted) 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 6px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--misp-dash-space-5);
+}
+
+/* ============================================================
+ * Toolbar bulk-edit chips + popover (DD-05 Model 4)
+ *
+ * Each canonical type with at least one declarer on the board gets
+ * a compact chip in the toolbar slot. Clicking a chip opens a
+ * popover anchored beneath it; the popover hosts the same shared
+ * field builder the configure form uses, plus Cancel + "Apply to N
+ * widgets" buttons.
+ * ============================================================ */
+.misp-toolbar-slot {
+  position: relative;        /* anchors the popover */
+  display: inline-flex;
+  align-items: center;
+}
+
+.misp-toolbar-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-md);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-toolbar-chip:hover {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-toolbar-chip[aria-expanded="true"] {
+  background: var(--misp-dash-accent-muted);
+  border-color: var(--misp-dash-accent);
+}
+.misp-toolbar-chip-label {
+  color: var(--misp-dash-text-muted);
+  font-weight: var(--misp-dash-fw-normal);
+}
+.misp-toolbar-chip-value {
+  color: var(--misp-dash-text);
+}
+.misp-toolbar-chip.is-mixed .misp-toolbar-chip-value {
+  font-style: italic;
+  color: var(--misp-dash-warning);
+}
+.misp-toolbar-chip-caret {
+  font-size: 9px;
+  color: var(--misp-dash-text-muted);
+}
+
+.misp-toolbar-popover {
+  position: absolute;
+  top: calc(100% + var(--misp-dash-space-1));
+  left: 0;
+  min-width: 280px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-lg);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+}
+.misp-toolbar-popover-body {
+  padding: var(--misp-dash-space-3);
+}
+.misp-toolbar-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-top: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-sunken);
+  border-radius: 0 0 var(--misp-dash-radius-md) var(--misp-dash-radius-md);
+}
+.misp-toolbar-popover-clear {
+  color: var(--misp-dash-warning);
+  margin-right: auto;
+}
+.misp-toolbar-popover-clear:hover {
+  border-color: var(--misp-dash-warning);
+}
+
+.misp-time-window-presets {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-time-window-preset {
+  font-size: var(--misp-dash-fs-xs);
+  padding: 2px var(--misp-dash-space-2);
+}
+.misp-time-window-preset.is-active {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+
+/* Shared int-enum-array canonical picker styling.
+ *
+ * distribution_filter, threat_level_filter, and analysis_filter all
+ * render as a toggle-button row over a small fixed enum. The visual
+ * idiom is identical; only the level vocabulary differs. Class names
+ * were per-canonical until the third copy (analysis_filter) forced
+ * consolidation — same trigger as the JS enum_picker factory and
+ * the PHP _normaliseIntArray helper.
+ *
+ * Picker JS emits these classes via enum_picker.mjs's `togglesClass`
+ * + `toggleClass` factory params. Adding a 4th int-enum canonical
+ * means: one adapter delegate + one picker module shell + nothing
+ * here. */
+.misp-enum-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-enum-toggle {
+  font-size: var(--misp-dash-fs-xs);
+  padding: 4px var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: transparent;
+  color: var(--misp-dash-text);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-base),
+              border-color var(--misp-dash-transition-base),
+              color var(--misp-dash-transition-base);
+}
+.misp-enum-toggle:hover {
+  border-color: var(--misp-dash-accent);
+}
+.misp-enum-toggle[aria-pressed="true"] {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-enum-toggle:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+
+.misp-kv-list {
+  list-style: none;
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-kv-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: var(--misp-dash-space-1);
+  align-items: center;
+}
+.misp-kv-key,
+.misp-kv-value {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font: inherit;
+  font-size: var(--misp-dash-fs-sm);
+  padding: 4px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-kv-key {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.misp-kv-value {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.misp-kv-key:focus,
+.misp-kv-value:focus {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+}
+
+/* ============================================================
+ * Chip input — array-typed values in the bottom-tier KV list and
+ * (Phase 3) canonical pickers like tag_filter. Behavior in
+ * chips.module.mjs; this is the visual layer only.
+ * ============================================================ */
+.misp-chips {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  min-height: 30px;
+  padding: 3px var(--misp-dash-space-1);
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  border-radius: var(--misp-dash-radius-sm);
+  transition: border-color var(--misp-dash-transition-fast);
+  cursor: text;
+}
+.misp-chips:focus-within {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+.misp-chips-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: contents;
+}
+.misp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  max-width: 100%;
+}
+.misp-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-chip-remove {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--misp-dash-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-chip-remove:hover,
+.misp-chip-remove:focus {
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  outline: 0;
+}
+.misp-chips-input {
+  flex: 1 1 80px;
+  min-width: 80px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text);
+  font: inherit;
+  font-size: var(--misp-dash-fs-sm);
+  padding: 2px var(--misp-dash-space-1);
+  outline: 0;
+}
+.misp-chips-input::placeholder {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+}
+/* When the chip-input is the bottom-tier KV row's value column, keep
+ * the row's grid column boundaries; `display: contents` on the
+ * inner <ul> lets the wrapping happen naturally inside the flex root. */
+.misp-kv-row .misp-kv-chips {
+  /* Inherit middle-column from the row's grid-template-columns. */
+}
+
+/* ============================================================
+ * tag_filter canonical picker — include / exclude chip-input pair
+ * laid out as two labeled rows inside the configure form's typed-
+ * fields tier (and, eventually, the bulk-edit toolbar popover).
+ * ============================================================ */
+.misp-tag-filter-row,
+.misp-org-meta-row,
+.misp-attribute-filter-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: var(--misp-dash-space-2);
+  align-items: start;
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-tag-filter-rowlabel,
+.misp-org-meta-rowlabel,
+.misp-attribute-filter-rowlabel {
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  padding-top: 6px;
+  font-weight: var(--misp-dash-fw-medium);
+}
+
+/* ============================================================
+ * Density toggle (compact = tighter padding + smaller font scale)
+ * ============================================================ */
+[data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }
+[data-density="compact"] .misp-widget-body     { padding: var(--misp-dash-space-2); }
+[data-density="compact"] .misp-dashboard-header{ padding: var(--misp-dash-space-2) var(--misp-dash-space-4); }
+
+/* ============================================================
+ * Widget gallery (PRD §5.7 / §5.8)
+ *
+ * Lives inside `.misp-configure-body` when the gallery JS opens
+ * the Add Widget flow. The shell + card prototypes are HTML5
+ * <template> elements emitted by index.ctp; the JS clones them
+ * and populates the data hooks per widget. Search filters cards
+ * by class name / title / description / category match; the
+ * counter reports "visible / total".
+ * ============================================================ */
+.misp-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  height: 100%;
+}
+.misp-gallery-header {
+  display: flex;
+  gap: var(--misp-dash-space-3);
+  align-items: center;
+  padding-bottom: var(--misp-dash-space-2);
+  border-bottom: 1px solid var(--misp-dash-border-subtle);
+}
+.misp-gallery-search-label {
+  flex: 1;
+  display: block;
+}
+.misp-gallery-search {
+  width: 100%;
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.misp-gallery-search:focus {
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 3px var(--misp-dash-accent-soft);
+}
+.misp-gallery-search::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+.misp-gallery-counter {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.misp-gallery-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-4);
+  overflow-y: auto;
+  /* Counter the configure-body padding so the scrollbar lands on
+     the panel edge rather than mid-panel. */
+  margin-right: calc(var(--misp-dash-space-3) * -1);
+  padding-right: var(--misp-dash-space-3);
+}
+.misp-gallery-category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+.misp-gallery-category-heading {
+  margin: 0;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+}
+.misp-gallery-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--misp-dash-space-3);
+}
+.misp-gallery-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3);
+  text-align: left;
+  font: inherit;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-lg);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.misp-gallery-card:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 4px 12px var(--misp-dash-shadow-soft);
+  transform: translateY(-1px);
+}
+.misp-gallery-card:focus-visible {
+  outline: none;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 3px var(--misp-dash-accent-soft);
+}
+.misp-gallery-card-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  border-radius: var(--misp-dash-radius-md);
+  overflow: hidden;
+  color: var(--misp-dash-text-muted);
+  transition: color var(--misp-dash-transition-base),
+              background var(--misp-dash-transition-base);
+}
+.misp-gallery-card-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Render-kind glyph fallback (when no $thumbnail URL is declared).
+ * SVG inherits `currentColor` from the slot, so hover lifts the
+ * accent in concert with the card's lift state. */
+.misp-gallery-card-thumbnail svg {
+  width: 56%;
+  height: auto;
+  max-height: 78%;
+}
+.misp-gallery-card:hover .misp-gallery-card-thumbnail,
+.misp-gallery-card:focus-visible .misp-gallery-card-thumbnail {
+  color: var(--misp-dash-accent);
+  background: var(--misp-dash-surface);
+}
+.misp-gallery-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  min-height: 0;
+}
+.misp-gallery-card-title {
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  line-height: 1.3;
+}
+.misp-gallery-card-description {
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.misp-gallery-card-meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  flex-wrap: wrap;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-gallery-card-category,
+.misp-gallery-card-size {
+  display: inline-flex;
+  padding: 2px 6px;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  border-radius: var(--misp-dash-radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+.misp-gallery-empty {
+  padding: var(--misp-dash-space-4);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}
+/* The search filter sets `el.hidden = true` on non-matching cards and
+   on emptied category sections, but the explicit `display:flex` on
+   `.misp-gallery-card` / `.misp-gallery-category` above (an author
+   rule) outranks the UA `[hidden]{display:none}`, so the elements stay
+   visible — the counter updates ("1 of 39") while the list never culls.
+   These class+attribute selectors (specificity 0,0,2,0) beat the base
+   class rules without `!important`. `.misp-gallery-empty` needs no such
+   rule: it declares no `display`, so the UA `[hidden]` already hides it. */
+.misp-gallery-card[hidden],
+.misp-gallery-category[hidden] {
+  display: none;
+}
+/* The non-form panel modes (gallery + the config import/export modes)
+ * hide the configure footer (Save / Cancel) — those actions are
+ * form-mode-only; each mode carries its own buttons in the body. The
+ * header ✕ button + the ESC / backdrop close chain still apply. They
+ * also hide the live-preview pane (no draft to preview) AND restore
+ * the body to full-width so the content isn't squeezed into a 360px
+ * column. Shared across both themes via this sheet. */
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-footer {
+  display: none;
+}
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-preview {
+  display: none;
+}
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="save-template"] .misp-configure-body {
+  flex: 1 1 auto;
+  border-right: none;
+}
+
+/* Config import / export panel body (config-io.module.mjs). The body
+ * is a vertical stack: help text, a monospace JSON textarea that grows
+ * to fill, an optional status/error line, and a right-aligned action
+ * row. Tokens keep it in step with both themes. */
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-4);
+  overflow: auto;
+}
+.misp-configio-help {
+  margin: 0;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.5;
+}
+.misp-configio-textarea {
+  flex: 1 1 auto;
+  min-height: 220px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: var(--misp-dash-space-3);
+  font-family: var(--misp-dash-font-mono, ui-monospace, SFMono-Regular,
+               Menlo, Consolas, monospace);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.5;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-configio-textarea:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+.misp-configio-textarea[readonly] {
+  color: var(--misp-dash-text-muted);
+}
+.misp-configio-status {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-configio-status:empty {
+  display: none;
+}
+.misp-configio-error {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-danger, #c0392b);
+}
+.misp-configio-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  flex: 0 0 auto;
+}
+
+/* Save-as-template panel (save-template.module.mjs): the success
+ * confirmation shown in place of the form after a save, so the user stays
+ * on the dashboard. Tokens keep it in step with both themes. */
+.misp-template-saved {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+}
+.misp-template-saved-msg {
+  margin: 0;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+
+/* ============================================================
+ * Template gallery page (PRD §5.4, Phase 4 task 1).
+ *
+ * Server-rendered gallery at /dashboards/listTemplates. Reuses the
+ * .misp-gallery-* shell from the widget gallery (CSS scoped to the
+ * configure panel originally; relaxed here for full-page use) and
+ * layers .misp-template-* hooks for template-specific concerns:
+ *   - subtitle line under the header title
+ *   - badges (default, selectable, mine, restrict-to-*)
+ *   - hover-reveal action toolbar (Use / Edit / Delete) per card
+ *   - empty-state message when the user has no eligible templates
+ *
+ * Body data-action="listTemplates" scopes the page-mode overrides
+ * so the configure-panel widget gallery is unaffected.
+ * ============================================================ */
+
+.misp-template-gallery-header {
+  align-items: flex-start;
+}
+.misp-template-gallery-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  flex: 1;
+  min-width: 0;
+}
+.misp-template-gallery-subtitle {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  max-width: 640px;
+}
+
+.misp-dashboard-page-main {
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+}
+
+/* Page-mode gallery: relax the height:100% + inner scroll that the
+ * configure-panel gallery uses. The page itself scrolls; cards flow
+ * naturally and the search input still sticks at the top of the
+ * gallery body. */
+.misp-template-gallery-page .misp-gallery {
+  height: auto;
+}
+.misp-template-gallery-page .misp-gallery-body {
+  overflow: visible;
+  margin-right: 0;
+  padding-right: 0;
+}
+.misp-template-gallery-page .misp-gallery-category-grid {
+  /* Template cards carry more meta than widget cards — wider min
+   * column keeps name + description + badge row legible. */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.misp-template-gallery-empty-state {
+  padding: var(--misp-dash-space-5);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}
+
+/* ---- Template card ---- */
+
+.misp-template-card {
+  position: relative;
+  /* Cards are non-interactive containers (the actions inside are
+   * the interactive elements) — drop the pointer cursor that the
+   * widget-gallery's button-cards have. */
+  cursor: default;
+}
+.misp-template-card:hover {
+  /* Inherit the widget-gallery's hover treatment for visual parity. */
+}
+
+.misp-template-card-thumbnail {
+  color: var(--misp-dash-text-muted);
+}
+.misp-template-card:hover .misp-template-card-thumbnail,
+.misp-template-card:focus-within .misp-template-card-thumbnail {
+  color: var(--misp-dash-accent);
+}
+
+.misp-template-card-title {
+  /* Sit above any default browser margin from the surrounding
+   * .misp-gallery-card-title rules. */
+  word-break: break-word;
+}
+.misp-template-card-description {
+  /* Allow up to 3 lines before truncating with an ellipsis so a
+   * card height is bounded and the gallery grid stays uniform. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.misp-template-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  align-items: center;
+}
+
+.misp-template-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  color: var(--misp-dash-text);
+}
+.misp-template-badge-default {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-template-badge-selectable {
+  background: var(--misp-dash-accent-muted);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-accent);
+}
+.misp-template-badge-mine {
+  background: transparent;
+  border-color: var(--misp-dash-border-strong);
+  color: var(--misp-dash-text-muted);
+}
+.misp-template-badge-restrict {
+  /* Restrict-to badges show a hard scope fact; outline-only treat-
+   * ment avoids the eye-pull of the accent badges. */
+  text-transform: none;
+  letter-spacing: 0;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--misp-dash-border-strong);
+  color: var(--misp-dash-text-muted);
+}
+
+.misp-template-card-widgetcount,
+.misp-template-card-owner {
+  font-variant-numeric: tabular-nums;
+}
+.misp-template-card-owner {
+  /* Owner label leans to the right on its own row when present. */
+  margin-left: auto;
+}
+
+/* ---- Hover-reveal action toolbar ---- */
+
+.misp-template-card-actions {
+  position: absolute;
+  top: var(--misp-dash-space-2);
+  right: var(--misp-dash-space-2);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  box-shadow: var(--misp-dash-shadow-sm);
+  opacity: 0;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.misp-template-card:hover .misp-template-card-actions,
+.misp-template-card:focus-within .misp-template-card-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.misp-template-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--misp-dash-radius-sm);
+  background: transparent;
+  color: var(--misp-dash-text-muted);
+  cursor: pointer;
+  text-decoration: none;
+}
+.misp-template-card-action:hover,
+.misp-template-card-action:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  outline: none;
+}
+.misp-template-card-action:focus-visible {
+  border-color: var(--misp-dash-accent);
+}
+.misp-template-card-action-danger:hover,
+.misp-template-card-action-danger:focus-visible {
+  background: var(--misp-dash-danger-muted);
+  color: var(--misp-dash-danger);
+  border-color: var(--misp-dash-danger);
+}
+/* Form->postLink renders an inline form wrapping the anchor; reset
+ * its inline-block margin so the trash button aligns with the other
+ * two icons in the toolbar. */
+.misp-template-card-actions form {
+  display: contents;
+}
+
+/* ---- Section heading customisation ---- */
+
+.misp-template-gallery-section .misp-gallery-category-heading {
+  /* Slightly louder than the widget-gallery's hint-level headings —
+   * these are top-level page sections, not in-panel category hints. */
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+}
+
+/* ============================================================
+ * Save / edit dashboard template form (Phase 4 task 5)
+ *
+ * In-page form under the dashboard layout. Shares the page-mode
+ * header chrome with list_templates.ctp; the body is a single
+ * surface-raised card containing a 2-column responsive grid that
+ * collapses to one column under ~720px.
+ *
+ * Field styling reuses the existing .misp-field-* tokens (already
+ * defined for the schema-driven configure form), so the form looks
+ * identical to the configure panel inputs.
+ * ============================================================ */
+
+.misp-template-form-page {
+  /* Constrain the form width — a full-bleed surface here would
+   * make scanning the labels awkward. */
+  max-width: 880px;
+}
+
+.misp-template-form-card {
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-4);
+}
+
+.misp-template-form {
+  display: contents;
+}
+
+.misp-template-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--misp-dash-space-3) var(--misp-dash-space-4);
+}
+
+.misp-template-form-grid .misp-field {
+  margin-bottom: 0;
+}
+
+.misp-field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.misp-field-required {
+  color: var(--misp-dash-danger, #b91c1c);
+  margin-left: 2px;
+}
+
+.misp-template-form-textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+}
+
+.misp-template-form-toggles {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+
+.misp-template-form-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-2);
+  cursor: pointer;
+}
+
+.misp-template-form-checkbox {
+  /* Pull the checkbox down a hair so the click target aligns with
+   * the first line of the label text, not the help text below. */
+  margin-top: 4px;
+  flex: 0 0 auto;
+}
+
+.misp-template-form-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.misp-template-form-toggle-label .misp-field-label {
+  margin-bottom: 0;
+}
+
+.misp-template-form-restrict {
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-sunken);
+}
+
+.misp-template-form-restrict-legend {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--misp-dash-text-muted);
+  padding: 0 var(--misp-dash-space-2);
+  border: 0;
+}
+
+.misp-template-form-restrict-blurb {
+  margin: 0;
+}
+
+.misp-template-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding-top: var(--misp-dash-space-3);
+  border-top: 1px solid var(--misp-dash-border);
+}
+
+@media (max-width: 720px) {
+  .misp-template-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* QueueList renderer (DD-38) — one row per background-queue.       */
+/* Shape: [glyph] name … [workers chip] [jobs chip]. The two chips  */
+/* are independently coloured; the muted-background pill style      */
+/* mirrors .misp-stat-delta (DD-31/DD-32). Token-driven so themes   */
+/* that only redefine --misp-dash-* tokens retone for free.         */
+/* ---------------------------------------------------------------- */
+.misp-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-queue-header {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-queue-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-queue-row:hover,
+a.misp-queue-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-queue-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-queue-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-queue-glyph {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-glyph-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.misp-queue-row:hover .misp-queue-glyph,
+a.misp-queue-row:focus-visible .misp-queue-glyph {
+  color: var(--misp-dash-accent);
+}
+.misp-queue-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-queue-chips {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+}
+.misp-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5em;
+  padding: 1px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.misp-queue-chip-info {
+  color: var(--misp-dash-info);
+  background: var(--misp-dash-info-muted);
+}
+.misp-queue-chip-success {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-queue-chip-warning {
+  color: var(--misp-dash-warning);
+  background: var(--misp-dash-warning-muted);
+}
+.misp-queue-chip-danger {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-queue-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-2);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-message-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-queue-message-text {
+  font-size: var(--misp-dash-fs-xs);
+}
+
+/* ---------------------------------------------------------------- */
+/*  HealthList renderer (DD-39).                                    */
+/*  An issue-only health rollup. Each row: [severity glyph] name    */
+/*  [detail] [severity chip]. Only non-OK rows ever reach the       */
+/*  renderer — the widget filters info-tier results out. Two-glyph  */
+/*  severity set (warn + danger); chip + glyph carry the colour     */
+/*  signal together. Token-driven so themes that only redefine the  */
+/*  --misp-dash-* tokens retone for free.                           */
+/* ---------------------------------------------------------------- */
+.misp-health-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-health-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-header-success {
+  color: var(--misp-dash-success);
+}
+.misp-health-header-warning {
+  color: var(--misp-dash-warning);
+}
+.misp-health-header-danger {
+  color: var(--misp-dash-danger);
+}
+.misp-health-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-health-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-left-width: 3px;
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+.misp-health-row-warning {
+  border-left-color: var(--misp-dash-warning);
+}
+.misp-health-row-danger {
+  border-left-color: var(--misp-dash-danger);
+}
+a.misp-health-row:hover,
+a.misp-health-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-health-row-warning:hover,
+a.misp-health-row-warning:focus-visible {
+  border-left-color: var(--misp-dash-warning);
+}
+a.misp-health-row-danger:hover,
+a.misp-health-row-danger:focus-visible {
+  border-left-color: var(--misp-dash-danger);
+}
+a.misp-health-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-health-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-health-glyph {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.misp-health-row-warning .misp-health-glyph,
+.misp-health-header-warning .misp-health-glyph {
+  color: var(--misp-dash-warning);
+}
+.misp-health-row-danger .misp-health-glyph,
+.misp-health-header-danger .misp-health-glyph {
+  color: var(--misp-dash-danger);
+}
+.misp-health-header-success .misp-health-glyph {
+  color: var(--misp-dash-success);
+}
+.misp-health-glyph-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.misp-health-body {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+.misp-health-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-health-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-chips {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+}
+.misp-health-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.misp-health-chip-warning {
+  color: var(--misp-dash-warning);
+  background: var(--misp-dash-warning-muted);
+}
+.misp-health-chip-danger {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-health-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-2);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-message-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-health-message-text {
+  font-size: var(--misp-dash-fs-xs);
+}
