@@ -184,7 +184,6 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             </div>
             <div>
                 <?php
-                xdebug_break();
                 /*
                  * `hideHeaderSection` function is intended for pages where it is not necessary to print a title page
                  */
