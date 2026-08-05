@@ -3,6 +3,7 @@
 class TrendingAttributesWidget
 {
     public $title = 'Trending Attribute values';
+    public $category = 'events';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;
@@ -15,10 +16,30 @@ class TrendingAttributesWidget
         'to_ids' => 'A list of to_ids settings accepted for the data displayed ([0], [1], [0,1])',
         'org_filter' => 'List of organisation filters to exclude events by, based on organisation meta-data (Organisation.sector, Organisation.type, Organisation.nationality). Pre-pending a value with a "!" negates it.'
     );
+    public $schema = array(
+        'time_window' => array(
+            'type' => 'time_window',
+            'default' => 'P7D',
+            'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
+        ),
+        'org_filter' => array(
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, uuid, local). Each entry may have "!" prefix to negate.',
+        ),
+        'attribute_filter' => array(
+            'type' => 'attribute_type_filter',
+            'help' => 'Filter by attribute type and/or category. The canonical 1-to-N expansion writes top-level `type` and `category` keys at translate time — legacy configs with those keys keep working unchanged.',
+        ),
+        'threshold' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Limits the number of displayed attribute values.',
+        ),
+    );
     private $validOrgFilters = [
         'sector',
         'type',
-        'national',
+        'nationality',
         'uuid',
         'local'
     ];
@@ -32,6 +53,13 @@ class TrendingAttributesWidget
 }';
     public $description = 'Widget showing the trending attributes over the past x seconds, along with the possibility to include/exclude attributes.';
     public $cacheLifetime = 3;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() branches on $user['Role']['perm_site_admin'] / org_id — a
+    // regular user sees only their own org's attributes, a site-admin the
+    // whole instance. cache_scope='user' keys by user id so one viewer's
+    // ACL-scoped payload is never served to another.
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
 
     private function getOrgList($options)
     {
@@ -69,8 +97,8 @@ class TrendingAttributesWidget
 
 	public function handler($user, $options = array())
 	{
-	    /** @var Event $eventModel */
-        $attributeModel = ClassRegistry::init('Attribute');
+	    /** @var MispAttribute $attributeModel */
+        $attributeModel = ClassRegistry::init('MispAttribute');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
         if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
             $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;

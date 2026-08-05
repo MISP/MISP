@@ -326,8 +326,9 @@ All endpoints live under `/event_templates`.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET`    | `/event_templates` | List templates visible to user (filterable: `active`, `org_id`, `q`). Supports `application/json` and HTML. |
+| `GET`    | `/event_templates` | List templates visible to user (filterable: `active`, `exposed`, `org_id`, `q`). Supports `application/json` and HTML. |
 | `GET`    | `/event_templates/view/{id}` | Fetch one template including full `definition`. |
+| `GET`    | `/event_templates/exposed` | **Draugnet pull contract.** Exposed-only listing: every template with `exposed = 1` readable by the caller, each with its full `definition`. REST returns a lean, unpaginated JSON array; HTML redirects to `/event_templates?exposed=1`. |
 | `POST`   | `/event_templates/add` | Create a template. Body = full JSON definition + envelope fields. |
 | `PUT`    | `/event_templates/edit/{id}` | Update. Bumps `version`. |
 | `DELETE` | `/event_templates/delete/{id}` | Delete. |
@@ -338,6 +339,8 @@ All endpoints live under `/event_templates`.
 | `POST`   | `/event_templates/validate_definition` | Validates a definition without saving (used by the builder). |
 
 Authorisation is enforced on each route per §8. All responses conform to the existing `RestResponseComponent` conventions (envelope, error shape, pagination headers).
+
+**Draugnet pull contract (`GET /event_templates/exposed`).** DraugnetUI's backend (Abracadabra), configured with `template_source = "misp"`, authenticates with a MISP service key and pulls this endpoint to discover which templates a CSIRT has opted to expose to anonymous community reporters. `exposed` is an additive, opt-in marker (default `0`), set via the builder's "Expose to Draugnet" toggle or the `exposed` field on add/edit — **not** a privilege escalation: the endpoint still applies the normal read ACL, so it only ever returns templates the service account could already read (own-org or community; site admins see all). Each returned row carries the full decoded `definition`, which Draugnet re-validates against `event-template-v1` before rendering a form. Instantiation happens entirely in Draugnet — MISP only serves the definitions.
 
 ## 10. UI / UX
 

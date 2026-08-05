@@ -92,6 +92,10 @@ class EventTemplate extends AppModel
             'rule' => 'boolean',
             'message' => 'active must be 0 or 1',
         ),
+        'exposed' => array(
+            'rule' => 'boolean',
+            'message' => 'exposed must be 0 or 1',
+        ),
         'version' => array(
             'rule' => 'naturalNumber',
             'message' => 'version must be a positive integer',
@@ -439,6 +443,11 @@ class EventTemplate extends AppModel
                     'distribution' => 1,
                     'active' => 0,
                     'misp_default' => 1,
+                    // Library-installed templates are never exposed to
+                    // Draugnet by default; exposing is an explicit operator
+                    // opt-in. Library refreshes (the UPDATE path below) omit
+                    // `exposed` so an operator's choice is preserved.
+                    'exposed' => 0,
                     'definition' => $definition,
                 );
                 $this->create();

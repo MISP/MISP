@@ -1,54 +1,46 @@
 <?php
-    // If you want to force log scale, set the `forceLogarithm` option to true in the widget config: `{"widget_config": {"forceLogarithm": "1"}}`
-    // Or the widget already contains data in log, set `logarithmic` to 1
-
-?>
-<table style="border-spacing:0px;">
-<?php
-    if (!empty($data['logarithmic'])) {
-        $max = max($data['logarithmic']);
-    } else {
-        if (empty($data['data'])) {
-            $max = 0;
-        } else {
-            $max = max($data['data']);
-            $max = !empty($config['widget_config']['forceLogarithm']) ? ($max == 1 ? 0.1 : log10($max)) : $max;
+/**
+ * BarChart renderer (dashboard v2) — ECharts shim.
+ *
+ * Emits a static chart container; the chart itself is created
+ * client-side by `webroot/js/dashboard/charts/charts.module.mjs`
+ * after the BoardModule injects this HTML via `innerHTML`. The
+ * payload travels in a data-* attribute as JSON.
+ *
+ * Expected $data shape (TrendingTagsWidget non-overtime path, and the
+ * v1 BarChart contract more generally):
+ *   [
+ *     'data'      => ['label' => count, ...],   // sorted by widget
+ *     'colours'   => ['label' => '#hex', ...],  // optional override
+ *     'drilldown' => ['label' => '/url', ...],  // optional DD-03
+ *   ]
+ *
+ * `drilldown` (DD-03 per-datum carrier) maps a bar's category label to
+ * a URL. Each URL is gated by `DashboardURLValidator`; unsafe entries
+ * are silently dropped. Categories without a `drilldown` entry stay
+ * non-clickable.
+ */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+$rows = isset($data['data']) ? $data['data'] : array();
+if (empty($rows)) {
+    echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
+    return;
+}
+$drilldown = array();
+if (isset($data['drilldown']) && is_array($data['drilldown'])) {
+    foreach ($data['drilldown'] as $label => $url) {
+        $safe = DashboardURLValidator::validate($url);
+        if ($safe !== null) {
+            $drilldown[(string)$label] = $safe;
         }
     }
-    if (!empty($max)) {
-        foreach ($data['data'] as $entry => $count) {
-            $value = $count;
-            if (!empty($data['logarithmic'])) {
-                $value = $data['logarithmic'][$entry];
-            } else if (!empty($config['widget_config']['forceLogarithm'])) {
-                $value = $count == 1 ? 0.1 : log10($count);
-            }
-            $shortlabel = $entry;
-            if (mb_strlen($shortlabel) > 30) {
-                $shortlabel = mb_substr($shortlabel, 0, 30) . '...';
-            }
-            echo sprintf(
-                '<tr><td style="%s" title="%s">%s</td><td style="%s">%s</td></tr>',
-                'text-align:right;width:35em;white-space:nowrap;',
-                h($entry),
-                h($shortlabel),
-                'width:100%',
-                sprintf(
-                    '<div title="%s" style="%s">%s%s</div>',
-                    h($entry) . ': ' . h($count),
-                    sprintf(
-                        'background-color:%s; width:%s; color:white; text-align:center;',
-                        (empty($data['colours'][$entry]) ? '#0088cc' : h($data['colours'][$entry])),
-                        ($max == 0 ? 0 : 100 * h($value) / $max) . '%;'
-                    ),
-                    h($count),
-                    !empty($data['output_decorator']) ? '%' : ''
-                ),
-                '&nbsp;'
-            );
-        }
-    } else {
-        echo __('No data.');
-    }
+}
+$payload = array(
+    'data'      => $rows,
+    'colours'   => isset($data['colours']) ? $data['colours'] : array(),
+    'drilldown' => $drilldown,
+);
 ?>
-</table>
+<div class="misp-chart"
+     data-misp-chart="bar"
+     data-misp-chart-payload="<?= h(json_encode($payload, JSON_UNESCAPED_SLASHES)) ?>"></div>

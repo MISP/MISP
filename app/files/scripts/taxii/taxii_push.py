@@ -7,10 +7,10 @@ import logging
 import logging.config
 import sys
 import taxii2client
-import urllib.parse
 from base64 import b64decode
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
+from urllib.parse import quote, urlparse
 
 import importlib
 MODULE_TO_DIRECTORY = {
@@ -145,6 +145,33 @@ def parse_args():
     parser.add_argument(
         '--key',
         help='Base64 encoded auth'
+    )
+
+    parser.add_argument(
+        "--proxy_host",
+        help="HTTP proxy host to use for TAXII requests."
+    )
+
+    parser.add_argument(
+        "--proxy_port",
+        help="HTTP proxy port to use for TAXII requests.",
+        type=int,
+        default=3128
+    )
+
+    parser.add_argument(
+        "--proxy_method",
+        help="HTTP proxy authentication method configured in MISP."
+    )
+
+    parser.add_argument(
+        "--proxy_user",
+        help="HTTP proxy authentication username."
+    )
+
+    parser.add_argument(
+        "--proxy_password",
+        help="HTTP proxy authentication password."
     )
     args = parser.parse_args()
 
@@ -351,7 +378,34 @@ def parse_auth(api_key):
     return HTTPBasicAuth(*b64decode(api_key.encode()).split(b':'))
 
 
-def push_content(content_dir, api_root_url, collection, api_key):
+def parse_proxy(proxy_host, proxy_port=3128, proxy_method=None, proxy_user=None, proxy_password=None):
+    if not proxy_host:
+        return None
+
+    parsed_proxy = urlparse(proxy_host)
+    if parsed_proxy.scheme:
+        scheme = parsed_proxy.scheme
+        netloc = parsed_proxy.netloc
+    else:
+        scheme = "http"
+        netloc = proxy_host
+
+    if proxy_user is not None and proxy_password is not None:
+        user = quote(proxy_user, safe="")
+        password = quote(proxy_password, safe="")
+        netloc = "{}:{}@{}".format(user, password, netloc)
+
+    if proxy_port and ":" not in netloc.rsplit("@", 1)[-1]:
+        netloc = "{}:{}".format(netloc, proxy_port)
+
+    proxy_url = "{}://{}".format(scheme, netloc)
+    return {
+        "http": proxy_url,
+        "https": proxy_url
+    }
+
+
+def push_content(content_dir, api_root_url, collection, api_key, proxies=None):
     """
     Push MISP content from files in the given directory, to a TAXII 2.1 server.
     This will translate each MISP event to STIX 2.1.
@@ -364,7 +418,7 @@ def push_content(content_dir, api_root_url, collection, api_key):
     auth = parse_auth(api_key)
 
 
-    with taxii2client.ApiRoot(api_root_url, auth=auth) as api_root:
+    with taxii2client.ApiRoot(api_root_url, auth=auth, proxies=proxies) as api_root:
         max_content_length = api_root.max_content_length
 
     log.debug(
@@ -374,7 +428,7 @@ def push_content(content_dir, api_root_url, collection, api_key):
 
     all_stix_objects = convert_misp_dir(content_dir)
     collection_url = api_root_url + '/collections/' + collection
-    with taxii2client.Collection(collection_url, auth=auth) as taxii_collection:
+    with taxii2client.Collection(collection_url, auth=auth, proxies=proxies) as taxii_collection:
 
         for taxii_envelope_bytes in make_taxii_envelopes(
                 all_stix_objects, max_content_length
@@ -389,7 +443,14 @@ def main():
     log = logging.getLogger(_LOGGER_NAME)
 
     try:
-        push_content(args.dir, args.api_root, args.collection, args.key)
+        proxies = parse_proxy(
+            args.proxy_host,
+            args.proxy_port,
+            args.proxy_method,
+            args.proxy_user,
+            args.proxy_password
+        )
+        push_content(args.dir, args.api_root, args.collection, args.key, proxies)
 
     except Exception:
         log.fatal(

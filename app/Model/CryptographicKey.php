@@ -311,7 +311,7 @@ class CryptographicKey extends AppModel
             'contain' => ['CryptographicKey'],
             'conditions' => ['Event.uuid' => $event['Event']['uuid']]
         ]);
-        if (empty($event)) {
+        if (empty($existingEvent)) {
             // No existing event found, simply validate the signatures provided
             return $this->validateProtectedEvent($raw_data, $user, $pgp_signature, $event);
         } else {

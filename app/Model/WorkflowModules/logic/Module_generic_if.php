@@ -20,6 +20,8 @@ class Module_generic_if extends WorkflowBaseLogicModule
         'not_equals' => 'Not equals',
         'any_value' => 'Any value',
         'in_or' => 'Any value from',
+        'str_contains' => 'String contains',
+        'str_not_contains' => 'String does not contain',
     ];
 
     public function __construct()
@@ -32,7 +34,7 @@ class Module_generic_if extends WorkflowBaseLogicModule
                 'type' => 'input',
                 'placeholder' => 'tlp:red',
                 'display_on' => [
-                    'operator' => ['in', 'not_in', 'equals', 'not_equals',],
+                    'operator' => ['in', 'not_in', 'equals', 'not_equals', 'str_contains', 'str_not_contains',],
                 ],
             ],
             [
@@ -74,6 +76,8 @@ class Module_generic_if extends WorkflowBaseLogicModule
         $extracted = [];
         if ($operator == 'equals' || $operator == 'not_equals') {
             $extracted = Hash::get($data, $path, []);
+        } else if ($operator == 'str_contains' || $operator == 'str_not_contains') {
+            $extracted = Hash::get($data, $path, '');
         } else {
             $extracted = Hash::extract($data, $path);
         }

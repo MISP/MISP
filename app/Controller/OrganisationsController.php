@@ -110,6 +110,9 @@ class OrganisationsController extends AppController
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         $this->set('countries', $countries);
         $this->set('action', 'add');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
     }
 
     public function admin_edit($id)
@@ -159,6 +162,9 @@ class OrganisationsController extends AppController
         }
         $this->set('id', $id);
         $this->set('action', 'edit');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('admin_add');
     }
 
@@ -411,22 +417,20 @@ class OrganisationsController extends AppController
             throw new NotFoundException(__('Invalid organisation'));
         }
         $path = APP . 'files/img/orgs/';
-        $image = null;
+        $realBase = realpath($path);
         foreach (['id', 'name', 'uuid'] as $field) {
-            foreach (['png', 'svg'] as $extensions) {
-                if (file_exists($path . $org['Organisation'][$field] . '.' . $extensions)) {
-                    $this->response->file($path . $org['Organisation'][$field] . '.' . $extensions, ['download' => false, 'name' => $org['Organisation']['id'] . '.' . $extensions]);
+            foreach (['png', 'svg'] as $extension) {
+                $candidate = realpath($path . $org['Organisation'][$field] . '.' . $extension);
+                // realpath() resolves '..' and symlinks and returns false when the file does not
+                // exist; the prefix check rejects anything that escapes the orgs directory. Without
+                // it an attacker-controlled field such as the organisation name (e.g.
+                // '../../../../AI-marketing') would allow path traversal to arbitrary png/svg files.
+                if ($candidate !== false && $realBase !== false && str_starts_with($candidate, $realBase . DS)) {
+                    $this->response->file($candidate, ['download' => false, 'name' => $org['Organisation']['id'] . '.' . $extension]);
                     return $this->response;
                 }
             }
         }
-        if ($image) {
-            $filePath = $path . $image;
-            $this->response->file($filePath, array('download' => false, 'name' => $image));
-            return $this->response;
-        } else {
-            throw new NotFoundException(__('Organisation logo not found'));
-        }
-
+        throw new NotFoundException(__('Organisation logo not found'));
     }
 }

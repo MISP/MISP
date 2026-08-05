@@ -1,109 +1,122 @@
 <?php
+
+    $headerTitle = __('') . ($event['Event']['info'] ?? '');
+    $headerDescription = '';
+    $headerActions = [];
+    $this->set('headerTitle', $headerTitle);
+    $this->set('headerDescription', $headerDescription);
+    $this->set('headerActions', $headerActions);
+
     echo $this->element('genericElements/assetLoader', [
-        'css' => ['attack_matrix', 'analyst-data'],
-        'js' => [
-            'doT', 'd3', 'd3.custom',
-            'network-distribution-graph',
-        ],
+        'js'  => ['markdown-it', 'Chart.min']
     ]);
-    $eventId = $event['Event']['id'];
-    $pageTitle = h($event['Event']['info']);
-    $mayModify = (
-        $this->Acl->canAccess('events', 'edit') &&
-        (
-            $isSiteAdmin ||
-            $event['Event']['orgc_id'] == $me['org_id']
-        )
-    );
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
-        'title' => $pageTitle,
         'data' => $event,
+        'report' => $event['EventReport'] ?? null,
         'tabs' => [
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
                     'Events/View/event_general',
-                    'Events/View/event_statistics'
+                    'EventReports/View/eventReport_preview',
+                    'Events/View/event_tags',
+                    'Events/View/event_galaxies',
+                    'Events/View/event_attachments',
                 ],
                 'right' => [
                     'Events/View/event_actions',
-                    'Events/View/event_correlations',
-                    'Events/View/event_warninglists'
+                    'Events/View/event_analyst_data',
+                    'Events/View/event_sightings',
+                    'Events/View/event_related',
+                    'Events/View/event_warninglists',
+                    'Events/View/event_collections',
                 ]
             ],
             [
                 'id' => 'objects',
                 'title' => __('Objects'),
-                'icon' => 'cube',
-                //For the moment the view2 controller doesn't return object_count/attribute_count
+                'icon' => 'misp-icon misp-icon-object misp-simple',
                 'count' => $object_count ?? 0,
 
                 // Content
                 'left' => [
                     [
-                        // 'ajax' => $this->Url->build([
-                        //     'controller' => 'events',
-                        //     'action' => 'viewObjects',
-                        //     $eventId
-                        // ])
-                        'ajax' => sprintf('/events/viewObjects/%s',h($eventId))
+                        'ajax' => sprintf('/events/viewObjects/%s',h($event['Event']['id']))
                     ]
                 ],
             ],
             [
                 'id' => 'attributes',
                 'title' => __('Attributes'),
-                'icon' => 'inbox',
+                'icon' => 'misp-icon misp-icon-attribute misp-simple',
                 'count' => $attribute_count ?? 0,
 
                 // Content
                 'left' => [
                     [
-                        // 'ajax' => $this->Url->build([
-                        //     'controller' => 'events',
-                        //     'action' => 'viewAttributes',
-                        //     $eventId
-                        // ])
-                        'ajax' => sprintf('/events/viewAttributes/%s',h($eventId))
+                        'ajax' => sprintf('/events/viewAttributes/%s',h($event['Event']['id']))
                     ]
                 ],
             ],
             [
                 'id' => 'reports',
                 'title' => __('Reports'),
-                'icon' => 'file-alt',
+                'icon' => 'misp-icon misp-icon-report misp-simple',
                 'count' => $report_count ?? 0,
 
                 // Content
                 'left' => [
-                    'Events/View/event_reports',
+                    [
+                        'ajax' => sprintf('/events/viewEventReports/%s', h($event['Event']['id']))
+                    ]
                 ],
             ],
             [
-                'id' => 'graph',
-                'title' => __('Graph'),
-                'icon' => 'project-diagram',
+                'id' => 'correlation',
+                'title' => __('Correlation'),
+                'icon' => 'fas fa-link',
+                'count' => $correlation_count ?? 0,
 
                 // Content
                 'left' => [
-                    'Events/View/event_graph',
+                    'Events/View/event_correlation_graph',
                 ],
             ],
             [
-                'id' => 'timeline',
-                'title' => __('Timeline'),
-                'icon' => 'clock',
+                'id' => 'pivot-explorer',
+                'title' => __('Pivot Explorer'),
+                'icon' => 'fas fa-circle-nodes',
 
                 // Content
                 'left' => [
-                    'Events/View/event_timeline',
+                    'Events/View/event_pivot_explorer',
                 ],
+            ],
+            // [
+            //     'id' => 'timeline',
+            //     'title' => __('Timeline'),
+            //     'icon' => 'fas fa-clock',
+
+            //     // Content
+            //     'left' => [
+            //         'Events/View/event_timeline',
+            //     ],
+            // ],
+            [
+                'id' => 'history',
+                'title' => __('History'),
+                'icon' => 'fas fa-history',
+
+                // Content
+                'left' => [
+                    'Events/View/event_history',
+                ]
             ]
         ]
     ]);

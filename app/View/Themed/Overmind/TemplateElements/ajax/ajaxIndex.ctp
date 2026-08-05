@@ -33,14 +33,14 @@ $fields = [
         'card_section' => 'selector',
         'actions' => [
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/templateElements/editV2/%id%',
                 'requirement' => $me['Role']['perm_template']
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/templateElements/deleteSelection/%id%',

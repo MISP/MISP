@@ -34,15 +34,7 @@ function extractPathFromUrl(url) {
 
 
 
-function copyCode(id){
-    const code = document.getElementById(id).innerText;
-
-    navigator.clipboard.writeText(code);
-
-}
-
-
-function downloadResponse() {
+function downloadResponse(btn) {
     const text = document.getElementById("response-body-code").innerText;
     const blob = new Blob([text], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -51,6 +43,21 @@ function downloadResponse() {
     a.download = "response.json";
     a.click();
     URL.revokeObjectURL(url);
+
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check text-primary"></i>';
+    const tooltip = bootstrap.Tooltip.getInstance(btn);
+    if (tooltip) {
+        btn.setAttribute('data-bs-original-title', 'Downloaded!');
+        tooltip.show();
+    }
+    setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        if (tooltip) {
+            btn.setAttribute('data-bs-original-title', 'Download Response');
+            tooltip.hide();
+        }
+    }, 2000);
 }
 
 

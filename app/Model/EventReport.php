@@ -259,6 +259,11 @@ class EventReport extends AppModel
         } else {
             unset($report['EventReport']['timestamp']);
         }
+        // Validate the sharing group on edit like the add path (captureReport) does. Without this,
+        // a user could set distribution=4 + an arbitrary sharing_group_id they have no access to
+        // (sharing_group_id is in CAPTURE_FIELDS); captureSG->captureSGForElement resets an
+        // unauthorised SG to 0 and downgrades distribution to 0.
+        $report = $this->captureSG($user, $report);
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
             if ($user['Role']['perm_tagger']) {
@@ -407,6 +412,35 @@ class EventReport extends AppModel
         return $events;
     }
 
+    public function getSummaryForEvent(array $user, $eventId)
+    {
+        $eventReports = $this->fetchReports($user, [
+            'conditions' => [
+                'EventReport.event_id' => $eventId,
+                'EventReport.deleted' => 0,
+            ],
+        ]);
+
+        $firstEventReport = null;
+        foreach ($eventReports as $report) {
+            $content = $report['EventReport']['content'] ?? '';
+            if (!empty(trim($content))) {
+                $firstEventReport = $report;
+                break;
+            }
+        }
+
+        if ($firstEventReport === null && !empty($eventReports)) {
+            $firstEventReport = $eventReports[0];
+        }
+
+        return [
+            'id' => $firstEventReport['EventReport']['id'] ?? null,
+            'markdown' => $firstEventReport['EventReport']['content'] ?? null,
+            'count' => count($eventReports),
+        ];
+    }
+
 
     /**
      * fetchById Simple ACL-aware method to fetch a report by Id or UUID
@@ -438,6 +472,91 @@ class EventReport extends AppModel
             throw new NotFoundException(__('Invalid report'));
         }
         return array();
+    }
+
+    /**
+     * Paginated ACL-aware fetch for an event's reports.
+     *
+     * Supports options: page, limit, sort, direction,
+     *   deleted (0=active, 1=all, 2=only deleted), searchFor
+     *
+     * Returns:
+     *   ['EventReport' => [...], 'total' => int,
+     *    'page' => int, 'limit' => int]
+     *
+     * @param  array      $user
+     * @param  int|string $eventId
+     * @param  array      $options
+     * @return array
+     */
+    public function fetchPaginatedReports(
+        array $user,
+        $eventId,
+        array $options = []
+    ) {
+        $page  = max(1, (int)($options['page']  ?? 1));
+        $limit = min(500, max(1, (int)($options['limit'] ?? 25)));
+        $sort  = $options['sort'] ?? 'timestamp';
+        $direction = (
+            isset($options['direction']) &&
+            strtolower($options['direction']) === 'asc'
+        ) ? 'ASC' : 'DESC';
+
+        $allowedSortFields = [
+            'id', 'name', 'timestamp', 'distribution',
+        ];
+        if (!in_array($sort, $allowedSortFields, true)) {
+            $sort = 'timestamp';
+        }
+
+        $conditions = $this->buildACLConditions($user);
+        $conditions['AND'][] = [
+            'EventReport.event_id' => $eventId,
+        ];
+
+        $deleted = (int)($options['deleted'] ?? 0);
+        if ($deleted === 1) {
+            $conditions['AND'][] = [
+                'EventReport.deleted' => [0, 1],
+            ];
+        } elseif ($deleted === 2) {
+            $conditions['AND'][] = ['EventReport.deleted' => 1];
+        } else {
+            $conditions['AND'][] = ['EventReport.deleted' => 0];
+        }
+
+        if (!empty($options['searchFor'])) {
+            $conditions['AND'][] = ['OR' => [
+                'EventReport.name LIKE' =>
+                    '%' . $options['searchFor'] . '%',
+                'EventReport.content LIKE' =>
+                    '%' . $options['searchFor'] . '%',
+            ]];
+        }
+
+        $total = $this->find('count', [
+            'conditions' => $conditions,
+            'contain'    => ['Event'],
+            'recursive'  => -1,
+        ]);
+
+        $reports = $this->find('all', [
+            'conditions' => $conditions,
+            'contain'    => self::DEFAULT_CONTAIN,
+            'recursive'  => -1,
+            'order'      => [
+                'EventReport.' . $sort => $direction,
+            ],
+            'limit'  => $limit,
+            'offset' => ($page - 1) * $limit,
+        ]);
+
+        return [
+            'EventReport' => $reports,
+            'total'       => (int)$total,
+            'page'        => $page,
+            'limit'       => $limit,
+        ];
     }
 
     /**

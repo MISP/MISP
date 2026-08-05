@@ -1,4 +1,36 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+
+if ($this->Acl->canAccess('correlation_exclusions', 'clean')) {
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Clean up correlations'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/correlation_exclusions/clean'
+    ];
+}
+
+if ($this->Acl->canAccess('correlation_exclusions', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add correlation exclusion entry'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/correlation_exclusions/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -31,26 +63,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'CorrelationExclusion.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/correlation_exclusions/edit/%id%',
-                'requirement' => 'check_site_admin'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/correlation_exclusions/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_site_admin'
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -81,29 +96,32 @@ $fields = [
         'element' => 'enabled',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'CorrelationExclusion.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/correlation_exclusions/edit/%id%',
+                'requirement' => 'check_site_admin'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/correlation_exclusions/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_site_admin'
+            ]
+        ]
     ]
 ];
 
-
-$headerActions = [];
-if ($this->Acl->canAccess('correlation_exclusions', 'clean')) {
-    $headerActions[] = [
-        'type' => 'post',
-        'label' => __('Clean up correlations'),
-        'icon' => 'sync',
-        'url' => $baseurl . '/correlation_exclusions/clean'
-    ];
-}
-
-if ($this->Acl->canAccess('correlation_exclusions', 'add')) {
-    $headerActions[] = [
-        'type' => 'ajax',
-        'label' => __('Add correlation exclusion entry'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/correlation_exclusions/add'
-    ];
-}
-$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================

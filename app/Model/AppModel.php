@@ -94,11 +94,12 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-	        147 => false, 148 => false, 149 => false, 150 => false
-	    );
+        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
+        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+        147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
+        153 => false, 154 => false, 157 => false, 158 => false, 159 => false
+    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
@@ -305,6 +306,9 @@ class AppModel extends Model
             case 150:
                 $dbUpdateSuccess = $this->fixDatabaseEncoding();
                 break;
+            case 152:
+                $dbUpdateSuccess = $this->__importDefaultDashboardTemplates();
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
@@ -345,6 +349,62 @@ class AppModel extends Model
             $entry['change'] = 'Tried adding new feeds but something went wrong.';
         }
         $this->Log->saveOrFailSilently($entry);
+    }
+
+    // Ingest the built-in dashboard starter templates shipped under
+    // app/files/dashboard-templates/ into the `dashboards` table (DD-22).
+    // Idempotent overwrite-by-uuid, so replaying this update is safe. Per-
+    // template failures are logged but never fail the update chain (a
+    // missing/partial templates dir must not block the DB migration).
+    private function __importDefaultDashboardTemplates()
+    {
+        $this->Dashboard = ClassRegistry::init('Dashboard');
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->Dashboard->importTemplatesFromDirectory();
+        $names = array();
+        foreach ($result['success'] as $entry) {
+            $names[] = $entry['name'];
+        }
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => __('Imported default dashboard templates.'),
+            'change' => empty($names) ?
+                __('No default dashboard templates were imported.') :
+                __('Default dashboard templates imported: %s', implode(', ', $names)),
+        ));
+        if (!empty($result['fails'])) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Some default dashboard templates failed to import.'),
+                'change' => json_encode($result['fails']),
+            ));
+        }
+        if (!empty($result['promoted_default'])) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Fallback dashboard default promoted.'),
+                'change' => __('Instance had no default dashboard; promoted: %s', implode(', ', $result['promoted_default'])),
+            ));
+        }
+        return true;
     }
 
     // SQL scripts for updates
@@ -2631,6 +2691,40 @@ class AppModel extends Model
                 break;
             case 149:
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                break;
+            case 151:
+                $sqlArray[] = "ALTER TABLE `galaxies` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                break;
+            case 153:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1;";
+                break;
+            case 154:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `auth_type` VARCHAR(255) DEFAULT 'basic' AFTER `api_key`;";
+                break;
+            case 157:
+                // exposed marks an event template as visible to Draugnet's
+                // MISP-pull template source (the anonymous community
+                // submission frontend). Curation stays in MISP; exposing is
+                // an additive, opt-in marker defaulting off. Placed after
+                // misp_default and indexed like active for the exposed-only
+                // listing filter.
+                $sqlArray[] = "ALTER TABLE `event_templates` ADD `exposed` tinyint(1) NOT NULL DEFAULT 0 AFTER `misp_default`;";
+                $indexArray[] = array('event_templates', 'exposed');
+                break;
+            case 158:
+                // Collection sync (T1.1). Numbered 158/159 — ABOVE the
+                // event-template `exposed` migration (157) — so an instance
+                // already at db_version 157 via upstream develop (which never
+                // saw the original 155/156) still applies these via
+                // findUpgrades. Re-adding an existing column is an accepted
+                // duplicate-column error (isAcceptedDatabaseError), so
+                // instances that already applied the old 155/156 self-heal.
+                $sqlArray[] = "ALTER TABLE `collections` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 159:
+                // Collection sync per-server toggles (T1.2).
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

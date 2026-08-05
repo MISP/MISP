@@ -4,6 +4,7 @@ App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
+App::uses('SystemSetting', 'Model');
 
 /**
  * @property Server $Server
@@ -425,6 +426,12 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['pull_rules'])) {
                         $this->request->data['Server']['pull_rules'] = $defaultPullRules;
                     }
+                    // This action only ever creates a new server entry. Strip any
+                    // client-supplied id so an injected Server[id] cannot turn this
+                    // INSERT into a covert UPDATE of an arbitrary server row (sync
+                    // url/authkey/push-pull rule hijack) - save() with no fieldList
+                    // here would otherwise honour it. Reported by Jeroen Pinoy.
+                    unset($this->request->data['Server']['id']);
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
                             $this->__saveCert($this->request->data, $this->Server->id, false);
@@ -560,7 +567,7 @@ class ServersController extends AppController
 
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'push_analyst_data', 'pull_analyst_data', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'push_analyst_data', 'pull_analyst_data', 'push_collections', 'pull_collections', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -836,7 +843,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $technique, $s);
                 if (is_array($result)) {
-                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5]);
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled, %s collections pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5], $result[6]);
                 } else {
                     $error = $result;
                 }
@@ -845,6 +852,7 @@ class ServersController extends AppController
                 $this->set('pulledProposals', $result[2]);
                 $this->set('pulledSightings', $result[3]);
                 $this->set('pulledAnalystData', $result[5]);
+                $this->set('pulledCollections', $result[6]);
             } else {
                 $this->loadModel('Job');
                 $jobId = $this->Job->createJob(
@@ -1612,6 +1620,9 @@ class ServersController extends AppController
             }
             $this->autoRender = false;
             if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
+                // Never log the raw value of a sensitive setting (passwords, API keys, salts, ...):
+                // mask it the same way the successful-save path does (see Server::serverSettingsEditValue).
+                $loggedValue = SystemSetting::isSensitive($setting['name']) ? '*****' : $this->request->data['Server']['value'];
                 $this->loadModel('Log');
                 $this->Log->create();
                 $this->Log->saveOrFailSilently(array(
@@ -1622,7 +1633,7 @@ class ServersController extends AppController
                     'action' => 'serverSettingsEdit',
                     'user_id' => $this->Auth->user('id'),
                     'title' => 'Server setting issue',
-                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $loggedValue  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
                 ));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
@@ -1983,6 +1994,7 @@ class ServersController extends AppController
             'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
+            'collection_sync' => true, // check if Collection sync (indexMinimal/fetch/capture) is supported
         ];
         return $this->RestResponse->viewData($response, 'json');
     }
@@ -2171,12 +2183,42 @@ class ServersController extends AppController
         }
     }
 
-    public function updateJSON()
+public function updateJSON()
     {
         $results = [];
-        foreach ($this->Server->updateJSON() as $type => $result) {
-            $results[$type] = $results['success'];
+
+        $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
+
+        if ($async) {
+            $this->loadModel('Job');
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'updateJSON',
+                $this->Auth->user('id'),
+                __('Starting server JSON update.')
+            );
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateJSON',
+                    $this->Auth->user('id'),
+                    $jobId,
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+
+            $results['message'] = __('Server updateJSON job queued. Job ID: %s', $jobId);
+        } else {
+            foreach ($this->Server->updateJSON() as $type => $result) {
+                $results[$type] = $result['success'];
+            }
         }
+
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 

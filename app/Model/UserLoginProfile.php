@@ -262,7 +262,7 @@ class UserLoginProfile extends AppModel
             'UserLoginProfile.status' => 'malicious'
         ]);
         if ($maliciousWithSameIP) {
-            return __('The source IP was reported as as malicious by a user.');
+            return __('The source IP was reported as malicious by a user.');
         }
         // LATER - use other data to identify suspicious logins, such as:
         // - what with use-case where a user marks something as legitimate, but is marked by someone else as suspicious?

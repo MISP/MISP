@@ -22,7 +22,7 @@ $canDelete = $this->Acl->canAccess('eventTemplates', 'delete');
 $headerActions = [];
 if ($canInstantiate) {
     $headerActions[] = [
-        'type' => 'link',
+        'type' => 'navigate',
         'label' => __('Create event from template'),
         'icon' => 'play',
         'url' => $baseurl . '/event_templates/instantiate/' . h($templateId),
@@ -30,14 +30,14 @@ if ($canInstantiate) {
 }
 if ($canEdit) {
     $headerActions[] = [
-        'type' => 'link',
+        'type' => 'navigate',
         'label' => __('Edit'),
         'icon' => 'pen-to-square',
         'url' => $baseurl . '/event_templates/edit/' . h($templateId),
     ];
 }
 $headerActions[] = [
-    'type' => 'link',
+    'type' => 'navigate',
     'label' => __('Export'),
     'icon' => 'download',
     'url' => $baseurl . '/event_templates/export/' . h($templateId),

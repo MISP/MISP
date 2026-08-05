@@ -1,5 +1,5 @@
 #!/bin/bash
-# MISP 2.5 installation for Ubuntu RHEL 9.4
+# MISP 2.5 installation for RHEL 9.4
 # This guide is meant to be a simply installation of MISP on a pristine RHEL 9.4 server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
@@ -475,7 +475,7 @@ print_status "Creating Apache configuration file for MISP..."
           ServerAdmin admin@$MISP_DOMAIN
           ServerName $MISP_DOMAIN
 
-          Redirect permanent / https://$MISP_DOMAIN
+          Redirect permanent / https://$MISP_DOMAIN/
 
           LogLevel warn
           ErrorLog /var/log/httpd/misp.local_error.log
@@ -746,7 +746,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators." &>> $logfile
 
   # Appease the security audit, #hardening
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.disable_browser_cache" true &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.disable_browser_cache" false &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.check_sec_fetch_site_header" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.csp_enforce" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>> $logfile

@@ -110,6 +110,9 @@ class EventTemplateImporter
         );
 
         if (!empty($existing) && $mode === 'overwrite') {
+            if ($user['org_id'] !== (int)$existing['EventTemplate']['org_id'] && !$user['Role']['perm_site_admin']) {
+                throw new MethodNotAllowedException('Cannot overwrite template owned by another org.');
+             }
             $eventTemplate->id = (int)$existing['EventTemplate']['id'];
             $row['id'] = $eventTemplate->id;
             // preserve original ownership

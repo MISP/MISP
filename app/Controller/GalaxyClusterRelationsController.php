@@ -132,6 +132,14 @@ class GalaxyClusterRelationsController extends AppController
                 $errors = array($clusterSource['error']);
             }
 
+            // Distribution 4 = sharing group: the user must have access to the SG to scope a
+            // relation to it. editRelation() already enforces this via checkIfAuthorised; the
+            // add path (saveRelation) did not, letting a galaxy editor assign a relation to a
+            // sharing group they cannot access (scope-FK injection).
+            if (empty($errors) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $relation['GalaxyClusterRelation']['sharing_group_id'])) {
+                $errors[] = __('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to use it.');
+            }
+
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
                 $tags = array_map('trim', $tags);
@@ -217,6 +225,13 @@ class GalaxyClusterRelationsController extends AppController
             }
             $relation = $this->request->data;
             $relation['GalaxyClusterRelation']['id'] = $id;
+            // Pin the source cluster to the stored relation's source. Both the authorisation
+            // check below and editRelation() derive the saved galaxy_cluster_id from this uuid;
+            // reading it from the request body let a user who could merely VIEW a relation
+            // re-parent it onto a cluster they own (cross-cluster relation hijack), because edit
+            // authorised the body-supplied source cluster, not the relation's actual one.
+            // delete() already authorises against the stored source uuid - match it here.
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $existingRelation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
@@ -224,8 +239,12 @@ class GalaxyClusterRelationsController extends AppController
             $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
+            } else {
+                // Only present on success; reading it when the auth check failed (now reachable
+                // since the source uuid is pinned to the stored, possibly un-owned, cluster)
+                // would dereference a missing key.
+                $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
             }
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);

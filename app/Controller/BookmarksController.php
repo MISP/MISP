@@ -78,6 +78,10 @@ class BookmarksController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', ['menuList' => 'bookmarks', 'menuItem' => 'add']);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function edit($id)
@@ -86,6 +90,13 @@ class BookmarksController extends AppController
             throw new MethodNotAllowedException(__('Invalid Bookmark or insufficient privileges'));
         }
         $params = [
+            // user_id/org_id are ownership FKs and must not be reassignable through
+            // edit: without this whitelist CRUDComponent::edit merges every posted
+            // field onto the loaded record, and Bookmark::beforeValidate only force-
+            // pins user_id on create. An injected Bookmark[user_id] would otherwise
+            // re-own the bookmark to an arbitrary user and plant it (with attacker
+            // supplied name/url) into that user's global bookmark menu.
+            'fields' => ['name', 'url', 'comment', 'exposed_to_org'],
         ];
         $this->CRUD->edit($id, $params);
         if ($this->restResponsePayload) {
@@ -93,7 +104,26 @@ class BookmarksController extends AppController
         }
         $this->set('menuData', ['menuList' => 'bookmarks', 'menuItem' => 'edit']);
         $this->set('id', $id);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Bookmark',
+            'restName' => 'Bookmarks',
+            'itemName' => 'bookmark',
+            'view' => 'ajax/bookmarkDeleteConfirmationForm',
+            'checkModifyCallback' => function ($itemId) {
+                return $this->Bookmark->mayModify($this->Auth->user(), intval($itemId));
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s bookmark deleted.', '%s bookmarks deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function delete($id)

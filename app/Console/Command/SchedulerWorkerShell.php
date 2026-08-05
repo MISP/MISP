@@ -8,7 +8,7 @@ App::uses('Worker', 'Tools/BackgroundJobs');
 
 class SchedulerWorkerShell extends AppShell
 {
-    public $uses = ['Task', 'Feed', 'Server', 'Job', 'User'];
+    public $uses = ['Task', 'Feed', 'Server', 'TaxiiServer', 'Job', 'User'];
 
     /** @var Worker */
     private $worker;
@@ -51,6 +51,18 @@ class SchedulerWorkerShell extends AppShell
                 ]);
             } catch (Exception $e) {
                 CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - failed to fetch tasks: " . $e->getMessage());
+
+                $message = $e->getMessage();
+                if (strpos($message, 'MySQL server has gone away') !== false
+                    || strpos($message, 'Lost connection to MySQL server') !== false) {
+                    try {
+                        $this->Task->getDataSource()->reconnect();
+                        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - database connection re-established.");
+                    } catch (Exception) {
+                        // still down — next iteration will retry
+                    }
+                }
+
                 sleep(10);
                 continue;
             }
@@ -96,6 +108,13 @@ class SchedulerWorkerShell extends AppShell
                 $this->logMessage('error', $task['id'], "unknown action for Feed: {$task['action']}");
                 return;
             }
+        } elseif ($task['type'] == 'TAXII') {
+            if ($task['action'] !== 'push') {
+                $this->logMessage('error', $task['id'], "unknown action for TAXII: {$task['action']}");
+                return;
+            }
+
+            $this->runTaxiiPushTask($task);
         } elseif ($task['type'] == 'Workflow') {
             $this->runWorkflowAdHoc($task);
         } elseif ($task['type'] == 'Periodic Summary') {
@@ -424,6 +443,60 @@ class SchedulerWorkerShell extends AppShell
         ]);
 
         $this->logMessage('info', $task['id'], "enqueued cache for Feed with scope: {$scope}.");
+    }
+
+    private function runTaxiiPushTask($task)
+    {
+        $taxiiServerId = $task['params'];
+
+        if (!is_numeric($taxiiServerId) && $taxiiServerId !== 'all') {
+            $this->logMessage('error', $task['id'], "invalid parameters: expected numeric TAXII server ID or 'all'.");
+            return;
+        }
+
+        $user = $this->User->getAuthUser($task['user_id']);
+        if (empty($user)) {
+            $this->logMessage('error', $task['id'], "user ID do not match an existing user.");
+            return;
+        }
+
+        if (is_numeric($taxiiServerId) && !$this->TaxiiServer->hasAny([
+            'TaxiiServer.id' => $taxiiServerId,
+            'TaxiiServer.enabled' => 1,
+        ])) {
+            $this->logMessage('error', $task['id'], "TAXII server is not found or not enabled: {$taxiiServerId}.");
+            return;
+        }
+
+        $jobId = $this->Job->createJob(
+            $user,
+            Job::WORKER_DEFAULT,
+            'push_taxii',
+            'TAXII Server: ' . $taxiiServerId,
+            __('Starting TAXII push.')
+        );
+
+        $this->getBackgroundJobsTool()->enqueue(
+            BackgroundJobsTool::DEFAULT_QUEUE,
+            BackgroundJobsTool::CMD_SERVER,
+            [
+                'push_taxii',
+                $user['id'],
+                $taxiiServerId,
+                $jobId
+            ],
+            true,
+            $jobId
+        );
+
+        $this->Task->save([
+            'id' => $task['id'],
+            'last_job_id' => $jobId,
+            'message' => 'Enqueued',
+            'last_run_at' => time()
+        ]);
+
+        $this->logMessage('info', $task['id'], "enqueued TAXII Push for TAXII Server ID: {$taxiiServerId}.");
     }
 
     public function runWorkflowAdHoc($task)

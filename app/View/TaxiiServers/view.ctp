@@ -23,6 +23,11 @@ echo $this->element(
                 'type' => 'json'
             ],
             [
+                'key' => __('Enabled'),
+                'path' => 'TaxiiServer.enabled',
+                'type' => 'json'
+            ],
+            [
                 'key' => __('Discovery URL'),
                 'path' => 'TaxiiServer.discovery_url'
             ],
@@ -51,8 +56,14 @@ echo $this->element(
                 'model' => 'organisations'
             ],
             [
-                'key' => __('API key'),
-                'path' => 'TaxiiServer.api_key'
+                'key' => __('Authentication Type'),
+                'path' => 'TaxiiServer.auth_type',
+                'callback' => 'ucfirst'
+            ],
+            [
+                'key' => __('Token'),
+                'path' => 'TaxiiServer.api_key',
+                'privacy' => true
             ],
             [
                 'key' => __('Description'),
@@ -61,13 +72,13 @@ echo $this->element(
         ],
         'children' => [
             [
-                'url' => $baseurl . '/taxii_servers/collectionsIndex/{{0}}/',
+                'url' => '/taxii_servers/collectionsIndex/{{0}}/',
                 'url_params' => ['TaxiiServer.id'],
                 'title' => __('Collections'),
                 'elementId' => 'taxii_collections'
             ],
             [
-                'url' => $baseurl . '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
+                'url' => '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
                 'url_params' => ['TaxiiServer.id', 'TaxiiServer.collection'],
                 'title' => __('Objects in selected Collection'),
                 'elementId' => 'taxii_objects'

@@ -166,6 +166,11 @@ class TemplatesController extends AppController
             $tags = $this->request->data['Template']['tags'];
             unset($this->request->data['Template']['tags']);
             $this->request->data['Template']['org'] = $this->Auth->user('Organisation')['name'];
+            // Mass-assignment guard: create() does NOT strip a supplied id, so an
+            // injected Template[id] would turn this INSERT into a covert UPDATE that
+            // overwrites another org's template and re-owns it via the forced org
+            // above. Strip id so add can only ever create a new row (edit pins it).
+            unset($this->request->data['Template']['id']);
             $this->Template->create();
             if ($this->Template->save($this->request->data)) {
                 $id = $this->Template->id;
@@ -412,6 +417,15 @@ class TemplatesController extends AppController
                 $this->loadModel('MispAttribute');
                 $fails = 0;
                 foreach ($attributes as $k => $attribute) {
+                    // Mass-assignment guard: these attributes are round-tripped to
+                    // the browser as client JSON in the review step, so the request
+                    // body fully controls them here. Pin event_id to the
+                    // route-authorised event (only the route event was ACL-checked
+                    // above) and strip any id to stop cross-event attribute injection
+                    // and covert UPDATE of an arbitrary attribute (this direct save
+                    // bypasses captureAttribute, which would normally do both).
+                    $attributes[$k]['event_id'] = $event_id;
+                    unset($attributes[$k]['id']);
                     if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
                         $file = new File(APP . 'tmp/files/' . $attribute['data']);
                         $content = $file->read();

@@ -74,6 +74,7 @@ class EventTemplatesController extends AppController
             'filters' => array(
                 'EventTemplate.name', 'EventTemplate.uuid',
                 'EventTemplate.description', 'EventTemplate.active',
+                'EventTemplate.exposed',
                 'EventTemplate.org_id', 'searchall',
             ),
             'quickFilters' => array(
@@ -110,6 +111,45 @@ class EventTemplatesController extends AppController
             1 => __('Community'),
         ));
         $this->set('list', $this->viewVars['data']);
+    }
+
+    /**
+     * Exposed-only listing — the Draugnet pull contract (PRD §7 M3).
+     *
+     * Returns every event template flagged `exposed = 1` that is also
+     * readable by the requesting account under the normal read ACL
+     * (own-org OR community; site admins see all). Exposing is an
+     * additive marker, not a privilege escalation, so the visibility
+     * conditions still apply — an exposed template the caller couldn't
+     * otherwise read is not returned.
+     *
+     * REST callers (Draugnet's `misp` template source, authenticating
+     * with a service key) receive a lean, unpaginated JSON array under
+     * the usual `{EventTemplate: {...}}` envelope per row; each row
+     * carries the full decoded `definition`, which Draugnet
+     * re-validates against event-template-v1 before rendering a form.
+     *
+     * The HTML surface redirects to the standard index filtered by
+     * `exposed=1`, so operators review exposure in the familiar table.
+     */
+    public function exposed()
+    {
+        if (!$this->IndexFilter->isRest()) {
+            $this->redirect(array(
+                'action' => 'index',
+                '?' => array('exposed' => 1),
+            ));
+            return;
+        }
+
+        $conditions = $this->__visibilityConditions();
+        $conditions['EventTemplate.exposed'] = 1;
+        $templates = $this->EventTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'order' => array('EventTemplate.name' => 'ASC'),
+        ));
+        return $this->RestResponse->viewData($templates, 'json');
     }
 
     public function view($id)
@@ -169,6 +209,12 @@ class EventTemplatesController extends AppController
                 ? (int)$input['distribution']
                 : 0,
             'active' => (!array_key_exists('active', $input) || $input['active'])
+                ? 1
+                : 0,
+            // Unlike `active` (on by default), exposing a template to
+            // Draugnet is an explicit opt-in: default 0 unless the caller
+            // sends a truthy `exposed`.
+            'exposed' => (array_key_exists('exposed', $input) && $input['exposed'])
                 ? 1
                 : 0,
             'org_id' => (int)$this->Auth->user('org_id'),
@@ -231,6 +277,12 @@ class EventTemplatesController extends AppController
             // round-trips as a PHP bool through Cake's read path, which the
             // boolean validator would otherwise reject on re-save.
             $row['misp_default'] = (int)(bool)$row['misp_default'];
+        }
+        if (array_key_exists('exposed', $row)) {
+            // Merged from the existing row (a tinyint(1) → PHP bool) or from
+            // caller input; coerce to a clean int so it persists as 0/1 and
+            // an untouched value is preserved across edits.
+            $row['exposed'] = (int)(bool)$row['exposed'];
         }
         $row['id'] = $id;
         $this->EventTemplate->id = $id;
@@ -1010,11 +1062,17 @@ class EventTemplatesController extends AppController
             );
         }
         $this->set('taxonomiesAvailable', $taxonomies);
-
         $this->loadModel('Galaxy');
         $galaxyRows = $this->Galaxy->find('all', array(
             'recursive' => -1,
-            'conditions' => array('Galaxy.enabled' => true),
+            'conditions' => array(
+                'Galaxy.enabled' => true,
+                // Use the canonical galaxy visibility filter. The previous hand-rolled condition
+                // `'Galaxy.distribution' > 0` was a PHP comparison (always evaluating to true), not a
+                // query condition, so every org's galaxies - including org-only (distribution 0) custom
+                // galaxies belonging to other orgs - leaked into the template builder list.
+                $this->Galaxy->buildConditions($this->Auth->user()),
+            ),
             'fields' => array(
                 'Galaxy.type',
                 'Galaxy.description',
@@ -1058,9 +1116,9 @@ class EventTemplatesController extends AppController
                 'type' => 'json',
             ));
         }
-        $this->set('message', $message);
+        $this->set('headerDescription', $message);
         $this->set('missing', $missing);
-        $this->set('title_for_layout', __('Event templating unavailable'));
+        $this->set('headerTitle', __('Event templating unavailable'));
         return $this->render('dependency_missing');
     }
 }

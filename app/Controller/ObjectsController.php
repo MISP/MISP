@@ -255,6 +255,9 @@ class ObjectsController extends AppController
                             throw new MethodNotAllowedException($canSGBeUsed);
                         }
                     }
+                    if (!empty($object['Attribute'])) {
+                        $this->__validateAttributeSharingGroups($object['Attribute']);
+                    }
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($event);
@@ -286,7 +289,11 @@ class ObjectsController extends AppController
                 } else {
                     if (is_numeric($result)) {
                         $this->Flash->success('Object saved.');
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                        } else {
+                            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                        }
                     }
                 }
             }
@@ -299,11 +306,36 @@ class ObjectsController extends AppController
                 return $this->RestResponse->viewData($orgs, $this->response->type());
             }
         } else {
-            if (!empty($error)) {
+            if (!empty($error) && !empty($template)) {
                 $this->Flash->error($error);
             }
-            $template = $this->MispObject->prepareTemplate($template, $this->request->data);
-            $enabledRows = array_keys($template['ObjectTemplateElement']);
+            $templateList = $this->MispObject->ObjectTemplate->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'fields' => [
+                        'ObjectTemplate.id',
+                        'ObjectTemplate.name',
+                        'ObjectTemplate.meta-category',
+                        'ObjectTemplate.description',
+                        'ObjectTemplate.version',
+                    ],
+                    'order' => [
+                        'ObjectTemplate.meta-category',
+                        'ObjectTemplate.name',
+                    ],
+                ]
+            );
+            $this->set('templateList', $templateList);
+            if (!empty($template)) {
+                $template = $this->MispObject->prepareTemplate(
+                    $template,
+                    $this->request->data
+                );
+                $enabledRows = array_keys($template['ObjectTemplateElement']);
+            } else {
+                $enabledRows = [];
+            }
             $this->set('enabledRows', $enabledRows);
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
@@ -373,7 +405,11 @@ class ObjectsController extends AppController
         }
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+            if($this->theme === "Overmind"){
+                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+            } else {
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+            }
         }
         if (!empty($template) || $update_template_available) {
             $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
@@ -413,13 +449,20 @@ class ObjectsController extends AppController
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
                 unset($this->request->data['Object']);
             }
-            if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
-                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+            // The Object fields were merged up to the top level (and data['Object'] unset) just above,
+            // so the distribution/sharing_group_id now live directly on data - the old data['Object']
+            // check could never fire, leaving the SG unvalidated and letting an editor assign an
+            // arbitrary (unauthorised) sharing group.
+            if (isset($this->request->data['distribution']) && $this->request->data['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data);
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);
                 }
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
+            if (!empty($objectToSave['Attribute'])) {
+                $this->__validateAttributeSharingGroups($objectToSave['Attribute']);
+            }
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
             $error_message = __('Object could not be saved.');
             $savedObject = array();
@@ -466,7 +509,11 @@ class ObjectsController extends AppController
                     } else {
                         $this->Flash->error($error_message);
                     }
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    if ($this->theme === 'Overmind') {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+                    } else {
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    }
                 }
             }
         } else {
@@ -502,7 +549,36 @@ class ObjectsController extends AppController
         $this->set('object', $object);
         $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', empty($templateData['newer_template_version']) ? false : $templateData['newer_template_version']);
+        if($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
+    }
+
+    /**
+     * Ensure that every attribute saved with a sharing-group distribution (4) references a sharing
+     * group the acting user is actually allowed to use. The per-object distribution check only covers
+     * the object's own sharing group; without this an editor could assign an arbitrary (unauthorised)
+     * sharing group to a contained attribute, leaking its name. Mirrors the unconditional check that
+     * AttributesController::add()/edit() already apply for standalone attributes.
+     *
+     * @param array $attributes List of attribute arrays (each potentially carrying distribution/sharing_group_id)
+     * @throws MethodNotAllowedException when an attribute targets a sharing group the user cannot use
+     */
+    private function __validateAttributeSharingGroups(array $attributes)
+    {
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['distribution']) && $attribute['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed(
+                    $this->Auth->user(),
+                    $this->_isRest(),
+                    ['sharing_group_id' => $attribute['sharing_group_id'] ?? 0]
+                );
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
+            }
+        }
     }
 
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
@@ -869,11 +945,17 @@ class ObjectsController extends AppController
                 }
             }
         } else {
-            if ($this->request->is('ajax') && $this->request->is('get')) {
+            if ($this->request->is('ajax') || $this->theme === 'Overmind') {
+                $this->layout = false;
                 $this->set('hard', $hard);
                 $this->set('id', $id);
+                $this->set('idArray', [$id]);
                 $this->set('event_id', $eventId);
-                $this->render('ajax/delete');
+                if ($this->theme === 'Overmind') {
+                    $this->render('ajax/objectDeleteConfirmationForm');
+                } else {
+                    $this->render('ajax/delete');
+                }
             }
         }
     }

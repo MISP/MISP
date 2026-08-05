@@ -45,6 +45,9 @@ class RolesController extends AppController
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
     }
 
     public function admin_edit($id = null)
@@ -59,6 +62,10 @@ class RolesController extends AppController
         $this->set('options', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('id', $id);
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('admin_add');
+        }
     }
 
     public function admin_delete($id = null)
@@ -113,6 +120,9 @@ class RolesController extends AppController
                 $message = 'Invalid Role.';
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->type());
+                } elseif ($this->theme === "Overmind") {
+                    $this->Flash->error($message);
+                    return $this->redirect(array('action' => 'index', 'admin' => false));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
                 }
@@ -123,12 +133,18 @@ class RolesController extends AppController
                 $message = $role_id ? __('Default role set.') : __('Default role unset.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
+                } elseif ($this->theme === "Overmind") {
+                    $this->Flash->success($message);
+                    return $this->redirect(array('action' => 'index', 'admin' => false));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
                 }
             } else {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->type());
+                } elseif ($this->theme === "Overmind") {
+                    $this->Flash->error($result);
+                    return $this->redirect(array('action' => 'index', 'admin' => false));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
                 }
