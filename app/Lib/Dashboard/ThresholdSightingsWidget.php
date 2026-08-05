@@ -3,12 +3,14 @@
 class ThresholdSightingsWidget
 {
     public $title = 'Threshold Sightings';
+    public $category = 'events';
     public $render = 'SimpleList';
     public $width = 8;
     public $height = 4;
     public $params = array(
         'threshold' => 'Threshold for sightings'
     );
+    public $schema = array();
     public $description = 'Widget showing information on sightings above certain threshold';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;
@@ -54,7 +56,7 @@ class ThresholdSightingsWidget
                 $data[] = array( 'title' => __("False positive above threshold"), 'value' => $output, 
                                     'html' => sprintf(
                                         ' (Event <a href="%s%s">%s</a>)',
-                                        Configure::read('MISP.baseurl') . '/events/view/', $s['event_id'],
+                                        (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/view/', $s['event_id'],
                                         $s['event_id']
                                     ));
             };

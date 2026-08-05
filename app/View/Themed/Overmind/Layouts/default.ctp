@@ -4,27 +4,57 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/faviconOvermind.png">
     <title><?= h($title_for_layout) .  ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
 
             ['controller' => 'events', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'add'],
+            ['controller' => 'events', 'action' => 'edit'],
             ['controller' => 'events', 'action' => 'delete'],
+            ['controller' => 'events', 'action' => 'view'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
             ['controller' => 'events', 'action' => 'automation'],
             ['controller' => 'events', 'action' => 'export'],
+            ['controller' => 'events', 'action' => 'getEventInfoById'],
+            ['controller' => 'events', 'action' => 'freeTextImport'],
+            ['controller' => 'events', 'action' => 'proposalEventIndex'],
 
             ['controller' => 'attributes', 'action' => 'index'],
+            ['controller' => 'attributes', 'action' => 'add'],
+            ['controller' => 'attributes', 'action' => 'edit'],
             ['controller' => 'attributes', 'action' => 'delete'],
+            ['controller' => 'attributes', 'action' => 'add_attachment'],
+
+            ['controller' => 'shadow_attributes', 'action' => 'index'],
+
+            ['controller' => 'event_delegations', 'action' => 'index'],
+
+            ['controller' => 'objects', 'action' => 'add'],
+            ['controller' => 'objects', 'action' => 'edit'],
+            ['controller' => 'objects', 'action' => 'delete'],
+
+            ['controller' => 'sightings', 'action' => 'advanced'],
 
             ['controller' => 'collections', 'action' => 'index'],
             ['controller' => 'collections', 'action' => 'view'],
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+            ['controller' => 'CollectionElements', 'action' => 'index'],
+
+            ['controller' => 'event_reports', 'action' => 'index'],
+            ['controller' => 'event_reports', 'action' => 'view'],
+            ['controller' => 'event_reports', 'action' => 'add'],
+            ['controller' => 'event_reports', 'action' => 'edit'],
+
+
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'index'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'add'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'edit'],
 
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
@@ -40,6 +70,24 @@
             ['controller' => 'taxonomies', 'action' => 'view'],
             ['controller' => 'taxonomies', 'action' => 'addTag'],
             ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
+            ['controller' => 'galaxies', 'action' => 'index'],
+            ['controller' => 'galaxies', 'action' => 'view'],
+            ['controller' => 'galaxies', 'action' => 'add'],
+            ['controller' => 'galaxies', 'action' => 'edit'],
+            ['controller' => 'galaxies', 'action' => 'delete'],
+            ['controller' => 'galaxies', 'action' => 'viewGraph'],
+            ['controller' => 'galaxies', 'action' => 'export'],
+
+
+            ['controller' => 'galaxy_clusters', 'action' => 'index'],
+            ['controller' => 'galaxy_clusters', 'action' => 'view'],
+            ['controller' => 'galaxy_clusters', 'action' => 'add'],
+            ['controller' => 'galaxy_clusters', 'action' => 'edit'],
+            ['controller' => 'galaxy_clusters', 'action' => 'delete'],
+            ['controller' => 'galaxy_clusters', 'action' => 'export_for_misp_galaxy'],
+
+            ['controller' => 'galaxy_cluster_relations', 'action' => 'index'],
 
             ['controller' => 'templates', 'action' => 'index'],
             ['controller' => 'templates', 'action' => 'delete'],
@@ -78,6 +126,74 @@
 
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
+
+            ['controller' => 'correlationRules', 'action' => 'index'],
+            ['controller' => 'correlationRules', 'action' => 'add'],
+            ['controller' => 'correlationRules', 'action' => 'edit'],
+            ['controller' => 'correlationRules', 'action' => 'delete'],
+            ['controller' => 'correlationRules', 'action' => 'deleteSelection'],
+            ['controller' => 'correlationRules', 'action' => 'executeRule'],
+
+            ['controller' => 'news', 'action' => 'admin_index'],
+            ['controller' => 'news', 'action' => 'add'],
+            ['controller' => 'news', 'action' => 'edit'],
+            ['controller' => 'news', 'action' => 'delete'],
+            ['controller' => 'news', 'action' => 'deleteSelection'],
+
+            ['controller' => 'bookmarks', 'action' => 'index'],
+            ['controller' => 'bookmarks', 'action' => 'add'],
+            ['controller' => 'bookmarks', 'action' => 'edit'],
+            ['controller' => 'bookmarks', 'action' => 'view'],
+            ['controller' => 'bookmarks', 'action' => 'delete'],
+            ['controller' => 'bookmarks', 'action' => 'deleteSelection'],
+
+            ['controller' => 'workflowBlueprints', 'action' => 'index'],
+            ['controller' => 'workflowBlueprints', 'action' => 'add'],
+            ['controller' => 'workflowBlueprints', 'action' => 'edit'],
+            ['controller' => 'workflowBlueprints', 'action' => 'view'],
+            ['controller' => 'workflowBlueprints', 'action' => 'delete'],
+            ['controller' => 'workflowBlueprints', 'action' => 'deleteSelection'],
+
+            ['controller' => 'userLoginProfiles', 'action' => 'index'],
+
+            ['controller' => 'roles', 'action' => 'index'],
+            ['controller' => 'roles', 'action' => 'view'],
+            ['controller' => 'roles', 'action' => 'admin_add'],
+            ['controller' => 'roles', 'action' => 'admin_edit'],
+
+            ['controller' => 'organisations', 'action' => 'index'],
+            ['controller' => 'organisations', 'action' => 'view'],
+            ['controller' => 'organisations', 'action' => 'admin_add'],
+            ['controller' => 'organisations', 'action' => 'admin_edit'],
+
+            // Blocklist family. Controller casing is normalised at match time
+            // (see the $normalisePageKey loop below), so a single entry per
+            // action covers every URL casing (camelCase admin menu, underscored
+            // galaxies/analyst-data menus, PascalCase bookmarks, ...).
+            ['controller' => 'eventBlocklists', 'action' => 'index'],
+            ['controller' => 'eventBlocklists', 'action' => 'add'],
+            ['controller' => 'eventBlocklists', 'action' => 'edit'],
+            ['controller' => 'eventBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'orgBlocklists', 'action' => 'index'],
+            ['controller' => 'orgBlocklists', 'action' => 'add'],
+            ['controller' => 'orgBlocklists', 'action' => 'edit'],
+            ['controller' => 'orgBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'index'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'add'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'edit'],
+            ['controller' => 'galaxyClusterBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'sightingBlocklists', 'action' => 'index'],
+            ['controller' => 'sightingBlocklists', 'action' => 'add'],
+            ['controller' => 'sightingBlocklists', 'action' => 'edit'],
+            ['controller' => 'sightingBlocklists', 'action' => 'deleteSelection'],
+
+            ['controller' => 'analystDataBlocklists', 'action' => 'index'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'add'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'edit'],
+            ['controller' => 'analystDataBlocklists', 'action' => 'deleteSelection'],
 
             ['controller' => 'servers', 'action' => 'index'],
             ['controller' => 'servers', 'action' => 'add'],
@@ -139,19 +255,55 @@
             ['controller' => 'event_templates', 'action' => 'library_status'],
 
 
+            ['controller' => 'users', 'action' => 'view'],
+            ['controller' => 'users', 'action' => 'admin_view'],
+            ['controller' => 'users', 'action' => 'admin_index'],
+            ['controller' => 'users', 'action' => 'edit'],
+            ['controller' => 'users', 'action' => 'admin_edit'],
+            ['controller' => 'users', 'action' => 'admin_add'],
+            ['controller' => 'users', 'action' => 'admin_quickEmail'],
+            ['controller' => 'users', 'action' => 'totp_new'],
+            ['controller' => 'auth_keys', 'action' => 'index'],
+            ['controller' => 'auth_keys', 'action' => 'add'],
+            ['controller' => 'auth_keys', 'action' => 'edit'],
+            ['controller' => 'auth_keys', 'action' => 'view'],
+            ['controller' => 'benchmarks', 'action' => 'index'],
+
+
+            ['controller' => 'logs', 'action' => 'index'],
+            ['controller' => 'logs', 'action' => 'admin_index'],
+            ['controller' => 'audit_logs', 'action' => 'admin_index'],
+            ['controller' => 'access_logs', 'action' => 'admin_index'],
+
+            ['controller' => 'analystData', 'action' => 'index'],
+
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
+
+            ['controller' => 'pages', 'action' => 'display'],
         ];
 
         $currentController = $this->params['controller'];
         $currentAction = $this->params['action'];
 
+        // Normalise controller/action names so any URL casing of the same page
+        // matches its allowlist entry. $this->params reflect the exact casing of
+        // the request URL segment (e.g. /OrgBlocklists vs /orgBlocklists vs
+        // /org_blocklists all reach OrgBlocklistsController), so an exact string
+        // compare is fragile. Lowercasing + stripping underscores collapses every
+        // casing of a given controller/action to one key; distinct controllers
+        // never collide (the name itself is unique) and the themed view resolves
+        // from the controller class regardless of URL casing.
+        $normalisePageKey = function ($value) {
+            return strtolower(str_replace('_', '', (string)$value));
+        };
+
         $useBootstrap5 = false;
 
         foreach ($bootstrap5Pages as $page) {
             if (
-                $currentController === $page['controller'] &&
-                $currentAction === $page['action']
+                $normalisePageKey($currentController) === $normalisePageKey($page['controller']) &&
+                $normalisePageKey($currentAction) === $normalisePageKey($page['action'])
             ) {
                 $useBootstrap5 = true;
                 break;
@@ -165,6 +317,7 @@
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
+                ['misp-iconify', ['preload' => true]]
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -198,8 +351,9 @@
             'js' => $js,
         ]);
     ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
+<body class="bg-light" data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div class="main-wrapper">
         <!-- Navbar -->
         <header>
@@ -297,6 +451,10 @@
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
                         'headerActions' => $headerActions ?? [],
+                        'headerTitle' => $headerTitle ?? null,
+                        'headerDescription' => $headerDescription ?? null,
+                        'headerStats' => $headerStats ?? [],
+                        'headerCount' => $headerCount ?? null,
                     ]);
                 }
                 ?>
@@ -509,11 +667,42 @@
             });
         }
 
+        // Reload an already-loaded ajax index container with a new (filtered,
+        // sorted or paginated) URL, keeping the user inside the current tab
+        // instead of navigating the whole page. Used by IndexTable/filter_bar.
+        window.reloadAjaxTabIndex = function (container, url) {
+            if (!container || !url) return;
+            container.dataset.url = url;
+            delete container.dataset.loaded;
+            container.innerHTML = '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+            loadAjaxContainer(container);
+        };
+
         // Lazy loading on tab click
         document.addEventListener('shown.bs.tab', function (event) {
             const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
             const tabPane = document.querySelector(target);
             if (!tabPane) return;
+
+            // Clear cross-tab selection state when switching tabs so that
+            // checkboxes from a sibling tab (e.g. Objects accordion) don't
+            // bleed into the newly active tab's mass-select toolbar.
+            // event.relatedTarget is the previously active tab link.
+            const prevTarget = event.relatedTarget
+                ? (event.relatedTarget.getAttribute('data-bs-target') || event.relatedTarget.getAttribute('href'))
+                : null;
+            const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+            if (prevPane) {
+                prevPane.querySelectorAll('.item-checkbox:checked').forEach(function(cb) {
+                    cb.checked = false;
+                });
+            }
+            if (typeof selectedItems !== 'undefined') {
+                selectedItems.clear();
+            }
+            if (typeof updateMultiSelectToolbar === 'function') {
+                updateMultiSelectToolbar();
+            }
 
             tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
         });

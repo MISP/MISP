@@ -169,7 +169,7 @@ class Log extends AppModel
 
     public function beforeValidate($options = [])
     {
-        if (empty($this->data['Log']['change'])) {
+        if (!empty($this->data['Log']['change'])) {
             if (is_array($this->data['Log']['change'])) {
                 $output = [];
                 foreach ($this->data['Log']['change'] as $field => $values) {

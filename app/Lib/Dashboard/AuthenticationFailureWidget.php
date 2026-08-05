@@ -2,7 +2,8 @@
 
 class AuthenticationFailureWidget
 {
-    public $title = 'Authentication Failure Data';
+    public $title = 'D4 Authentication Failures';
+    public $category = 'status';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 10;
@@ -10,13 +11,16 @@ class AuthenticationFailureWidget
         'event_info' => 'Substring included in the info field of relevant Authentication Failure events.',
         'type' => 'Type of data used for the widget (sshd, etc.).'
     );
-    public $description = 'Widget visualising authentication failures collected in d4.';
+    public $schema = array();
+    public $description = 'sshd / similar authentication-failure events ingested from a D4 collector as MISP events. NOT MISP login failures — see the Logins widget for MISP login activity.';
     public $placeholder =
 '{
     "event_info": "%Authentication Failure Daily Event%",
     "type": "sshd",
     "absciss": "username"
 }';
+    public $cacheLifetime = false;
+    public $autoRefreshDelay = 30;
 
     public function handler($user, $options = array())
     {

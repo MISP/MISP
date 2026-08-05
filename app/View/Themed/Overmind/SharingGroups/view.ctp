@@ -6,7 +6,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
@@ -14,6 +14,7 @@
                 ],
                 'right' => [
                     'SharingGroups/View/sharingGroups_actions',
+                    'SharingGroups/View/sharingGroups_analyst_data',
                 ]
             ]
         ]

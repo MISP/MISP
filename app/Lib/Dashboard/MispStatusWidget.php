@@ -3,10 +3,12 @@
 class MispStatusWidget
 {
     public $title = 'MISP Status';
+    public $category = 'status';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 2;
     public $params = array();
+    public $schema = array();
     public $description = 'Basic widget showing some user related MISP notifications.';
 
 
@@ -26,7 +28,7 @@ class MispStatusWidget
             ),
             'html' => sprintf(
                 ' (<a href="%s">%s</a>)',
-                Configure::read('MISP.baseurl') . '/events/index/timestamp:' . (time() - 86400),
+                (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/index/timestamp:' . (time() - 86400),
                 'View'
             )
         );
@@ -40,7 +42,7 @@ class MispStatusWidget
             ),
             'html' => sprintf(
                 ' (<a href="%s">%s</a>)',
-                Configure::read('MISP.baseurl') . '/events/index/published:1/timestamp:' . (time() - 86400),
+                (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/index/published:1/timestamp:' . (time() - 86400),
                 'View'
             )
         );
@@ -51,7 +53,7 @@ class MispStatusWidget
                 'value' => $notifications['proposalCount'],
                 'html' => sprintf(
                     ' (<a href="%s">%s</a>)',
-                    Configure::read('MISP.baseurl') . '/shadow_attributes/index/all:0',
+                    (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/shadow_attributes/index/all:0',
                     'View'
                 )
             );
@@ -62,7 +64,7 @@ class MispStatusWidget
                 'value' => $notifications['proposalEventCount'],
                 'html' => sprintf(
                     ' (<a href="%s">%s</a>)',
-                    Configure::read('MISP.baseurl') . '/events/proposalEventIndex',
+                    (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/events/proposalEventIndex',
                     'View'
                 )
             );
@@ -73,7 +75,7 @@ class MispStatusWidget
                 'value' => $notifications['delegationCount'],
                 'html' => sprintf(
                     ' (<a href="%s">%s</a>)',
-                    Configure::read('MISP.baseurl') . '/event_delegations/index/context:pending',
+                    (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')) . '/event_delegations/index/context:pending',
                     'View'
                 )
             );

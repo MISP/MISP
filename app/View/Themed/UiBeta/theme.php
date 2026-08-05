@@ -1,6 +1,6 @@
 <?php
 return [
-    'label' => __('Beta UI'),
-    'description' => 'Beta UI to streamline analyst workflow. Current updates: Event List and navigation.',
+    'label' => __('Insight UI (beta)'),
+    'description' => 'Beta UI focusing on context and discovery. Currently reworks Event List, Event View, Event Collections.',
     'hide_from_users' => false
 ];

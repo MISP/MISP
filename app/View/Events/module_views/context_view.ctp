@@ -62,7 +62,7 @@
                     $description = $this->Markdown->toText($cluster['GalaxyCluster']['description']);
                     echo sprintf(
                         '<li><strong><a href="%s" target="_blank">%s</a></strong></li> %s',
-                        $baseurl . '/galaxy_clusters/view/' . h($cluster['GalaxyCluster']['id']),
+                        h($baseurl) . '/galaxy_clusters/view/' . h($cluster['GalaxyCluster']['id']),
                         h($cluster['GalaxyCluster']['value']),
                         strlen($description) > 300 ?
                             (h(mb_substr($description, 0, 300)) . '...') : h($description)

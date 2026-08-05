@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '185';
+    private $__queryVersion = '186';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -113,6 +113,10 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
+        // Environment variables are the highest priority source, so they are
+        // applied last to override both the config file and the database.
+        App::uses('EnvSetting', 'Tools');
+        EnvSetting::setGlobalSetting();
 
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
@@ -884,7 +888,7 @@ class AppController extends Controller
             'style-src' => "'self' 'unsafe-inline'",
             'object-src' => "'none'",
             'frame-ancestors' => "'none'",
-            'worker-src' => "'none'",
+            'worker-src' => "blob:",
             'child-src' => "'none'",
             'frame-src' => "'none'",
             'base-uri' => "'self'",
@@ -895,6 +899,8 @@ class AppController extends Controller
             'manifest-src' => "'none'",
             'report-uri' => '/servers/cspReport',
         ];
+        $this->__allowSameOriginEmbeddingForRenderedReports($default);
+        $this->__allowSameOriginFramesForEventView($default);
         if (env('HTTPS')) {
             $default['upgrade-insecure-requests'] = null;
         }
@@ -924,6 +930,21 @@ class AppController extends Controller
         }
         $headerName = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
         $this->response->header($headerName, implode('; ', $header));
+    }
+
+    private function __allowSameOriginEmbeddingForRenderedReports(array &$policy)
+    {
+        if ($this->_isControllerAction(['eventReports' => ['viewRendered']])) {
+            $policy['frame-ancestors'] = "'self'";
+        }
+    }
+
+    private function __allowSameOriginFramesForEventView(array &$policy)
+    {
+        if ($this->_isControllerAction(['events' => ['view']])) {
+            // Beta event view embeds the rendered event report preview in a same-origin iframe.
+            $policy['frame-src'] = "'self'";
+        }
     }
 
     private function __cors()
@@ -1403,12 +1424,66 @@ class AppController extends Controller
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {
+                // A user authenticated by an authentication plugin (e.g. LDAP) gets
+                // logged in here, during beforeFilter, before UsersController::login()
+                // runs. If the user has OTP enabled we must enforce the OTP challenge at
+                // this point too, otherwise the OTP step shown at /users/otp could be
+                // bypassed by simply browsing to another URL with the already
+                // authenticated session.
+                if ($this->__pluginLoginRequiresOtp($user)) {
+                    return;
+                }
                 $this->User->updateLoginTimes($user);
                 // User found in the db, add the user info to the session
                 $this->Session->renew();
                 $this->Session->write(AuthComponent::$sessionKey, $user);
             }
         }
+    }
+
+    /**
+     * Enforce the OTP challenge for a user that was authenticated by an
+     * authentication plugin (e.g. LDAP) during beforeFilter.
+     *
+     * @param array $user The user record returned by the authentication plugin
+     * @return bool True if the user still needs to pass an OTP challenge (the
+     *     caller must not establish the session); false otherwise.
+     */
+    private function __pluginLoginRequiresOtp(array $user)
+    {
+        if (!empty($user['disabled'])) {
+            return false;
+        }
+
+        $otpAction = null;
+        // TOTP / HOTP
+        if (
+            !Configure::read('Security.otp_disabled') &&
+            !empty($user['totp']) &&
+            class_exists('\OTPHP\TOTP')
+        ) {
+            $this->Session->write('otp_user', $user);
+            $otpAction = 'otp';
+        // E-mail OTP
+        } elseif (Configure::read('Security.email_otp_enabled')) {
+            $this->Session->write('email_otp_user', $user);
+            $otpAction = 'email_otp';
+        }
+
+        if ($otpAction === null) {
+            return false;
+        }
+
+        // Avoid a redirect loop for session/header based auth plugins that
+        // re-authenticate on every request: when we are already on an OTP
+        // action just refuse to establish the session and let that action
+        // handle the challenge.
+        $currentAction = isset($this->request->params['action']) ?
+            $this->request->params['action'] : null;
+        if (!in_array($currentAction, ['otp', 'email_otp'], true)) {
+            $this->redirect(['controller' => 'users', 'action' => $otpAction]);
+        }
+        return true;
     }
 
     protected function _legacyAPIRemap($options = array())

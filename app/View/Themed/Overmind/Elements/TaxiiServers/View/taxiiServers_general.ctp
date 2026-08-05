@@ -27,7 +27,7 @@
         <div class="row g-3">
 
             <!-- ID -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold mb-1">
                     ID
                 </div>
@@ -37,7 +37,7 @@
             </div>
 
             <!-- OWNER -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Owner') ?></div>
                 <div class="d-flex align-items-center bg-light rounded px-2 py-1 border">
                     <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 25px; height: 25px;">
@@ -48,15 +48,31 @@
             </div>
 
             <!-- PROXY -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold mb-1">
                     <?= __('Skip Proxy') ?>
                 </div>
 
-                <div class="d-flex align-items-center py-2"">
+                <div class="d-flex align-items-center py-2">
                     <?= $this->element('genericElementsBS5/Badges/boolean', [
                         'boolean' => $data['TaxiiServer']['skip_proxy'],
                         'full' => false
+                    ]); ?>
+                </div>
+            </div>
+
+            <!-- ENABLED -->
+            <div class="col-md-3">
+                <div class="text-muted small text-uppercase fw-bold mb-1">
+                    <?= __('Enabled') ?>
+                </div>
+
+                <div class="d-flex align-items-center py-2">
+                    <?= $this->element('genericElementsBS5/Badges/boolean', [
+                        'boolean' => $data['TaxiiServer']['enabled'],
+                        'full' => false,
+                        'true' => __('Enabled'),
+                        'false' => __('Disabled')
                     ]); ?>
                 </div>
             </div>

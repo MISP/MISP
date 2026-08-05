@@ -141,7 +141,7 @@
         $server_json = json_encode([[
             'id' => '0',
             'name' => __('Local instance'),
-            'url' => h(Configure::read('MISP.baseurl')),
+            'url' => h(Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/')),
             'all_orgs' => false,
             'removable' => 0
         ]]);

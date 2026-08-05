@@ -16,7 +16,8 @@ class ServerSyncTool
         PERM_GALAXY_EDITOR = 'perm_galaxy_editor',
         PERM_ANALYST_DATA = 'perm_analyst_data',
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
-        FEATURE_FAST_CACHING = 'fast_caching';
+        FEATURE_FAST_CACHING = 'fast_caching',
+        FEATURE_COLLECTION_SYNC = 'collection_sync';
 
     /** @var array */
     private $server;
@@ -288,6 +289,86 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function collectionIndexMinimal(array $rules)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        return $this->post('/collections/indexMinimal', $rules);
+    }
+
+    /**
+     * @param array $uuids
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     * @throws InvalidArgumentException
+     */
+    public function fetchCollections(array $uuids)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        $params = [
+            'uuid' => $uuids,
+        ];
+
+        $url = '/collections/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+    }
+
+    /**
+     * Push dedup: send the local push candidates ({uuid: modified}) to the remote, which
+     * replies with the subset of UUIDs it actually wants (missing locally or strictly older
+     * there). Mirrors filterAnalystDataForPush (no type dimension).
+     *
+     * @param array $candidates uuid => modified map of collections eligible for push.
+     * @return HttpSocketResponseExtended The UUIDs the remote wants (a flat list).
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function filterCollectionsForPush(array $candidates)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        return $this->post('/collections/filterCollectionsForPush', $candidates);
+    }
+
+    /**
+     * Upload a single collection (with its Orgc / SharingGroup / CollectionElement corpus) to
+     * the remote's push-receive endpoint, which feeds it to the shared Collection::captureCollection
+     * sink. Mirrors pushAnalystData — the caller (Collection::push) loops per collection.
+     *
+     * @param array $collection A collection payload nested under the 'Collection' key.
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     */
+    public function pushCollection(array $collection)
+    {
+        if (!$this->isSupported(self::FEATURE_COLLECTION_SYNC)) {
+            throw new RuntimeException("Remote server does not support collection synchronisation");
+        }
+
+        $logMessage = "Pushing Collection #{$collection['Collection']['uuid']} to Server #{$this->serverId()}";
+        return $this->post('/collections/captureCollection', $collection, $logMessage);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -535,6 +616,8 @@ class ServerSyncTool
             case self::FEATURE_FAST_CACHING:
                 $version = explode('.', $info['version']);
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
+            case self::FEATURE_COLLECTION_SYNC:
+                return isset($info['collection_sync']) && $info['collection_sync'];
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

@@ -32,10 +32,19 @@
             if (!empty($field['decorator'])) {
                 $valueField = $field['decorator']($valueField);
             }
+            // Per-column class derived from the field element, so CSS can tune
+            // wrapping behaviour by column type (see .idx-col-* rules).
+            $tdClasses = [];
+            if (!empty($field['element'])) {
+                $tdClasses[] = 'idx-col-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $field['element']);
+            }
+            if (!empty($field['class'])) {
+                $tdClasses[] = $field['class'];
+            }
             $rowHtml .= sprintf(
                 '<td%s%s%s%s%s%s%s>%s</td>',
                 (empty($field['id'])) ? '' : sprintf('id="%s"', $field['id']),
-                (empty($field['class'])) ? '' : sprintf(' class="%s"', $field['class']),
+                empty($tdClasses) ? '' : sprintf(' class="%s"', implode(' ', $tdClasses)),
                 (empty($field['style'])) ? '' : sprintf(' style="%s"', $field['style']),
                 (empty($field['title'])) ? '' : sprintf(' title="%s"', $field['title']),
                 (empty($field['name'])) ? '' : sprintf(

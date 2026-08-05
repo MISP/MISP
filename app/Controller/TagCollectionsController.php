@@ -59,6 +59,14 @@ class TagCollectionsController extends AppController
     {
         if ($this->request->is('post')) {
             $data = $this->request->data;
+            // This is a create-only action: it calls saveAssociated() directly without ever
+            // pinning the primary key, and CakePHP treats an id in the save data as an UPDATE
+            // target. Without stripping it, a supplied TagCollection[id] turns the insert into a
+            // covert UPDATE of an arbitrary tag collection — and because org_id/user_id are forced
+            // to the current user below, that row is also re-owned to the attacker. Drop it so the
+            // save always inserts a new row (mirrors TagCollection::import() and the edit paths,
+            // which pin the id to the authorised record).
+            unset($data['TagCollection']['id']);
             $data['TagCollection']['org_id'] = $this->Auth->user('org_id');
             $data['TagCollection']['user_id'] = $this->Auth->user('id');
 
@@ -168,6 +176,11 @@ class TagCollectionsController extends AppController
             'beforeSave' => function (array $data) use ($tagCollection) {
                 $data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
                 $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+                // Ownership must never be reassigned through edit: it is only set on create, and
+                // CRUDComponent::edit() copies every supplied field, so pin org_id/user_id back to
+                // the stored values to prevent transferring the collection to another org/user.
+                $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+                $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
                 return $data;
             }
         ];
@@ -201,6 +214,10 @@ class TagCollectionsController extends AppController
 
             $data['TagCollection']['id'] = $id;
             $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+            // Ownership must never be reassigned through edit; pin org_id/user_id back to the stored
+            // values so a supplied org_id/user_id cannot transfer the collection to another org/user.
+            $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
+            $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
 
             if (isset($data['TagCollection']['tags'])) {
                 $data['TagCollectionTag'] = [];

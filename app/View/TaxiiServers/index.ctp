@@ -55,6 +55,12 @@
                         'element' => 'boolean'
                     ],
                     [
+                        'name' => __('Enabled'),
+                        'sort' => 'TaxiiServer.enabled',
+                        'data_path' => 'TaxiiServer.enabled',
+                        'element' => 'boolean'
+                    ],
+                    [
                         'name' => __('API root'),
                         'sort' => 'TaxiiServer.api_root',
                         'data_path' => 'TaxiiServer.api_root'
@@ -71,9 +77,10 @@
                         'type' => 'json'
                     ],
                     [
-                        'name' => __('api_key'),
-                        'sort' => 'TaxiiServer.api_key',
-                        'data_path' => 'TaxiiServer.api_key'
+                        'name' => __('Auth Type'),
+                        'sort' => 'TaxiiServer.auth_type',
+                        'data_path' => 'TaxiiServer.auth_type',
+                        'callback' => 'ucfirst'
                     ],
                     [
                         'name' => __('Description'),
@@ -96,7 +103,10 @@
                         ),
                         'onclick_params_data_path' => 'TaxiiServer.id',
                         'title' => __('Push all filtered data to TAXII server'),
-                        'icon' => 'upload'
+                        'icon' => 'upload',
+                        'complex_requirement' => function ($row) {
+                            return !empty($row['TaxiiServer']['enabled']);
+                        }
                     ],
                     [
                         'onclick' => sprintf(

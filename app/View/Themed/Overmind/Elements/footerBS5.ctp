@@ -1,4 +1,4 @@
-<div class="container-fluid bg-dark text-white-50 expansion" style="z-index:2">
+<div class="container-fluid text-white-50 expansion" style="background-color: #28191B; z-index:2">
     <!-- Shortcut Toggle -->
     <div id="triangle" title="<?= __('Show keyboard shortcuts help') ?>"></div>
 

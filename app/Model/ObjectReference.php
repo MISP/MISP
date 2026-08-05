@@ -126,24 +126,26 @@ class ObjectReference extends AppModel
 
     public function smartDelete($id, $hard = false)
     {
+        $reference = $this->find('first', array(
+            'conditions' => array('ObjectReference.id' => $id),
+            'recursive' => -1
+        ));
+        if (empty($reference)) {
+            return array('Invalid object reference.');
+        }
+
         if ($hard) {
             $result = $this->delete($id);
             if ($result) {
-                $this->updateTimestamps($id);
+                $this->updateTimestamps($reference);
             }
             return $result;
         } else {
-            $reference = $this->find('first', array(
-                'conditions' => array('ObjectReference.id' => $id),
-                'recursive' => -1
-            ));
-            if (empty($reference)) {
-                return array('Invalid object reference.');
-            }
             $reference['ObjectReference']['deleted'] = 1;
-            $result = $this->save($reference);
+            $reference['ObjectReference']['timestamp'] = time();
+            $result = $this->save($reference, true, array('id', 'deleted', 'timestamp'));
             if ($result) {
-                $this->updateTimestamps($id);
+                $this->updateTimestamps($reference);
                 return true;
             }
             return $this->validationErrors;

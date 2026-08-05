@@ -3,7 +3,7 @@
         'js' => array('redoc.standalone')
     ));
 ?>
-<div id="redoc-container"></div>
+<div id="redoc-container" style="background-color: #f8f9fa;"></div>
 <script>
     Redoc.init('/doc/openapi.yaml', {
         fontFamily: "inherit",

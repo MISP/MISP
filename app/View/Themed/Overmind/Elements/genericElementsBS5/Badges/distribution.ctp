@@ -14,37 +14,37 @@ $map = [
         'label' => __('Your organisation only'),
         'bg'    => '#f8d7da',
         'color' => '#842029',
-        'icon'  => 'fa-building'
+        'icon'  => 'fas fa-building'
     ],
     1 => [
         'label' => __('This community only'),
         'bg'    => '#ffe5b4',
         'color' => '#b45309',
-        'icon'  => 'fa-users'
+        'icon'  => 'fas fa-users'
     ],
     2 => [
         'label' => __('Connected communities'),
         'bg'    => '#e7d3c3',
         'color' => '#5a3e2b',
-        'icon'  => 'fa-network-wired'
+        'icon'  => 'fas fa-network-wired'
     ],
     3 => [
         'label' => __('All communities'),
         'bg'    => '#d1f7e0',
         'color' => '#0f5132',
-        'icon'  => 'fa-globe'
+        'icon'  => 'fas fa-globe'
     ],
     4 => [
         'label' => __('Sharing group'),
         'bg'    => '#6a96ee',
         'color' => '#0e146d',
-        'icon'  => 'fa-share-alt'
+        'icon'  => 'misp-icon misp-icon-sharing-group misp-simple'
     ],
     5 => [
         'label' => __('Inherited'),
         'bg'    => '#e6b7df',
         'color' => '#380f33a2',
-        'icon'  => 'fa-code-fork'
+        'icon'  => 'fas fa-code-fork'
     ]
 ];
 
@@ -52,7 +52,7 @@ $config = $map[$distribution] ?? [
     'label' => __('Unknown'),
     'bg'    => '#f1f1f1',
     'color' => '#333',
-    'icon'  => 'fa-question'
+    'icon'  => 'fas fa-question'
 ];
 
 ?>
@@ -66,10 +66,12 @@ $config = $map[$distribution] ?? [
       "
       title="<?= h($config['label']) ?>">
 
-    <i class="fas <?= h($config['icon']) ?> me-1"></i>
+    <i class="<?= h($config['icon']) ?>"></i>
 
     <?php if ($full): ?>
-        <?= h($config['label']) ?>
+        <span class="ms-1">
+            <?= h($config['label']) ?>
+        </span>
     <?php endif; ?>
 
 </span>

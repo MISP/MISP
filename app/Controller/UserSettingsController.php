@@ -33,6 +33,7 @@ class UserSettingsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
         $this->Security->unlockedActions[] = 'setTheme';
+        $this->Security->unlockedActions[] = 'setHomePage';
         if ($this->action === 'setSetting') {
             $this->Security->unlockedFields = array('value', 'value_select');
         }
@@ -83,12 +84,17 @@ class UserSettingsController extends AppController
         }
         if (!$this->_isSiteAdmin()) {
             if ($this->_isAdmin()) {
+                $orgUserConditions = array('User.org_id' => $this->Auth->user('org_id'));
+                // An org admin must not see a site admin's settings.
+                $siteAdminRoleIds = $this->UserSetting->User->getSiteAdminRoleIds();
+                if (!empty($siteAdminRoleIds)) {
+                    $orgUserConditions['NOT'] = array('User.role_id' => $siteAdminRoleIds);
+                }
                 $conditions['AND'][] = array(
                     'UserSetting.user_id' => $this->UserSetting->User->find(
                         'list', array(
-                            'conditions' => array(
-                                'User.org_id' => $this->Auth->user('org_id')
-                            ),
+                            'recursive' => -1,
+                            'conditions' => $orgUserConditions,
                             'fields' => array(
                                 'User.id', 'User.id'
                             )
@@ -383,6 +389,10 @@ class UserSettingsController extends AppController
                     'value' => ['path' => $this->request->data['path']],
                 )
             );
+            // Always persist through setSetting() so the homepage validation (validate_homepage,
+            // which requires the path to start with '/') and the access/self-management checks run.
+            // The Overmind theme previously called setSettingInternal() directly, skipping validation
+            // and allowing an arbitrary path - e.g. an XSS payload - to be stored as the homepage.
             $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
             return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
         } else {

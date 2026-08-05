@@ -6,7 +6,7 @@
             [
                 'id' => 'general',
                 'title' => __('General'),
-                'icon' => 'info-circle',
+                'icon' => 'fas fa-info-circle',
 
                 // Content
                 'left' => [
@@ -19,8 +19,7 @@
             [
                 'id' => 'collections',
                 'title' => __('Collections'),
-                'icon' => 'folder',
-                //'count' => $tag_count ?? 0,
+                'icon' => 'fas fa-folder',
 
                 // Content
                 'left' => [
@@ -32,8 +31,7 @@
             [
                 'id' => 'objects',
                 'title' => __('Objects in selected Collection'),
-                'icon' => 'cube',
-                //'count' => $tag_count ?? 0,
+                'icon' => 'fas fa-cube',
 
                 // Content
                 'left' => [

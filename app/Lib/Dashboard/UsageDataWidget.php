@@ -2,21 +2,35 @@
 class UsageDataWidget
 {
     public $title = 'Usage data';
-    public $render = 'SimpleList';
-    public $width = 2;
-    public $height = 5;
+    public $category = 'events';
+    public $render = 'StatGrid';
+    public $width = 4;
+    public $height = 6;
     public $description = 'Shows usage data / statistics.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() scopes only by the config
+    // `filter` (org meta), never by $user — so the config-only key is safe.
+    public $cache_duration = 3600;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'The ISO 8601 date format for which to show changes',
         'end_date' => 'The ISO 8601 date format for which to show changes. (Leave empty for today)',
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate. Local is not supported by this widget.',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Absolute date range. Open-ended (to = null) is allowed; "from" alone bounds the start, "to" alone is rejected by handler() which only acts when start_date is present.',
+        ],
+    ];
     private $User = null;
     private $Event = null;
     private $Correlation = null;
-    private $Thread = null;
     private $AuthKey = null;
     private $redis = null;
     
@@ -39,9 +53,7 @@ class UsageDataWidget
         'Organisations',
         'Local organisations',
         'Event creator orgs',
-        'Average users / org',
-        'Discussion threads',
-        'Discussion posts'
+        'Average users / org'
     ];
 
     public function handler($user, $options = array()) {
@@ -51,7 +63,6 @@ class UsageDataWidget
             throw new NotFoundException(__('No redis connection found.'));
         }
         $this->Event = ClassRegistry::init('Event');
-        $this->Thread = ClassRegistry::init('Thread');
         $this->Correlation = ClassRegistry::init('Correlation');
         $thisMonth = strtotime('first day of this month');
         $hasDateRange = !empty($options['start_date']);
@@ -88,45 +99,43 @@ class UsageDataWidget
         $usersCountPgp = $this->getUsersCountPgp($orgConditions, $orgIdList, $thisMonth);
         $localOrgsCount = $this->getLocalOrgsCount($orgConditions, $orgIdList, $thisMonth);
 
-
-        $threadCount = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
-        $threadCountMonth = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s", $thisMonth), 'Thread.post_count >' => 0), 'recursive' => -1));
-
-        $postCount = $this->Thread->Post->find('count', array('recursive' => -1));
-        $postCountMonth = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $thisMonth)), 'recursive' => -1));
-
-        //Monthly data is not added to the widget at the moment, could optionally add these later and give user choice?
-
         $statistics = [
             'Events' => [
                 'title' => 'Events',
+                'icon' => 'calendar',
                 'value' => $eventsCount,
                 'change' => $hasDateRange ? $this->getEventsCountDateRange($orgConditions, $orgIdList, $options) : $this->getEventsCountMonth($orgConditions, $orgIdList, $thisMonth)
             ],
             'Attributes' => [
                 'title' => 'Attributes',
+                'icon' => 'tag',
                 'value' => $attributesCount,
                 'change' => $hasDateRange ? $this->getAttributesCountDateRange($orgConditions, $orgIdList, $options) : $this->getAttributesCountMonth($orgConditions, $orgIdList, $thisMonth)
             ],
             'Attributes / event' => [
                 'title' => 'Attributes / event',
+                'icon' => 'layers',
                 'value' => $eventsCount ? round($attributesCount / $eventsCount) : 0
             ],
             'Correlations' => [
                 'title' => 'Correlations',
+                'icon' => 'link',
                 'value' => $this->getCorrelationsCount($orgConditions, $orgIdList, $thisMonth)
             ],
             'Active proposals' => [
                 'title' => 'Active proposals',
+                'icon' => 'pencil',
                 'value' => $this->getProposalsCount($orgConditions, $orgIdList, $thisMonth)
             ],
             'Users' => [
                 'title' => 'Users',
+                'icon' => 'user',
                 'value' => $usersCount,
                 'change' => $hasDateRange ? $this->getUsersCountDateRange($orgConditions, $orgIdList, $options) : $this->getUsersCountMonth($orgConditions, $orgIdList, $thisMonth)
             ],
             'Users with PGP keys' => [
                 'title' => 'Users with PGP keys',
+                'icon' => 'key',
                 'value' => sprintf(
                     '%s (%s %%)',
                     $usersCountPgp,
@@ -135,35 +144,27 @@ class UsageDataWidget
             ],
             'Organisations' => [
                 'title' => 'Organisations',
+                'icon' => 'building',
                 'value' => $this->getOrgsCount($orgConditions, $orgIdList, $thisMonth),
                 'change' => $hasDateRange ? $this->getOrgsCountDateRange($orgConditions, $orgIdList, $options) : $this->getOrgsCountMonth($orgConditions, $orgIdList, $thisMonth)
             ],
             'Local organisations' => [
                 'title' => 'Local organisations',
+                'icon' => 'home',
                 'value' => $localOrgsCount,
                 'change' => $hasDateRange ? $this->getLocalOrgsCountDateRange($orgConditions, $orgIdList, $options) : $this->getLocalOrgsCountMonth($orgConditions, $orgIdList, $thisMonth)
             ],
             'Event creator orgs' => [
-                'title' => 'Event creator orgs', 'value' => $this->getContributingOrgsCount($orgConditions, $orgIdList, $thisMonth)
+                'title' => 'Event creator orgs', 'icon' => 'sitemap', 'value' => $this->getContributingOrgsCount($orgConditions, $orgIdList, $thisMonth)
             ],
             'Average users / org' => [
-                'title' => 'Average users / org', 'value' => (!empty($localOrgsCount) ? round($usersCount / $localOrgsCount, 1) : 'N/A')
-            ],
-            'Discussion threads' => [
-                'title' => 'Discussions threads',
-                'value' => $this->getThreadsCount($orgConditions, $orgIdList, $thisMonth),
-                'change' => $hasDateRange ? $this->getThreadsCountDateRange($orgConditions, $orgIdList, $options) : $this->getThreadsCountMonth($orgConditions, $orgIdList, $thisMonth)
-            ],
-            'Discussion posts' => [
-                'title' => 'Discussion posts',
-                'value' => $this->getPostsCount($orgConditions, $orgIdList, $thisMonth),
-                'change' => $hasDateRange ? $this->getPostsCountDateRange($orgConditions, $orgIdList, $options) : $this->getPostsCountMonth($orgConditions, $orgIdList, $thisMonth)
+                'title' => 'Average users / org', 'icon' => 'users', 'value' => (!empty($localOrgsCount) ? round($usersCount / $localOrgsCount, 1) : 'N/A')
             ]
         ];
         if(!empty(Configure::read('Security.advanced_authkeys'))){
             $this->AuthKey = ClassRegistry::init('AuthKey');
             $authkeysCount = $this->AuthKey->find('count', array('recursive' => -1));
-            $statistics[] = array('title' => 'Advanced authkeys', 'value' => $authkeysCount);
+            $statistics[] = array('title' => 'Advanced authkeys', 'icon' => 'shield', 'value' => $authkeysCount);
         }
         return $statistics;
     }
@@ -417,96 +418,4 @@ class UsageDataWidget
             'conditions' => $conditions
         ]);
     }
-
-    private function getThreadsCount($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = ['Thread.post_count >' => 0];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
-
-    private function getThreadsCountMonth($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [
-            'Thread.post_count >' => 0,
-            'Thread.date_created >=' => $thisMonth
-        ];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
-
-    private function getThreadsCountDateRange($orgConditions, $orgIdList, $options)
-    {
-        $conditions = $this->prepareDateRangeConditions($options, 'Thread.date_created');
-        $conditions['Thread.post_count >'] = 0;
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCount($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCountMonth($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [
-            'Post.date_created >=' => $thisMonth
-        ];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCountDateRange($orgConditions, $orgIdList, $options)
-    {
-        $conditions = $this->prepareDateRangeConditions($options, 'Post.date_created');
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    
-/* There is nothing sensitive in here.
-    public function checkPermissions($user)
-    {
-        if (empty($user['Role']['perm_site_admin'])) {
-            return false;
-        }
-        return true;
-    }
-*/
 }

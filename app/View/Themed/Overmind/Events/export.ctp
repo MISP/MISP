@@ -1,4 +1,19 @@
-<div class="event index container-fluid py-4">
+<?php
+    // Title of the index displayed in the header section, leaving it empty will fallback to controller name
+    $headerTitle = __('Exports');
+
+    // Description displayed under the title in the header section, leave empty if not needed
+    $headerDescription = __('');
+
+    // Actions displayed as buttons in the header section, leave empty if not needed
+    $headerActions = [];
+
+    $this->set('headerTitle', $headerTitle);
+    $this->set('headerDescription', $headerDescription);
+    $this->set('headerActions', $headerActions);
+?>
+
+<div class="container-fluid">
 
     <div class="mb-4">
         <div class="alert alert-info shadow-sm" role="alert">

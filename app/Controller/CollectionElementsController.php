@@ -16,6 +16,28 @@ class CollectionElementsController extends AppController
 
     public $uses = [
     ];
+
+    private function __normaliseElementUuids($elementUuid)
+    {
+        if (is_array($elementUuid)) {
+            $rawUuids = $elementUuid;
+        } else {
+            $rawUuids = [$elementUuid];
+        }
+
+        $uuids = [];
+        foreach ($rawUuids as $uuid) {
+            if (!is_scalar($uuid)) {
+                continue;
+            }
+            $uuid = trim((string)$uuid);
+            if ($uuid !== '') {
+                $uuids[] = $uuid;
+            }
+        }
+
+        return array_values(array_unique($uuids));
+    }
     
     public function add($collection_id)
     {   
@@ -70,8 +92,15 @@ class CollectionElementsController extends AppController
             'restName' => 'CollectionElements',
             'itemName' => 'element',
             'view' => 'ajax/collectionElementsDeleteConfirmationForm',
-            'checkModifyCallback' => function($itemId) {
-                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $itemId);
+            'checkModifyCallback' => function($itemId, $item) {
+                // DPT-3: authorise against the element's OWN collection,
+                // not a collection whose id happens to equal the element
+                // id. mayModify() expects a collection_id, but $itemId is
+                // the element id - the bare call gated on the wrong entity,
+                // allowing cross-collection / cross-org element deletion.
+                // Mirror the single delete() action, using the loaded row.
+                $collectionId = $item['CollectionElement']['collection_id'];
+                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collectionId);
             },
             'multiSuccessMessageCallback' => function($count) {
                 return __n('%s element deleted.', '%s elements deleted.', $count, $count);
@@ -128,26 +157,60 @@ class CollectionElementsController extends AppController
                 throw new NotFoundException(__('Invalid collection or not authorized.'));
             }
             $description = empty($this->request->data['CollectionElement']['description']) ? '' : $this->request->data['CollectionElement']['description'];
-            $dataToSave = [
-                'CollectionElement' => [
-                    'element_uuid' => $element_uuid,
-                    'element_type' => $element_type,
-                    'description' => $description,
-                    'collection_id' => $collection_id
-                ]
-            ];
-            $this->CollectionElement->create();
-            $error = '';
-            try {
-                $result = $this->CollectionElement->save($dataToSave);
-            } catch (PDOException $e) {
-                if ($e->errorInfo[0] == 23000) {
-                    $error = __(' Element already in Collection.');
+            $elementUuids = $this->__normaliseElementUuids($this->request->data['CollectionElement']['element_uuid'] ?? $element_uuid);
+            if (empty($elementUuids)) {
+                throw new NotFoundException(__('No element UUID specified.'));
+            }
+            if ($element_type === 'Event') {
+                $this->loadModel('Event');
+                foreach ($elementUuids as $currentElementUuid) {
+                    $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $currentElementUuid, [
+                        'fields' => ['Event.id']
+                    ]);
+                    if (empty($event)) {
+                        throw new NotFoundException(__('Invalid event or not authorized.'));
+                    }
                 }
+            }
+
+            $result = true;
+            $duplicateCount = 0;
+            $error = '';
+            foreach ($elementUuids as $currentElementUuid) {
+                $dataToSave = [
+                    'CollectionElement' => [
+                        'element_uuid' => $currentElementUuid,
+                        'element_type' => $element_type,
+                        'description' => $description,
+                        'collection_id' => $collection_id
+                    ]
+                ];
+                $this->CollectionElement->create();
+                try {
+                    $saveResult = $this->CollectionElement->save($dataToSave);
+                    if (!$saveResult) {
+                        $result = false;
+                        break;
+                    }
+                } catch (PDOException $e) {
+                    if (!empty($e->errorInfo[0]) && $e->errorInfo[0] == 23000) {
+                        $duplicateCount++;
+                    } else {
+                        throw $e;
+                    }
+                }
+            }
+            if ($duplicateCount > 0) {
+                $error = ' ' . __n('%s selected event was already in the Collection.', '%s selected events were already in the Collection.', $duplicateCount, $duplicateCount);
             }
             
             if ($result) {
-                $message = __('Element added to the Collection.');
+                $message = count($elementUuids) > 1
+                    ? __n('%s event added to the Collection.', '%s events added to the Collection.', count($elementUuids), count($elementUuids))
+                    : __('Element added to the Collection.');
+                if ($duplicateCount > 0) {
+                    $message .= $error;
+                }
                 if ($this->IndexFilter->isRest()) {
                     return $this->RestResponse->saveSuccessResponse('CollectionElements', 'addElementToCollection', false, $this->response->type(), $message);
                 } else {

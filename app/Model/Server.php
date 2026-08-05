@@ -677,7 +677,7 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = $pulledCollections = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
@@ -693,22 +693,35 @@ class Server extends AppModel
 
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
+
+            // Collections: gated on the per-server pull_collections toggle (T1.2) AND
+            // feature negotiation (isSupported reads the already-cached remote info, so no
+            // extra round-trip) — an older peer without the capability is skipped silently.
+            // Collection::pull re-checks isSupported and owns the downgrade/locked/D6 rules.
+            if (!empty($server['Server']['pull_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Pulling collections.', 90);
+                }
+                $this->Collection = ClassRegistry::init('Collection');
+                $pulledCollections = $this->Collection->pull($user, $serverSync);
+            }
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
             $pulledAnalystData,
+            $pulledCollections,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData, $pulledCollections];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -892,13 +905,16 @@ class Server extends AppModel
     /**
      * @param ServerSyncTool $serverSync
      * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
+     *                          a single ordered page is requested instead of the
+     *                          whole index (see getEventIdsFromServer()).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
     {
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
@@ -910,10 +926,32 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
+        if ($serverSync->server()['Server']['internal']) {
+            $filterRules['include_event_tags_fingerprint'] = 1;
+        }
 
-        // Fetch event index from cache if exists and is not modified on server
+        // When paginating, ask the remote for a single ordered page. The sort key
+        // is mandatory and must be unique: the remote applies LIMIT/OFFSET to the
+        // minimal index with no implicit ordering, so without an explicit unique
+        // sort (Event.id) page boundaries could skip or duplicate events. The
+        // filter rules above are still applied per page, so the union of pages is
+        // exactly the same set the non-paginated request would have returned.
+        $paginated = !empty($pagination);
+        if ($paginated) {
+            $filterRules['page'] = $pagination['page'];
+            $filterRules['limit'] = $pagination['limit'];
+            $filterRules['sort'] = 'id';
+            $filterRules['direction'] = 'asc';
+        }
+
+        // Fetch event index from cache if exists and is not modified on server.
+        // Paginated requests are cached per page so each page can be revalidated
+        // independently by its own ETag.
+        $cacheSuffix = $paginated ? ":page:{$pagination['page']}:{$pagination['limit']}" : '';
+        $etagCacheKey = "misp:event_index_cache:etag:{$serverSync->serverId()}{$cacheSuffix}";
+        $contentCacheKey = "misp:event_index_cache:content:{$serverSync->serverId()}{$cacheSuffix}";
         $redis = RedisTool::init();
-        $cacheEtag = $redis->get("misp:event_index_cache:etag:{$serverSync->serverId()}");
+        $cacheEtag = $redis->get($etagCacheKey);
         if ($cacheEtag) {
             $serverSync->debug("Event index loaded from Redis cache with etag $cacheEtag");
         } else {
@@ -923,7 +961,7 @@ class Server extends AppModel
         $response = $serverSync->eventIndex($filterRules, $cacheEtag);
 
         if ($response->isNotModified() && $cacheEtag !== '""') {
-            $eventIndexFromCache = $redis->get("misp:event_index_cache:content:{$serverSync->serverId()}");
+            $eventIndexFromCache = $redis->get($contentCacheKey);
             if ($eventIndexFromCache) {
                 $eventIndexFromCache = RedisTool::decompress($eventIndexFromCache);
                 return JsonTool::decode($eventIndexFromCache);
@@ -935,8 +973,8 @@ class Server extends AppModel
         if ($etag) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
-            $redis->setex("misp:event_index_cache:etag:{$serverSync->serverId()}", 3600 * 24, $etag);
-            $redis->setex("misp:event_index_cache:content:{$serverSync->serverId()}", 3600 * 24, $data);
+            $redis->setex($etagCacheKey, 3600 * 24, $etag);
+            $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
 
@@ -954,20 +992,73 @@ class Server extends AppModel
      * @param array $events
      * @return void
      */
-    private function removeOlderEvents(array &$events)
+    private function removeOlderEvents(array &$events, $server=null)
     {
+        // Only internal sync re-pulls an already-synced event when its local tags
+        // differ (see areLocalTagsDifferent below). For every other connection the
+        // tags are never consulted, so we must not load them: eagerly hydrating the
+        // full Tag model for every local event here - potentially the whole events
+        // table on the count > 10000 branch - was the cause of the pull memory
+        // blow-up (#10881). When tags are needed we fetch only the few fields the
+        // comparison actually reads.
+        $isInternal = $server !== null && !empty($server['Server']['internal']);
         $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
         $this->Event = ClassRegistry::init('Event');
-        $localEvents = $this->Event->find('all', [
+        $findOptions = [
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
-        ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        ];
+        if ($isInternal) {
+            $findOptions['contain'] = [
+                'EventTag' => [
+                    'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+                    'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                ],
+            ];
+        }
+        $localEvents = $this->Event->find('all', $findOptions);
+        $reindexed = [];
+        foreach ($localEvents as $item) {
+            $event = $item['Event'];
+            if ($isInternal) {
+                $event['EventTag'] = $item['EventTag'] ?? [];
+            }
+            $reindexed[$event['uuid']] = $event;
+        }
+        $localEvents = $reindexed;
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
-            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
-                unset($events[$k]);
+            
+            if (isset($localEvents[$uuid])) {
+                $isUnlocked = !$localEvents[$uuid]['locked'];
+
+                $localTs = (int)$localEvents[$uuid]['timestamp'];
+                $incomingTs = (int)$event['timestamp'];
+
+                if ($isInternal) {
+                    $localEventTagsFingerprint = $this->Event->getTagsFingerprint($localEvents[$uuid]['EventTag']);
+                    $eventTagsFingerprint = $event['event_tags_fingerprint'] ?? null;
+
+                    $sameFingerprint =
+                        $eventTagsFingerprint === null || // If the remote doesn't provide a fingerprint, skip
+                        $localEventTagsFingerprint === $eventTagsFingerprint;
+
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs > $incomingTs) || // strictly newer local event
+                        (
+                            $localTs === $incomingTs && // same timestamp handling
+                            $sameFingerprint
+                        );
+                } else {
+                    $shouldDiscard =
+                        $isUnlocked ||
+                        ($localTs >= $incomingTs); // same timestamp handling
+                }
+                if ($shouldDiscard) {
+                    unset($events[$k]);
+                }
             }
         }
     }
@@ -1024,32 +1115,77 @@ class Server extends AppModel
      */
     private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
-
-        if ($all) {
-            return array_column($eventArray, 'uuid');
+        // The remote index is fetched one page at a time and each page is run
+        // through the exact same filter pipeline as before, so the accumulated set
+        // of UUIDs is identical to the previous whole-index implementation - only
+        // the peak memory changes, from "the entire index at once" to "one page".
+        // Keeping the page at/below 10000 also lets removeOlderEvents() use its
+        // cheap `Event.uuid IN (...)` branch instead of scanning the whole local
+        // events table (#10881).
+        $pageSize = (int)Configure::read('MISP.event_index_pull_chunk_size');
+        if ($pageSize <= 0) {
+            $pageSize = 10000;
         }
 
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $this->EventBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            $this->OrgBlocklist->removeBlockedEvents($eventArray);
-        }
-
-        foreach ($eventArray as $k => $event) {
-            if (1 != $event['published']) {
-                unset($eventArray[$k]); // do not keep non-published events
+        if (!$all) {
+            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
+            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             }
         }
-        if (!$force) {
-            $this->removeOlderEvents($eventArray);
-            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+
+        $eventUuids = []; // keyed by uuid for O(1) dedup, insertion order preserved
+        $page = 1;
+        $previousMaxId = null;
+        while (true) {
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $fetched = count($eventArray);
+            if ($fetched === 0) {
+                break;
+            }
+            // A remote that does not honour the limit (older instance) returns the
+            // whole index in one response. Detecting more rows than we asked for
+            // tells us this page already is the complete set: process it and stop,
+            // which reproduces the previous non-paginated behaviour exactly.
+            $remoteIgnoredPagination = $fetched > $pageSize;
+            // Safety net against a remote that honours `limit` but ignores `page`
+            // (would otherwise loop forever): the minimal index is sorted by
+            // Event.id asc, so the max id must strictly advance between pages.
+            $maxId = (int)max(array_column($eventArray, 'id'));
+            $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
+            $previousMaxId = $maxId;
+
+            if (!$all) {
+                if (!empty($this->EventBlocklist)) {
+                    $this->EventBlocklist->removeBlockedEvents($eventArray);
+                }
+                if (!empty($this->OrgBlocklist)) {
+                    $this->OrgBlocklist->removeBlockedEvents($eventArray);
+                }
+                foreach ($eventArray as $k => $event) {
+                    if (1 != $event['published']) {
+                        unset($eventArray[$k]); // do not keep non-published events
+                    }
+                }
+                if (!$force) {
+                    $this->removeOlderEvents($eventArray, $serverSync->server());
+                    $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+                }
+            }
+
+            foreach ($eventArray as $event) {
+                $eventUuids[$event['uuid']] = true;
+            }
+            unset($eventArray);
+
+            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+                break; // last page (or a remote that is not paginating)
+            }
+            $page++;
         }
-        return array_column($eventArray, 'uuid');
+        return array_keys($eventUuids);
     }
 
     public function serverEventsOverlap()
@@ -1308,6 +1444,24 @@ class Server extends AppModel
             $fails = array();
         }
 
+        // Collections: gated on the remote's general push capability ($push['canPush'] =
+        // remote perm_sync) AND the per-server push_collections toggle (T1.2) AND feature
+        // negotiation (isSupported reads the remote info already cached by the version check,
+        // so no extra round-trip). Collections have no separate remote capability (D3), so
+        // canPush is the faithful analogue of the sibling sightings/analyst-data gates — it
+        // skips a guaranteed-403 upload to a sightings-only remote (one that can sight but not
+        // sync); an older peer without the capability is skipped silently too. Collection::push
+        // re-checks isSupported; the remote captureCollection sink owns the distribution
+        // downgrade + locked=1, so the push sends RAW (mirroring the pull side).
+        $pushedCollections = 0;
+        if ($push['canPush'] && !empty($server['Server']['push_collections']) && $serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
+            if ($jobId) {
+                $job->saveProgress($jobId, __('Pushing collections.'));
+            }
+            $this->Collection = ClassRegistry::init('Collection');
+            $pushedCollections = $this->Collection->push($user, $serverSync);
+        }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->saveOrFailSilently(array(
@@ -1318,7 +1472,7 @@ class Server extends AppModel
             'action' => 'push',
             'user_id' => $user['id'],
             'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update. ' . $pushedCollections . ' collections pushed.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
@@ -1609,6 +1763,9 @@ class Server extends AppModel
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
                 $s['setting'] = $k;
+                // Expose file-only (security-sensitive) status alongside the name
+                // so the settings view can show it as a posture badge (#10812).
+                $s['file_only'] = SystemSetting::isSensitive($k);
                 if ($s['level'] == $i) {
                     $finalSettings[] = $s;
                 }
@@ -1648,6 +1805,9 @@ class Server extends AppModel
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
+        // Expose whether the setting is stored in the config file only for security
+        // reasons (passwords, API keys, secrets) so the UI can surface it (#10812).
+        $result['file_only'] = SystemSetting::isSensitive($settingName);
         return $result;
     }
 
@@ -2257,6 +2417,14 @@ class Server extends AppModel
         return true;
     }
 
+    public function testSecFetchSiteHeader($value)
+    {
+        if (!empty($value)) {
+            return true;
+        }
+        return 'Sec-Fetch-Site header disabled. This can potentially open up the instance to CSRF attacks via automation endpoints. Enabling this is recommended but can actively prevent the operation of instances hosted under multiple addresses.';
+    }
+
     public function sightingsBeforeHook($setting, $value)
     {
         if ($value == true) {
@@ -2306,11 +2474,165 @@ class Server extends AppModel
         return true;
     }
 
+    public function testNDJSONLogPath($value)
+    {
+        // Controls where the ndjson error log is written (JsonLogTool). Those log
+        // lines can contain attacker-influenced content, so an unconstrained path
+        // is an RCE primitive (e.g. writing a *.php file under the webroot). We are
+        // therefore strict about BOTH the target directory and the file name.
+
+        // Empty is allowed: the logger falls back to its built-in default under
+        // APP/tmp/logs. On the save path the value already arrives trimmed.
+        if ($value === null || !is_string($value) || trim($value) === '') {
+            return true;
+        }
+        $value = trim($value);
+
+        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
+        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
+            return 'Invalid characters in the log path.';
+        }
+
+        // Must be an absolute path.
+        if ($value[0] !== '/') {
+            return 'The log path must be an absolute path.';
+        }
+
+        // Resolve the parent directory so that symlinks and '..' traversal are
+        // collapsed before the allow-list check. The file need not exist yet, but
+        // its directory must (JsonLogTool does not create directories).
+        $realDir = realpath(dirname($value));
+        if ($realDir === false) {
+            return 'The directory for the log file does not exist.';
+        }
+
+        // The directory must sit inside one of the two permitted roots, and
+        // nowhere else - this is what keeps the log out of the webroot.
+        $allowedRoots = array();
+        foreach (array(realpath(APP . 'tmp/logs'), realpath('/var/log')) as $root) {
+            if ($root !== false) {
+                $allowedRoots[] = $root;
+            }
+        }
+        $inAllowedRoot = false;
+        foreach ($allowedRoots as $root) {
+            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
+                $inAllowedRoot = true;
+                break;
+            }
+        }
+        if (!$inAllowedRoot) {
+            return 'The log file must be located within ' . APP . 'tmp/logs/ or /var/log/.';
+        }
+
+        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
+        // dot-separated segments and ending in an allowed log extension. Each
+        // segment must be non-empty, so '..' (and path traversal) cannot occur;
+        // this also rules out path separators, unicode look-alikes, leading dots
+        // and executable extensions such as .php.
+        $fileName = basename($value);
+        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.(log|ndjson|json)$/', $fileName)) {
+            return 'Invalid log file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .log, .ndjson or .json (e.g. error.log.ndjson).';
+        }
+
+        // Defence in depth: reject script/executable extensions appearing as any
+        // dotted segment (e.g. error.php.ndjson), which some web server
+        // mis-configurations would still execute.
+        $forbidden = array(
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
+            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
+        );
+        foreach (explode('.', strtolower($fileName)) as $segment) {
+            if (in_array($segment, $forbidden, true)) {
+                return 'The log file name must not contain an executable extension.';
+            }
+        }
+
+        return true;
+    }
+
+    public function testForRdKafkaConfig($value)
+    {
+        // Path to the ini file parsed for rdkafka (AppModel::getKafkaPubTool ->
+        // parse_ini_file). rdkafka can be steered into loading external code via
+        // config options (e.g. plugin.library.paths), so pointing this loader at
+        // an attacker-supplied file - one uploaded through MISP (attachment, admin
+        // image, ...) - is an RCE primitive. We restrict it to a .ini file in one
+        // of a few sane config directories that are outside the webroot and are
+        // never written to by MISP's upload interfaces.
+
+        // Empty is allowed: no ini file is parsed and the Kafka tool just uses its
+        // defaults. On the save path the value already arrives trimmed.
+        if ($value === null || !is_string($value) || trim($value) === '') {
+            return true;
+        }
+        $value = trim($value);
+
+        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
+        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
+            return 'Invalid characters in the rdkafka config path.';
+        }
+
+        // Must be an absolute path.
+        if ($value[0] !== '/') {
+            return 'The rdkafka config path must be an absolute path.';
+        }
+
+        // Resolve the parent directory so that symlinks and '..' traversal are
+        // collapsed before the allow-list check. The file need not exist yet, but
+        // its directory must.
+        $realDir = realpath(dirname($value));
+        if ($realDir === false) {
+            return 'The directory for the rdkafka config file does not exist.';
+        }
+
+        // The file must live in one of the whitelisted config directories - all
+        // outside the webroot and outside any MISP upload target.
+        $allowedRoots = array();
+        foreach (array(realpath('/etc'), realpath('/usr/local/etc'), realpath(APP . 'Config')) as $root) {
+            if ($root !== false) {
+                $allowedRoots[] = $root;
+            }
+        }
+        $inAllowedRoot = false;
+        foreach ($allowedRoots as $root) {
+            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
+                $inAllowedRoot = true;
+                break;
+            }
+        }
+        if (!$inAllowedRoot) {
+            return 'The rdkafka config file must be located within /etc/, /usr/local/etc/ or ' . APP . 'Config/.';
+        }
+
+        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
+        // dot-separated segments and ending in .ini. Each segment must be
+        // non-empty, so '..' cannot occur; executable extensions are rejected too.
+        $fileName = basename($value);
+        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.ini$/', $fileName)) {
+            return 'Invalid rdkafka config file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .ini (e.g. rdkafka.ini).';
+        }
+        $forbidden = array(
+            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
+            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
+        );
+        foreach (explode('.', strtolower($fileName)) as $segment) {
+            if (in_array($segment, $forbidden, true)) {
+                return 'The rdkafka config file name must not contain an executable extension.';
+            }
+        }
+
+        return true;
+    }
+
     public function zmqAfterHook($setting, $value)
     {
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
         if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
+                if (Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+                    return true;
+                }
                 $this->getPubSubTool()->killService();
                 return true;
             }
@@ -2522,6 +2844,10 @@ class Server extends AppModel
         $cliOnly = isset($setting['cli_only']) && $setting['cli_only'];
         if (!$cli && $cliOnly) {
             return __('This setting can only changed via the CLI. Change request ignored.');
+        }
+        App::uses('EnvSetting', 'Tools');
+        if (EnvSetting::isSetViaEnv($setting['name'])) {
+            return __('This setting is set via an environment variable and cannot be changed here. Change request ignored.');
         }
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
@@ -3777,19 +4103,28 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        try {
-            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
-        } catch (Exception $e) {
-            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
-            $diagnostic_errors++;
-            return 2;
-        }
+        if (!Configure::read('Plugin.ZeroMQ_supervisor_managed')) {
+            try {
+                $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+            } catch (Exception $e) {
+                $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+                $diagnostic_errors++;
+                return 2;
+            }
 
-        if (!$isInstalled) {
-            $diagnostic_errors++;
-            return 2;
+            if (!$isInstalled) {
+                $diagnostic_errors++;
+                return 2;
+            }
         }
-        if ($pubSubTool->checkIfRunning()) {
+        try {
+            $status = $pubSubTool->statusCheck();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not running or not responding.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 3;
+        }
+        if (!empty($status)) {
             return 0;
         }
         $diagnostic_errors++;
@@ -5166,6 +5501,8 @@ class Server extends AppModel
 
             $results = [
                 __('User') => $user['User']['email'],
+                __('Organisation name') => $user['Organisation']['name'],
+                __('Organisation UUID') => $user['Organisation']['uuid'],
                 __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
                 __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
@@ -5451,6 +5788,14 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'event_index_pull_chunk_size' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000.'),
+                    'value' => 10000,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -6283,11 +6628,11 @@ class Server extends AppModel
                 ],
                 'log_errors_ndjson_path' => [
                     'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
-                    'value' => APP . '/tmp/logs/error.log.ndjson',
-                    'test' => 'testForEmpty',
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
+                    'value' => APP . 'tmp/logs/error.log.ndjson',
+                    'test' => 'testNDJSONLogPath',
                     'type' => 'string',
-                    'cli' => true,
+                    'cli_only' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
@@ -7151,9 +7496,8 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If enabled, any POST, PUT or AJAX request will only be allowed when Sec-Fetch-Site header is not defined or contains "same-origin".'),
                     'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true,
+                    'test' => 'testSecFetchSiteHeader',
+                    'type' => 'boolean'
                 ],
                 'force_https' => [
                     'level' => self::SETTING_OPTIONAL,
@@ -7499,7 +7843,7 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForCookieTimeout',
                     'type' => 'numeric'
-                )
+                ),
             ),
             'Plugin' => array(
                 'branch' => 1,
@@ -7615,8 +7959,10 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
                     'value' => '/etc/rdkafka.ini',
-                    'test' => 'testForEmpty',
+                    'test' => 'testForRdKafkaConfig',
                     'type' => 'string',
+                    'cli_only' => true,
+                    'null' => true
                 ),
                 'Kafka_include_attachments' => array(
                     'level' => 2,
@@ -7786,6 +8132,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_supervisor_managed' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting if the ZeroMQ server is managed by supervisor.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                    'cli_only' => true,
                 ),
                 'ZeroMQ_host' => array(
                     'level' => 2,

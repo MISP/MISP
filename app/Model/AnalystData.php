@@ -606,6 +606,51 @@ class AnalystData extends AppModel
         return array_unique(array_merge($existingRelationships, $objectRelationships));
     }
 
+    /**
+     * Total analyst data attached to an object, counted RECURSIVELY: the object's 
+     * (direct notes/opinions/relationships, plus analyst data at any depth
+     */
+    public function countForObjectRecursive(array $user, string $objectUuid): int
+    {
+        $models = [
+            'Note' => ClassRegistry::init('Note'),
+            'Opinion' => ClassRegistry::init('Opinion'),
+            'Relationship' => ClassRegistry::init('Relationship'),
+        ];
+        $total = 0;
+        $frontier = [$objectUuid];
+        $seen = [$objectUuid => true];
+        // Walk the tree level by level
+        while (!empty($frontier)) {
+            $next = [];
+            foreach ($models as $alias => $model) {
+                $rows = $model->find('all', [
+                    'recursive' => -1,
+                    'fields' => [$alias . '.uuid'],
+                    'conditions' => array_merge(['object_uuid' => $frontier], $model->buildConditions($user)),
+                    'callbacks' => false,
+                ]);
+                foreach ($rows as $row) {
+                    $total++;
+                    $childUuid = $row[$alias]['uuid'];
+                    if (empty($seen[$childUuid])) {
+                        $seen[$childUuid] = true;
+                        $next[] = $childUuid;
+                    }
+                }
+            }
+            $frontier = $next;
+        }
+        // Inbound relationships (they point to this object; shown flat in the card).
+        $total += (int)$models['Relationship']->find('count', [
+            'recursive' => -1,
+            'conditions' => array_merge(['related_object_uuid' => $objectUuid], $models['Relationship']->buildConditions($user)),
+            'callbacks' => false,
+        ]);
+
+        return $total;
+    }
+
     public function getChildren($user, $uuid, $depth=2): array
     {
         $analystData = $this->fetchSimple($user, $uuid);
@@ -709,6 +754,22 @@ class AnalystData extends AppModel
             $saveSuccess = $analystModel->save($analystData);
             $saveSuccess = true;
         } else {
+            // DPT-4: a regular (non-sync, non-site-admin) caller - the web
+            // add/edit afterSave, or analyst data nested in an object/
+            // attribute/report/event capture - must not be able to overwrite
+            // an existing record it could not edit directly. The incoming
+            // orgc_uuid was already force-rewritten to the caller's own org
+            // above, so authorise against the EXISTING (DB) record's orgc.
+            // The sync/pull path (perm_sync) is intentionally exempt and keeps
+            // its locked + timestamp semantics below.
+            if (
+                !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] &&
+                !$analystModel->canEditAnalystData($user, $existingAnalystData, $type)
+            ) {
+                $results['errors'][] = __('Cannot edit analyst data (%s) created by another organisation.', $analystData[$type]['uuid']);
+                $results['failed']++;
+                return $results;
+            }
             if (!$existingAnalystData[$type]['locked'] && empty($server['Server']['internal'])) {
                 $results['errors'][] = __('Blocked an edit to an analyst data that was created locally. This can happen if a synchronised analyst data that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;

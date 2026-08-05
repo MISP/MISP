@@ -2,7 +2,7 @@
 $data = $scaffold_data['data'];
 ?>
 
-<div class="table-scroll row g-3" style="background: #f8f9fa;">
+<div class="table-scroll row g-3 bg-light">
 
 <?php foreach ($data['data'] as $k => $row): ?>
 
@@ -67,7 +67,7 @@ foreach ($cardFields as $column => $field) {
 ?>
 
 <div class="ps-2 pe-2">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm idx-card">
 
         <div class="card-body">
 

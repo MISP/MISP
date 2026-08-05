@@ -1,55 +1,32 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis"><?= __('Linked TAXII Servers') ?></h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('Linked TAXII Servers');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('taxiiServers', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add TaxiiServers'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/taxiiServers/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
+
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'TaxiiServer.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/taxiiServers/view/%id%',
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/taxiiServers/edit/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/taxiiServers/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Push all filtered data to TAXII server'),
-                'icon' => 'arrow-circle-up',
-                'url' => $baseurl . '/taxiiServers/push/%id%',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -100,19 +77,61 @@ $fields = [
         'element' => 'proxy',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Enabled'),
+        'sort' => 'TaxiiServer.enabled',
+        'data_path' => 'TaxiiServer.enabled',
+        'element' => 'enabled',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'TaxiiServer.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/taxiiServers/view/%id%',
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/taxiiServers/edit/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/taxiiServers/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => function (array $row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['TaxiiServer']['enabled']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Push all filtered data to TAXII server'),
+                'icon' => 'arrow-circle-up',
+                'url' => $baseurl . '/taxiiServers/push/%id%',
+                'requirement' => function (array $row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['TaxiiServer']['enabled']);
+                }
+            ]
+        ]
     ]
 ];
-
-if ($this->Acl->canAccess('taxiiServers', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add TaxiiServers'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/taxiiServers/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
@@ -132,6 +151,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'TaxiiServer.id',
+            'row_dblclick_url' => $baseurl . '/taxiiServers/view/%id%',
         ]
     ],
     'item_url' => '/taxiiServers'

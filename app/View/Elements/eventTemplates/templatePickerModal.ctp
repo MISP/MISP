@@ -28,7 +28,10 @@
              style="max-height:440px; overflow-y:auto; border:1px solid #eee; border-radius:3px;">
         </div>
         <div id="et-template-picker-empty" style="display:none; padding:14px; color:#888;">
-            <em><?php echo __('No event templates visible to you on this instance.'); ?></em>
+            <em><?php echo __('No active event templates are visible to you on this instance.'); ?></em>
+            <a href="<?php echo h($baseurl . '/event_templates/index'); ?>" style="margin-left:8px;">
+                <?php echo __('Review templates'); ?></a>
+            <span style="margin-left:4px;"><?php echo __('(you may need to enable one first)'); ?></span>
             <?php if ($this->Acl->canAccess('eventTemplates', 'add')): ?>
                 <a href="<?php echo h($baseurl . '/event_templates/add'); ?>"
                    style="margin-left:8px;">

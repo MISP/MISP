@@ -603,7 +603,7 @@ class SharingGroup extends AppModel
         }
         if (isset($sg['SharingGroupOrg']) && !empty($sg['SharingGroupOrg'])) {
             foreach ($sg['SharingGroupOrg'] as $org) {
-                if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+                if (isset($org['Organisation']['uuid'], $server['RemoteOrg']['uuid']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
                     return true;
                 }
             }
@@ -744,7 +744,12 @@ class SharingGroup extends AppModel
             'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
             'description' => !isset($sg['description']) ? '' : $sg['description'],
             'uuid' => !isset($sg['uuid']) ? CakeText::uuid() : $sg['uuid'],
-            'organisation_uuid' => !isset($sg['organisation_uuid']) ? $user['Organisation']['uuid'] : $sg['organisation_uuid'],
+            // For a non-sync user the owning org is always their own (org_id is forced to it
+            // below), so pin organisation_uuid to match - otherwise a client could spoof the
+            // SG's owner-org identity (the uuid used to attribute ownership across instances)
+            // while org_id stays their own. Mirrors org_id's gating and the non-REST add path.
+            // Sync keeps the captured remote value so pulled SGs retain their real owner org.
+            'organisation_uuid' => $user['Role']['perm_sync'] ? (!isset($sg['organisation_uuid']) ? $user['Organisation']['uuid'] : $sg['organisation_uuid']) : $user['Organisation']['uuid'],
             'created' => !isset($sg['created']) ? $date : $sg['created'],
             'modified' => !isset($sg['modified']) ? $date : $sg['modified'],
             'active' => !isset($sg['active']) ? 1 : $sg['active'],
