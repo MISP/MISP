@@ -1891,3 +1891,79 @@ tr.attr-proposal-row td:first-child {
 .dg-scope .dg-raw { font-size: .8rem; overflow-x: auto; }
 .dg-scope .dg-raw table { width: 100%; }
 .dg-scope .dg-submodules { font-size: .8rem; overflow-x: auto; }
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   Event Templates
+   ═══════════════════════════════════════════════════════════ */
+
+.event-template-user-form .et-value.et-invalid {
+    border-color: var(--bs-danger);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-danger-rgb), 0.25);
+}
+.event-template-user-form .et-field.et-missing {
+    outline: 2px solid var(--bs-danger);
+    outline-offset: 2px;
+}
+.event-template-user-form .et-object-entry.et-open .et-object-toggle .et-caret {
+    transform: rotate(90deg);
+}
+.event-template-user-form .et-object-entry.et-open
+    .et-object-entry-title::before { content: attr(data-open-label); }
+.event-template-user-form .et-caret {
+    display: inline-block;
+    width: 10px;
+    transition: transform 0.12s ease;
+    color: #888;
+}
+.event-template-user-form
+    .et-object-filled-indicator[data-et-filled-state="filled"] {
+    background-color: #e8f5e9 !important;
+    color: #2e7d32 !important;
+    border-color: #c8e6c9 !important;
+}
+.event-template-user-form
+    .et-object-filled-indicator[data-et-filled-state="missing"] {
+    background-color: #fde8e8 !important;
+    color: #c62828 !important;
+    border-color: #f5c2c2 !important;
+}
+/* A step whose mandatory fields are all answered gets a green tick. */
+.event-template-user-form .et-step-done-icon { display: none; }
+.event-template-user-form .et-step-item.et-step-done .et-step-done-icon {
+    display: inline-block;
+}
+.event-template-user-form .accordion-button:not(.collapsed) {
+    background: rgba(24, 146, 177, .06);
+    color: inherit;
+    box-shadow: none;
+}
+
+
+.et-template-picker .et-tp-item {
+    color: inherit;
+    border-color: var(--bs-border-color) !important;
+    transition: border-color .15s, background .15s;
+}
+.et-template-picker .et-tp-item:hover,
+.et-template-picker .et-tp-item:focus-visible {
+    border-color: var(--event, var(--primary)) !important;
+    background: rgba(24, 146, 177, .08);
+}
+.et-template-picker .et-tp-icon {
+    width: 2rem;
+    height: 2rem;
+    background: rgba(24, 146, 177, .12);
+    font-size: .8rem;
+}
+.et-template-picker .et-tp-desc {
+    max-height: 2.6em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.et-template-picker .min-w-0 { 
+    min-width: 0; 
+}
