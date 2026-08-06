@@ -523,18 +523,17 @@ class FeedsController extends AppController
         }
     }
 
-    public function updateFeedwithJobId($feedId, $jobId)
+    private function updateFeedwithJobId($feedId, $jobId)
     {
-        $query = isset($params['get']) ? $params['get'] : [
+        $query = [
             'recursive' => -1,
             'conditions' => [
-                'Feed' . '.id' => $feedId
+                'Feed.id' => $feedId
             ],
         ];
         $data = $this->Feed->find('first', $query);
         $data['Feed']['job_id'] = $jobId;
         $result = array('result' => $this->Feed->save($data));
-        // add error checking and comments
         return $result;
     }
 
