@@ -11,17 +11,17 @@ $headerActions = [];
 if ($isSiteAdmin) {
     $headerActions[] = [
         'type' => 'action',
-        'label' => __('Wipe Default Clusters'),
-        'icon' => 'trash',
-        'url' => $baseurl . '/galaxies/wipe_default',
-        'confirm' => __('Are you sure you want to drop all default galaxy clusters?')
-    ];
-    $headerActions[] = [
-        'type' => 'action',
         'label' => __('Force Update Galaxies'),
         'icon' => 'bolt',
         'url' => $baseurl . '/galaxies/update/force:1',
         'confirm' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
+    ];
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Wipe Default Clusters'),
+        'icon' => 'trash',
+        'url' => $baseurl . '/galaxies/wipe_default',
+        'confirm' => __('Are you sure you want to drop all default galaxy clusters?')
     ];
     $headerActions[] = [
         'type' => 'action',
@@ -35,7 +35,7 @@ if ($isSiteAdmin) {
 if ($this->Acl->canAccess('galaxies', 'import')) {
     $headerActions[] = [
         'type' => 'modal',
-        'label' => __('Import'),
+        'label' => __('Import Galaxy Clusters'),
         'icon' => 'upload',
         'url' => $baseurl . '/galaxies/import'
     ];
