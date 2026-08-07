@@ -1967,3 +1967,97 @@ tr.attr-proposal-row td:first-child {
 .et-template-picker .min-w-0 { 
     min-width: 0; 
 }
+
+/* ==========================================================================
+   events/export — cached exports & text signature downloads
+   ========================================================================== */
+
+/* Format glyph tile. --h is set per row, the ramp keeps every accent at the
+   same perceived weight instead of hard-coding a colour per format. */
+.ex-scope .ex-icon {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .5rem;
+    font-size: .85rem;
+    color: hsl(var(--h) 55% 40%);
+    background: hsl(var(--h) 60% 50% / .12);
+}
+[data-bs-theme="dark"] .ex-scope .ex-icon {
+    color: hsl(var(--h) 70% 70%);
+    background: hsl(var(--h) 60% 60% / .16);
+}
+
+.ex-scope .ex-table thead th {
+    background: var(--bs-tertiary-bg);
+    font-size: .72rem;
+    letter-spacing: .06em;
+    white-space: nowrap;
+}
+.ex-scope .ex-table td { padding-top: .7rem; padding-bottom: .7rem; }
+
+/* Keep the description readable instead of one long line on ultrawide. */
+.ex-scope .ex-desc { max-width: 46rem; }
+
+.ex-scope .ex-progress {
+    height: 1.1rem;
+    min-width: 9rem;
+    max-width: 12rem;
+    font-size: .7rem;
+}
+
+/* Inline qualifier next to a description: scope, published-only, … */
+.ex-scope .ex-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .05rem .45rem;
+    border-radius: 999px;
+    font-size: .7rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    white-space: nowrap;
+}
+.ex-scope .ex-meta-chip-on {
+    color: var(--bs-success-text-emphasis);
+    border-color: var(--bs-success-border-subtle);
+    background: var(--bs-success-bg-subtle);
+}
+.ex-scope .ex-meta-chip-off {
+    color: var(--bs-secondary-color);
+    border-color: var(--bs-border-color);
+    text-decoration: line-through;
+}
+
+.ex-scope .ex-dot { opacity: .5; margin: 0 .15rem; }
+
+/* Signature type chips: ~200 of them, so they scroll inside the card. */
+.ex-scope .ex-siglist {
+    max-height: 20rem;
+    overflow-y: auto;
+    padding-right: .25rem;
+}
+.ex-scope .ex-chip {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-family: var(--bs-font-monospace);
+    font-size: .76rem;
+    line-height: 1.5;
+    text-decoration: none;
+    color: var(--bs-emphasis-color);
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    transition: border-color .15s, color .15s, background .15s;
+}
+.ex-scope a.ex-chip:hover,
+.ex-scope a.ex-chip:focus-visible {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+}
