@@ -111,7 +111,7 @@
                                     </div>
 
                                     <div class="text-end">
-                                        <a href="<?= $baseurl ?>/events/view/<?= $local_event['Event']['id'] ?>"
+                                        <a href="<?= $baseurl ?>/events/view2/<?= $local_event['Event']['id'] ?>"
                                         class="btn btn-light btn-sm rounded-pill"
                                         target="_blank">
                                             <i class="fas fa-eye text-primary"></i>
