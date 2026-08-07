@@ -90,6 +90,76 @@ class AuthKeysController extends AppController
         ]);
     }
 
+    /**
+     * Revoke an auth key by expiring it right away.
+     *
+     * @param int $id
+     */
+    public function revoke($id)
+    {
+        if (!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
+            throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
+        }
+        $conditions = $this->__prepareConditions();
+        $conditions['AND'][]['AuthKey.id'] = $id;
+        $authKey = $this->AuthKey->find('first', [
+            'conditions' => $conditions,
+            'recursive' => 1,
+        ]);
+        if (empty($authKey)) {
+            throw new NotFoundException(__('Invalid auth key.'));
+        }
+        $expiration = (int)$authKey['AuthKey']['expiration'];
+        $alreadyExpired = $expiration !== 0 && $expiration <= time();
+
+        if ($this->request->is(['post', 'put'])) {
+            if ($alreadyExpired) {
+                $message = __('Auth key #%s has already expired.', $id);
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveFailResponse(
+                        'AuthKeys', 'revoke', $id, $message, $this->response->type()
+                    );
+                }
+                $this->Flash->error($message);
+                return $this->redirect($this->referer(['action' => 'index']));
+            }
+            $saved = $this->AuthKey->save(
+                ['AuthKey' => [
+                    'id' => $authKey['AuthKey']['id'],
+                    'user_id' => $authKey['AuthKey']['user_id'],
+                    'expiration' => time(),
+                ]],
+                ['validate' => false, 'fieldList' => ['expiration']]
+            );
+            $message = $saved ?
+                __('Auth key #%s revoked.', $id) :
+                __('Auth key #%s could not be revoked.', $id);
+            if ($this->IndexFilter->isRest()) {
+                return $saved ?
+                    $this->RestResponse->saveSuccessResponse(
+                        'AuthKeys', 'revoke', $id, $this->response->type(), $message
+                    ) :
+                    $this->RestResponse->saveFailResponse(
+                        'AuthKeys', 'revoke', $id, $message, $this->response->type()
+                    );
+            }
+            if ($saved) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error($message);
+            }
+            return $this->redirect($this->referer(['action' => 'index']));
+        }
+
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action expects a POST request.'));
+        }
+        $this->set('id', $authKey['AuthKey']['id']);
+        $this->set('alreadyExpired', $alreadyExpired);
+        $this->layout = false;
+        $this->render('ajax/authKeyRevokeConfirmationForm');
+    }
+
     public function edit($id)
     {
         if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {

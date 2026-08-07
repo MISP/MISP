@@ -18,16 +18,9 @@ $eventId = (int)$event['Event']['id'];
 $scope = !empty($proposals) ? __('proposals') : __('attributes');
 $backUrl = !empty($backPath) ? ($baseurl . $backPath) : ($baseurl . '/events/populateFrom/' . $eventId);
 
-// Distribution visuals (icon + colours), same map as the "Add Object" cards.
-$distMeta = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-    4 => ['bg' => '#dce8ff', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-    5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork'],
-];
-$distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#333'];
+// Distribution visuals (icon + colours), canonical for the whole theme.
+$distMeta = $this->DistributionLevel->all();
+$distFallback = $this->DistributionLevel->fallback();
 ?>
 
 <!-- ── MODAL HEADER ─────────────────────────────────────────── -->

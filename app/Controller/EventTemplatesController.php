@@ -45,7 +45,11 @@ class EventTemplatesController extends AppController
         parent::beforeFilter();
         $missing = EventTemplateDependencies::missing();
         if (!empty($missing)) {
-            return $this->__renderDependencyMissing($missing);
+            $response = $this->__renderDependencyMissing($missing);
+            if ($response instanceof CakeResponse) {
+                $response->send();
+            }
+            $this->_stop();
         }
     }
 
@@ -188,6 +192,53 @@ class EventTemplatesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        if (!$this->request->is(array('post', 'put', 'delete'))) {
+            // Deleting a library-managed template only holds until the next
+            // library update re-imports it — worth saying before, not after.
+            $idList = is_numeric($id)
+                ? array($id)
+                : (json_decode((string)$id, true) ?: array());
+            $libraryManaged = empty($idList) ? 0 : (int)$this->EventTemplate->find('count', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'EventTemplate.id' => $idList,
+                    'EventTemplate.misp_default' => 1,
+                ),
+            ));
+            $this->set('libraryManaged', $libraryManaged);
+        }
+
+        return $this->CRUD->deleteSelection($id, array(
+            'modelName' => 'EventTemplate',
+            'restName' => 'EventTemplates',
+            'itemName' => 'event template',
+            'view' => 'ajax/eventTemplateDeleteConfirmationForm',
+            'checkModifyCallback' => function ($itemId) {
+                // Same write ACL as delete()/edit(): own org, or site admin.
+                return !empty($this->EventTemplate->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('EventTemplate.id'),
+                    'conditions' => array(
+                        'AND' => array(
+                            array('EventTemplate.id' => $itemId),
+                            $this->__writeConditions(),
+                        ),
+                    ),
+                )));
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n(
+                    '%s event template deleted.',
+                    '%s event templates deleted.',
+                    $count,
+                    $count
+                );
+            },
+        ));
     }
 
     public function add()
@@ -382,6 +433,16 @@ class EventTemplatesController extends AppController
         ));
     }
 
+    private function __decodeImportJson($value)
+    {
+        try {
+            $decoded = JsonTool::decode($value);
+        } catch (Exception $e) {
+            return null;
+        }
+        return is_array($decoded) ? $decoded : null;
+    }
+
     private function __readImportPayload()
     {
         $data = $this->request->data;
@@ -395,8 +456,7 @@ class EventTemplatesController extends AppController
             && is_uploaded_file($fileMeta['tmp_name'])
         ) {
             $content = file_get_contents($fileMeta['tmp_name']);
-            $decoded = JsonTool::decode($content);
-            return is_array($decoded) ? $decoded : null;
+            return $this->__decodeImportJson($content);
         }
 
         // UI form path: textarea paste in the `json` field.
@@ -413,8 +473,7 @@ class EventTemplatesController extends AppController
             $pasted = $data['json'];
         }
         if ($pasted !== null) {
-            $decoded = JsonTool::decode($pasted);
-            return is_array($decoded) ? $decoded : null;
+            return $this->__decodeImportJson($pasted);
         }
 
         // REST path: request->data is the export document itself. We
@@ -431,8 +490,8 @@ class EventTemplatesController extends AppController
         // Content-Type header CakePHP recognises.
         $raw = $this->request->input();
         if (is_string($raw) && $raw !== '') {
-            $decoded = JsonTool::decode($raw);
-            if (is_array($decoded)) {
+            $decoded = $this->__decodeImportJson($raw);
+            if ($decoded !== null) {
                 return $decoded;
             }
         }
@@ -441,12 +500,18 @@ class EventTemplatesController extends AppController
 
     public function duplicate($id)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(
-                __('Duplicate requires POST.')
-            );
-        }
         $id = $this->__resolveId($id);
+        if (!$this->request->is('post')) {
+            if ($this->IndexFilter->isRest()) {
+                throw new MethodNotAllowedException(
+                    __('Duplicate requires POST.')
+                );
+            }
+            $this->set('template', $this->__fetchForRead($id)['EventTemplate']);
+            $this->set('id', $id);
+            $this->layout = false;
+            return $this->render('ajax/eventTemplateDuplicateConfirmationForm');
+        }
         $source = $this->__fetchForRead($id);
 
         $definition = $source['EventTemplate']['definition'];
@@ -546,7 +611,7 @@ class EventTemplatesController extends AppController
         $this->Flash->success(__('Event created from template.'));
         $this->redirect(array(
             'controller' => 'events',
-            'action' => 'view',
+            'action' => 'view2',
             $result['event_id'],
         ));
     }

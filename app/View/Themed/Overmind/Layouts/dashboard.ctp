@@ -7,10 +7,10 @@
  * 'dashboard'. It mirrors Overmind's default.ctp BS5 chrome path —
  * navbar.ctp (Bootstrap-5 dark navbar) + footerBS5 + mainOvermind
  * CSS + mispOvermind JS — but takes that path unconditionally,
- * skipping the $bootstrap5Pages whitelist check Overmind's
- * default.ctp uses. The dashboard is a BS5-style surface by design
- * (DD-08: "modern and pleasant", away from BS2.3 styling) so the
- * whitelist branch wouldn't add anything useful here.
+ * skipping the OvermindPages registry check Overmind's default.ctp
+ * uses. The dashboard is a BS5-style surface by design (DD-08:
+ * "modern and pleasant", away from BS2.3 styling) so the registry
+ * branch wouldn't add anything useful here.
  *
  * Notably skipped vs Overmind's default.ctp:
  *   - headerSection — the dashboard already emits its own
@@ -20,11 +20,11 @@
  *   - The debug accordion — keeping the dashboard surface free
  *     of MISP debug noise for this view. Cake's sql_dump element
  *     is still emitted below so debug builds aren't silenced.
- *   - The TomSelect topbar-filter init — no .topbar-filter
- *     elements on the dashboard surface.
- *   - The ajax-toggle / ajax-call click handler — dashboard
- *     widgets handle their own interactions via the §8.5 hook
- *     contract; the global ajax handler would compete.
+ *
+ * The shared page-chrome behaviour (flash auto-dismiss, TomSelect
+ * filter-bar init, lazy ajax tabs) comes from mispOvermind.js and
+ * so runs here too; every piece of it is a no-op on a surface that
+ * has no .topbar-filter and no .ajax-tab-content.
  *
  * The dashboard's own CSS (dashboard.default.css + the dormant
  * midnight overlay) is loaded after mainOvermind so its tokens
@@ -125,34 +125,10 @@
     <?= $this->element('footerBS5') ?>
     <?= $this->element('sql_dump') ?>
 
-    <div id="popover_form" class="ajax_popover_form"></div>
-    <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
-    <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
-    <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
-    <div id="popover_box" class="popover_box"></div>
-    <div id="confirmation_box"></div>
-    <div id="gray_out"></div>
-    <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered" id="dynamicModalDialog">
-            <div class="modal-content border-0" style="margin: auto;">
-                <div class="modal-body p-0 m-0" id="mainModalBody"></div>
-            </div>
-        </div>
-    </div>
-    <div id="mainToastContainer" class="main-toast-container"></div>
-    <div id="mainModalContainer"></div>
-    <div id="api-tooltip" class="api-tooltip"></div>
-
-    <div id="ajax_success_container" class="ajax_container">
-        <div id="ajax_success" class="ajax_result ajax_success"></div>
-    </div>
-    <div id="ajax_fail_container" class="ajax_container">
-        <div id="ajax_fail" class="ajax_result ajax_fail"></div>
-    </div>
-    <div class="loading">
-        <div class="spinner"></div>
-        <div class="loadingText"><?= __('Loading') ?></div>
-    </div>
+    <!-- Modals, toasts, popovers and the loading overlay. Shared with
+         Overmind's default.ctp; BS5 set only, the dashboard never loads
+         misp.js. -->
+    <?= $this->element('chrome_containers') ?>
 
     <?php
     echo $this->element('genericElements/assetLoader', [
@@ -164,25 +140,18 @@
     ?>
 
     <script>
-        var baseurl = '<?= $baseurl ?>';
-        var here = '<?php
+        // Flash auto-dismiss now comes from mispOvermind.js ("Page chrome").
+        var baseurl = <?= json_encode($baseurl, JSON_UNESCAPED_SLASHES) ?>;
+        var here = <?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
-                    echo $baseurl . '/admin/' . h($this->params['controller']) . '/' . h(substr($this->params['action'], 6));
+                    $here = $baseurl . '/admin/' . $this->params['controller']
+                        . '/' . substr($this->params['action'], 6);
                 } else {
-                    echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
+                    $here = $baseurl . '/' . $this->params['controller']
+                        . '/' . $this->params['action'];
                 }
-            ?>';
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Flash auto-dismiss (carried from Overmind default.ctp).
-            const flash = document.getElementById('flashContainer');
-            if (flash && flash.children.length > 0) {
-                setTimeout(() => {
-                    flash.classList.add('fade-out');
-                    setTimeout(() => flash.remove(), 600);
-                }, 5000);
-            }
-        });
+                echo json_encode($here, JSON_UNESCAPED_SLASHES);
+            ?>;
     </script>
 </body>
 </html>

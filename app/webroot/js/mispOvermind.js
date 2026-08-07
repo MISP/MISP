@@ -3205,3 +3205,221 @@ function updateActiveFilterBadge(container, searchTerm, clearCb, labelActive, la
     wrap.appendChild(clearBtn);
     filterBar.insertAdjacentElement('afterend', wrap);
 }
+
+
+/**
+ * Auto-dismiss the flash messages after 5s.
+ *
+ */
+function initFlashAutoDismiss() {
+    const flash = document.getElementById('flashContainer');
+    if (!flash || flash.children.length === 0) return;
+
+    setTimeout(function () {
+        flash.classList.add('fade-out');
+        setTimeout(function () {
+            flash.innerHTML = '';
+            flash.classList.remove('fade-out');
+        }, 600);
+    }, 5000);
+}
+
+/**
+ * Move Cake's debug output into the collapsible debug strip and badge the
+ * error count. No-op unless the layout emitted the strip (debug > 0).
+ */
+function initDebugStrip() {
+    const container = document.getElementById('debugAccordionContent');
+    if (!container) return;
+
+    const cakeErrors = document.querySelectorAll('.cake-error');
+    const count = cakeErrors.length;
+    const badge = document.getElementById('debugErrorBadge');
+
+    if (badge) {
+        badge.textContent = count + ' error' + (count > 1 ? 's' : '');
+        badge.classList.remove(count > 0 ? 'bg-success' : 'bg-danger');
+        badge.classList.add(count > 0 ? 'bg-danger' : 'bg-success');
+    }
+
+    cakeErrors.forEach(error => container.appendChild(error));
+}
+
+/**
+ * Turn the filter-bar selects into TomSelect widgets.
+ *
+ * Scoped so that fragments injected after page load (an .ajax-tab-content
+ * index, a modal body) can initialise their own selects, and idempotent so a
+ * second pass over the same scope is a no-op.
+ *
+ * Both guards are needed. TomSelect copies the original element's classes
+ * onto the .ts-wrapper <div> it builds, so a bare `.topbar-filter` query
+ * matches that wrapper too on a second pass — and the wrapper carries no
+ * `.tomselect` back-reference, so it would be handed to TomSelect as if it
+ * were a fresh control (which throws). Hence: select elements only, and skip
+ * the ones TomSelect already owns.
+ *
+ * @param {ParentNode} scope defaults to the whole document
+ */
+function initTopbarFilterSelects(scope) {
+    if (typeof TomSelect === 'undefined') return;
+
+    const selects = (scope || document).querySelectorAll('select.topbar-filter');
+    selects.forEach(function (el) {
+        if (el.tomselect) return;
+        new TomSelect(el, {
+            create: false,
+            sortField: { field: 'text', direction: 'asc' }
+        });
+    });
+}
+
+/**
+ * Fetch an ajax container's URL into it, once, and run the scripts it brings.
+ *
+ * @param {Element} container carries data-url, gains data-loaded
+ */
+function loadAjaxContainer(container) {
+    if (!container || container.dataset.loaded) return;
+
+    const url = container.dataset.url;
+    if (!url) return;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(html => {
+            container.innerHTML = html;
+            container.dataset.loaded = '1';
+
+            // innerHTML does not execute <script>, so re-create each one.
+            container.querySelectorAll('script').forEach(function (oldScript) {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                document.head.appendChild(newScript);
+                document.head.removeChild(newScript);
+            });
+
+            initTopbarFilterSelects(container);
+        })
+        .catch(() => {
+            container.innerHTML =
+                '<div class="text-danger">Error loading content</div>';
+        });
+}
+
+/**
+ * Reload an already-loaded ajax index container against a new (filtered,
+ * sorted or paginated) URL, keeping the user inside the current tab instead
+ * of navigating the whole page. Called by IndexTable/filter_bar.
+ *
+ * @param {Element} container
+ * @param {string} url
+ */
+window.reloadAjaxTabIndex = function (container, url) {
+    if (!container || !url) return;
+    container.dataset.url = url;
+    delete container.dataset.loaded;
+    container.innerHTML =
+        '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+    loadAjaxContainer(container);
+};
+
+// Lazy-load a tab's ajax content the first time it is shown, and drop the
+// selection state of the tab being left so its checkboxes don't bleed into
+// the newly active tab's mass-select toolbar.
+document.addEventListener('shown.bs.tab', function (event) {
+    const target = event.target.getAttribute('data-bs-target')
+        || event.target.getAttribute('href');
+    const tabPane = target ? document.querySelector(target) : null;
+    if (!tabPane) return;
+
+    const prevTarget = event.relatedTarget
+        ? (event.relatedTarget.getAttribute('data-bs-target')
+            || event.relatedTarget.getAttribute('href'))
+        : null;
+    const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+    if (prevPane) {
+        prevPane.querySelectorAll('.item-checkbox:checked').forEach(function (cb) {
+            cb.checked = false;
+        });
+    }
+    if (typeof selectedItems !== 'undefined') {
+        selectedItems.clear();
+    }
+    if (typeof updateMultiSelectToolbar === 'function') {
+        updateMultiSelectToolbar();
+    }
+
+    tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
+});
+
+/**
+ * Session watchdog — send the user to the login page once their session is
+ * gone, instead of leaving them on a page whose every action will bounce.
+ *
+ * Enabled by the layout (window.mispAutoLogout) when MISP.disable_auto_logout
+ * is off and someone is logged in.
+ *
+ */
+function initSessionWatchdog() {
+    if (!window.mispAutoLogout || typeof baseurl === 'undefined') return;
+
+    const MIN_INTERVAL = 10000; // don't re-check on every focus flicker
+    let lastCheck = 0;
+    let inFlight = false;
+
+    function check() {
+        if (document.hidden || inFlight) return;
+
+        const now = Date.now();
+        if (now - lastCheck < MIN_INTERVAL) return;
+        lastCheck = now;
+        inFlight = true;
+
+        // Measured against the endpoint (session cookie, X-Requested-With):
+        //   authenticated -> 200
+        //   session gone  -> 401 (the ajax pre-auth branch)
+        // The `.json` form answers 200/403 instead, but routes through
+        // AppController's REST branch, which authenticates by Authorization
+        // header rather than by session — so the plain URL is the narrower
+        // question to ask. 403 and a follow-through to /users/login are
+        // accepted too, since both mean the same thing.
+        fetch(baseurl + '/users/checkIfLoggedIn', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store'
+        })
+            .then(res => {
+                const loggedOut = res.status === 401
+                    || res.status === 403
+                    || (res.redirected && /\/users\/login/.test(res.url));
+                if (loggedOut) {
+                    window.location.replace(baseurl + '/users/login');
+                }
+            })
+            // A network blip must not throw the user out.
+            .catch(() => {})
+            .finally(() => { inFlight = false; });
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) check();
+    });
+    window.addEventListener('focus', check);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initFlashAutoDismiss();
+    initDebugStrip();
+    initTopbarFilterSelects();
+    initSessionWatchdog();
+    // The tab that is already active gets no shown.bs.tab event.
+    document.querySelectorAll('.tab-pane.active .ajax-tab-content')
+        .forEach(loadAjaxContainer);
+});

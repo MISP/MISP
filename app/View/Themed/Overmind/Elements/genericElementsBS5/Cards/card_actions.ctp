@@ -62,14 +62,15 @@ $actions = $actions ?? [];
                 ?>
                     <?php if (isset($action['type']) && $action['type'] === 'post'): ?>
                         <?php
-                            echo $this->Form->postLink($innerHtml, $url, [
+                            $postOptions = [
                                 'escape' => false,
                                 'class' => $fullBtnClass,
                                 'confirm' => $action['confirm'] ?? null,
-                                'data' => [
-                                    'id' => $action['id'] ?? null
-                                ]
-                            ]);
+                            ];
+                            if (!empty($action['id'])) {
+                                $postOptions['data'] = ['id' => $action['id']];
+                            }
+                            echo $this->Form->postLink($innerHtml, $url, $postOptions);
                         ?>
                     <?php else: ?>
                         <a class="<?= $fullBtnClass ?>"

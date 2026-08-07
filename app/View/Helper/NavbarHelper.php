@@ -341,6 +341,14 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-file-code',
                 'children' => [
                     [
+                        'label' => __('List Event Templates'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
+                    ],
+                    [
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
@@ -354,22 +362,14 @@ class NavbarHelper extends AppHelper {
                         'action' => 'index',
                         'icon' => 'fas fa-cubes'
                     ],
-                    [
-                        'label' => __('Event Templates'),
-                        'url' => $baseurl . '/event_templates/index',
-                        'controller' => 'event_templates',
-                        'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
-                        'icon' => 'misp-icon misp-icon-event misp-simple'
-                    ],
-                    [
-                        'label' => __('Add Event Template'),
-                        'url' => $baseurl . '/event_templates/add',
-                        'controller' => 'event_templates',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ]
+                    // [
+                    //     'label' => __('Add Event Template'),
+                    //     'url' => $baseurl . '/event_templates/add',
+                    //     'controller' => 'event_templates',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ]
                 ]
             ],
             ['divider' => true],
@@ -955,13 +955,13 @@ class NavbarHelper extends AppHelper {
             'icon' => 'fas fa-home'
         ];
 
-        $bookmarksChildren[] = [
-            'label' => __('Add Bookmark'),
-            'url' => $baseurl . '/bookmarks/add',
-            'controller' => 'bookmarks',
-            'action' => 'add',
-            'icon' => 'fas fa-plus'
-        ];
+        // $bookmarksChildren[] = [
+        //     'label' => __('Add Bookmark'),
+        //     'url' => $baseurl . '/bookmarks/add',
+        //     'controller' => 'bookmarks',
+        //     'action' => 'add',
+        //     'icon' => 'fas fa-plus'
+        // ];
         $bookmarksChildren[] = [
             'label' => __('Manage Bookmarks'),
             'url' => $baseurl . '/bookmarks/index',

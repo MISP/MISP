@@ -1260,6 +1260,9 @@ class ServersController extends AppController
             $settingObject = $settingObject[$key];
         }
         $result = $this->Server->serverSettingReadSingle($settingObject, $setting, $key);
+        if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
+            $result['options'] = $result['optionsSource']();
+        }
         $this->set('setting', $result);
         $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
         $this->set('priorityErrorColours', $priorityErrorColours);
@@ -1274,7 +1277,12 @@ class ServersController extends AppController
         }
         $this->set('subGroup', $subGroup);
 
-        $this->render('/Elements/healthElements/settings_row');
+        // Overmind swaps the edited row in place with its own BS5 markup.
+        if ($this->theme === 'Overmind') {
+            return $this->render('/Elements/healthElementsBS5/setting_row');
+        }
+
+        return $this->render('/Elements/healthElements/settings_row');
     }
 
     public function serverSettings($tab=false)
@@ -1282,6 +1290,15 @@ class ServersController extends AppController
         if (!$this->request->is('get')) {
             throw new MethodNotAllowedException('Just GET method is allowed.');
         }
+
+        App::uses('ServerSettingGroups', 'Tools');
+        if ($this->theme === 'Overmind' && $tab !== 'download') {
+            $tabRequired = $tab !== false || $this->request->is('ajax');
+            if ($tabRequired && !ServerSettingGroups::isKnownTab($tab)) {
+                throw new NotFoundException(__('Unknown server settings section.'));
+            }
+        }
+
         $tabs = array(
             'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
@@ -1545,6 +1562,16 @@ class ServersController extends AppController
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
         $this->set('title_for_layout', __('Diagnostics'));
+
+        /*
+         * Overmind renders the page as a shell (health cards + tab bar) and
+         * pulls the content of each tab over ajax from this very action, so an
+         * XHR gets the bare fragment for $tab instead of the whole page.
+         */
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+            return $this->render('/Servers/ajax/server_settings_tab');
+        }
     }
 
     public function startWorker($type)
@@ -1788,7 +1815,9 @@ class ServersController extends AppController
             } else {
                 $this->set('subGroup', $subGroup);
                 $this->set('setting', $setting);
-                $this->render('ajax/server_settings_edit');
+                $this->render($this->theme === 'Overmind'
+                    ? '/Servers/ajax/server_settings_edit_bs5'
+                    : 'ajax/server_settings_edit');
             }
         } else if ($this->request->is('post')) {
             if (!isset($this->request->data['Server'])) {
