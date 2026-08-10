@@ -12,6 +12,8 @@
     --type: #06D6A0;
     --analystData: #8F2D56;
     --enrichment: #48435C;
+    --warninglist: #9d174d;
+    --warninglist-soft: #fce7f3;
     --bs-link-color: var(--primary);
     --bs-link-hover-color: var(--primary);
     --bs-link-hover-color-rgb: 24, 146, 177;

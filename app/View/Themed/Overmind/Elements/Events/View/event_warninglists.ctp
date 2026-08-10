@@ -12,9 +12,9 @@ $attrsUrl = h($baseurl . '/events/viewAttributes/' . $eventId);
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#fce7f3;">
+                 style="width:36px;height:36px;background:var(--warninglist-soft);">
                 <i class="fas fa-exclamation-triangle"
-                   style="color:#9d174d;font-size:1rem;"></i>
+                   style="color:var(--warninglist);font-size:1rem;"></i>
             </div>
             <div class="me-auto">
                 <div class="fw-bold lh-1"><?= __('Warning Lists') ?></div>
