@@ -341,7 +341,8 @@ $distFallback = $this->DistributionLevel->fallback();
         idsOn:  <?= json_encode(__('IDS')) ?>,
         idsOff: <?= json_encode(__('No IDS')) ?>,
         corrOn: <?= json_encode(__('Correlation On')) ?>,
-        corrOff:<?= json_encode(__('Correlation Off')) ?>
+        corrOff:<?= json_encode(__('Correlation Off')) ?>,
+        saveFailed: <?= json_encode(__('Could not create the %s. Please reopen the freetext import and try again.', $scope)) ?>
     };
     var optionsRearranged = <?= json_encode($optionsRearranged ?? new stdClass()) ?>;
 
@@ -499,9 +500,17 @@ $distFallback = $this->DistributionLevel->fallback();
                 body: new FormData(form),
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
-            .then(function (r) { return r.text(); })
-            .then(function () { window.location = baseurl + '/events/view2/' + EVENT_ID; })
-            .catch(function () { submitBtn.disabled = false; });
+            // Reload only on success
+            .then(function (r) {
+                if (!r.ok) { throw new Error(r.status); }
+                window.location = baseurl + '/events/view2/' + EVENT_ID;
+            })
+            .catch(function () {
+                submitBtn.disabled = false;
+                if (typeof showToast === 'function') {
+                    showToast(L.saveFailed, 'danger');
+                }
+            });
         });
     }
 })();

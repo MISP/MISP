@@ -148,10 +148,35 @@ function openModal(url, size = 'xl') {
         });
 }
 
-// Defensive backdrop reaper: once #mainModal is fully closed, guarantee that no
-// orphaned `.modal-backdrop` and no leftover scroll-lock survive. A stray
-// backdrop (e.g. from an older cached build, or any double-show) would otherwise
-// leave a grey veil that blocks the whole app. Bound once.
+/**
+ * Announce that page entity attributes may have changed so derived cards can update.
+ *
+ * Listeners use document.addEventListener('misp:attributes-changed').
+ */
+function notifyAttributesChanged() {
+    document.dispatchEvent(new CustomEvent('misp:attributes-changed'));
+}
+window.notifyAttributesChanged = notifyAttributesChanged;
+
+// Attribute mutations in the event view all go through #mainModal, so closing it
+// is the point where derived cards can re-read the event.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._attrChangeBound) {
+        return;
+    }
+    modalEl._attrChangeBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        // A chained open only swaps content and does not mutate data.
+        if (modalEl._chaining) {
+            modalEl._chaining = false;
+            return;
+        }
+        notifyAttributesChanged();
+    });
+})();
+
+// Once #mainModal is fully closed, remove any leftover backdrops and restore body scrolling.
 (function () {
     const modalEl = document.getElementById('mainModal');
     if (!modalEl || modalEl._backdropReaperBound) {
@@ -310,6 +335,7 @@ function openModalChained(url, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             openModal(url, size);
         });
+        el._chaining = true;
         inst.hide();
     } else {
         openModal(url, size);
@@ -358,6 +384,7 @@ function openModalPostChained(url, body, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             run();
         });
+        el._chaining = true;
         inst.hide();
     } else {
         run();
