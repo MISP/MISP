@@ -2276,6 +2276,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
+            'warninglist',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2351,6 +2352,23 @@ class EventsController extends AppController
         $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+
+        // Warninglist filter (set from the event view's Warning Lists card):
+        $warninglistFilter = null;
+        if (!empty($options['warninglist'])) {
+            $this->loadModel('Warninglist');
+            $warninglist = $this->Warninglist->find('first', [
+                'conditions' => [
+                    'Warninglist.id' => (int)$options['warninglist'],
+                ],
+                'fields' => ['Warninglist.id', 'Warninglist.name'],
+                'recursive' => -1,
+            ]);
+            if (!empty($warninglist)) {
+                $warninglistFilter = $warninglist['Warninglist'];
+            }
+        }
+        $this->set('warninglistFilter', $warninglistFilter);
 
         // Counts for the Proposals / Deleted toggle buttons. 
         $nonObjectAttrIds = $this->Event->Attribute->find('column', [
