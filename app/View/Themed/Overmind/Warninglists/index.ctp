@@ -145,13 +145,6 @@ $fields = [
             ],
             [
                 'type' => 'modal',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/warninglists/edit/%id%',
-                'requirement' => $me['Role']['perm_warninglist']
-            ],
-            [
-                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/warninglists/deleteSelection/%id%',
