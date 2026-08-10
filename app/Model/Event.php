@@ -1921,6 +1921,16 @@ class Event extends AppModel
             ];
         }
 
+        // Warninglist filter. Kept last so the hit set is resolved against the
+        // fully built (and ACL-restricted) condition set.
+        if (!empty($options['warninglist'])) {
+            $conditions['Attribute.id'] =
+                $this->__attributeIdsMatchingWarninglist(
+                    $conditions,
+                    (int)$options['warninglist']
+                );
+        }
+
         $fields = [
             'Attribute.id',
             'Attribute.type',
@@ -2082,6 +2092,64 @@ class Event extends AppModel
             'sightings_csv' =>
                 $enriched['sightings_csv'],
         ];
+    }
+
+    /**
+     * Ids of the attributes selected by $conditions that a given warninglist
+     * flags.
+     *
+     * Warninglist matching cannot be expressed in SQL (lists are cidr / regex
+     * / substring / hostname matchers evaluated in PHP), so the candidate set
+     * is resolved first and the caller narrows its query down to the ids
+     * returned here.
+     *
+     * @param array $conditions Attribute conditions of the caller's query
+     * @param int $warninglistId
+     * @return array Attribute ids; [-1] when nothing matches, so that the
+     *               caller's query comes back empty rather than unfiltered
+     */
+    private function __attributeIdsMatchingWarninglist(
+        array $conditions,
+        $warninglistId
+    ) {
+        $candidates = $this->Attribute->find('all', [
+            'conditions' => $conditions,
+            'fields' => [
+                'Attribute.id',
+                'Attribute.type',
+                'Attribute.value',
+                'Attribute.to_ids',
+            ],
+            'recursive' => -1,
+        ]);
+        if (empty($candidates)) {
+            return [-1];
+        }
+
+        $flat = [];
+        foreach ($candidates as $candidate) {
+            $flat[] = $candidate['Attribute'];
+        }
+
+        if (!isset($this->Warninglist)) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
+        }
+        $this->Warninglist->attachWarninglistToAttributes($flat);
+
+        $ids = [];
+        foreach ($flat as $attribute) {
+            if (empty($attribute['warnings'])) {
+                continue;
+            }
+            foreach ($attribute['warnings'] as $warning) {
+                if ((int)$warning['warninglist_id'] === $warninglistId) {
+                    $ids[] = $attribute['id'];
+                    break;
+                }
+            }
+        }
+
+        return empty($ids) ? [-1] : $ids;
     }
 
     /**
