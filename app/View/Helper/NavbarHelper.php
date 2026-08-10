@@ -592,6 +592,7 @@ class NavbarHelper extends AppHelper {
                 'url' => $baseurl . '/servers/serverSettings',
                 'controller' => 'servers',
                 'action' => 'serverSettings',
+                'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
             ['divider' => true],
