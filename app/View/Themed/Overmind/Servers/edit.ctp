@@ -13,21 +13,28 @@ echo $this->Form->create('Server', [
 
 ?>
 
-<div class="container">
+<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
+<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
+     style="background:rgba(24,146,177,.06);
+            border-bottom:2px solid var(--primary);">
+    <div>
+        <div class="text-primary text-uppercase fw-semibold mb-1"
+             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
+            <?= __('Servers') ?>
+        </div>
+        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <i class="fas fa-<?= $edit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
+               style="font-size:1.25rem;"></i>
+            <?= $edit ? __('Edit Server') : __('Add Server') ?>
+        </h4>
+        <p class="text-muted mb-0" style="font-size:.75rem;">
+            <?= __('Configure remote instance connection, ownership and synchronisation options.') ?>
+        </p>
+    </div>
+    <i class="fas fa-server text-primary" style="font-size:2rem; opacity:.45;"></i>
+</div>
 
-    <div class="row justify-content-center">
-
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?= $edit ? __('Edit current Server') : __('Create New Server') ?>
-                </h3>
-
-                <p class="text-muted mb-4">
-                    <?= __('Configure remote instance connection, ownership and synchronisation options.') ?>
-                </p>
+<div class="container-fluid px-4 py-4">
 
                 <div class="accordion" id="sgAccordion">
                     <!-- ===================== STEP 1 : GENERAL ===================== -->
@@ -701,36 +708,49 @@ echo $this->Form->create('Server', [
                     </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-                    <?= $this->Form->button(
-                        '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Edit server') : __('Add server')),
-                        [
-                            'class' => 'btn btn-primary',
-                            'onClick' => $edit ? "serverSubmitForm('Edit')" : "serverSubmitForm('Add')",
-                            'escapeTitle' => false,
-                            'title' => $edit ? __('Edit server') : __('Add server'),
-                            'aria-label' => $edit ? __('Edit server') : __('Add server'),
-                        ]
-                    ) ?>
-                </div>
-
-                <?php
-                    echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
-                    echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
-                    echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
-                    echo $this->Form->checkbox('delete_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
-                    echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
-                ?>
-            </div>
+    <!-- ── FOOTER ─────────────────────────────────────────────── -->
+    <div class="d-flex justify-content-between align-items-center
+                mt-4 pt-3 flex-wrap gap-2">
+        <div class="text-muted" style="font-size:.75rem;">
+            <?php if ($edit && !empty($server['Server']['id'])): ?>
+                <?= __('Server') ?>:
+                <strong class="text-body">#<?= h($server['Server']['id']) ?></strong>
+                <?php if (!empty($server['Server']['url'])): ?>
+                    &nbsp;|&nbsp;
+                    <code class="text-body"><?= h($server['Server']['url']) ?></code>
+                <?php endif; ?>
+            <?php else: ?>
+                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
+                <?= __('Connection settings can be tested from the server index once saved.') ?>
+            <?php endif; ?>
         </div>
-
-        <?= $this->Form->end(); ?>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-bs-dismiss="modal">
+                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
+            </button>
+            <?= $this->Form->button(
+                '<i class="fas fa-' . ($edit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
+                    . ($edit ? __('Save Changes') : __('Add Server')),
+                [
+                    'class' => 'btn btn-primary btn-sm',
+                    'onClick' => $edit ? "serverSubmitForm('Edit')" : "serverSubmitForm('Add')",
+                    'escapeTitle' => false,
+                    'title' => $edit ? __('Save Changes') : __('Add Server'),
+                    'aria-label' => $edit ? __('Save Changes') : __('Add Server'),
+                ]
+            ) ?>
+        </div>
     </div>
+
+    <?php
+        echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
+        echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
+        echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
+        echo $this->Form->checkbox('delete_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
+        echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
+    ?>
 </div>
+
+<?= $this->Form->end(); ?>
 
