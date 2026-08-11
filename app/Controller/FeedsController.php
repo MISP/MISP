@@ -273,6 +273,11 @@ class FeedsController extends AppController
         }
         if ($this->theme === 'Overmind') {
             $this->layout = false;
+            // Feed::importFeeds() skips an entry whose url is already known, so the
+            // form can tell beforehand which of the pasted feeds are actually new.
+            $this->set('existingFeedUrls', $this->Feed->find('column', [
+                'fields' => ['Feed.url']
+            ]));
         }
     }
 
