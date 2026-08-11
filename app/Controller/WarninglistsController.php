@@ -251,6 +251,13 @@ class WarninglistsController extends AppController
                 if (empty($warninglist['WarninglistEntry'])) {
                     $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
                 }
+                // When the field is empty, be sure to select "all types" as the value
+                // instead of keaping the types that have already been saved.
+                if (array_key_exists('matching_attributes', $warninglist['Warninglist'])
+                    && empty($warninglist['Warninglist']['matching_attributes'])
+                ) {
+                    $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
+                }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];
                     foreach ($warninglist['Warninglist']['matching_attributes'] as $attribute) {

@@ -145,6 +145,15 @@ $fields = [
             ],
             [
                 'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/warninglists/edit/%id%',
+                'requirement' => function ($row) use ($me) {
+                    return $me['Role']['perm_warninglist'] && !$row['Warninglist']['default'];
+                }
+            ],
+            [
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/warninglists/deleteSelection/%id%',
@@ -169,7 +178,7 @@ $fields = [
         ]
     ]
 ];
-
+xdebug_break();
 
 
 /**
