@@ -2276,6 +2276,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
+            'warninglist',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2351,6 +2352,23 @@ class EventsController extends AppController
         $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+
+        // Warninglist filter (set from the event view's Warning Lists card):
+        $warninglistFilter = null;
+        if (!empty($options['warninglist'])) {
+            $this->loadModel('Warninglist');
+            $warninglist = $this->Warninglist->find('first', [
+                'conditions' => [
+                    'Warninglist.id' => (int)$options['warninglist'],
+                ],
+                'fields' => ['Warninglist.id', 'Warninglist.name'],
+                'recursive' => -1,
+            ]);
+            if (!empty($warninglist)) {
+                $warninglistFilter = $warninglist['Warninglist'];
+            }
+        }
+        $this->set('warninglistFilter', $warninglistFilter);
 
         // Counts for the Proposals / Deleted toggle buttons. 
         $nonObjectAttrIds = $this->Event->Attribute->find('column', [
@@ -2698,42 +2716,10 @@ class EventsController extends AppController
         $tagModel = $this->Event->EventTag->Tag;
 
         /* All Tags: non-galaxy, visible, globally attachable */
-        $allConditions                   = $tagModel->createConditions($user);
-        $allConditions['Tag.is_galaxy']  = 0;
-        $allConditions['Tag.hide_tag']   = 0;
-        $allConditions['Tag.local_only'] = 0;
-        $allRaw = $tagModel->find('all', [
-            'conditions' => $allConditions,
-            'recursive'  => -1,
-            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
-            'order'      => ['Tag.name asc'],
-        ]);
-        $allTags = [];
-        foreach ($allRaw as $t) {
-            $allTags[] = [
-                'id'     => (int)$t['Tag']['id'],
-                'name'   => $t['Tag']['name'],
-                'colour' => $t['Tag']['colour'] ?: '#0088cc',
-            ];
-        }
+        $allTags = $tagModel->getAllTagsForPicker($user);
 
         /* Custom Tags: tags that do not belong to any taxonomy */
-        $this->loadModel('Taxonomy');
-        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
-            true, $user, true, true, false
-        );
-        $customTags = [];
-        foreach ($customRaw as $t) {
-            $tag = $t['Tag'];
-            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
-                continue;
-            }
-            $customTags[] = [
-                'id'     => (int)$tag['id'],
-                'name'   => $tag['name'],
-                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
-            ];
-        }
+        $customTags = $tagModel->getCustomTagsForPicker($user);
 
         /* Tag Collections: each expands to its member tags */
         $this->loadModel('TagCollection');

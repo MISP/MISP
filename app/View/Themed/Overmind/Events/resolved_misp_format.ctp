@@ -351,6 +351,7 @@ $attrTableHead = function () use ($idsToggle) {
                             data-encrypt="<?= h($attribute['encrypt'] ?? '') ?>"
                         <?php endif; ?>>
                         <td class="ps-3"><button type="button" class="btn btn-sm btn-light text-danger p-1 om-remove" title="<?= __('Remove from import') ?>"><i class="fas fa-trash"></i></button></td>
+                        <td class="pe-3"><?= $distPicker('om-attr', $attribute['distribution'] ?? null) ?></td>
                         <td>
                             <?php if ($catIsArray): ?>
                                 <select class="form-select form-select-sm om-attr-cat-select">
@@ -373,7 +374,6 @@ $attrTableHead = function () use ($idsToggle) {
                         <td class="text-center"><?= $idsToggle(!empty($attribute['to_ids'])) ?></td>
                         <td class="text-center"><?= $corrToggle(!empty($attribute['disable_correlation'])) ?></td>
                         <td><input type="text" class="form-control form-control-sm om-attr-comment" placeholder="<?= h($importComment) ?>" value="<?= !empty($attribute['comment']) ? h($attribute['comment']) : '' ?>"></td>
-                        <td class="pe-3"><?= $distPicker('om-attr', $attribute['distribution'] ?? null) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
