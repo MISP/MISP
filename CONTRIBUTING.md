@@ -5,7 +5,15 @@ MISP project is a large free software project composed of multiple sub-projects 
 The [MISP roadmap](/ROADMAP.md) is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis.
 
 Participating in the MISP project is easy and everyone can contribute following their ability. 
-Get familiar with [how we use GitHub at MISP Project](/GITWORKFLOW.md), then read on for details on some ways you can contribute:
+Read the [MISP project governance model](/GOVERNANCE.md) to understand project
+roles and decision-making, get familiar with [how we use GitHub at MISP
+Project](/GITWORKFLOW.md), then read on for details on some ways you can
+contribute:
+
+MISP uses a [CLA-free contribution model](/GOVERNANCE.md#cla-free-contribution-model):
+contributors retain copyright in their work and contribute it under the
+project's AGPL-3.0 license. No copyright assignment or Contributor License
+Agreement is required.
 
 ## Reporting bugs, suggesting features
 
