@@ -34,6 +34,21 @@ class CurlClient extends HttpSocketExtended
     /** @var array */
     private $proxy = [];
 
+    /**
+     * CURLOPT_RESOLVE entries, as "host:port:ip". Lets a caller that has
+     * already validated where a name points force the connection to that
+     * exact address, closing the window in which the name could resolve
+     * somewhere else between the check and the request.
+     * @var array
+     */
+    private $pinnedHosts = [];
+
+    /** @var bool */
+    private $followRedirects = true;
+
+    /** @var int|null Maximum response body size in bytes, null for no limit */
+    private $maxSize;
+
     /** @var array */
     private $defaultOptions;
 
@@ -176,6 +191,58 @@ class CurlClient extends HttpSocketExtended
     }
 
     /**
+     * Force connections to $host:$port to use $ip.
+     *
+     * Only meaningful for a name - curl does not resolve an address literal,
+     * so there is no lookup to override. Pass the address that was actually
+     * validated: without this, a validated hostname is resolved again at
+     * request time and may answer differently.
+     *
+     * @param string $host
+     * @param int $port
+     * @param string $ip
+     * @return void
+     */
+    public function pinHost($host, $port, $ip)
+    {
+        if (str_contains($ip, ':')) {
+            $ip = "[$ip]"; // curl wants IPv6 addresses bracketed here
+        }
+        $this->pinnedHosts[] = sprintf('%s:%d:%s', $host, $port, $ip);
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
+     * Whether curl follows redirects itself. Turn this off when each hop has
+     * to be validated before it is taken - curl resolves a redirect target
+     * fresh, so a pin on the original host does not constrain it.
+     *
+     * @param bool $follow
+     * @return void
+     */
+    public function setFollowRedirects($follow)
+    {
+        $this->followRedirects = (bool)$follow;
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
+     * Abort a response larger than $bytes.
+     *
+     * Enforced twice: CURLOPT_MAXFILESIZE rejects an honestly advertised
+     * Content-Length before any body is transferred, and the progress
+     * callback catches a server that understates or omits it.
+     *
+     * @param int|null $bytes null removes the limit
+     * @return void
+     */
+    public function setMaxSize($bytes)
+    {
+        $this->maxSize = $bytes === null ? null : (int)$bytes;
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
      * @param string $method
      * @param string $url
      * @param array|string $query
@@ -253,6 +320,12 @@ class CurlClient extends HttpSocketExtended
 
         if ($output === false) {
             $errorCode = curl_errno($this->ch);
+            // Both of these mean the size limit tripped: 63 when the server
+            // advertised too large a Content-Length, 42 when the progress
+            // callback aborted a body that grew past the limit anyway.
+            if ($this->maxSize !== null && ($errorCode === CURLE_FILESIZE_EXCEEDED || $errorCode === CURLE_ABORTED_BY_CALLBACK)) {
+                throw new SocketException("Response exceeds the maximum allowed size of {$this->maxSize} bytes.");
+            }
             $errorMessage = curl_error($this->ch);
             if (!empty($errorMessage)) {
                 $errorMessage = ": $errorMessage";
@@ -318,7 +391,7 @@ class CurlClient extends HttpSocketExtended
     private function generateDefaultOptions()
     {
         $options = [
-            CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect
+            CURLOPT_FOLLOWLOCATION => $this->followRedirects, // Allows to follow redirect
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_RETURNTRANSFER => true, // Should cURL return or print out the data? (true = return, false = print)
             CURLOPT_HEADER => false, // Include header in result?
@@ -345,6 +418,21 @@ class CurlClient extends HttpSocketExtended
         if ($this->allowSelfSigned) {
             $options[CURLOPT_SSL_VERIFYPEER] = $this->verifyPeer;
             $options[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+
+        if (!empty($this->pinnedHosts)) {
+            $options[CURLOPT_RESOLVE] = $this->pinnedHosts;
+        }
+
+        if ($this->maxSize !== null) {
+            $maxSize = $this->maxSize;
+            $options[CURLOPT_MAXFILESIZE] = $maxSize;
+            $options[CURLOPT_NOPROGRESS] = false;
+            $options[CURLOPT_PROGRESSFUNCTION] = function ($curl, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($maxSize) {
+                // Non-zero aborts the transfer. Checking the advertised size
+                // too stops a large body before the first byte arrives.
+                return ($downloaded > $maxSize || $downloadSize > $maxSize) ? 1 : 0;
+            };
         }
 
         if (!empty($this->proxy)) {
