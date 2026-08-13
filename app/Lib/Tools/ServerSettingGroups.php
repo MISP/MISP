@@ -490,6 +490,7 @@ class ServerSettingGroups
                     'Security.rest_client_baseurl',
                     'Security.workflow_enable_arbitrary_urls',
                     'Security.eventreport_enable_arbitrary_urls',
+                    'Security.eventreport_max_fetch_size',
                 ),
             ),
             array(

@@ -7427,6 +7427,14 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => 1
                 ),
+                'eventreport_max_fetch_size' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size, in bytes, of a document fetched by the event report URL import. The document is held in memory and base64 encoded before being passed to the module, so the peak cost is roughly 2.5x this value. Set to 0 for no limit, which is not recommended - an unbounded read is reachable from a request of a couple of hundred bytes.'),
+                    'value' => 26214400, // 25 MB - real threat reports routinely exceed 5
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
