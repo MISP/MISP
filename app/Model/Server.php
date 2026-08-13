@@ -7420,7 +7420,7 @@ class Server extends AppModel
                 ),
                 'eventreport_enable_arbitrary_urls' => array(
                     'level' => 0,
-                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server or, for HTML imports, by the misp-modules host, so any internal IP reachable from either - including loopback and cloud metadata endpoints - becomes reachable by the requesting user. This is NOT limited to site admins: the import action requires only perm_add, which the default user role carries. Enable this only where every user holding perm_add is trusted with that network position.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
