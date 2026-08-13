@@ -11,6 +11,7 @@ The objective of MISP is to foster the sharing of structured information within 
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#installation">Installation</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#documentation">Documentation</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#contributing">Contributing</a><br>
+  &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#privacy">Privacy</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#license">License</a>
 
 <table>
@@ -124,6 +125,17 @@ Documentation
 [MISP user-guide (MISP-book)](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
 
 It is also recommended to read the [FAQ](https://github.com/MISP/MISP/wiki/Frequently-Asked-Questions)
+
+Privacy
+-------
+
+MISP is software that organisations operate in their own environments. Privacy
+and data-protection responsibilities therefore depend on the relevant instance,
+operator, processing activity, and applicable jurisdiction or sector. The GDPR
+guidance is relevant only where the GDPR applies; other legal or regulatory
+frameworks may apply instead of, or in addition to, it. See the
+[MISP privacy statement](PRIVACY.md) for details and a reference to the
+project's GDPR guidance.
 
 Contributing
 ------------
