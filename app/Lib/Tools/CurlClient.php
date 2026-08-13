@@ -26,7 +26,7 @@ class CurlClient extends HttpSocketExtended
     private $allowSelfSigned;
 
     /** @var bool */
-    private $verifyPeer;
+    private $verifyPeer = true;
 
     /** @var bool */
     private $compress = true;
