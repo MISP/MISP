@@ -557,16 +557,28 @@ class EventReportsController extends AppController
                 throw new InvalidArgumentException('Invalid URL: must start with http:// or https://');
             }
             $format = 'html';
-            
+
+            // Match against the path only. Testing the whole URL let a query
+            // string supply the suffix, so `http://host/anything?x=.pdf`
+            // selected pdf and picked which host performed the fetch.
+            $path = parse_url($url, PHP_URL_PATH);
             $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
             foreach ($parsed_formats as $parsed_format) {
-                if (substr($url, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
+                if (!empty($path) && substr($path, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
                     $format = $parsed_format;
                 }
             }
             $content = null;
             if (empty($errors)) {
-                $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                try {
+                    $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                } catch (Exception $e) {
+                    // A refused target, an oversized document or a failed
+                    // fetch all report through the normal error path rather
+                    // than surfacing as an unhandled exception.
+                    $content = null;
+                    $errors[] = $e->getMessage();
+                }
                 if (!empty($content)) {
                     $report = [
                         'name' => __('Report from - %s (%s)', $url, time()),
@@ -581,7 +593,10 @@ class EventReportsController extends AppController
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
             if (!empty($errors)) {
                 $event_report_id = empty($this->EventReport->id) ? 0 : $this->EventReport->id;
-                return $this->__getFailResponseBasedOnContext($errors, array(), 'addFromURL', $event_report_id, $redirectTarget);
+                // null, not array(): __getFailResponseBasedOnContext returns
+                // viewData($data) whenever $data is not null, which discarded
+                // the message and answered REST callers with a bare [].
+                return $this->__getFailResponseBasedOnContext($errors, null, 'addFromURL', $event_report_id, $redirectTarget);
             } else {
                 $successMessage = __('Report downloaded and created');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);

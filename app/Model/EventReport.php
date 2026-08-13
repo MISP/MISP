@@ -1438,6 +1438,15 @@ class EventReport extends AppModel
             'odt' => 'odt_enrich',
             'docx' => 'docx_enrich'
         ];
+        // Validated first, so the check does not depend on which modules an
+        // instance happens to have enabled, and for both branches rather than
+        // only the one that fetches here: the html branch hands the URL to
+        // misp-modules, which fetches it from its own network position -
+        // 127.0.0.1 on the MISP server itself in a default deployment - so an
+        // unchecked URL is an SSRF either way.
+        App::uses('UrlEgressValidator', 'Tools');
+        $target = UrlEgressValidator::validate($url, UrlEgressValidator::POLICY_DENY_INTERNAL);
+
         $module = $this->isFetchURLModuleEnabledAndAllowed($user, $formatMapping[$format]);
         if (!is_array($module)) {
             return false;
@@ -1449,9 +1458,8 @@ class EventReport extends AppModel
         if ($format === 'html') {
             $modulePayload['url'] = $url;
         } else {
-            $url = filter_var($url, FILTER_SANITIZE_URL);
             $modulePayload['attachment'] = 'temp.foo';
-            $modulePayload['data'] = base64_encode(file_get_contents($url));
+            $modulePayload['data'] = base64_encode($this->fetchDocumentFromUrl($url, $target));
         }
         if (!empty($module)) {
             $result = $this->Module->queryModuleServer($modulePayload, false, 'Enrichment', false, []);
@@ -1468,6 +1476,72 @@ class EventReport extends AppModel
             }
         }
         return false;
+    }
+
+    /**
+     * Fetch a document for the URL import.
+     *
+     * Replaces file_get_contents(), which had no timeout, no size limit, no
+     * proxy support and followed redirects through PHP's stream wrapper with
+     * nothing checking where they led.
+     *
+     * @param string $url already validated by the caller
+     * @param array $target the validator's verdict for $url
+     * @return string
+     * @throws Exception
+     */
+    private function fetchDocumentFromUrl($url, array $target)
+    {
+        App::uses('SyncTool', 'Tools');
+        App::uses('CurlClient', 'Tools');
+        App::uses('UrlEgressValidator', 'Tools');
+        $syncTool = new SyncTool();
+        // No explicit timeout: createHttpSocket applies MISP.curl_request_timeout.
+        $HttpSocket = $syncTool->createHttpSocket([]);
+
+        // Pinning and the size cap live on CurlClient. Rather than quietly
+        // fetching without them, refuse - this is an opt-in, non-default
+        // feature and curl is a required extension.
+        if (!($HttpSocket instanceof CurlClient)) {
+            throw new Exception(__('The event report URL import requires the curl extension.'));
+        }
+
+        $maxSize = (int)Configure::read('Security.eventreport_max_fetch_size');
+        if ($maxSize > 0) {
+            $HttpSocket->setMaxSize($maxSize);
+        }
+        $this->pinValidatedTarget($HttpSocket, $target);
+        // Every hop is validated under the same policy, and the new host is
+        // pinned to what was validated. Letting curl follow redirects itself
+        // would hand back the whole primitive at the first 302.
+        $HttpSocket->setRedirectValidator(function ($from, $to, $client) {
+            $hop = UrlEgressValidator::validate($to, UrlEgressValidator::POLICY_DENY_INTERNAL);
+            $this->pinValidatedTarget($client, $hop);
+            return true;
+        });
+
+        $response = $HttpSocket->get($url);
+        if (!$response->isOk()) {
+            throw new Exception(__('Could not fetch %s - the server responded with %s.', $url, $response->code));
+        }
+        return $response->body;
+    }
+
+    /**
+     * Force the connection to the address the validator actually checked.
+     * A literal needs no pin - there was no lookup to race.
+     *
+     * @param CurlClient $client
+     * @param array $target
+     * @return void
+     */
+    private function pinValidatedTarget($client, array $target)
+    {
+        if (empty($target['pin'])) {
+            return;
+        }
+        $port = $target['port'] ?: ($target['scheme'] === 'https' ? 443 : 80);
+        $client->pinHost($target['host'], $port, $target['ip']);
     }
 
     public function isFetchURLModuleEnabled(array $user, $moduleName = 'html_to_markdown')
