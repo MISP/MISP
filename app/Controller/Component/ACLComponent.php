@@ -540,6 +540,7 @@ class ACLComponent extends Component
             'getGenerateCorrelationProgress' => array(),
             'getProgress' => array('*'),
             'index' => array(),
+            'view' => array(),
             'clearJobs' => array()
         ),
         'logs' => array(

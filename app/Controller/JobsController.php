@@ -6,15 +6,25 @@ App::uses('AppController', 'Controller');
  */
 class JobsController extends AppController
 {
-    public $components = array('RequestHandler', 'Session');
+    public $components = array(
+        'CRUD',
+        'RequestHandler'
+    );
 
     public $paginate = array(
         'limit' => 20,
-        'recursive' => 0,
+        'recursive' => -1,
+        'contain' => array(
+            'Org' => array(
+                'fields' => array('id', 'name', 'uuid')
+            )
+        ),
         'order' => array(
             'Job.id' => 'desc'
         ),
     );
+
+    public $uses = array('Job');
 
     public function beforeFilter()
     {
@@ -71,21 +81,6 @@ class JobsController extends AppController
         $this->render('/Jobs/ajax/error');
     }
 
-    private function __jobStatusConverter($status)
-    {
-        switch ($status) {
-            case 1:
-                return 'Waiting';
-            case 2:
-                return 'Running';
-            case 3:
-                return 'Failed';
-            case 4:
-                return 'Completed';
-            default:
-                return 'Unknown';
-        }
-    }
 
     public function getGenerateCorrelationProgress($ids)
     {
@@ -186,6 +181,34 @@ class JobsController extends AppController
         }
     }
 
+    /**
+     * Get a specific job
+     * GET /jobs/view/id
+     * @param int $id Job ID
+     * @return CakeResponse|void
+     */
+    public function view($id)
+    {
+        if (!Configure::read('MISP.background_jobs')) {
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(
+                    array('message' => 'Background jobs are not enabled on this instance.'),
+                    'json',
+                    404
+                );
+            }
+            throw new NotFoundException('Background jobs are not enabled on this instance.');
+        }
+
+        $this->CRUD->view($id, [
+            'contain' => ['Org']
+        ]);
+
+        if ($this->_isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
+
     private function __getJobStatus($id): string
     {
         if (!Configure::read('SimpleBackgroundJobs.enabled')) {
@@ -216,4 +239,22 @@ class JobsController extends AppController
             'backtrace' => $backtrace
         ];
     }
+
+    private function __jobStatusConverter($status)
+    {
+        switch ($status) {
+            case "1":
+                return 'Waiting';
+            case "2":
+                return 'Running';
+            case "3":
+                return 'Failed';
+            case "4":
+                return 'Completed';
+            default:
+                return 'Unknown';
+        }
+    }
 }
+
+    
