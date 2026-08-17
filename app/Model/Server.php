@@ -9043,10 +9043,12 @@ class Server extends AppModel
             'worker_management_tasks' => array(
                 'data' => array(
                     'Get list of workers' => 'MISP/app/Console/cake Admin getWorkers [all|dead]',
+                    'Show worker status' => 'MISP/app/Console/cake Worker status',
                     'Start a worker' => 'MISP/app/Console/cake Admin startWorker [queue_name]',
-                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid]',
+                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid|worker_name]',
                     'Restart all workers' => 'MISP/app/Console/cake Admin restartWorkers',
-                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid]',
+                    'Restart dead workers' => 'MISP/app/Console/cake Worker restartDead',
+                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid|worker_name]',
                 ),
                 'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
                 'header' => __('Managing the background workers')
