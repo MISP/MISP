@@ -153,6 +153,147 @@ def ldap_admin(ldap_config):
     connection.unbind()
 
 
+MEMBEROF_MODULE_LDIF = """dn: cn=module{{0}},cn=config
+changetype: modify
+add: olcModuleLoad
+olcModuleLoad: {module}
+"""
+
+MEMBEROF_OVERLAY_LDIF = """dn: olcOverlay=memberof,{database}
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcMemberOf
+olcOverlay: memberof
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfNames
+olcMemberOfMemberAD: member
+olcMemberOfMemberOfAD: memberOf
+"""
+
+
+def _directory_maintains_memberof(ldap_config):
+    """True when a new group membership actually produces a memberOf value.
+
+    Deliberately a functional probe rather than a schema lookup. OpenLDAP
+    cannot unload a module, so once memberof.so has been loaded the attribute
+    type stays advertised in the schema even if the overlay is removed --
+    a schema check would report support that is not there.
+    """
+    probe = "memberof-probe-{}".format(uuid.uuid4().hex[:8])
+    user_dn = "uid={},{}".format(probe, ldap_config.users_dn)
+    group_dn = "cn={},{}".format(probe, ldap_config.groups_dn)
+    try:
+        connection = Connection(
+            Server(ldap_config.uri),
+            ldap_config.admin_dn,
+            ldap_config.admin_password,
+            auto_bind=True,
+        )
+    except LDAPException:
+        return False
+
+    try:
+        if not connection.add(user_dn, "inetOrgPerson",
+                              {"cn": probe, "sn": probe, "uid": probe}):
+            return False
+        if not connection.add(group_dn, "groupOfNames",
+                              {"cn": probe, "member": [user_dn]}):
+            return False
+        connection.search(user_dn, "(objectClass=*)", search_scope="BASE",
+                          attributes=["memberOf"])
+        if not connection.entries:
+            return False
+        values = connection.entries[0].entry_attributes_as_dict.get("memberOf")
+        return bool(values)
+    finally:
+        connection.delete(group_dn)
+        connection.delete(user_dn)
+        connection.unbind()
+
+
+def _enable_memberof_overlay(ldap_config, container, module_path):
+    """Load the memberof overlay into a containerised OpenLDAP.
+
+    bitnami/openldap ships memberof.so but exposes no environment variable for
+    it, and its data lives in the container layer rather than a volume, so a
+    recreated container comes back without the overlay. Rather than making
+    that a manual setup step, enable it on demand -- it is idempotent, and the
+    alternative is a test that quietly skips forever.
+    """
+    def run(*command, stdin=None):
+        return subprocess.run(
+            ["docker", "exec"] + (["-i"] if stdin else []) + [container] + list(command),
+            input=stdin, capture_output=True, text=True,
+        )
+
+    found = run(
+        "ldapsearch", "-Y", "EXTERNAL", "-H", "ldapi:///", "-Q",
+        "-b", "cn=config", "-s", "one", "(objectClass=olcDatabaseConfig)", "dn",
+    )
+    if found.returncode != 0:
+        return False, "cannot read cn=config: {}".format(found.stderr.strip())
+
+    # Matching on the DN here rather than with an (olcDatabase=*mdb) filter:
+    # that attribute has no substring matching rule, so such a filter quietly
+    # returns nothing at all.
+    databases = [
+        line[len("dn:"):].strip()
+        for line in found.stdout.splitlines()
+        if line.startswith("dn:") and "mdb" in line
+    ]
+    if not databases:
+        return False, "no mdb database found under cn=config"
+
+    # Applied as two calls, not one LDIF: the module may already be loaded
+    # from an earlier run (OpenLDAP cannot unload one), and re-adding the
+    # value fails in a way that would abort the overlay step with it.
+    steps = [
+        ("module", MEMBEROF_MODULE_LDIF.format(module=module_path),
+         ("already exists", "type or value exists")),
+        ("overlay", MEMBEROF_OVERLAY_LDIF.format(database=databases[0]),
+         ("already exists",)),
+    ]
+    for name, ldif, benign in steps:
+        applied = run("ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///",
+                      stdin=ldif)
+        if applied.returncode == 0:
+            continue
+        output = (applied.stderr + applied.stdout).lower()
+        if any(phrase in output for phrase in benign):
+            continue
+        return False, "{} step failed: {}".format(
+            name, applied.stderr.strip() or applied.stdout.strip()
+        )
+    return True, None
+
+
+@pytest.fixture(scope="session")
+def memberof_supported(ldap_config):
+    """Whether the directory maintains `memberOf`, enabling it if it can."""
+    if _directory_maintains_memberof(ldap_config):
+        return True
+
+    container = _env("LDAP_CONTAINER", "misp-docker-openldap-1")
+    if not container or _env("LDAP_AUTO_MEMBEROF", "1") in ("0", "false", "no"):
+        return False
+
+    module = _env(
+        "LDAP_MEMBEROF_MODULE",
+        "/opt/bitnami/openldap/lib/openldap/memberof.so",
+    )
+    try:
+        ok, error = _enable_memberof_overlay(ldap_config, container, module)
+    except OSError as exc:
+        warnings.warn("Could not enable the memberof overlay: {}".format(exc))
+        return False
+
+    if not ok:
+        warnings.warn("Could not enable the memberof overlay: {}".format(error))
+        return False
+
+    return _directory_maintains_memberof(ldap_config)
+
+
 class LdapFixtureFactory:
     """Creates directory entries and removes them when the test ends."""
 

@@ -51,6 +51,11 @@ Override anything via environment variables:
 | `LDAP_SEARCH_BASE` | `ou=users,dc=example,dc=com` | Must match MISP's `LdapAuth.ldapDn` |
 | `LDAP_USERS_OU` | `ou=users` | Created if missing |
 | `LDAP_GROUPS_OU` | `ou=groups` | Created if missing |
+| `LDAP_CONTAINER` | `misp-docker-openldap-1` | Used only to enable the memberof overlay |
+| `LDAP_AUTO_MEMBEROF` | `1` | Set `0` to never touch the directory's config |
+| `LDAP_MEMBEROF_MODULE` | `/opt/bitnami/openldap/lib/openldap/memberof.so` | Absolute path, see below |
+| `MISP_CONTAINER` | `misp-docker-misp-core-1` | Empty when MISP runs on this host |
+| `MISP_CONFIG_SETTLE_SECONDS` | auto-detected | Wait after a config write, see below |
 | `MISP_URL` | `https://localhost` | |
 | `MISP_VERIFY_SSL` | `0` | Set to `1` for a real certificate |
 | `MISP_LDAP_ORG_ID` | `1` | Must match `LdapAuth.ldapDefaultOrgId` |
@@ -176,6 +181,57 @@ Two things make this slower than it looks:
   ```sql
   SELECT ip, username, expire FROM bruteforces ORDER BY expire DESC;
   ```
+
+## The memberof overlay
+
+`ldapUseMemberOf` needs the directory to maintain a `memberOf` attribute on
+each user. bitnami/openldap ships `memberof.so` but exposes no environment
+variable for it, and its data lives in the container's writable layer rather
+than a volume, so a recreated container comes back without it.
+
+The `memberof_supported` fixture therefore enables it on demand, idempotently,
+and the test skips only if that fails. Set `LDAP_AUTO_MEMBEROF=0` to opt out,
+`LDAP_CONTAINER` to name the container (default `misp-docker-openldap-1`), and
+`LDAP_MEMBEROF_MODULE` for the module path.
+
+To do it by hand instead:
+
+```bash
+docker exec -i misp-docker-openldap-1 ldapmodify -Y EXTERNAL -H ldapi:/// <<'EOF'
+dn: cn=module{0},cn=config
+changetype: modify
+add: olcModuleLoad
+olcModuleLoad: /opt/bitnami/openldap/lib/openldap/memberof.so
+
+dn: olcOverlay=memberof,olcDatabase={2}mdb,cn=config
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcMemberOf
+olcOverlay: memberof
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfNames
+olcMemberOfMemberAD: member
+olcMemberOfMemberOfAD: memberOf
+EOF
+```
+
+Four things that make this fiddlier than it looks:
+
+* **The module path must be absolute.** `olcModulePath` on this image points
+  at `libexec/openldap`, which holds only `autogroup.so` and `pw-sha2.so`;
+  `memberof.so` lives in `lib/openldap`. A bare `olcModuleLoad: memberof.so`
+  therefore fails to find it.
+* **`(olcDatabase=*mdb)` matches nothing.** That attribute has no substring
+  matching rule, so the filter returns success with zero entries rather than
+  an error. Enumerate `(objectClass=olcDatabaseConfig)` and pick the mdb DN.
+* **A schema check is not a support check.** OpenLDAP cannot unload a module,
+  so once `memberof.so` is loaded the attribute type stays advertised even if
+  the overlay is deleted. Support is probed functionally instead: create a
+  group and see whether `memberOf` actually appears.
+* **`memberOf` is only maintained going forward.** Memberships that existed
+  before the overlay was loaded do not get it retroactively, so the
+  pre-existing `cn=readers` group has none. The fixtures create their groups
+  per test, so this does not affect the suite.
 
 ## Behaviour worth knowing
 

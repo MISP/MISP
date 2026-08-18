@@ -272,19 +272,21 @@ def test_group_mapping_finds_nothing_when_groups_are_outside_ldap_dn(
 
 
 def test_use_member_of_reads_groups_from_the_user_entry(
-    misp, misp_admin_api, ldap_admin, ldap_config, ldap_settings, ldap_fixtures
+    misp, misp_admin_api, memberof_supported, ldap_config, ldap_settings,
+    ldap_fixtures
 ):
     """ldapUseMemberOf resolves groups without searching for them.
 
     It reads `memberOf` off the user entry, so it works even when groups sit
-    outside `ldapDn` -- but the mapping keys must then be full group DNs.
-    Requires the directory to maintain `memberOf` (the OpenLDAP `memberof`
-    overlay); bitnami/openldap does not enable it by default.
+    outside `ldapDn` -- note the search base here stays narrowed, which the
+    `(member=<dn>)` path cannot cope with. The mapping keys are full group DNs
+    rather than CNs.
+
+    Requires the directory to maintain `memberOf`. bitnami/openldap ships the
+    overlay but does not enable it, so `memberof_supported` turns it on.
     """
-    if "memberof" not in {
-        name.lower() for name in ldap_admin.server.schema.attribute_types
-    }:
-        pytest.skip("directory does not maintain memberOf (overlay not enabled)")
+    if not memberof_supported:
+        pytest.skip("directory does not maintain memberOf (overlay unavailable)")
 
     if misp_admin_api is None:
         pytest.skip("needs AUTH to read the provisioned role")
