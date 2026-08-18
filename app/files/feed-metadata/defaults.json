@@ -2505,5 +2505,51 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "name": "ThreatCluster OSINT Feed",
+      "provider": "ThreatCluster",
+      "url": "https://threatcluster.io/misp",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "3",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "ThreatCluster IOC Blocklist (network indicators)",
+      "provider": "ThreatCluster",
+      "url": "https://threatcluster.io/api/iocs/public/feed.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]
