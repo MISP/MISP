@@ -182,6 +182,30 @@ Two things make this slower than it looks:
   SELECT ip, username, expire FROM bruteforces ORDER BY expire DESC;
   ```
 
+## In CI
+
+`.github/workflows/main.yml` runs this suite against a `bitnami/openldap`
+service container, mirroring the openldap service in misp-docker's compose
+override so the same tests run unchanged in both places. Differences worth
+knowing if you touch that workflow:
+
+* **MISP is not containerised there.** It runs on the runner under Apache with
+  mod_php, so `MISP_CONTAINER` and `MISP_PHP_USER` are set to the empty string
+  and the config helpers invoke `php` directly. Empty is meaningful here and
+  distinct from unset, which selects the docker defaults.
+* **The step runs last, on purpose.** Writing an `LdapAuth` block switches the
+  whole instance to LDAP authentication (`mixedAuth` off), so it is placed
+  after the other suites where nothing else logs in through the web form.
+* **Writing the config is what loads the plugin** — bootstrap does
+  `if (Configure::read('LdapAuth')) CakePlugin::load('LdapAuth')`, so no
+  bootstrap edit is needed, unlike ShibbAuth.
+* **`opcache.revalidate_freq` is set to 0** for Apache, so config writes take
+  effect immediately and `MISP_CONFIG_SETTLE_SECONDS` can be near zero
+  instead of the several seconds needed against a stock instance.
+* **The container id is resolved at runtime** into `LDAP_CONTAINER`, since
+  GitHub names service containers itself. If that lookup fails the
+  `ldapUseMemberOf` test skips and everything else still runs.
+
 ## The memberof overlay
 
 `ldapUseMemberOf` needs the directory to maintain a `memberOf` attribute on

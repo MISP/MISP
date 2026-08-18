@@ -56,9 +56,21 @@ def pytest_configure(config):
     )
 
 
-def _env(name, default):
-    value = os.environ.get(name, "").strip()
-    return value if value else default
+def _env(name, default, allow_empty=False):
+    """Read an environment variable, falling back to `default`.
+
+    With `allow_empty`, an explicitly empty value is honoured rather than
+    treated as unset. That is how "MISP is not in a container" is expressed:
+    `MISP_CONTAINER=""` has to mean "run php directly", not "use the default
+    container name".
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    value = raw.strip()
+    if value or allow_empty:
+        return value
+    return default
 
 
 class LdapConfig:
@@ -273,7 +285,8 @@ def memberof_supported(ldap_config):
     if _directory_maintains_memberof(ldap_config):
         return True
 
-    container = _env("LDAP_CONTAINER", "misp-docker-openldap-1")
+    container = _env("LDAP_CONTAINER", "misp-docker-openldap-1",
+                     allow_empty=True)
     if not container or _env("LDAP_AUTO_MEMBEROF", "1") in ("0", "false", "no"):
         return False
 
@@ -544,9 +557,12 @@ def misp_instance_config():
     """Helper for mutating the instance's config, or None when unreachable."""
     settle = _env("MISP_CONFIG_SETTLE_SECONDS", "")
     instance = MispInstanceConfig(
-        container=_env("MISP_CONTAINER", "misp-docker-misp-core-1"),
+        # Both accept an explicit empty value: no container means run php on
+        # this host, no php user means run it as whoever we already are.
+        container=_env("MISP_CONTAINER", "misp-docker-misp-core-1",
+                       allow_empty=True),
         script=_env("MISP_CONFIG_SCRIPT", "/var/www/MISP/tests/modify_config.php"),
-        php_user=_env("MISP_PHP_USER", "www-data"),
+        php_user=_env("MISP_PHP_USER", "www-data", allow_empty=True),
         config_file=_env("MISP_CONFIG_FILE", "/var/www/MISP/app/Config/config.php"),
         settle_seconds=float(settle) if settle else None,
     )

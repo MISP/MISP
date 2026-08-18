@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline, crud_refactor, templating]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline, crud_refactor, templating, mps-ldapauth-revamp]
   pull_request:
     branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix]
 
@@ -55,6 +55,25 @@ jobs:
           --health-timeout=3s
           --health-retries=30
 
+      openldap:
+        image: bitnami/openldap
+        env:
+          LDAP_ADMIN_USERNAME: admin
+          LDAP_ADMIN_PASSWORD: password
+          LDAP_USERS: testuser
+          LDAP_PASSWORDS: userpassword
+          LDAP_ROOT: dc=example,dc=com
+          LDAP_ADMIN_DN: cn=admin,dc=example,dc=com
+          LDAP_USER_DN: ou=users,dc=example,dc=com
+        ports:
+          - 1389:1389
+          - 1636:1636
+        options: >-
+          --health-cmd="ldapsearch -x -H ldap://127.0.0.1:1389 -D cn=admin,dc=example,dc=com -w password -b dc=example,dc=com -s base"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -91,6 +110,32 @@ jobs:
           echo "Redis did not become ready in time"
           exit 1
 
+      - name: Wait for OpenLDAP service
+        run: |
+          sudo apt-get -y update --allow-releaseinfo-change
+          sudo apt-get -y install ldap-utils
+          for i in {1..60}; do
+            ldapsearch -x -H ldap://127.0.0.1:1389 \
+              -D "cn=admin,dc=example,dc=com" -w password \
+              -b "dc=example,dc=com" -s base >/dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "OpenLDAP did not become ready in time"
+          ldapsearch -x -H ldap://127.0.0.1:1389 \
+            -D "cn=admin,dc=example,dc=com" -w password \
+            -b "dc=example,dc=com" -s base || true
+          exit 1
+
+      # GitHub names service containers itself, so the LdapAuth tests cannot
+      # guess it. They use this to enable the memberof overlay (needed by the
+      # ldapUseMemberOf test) via ldapmodify over the container's ldapi
+      # socket. Left empty if lookup fails: that test skips, rest still run.
+      - name: Locate the OpenLDAP container
+        run: |
+          cid=$(docker ps --filter "ancestor=bitnami/openldap" --format '{{.ID}}' | head -n1)
+          echo "Resolved OpenLDAP container: '${cid}'"
+          echo "LDAP_CONTAINER=${cid}" >> $GITHUB_ENV
+
       # prepare php stuff
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -123,6 +168,23 @@ jobs:
           ini=/etc/php/$php_version/apache2/php.ini
           sudo sed -i -E 's/^\s*memory_limit\s*=.*/memory_limit = 512M/' "$ini"
           grep -E '^\s*memory_limit' "$ini"
+
+      # The LdapAuth tests rewrite app/Config/config.php and then log in to
+      # observe the effect. opcache only re-stats a file every
+      # opcache.revalidate_freq seconds (2 by default), so without this the
+      # request runs against the *previous* config and the tests fail in a way
+      # that looks like a plugin bug rather than a caching artefact.
+      - name: Make config.php changes visible immediately (opcache)
+        env:
+          php_version: ${{ matrix.php }}
+        run: |
+          ini=/etc/php/$php_version/apache2/php.ini
+          if grep -qE '^\s*;?\s*opcache.revalidate_freq' "$ini"; then
+            sudo sed -i -E 's/^\s*;?\s*opcache.revalidate_freq\s*=.*/opcache.revalidate_freq = 0/' "$ini"
+          else
+            echo 'opcache.revalidate_freq = 0' | sudo tee -a "$ini" > /dev/null
+          fi
+          grep -E '^\s*opcache.revalidate_freq' "$ini"
 
       # Runs a set of commands using the runners shell
       - name: Install deps
@@ -328,6 +390,64 @@ jobs:
           pip install jsonschema
           python tools/misp-feed/validate.py
           deactivate
+
+      # Deliberately after the other suites: this switches the instance to
+      # LDAP authentication, which changes how every subsequent form login
+      # behaves. Nothing after this point logs in through the web form.
+      - name: Run LdapAuth tests
+        run: |
+          # Writing an LdapAuth block is what loads the plugin -- bootstrap
+          # does `if (Configure::read('LdapAuth')) CakePlugin::load(...)`.
+          # `cake Admin setSetting` cannot be used: LdapAuth.* keys are not in
+          # MISP's settings schema.
+          php tests/modify_config.php modify '{
+            "Security": {"auth": ["LdapAuth.Ldap"]},
+            "LdapAuth": {
+              "ldapServer": "ldap://127.0.0.1:1389",
+              "ldapDn": "ou=users,dc=example,dc=com",
+              "ldapReaderUser": "cn=testuser,ou=users,dc=example,dc=com",
+              "ldapReaderPassword": "userpassword",
+              "ldapSearchFilter": "",
+              "ldapSearchAttribute": "mail",
+              "ldapEmailField": ["mail"],
+              "ldapNetworkTimeout": -1,
+              "ldapProtocol": 3,
+              "ldapAllowReferrals": true,
+              "starttls": false,
+              "mixedAuth": false,
+              "ldapDefaultOrgId": 1,
+              "ldapDefaultRoleId": 3,
+              "updateUser": true,
+              "debug": true
+            }
+          }' > /dev/null
+
+          . ./venv/bin/activate
+          python -m pytest tests/ldapauth -v --durations=0
+          deactivate
+        env:
+          MISP_URL: http://localhost
+          # MISP runs directly on the runner here, not in a container, so the
+          # config helpers invoke php locally and as the current user. Both
+          # must be explicitly empty -- unset would mean "use the docker
+          # defaults" that the local misp-docker setup relies on.
+          MISP_CONTAINER: ""
+          MISP_PHP_USER: ""
+          MISP_CONFIG_SCRIPT: tests/modify_config.php
+          MISP_CONFIG_FILE: app/Config/config.php
+          # opcache.revalidate_freq is 0 here, so no settle time is needed.
+          MISP_CONFIG_SETTLE_SECONDS: "0.2"
+          # Must agree with the LdapAuth block written above.
+          MISP_LDAP_MIXED_AUTH: "0"
+          MISP_LDAP_ORG_ID: "1"
+          MISP_LDAP_ROLE_ID: "3"
+          LDAP_URI: ldap://127.0.0.1:1389
+          LDAP_READER_DN: cn=testuser,ou=users,dc=example,dc=com
+          LDAP_READER_PASSWORD: userpassword
+          # LDAP_CONTAINER is exported to $GITHUB_ENV by the wait step above.
+          # It lets the suite enable the memberof overlay, which bitnami ships
+          # but does not turn on; if it is empty the ldapUseMemberOf test
+          # skips rather than failing.
 
       - name: Check requirements.txt
         run: python tests/check_requirements.py
