@@ -25,6 +25,7 @@ setup used for local development:
     MISP_LDAP_MIXED_AUTH 0  (MISP's LdapAuth.mixedAuth)
 """
 
+import json
 import os
 import re
 import uuid
@@ -180,15 +181,21 @@ class LdapFixtureFactory:
             )
         return dn
 
-    def add_user(self, uid=None, password="userpassword", mail=_UNSET, **extra):
+    def add_user(self, uid=None, password="userpassword", mail=_UNSET,
+                 base=None, **extra):
+        """Create an inetOrgPerson.
+
+        `base` defaults to the search base MISP is configured with; pass the
+        directory root to place an entry deliberately *outside* it.
+        """
         uid = uid or "misptest-{}".format(uuid.uuid4().hex[:10])
         if mail is _UNSET:
             mail = "{}@example.com".format(uid)
-        base = self.config.users_dn
+        base = base or self.config.users_dn
         first_rdn = base.split(",")[0]
         if first_rdn.lower().startswith("ou="):
             self.ensure_ou(base, first_rdn.split("=", 1)[1])
-        dn = "uid={},{}".format(uid, self.config.users_dn)
+        dn = "uid={},{}".format(uid, base)
         attributes = {
             "cn": uid,
             "sn": uid,
@@ -271,6 +278,26 @@ class MispAdminApi:
             if user.get("email") == email:
                 return user["id"]
         return None
+
+    def view_user(self, user_id):
+        response = self.session.get(
+            self._url("/admin/users/view/{}.json".format(user_id)),
+            verify=self.config.verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()["User"]
+
+    def set_disabled(self, user_id, disabled):
+        """Enable or disable a MISP account, the way an admin would."""
+        response = self.session.post(
+            self._url("/admin/users/edit/{}".format(user_id)),
+            data=json.dumps({"User": {"id": user_id, "disabled": bool(disabled)}}),
+            verify=self.config.verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
 
     def delete_user(self, user_id):
         response = self.session.post(

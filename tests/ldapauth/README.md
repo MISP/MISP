@@ -97,8 +97,12 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   If these fail, every other failure in the suite is noise.
 * `test_login.py`: the plugin's login path, successful authentication,
   auto-provisioning with the configured org/role, repeat logins reusing the
-  same account, wrong passwords, users invisible to `ldapSearchAttribute`,
-  unknown users, the `mixedAuth` fallback, and logout.
+  same account, case-insensitive address matching, duplicate `mail` entries,
+  wrong passwords, users invisible to `ldapSearchAttribute`, unknown users,
+  the `mixedAuth` fallback, and logout.
+* `test_security.py`: the ways a login must be refused, empty passwords,
+  search-filter injection, and accounts sitting outside `ldapDn`. Also pins
+  the one case where a refusal is silently undone, see below.
 
 ## Fixtures
 
@@ -127,3 +131,21 @@ Two misconfigurations that produce confusing failures, both seen in practice:
 2. **`mixedAuth => false` locks local accounts out of the web form**, including
    `admin@admin.test`, since they have no LDAP entry. API access via authkey is
    unaffected, which is why `AUTH` still works for cleanup.
+
+## Behaviour worth knowing
+
+Verified against a live instance while writing `test_security.py`:
+
+* **Disabling a user in MISP does not lock them out.** With `updateUser`
+  enabled the plugin writes `disabled = 0` every time it refreshes an account,
+  so the next LDAP login silently re-enables it. Revocation has to happen in
+  the directory, by removing the entry or the attribute that
+  `ldapSearchAttribute` matches.
+* **Empty passwords are refused by the directory, not by the plugin.**
+  `ldap_bind()` is called with whatever was submitted and no empty-password
+  check. OpenLDAP answers an unauthenticated bind with `Server is unwilling to
+  perform`, but a directory configured to allow it would turn this into an
+  authentication bypass for any known address.
+* **The address is matched case-insensitively and canonicalised.** The MISP
+  account is keyed on the value read back from the directory, not on what was
+  typed, so varying the case cannot fork one person into several accounts.
