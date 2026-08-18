@@ -28,6 +28,8 @@ setup used for local development:
 import json
 import os
 import re
+import subprocess
+import time
 import uuid
 import warnings
 
@@ -219,6 +221,15 @@ class LdapFixtureFactory:
         self._add(dn, "groupOfNames", {"cn": cn, "member": members})
         return {"dn": dn, "cn": cn, "member": members}
 
+    def track_provisioned_email(self, email):
+        """Register an address whose MISP account also needs deleting.
+
+        add_user() does this for the addresses it generates; call it by hand
+        when a test makes MISP name an account from something else, such as an
+        ldapEmailField fallback.
+        """
+        self._provisioned_emails.append(email)
+
     def cleanup(self):
         for dn in self._created:
             self.connection.delete(dn)
@@ -241,6 +252,184 @@ def ldap_fixtures(ldap_admin, ldap_config, misp_admin_api):
     factory = LdapFixtureFactory(ldap_admin, ldap_config, misp_admin_api)
     yield factory
     factory.cleanup()
+
+
+class MispInstanceConfig:
+    """Reads and rewrites the running instance's `LdapAuth` settings.
+
+    Uses MISP's own `tests/modify_config.php`, the same helper the docker image
+    calls from `configure_misp.sh`, so the file is written exactly the way MISP
+    writes it. CakePHP re-reads `config.php` on every request, so changes take
+    effect on the next login with **no container restart**.
+
+    `cake Admin setSetting` is not an option here: `LdapAuth.*` keys are not in
+    MISP's settings schema and it rejects them with "No valid setting found".
+
+    Note the docker entrypoint regenerates `config.php` from `LDAPAUTH_*`
+    environment variables on container start, so anything written here is
+    reverted by a restart. That is fine for tests, which restore the original
+    themselves, but it means this is not a way to configure an instance.
+    """
+
+    def __init__(self, container, script, php_user="www-data",
+                 config_file=None, settle_seconds=None):
+        self.container = container
+        self.script = script
+        self.php_user = php_user
+        self.config_file = config_file or "/var/www/MISP/app/Config/config.php"
+        self._settle_seconds = settle_seconds
+
+    def _argv(self, *command):
+        argv = []
+        if self.container:
+            argv += ["docker", "exec", self.container]
+        if self.php_user:
+            argv += ["sudo", "-u", self.php_user]
+        return argv + list(command)
+
+    def _exec(self, *command):
+        result = subprocess.run(
+            self._argv(*command), capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "{} failed ({}): {}".format(
+                    command[0], result.returncode, result.stderr.strip()
+                )
+            )
+        return result.stdout
+
+    @property
+    def settle_seconds(self):
+        """How long to wait for PHP to notice a rewritten config.php.
+
+        PHP's opcache only re-stats a file every `opcache.revalidate_freq`
+        seconds, so a config written moments ago is invisible to the next
+        request and MISP keeps executing the previous one. Tests that write a
+        setting and immediately log in would otherwise assert against config
+        that is not in effect yet -- silently, and only sometimes.
+        """
+        if self._settle_seconds is None:
+            self._settle_seconds = self._detect_settle_seconds()
+        return self._settle_seconds
+
+    def _detect_settle_seconds(self):
+        try:
+            raw = self._exec(
+                "php", "-r",
+                'echo ini_get("opcache.validate_timestamps"), ",",'
+                ' ini_get("opcache.revalidate_freq");',
+            )
+            validates, freq = raw.strip().split(",")
+        except (RuntimeError, OSError, ValueError):
+            return 5.0
+
+        if validates in ("", "0"):
+            raise RuntimeError(
+                "opcache.validate_timestamps is off on this instance, so "
+                "config.php changes never take effect without restarting PHP. "
+                "Set MISP_CONFIG_SETTLE_SECONDS only if you know otherwise."
+            )
+        # opcache may re-stat the file anywhere up to revalidate_freq seconds
+        # *after* our write, and the recompile happens on the request after
+        # that, so one full cycle of margin is not enough. Measured on
+        # freq=2: 2.5s still served the old config, 5s was reliable.
+        return max(1.0, float(freq or 0) * 2 + 1.0)
+
+    def _settle(self):
+        time.sleep(self.settle_seconds)
+
+    def read(self):
+        """Return the whole config, without writing anything.
+
+        `modify_config.php` always rewrites the file, even for a no-op merge,
+        so reading through it would churn the mtime on every call. Including
+        the file directly keeps reads free of side effects.
+        """
+        raw = self._exec(
+            "php", "-r",
+            'include "{}"; echo json_encode($config);'.format(self.config_file),
+        )
+        return json.loads(raw)
+
+    def replace(self, config):
+        """Write `config` verbatim, then wait for PHP to pick it up.
+
+        Deliberately not `modify`: that merges recursively, so shrinking a list
+        setting such as `ldapEmailField` would leave the old trailing entries
+        in place. Replacing a config we just read avoids that entirely.
+        """
+        previous = self._exec(
+            "php", self.script, "replace", json.dumps(config)
+        )
+        self._settle()
+        return json.loads(previous)
+
+    def available(self):
+        try:
+            self.read()
+            return True
+        except (RuntimeError, OSError, ValueError):
+            return False
+
+
+class LdapSettings:
+    """Applies `LdapAuth` overrides to a live instance and restores them."""
+
+    def __init__(self, instance_config):
+        self.instance_config = instance_config
+        self.original = instance_config.read()
+
+    def set(self, **overrides):
+        """Merge `overrides` into the LdapAuth block and write it out.
+
+        Values are whatever the plugin expects: `ldapDefaultRoleId` may be an
+        int or a group->role dict, `ldapEmailField` a list, and so on.
+        """
+        config = self.instance_config.read()
+        config.setdefault("LdapAuth", {}).update(overrides)
+        self.instance_config.replace(config)
+        return config["LdapAuth"]
+
+    def current(self):
+        return self.instance_config.read().get("LdapAuth", {})
+
+    def restore(self):
+        self.instance_config.replace(self.original)
+
+
+@pytest.fixture(scope="session")
+def misp_instance_config():
+    """Helper for mutating the instance's config, or None when unreachable."""
+    settle = _env("MISP_CONFIG_SETTLE_SECONDS", "")
+    instance = MispInstanceConfig(
+        container=_env("MISP_CONTAINER", "misp-docker-misp-core-1"),
+        script=_env("MISP_CONFIG_SCRIPT", "/var/www/MISP/tests/modify_config.php"),
+        php_user=_env("MISP_PHP_USER", "www-data"),
+        config_file=_env("MISP_CONFIG_FILE", "/var/www/MISP/app/Config/config.php"),
+        settle_seconds=float(settle) if settle else None,
+    )
+    return instance if instance.available() else None
+
+
+@pytest.fixture
+def ldap_settings(misp_instance_config):
+    """Change LdapAuth settings for one test, then put them back.
+
+    Skips when the instance's config cannot be reached, since a test that
+    silently ran against unchanged settings would assert the wrong thing.
+    """
+    if misp_instance_config is None:
+        pytest.skip(
+            "cannot reach the instance's config.php; set MISP_CONTAINER "
+            "(or MISP_CONTAINER='' when MISP runs on this host)"
+        )
+
+    settings = LdapSettings(misp_instance_config)
+    try:
+        yield settings
+    finally:
+        settings.restore()
 
 
 class MispAdminApi:
@@ -278,6 +467,24 @@ class MispAdminApi:
             if user.get("email") == email:
                 return user["id"]
         return None
+
+    def create_user(self, email, password, org_id=1, role_id=3):
+        """Create a database-only user, for testing the mixedAuth fallback."""
+        response = self.session.post(
+            self._url("/admin/users/add"),
+            data=json.dumps({"User": {
+                "email": email,
+                "org_id": org_id,
+                "role_id": role_id,
+                "password": password,
+                "confirm_password": password,
+                "change_pw": 0,
+            }}),
+            verify=self.config.verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()["User"]
 
     def view_user(self, user_id):
         response = self.session.get(

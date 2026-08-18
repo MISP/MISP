@@ -103,6 +103,10 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
 * `test_security.py`: the ways a login must be refused, empty passwords,
   search-filter injection, and accounts sitting outside `ldapDn`. Also pins
   the one case where a refusal is silently undone, see below.
+* `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
+  `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
+  `updateUser`, and group-to-role mapping via `ldapDefaultRoleId`. These
+  rewrite the instance's config, see below.
 
 ## Fixtures
 
@@ -131,6 +135,47 @@ Two misconfigurations that produce confusing failures, both seen in practice:
 2. **`mixedAuth => false` locks local accounts out of the web form**, including
    `admin@admin.test`, since they have no LDAP entry. API access via authkey is
    unaffected, which is why `AUTH` still works for cleanup.
+
+## Changing settings from a test
+
+`ldap_settings` rewrites the running instance's `LdapAuth` block and restores
+it when the test ends, with no container restart:
+
+```python
+def test_something(ldap_settings, misp, ldap_fixtures):
+    user = ldap_fixtures.add_user()
+    ldap_settings.set(ldapDn="dc=example,dc=com", ldapDefaultRoleId={"admins": 1})
+    misp.login(user["mail"], user["password"])
+```
+
+It writes through MISP's own `tests/modify_config.php`, the same helper the
+docker image uses, so the file ends up exactly as MISP would write it.
+`cake Admin setSetting` cannot be used: `LdapAuth.*` keys are not in MISP's
+settings schema and it answers "No valid setting found".
+
+**These tests mutate instance-wide state — run them serially, never with
+`pytest-xdist`.**
+
+Two things make this slower than it looks:
+
+* **PHP opcache.** `opcache.revalidate_freq` (2s by default here) means PHP
+  re-stats `config.php` only every few seconds, so a freshly written setting
+  is *not* in effect for the next request. The fixture waits
+  `revalidate_freq * 2 + 1` seconds after each write, which measured reliable;
+  `revalidate_freq + 0.5` was not. Override with `MISP_CONFIG_SETTLE_SECONDS`,
+  and set `opcache.revalidate_freq=0` on a test instance to drop the wait
+  entirely. Without this wait the tests fail confusingly: the login runs
+  against the *previous* config, so the assertion is right and the state is
+  wrong.
+* **Brute-force protection.** `SecureAuth.amount` failed attempts (5) for one
+  address blocks it for `SecureAuth.expire` seconds (300). Tests that
+  deliberately fail logins therefore use a fresh fixture user rather than
+  reusing one, and `bruteforces` is worth checking if a valid login starts
+  being refused for no visible reason:
+
+  ```sql
+  SELECT ip, username, expire FROM bruteforces ORDER BY expire DESC;
+  ```
 
 ## Behaviour worth knowing
 
