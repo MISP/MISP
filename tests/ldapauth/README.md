@@ -184,10 +184,10 @@ Two things make this slower than it looks:
 
 ## In CI
 
-`.github/workflows/main.yml` runs this suite against a `bitnami/openldap`
-service container, mirroring the openldap service in misp-docker's compose
-override so the same tests run unchanged in both places. Differences worth
-knowing if you touch that workflow:
+`.github/workflows/main.yml` runs this suite against an OpenLDAP service
+container, mirroring the openldap service in misp-docker's compose override so
+the same tests run unchanged in both places. Differences worth knowing if you
+touch that workflow:
 
 * **MISP is not containerised there.** It runs on the runner under Apache with
   mod_php, so `MISP_CONTAINER` and `MISP_PHP_USER` are set to the empty string
@@ -209,7 +209,7 @@ knowing if you touch that workflow:
 ## The memberof overlay
 
 `ldapUseMemberOf` needs the directory to maintain a `memberOf` attribute on
-each user. bitnami/openldap ships `memberof.so` but exposes no environment
+each user. `bitnamilegacy/openldap` ships `memberof.so` but exposes no environment
 variable for it, and its data lives in the container's writable layer rather
 than a volume, so a recreated container comes back without it.
 

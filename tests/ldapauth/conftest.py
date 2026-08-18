@@ -217,6 +217,12 @@ def _directory_maintains_memberof(ldap_config):
             return False
         values = connection.entries[0].entry_attributes_as_dict.get("memberOf")
         return bool(values)
+    except LDAPException:
+        # On a server that never loaded the overlay, memberOf is not a known
+        # attribute type at all and ldap3 raises rather than returning an
+        # empty result. That is the state a freshly created container is in,
+        # so it has to read as "unsupported", not as an error.
+        return False
     finally:
         connection.delete(group_dn)
         connection.delete(user_dn)
