@@ -45,6 +45,7 @@ if (!class_exists('StubCakeRequest', false)) {
     {
         public $headers = [];
         public $body = [];
+        public $data = [];
 
         public function header($name)
         {
@@ -55,6 +56,17 @@ if (!class_exists('StubCakeRequest', false)) {
         {
             return isset($this->body[$path]) ? $this->body[$path] : null;
         }
+    }
+}
+
+if (!class_exists('StubScalarDataRequest', false)) {
+    /**
+     * A request whose body collapsed to a scalar, as CakeRequest does for a body
+     * of `data=[]`.
+     */
+    class StubScalarDataRequest extends StubCakeRequest
+    {
+        public $data = '[]';
     }
 }
 
@@ -262,6 +274,21 @@ class BetterSecurityComponentTest extends TestCase
         $component->Session = new StubSessionComponent();
         $this->assertSame('parent', $component->callValidateCsrf($this->controller));
         $this->assertTrue($component->parentCsrfReached);
+    }
+
+    /**
+     * _processPost() replaces the whole of request->data with the value of a
+     * lone `data` field, so a body of `data=[]` leaves it a string. Cake's own
+     * _validateCsrf() would then type-error in Hash::get() on PHP 8 and surface
+     * as a 500 instead of a refusal.
+     */
+    public function testScalarRequestDataIsRefusedRatherThanCrashing(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $this->controller->request = new StubScalarDataRequest();
+        $this->expectException(SecurityException::class);
+        $component->callValidateCsrf($this->controller);
     }
 
     public function testValidHeaderTokenIsAccepted(): void

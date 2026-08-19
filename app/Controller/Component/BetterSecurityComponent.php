@@ -151,6 +151,15 @@ class BetterSecurityComponent extends SecurityComponent
     {
         $headerToken = $controller->request->header('X-CSRF-Token');
         if (empty($headerToken)) {
+            // Cake reads the body token through CakeRequest::data(), which runs
+            // the path through Hash::get() and type-errors on PHP 8 when
+            // request->data is not an array. It is not an array whenever the body
+            // held a single `data` field: _processPost() replaces the whole of
+            // request->data with that field's value. Such a body carries no token,
+            // so refuse it as one rather than letting it surface as a 500.
+            if (!is_array($controller->request->data)) {
+                throw new SecurityException('Missing CSRF token');
+            }
             return parent::_validateCsrf($controller);
         }
         $token = $this->Session->read('_Token');

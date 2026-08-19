@@ -16,13 +16,18 @@ class DashboardsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // POSTs carry widget data in their body — same CSRF posture
-        // as the v1 dashboards endpoints.
+        // These POST widget data in a hand-built body, with no rendered form
+        // behind them to produce the field hash _validatePost() compares
+        // against. They used to sit in unlockedActions, which also switched off
+        // CSRF validation - and unconditionally, so a plain cross-site form post
+        // needed no `.json` suffix and no JSON Accept header to flip a victim's
+        // theme or rewrite their layout. They now carry the page's CSRF token in
+        // the X-CSRF-Token header instead; only the field-hash check is dropped.
         $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings', 'updateTheme');
-        foreach ($bodyPostActions as $a) {
-            $this->Security->unlockedActions[] = $a;
-        }
+        $this->_csrfTokenHeaderOnly($bodyPostActions);
         if (in_array($this->request->action, $bodyPostActions, true)) {
+            // The page's token is validated but never consumed, so there is no
+            // reason to mint another one per AJAX call.
             $this->Security->doNotGenerateToken = true;
         }
     }
@@ -233,11 +238,13 @@ class DashboardsController extends AppController
 
     /**
      * Persist the user's dashboard light/dark appearance preference
-     * (DD-51). POST-only, REST-style like updateSettings — the client
-     * posts with `Accept: application/json`, so AppController disables
-     * csrfCheck, and `updateTheme` is in beforeFilter's unlockedActions
-     * so the Security component's body-tampering check is skipped (the
-     * POST carries no `_Token` fields, mirroring updateSettings).
+     * (DD-51). POST-only, REST-style like updateSettings — the POST
+     * carries no `_Token` fields, so beforeFilter puts `updateTheme` on
+     * _csrfTokenHeaderOnly() and the client sends the page's CSRF token
+     * in the X-CSRF-Token header instead. `Accept: application/json` no
+     * longer buys any exemption of its own: a cross-origin page can set
+     * that header without a preflight, which is exactly what made this
+     * endpoint forgeable before.
      *
      * The toggle button only ever commits an explicit 'light' or 'dark';
      * 'auto' is the *absence* of an explicit choice (resolved client-side
