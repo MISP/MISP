@@ -257,6 +257,43 @@ Four things that make this fiddlier than it looks:
   pre-existing `cn=readers` group has none. The fixtures create their groups
   per test, so this does not affect the suite.
 
+## Linking a MISP account to an LDAP user
+
+Two settings decide identity, and they are independent:
+
+* `ldapSearchAttribute` — what the value typed into the login form is matched
+  against, as `(<ldapSearchAttribute>=<typed value>)`.
+* `ldapEmailField` — an ordered list; the first attribute present on the entry
+  becomes the MISP account's `email`, which is the join key on MISP's side.
+
+**UPN, or any `user@domain` attribute, works.** Point both at it:
+
+```php
+'ldapSearchAttribute' => 'userPrincipalName',
+'ldapEmailField' => ['userPrincipalName'],
+```
+
+Any attribute will do — `sAMAccountName`, `uid`, `employeeID`. A bare
+`sAMAccountName` still lands in MISP's `email` column, though, so anything
+MISP does with email breaks; `samaccountname@domain-fqdn` avoids that.
+
+Field names are matched case-insensitively, so `userPrincipalName` may be
+spelled the way the schema spells it. (`ldap_get_entries()` lowercases
+attribute names; the plugin used to compare literally, which refused the login
+for any camelCase field.)
+
+**The full DN works as the link, but not as the search attribute.**
+`ldapEmailField => ['dn']` names each account after its own distinguished
+name. As a *search* attribute the login is refused, since `dn` is not an
+attribute and `(dn=...)` matches nothing.
+
+**No link is stable.** The attribute's value *is* the identity; nothing stores
+`objectGUID` or `entryUUID`. Rename someone and the next login creates a
+second account while the first keeps its role and stays enabled, since the
+group-mapping path only runs for users the plugin can still find. Prefer the
+most stable attribute the directory offers, and expect to merge by hand after
+a rename.
+
 ## Behaviour worth knowing
 
 Verified against a live instance while writing `test_security.py`:
@@ -266,11 +303,15 @@ Verified against a live instance while writing `test_security.py`:
   so the next LDAP login silently re-enables it. Revocation has to happen in
   the directory, by removing the entry or the attribute that
   `ldapSearchAttribute` matches.
-* **Empty passwords are refused by the directory, not by the plugin.**
-  `ldap_bind()` is called with whatever was submitted and no empty-password
-  check. OpenLDAP answers an unauthenticated bind with `Server is unwilling to
-  perform`, but a directory configured to allow it would turn this into an
-  authentication bypass for any known address.
+* **Empty passwords are refused by the plugin, before the directory is
+  contacted.** An empty password makes `ldap_bind()` perform an
+  *unauthenticated* bind, which LDAP treats as a success for any existing DN,
+  so a directory that permits those would authenticate any account whose
+  address is known. OpenLDAP happens to refuse them (`Server is unwilling to
+  perform`), which is why a purely behavioural test cannot tell the guard from
+  the directory covering for it —
+  `test_empty_password_never_reaches_the_directory` points the plugin at a
+  dead address to separate the two.
 * **The address is matched case-insensitively and canonicalised.** The MISP
   account is keyed on the value read back from the directory, not on what was
   typed, so varying the case cannot fork one person into several accounts.

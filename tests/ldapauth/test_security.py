@@ -23,25 +23,58 @@ INJECTION_PAYLOADS = [
 def test_empty_password_is_refused(misp, ldap_fixtures):
     """An empty password must never authenticate.
 
-    LdapAuthenticate passes the submitted password straight to ldap_bind()
-    with no empty check. An empty password is an *unauthenticated bind* in
-    LDAP terms, which some servers answer with success -- that would be a
-    complete authentication bypass for any known account.
-
-    OpenLDAP refuses it (`Server is unwilling to perform`), so the protection
-    here comes from the directory rather than from the plugin. That is exactly
-    why this test exists: it fails loudly if the directory is ever swapped for
-    one that permits unauthenticated binds.
+    An empty password makes ldap_bind() perform an *unauthenticated* bind,
+    which LDAP treats as a success for any existing DN. A directory that does
+    not refuse those -- RFC 4513 leaves that to the server -- would hand out a
+    session for any account whose identifier is known.
     """
     user = ldap_fixtures.add_user()
 
     misp.login(user["mail"], "")
 
     assert not misp.is_authenticated(), (
-        "Empty password authenticated {}. The LDAP server accepted an "
-        "unauthenticated bind and the plugin has no empty-password guard."
-        .format(user["mail"])
+        "Empty password authenticated {}".format(user["mail"])
     )
+
+
+def test_empty_password_never_reaches_the_directory(misp_config, ldap_settings,
+                                                    ldap_fixtures):
+    """The refusal is the plugin's, not the directory's.
+
+    The previous test passes either way, because OpenLDAP happens to answer an
+    unauthenticated bind with `Server is unwilling to perform`. That makes it
+    blind to the guard being removed, as long as the directory keeps covering
+    for it.
+
+    Pointing the plugin at a dead address separates the two: an empty password
+    is rejected before any connection is attempted, so the login fails
+    normally (HTTP 200). Anything that does reach the directory blows up on
+    the unreachable server instead and surfaces as a 401, which is what the
+    control case below asserts.
+    """
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    ldap_settings.set(ldapServer="ldap://127.0.0.1:1")
+
+    refused = MispClient(misp_config)
+    response = refused.login(user["mail"], "")
+    assert not refused.is_authenticated()
+    assert response.status_code == 200, (
+        "expected the empty password to be refused before connecting; a 401 "
+        "means the plugin went to the directory first"
+    )
+    refused.session.close()
+
+    # Control: a real password does reach the (dead) directory, proving the
+    # server really was unreachable and the 200 above was the guard.
+    contacted = MispClient(misp_config)
+    control = contacted.login(user["mail"], user["password"])
+    assert not contacted.is_authenticated()
+    assert control.status_code == 401, (
+        "the directory was reachable after all, so this test proves nothing"
+    )
+    contacted.session.close()
 
 
 @pytest.mark.parametrize("payload", INJECTION_PAYLOADS)

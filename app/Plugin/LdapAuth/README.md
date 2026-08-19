@@ -59,10 +59,13 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `'uid'`
 
 ### `ldapEmailField`
-- **Description**: Specifies which LDAP attribute(s) to use for retrieving the user's email address.
+- **Description**: Specifies which LDAP attribute(s) to use for retrieving the user's email address. The attributes are tried in order and the first one present on the entry is used. Its value becomes the MISP user's email, which is what links the MISP account to the LDAP user, so prefer an attribute that is unique and as stable as possible. Attribute names are matched case-insensitively. The special value `dn` uses the entry's full distinguished name.
 - **Type**: `array`
 - **Default**: `['mail']`
 - **Example**: `['mail', 'userPrincipalName']`
+- **Example of linking by DN**: `['dn']`
+
+> **NOTE:** MISP has no immutable identifier for an LDAP user, the value of this attribute *is* the identity. If it changes in the directory, the next login creates a second MISP account instead of updating the existing one, and the old account keeps its role and stays enabled.
 
 ### `ldapNetworkTimeout`
 - **Description**: Sets the timeout for the network connection to the LDAP server, in seconds.

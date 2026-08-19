@@ -111,6 +111,156 @@ def test_email_field_falls_back_to_the_next_attribute(misp, ldap_settings,
     ldap_fixtures.track_provisioned_email(uid)
 
 
+def test_upn_style_attribute_links_the_account(misp, ldap_settings,
+                                               ldap_fixtures):
+    """A `user@domain` attribute can serve as the link between MISP and LDAP.
+
+    Pointing both settings at the same attribute is how UPN linking is done:
+    ldapSearchAttribute decides what people type, ldapEmailField decides what
+    names the MISP account. On AD that attribute is `userPrincipalName`; the
+    directory used here has no such schema, so `uid` carries the UPN-shaped
+    value instead -- the plugin treats any attribute alike.
+    """
+    upn = "jdoe-{}@example.com".format(uuid.uuid4().hex[:8])
+    user = ldap_fixtures.add_user(uid=upn, mail=None)
+    ldap_fixtures.track_provisioned_email(upn)
+
+    ldap_settings.set(ldapSearchAttribute="uid", ldapEmailField=["uid"])
+
+    misp.login(upn, user["password"])
+    misp.assert_logged_in(upn)
+    assert misp.current_user()["email"] == upn
+
+
+def test_dn_cannot_be_used_as_the_search_attribute(misp, ldap_settings,
+                                                   ldap_fixtures):
+    """A full DN is not a usable login identifier.
+
+    `dn` is not an attribute, so the filter `(dn=uid=...,ou=...)` matches
+    nothing. Worth pinning because it fails closed -- unlike using the DN as
+    the link attribute, which does not.
+    """
+    user = ldap_fixtures.add_user()
+
+    ldap_settings.set(ldapSearchAttribute="dn")
+
+    misp.login(user["dn"], user["password"])
+    assert not misp.is_authenticated()
+
+
+def test_dn_can_be_used_as_the_link_attribute(misp_config, ldap_settings,
+                                              ldap_fixtures):
+    """Linking on `dn` names each account after its own distinguished name.
+
+    `ldap_get_entries()` returns `dn` as a plain string rather than a
+    one-element array, so indexing it blindly yielded the DN's *first
+    character*: every entry under `uid=...` collapsed onto a single shared
+    account called `u`, with two people using whichever role was written last.
+    getEmailAddress() now branches on the type, which both fixes the collision
+    and makes the full DN usable as the link.
+    """
+    from conftest import MispClient
+
+    first = ldap_fixtures.add_user()
+    second = ldap_fixtures.add_user()
+    for user in (first, second):
+        ldap_fixtures.track_provisioned_email(user["dn"])
+    # The account the collapsing bug used to create, so a regression that
+    # brings it back does not leave it behind.
+    ldap_fixtures.track_provisioned_email(first["dn"][0])
+
+    ldap_settings.set(ldapEmailField=["dn"])
+
+    names = []
+    for user in (first, second):
+        client = MispClient(misp_config)
+        client.login(user["mail"], user["password"])
+        client.assert_logged_in(user["mail"])
+        names.append(client.current_user()["email"])
+        client.session.close()
+
+    assert names[0] == first["dn"]
+    assert names[1] == second["dn"]
+    assert names[0] != names[1], (
+        "{} and {} were both linked to the MISP account {!r}".format(
+            first["dn"], second["dn"], names[0]
+        )
+    )
+
+
+def test_email_field_is_matched_case_insensitively(misp, ldap_settings,
+                                                   ldap_fixtures):
+    """ldapEmailField may be spelled the way the schema spells it.
+
+    `ldap_get_entries()` lowercases attribute names, so a literal lookup of a
+    camelCase field never matched and the login was refused. That silently
+    broke the documented UPN setup, where the attribute is naturally written
+    `userPrincipalName`. `displayName` stands in for it here, the directory
+    used in tests having no UPN schema.
+    """
+    value = "cased-{}@example.com".format(uuid.uuid4().hex[:8])
+    user = ldap_fixtures.add_user(mail=None, displayName=value)
+    ldap_fixtures.track_provisioned_email(value)
+
+    ldap_settings.set(
+        ldapSearchAttribute="uid",
+        ldapEmailField=["displayName"],
+    )
+
+    misp.login(user["uid"], user["password"])
+    misp.assert_logged_in(user["uid"])
+    assert misp.current_user()["email"] == value
+
+
+def test_renaming_the_link_attribute_orphans_the_account(misp_config,
+                                                         misp_admin_api,
+                                                         ldap_admin,
+                                                         ldap_fixtures):
+    """Changing the linking value creates a second account, keeping the first.
+
+    The link is the attribute's *value* -- MISP has no immutable identifier
+    for an LDAP user, nothing stores objectGUID or entryUUID -- so a rename or
+    a domain migration forks the account. The old one keeps its role and stays
+    enabled, because the group-mapping path only runs for users the plugin
+    actually finds, and it no longer finds that one.
+
+    Pick the most stable attribute the directory offers, and expect to merge
+    accounts by hand after a rename.
+    """
+    from conftest import MispClient
+
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to enumerate accounts")
+
+    user = ldap_fixtures.add_user()
+
+    first = MispClient(misp_config)
+    first.login(user["mail"], user["password"])
+    first.assert_logged_in(user["mail"])
+    original_id = first.current_user()["id"]
+    first.session.close()
+
+    renamed = "renamed-{}@example.com".format(uuid.uuid4().hex[:8])
+    assert ldap_admin.modify(
+        user["dn"], {"mail": [("MODIFY_REPLACE", [renamed])]}
+    ), ldap_admin.result
+    ldap_fixtures.track_provisioned_email(renamed)
+
+    second = MispClient(misp_config)
+    second.login(renamed, user["password"])
+    second.assert_logged_in(renamed)
+    assert second.current_user()["id"] != original_id, (
+        "expected a second account; the plugin cannot follow a rename"
+    )
+    second.session.close()
+
+    stale = misp_admin_api.view_user(original_id)
+    assert stale["email"] == user["mail"]
+    assert stale["disabled"] is False, (
+        "the orphaned account is left enabled, so access survives the rename"
+    )
+
+
 def test_update_user_false_freezes_an_existing_account(misp_config, misp_admin_api,
                                                        ldap_settings,
                                                        ldap_fixtures):
