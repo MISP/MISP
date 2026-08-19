@@ -49,6 +49,16 @@ class CurlClient extends HttpSocketExtended
     /** @var int|null Maximum response body size in bytes, null for no limit */
     private $maxSize;
 
+    /**
+     * Called as ($fromUrl, $toUrl, $client) before each redirect is taken.
+     * Returning false or throwing refuses the hop. When set, curl's own
+     * following is turned off and redirects are driven here instead, because
+     * curl resolves a redirect target fresh and a pin on the original host
+     * does not constrain it.
+     * @var callable|null
+     */
+    private $redirectValidator;
+
     /** @var array */
     private $defaultOptions;
 
@@ -243,13 +253,35 @@ class CurlClient extends HttpSocketExtended
     }
 
     /**
+     * Vet every redirect before it is taken, instead of letting curl follow
+     * them unseen.
+     *
+     * The callable receives ($fromUrl, $toUrl, $client) and refuses the hop by
+     * returning false or throwing. It is handed the client so it can pin the
+     * new host to an address it has just validated. Only GET and HEAD are
+     * followed; anything else stops at the redirect and returns it.
+     *
+     * @param callable|null $validator null restores curl's own following
+     * @return void
+     */
+    public function setRedirectValidator($validator = null)
+    {
+        if ($validator !== null && !is_callable($validator)) {
+            throw new InvalidArgumentException('Redirect validator must be callable.');
+        }
+        $this->redirectValidator = $validator;
+        $this->setFollowRedirects($validator === null);
+    }
+
+    /**
      * @param string $method
      * @param string $url
      * @param array|string $query
      * @param array $request
+     * @param int $redirectsFollowed
      * @return HttpSocketResponseExtended
      */
-    private function internalRequest($method, $url, $query, $request)
+    private function internalRequest($method, $url, $query, $request, $redirectsFollowed = 0)
     {
         if (empty($url)) {
             throw new InvalidArgumentException("No URL provided.");
@@ -339,7 +371,44 @@ class CurlClient extends HttpSocketExtended
         // See https://github.com/php-mod/curl/issues/95
         curl_reset($this->ch);
 
+        if ($this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD')) {
+            $target = $this->redirectTarget($code, $responseHeaders, $url);
+            if ($target !== null) {
+                if ($redirectsFollowed >= 10) {
+                    throw new SocketException("Too many redirects while fetching $url.");
+                }
+                if (call_user_func($this->redirectValidator, $url, $target, $this) === false) {
+                    throw new SocketException("Refused to follow the redirect from $url to $target.");
+                }
+                // The Location already carries its own query string, so the
+                // original query must not be appended a second time.
+                return $this->internalRequest($method, $target, [], $request, $redirectsFollowed + 1);
+            }
+        }
+
         return $this->constructResponse($output, $responseHeaders, $code);
+    }
+
+    /**
+     * @param int $code
+     * @param array $responseHeaders
+     * @param string $currentUrl
+     * @return string|null absolute redirect target, or null if not a redirect
+     */
+    private function redirectTarget($code, array $responseHeaders, $currentUrl)
+    {
+        if (!in_array((int)$code, [301, 302, 303, 307, 308], true)) {
+            return null;
+        }
+        $location = isset($responseHeaders['location']) ? $responseHeaders['location'] : null;
+        if (is_array($location)) {
+            $location = end($location);
+        }
+        if (empty($location)) {
+            return null;
+        }
+        App::uses('UrlEgressValidator', 'Tools');
+        return UrlEgressValidator::resolveLocation($location, $currentUrl);
     }
 
     public function disconnect()

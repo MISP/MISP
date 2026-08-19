@@ -2218,14 +2218,50 @@ class Feed extends AppModel
      */
     private function getFollowRedirect(HttpSocket $HttpSocket, $url, $request, $iterations = 5)
     {
+        App::uses('UrlEgressValidator', 'Tools');
+        App::uses('CurlClient', 'Tools');
+
         for ($i = 0; $i < $iterations; $i++) {
             $response = $HttpSocket->get($url, [], $request);
-            if ($response->isRedirect()) {
-                $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
-                $url = trim($response->getHeader('Location'), '=');
-            } else {
+            if (!$response->isRedirect()) {
                 return $response;
             }
+
+            // A relative Location used to be passed through unchanged, and
+            // trim($location, '=') was never a sanitiser. Resolve it against
+            // the current URL and strip CR/LF before it becomes a URL again.
+            $target = UrlEgressValidator::resolveLocation($response->getHeader('Location'), $url);
+            if ($target === null) {
+                throw new Exception("Redirect from $url had no usable Location header.");
+            }
+
+            if (UrlEgressValidator::isRedirectAllowed($url, $target)) {
+                // Same host, so still the target the admin configured - an
+                // internal feed that redirects within itself keeps working,
+                // and its headers travel no further than they already did.
+                // Resolved anyway, purely so the address can be pinned.
+                $hop = UrlEgressValidator::validate($target, UrlEgressValidator::POLICY_RESOLVE_ONLY);
+            } else {
+                // A different host, chosen by the feed operator or by anyone
+                // on the path rather than by the admin. It must be external:
+                // whatever the admin authorised, they did not authorise a
+                // third party to move MISP onto internal infrastructure.
+                $hop = UrlEgressValidator::validate($target, UrlEgressValidator::POLICY_DENY_INTERNAL);
+                // Operator-configured feed headers are where Authorization
+                // and API keys for commercial feeds live, and the request was
+                // built once and replayed at every hop, handing those
+                // credentials to whoever the redirect named. Rebuild without.
+                $request = $this->__createFeedRequest();
+            }
+
+            $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
+            if ($HttpSocket instanceof CurlClient && $hop['pin']) {
+                // Connect to the address that was just validated, rather than
+                // resolving the name a second time and trusting the answer.
+                $port = $hop['port'] ?: ($hop['scheme'] === 'https' ? 443 : 80);
+                $HttpSocket->pinHost($hop['host'], $port, $hop['ip']);
+            }
+            $url = $target;
         }
 
         throw new Exception("Too many redirects when fetching $url.");
