@@ -224,10 +224,22 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `" "`
 
 ### `ldapUseMemberOf`
-- **Description**: When enabled, group membership is resolved by reading the `memberOf` attribute directly from the user entry instead of searching for groups whose `member` attribute contains the user DN. Recommended for Microsoft Active Directory. When enabled, keys in `ldapDefaultRoleId` must be the full group DN (e.g. `CN=MISP Admins,OU=Groups,DC=example,DC=com`) rather than the group CN.
+- **Description**: When enabled, group membership is resolved by reading the `memberOf` attribute directly from the user entry instead of searching for groups whose `member` attribute contains the user DN. Recommended for Microsoft Active Directory. When enabled, keys in the group mappings must be the full group DN (e.g. `CN=MISP Admins,OU=Groups,DC=example,DC=com`) rather than the group CN. Resolves **direct** memberships only, since Active Directory does not populate `memberOf` transitively; see `ldapNestedGroups`.
 - **Type**: `boolean`
 - **Default**: `false`
 - **Example**: `true`
+
+### `ldapNestedGroups`
+- **Description**: Resolve group membership through nested groups, so a user who belongs to a group only by way of another group still matches. Without it, only groups listing the user directly are matched, by either membership lookup.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `true`
+
+> **NOTE — Active Directory only.** This works by applying AD's `LDAP_MATCHING_RULE_IN_CHAIN` (`1.2.840.113556.1.4.1941`) to the `member` search, which makes the directory walk the chain server-side. No other directory implements that matching rule, and OpenLDAP in particular answers an extensible match it does not recognise with **success and zero entries** rather than an error. The plugin therefore cannot distinguish "this user has no groups" from "this directory ignored the rule": every group mapping resolves to nothing and the affected logins are refused. A warning naming the matching rule is logged whenever the setting is on and no groups come back, so check `app/tmp/logs/error.log` before assuming the mappings are wrong.
+>
+> Two further consequences:
+> * It **overrides `ldapUseMemberOf`**, which is logged. `memberOf` cannot answer this question, so groups are searched from the group side instead. `ldapDn` must therefore contain the groups, and the mapping keys are group CNs rather than DNs.
+> * The chain walk is more expensive than a plain `member` match, and on large directories it can be noticeably slower per login.
 
 
 ## Example Usage

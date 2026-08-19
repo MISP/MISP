@@ -14,6 +14,11 @@ class LdapAuthenticate extends BaseAuthenticate
 
     protected static $conf;
 
+    // Active Directory's LDAP_MATCHING_RULE_IN_CHAIN. Applied to `member`, it
+    // matches groups reached through nested groups as well as direct ones.
+    // AD-specific: other directories treat it as an unknown matching rule.
+    const LDAP_MATCHING_RULE_IN_CHAIN = '1.2.840.113556.1.4.1941';
+
     /* 
     'LdapAuth' => [
         'ldapServer' => 'ldap://openldap:1389',
@@ -53,6 +58,7 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapEscape' => Configure::read('LdapAuth.ldapEscape') ?? false,
             'ldapEscapeIgnoreChars' => Configure::read('LdapAuth.ldapEscapeIgnoreChars') ?? "",
             'ldapUseMemberOf' => Configure::read('LdapAuth.ldapUseMemberOf') ?? false,
+            'ldapNestedGroups' => Configure::read('LdapAuth.ldapNestedGroups') ?? false,
         ];
 
         if (self::$conf['ldapEscape'] && self::$conf['ldapSearchFilter']) {
@@ -328,15 +334,30 @@ class LdapAuthenticate extends BaseAuthenticate
 
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
+        $nested = self::$conf['ldapNestedGroups'];
+
         if (self::$conf['ldapUseMemberOf']) {
-            return $this->getUserMembershipsFromMemberOf($ldapconn, $ldapUserData);
+            if (!$nested) {
+                return $this->getUserMembershipsFromMemberOf($ldapconn, $ldapUserData);
+            }
+            // `memberOf` cannot answer this: Active Directory keeps it
+            // direct-only, so nesting has to be resolved from the group side.
+            // Say so rather than quietly picking one of the two settings.
+            CakeLog::warning(
+                "[LdapAuth] ldapNestedGroups overrides ldapUseMemberOf; groups are searched under ldapDn, which must therefore contain them."
+            );
         }
 
         $groups = [];
+        $userDn = $ldapUserData[0]['dn'];
         if (self::$conf['ldapEscape']) {
-            $ldapUserData[0]['dn'] = ldap_escape($ldapUserData[0]['dn'], self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
+            $userDn = ldap_escape($userDn, self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
         }
-        $filter = '(member=' . $ldapUserData[0]['dn'] . ')';
+
+        // With nesting on, match through the chain of nested groups instead of
+        // only those listing the user directly.
+        $attribute = $nested ? 'member:' . self::LDAP_MATCHING_RULE_IN_CHAIN . ':' : 'member';
+        $filter = '(' . $attribute . '=' . $userDn . ')';
         $ldapUserMemberships = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, ['cn']);
 
         if ($ldapUserMemberships) {
@@ -346,6 +367,16 @@ class LdapAuthenticate extends BaseAuthenticate
                     $groups[] = $entry['cn'][0];
                 }
             }
+        }
+
+        if ($nested && empty($groups)) {
+            // Directories other than AD do not implement the matching rule and
+            // answer an extensible match they do not know with success and no
+            // entries, so this is indistinguishable from genuinely having no
+            // groups. Flag it, otherwise the setting looks like it did nothing.
+            CakeLog::warning(
+                "[LdapAuth] No groups resolved with ldapNestedGroups enabled. If this directory is not Active Directory it likely ignores the matching rule " . self::LDAP_MATCHING_RULE_IN_CHAIN . ", which yields an empty result rather than an error."
+            );
         }
 
         return $groups;

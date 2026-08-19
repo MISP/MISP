@@ -176,6 +176,14 @@ entirely unrelated. Two defences:
   instance has already drifted, naming the offending settings, so a poisoned
   config reads as one obvious failure rather than several misleading ones.
 
+One setting cannot be covered here: `ldapNestedGroups` applies a matching rule
+only Active Directory implements. `test_nested_groups_resolve_a_parent_group`
+skips unless the directory advertises AD capabilities in its root DSE, so it
+activates by itself when the suite is pointed at one.
+`test_nested_groups_fail_closed_without_the_matching_rule` covers what happens
+everywhere else: the setting refuses the affected logins rather than quietly
+doing nothing.
+
 Neither survives a `SIGKILL`. If the preflight fails, repair the values by
 hand:
 

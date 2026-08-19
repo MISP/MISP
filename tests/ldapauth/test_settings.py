@@ -472,6 +472,85 @@ def test_org_field_wins_over_group_mapping(misp, misp_admin_api, misp_org,
         misp_admin_api.delete_org(other["id"])
 
 
+def _nested_group_fixtures(ldap_fixtures):
+    """A user in an inner group, which is itself a member of an outer group."""
+    user = ldap_fixtures.add_user()
+    inner = ldap_fixtures.add_group(members=[user["dn"]])
+    outer = ldap_fixtures.add_group(members=[inner["dn"]])
+    return user, inner, outer
+
+
+def test_nested_groups_resolve_a_parent_group(misp, misp_admin_api,
+                                              active_directory, ldap_config,
+                                              ldap_settings, ldap_fixtures):
+    """ldapNestedGroups matches groups reached through another group.
+
+    The user belongs to `outer` only by way of `inner`, so this passes only if
+    the directory walks the chain. Active Directory does, via
+    LDAP_MATCHING_RULE_IN_CHAIN; nothing else implements that matching rule,
+    which is why this skips elsewhere rather than asserting something the
+    directory cannot do.
+    """
+    if not active_directory:
+        pytest.skip(
+            "LDAP_MATCHING_RULE_IN_CHAIN is Active Directory only and this "
+            "directory does not advertise AD capabilities"
+        )
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user, _inner, outer = _nested_group_fixtures(ldap_fixtures)
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapNestedGroups=True,
+        ldapRoleGroupMapping={outer["cn"]: "Org Admin"},
+    )
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == 2
+
+
+def test_nested_groups_fail_closed_without_the_matching_rule(
+    misp_config, active_directory, ldap_config, ldap_settings, ldap_fixtures
+):
+    """On a directory without the matching rule, enabling it refuses logins.
+
+    A directory that does not implement the rule answers the extensible match
+    with success and zero entries rather than an error, so the plugin cannot
+    tell "no groups" from "rule unsupported". No groups then means no role,
+    which refuses the login -- the setting fails closed instead of silently
+    doing nothing. The plugin logs the likely cause.
+
+    The control below is the point of the test: the very same mapping works
+    with the setting off, so the refusal is attributable to it.
+    """
+    if active_directory:
+        pytest.skip("this directory implements the matching rule")
+
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapRoleGroupMapping={group["cn"]: "Org Admin"},
+        ldapNestedGroups=True,
+    )
+    blocked = MispClient(misp_config)
+    blocked.login(user["mail"], user["password"])
+    assert not blocked.is_authenticated()
+    blocked.session.close()
+
+    ldap_settings.set(ldapNestedGroups=False)
+    allowed = MispClient(misp_config)
+    allowed.login(user["mail"], user["password"])
+    allowed.assert_logged_in(user["mail"])
+    allowed.session.close()
+
+
 def test_role_field_resolves_a_role_by_name(misp, misp_admin_api,
                                             ldap_settings, ldap_fixtures):
     """ldapRoleField naming a role assigns it, resolved by name."""

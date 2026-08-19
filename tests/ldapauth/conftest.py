@@ -288,6 +288,34 @@ def _enable_memberof_overlay(ldap_config, container, module_path):
     return True, None
 
 
+# LDAP_CAP_ACTIVE_DIRECTORY_OID, advertised in the root DSE by AD only.
+ACTIVE_DIRECTORY_CAPABILITY = "1.2.840.113556.1.4.800"
+
+
+@pytest.fixture(scope="session")
+def active_directory(ldap_config):
+    """Whether the directory under test is Active Directory.
+
+    `ldapNestedGroups` relies on a matching rule only AD implements, so the
+    tests covering it split on this rather than pretending either behaviour is
+    universal.
+    """
+    try:
+        server = Server(ldap_config.uri, get_info=ALL)
+        connection = Connection(
+            server, ldap_config.admin_dn, ldap_config.admin_password,
+            auto_bind=True,
+        )
+    except LDAPException:
+        return False
+
+    try:
+        capabilities = (server.info.other or {}).get("supportedCapabilities") or []
+        return ACTIVE_DIRECTORY_CAPABILITY in [str(c) for c in capabilities]
+    finally:
+        connection.unbind()
+
+
 @pytest.fixture(scope="session")
 def memberof_supported(ldap_config):
     """Whether the directory maintains `memberOf`, enabling it if it can."""
