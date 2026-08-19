@@ -231,11 +231,25 @@ class LdapAuthenticate extends BaseAuthenticate
         }
 
         $userFields = $request->data['User'];
-        $email = $userFields['email'];
-        $password = $userFields['password'];
+        // Read defensively: a request that simply omits `password` would
+        // otherwise reach ldap_bind() as null, which is the same as sending
+        // an empty one.
+        $email = isset($userFields['email']) ? $userFields['email'] : '';
+        $password = isset($userFields['password']) ? $userFields['password'] : '';
 
         CakeLog::debug("[LdapAuth] Login attempt with email: $email");
         $this->settings['fields'] = ["username" => "email"];
+
+        // An empty password turns ldap_bind() into an *unauthenticated* bind,
+        // which the LDAP protocol defines as a success for any existing DN.
+        // Directories that do not refuse those (RFC 4513 leaves it to the
+        // server) would hand out a session for any account whose identifier
+        // is known. No MISP account has an empty password either, so refuse
+        // here rather than relying on the directory to do it.
+        if (!is_string($password) || $password === '') {
+            CakeLog::error("[LdapAuth] Empty password for '$email', refusing the login attempt.");
+            return false;
+        }
 
         $ldapconn = $this->ldapConnect();
 
@@ -273,6 +287,16 @@ class LdapAuthenticate extends BaseAuthenticate
             $mispUsername = $this->getEmailAddress(self::$conf['ldapEmailField'], $ldapUserData);
         } else {
             CakeLog::error("[LdapAuth] User not found in LDAP.");
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+        }
+
+        // Without a username there is nothing to link the MISP account to,
+        // and continuing would create a row with an empty email that no
+        // later login can find again.
+        if (empty($mispUsername)) {
+            CakeLog::error(
+                "[LdapAuth] No ldapEmailField attribute present on the LDAP entry, cannot identify the user."
+            );
             throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
         }
 
