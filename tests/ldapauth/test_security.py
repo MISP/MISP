@@ -110,6 +110,97 @@ def test_user_outside_search_base_is_refused(misp, ldap_fixtures, ldap_config):
     )
 
 
+# userAccountControl values and whether the account they describe may log in.
+# 512 is NORMAL_ACCOUNT, 2 is ACCOUNTDISABLE, 65536 is DONT_EXPIRE_PASSWORD.
+# The 514 and 66050 cases are the point: an equality check against 2 would let
+# both of them through, because the flag is combined with the others.
+ACCOUNT_CONTROL_CASES = [
+    (512, True),
+    (66048, True),
+    (2, False),
+    (514, False),
+    (66050, False),
+]
+
+
+@pytest.mark.parametrize("control,may_log_in", ACCOUNT_CONTROL_CASES)
+def test_account_control_disable_flag_is_read_as_a_bitmask(
+    misp, misp_admin_api, user_account_control_supported, ldap_fixtures,
+    control, may_log_in
+):
+    """userAccountControl is a bit field, so ACCOUNTDISABLE must be masked.
+
+    Active Directory combines flags: an ordinary enabled account reads 512 and
+    the same account disabled reads 514. Comparing the attribute to 2 would
+    therefore treat almost every disabled account as enabled.
+    """
+    if not user_account_control_supported:
+        pytest.skip("directory will not accept a userAccountControl attribute")
+
+    user = ldap_fixtures.add_user(
+        object_classes=["mispTestAdAccount"],
+        userAccountControl=str(control),
+    )
+
+    misp.login(user["mail"], user["password"])
+    assert misp.is_authenticated() is may_log_in, (
+        "userAccountControl {} should {} the login".format(
+            control, "allow" if may_log_in else "refuse"
+        )
+    )
+
+    if not may_log_in and misp_admin_api is not None:
+        assert misp_admin_api.find_user_id(user["mail"]) is None, (
+            "a disabled directory account was provisioned in MISP anyway"
+        )
+
+
+def test_account_control_disables_an_existing_misp_user(misp_config,
+                                                        misp_admin_api,
+                                                        user_account_control_supported,
+                                                        ldap_admin,
+                                                        ldap_fixtures):
+    """Disabling the account in the directory disables it in MISP too.
+
+    Checked against the directory entry rather than the bind result, because
+    AD refuses the bind for a disabled account: waiting for that would never
+    reveal the reason and would leave the MISP account enabled. The revocation
+    lands the next time that person tries to log in.
+    """
+    if not user_account_control_supported:
+        pytest.skip("directory will not accept a userAccountControl attribute")
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the disabled flag")
+
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user(
+        object_classes=["mispTestAdAccount"],
+        userAccountControl="512",
+    )
+
+    enabled = MispClient(misp_config)
+    enabled.login(user["mail"], user["password"])
+    enabled.assert_logged_in(user["mail"])
+    enabled.session.close()
+
+    user_id = misp_admin_api.find_user_id(user["mail"])
+    assert misp_admin_api.view_user(user_id)["disabled"] is False
+
+    assert ldap_admin.modify(
+        user["dn"], {"userAccountControl": [("MODIFY_REPLACE", ["514"])]}
+    ), ldap_admin.result
+
+    refused = MispClient(misp_config)
+    refused.login(user["mail"], user["password"])
+    assert not refused.is_authenticated()
+    refused.session.close()
+
+    assert misp_admin_api.view_user(user_id)["disabled"] is True, (
+        "the MISP account stayed enabled after the directory disabled it"
+    )
+
+
 def test_ldap_login_reenables_a_disabled_account(misp, misp_admin_api,
                                                  ldap_fixtures):
     """A locally disabled account is re-enabled by logging in over LDAP.

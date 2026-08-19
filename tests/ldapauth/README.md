@@ -106,8 +106,9 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   wrong passwords, users invisible to `ldapSearchAttribute`, unknown users,
   the `mixedAuth` fallback, and logout.
 * `test_security.py`: the ways a login must be refused, empty passwords,
-  search-filter injection, and accounts sitting outside `ldapDn`. Also pins
-  the one case where a refusal is silently undone, see below.
+  search-filter injection, accounts sitting outside `ldapDn`, and accounts
+  Active Directory has disabled via `userAccountControl`. Also pins the one
+  case where a refusal is silently undone, see below.
 * `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
   `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
   `updateUser`, and role and organisation resolution via `ldapRoleField` /
@@ -175,6 +176,13 @@ entirely unrelated. Two defences:
 * `test_instance_settings_match_what_the_suite_assumes` fails fast when the
   instance has already drifted, naming the offending settings, so a poisoned
   config reads as one obvious failure rather than several misleading ones.
+
+`userAccountControl` is an Active Directory attribute no standard schema
+defines, so OpenLDAP rejects it outright. `user_account_control_supported`
+loads a minimal schema for it on demand — the attribute under AD's own OID
+plus an auxiliary `mispTestAdAccount` class that permits it — the same
+self-healing approach as the memberof overlay. Pass
+`object_classes=["mispTestAdAccount"]` to `add_user()` to set it.
 
 One setting cannot be covered here: `ldapNestedGroups` applies a matching rule
 only Active Directory implements. `test_nested_groups_resolve_a_parent_group`

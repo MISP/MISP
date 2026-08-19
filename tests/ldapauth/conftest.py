@@ -291,6 +291,84 @@ def _enable_memberof_overlay(ldap_config, container, module_path):
 # LDAP_CAP_ACTIVE_DIRECTORY_OID, advertised in the root DSE by AD only.
 ACTIVE_DIRECTORY_CAPABILITY = "1.2.840.113556.1.4.800"
 
+# Auxiliary class letting a test entry carry userAccountControl, which is an
+# Active Directory attribute no standard schema defines. The attribute uses
+# AD's real OID and Integer syntax; the class OID is private to this suite.
+AD_ACCOUNT_OBJECT_CLASS = "mispTestAdAccount"
+
+AD_SCHEMA_LDIF = """dn: cn=misptest-ad,cn=schema,cn=config
+changetype: add
+objectClass: olcSchemaConfig
+cn: misptest-ad
+olcAttributeTypes: ( 1.2.840.113556.1.4.8 NAME 'userAccountControl' \
+SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )
+olcObjectClasses: ( 1.3.6.1.4.1.53658.1.1 NAME '{object_class}' AUXILIARY \
+MAY ( userAccountControl ) )
+""".format(object_class=AD_ACCOUNT_OBJECT_CLASS)
+
+
+def _directory_accepts_user_account_control(ldap_config):
+    """Probe whether an entry may carry userAccountControl."""
+    probe = "uac-probe-{}".format(uuid.uuid4().hex[:8])
+    dn = "uid={},{}".format(probe, ldap_config.users_dn)
+    try:
+        connection = Connection(
+            Server(ldap_config.uri), ldap_config.admin_dn,
+            ldap_config.admin_password, auto_bind=True,
+        )
+    except LDAPException:
+        return False
+
+    try:
+        return bool(connection.add(
+            dn,
+            ["inetOrgPerson", AD_ACCOUNT_OBJECT_CLASS],
+            {"cn": probe, "sn": probe, "uid": probe, "userAccountControl": "512"},
+        ))
+    except LDAPException:
+        return False
+    finally:
+        connection.delete(dn)
+        connection.unbind()
+
+
+@pytest.fixture(scope="session")
+def user_account_control_supported(ldap_config):
+    """Whether test entries can carry userAccountControl, adding it if needed.
+
+    No standard schema defines the attribute, so OpenLDAP rejects it outright.
+    Rather than skip the ACCOUNTDISABLE tests, load a minimal schema for it,
+    the same on-demand approach used for the memberof overlay.
+    """
+    if _directory_accepts_user_account_control(ldap_config):
+        return True
+
+    container = _env("LDAP_CONTAINER", "misp-docker-openldap-1", allow_empty=True)
+    if not container:
+        return False
+
+    try:
+        applied = subprocess.run(
+            ["docker", "exec", "-i", container,
+             "ldapmodify", "-Y", "EXTERNAL", "-H", "ldapi:///"],
+            input=AD_SCHEMA_LDIF, capture_output=True, text=True,
+        )
+    except OSError as exc:
+        warnings.warn("Could not add the userAccountControl schema: {}".format(exc))
+        return False
+
+    if applied.returncode != 0:
+        output = (applied.stderr + applied.stdout).lower()
+        if "already exists" not in output:
+            warnings.warn(
+                "Could not add the userAccountControl schema: {}".format(
+                    applied.stderr.strip() or applied.stdout.strip()
+                )
+            )
+            return False
+
+    return _directory_accepts_user_account_control(ldap_config)
+
 
 @pytest.fixture(scope="session")
 def active_directory(ldap_config):
@@ -375,11 +453,13 @@ class LdapFixtureFactory:
         return dn
 
     def add_user(self, uid=None, password="userpassword", mail=_UNSET,
-                 base=None, **extra):
+                 base=None, object_classes=None, **extra):
         """Create an inetOrgPerson.
 
         `base` defaults to the search base MISP is configured with; pass the
         directory root to place an entry deliberately *outside* it.
+        `object_classes` adds auxiliary classes, which is how attributes
+        outside inetOrgPerson (such as userAccountControl) become allowed.
         """
         uid = uid or "misptest-{}".format(uuid.uuid4().hex[:10])
         if mail is _UNSET:
@@ -398,7 +478,8 @@ class LdapFixtureFactory:
         if mail:
             attributes["mail"] = mail
         attributes.update(extra)
-        self._add(dn, "inetOrgPerson", attributes)
+        classes = ["inetOrgPerson"] + list(object_classes or [])
+        self._add(dn, classes, attributes)
         if mail:
             # Logging in as this user makes MISP create a local account for it.
             self._provisioned_emails.append(mail)

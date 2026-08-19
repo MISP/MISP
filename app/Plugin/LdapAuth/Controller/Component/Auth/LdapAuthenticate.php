@@ -19,6 +19,9 @@ class LdapAuthenticate extends BaseAuthenticate
     // AD-specific: other directories treat it as an unknown matching rule.
     const LDAP_MATCHING_RULE_IN_CHAIN = '1.2.840.113556.1.4.1941';
 
+    // ADS_UF_ACCOUNTDISABLE, the ACCOUNTDISABLE bit of userAccountControl.
+    const ADS_UF_ACCOUNTDISABLE = 2;
+
     /* 
     'LdapAuth' => [
         'ldapServer' => 'ldap://openldap:1389',
@@ -332,6 +335,22 @@ class LdapAuthenticate extends BaseAuthenticate
         return null;
     }
 
+    // True when Active Directory's userAccountControl has ACCOUNTDISABLE set.
+    //
+    // The attribute is a bit field, not an enumeration: an ordinary enabled
+    // account reads 512 and the same account disabled reads 514, so this has
+    // to mask the flag rather than compare for equality. Directories that do
+    // not publish the attribute simply never match.
+    private function isDirectoryAccountDisabled($ldapUserData)
+    {
+        $value = $this->getFirstAttributeValue(['userAccountControl'], $ldapUserData);
+        if ($value === null || !ctype_digit((string)$value)) {
+            return false;
+        }
+
+        return ((int)$value & self::ADS_UF_ACCOUNTDISABLE) === self::ADS_UF_ACCOUNTDISABLE;
+    }
+
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
         $nested = self::$conf['ldapNestedGroups'];
@@ -430,6 +449,9 @@ class LdapAuthenticate extends BaseAuthenticate
                 $attributes = array_merge($attributes, (array)self::$conf[$setting]);
             }
         }
+        // Always asked for: directories that do not have it just omit it, and
+        // without it a disabled Active Directory account looks enabled.
+        $attributes[] = 'userAccountControl';
 
         $ldapUser = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, $attributes);
 
@@ -498,6 +520,25 @@ class LdapAuthenticate extends BaseAuthenticate
                 CakeLog::error("[LdapAuth] User not found in LDAP.");
                 throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
             }
+        }
+
+        // Mirror an account Active Directory has disabled.
+        //
+        // Checked against the directory entry rather than the bind result on
+        // purpose: AD refuses the bind for a disabled account, so waiting for
+        // that would never tell us why and would leave the MISP account
+        // enabled. Doing it here means the local account is revoked the next
+        // time that person tries to log in.
+        if ($this->isDirectoryAccountDisabled($ldapUserData)) {
+            $disabledUsername = $this->getEmailAddress(self::$conf['ldapEmailField'], $ldapUserData);
+            if (!empty($disabledUsername) && $this->_findUser($disabledUsername)) {
+                CakeLog::debug("[LdapAuth] Account disabled in LDAP, disabling MISP user '$disabledUsername'.");
+                $this->disableUser($disabledUsername);
+            }
+            CakeLog::error(
+                "[LdapAuth] userAccountControl marks '$email' as disabled, refusing login."
+            );
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
         }
 
         // Try to log-in with user LDAP password

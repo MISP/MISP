@@ -229,6 +229,31 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `false`
 - **Example**: `true`
 
+## Disabled Active Directory accounts
+
+If the user's entry carries Active Directory's `userAccountControl` attribute
+with the `ACCOUNTDISABLE` bit (`2`) set, the login is refused and the matching
+MISP account is **disabled**. There is no setting for this: directories that do
+not publish the attribute are unaffected, since the check only fires when a
+value is present.
+
+Two details worth knowing:
+
+* The attribute is a **bit field**, so the flag is masked rather than compared.
+  An ordinary enabled account reads `512` and the same account disabled reads
+  `514`; combined with other flags it can be `66050`. All of those with the
+  bit set are treated as disabled.
+* It is evaluated against the directory entry, **not** the bind result. AD
+  refuses the bind for a disabled account, so waiting for that would never
+  reveal why and would leave the MISP account enabled. The revocation
+  therefore lands the next time that person attempts to log in, not at the
+  moment the directory changes.
+
+Note this is the one case where MISP's `disabled` flag is set *from* the
+directory. In the other direction the flag is not respected: an account
+disabled in MISP but still active in LDAP is re-enabled on its next login, so
+revocation belongs in the directory.
+
 ### `ldapNestedGroups`
 - **Description**: Resolve group membership through nested groups, so a user who belongs to a group only by way of another group still matches. Without it, only groups listing the user directly are matched, by either membership lookup.
 - **Type**: `boolean`
