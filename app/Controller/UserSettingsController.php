@@ -35,10 +35,20 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
-        $this->Security->unlockedActions[] = 'setTheme';
-        $this->Security->unlockedActions[] = 'setHomePage';
-        $this->_csrfTokenHeaderOnly(['setEventTemplateUserFormMode']);
+        // These four are only ever reached by hand-built same-origin AJAX from
+        // the menu/navbar, so they cannot produce the field hash _validatePost()
+        // wants - but they can and do carry the page's CSRF token in the
+        // X-CSRF-Token header, so keep that check rather than unlocking both.
+        // Nothing here has a hidden field worth hashing: setTheme and
+        // setEventTemplateUserFormMode take an allowlisted URL argument,
+        // eventIndexColumnToggle a column name, and setHomePage a single path
+        // the user picks anyway and which setSetting() validates server-side.
+        $this->_csrfTokenHeaderOnly([
+            'eventIndexColumnToggle',
+            'setTheme',
+            'setHomePage',
+            'setEventTemplateUserFormMode',
+        ]);
         if ($this->action === 'setSetting') {
             $this->Security->unlockedFields = array('value', 'value_select');
         }
