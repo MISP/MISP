@@ -110,9 +110,10 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   the one case where a refusal is silently undone, see below.
 * `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
   `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
-  `updateUser`, group-to-role mapping via `ldapDefaultRoleId`, and
-  organisation resolution via `ldapOrgField` / `ldapOrgGroupMapping`. These
-  rewrite the instance's config, see below.
+  `updateUser`, and role and organisation resolution via `ldapRoleField` /
+  `ldapRoleGroupMapping` / `ldapOrgField` / `ldapOrgGroupMapping`, including
+  the legacy array form of `ldapDefaultRoleId`. These rewrite the instance's
+  config, see below.
 
 ## Fixtures
 

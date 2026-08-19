@@ -150,7 +150,8 @@ def test_instance_settings_match_what_the_suite_assumes(misp_config,
     role = settings.get("ldapDefaultRoleId")
     if not isinstance(role, dict) and int(role or 0) != misp_config.ldap_role_id:
         drifted["ldapDefaultRoleId"] = role
-    for left_over in ("ldapOrgField", "ldapOrgGroupMapping", "ldapSearchFilter"):
+    for left_over in ("ldapOrgField", "ldapOrgGroupMapping", "ldapRoleField",
+                      "ldapRoleGroupMapping", "ldapSearchFilter"):
         if settings.get(left_over):
             drifted[left_over] = settings.get(left_over)
 

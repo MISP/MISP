@@ -131,7 +131,7 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 > Practical consequence: a directory that stops publishing the attribute, or a `ldapOrgGroupMapping` value that no longer matches an organisation name, locks the affected users out rather than silently misplacing them. Existing accounts keep their current organisation and stay enabled, they simply cannot log in until the directory or the mapping is corrected.
 
 ### `ldapDefaultRoleId`
-- **Description**: The default role ID assigned to users authenticated through LDAP. Can also be an array representing the mapping of group memberships of the LDAP user with the corresponding MISP `role_id`.
+- **Description**: The role ID assigned to users authenticated through LDAP. Applies only when neither `ldapRoleField` nor `ldapRoleGroupMapping` is configured. Can also be an array representing the mapping of group memberships of the LDAP user with the corresponding MISP `role_id`, which is an older spelling of `ldapRoleGroupMapping` and still supported.
 - **Type**: `integer` | `array`
 - **Default**: `3`
 - **Example**: `3`
@@ -146,6 +146,28 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
         'misp_readonly'     => 6,
     ]
     ```
+
+### `ldapRoleField`
+- **Description**: An attribute on the user's LDAP entry that holds their role. An all-digit value is looked up as a role ID, anything else as a role name (`admin`, `Org Admin`, `User`, `Publisher`, `Sync user`, `Read Only`). Several attributes may be given, in which case the first one present on the entry is used. Attribute names are matched case-insensitively.
+- **Type**: `string` | `array`
+- **Default**: unset, meaning `ldapDefaultRoleId` is used
+- **Example**: `'title'`, or `['mispRole', 'title']`
+
+### `ldapRoleGroupMapping`
+- **Description**: Maps LDAP group memberships to MISP roles. Values are role IDs or names, resolved the same way as `ldapRoleField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled. The first group that maps to an existing role wins, so ordering matters for users in several mapped groups. Takes precedence over the array form of `ldapDefaultRoleId`, which does the same thing.
+- **Type**: `array`
+- **Default**: unset
+- **Example**:
+    ```
+    [
+        'misp_admin'    => 'admin',
+        'misp_user'     => 3,
+    ]
+    ```
+
+> **NOTE — how the role is resolved:** the same rules as the organisation, above. If neither `ldapRoleField` nor `ldapRoleGroupMapping` (nor the array form of `ldapDefaultRoleId`) is configured, everyone gets `ldapDefaultRoleId`. If any of them is, the role comes from the directory: the attribute is tried first, then the groups, and **if none of them resolves an existing MISP role the login is refused** rather than falling back to `ldapDefaultRoleId` — defaulting there would grant permissions nobody asked for. A role that is mapped but does not exist in MISP counts as unresolved, so a typo in a role name refuses the login instead of silently misassigning.
+>
+> One difference from the organisation: when an **existing** user can no longer be given a role, the account is also **disabled**, not merely refused. That is long-standing behaviour for roles and is what makes removing someone from their LDAP group revoke their access.
 
 ### `updateUser`
 - **Description**: Indicates whether user information in the local application database should be updated with LDAP data on each login. If the user exists on MISP but the LDAP role doesn't, the user is disabled and not allowed to log in.

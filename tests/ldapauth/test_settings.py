@@ -472,6 +472,140 @@ def test_org_field_wins_over_group_mapping(misp, misp_admin_api, misp_org,
         misp_admin_api.delete_org(other["id"])
 
 
+def test_role_field_resolves_a_role_by_name(misp, misp_admin_api,
+                                            ldap_settings, ldap_fixtures):
+    """ldapRoleField naming a role assigns it, resolved by name."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user = ldap_fixtures.add_user(title="Org Admin")
+
+    ldap_settings.set(ldapRoleField="title")
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == 2
+
+
+def test_role_field_resolves_a_role_by_id(misp, misp_admin_api, misp_config,
+                                          ldap_settings, ldap_fixtures):
+    """The same attribute may carry a role id instead of a name."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user = ldap_fixtures.add_user(title="1")
+
+    ldap_settings.set(ldapRoleField="title")
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == 1
+    assert misp_config.ldap_role_id != 1, (
+        "the mapped role must differ from the default, or this proves nothing"
+    )
+
+
+@pytest.mark.parametrize("attribute_value", [None, "no-such-role"])
+def test_role_field_without_a_match_refuses_the_login(misp, misp_admin_api,
+                                                      ldap_settings,
+                                                      ldap_fixtures,
+                                                      attribute_value):
+    """An absent or unresolvable role attribute refuses, it does not default.
+
+    Same reasoning as the organisation: handing out `ldapDefaultRoleId` on
+    missing directory data would grant permissions nobody asked for.
+    """
+    extra = {} if attribute_value is None else {"title": attribute_value}
+    user = ldap_fixtures.add_user(**extra)
+
+    ldap_settings.set(ldapRoleField="title")
+
+    misp.login(user["mail"], user["password"])
+    assert not misp.is_authenticated()
+
+    if misp_admin_api is not None:
+        assert misp_admin_api.find_user_id(user["mail"]) is None, (
+            "a user with no resolvable role was created anyway"
+        )
+
+
+def test_role_group_mapping_assigns_a_role(misp, misp_admin_api, ldap_config,
+                                           ldap_settings, ldap_fixtures):
+    """ldapRoleGroupMapping picks the role from a group membership."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user = ldap_fixtures.add_user()
+    group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapRoleGroupMapping={group["cn"]: "Org Admin"},
+    )
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == 2
+
+
+def test_role_group_mapping_without_a_match_refuses_the_login(misp,
+                                                              misp_admin_api,
+                                                              ldap_config,
+                                                              ldap_settings,
+                                                              ldap_fixtures):
+    """The same refusal applies when the role comes from groups."""
+    user = ldap_fixtures.add_user()
+    ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapRoleGroupMapping={"a-group-nobody-is-in": 1},
+    )
+
+    misp.login(user["mail"], user["password"])
+    assert not misp.is_authenticated()
+
+    if misp_admin_api is not None:
+        assert misp_admin_api.find_user_id(user["mail"]) is None
+
+
+def test_role_field_wins_over_role_group_mapping(misp, misp_admin_api,
+                                                 ldap_config, ldap_settings,
+                                                 ldap_fixtures):
+    """With both configured, the attribute decides."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user = ldap_fixtures.add_user(title="Org Admin")
+    group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapRoleField="title",
+        ldapRoleGroupMapping={group["cn"]: "Publisher"},
+    )
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == 2
+
+
+def test_default_role_applies_when_neither_setting_is_configured(
+    misp, misp_admin_api, misp_config, ldap_settings, ldap_fixtures
+):
+    """ldapDefaultRoleId still governs when the directory decides nothing."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    user = ldap_fixtures.add_user()
+
+    ldap_settings.set(ldapDefaultRoleId=misp_config.ldap_role_id)
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["role_id"]) == misp_config.ldap_role_id
+
+
 def test_group_membership_maps_to_a_role(misp, misp_admin_api, ldap_config,
                                          ldap_settings, ldap_fixtures):
     """ldapDefaultRoleId as a dict assigns a role from the user's groups."""

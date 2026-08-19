@@ -42,6 +42,8 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapOrgField' => Configure::read('LdapAuth.ldapOrgField') ?? null,
             'ldapOrgGroupMapping' => Configure::read('LdapAuth.ldapOrgGroupMapping') ?? null,
             'ldapDefaultRoleId' => Configure::read('LdapAuth.ldapDefaultRoleId') ?? 3,
+            'ldapRoleField' => Configure::read('LdapAuth.ldapRoleField') ?? null,
+            'ldapRoleGroupMapping' => Configure::read('LdapAuth.ldapRoleGroupMapping') ?? null,
             'updateUser' => Configure::read('LdapAuth.updateUser') ?? true,
             'debug' => Configure::read('LdapAuth.debug') ?? false,
             'ldapTlsRequireCert' => Configure::read('LdapAuth.ldapTlsRequireCert') ?? LDAP_OPT_X_TLS_DEMAND,
@@ -235,6 +237,95 @@ class LdapAuthenticate extends BaseAuthenticate
         throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
     }
 
+    // Looks up one role by id or by name, the same way organisations resolve.
+    private function findRoleId($userModel, $value)
+    {
+        $conditions = ctype_digit((string)$value)
+            ? ['Role.id' => (int)$value]
+            : ['Role.name' => $value];
+
+        $role = $userModel->Role->find(
+            'first',
+            [
+                'conditions' => $conditions,
+                'fields' => ['Role.id'],
+                'recursive' => -1
+            ]
+        );
+
+        return empty($role) ? null : $role['Role']['id'];
+    }
+
+    // The group -> role map in force, if any.
+    //
+    // `ldapDefaultRoleId` has always accepted an array to mean exactly this,
+    // so that spelling keeps working and is treated as an alias of
+    // `ldapRoleGroupMapping`, which takes precedence when both are given.
+    private function getRoleGroupMapping()
+    {
+        if (!empty(self::$conf['ldapRoleGroupMapping'])) {
+            return self::$conf['ldapRoleGroupMapping'];
+        }
+        if (is_array(self::$conf['ldapDefaultRoleId'])) {
+            return self::$conf['ldapDefaultRoleId'];
+        }
+        return null;
+    }
+
+    // Resolves the MISP role for an LDAP user, mirroring how the organisation
+    // is resolved: `ldapRoleField` names an attribute on the user's entry
+    // holding a role id or name, `ldapRoleGroupMapping` maps group
+    // memberships to roles, and the attribute is tried first so the two
+    // compose.
+    //
+    // `ldapDefaultRoleId` applies only when NEITHER is configured. Returns
+    // null when the directory was supposed to decide and did not, which the
+    // caller turns into a refused login rather than a default role: handing
+    // out `ldapDefaultRoleId` on missing data would grant permissions nobody
+    // asked for.
+    private function getRoleId($userModel, $ldapUserData, $groups = [])
+    {
+        $groupMapping = $this->getRoleGroupMapping();
+        $usesRoleField = !empty(self::$conf['ldapRoleField']);
+        $usesGroupMapping = !empty($groupMapping);
+
+        if (!$usesRoleField && !$usesGroupMapping) {
+            return self::$conf['ldapDefaultRoleId'];
+        }
+
+        if ($usesRoleField) {
+            $value = $this->getFirstAttributeValue(self::$conf['ldapRoleField'], $ldapUserData);
+            if ($value === null || $value === '') {
+                CakeLog::warning("[LdapAuth] No role attribute on the LDAP entry.");
+            } else {
+                $roleId = $this->findRoleId($userModel, $value);
+                if ($roleId !== null) {
+                    return $roleId;
+                }
+                CakeLog::warning("[LdapAuth] No MISP role matches '$value'.");
+            }
+        }
+
+        if ($usesGroupMapping) {
+            foreach ($groups as $group) {
+                if (!isset($groupMapping[$group])) {
+                    continue;
+                }
+                $value = $groupMapping[$group];
+                $roleId = $this->findRoleId($userModel, $value);
+                if ($roleId !== null) {
+                    return $roleId;
+                }
+                CakeLog::warning(
+                    "[LdapAuth] Group '$group' maps to role '$value', which MISP does not have."
+                );
+            }
+            CakeLog::warning("[LdapAuth] No group maps to a role for this user.");
+        }
+
+        return null;
+    }
+
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
         if (self::$conf['ldapUseMemberOf']) {
@@ -303,8 +394,10 @@ class LdapAuthenticate extends BaseAuthenticate
         // Only the attributes asked for here come back, so every setting that
         // names one has to be listed or it silently reads as absent.
         $attributes = (array)self::$conf['ldapEmailField'];
-        if (!empty(self::$conf['ldapOrgField'])) {
-            $attributes = array_merge($attributes, (array)self::$conf['ldapOrgField']);
+        foreach (['ldapOrgField', 'ldapRoleField'] as $setting) {
+            if (!empty(self::$conf[$setting])) {
+                $attributes = array_merge($attributes, (array)self::$conf[$setting]);
+            }
         }
 
         $ldapUser = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, $attributes);
@@ -416,7 +509,7 @@ class LdapAuthenticate extends BaseAuthenticate
         // Group memberships can decide the role, the organisation or both, so
         // read them once, under the reader bind, if either mapping needs them.
         $groups = [];
-        if (is_array(self::$conf['ldapDefaultRoleId']) || !empty(self::$conf['ldapOrgGroupMapping'])) {
+        if ($this->getRoleGroupMapping() || !empty(self::$conf['ldapOrgGroupMapping'])) {
             $ldapbind = ldap_bind($ldapconn, self::$conf['ldapReaderUser'],  self::$conf['ldapReaderPassword']);
             if (!$ldapbind) {
                 CakeLog::error("[LdapAuth] Invalid LDAP reader user credentials: " . ldap_error($ldapconn));
@@ -441,31 +534,21 @@ class LdapAuthenticate extends BaseAuthenticate
             $orgId = $firstOrg['Organisation']['id'];
         }
 
-        // Set role_id based on group membership with ldapReaderUser bind or default role
-        if (is_array(self::$conf['ldapDefaultRoleId'])) {
-            // Find the role ID if the user belongs to any of the specified groups
-            $roleId = null;
-            foreach ($groups as $group) {
-                if (isset(self::$conf['ldapDefaultRoleId'][$group])) {
-                    $roleId = self::$conf['ldapDefaultRoleId'][$group];
-                    break;
-                }
-            }
+        // Set role_id from the role attribute, group membership or default role
+        $roleId = $this->getRoleId($userModel, $ldapUserData, $groups);
 
-            // Refuse login when no mapped role matches the user's groups.
-            // For existing users we also disable the account; for new users we just refuse
-            // so we never hit the INSERT with a NULL role_id.
-            if (!$roleId) {
-                if ($user) {
-                    CakeLog::debug("[LdapAuth] User has no valid role anymore, disabling user.");
-                    $this->disableUser($mispUsername);
-                } else {
-                    CakeLog::error("[LdapAuth] No matching role for user's LDAP groups, refusing login.");
-                }
-                throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+        // Refuse login when the directory was meant to decide the role and no
+        // role came out of it. For existing users we also disable the account;
+        // for new users we just refuse so we never hit the INSERT with a NULL
+        // role_id.
+        if ($roleId === null) {
+            if ($user) {
+                CakeLog::debug("[LdapAuth] User has no valid role anymore, disabling user.");
+                $this->disableUser($mispUsername);
+            } else {
+                CakeLog::error("[LdapAuth] Could not resolve a role from LDAP, refusing login.");
             }
-        } else {
-            $roleId = self::$conf['ldapDefaultRoleId'];
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
         }
 
         if (!$user) {
