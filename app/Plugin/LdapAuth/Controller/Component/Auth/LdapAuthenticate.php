@@ -109,9 +109,31 @@ class LdapAuthenticate extends BaseAuthenticate
     private function getEmailAddress($ldapEmailField, $ldapUserData)
     {
         // return the email address of an LDAP user if one of the fields in $ldapEmailField exists
+        $entry = isset($ldapUserData[0]) ? $ldapUserData[0] : [];
         foreach ($ldapEmailField as $field) {
-            if (isset($ldapUserData[0][$field][0])) {
-                return $ldapUserData[0][$field][0];
+            // ldap_get_entries() lowercases attribute names, so a field
+            // configured the way it is spelled in the schema, such as
+            // `userPrincipalName`, would never match a literal lookup.
+            $key = strtolower($field);
+            if (!isset($entry[$key])) {
+                continue;
+            }
+
+            $value = $entry[$key];
+            if (is_array($value)) {
+                // Regular attributes arrive as ['count' => n, 0 => ..., ...].
+                if (isset($value[0])) {
+                    return $value[0];
+                }
+                continue;
+            }
+
+            // `dn` is the exception: it comes back as a plain string, so
+            // indexing it would yield its first character rather than the
+            // distinguished name -- which silently collapsed every user onto
+            // a single account.
+            if ($value !== '') {
+                return $value;
             }
         }
         return null;
