@@ -231,13 +231,13 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 
 ## Disabled Active Directory accounts
 
-If the user's entry carries Active Directory's `userAccountControl` attribute
-with the `ACCOUNTDISABLE` bit (`2`) set, the login is refused and the matching
-MISP account is **disabled**. There is no setting for this: directories that do
-not publish the attribute are unaffected, since the check only fires when a
-value is present.
+### `ldapCheckUserAccountControl`
+- **Description**: When enabled, an entry whose Active Directory `userAccountControl` attribute has the `ACCOUNTDISABLE` bit (`2`) set is refused, and the matching MISP account is **disabled**. Off by default, so only instances whose directory populates the attribute meaningfully consult it.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `true`
 
-Two details worth knowing:
+Two details worth knowing once it is on:
 
 * The attribute is a **bit field**, so the flag is masked rather than compared.
   An ordinary enabled account reads `512` and the same account disabled reads

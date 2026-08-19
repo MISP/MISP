@@ -62,6 +62,7 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapEscapeIgnoreChars' => Configure::read('LdapAuth.ldapEscapeIgnoreChars') ?? "",
             'ldapUseMemberOf' => Configure::read('LdapAuth.ldapUseMemberOf') ?? false,
             'ldapNestedGroups' => Configure::read('LdapAuth.ldapNestedGroups') ?? false,
+            'ldapCheckUserAccountControl' => Configure::read('LdapAuth.ldapCheckUserAccountControl') ?? false,
         ];
 
         if (self::$conf['ldapEscape'] && self::$conf['ldapSearchFilter']) {
@@ -343,6 +344,10 @@ class LdapAuthenticate extends BaseAuthenticate
     // not publish the attribute simply never match.
     private function isDirectoryAccountDisabled($ldapUserData)
     {
+        if (!self::$conf['ldapCheckUserAccountControl']) {
+            return false;
+        }
+
         $value = $this->getFirstAttributeValue(['userAccountControl'], $ldapUserData);
         if ($value === null || !ctype_digit((string)$value)) {
             return false;
@@ -449,9 +454,11 @@ class LdapAuthenticate extends BaseAuthenticate
                 $attributes = array_merge($attributes, (array)self::$conf[$setting]);
             }
         }
-        // Always asked for: directories that do not have it just omit it, and
-        // without it a disabled Active Directory account looks enabled.
-        $attributes[] = 'userAccountControl';
+        if (self::$conf['ldapCheckUserAccountControl']) {
+            // Only requested attributes come back, and without this one a
+            // disabled Active Directory account would look enabled.
+            $attributes[] = 'userAccountControl';
+        }
 
         $ldapUser = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, $attributes);
 

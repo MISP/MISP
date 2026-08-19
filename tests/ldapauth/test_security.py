@@ -125,8 +125,8 @@ ACCOUNT_CONTROL_CASES = [
 
 @pytest.mark.parametrize("control,may_log_in", ACCOUNT_CONTROL_CASES)
 def test_account_control_disable_flag_is_read_as_a_bitmask(
-    misp, misp_admin_api, user_account_control_supported, ldap_fixtures,
-    control, may_log_in
+    misp, misp_admin_api, user_account_control_supported, ldap_settings,
+    ldap_fixtures, control, may_log_in
 ):
     """userAccountControl is a bit field, so ACCOUNTDISABLE must be masked.
 
@@ -142,6 +142,8 @@ def test_account_control_disable_flag_is_read_as_a_bitmask(
         userAccountControl=str(control),
     )
 
+    ldap_settings.set(ldapCheckUserAccountControl=True)
+
     misp.login(user["mail"], user["password"])
     assert misp.is_authenticated() is may_log_in, (
         "userAccountControl {} should {} the login".format(
@@ -155,10 +157,41 @@ def test_account_control_disable_flag_is_read_as_a_bitmask(
         )
 
 
+def test_account_control_is_ignored_unless_the_setting_is_enabled(
+    misp, user_account_control_supported, ldap_settings, ldap_fixtures
+):
+    """The check is opt-in, so ACCOUNTDISABLE means nothing by default.
+
+    Only directories that populate `userAccountControl` meaningfully should
+    have it consulted, so an instance that has not asked for it keeps behaving
+    as before. Here the same entry that is refused with the setting on logs in
+    fine with it off, which is what makes the gate observable.
+    """
+    if not user_account_control_supported:
+        pytest.skip("directory will not accept a userAccountControl attribute")
+
+    user = ldap_fixtures.add_user(
+        object_classes=["mispTestAdAccount"],
+        userAccountControl="514",
+    )
+
+    ldap_settings.set(ldapCheckUserAccountControl=False)
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    misp.logout()
+
+    ldap_settings.set(ldapCheckUserAccountControl=True)
+    misp.login(user["mail"], user["password"])
+    assert not misp.is_authenticated(), (
+        "the same entry must be refused once the check is enabled"
+    )
+
+
 def test_account_control_disables_an_existing_misp_user(misp_config,
                                                         misp_admin_api,
                                                         user_account_control_supported,
                                                         ldap_admin,
+                                                        ldap_settings,
                                                         ldap_fixtures):
     """Disabling the account in the directory disables it in MISP too.
 
@@ -178,6 +211,8 @@ def test_account_control_disables_an_existing_misp_user(misp_config,
         object_classes=["mispTestAdAccount"],
         userAccountControl="512",
     )
+
+    ldap_settings.set(ldapCheckUserAccountControl=True)
 
     enabled = MispClient(misp_config)
     enabled.login(user["mail"], user["password"])

@@ -152,7 +152,7 @@ def test_instance_settings_match_what_the_suite_assumes(misp_config,
         drifted["ldapDefaultRoleId"] = role
     for left_over in ("ldapOrgField", "ldapOrgGroupMapping", "ldapRoleField",
                       "ldapRoleGroupMapping", "ldapSearchFilter",
-                      "ldapNestedGroups"):
+                      "ldapNestedGroups", "ldapCheckUserAccountControl"):
         if settings.get(left_over):
             drifted[left_over] = settings.get(left_over)
 
