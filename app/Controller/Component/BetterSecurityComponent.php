@@ -13,6 +13,63 @@ class BetterSecurityComponent extends SecurityComponent
      */
     public $doNotGenerateToken = false;
 
+    /**
+     * The only method overrides CakeRequest acts on without discarding the
+     * request body. Mirrors the list in CakeRequest::_processPost().
+     */
+    const ALLOWED_METHOD_OVERRIDES = array('POST', 'PUT', 'PATCH', 'DELETE');
+
+    /**
+     * Reject `_method` overrides that name anything but a write verb.
+     *
+     * CakeRequest::_processPost() honours a `_method` field in the POST body by
+     * rewriting REQUEST_METHOD, and for any verb outside POST/PUT/PATCH/DELETE
+     * it *also* empties $request->data. SecurityComponent::startup() then reads
+     * $hasData as false and skips both _validatePost() and _validateCsrf(), so a
+     * cross-site form posting nothing but `_method=GET` reaches any action that
+     * takes its input from the URL with form security switched off entirely.
+     *
+     * MISP never emits a `_method` other than those four verbs, so anything else
+     * is refused here - before parent::startup() computes $hasData from the
+     * emptied body.
+     *
+     * @param Controller $controller
+     * @return void
+     * @throws BadRequestException
+     */
+    private function __rejectUnsafeMethodOverride(Controller $controller)
+    {
+        // Header first, then body - the same precedence _processPost() applies.
+        $override = null;
+        if (isset($_POST['_method'])) {
+            $override = $_POST['_method'];
+        }
+        $headerOverride = env('HTTP_X_HTTP_METHOD_OVERRIDE');
+        if (!empty($headerOverride)) {
+            $override = $headerOverride;
+        }
+        if ($override === null) {
+            return;
+        }
+        // A non-string override (`_method[]=GET`) misses Cake's in_array() check
+        // just as surely as an unexpected verb does, so it is refused too.
+        if (is_string($override) && in_array($override, self::ALLOWED_METHOD_OVERRIDES, true)) {
+            return;
+        }
+        $this->log(sprintf(
+            'Rejected unsupported HTTP method override when accessing %s (override: %s).',
+            $controller->here,
+            is_string($override) ? $override : gettype($override)
+        ));
+        throw new BadRequestException(__('Unsupported HTTP method override.'));
+    }
+
+    public function startup(Controller $controller)
+    {
+        $this->__rejectUnsafeMethodOverride($controller);
+        return parent::startup($controller);
+    }
+
     public function blackHole(Controller $controller, $error = '', SecurityException $exception = null)
     {
         $action = $controller->request->params['action'];
