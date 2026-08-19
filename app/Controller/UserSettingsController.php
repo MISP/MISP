@@ -38,6 +38,7 @@ class UserSettingsController extends AppController
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
         $this->Security->unlockedActions[] = 'setTheme';
         $this->Security->unlockedActions[] = 'setHomePage';
+        $this->_csrfTokenHeaderOnly(['setEventTemplateUserFormMode']);
         if ($this->action === 'setSetting') {
             $this->Security->unlockedFields = array('value', 'value_select');
         }

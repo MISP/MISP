@@ -126,6 +126,44 @@ class BetterSecurityComponent extends SecurityComponent
     }
 
     /**
+     * Accept the CSRF token from the `X-CSRF-Token` header as well as from the
+     * request body.
+     *
+     * Same-origin AJAX cannot use the body form: `Security` starts up before the
+     * component that decodes a JSON request body, so `request->data('_Token.key')`
+     * is empty for any caller posting `application/json`. A header carries the
+     * token regardless of content type, and it is a strictly stronger position
+     * than the body field to begin with - `X-CSRF-Token` is not CORS-safelisted,
+     * so a cross-origin page cannot attach it without a preflight this instance
+     * refuses unless `Security.allow_cors` names the origin.
+     *
+     * A header token is validated but not consumed, whatever `csrfUseOnce` says:
+     * the page that rendered it has exactly one token and makes an unbounded
+     * number of AJAX calls with it, so consuming it would break every call after
+     * the first. It still expires with the page's token, so a page left open past
+     * `csrfExpires` has to be reloaded - the same deal its forms already get.
+     *
+     * @param Controller $controller
+     * @return bool
+     * @throws SecurityException
+     */
+    protected function _validateCsrf(Controller $controller)
+    {
+        $headerToken = $controller->request->header('X-CSRF-Token');
+        if (empty($headerToken)) {
+            return parent::_validateCsrf($controller);
+        }
+        $token = $this->Session->read('_Token');
+        if (!isset($token['csrfTokens'][$headerToken])) {
+            throw new SecurityException('CSRF token mismatch');
+        }
+        if ($token['csrfTokens'][$headerToken] < time()) {
+            throw new SecurityException('CSRF token expired');
+        }
+        return true;
+    }
+
+    /**
      * Avoid possible timing attacks by using `hash_equals` method to compare hashes.
      * @param Controller $controller
      * @return bool

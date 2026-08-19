@@ -1173,7 +1173,7 @@ async function submitEventTemplatesLibraryUpdate() {
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
             method: 'POST',
-            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '')},
             cache: 'no-cache',
         });
         if (!response.ok) throw response;

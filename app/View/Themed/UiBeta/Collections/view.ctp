@@ -1101,6 +1101,7 @@ $partitionVisibleItems = function (array $items, $visibleLimit) {
             url: baseurl + '/events/restSearch.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             dataType: 'json',
             data: JSON.stringify({
                 uuid: eventUuids,

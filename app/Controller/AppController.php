@@ -41,6 +41,12 @@ class AppController extends Controller
     public $phptoonew = '9.0';
     private $isApiAuthed = false;
 
+    /**
+     * Memoised result of __carriesApiKey(), which beforeFilter asks twice.
+     * @var bool|null
+     */
+    private $__carriesApiKeyCache = null;
+
     /** @var redis */
     private $redis = null;
 
@@ -241,8 +247,14 @@ class AppController extends Controller
 
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
-            $this->Security->unlockedActions = [$action];
-            $this->Security->doNotGenerateToken = true;
+            // Being REST does not by itself earn an exemption from form security -
+            // see __carriesApiKey(). A request that only looks REST rides the
+            // regular SecurityComponent checks instead; that costs a GET nothing,
+            // since Cake does not validate a request with no body.
+            if ($this->__carriesApiKey()) {
+                $this->Security->unlockedActions = [$action];
+                $this->Security->doNotGenerateToken = true;
+            }
         }
 
         if (
@@ -258,8 +270,11 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
 
-                // disable CSRF for REST access
-                $this->Security->csrfCheck = false;
+                // disable CSRF for API key access - a session-authenticated caller
+                // keeps it, whatever content type it negotiated
+                if ($this->__carriesApiKey()) {
+                    $this->Security->csrfCheck = false;
+                }
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
                     if ($this->IndexFilter->isXhr()) {
@@ -492,6 +507,93 @@ class AppController extends Controller
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
         }
+    }
+
+    /**
+     * Mark actions that are only ever reached by hand-built same-origin AJAX.
+     *
+     * Such a caller has no rendered form behind it, so it cannot produce the
+     * field hash `_validatePost()` compares against - that check can only ever
+     * fail for it. CSRF protection is kept rather than dropped: the caller sends
+     * the page's token in the `X-CSRF-Token` header, which
+     * `BetterSecurityComponent::_validateCsrf()` accepts and which a cross-origin
+     * page cannot attach without a preflight.
+     *
+     * This is not `unlockedActions`, which switches both checks off. Call it from
+     * beforeFilter(), after parent::beforeFilter().
+     *
+     * @param array $actions
+     * @return void
+     */
+    protected function _csrfTokenHeaderOnly(array $actions)
+    {
+        if (in_array($this->request->params['action'], $actions, true)) {
+            $this->Security->validatePost = false;
+        }
+    }
+
+    /**
+     * Whether this request presents a MISP API key, as opposed to riding a
+     * browser session.
+     *
+     * `_isRest()` is established from the URL suffix or from the Accept header,
+     * and a cross-origin page controls both: `Accept: application/json` is a
+     * CORS-safelisted header, so it travels on a simple request that is never
+     * preflighted. Granting an exemption from form security on that basis let any
+     * site drive a state change on a victim's session, so the exemption is
+     * granted on the credential instead. An API key cannot be attached
+     * cross-origin without a preflight, which this instance refuses unless
+     * `Security.allow_cors` names the origin.
+     *
+     * This deliberately does not check that the key is *valid* - that is
+     * `__loginByAuthKey()`'s job, and it runs a few lines further down the same
+     * beforeFilter, rejecting the request outright when a key is present but
+     * wrong. All this decides is whether the caller is speaking API or browser.
+     *
+     * @return bool
+     */
+    private function __carriesApiKey()
+    {
+        if ($this->__carriesApiKeyCache !== null) {
+            return $this->__carriesApiKeyCache;
+        }
+        $this->__carriesApiKeyCache = false;
+        // A session established by an API key keeps the exemption, so
+        // Security.authkey_keep_session still works for the requests that follow.
+        $sessionUser = $this->Auth->user();
+        if (!empty($sessionUser['logged_by_authkey'])) {
+            $this->__carriesApiKeyCache = true;
+            return true;
+        }
+        $candidates = [];
+        if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $candidates[] = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        if (!empty($_SERVER['HTTP_X_MISP_AUTH'])) {
+            $candidates[] = $_SERVER['HTTP_X_MISP_AUTH'];
+        }
+        if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->request->params['named']['apikey'])) {
+            $candidates[] = $this->request->params['named']['apikey'];
+        }
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate)) {
+                continue;
+            }
+            // Once a user has authenticated to a fronting web server the browser
+            // attaches Basic credentials to every request by itself, including a
+            // cross-site one, so their presence says nothing about who initiated
+            // it. __loginByAuthKey() skips them too.
+            if (strcasecmp(substr($candidate, 0, 5), 'Basic') === 0) {
+                continue;
+            }
+            foreach (explode(',', $candidate) as $authKey) {
+                if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($authKey))) {
+                    $this->__carriesApiKeyCache = true;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

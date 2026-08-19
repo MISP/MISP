@@ -34,10 +34,58 @@ if (!class_exists('BadRequestException', false)) {
     }
 }
 
+if (!class_exists('SecurityException', false)) {
+    class SecurityException extends RuntimeException
+    {
+    }
+}
+
+if (!class_exists('StubCakeRequest', false)) {
+    class StubCakeRequest
+    {
+        public $headers = [];
+        public $body = [];
+
+        public function header($name)
+        {
+            return isset($this->headers[$name]) ? $this->headers[$name] : false;
+        }
+
+        public function data($path = null)
+        {
+            return isset($this->body[$path]) ? $this->body[$path] : null;
+        }
+    }
+}
+
+if (!class_exists('StubSessionComponent', false)) {
+    class StubSessionComponent
+    {
+        public $store = [];
+        public $deleted = [];
+
+        public function read($key)
+        {
+            return isset($this->store[$key]) ? $this->store[$key] : null;
+        }
+
+        public function delete($key)
+        {
+            $this->deleted[] = $key;
+        }
+    }
+}
+
 if (!class_exists('Controller', false)) {
     class Controller
     {
         public $here = '/feeds/enable/2';
+        public $request;
+
+        public function __construct()
+        {
+            $this->request = new StubCakeRequest();
+        }
     }
 }
 
@@ -51,11 +99,22 @@ if (!class_exists('SecurityComponent', false)) {
     {
         public $startupReached = false;
         public $logged = [];
+        public $csrfUseOnce = true;
+        public $parentCsrfReached = false;
+
+        /** @var StubSessionComponent */
+        public $Session;
 
         public function startup(Controller $controller)
         {
             $this->startupReached = true;
             return true;
+        }
+
+        protected function _validateCsrf(Controller $controller)
+        {
+            $this->parentCsrfReached = true;
+            return 'parent';
         }
 
         public function log($message)
@@ -66,6 +125,18 @@ if (!class_exists('SecurityComponent', false)) {
 }
 
 require_once __DIR__ . '/../Controller/Component/BetterSecurityComponent.php';
+
+/**
+ * _validateCsrf() is protected; this exposes it without changing its visibility
+ * on the class under test.
+ */
+class TestableBetterSecurityComponent extends BetterSecurityComponent
+{
+    public function callValidateCsrf(Controller $controller)
+    {
+        return $this->_validateCsrf($controller);
+    }
+}
 
 /**
  * Cake honours a `_method` field in the POST body by rewriting REQUEST_METHOD,
@@ -179,6 +250,77 @@ class BetterSecurityComponentTest extends TestCase
         $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'DELETE';
         $this->component->startup($this->controller);
         $this->assertTrue($this->component->startupReached);
+    }
+
+    /**
+     * A caller with no X-CSRF-Token header must land on Cake's own body-field
+     * check, so forms keep behaving exactly as before.
+     */
+    public function testCsrfWithoutHeaderFallsThroughToParent(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $this->assertSame('parent', $component->callValidateCsrf($this->controller));
+        $this->assertTrue($component->parentCsrfReached);
+    }
+
+    public function testValidHeaderTokenIsAccepted(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $component->Session->store['_Token'] = ['csrfTokens' => ['abc123' => time() + 600]];
+        $this->controller->request->headers['X-CSRF-Token'] = 'abc123';
+        $this->assertTrue($component->callValidateCsrf($this->controller));
+        $this->assertFalse($component->parentCsrfReached);
+    }
+
+    /**
+     * The page that rendered the token makes an unbounded number of AJAX calls
+     * with it, so a header token must survive csrfUseOnce.
+     */
+    public function testValidHeaderTokenIsNotConsumed(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $component->Session->store['_Token'] = ['csrfTokens' => ['abc123' => time() + 600]];
+        $component->csrfUseOnce = true;
+        $this->controller->request->headers['X-CSRF-Token'] = 'abc123';
+        $component->callValidateCsrf($this->controller);
+        $component->callValidateCsrf($this->controller);
+        $this->assertSame([], $component->Session->deleted);
+    }
+
+    public function testUnknownHeaderTokenIsRefused(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $component->Session->store['_Token'] = ['csrfTokens' => ['abc123' => time() + 600]];
+        $this->controller->request->headers['X-CSRF-Token'] = 'not-the-token';
+        $this->expectException(SecurityException::class);
+        $component->callValidateCsrf($this->controller);
+    }
+
+    public function testExpiredHeaderTokenIsRefused(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $component->Session->store['_Token'] = ['csrfTokens' => ['abc123' => time() - 1]];
+        $this->controller->request->headers['X-CSRF-Token'] = 'abc123';
+        $this->expectException(SecurityException::class);
+        $component->callValidateCsrf($this->controller);
+    }
+
+    /**
+     * No session token at all must not be readable as "nothing to compare, so
+     * pass".
+     */
+    public function testHeaderTokenWithoutSessionTokenIsRefused(): void
+    {
+        $component = new TestableBetterSecurityComponent();
+        $component->Session = new StubSessionComponent();
+        $this->controller->request->headers['X-CSRF-Token'] = 'abc123';
+        $this->expectException(SecurityException::class);
+        $component->callValidateCsrf($this->controller);
     }
 
     public function testRefusalIsLogged(): void
