@@ -39,6 +39,8 @@ class LdapAuthenticate extends BaseAuthenticate
             'starttls' => Configure::read('LdapAuth.starttls') ?? false,
             'mixedAuth' => Configure::read('LdapAuth.mixedAuth') ?? true,
             'ldapDefaultOrgId' => Configure::read('LdapAuth.ldapDefaultOrgId') ?? 1,
+            'ldapOrgField' => Configure::read('LdapAuth.ldapOrgField') ?? null,
+            'ldapOrgGroupMapping' => Configure::read('LdapAuth.ldapOrgGroupMapping') ?? null,
             'ldapDefaultRoleId' => Configure::read('LdapAuth.ldapDefaultRoleId') ?? 3,
             'updateUser' => Configure::read('LdapAuth.updateUser') ?? true,
             'debug' => Configure::read('LdapAuth.debug') ?? false,
@@ -109,8 +111,16 @@ class LdapAuthenticate extends BaseAuthenticate
     private function getEmailAddress($ldapEmailField, $ldapUserData)
     {
         // return the email address of an LDAP user if one of the fields in $ldapEmailField exists
+        return $this->getFirstAttributeValue($ldapEmailField, $ldapUserData);
+    }
+
+    // Returns the value of the first attribute in $fields that the entry
+    // carries, or null. Shared by every setting that names an attribute, so
+    // they all agree on how entries are read.
+    private function getFirstAttributeValue($fields, $ldapUserData)
+    {
         $entry = isset($ldapUserData[0]) ? $ldapUserData[0] : [];
-        foreach ($ldapEmailField as $field) {
+        foreach ((array)$fields as $field) {
             // ldap_get_entries() lowercases attribute names, so a field
             // configured the way it is spelled in the schema, such as
             // `userPrincipalName`, would never match a literal lookup.
@@ -137,6 +147,92 @@ class LdapAuthenticate extends BaseAuthenticate
             }
         }
         return null;
+    }
+
+    // Looks up one organisation by id or by name.
+    //
+    // An all-digit value is read as an organisation id, anything else as an
+    // organisation name, so either can be published by the directory.
+    private function findOrganisationId($userModel, $value)
+    {
+        $conditions = ctype_digit((string)$value)
+            ? ['Organisation.id' => (int)$value]
+            : ['Organisation.name' => $value];
+
+        $organisation = $userModel->Organisation->find(
+            'first',
+            [
+                'conditions' => $conditions,
+                'fields' => ['Organisation.id'],
+                'recursive' => -1
+            ]
+        );
+
+        return empty($organisation) ? null : $organisation['Organisation']['id'];
+    }
+
+    // Resolves the MISP organisation for an LDAP user.
+    //
+    // `ldapOrgField` names an attribute on the user's entry holding an
+    // organisation id or name. `ldapOrgGroupMapping` maps group memberships to
+    // organisations, using the same memberships the role mapping reads: keys
+    // are group CNs, or full group DNs when `ldapUseMemberOf` is enabled. With
+    // both configured the attribute is tried first, then the groups, so the
+    // two compose for directories that express the organisation either way.
+    //
+    // `ldapDefaultOrgId` applies only when NEITHER is configured. Once the
+    // organisation is meant to come from the directory, a user it cannot be
+    // resolved for is refused rather than quietly placed in the default
+    // organisation: an organisation is a sharing boundary in MISP, and
+    // defaulting into it would widen someone's access on the strength of
+    // missing data.
+    private function getOrganisationId($userModel, $ldapUserData, $groups = [])
+    {
+        $usesOrgField = !empty(self::$conf['ldapOrgField']);
+        $usesGroupMapping = !empty(self::$conf['ldapOrgGroupMapping']);
+
+        if (!$usesOrgField && !$usesGroupMapping) {
+            return self::$conf['ldapDefaultOrgId'];
+        }
+
+        if ($usesOrgField) {
+            $value = $this->getFirstAttributeValue(self::$conf['ldapOrgField'], $ldapUserData);
+            if ($value === null || $value === '') {
+                CakeLog::warning(
+                    "[LdapAuth] No organisation attribute on the LDAP entry."
+                );
+            } else {
+                $orgId = $this->findOrganisationId($userModel, $value);
+                if ($orgId !== null) {
+                    return $orgId;
+                }
+                CakeLog::warning("[LdapAuth] No MISP organisation matches '$value'.");
+            }
+        }
+
+        if ($usesGroupMapping) {
+            foreach ($groups as $group) {
+                if (!isset(self::$conf['ldapOrgGroupMapping'][$group])) {
+                    continue;
+                }
+                $value = self::$conf['ldapOrgGroupMapping'][$group];
+                $orgId = $this->findOrganisationId($userModel, $value);
+                if ($orgId !== null) {
+                    return $orgId;
+                }
+                CakeLog::warning(
+                    "[LdapAuth] Group '$group' maps to organisation '$value', which MISP does not have."
+                );
+            }
+            CakeLog::warning(
+                "[LdapAuth] No group maps to an organisation for this user."
+            );
+        }
+
+        CakeLog::error(
+            "[LdapAuth] Could not resolve an organisation from LDAP, refusing login."
+        );
+        throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
     }
 
     private function getUserMemberships($ldapconn, $ldapUserData)
@@ -204,7 +300,14 @@ class LdapAuthenticate extends BaseAuthenticate
             $filter =  '(&' . self::$conf['ldapSearchFilter'] . $filter . ')';
         }
 
-        $ldapUser = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, self::$conf['ldapEmailField']);
+        // Only the attributes asked for here come back, so every setting that
+        // names one has to be listed or it silently reads as absent.
+        $attributes = (array)self::$conf['ldapEmailField'];
+        if (!empty(self::$conf['ldapOrgField'])) {
+            $attributes = array_merge($attributes, (array)self::$conf['ldapOrgField']);
+        }
+
+        $ldapUser = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, $attributes);
 
         if (!$ldapUser) {
             CakeLog::error("[LdapAuth] LDAP user search failed: " . ldap_error($ldapconn));
@@ -309,7 +412,20 @@ class LdapAuthenticate extends BaseAuthenticate
 
         // Insert user in database if not existent
         $userModel = ClassRegistry::init($this->settings['userModel']);
-        $orgId = self::$conf['ldapDefaultOrgId'];
+
+        // Group memberships can decide the role, the organisation or both, so
+        // read them once, under the reader bind, if either mapping needs them.
+        $groups = [];
+        if (is_array(self::$conf['ldapDefaultRoleId']) || !empty(self::$conf['ldapOrgGroupMapping'])) {
+            $ldapbind = ldap_bind($ldapconn, self::$conf['ldapReaderUser'],  self::$conf['ldapReaderPassword']);
+            if (!$ldapbind) {
+                CakeLog::error("[LdapAuth] Invalid LDAP reader user credentials: " . ldap_error($ldapconn));
+                throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+            }
+            $groups = $this->getUserMemberships($ldapconn, $ldapUserData);
+        }
+
+        $orgId = $this->getOrganisationId($userModel, $ldapUserData, $groups);
 
         // If not in config, take first local organisation
         if (!isset($orgId)) {
@@ -327,14 +443,6 @@ class LdapAuthenticate extends BaseAuthenticate
 
         // Set role_id based on group membership with ldapReaderUser bind or default role
         if (is_array(self::$conf['ldapDefaultRoleId'])) {
-            $ldapbind = ldap_bind($ldapconn, self::$conf['ldapReaderUser'],  self::$conf['ldapReaderPassword']);
-            if (!$ldapbind) {
-                CakeLog::error("[LdapAuth] Invalid LDAP reader user credentials: " . ldap_error($ldapconn));
-                throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
-            }
-            // Get user memberships
-            $groups = $this->getUserMemberships($ldapconn, $ldapUserData);
-
             // Find the role ID if the user belongs to any of the specified groups
             $roleId = null;
             foreach ($groups as $group) {

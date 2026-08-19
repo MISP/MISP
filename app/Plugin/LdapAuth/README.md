@@ -98,9 +98,37 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `true`
 
 ### `ldapDefaultOrgId`
-- **Description**: Specifies the default organisation ID when creating LDAP users on MISP.
+- **Description**: The organisation ID assigned to LDAP users. Applies only when neither `ldapOrgField` nor `ldapOrgGroupMapping` is configured.
 - **Type**: `string`
 - **Example**: `1`
+
+### `ldapOrgField`
+- **Description**: An attribute on the user's LDAP entry that holds their organisation. An all-digit value is looked up as an organisation ID, anything else as an organisation name. Several attributes may be given, in which case the first one present on the entry is used. Attribute names are matched case-insensitively.
+- **Type**: `string` | `array`
+- **Default**: unset, meaning `ldapDefaultOrgId` is used
+- **Example**: `'o'`, or `['o', 'departmentNumber']`
+
+### `ldapOrgGroupMapping`
+- **Description**: Maps LDAP group memberships to MISP organisations, for directories where the organisation is expressed as a group rather than an attribute. Values are organisation IDs or names, resolved the same way as `ldapOrgField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled, matching how `ldapDefaultRoleId` is keyed. The first group that maps to an existing organisation wins, so ordering matters for users in several mapped groups.
+- **Type**: `array`
+- **Default**: unset
+- **Example**:
+    ```
+    [
+        'misp_org_a' => 'Organisation A',
+        'misp_org_b' => 2,
+    ]
+    ```
+
+> **NOTE — how the organisation is resolved:**
+>
+> * If **neither** `ldapOrgField` nor `ldapOrgGroupMapping` is configured, every LDAP user is placed in `ldapDefaultOrgId`.
+> * If **either** is configured, the organisation comes from the directory. `ldapOrgField` is tried first, then `ldapOrgGroupMapping`, so the two compose: a user without the attribute can still be resolved by a group, and vice versa.
+> * If **neither mechanism resolves an organisation** — the attribute is absent, or names an organisation MISP does not have, and no group maps to one either — **the login is refused**. `ldapDefaultOrgId` is *not* used as a fallback here, and no MISP account is created.
+>
+> That refusal is deliberate. An organisation is a sharing boundary in MISP, so defaulting a user into one on the strength of missing directory data would widen their access to other organisations' events. Each step logs a warning before the refusal, so `app/tmp/logs/error.log` shows which part did not resolve.
+>
+> Practical consequence: a directory that stops publishing the attribute, or a `ldapOrgGroupMapping` value that no longer matches an organisation name, locks the affected users out rather than silently misplacing them. Existing accounts keep their current organisation and stay enabled, they simply cannot log in until the directory or the mapping is corrected.
 
 ### `ldapDefaultRoleId`
 - **Description**: The default role ID assigned to users authenticated through LDAP. Can also be an array representing the mapping of group memberships of the LDAP user with the corresponding MISP `role_id`.
@@ -199,6 +227,7 @@ To configure these settings in your application, ensure each setting is defined 
     'starttls' => true,
     'mixedAuth' => true,
     'ldapDefaultOrg' => 1,
+    'ldapOrgField' => 'o',
     'ldapDefaultRoleId' => 3,
     'updateUser' => true
 ]

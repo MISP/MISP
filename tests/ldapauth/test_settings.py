@@ -301,6 +301,177 @@ def test_update_user_false_freezes_an_existing_account(misp_config, misp_admin_a
     assert int(misp_admin_api.view_user(user_id)["role_id"]) == 1
 
 
+@pytest.fixture
+def misp_org(misp_admin_api):
+    """A throwaway local organisation to place LDAP users into."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to create an organisation")
+
+    org = misp_admin_api.create_org("ldaptest-{}".format(uuid.uuid4().hex[:8]))
+    yield org
+    misp_admin_api.delete_org(org["id"])
+
+
+def test_org_field_resolves_an_organisation_by_name(misp, misp_config,
+                                                    misp_org, ldap_settings,
+                                                    ldap_fixtures):
+    """ldapOrgField naming an organisation puts the user in it."""
+    user = ldap_fixtures.add_user(o=misp_org["name"])
+
+    ldap_settings.set(ldapOrgField="o")
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
+    assert int(misp.current_user()["org_id"]) != misp_config.ldap_org_id, (
+        "the fixture org must differ from the default, or this proves nothing"
+    )
+
+
+def test_org_field_resolves_an_organisation_by_id(misp, misp_org,
+                                                  ldap_settings,
+                                                  ldap_fixtures):
+    """The same attribute may carry an id instead of a name."""
+    user = ldap_fixtures.add_user(o=str(misp_org["id"]))
+
+    ldap_settings.set(ldapOrgField="o")
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
+
+
+@pytest.mark.parametrize("attribute_value", [None, "no-such-organisation"])
+def test_org_field_without_a_match_refuses_the_login(misp, misp_admin_api,
+                                                     misp_config,
+                                                     ldap_settings,
+                                                     ldap_fixtures,
+                                                     attribute_value):
+    """An absent or unresolvable attribute refuses, it does not default.
+
+    Once the organisation is meant to come from the directory,
+    `ldapDefaultOrgId` no longer applies: defaulting into it would widen
+    someone's access on the strength of missing data, and an organisation is a
+    sharing boundary. The account is not created either.
+    """
+    extra = {} if attribute_value is None else {"o": attribute_value}
+    user = ldap_fixtures.add_user(**extra)
+
+    ldap_settings.set(ldapOrgField="o", ldapDefaultOrgId=misp_config.ldap_org_id)
+
+    misp.login(user["mail"], user["password"])
+    assert not misp.is_authenticated()
+
+    if misp_admin_api is not None:
+        assert misp_admin_api.find_user_id(user["mail"]) is None, (
+            "a user with no resolvable organisation was created anyway"
+        )
+
+
+def test_org_group_mapping_without_a_match_refuses_the_login(misp,
+                                                             misp_admin_api,
+                                                             misp_org,
+                                                             ldap_config,
+                                                             ldap_settings,
+                                                             ldap_fixtures):
+    """The same refusal applies when the organisation comes from groups."""
+    user = ldap_fixtures.add_user()
+    ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapOrgGroupMapping={"a-group-nobody-is-in": misp_org["name"]},
+    )
+
+    misp.login(user["mail"], user["password"])
+    assert not misp.is_authenticated()
+
+    if misp_admin_api is not None:
+        assert misp_admin_api.find_user_id(user["mail"]) is None
+
+
+def test_default_org_applies_when_neither_setting_is_configured(misp,
+                                                                misp_config,
+                                                                ldap_settings,
+                                                                ldap_fixtures):
+    """ldapDefaultOrgId still governs when the directory decides nothing."""
+    user = ldap_fixtures.add_user()
+
+    ldap_settings.set(ldapDefaultOrgId=misp_config.ldap_org_id)
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["org_id"]) == misp_config.ldap_org_id
+
+
+def test_group_mapping_covers_a_user_the_attribute_misses(misp, misp_org,
+                                                          ldap_config,
+                                                          ldap_settings,
+                                                          ldap_fixtures):
+    """With both configured, groups still resolve users lacking the attribute.
+
+    The two compose rather than the attribute short-circuiting the groups, so
+    a directory can express the organisation either way.
+    """
+    user = ldap_fixtures.add_user()
+    group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapOrgField="o",
+        ldapOrgGroupMapping={group["cn"]: misp_org["name"]},
+    )
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
+
+
+def test_group_membership_maps_to_an_organisation(misp, misp_org, ldap_config,
+                                                  ldap_settings,
+                                                  ldap_fixtures):
+    """ldapOrgGroupMapping picks the organisation from a group membership.
+
+    Keyed the same way the role mapping is: group CNs normally, full group DNs
+    when ldapUseMemberOf is enabled.
+    """
+    user = ldap_fixtures.add_user()
+    group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    # The groups OU sits outside the users OU, so the search base has to cover
+    # it for the plugin's `(member=<dn>)` lookup to find anything.
+    ldap_settings.set(
+        ldapDn=ldap_config.root,
+        ldapOrgGroupMapping={group["cn"]: misp_org["name"]},
+    )
+
+    misp.login(user["mail"], user["password"])
+    misp.assert_logged_in(user["mail"])
+    assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
+
+
+def test_org_field_wins_over_group_mapping(misp, misp_admin_api, misp_org,
+                                           ldap_config, ldap_settings,
+                                           ldap_fixtures):
+    """With both configured, the attribute decides."""
+    other = misp_admin_api.create_org("ldaptest-{}".format(uuid.uuid4().hex[:8]))
+    try:
+        user = ldap_fixtures.add_user(o=misp_org["name"])
+        group = ldap_fixtures.add_group(members=[user["dn"]])
+
+        ldap_settings.set(
+            ldapDn=ldap_config.root,
+            ldapOrgField="o",
+            ldapOrgGroupMapping={group["cn"]: other["name"]},
+        )
+
+        misp.login(user["mail"], user["password"])
+        misp.assert_logged_in(user["mail"])
+        assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
+    finally:
+        misp_admin_api.delete_org(other["id"])
+
+
 def test_group_membership_maps_to_a_role(misp, misp_admin_api, ldap_config,
                                          ldap_settings, ldap_fixtures):
     """ldapDefaultRoleId as a dict assigns a role from the user's groups."""

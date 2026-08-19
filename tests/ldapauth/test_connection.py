@@ -121,6 +121,48 @@ def test_misp_login_form_is_served(misp):
     assert 'name="data[User][password]"' in response.text
 
 
+def test_instance_settings_match_what_the_suite_assumes(misp_config,
+                                                        misp_instance_config):
+    """The instance's LdapAuth block still matches the suite's baseline.
+
+    Several tests rewrite these settings and restore them afterwards, but a run
+    interrupted mid-test never reaches its teardown and leaves the instance
+    configured for whatever it was exercising. `updateUser: false` is the worst
+    of those: the plugin then returns existing users untouched, so role and
+    organisation mappings silently stop applying and later runs fail in tests
+    that look entirely unrelated.
+
+    Checking it here turns that into one obvious failure instead of a handful
+    of misleading ones.
+    """
+    if misp_instance_config is None:
+        pytest.skip("cannot read the instance's config.php")
+
+    settings = misp_instance_config.read().get("LdapAuth", {})
+    drifted = {}
+
+    if bool(settings.get("updateUser")) is not misp_config.ldap_update_user:
+        drifted["updateUser"] = settings.get("updateUser")
+    if bool(settings.get("mixedAuth")) is not misp_config.ldap_mixed_auth:
+        drifted["mixedAuth"] = settings.get("mixedAuth")
+    if int(settings.get("ldapDefaultOrgId", 0)) != misp_config.ldap_org_id:
+        drifted["ldapDefaultOrgId"] = settings.get("ldapDefaultOrgId")
+    role = settings.get("ldapDefaultRoleId")
+    if not isinstance(role, dict) and int(role or 0) != misp_config.ldap_role_id:
+        drifted["ldapDefaultRoleId"] = role
+    for left_over in ("ldapOrgField", "ldapOrgGroupMapping", "ldapSearchFilter"):
+        if settings.get(left_over):
+            drifted[left_over] = settings.get(left_over)
+
+    assert not drifted, (
+        "The instance's LdapAuth settings have drifted from the suite's "
+        "baseline: {}. A previous run was probably interrupted before it could "
+        "restore them. Fix the values in app/Config/config.php, or override "
+        "the MISP_LDAP_* variables if this instance is meant to differ."
+        .format(drifted)
+    )
+
+
 def test_misp_session_starts_unauthenticated(misp):
     """Baseline for the login tests: no session means no current user."""
     misp.get("/users/login")

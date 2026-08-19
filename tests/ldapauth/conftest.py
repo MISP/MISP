@@ -118,6 +118,9 @@ class MispConfig:
         self.ldap_mixed_auth = _env("MISP_LDAP_MIXED_AUTH", "0") not in (
             "0", "false", "no",
         )
+        self.ldap_update_user = _env("MISP_LDAP_UPDATE_USER", "1") not in (
+            "0", "false", "no",
+        )
         # A successful LDAP login auto-provisions a local MISP user that
         # outlives the directory fixture, so the suite needs an admin authkey
         # to clean up after itself. Same variable the other testlive_* suites
@@ -575,6 +578,57 @@ def misp_instance_config():
     return instance if instance.available() else None
 
 
+# Substrings identifying accounts this suite provisions. Used only by the
+# end-of-session sweep, which is a backstop for the per-test cleanup.
+TEST_ACCOUNT_MARKERS = (
+    "misptest-", "duplicate-", "fallback-", "jdoe-", "cased-", "local-",
+    "renamed-", "upn-", "ldaptest-",
+)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def restore_instance_config(misp_instance_config):
+    """Put the instance's LdapAuth settings back when the session ends.
+
+    `ldap_settings` already restores per test, but a run interrupted mid-test
+    -- a timeout, a Ctrl-C -- never reaches that teardown and leaves the
+    instance configured for whatever it was exercising. `updateUser: false` is
+    the nasty one: the plugin then returns existing users untouched, so group
+    and role mappings silently stop applying and *later runs* fail in tests
+    that look unrelated.
+
+    This is a second line of defence inside the session. A SIGKILL still
+    escapes it, so the README documents how to check and repair by hand.
+    """
+    if misp_instance_config is None:
+        yield
+        return
+
+    original = misp_instance_config.read()
+    try:
+        yield
+    finally:
+        misp_instance_config.replace(original)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def sweep_provisioned_accounts(misp_admin_api):
+    """Delete any accounts this suite provisioned that survived their test."""
+    yield
+    if misp_admin_api is None:
+        return
+
+    for entry in misp_admin_api.users():
+        email = entry.get("User", entry).get("email", "")
+        if not any(marker in email for marker in TEST_ACCOUNT_MARKERS):
+            continue
+        try:
+            misp_admin_api.delete_user_by_email(email)
+            warnings.warn("Swept leftover MISP account {}".format(email))
+        except requests.RequestException as exc:
+            warnings.warn("Could not sweep {}: {}".format(email, exc))
+
+
 @pytest.fixture
 def ldap_settings(misp_instance_config):
     """Change LdapAuth settings for one test, then put them back.
@@ -648,6 +702,26 @@ class MispAdminApi:
         )
         response.raise_for_status()
         return response.json()["User"]
+
+    def create_org(self, name):
+        """Create a local organisation, for the org-mapping tests."""
+        response = self.session.post(
+            self._url("/admin/organisations/add"),
+            data=json.dumps({"Organisation": {"name": name, "local": True}}),
+            verify=self.config.verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()["Organisation"]
+
+    def delete_org(self, org_id):
+        response = self.session.post(
+            self._url("/admin/organisations/delete/{}".format(org_id)),
+            verify=self.config.verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
 
     def view_user(self, user_id):
         response = self.session.get(

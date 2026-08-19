@@ -110,7 +110,8 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   the one case where a refusal is silently undone, see below.
 * `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
   `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
-  `updateUser`, and group-to-role mapping via `ldapDefaultRoleId`. These
+  `updateUser`, group-to-role mapping via `ldapDefaultRoleId`, and
+  organisation resolution via `ldapOrgField` / `ldapOrgGroupMapping`. These
   rewrite the instance's config, see below.
 
 ## Fixtures
@@ -160,6 +161,30 @@ settings schema and it answers "No valid setting found".
 
 **These tests mutate instance-wide state — run them serially, never with
 `pytest-xdist`.**
+
+An interrupted run is the one thing to watch for. A test killed mid-way (a
+timeout, Ctrl-C) never reaches its teardown and leaves the instance configured
+for whatever it was exercising. `updateUser: false` is the damaging one: the
+plugin then returns existing users untouched, so role and organisation
+mappings silently stop applying, and *later* runs fail in tests that look
+entirely unrelated. Two defences:
+
+* `restore_instance_config` snapshots the settings at session start and puts
+  them back at the end, covering anything that goes wrong inside a session.
+* `test_instance_settings_match_what_the_suite_assumes` fails fast when the
+  instance has already drifted, naming the offending settings, so a poisoned
+  config reads as one obvious failure rather than several misleading ones.
+
+Neither survives a `SIGKILL`. If the preflight fails, repair the values by
+hand:
+
+```bash
+docker exec <misp-container> php /var/www/MISP/tests/modify_config.php modify \
+  '{"LdapAuth": {"updateUser": true, "ldapDefaultRoleId": 3}}'
+```
+
+`sweep_provisioned_accounts` does the same for MISP accounts, deleting any the
+suite provisioned that outlived their test and warning about each one.
 
 Two things make this slower than it looks:
 
