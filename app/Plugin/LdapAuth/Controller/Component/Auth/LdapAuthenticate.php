@@ -282,6 +282,18 @@ class LdapAuthenticate extends BaseAuthenticate
         return null;
     }
 
+    // Whether the role mapping is walked in the order it is written.
+    //
+    // `ldapRoleGroupMapping` is, so a user in several mapped groups lands in
+    // the role listed first and the config alone tells you which. The array
+    // form of `ldapDefaultRoleId` predates that and is left walking the user's
+    // memberships in whatever order the directory returned them, so upgrading
+    // does not silently move anyone between roles.
+    private function roleGroupMappingUsesSettingsOrder()
+    {
+        return !empty(self::$conf['ldapRoleGroupMapping']);
+    }
+
     // Resolves the MISP role for an LDAP user, mirroring how the organisation
     // is resolved: `ldapRoleField` names an attribute on the user's entry
     // holding a role id or name, `ldapRoleGroupMapping` maps group
@@ -317,8 +329,17 @@ class LdapAuthenticate extends BaseAuthenticate
         }
 
         if ($usesGroupMapping) {
-            foreach ($groups as $group) {
-                if (!isset($groupMapping[$group])) {
+            // Which sequence decides precedence for someone in several mapped
+            // groups. Walking the mapping makes the config the answer; walking
+            // the memberships leaves it to the directory's result order, which
+            // is what the older ldapDefaultRoleId array form did.
+            $candidates = $this->roleGroupMappingUsesSettingsOrder()
+                ? array_keys($groupMapping)
+                : $groups;
+            $memberships = array_flip($groups);
+
+            foreach ($candidates as $group) {
+                if (!isset($groupMapping[$group]) || !isset($memberships[$group])) {
                     continue;
                 }
                 $value = $groupMapping[$group];

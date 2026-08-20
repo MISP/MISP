@@ -109,7 +109,8 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `'o'`, or `['o', 'departmentNumber']`
 
 ### `ldapOrgGroupMapping`
-- **Description**: Maps LDAP group memberships to MISP organisations, for directories where the organisation is expressed as a group rather than an attribute. Values are organisation IDs or names, resolved the same way as `ldapOrgField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled, matching how `ldapDefaultRoleId` is keyed. The first group that maps to an existing organisation wins, so ordering matters for users in several mapped groups.
+- **Description**: Maps LDAP group memberships to MISP organisations, for directories where the organisation is expressed as a group rather than an attribute. Values are organisation IDs or names, resolved the same way as `ldapOrgField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled, matching how the role mappings are keyed.
+- **Precedence**: For a user in several mapped groups the winner follows the order the directory returns memberships in, which is **not** guaranteed to be stable across servers. Unlike `ldapRoleGroupMapping`, this setting does not yet read precedence from the order written here, so avoid mapping a user's groups to more than one organisation.
 - **Type**: `array`
 - **Default**: unset
 - **Example**:
@@ -154,7 +155,8 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `'title'`, or `['mispRole', 'title']`
 
 ### `ldapRoleGroupMapping`
-- **Description**: Maps LDAP group memberships to MISP roles. Values are role IDs or names, resolved the same way as `ldapRoleField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled. The first group that maps to an existing role wins, so ordering matters for users in several mapped groups. Takes precedence over the array form of `ldapDefaultRoleId`, which does the same thing.
+- **Description**: Maps LDAP group memberships to MISP roles. Values are role IDs or names, resolved the same way as `ldapRoleField`. Keys are group CNs, or full group DNs when `ldapUseMemberOf` is enabled. Takes precedence over the array form of `ldapDefaultRoleId`, which does the same thing.
+- **Precedence**: For a user in several mapped groups, **the first entry in this setting wins** — precedence is the order you write, not the order the directory happens to return memberships in. Put the group whose role should take priority first. This is the one behavioural difference from the array form of `ldapDefaultRoleId`, which still resolves against the directory's order; that was left alone so upgrading does not silently move existing users between roles.
 - **Type**: `array`
 - **Default**: unset
 - **Example**:

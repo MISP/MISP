@@ -648,6 +648,90 @@ def test_role_group_mapping_without_a_match_refuses_the_login(misp,
         assert misp_admin_api.find_user_id(user["mail"]) is None
 
 
+def test_role_group_mapping_precedence_follows_settings_order(misp_config,
+                                                              misp_admin_api,
+                                                              ldap_config,
+                                                              ldap_settings,
+                                                              ldap_fixtures):
+    """A user in several mapped groups lands in the one listed first.
+
+    Both orderings are exercised with the same two groups, so the assertion
+    cannot pass by accident: whatever sequence the directory returns
+    memberships in, one of the two contradicts it. That is the point of
+    reading precedence from the config instead of the search result.
+    """
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    org_admin_group = ldap_fixtures.add_group(members=[user["dn"]])
+    publisher_group = ldap_fixtures.add_group(members=[user["dn"]])
+
+    orderings = [
+        ([(org_admin_group, "Org Admin"), (publisher_group, "Publisher")], 2),
+        ([(publisher_group, "Publisher"), (org_admin_group, "Org Admin")], 4),
+    ]
+
+    for pairs, expected_role in orderings:
+        ldap_settings.set(
+            ldapDn=ldap_config.root,
+            # dicts keep insertion order, and so does the config round-trip
+            ldapRoleGroupMapping={group["cn"]: role for group, role in pairs},
+        )
+
+        client = MispClient(misp_config)
+        client.login(user["mail"], user["password"])
+        client.assert_logged_in(user["mail"])
+        assert int(client.current_user()["role_id"]) == expected_role, (
+            "listing {} first should win".format(pairs[0][1])
+        )
+        client.session.close()
+
+
+def test_legacy_default_role_array_ignores_settings_order(misp_config,
+                                                          misp_admin_api,
+                                                          ldap_config,
+                                                          ldap_settings,
+                                                          ldap_fixtures):
+    """The array form of ldapDefaultRoleId keeps its original precedence.
+
+    It resolves against the order the directory returns memberships in, so
+    reordering the mapping changes nothing. Pinned deliberately: settings-order
+    precedence was added to `ldapRoleGroupMapping` only, so that upgrading does
+    not silently move existing users between roles.
+    """
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the provisioned role")
+
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    first = ldap_fixtures.add_group(members=[user["dn"]])
+    second = ldap_fixtures.add_group(members=[user["dn"]])
+
+    seen = []
+    for pairs in ([(first, 2), (second, 4)], [(second, 4), (first, 2)]):
+        ldap_settings.set(
+            ldapDn=ldap_config.root,
+            ldapRoleGroupMapping=None,
+            ldapDefaultRoleId={group["cn"]: role for group, role in pairs},
+        )
+
+        client = MispClient(misp_config)
+        client.login(user["mail"], user["password"])
+        client.assert_logged_in(user["mail"])
+        seen.append(int(client.current_user()["role_id"]))
+        client.session.close()
+
+    assert seen[0] == seen[1], (
+        "reordering the legacy mapping changed the role ({}), so it picked up "
+        "settings-order precedence".format(seen)
+    )
+    assert seen[0] in (2, 4)
+
+
 def test_role_field_wins_over_role_group_mapping(misp, misp_admin_api,
                                                  ldap_config, ldap_settings,
                                                  ldap_fixtures):
