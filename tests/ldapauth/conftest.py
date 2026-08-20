@@ -754,6 +754,33 @@ def sweep_provisioned_accounts(misp_admin_api):
 
 
 @pytest.fixture
+def misp_org(misp_admin_api):
+    """A throwaway local organisation to place LDAP users into."""
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to create an organisation")
+
+    org = misp_admin_api.create_org("ldaptest-{}".format(uuid.uuid4().hex[:8]))
+    yield org
+    misp_admin_api.delete_org(org["id"])
+
+
+@pytest.fixture
+def another_misp_org(misp_admin_api):
+    """A second throwaway organisation, for precedence between two of them.
+
+    A fixture rather than an inline create/delete so pytest tears it down
+    after `ldap_fixtures` has removed the accounts: MISP refuses to delete an
+    organisation that still has users in it.
+    """
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to create an organisation")
+
+    org = misp_admin_api.create_org("ldaptest-{}".format(uuid.uuid4().hex[:8]))
+    yield org
+    misp_admin_api.delete_org(org["id"])
+
+
+@pytest.fixture
 def ldap_settings(misp_instance_config):
     """Change LdapAuth settings for one test, then put them back.
 

@@ -231,6 +231,62 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `false`
 - **Example**: `true`
 
+## Authenticating on a header from a front-end proxy
+
+For deployments where an Apache in front of MISP performs the authentication —
+Kerberos via `mod_auth_gssapi`, for instance — and passes the resulting
+username on in an HTTP header.
+
+The user still has to exist in the directory: the header only replaces the
+password, so the entry must be found under `ldapDn`, must not be disabled, and
+its organisation and role are resolved exactly as for a form login, including
+provisioning on first sight.
+
+### `ldapHeaderAuth`
+- **Description**: Enable authentication from a header set by a trusted proxy. Off by default.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `true`
+
+### `ldapHeaderAuthHeader`
+- **Description**: The header carrying the authenticated username. Either an HTTP header name (`X-Remote-User`, matched case-insensitively and translated to `HTTP_X_REMOTE_USER`) or a raw server variable (`REMOTE_USER`, which Apache sets itself when it performs the Kerberos handshake in the same process rather than proxying). The value is matched against `ldapSearchAttribute`, so with the default it should be the user's mail address; point `ldapSearchAttribute` at `userPrincipalName` or `sAMAccountName` if the proxy passes one of those instead.
+- **Type**: `string`
+- **Default**: unset
+- **Example**: `'X-Remote-User'`
+
+### `ldapHeaderAuthTrustedProxies`
+- **Description**: The addresses allowed to assert an identity. Accepts single addresses or CIDR ranges, IPv4 and IPv6, as a list or a comma-separated string. **Required**: with this empty the header is refused outright.
+- **Type**: `array` | `string`
+- **Default**: `[]`
+- **Example**: `['10.0.0.7', '192.0.2.0/24']`
+
+> **NOTE — why the proxy list is mandatory.** A header is just something the
+> client sends. Anyone who can reach MISP directly can set it and name any
+> account, so it is worth nothing unless the request demonstrably came from the
+> proxy you put in front. With no list there is nothing to check against, so
+> the plugin refuses rather than trusting it, and logs why.
+>
+> The check compares against `REMOTE_ADDR`, the peer address, and nothing else.
+> A forwarded-for style header cannot be used for this: it is set by the same
+> client whose claim is in question. Note MISP's own `_remoteIp()` *does*
+> honour `MISP.log_client_ip_header`, which is right for logging and wrong for
+> a trust decision, so it is deliberately not used here.
+>
+> **Deploy accordingly:** MISP must not be reachable except through the proxy,
+> and the proxy must overwrite the header on every request rather than passing
+> a client-supplied one through. A trusted proxy that forwards whatever the
+> client sent is the same hole with extra steps.
+>
+> A header from an untrusted source is *ignored*, not fatal: the request falls
+> through to the normal login form, so a stray header cannot lock anyone out.
+> Unlike a form login there is no `mixedAuth` fallback — a name the directory
+> does not know is refused rather than matched against local accounts.
+
+MISP core has an unrelated header mechanism, `Plugin.CustomAuth_*`, which
+matches the header against an existing MISP user and does no directory lookup:
+no provisioning, no organisation or role mapping. Use that if you have no LDAP
+directory behind the proxy; use these settings if you do.
+
 ## Disabled Active Directory accounts
 
 ### `ldapCheckUserAccountControl`

@@ -63,7 +63,16 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapUseMemberOf' => Configure::read('LdapAuth.ldapUseMemberOf') ?? false,
             'ldapNestedGroups' => Configure::read('LdapAuth.ldapNestedGroups') ?? false,
             'ldapCheckUserAccountControl' => Configure::read('LdapAuth.ldapCheckUserAccountControl') ?? false,
+            'ldapHeaderAuth' => Configure::read('LdapAuth.ldapHeaderAuth') ?? false,
+            'ldapHeaderAuthHeader' => Configure::read('LdapAuth.ldapHeaderAuthHeader') ?? '',
+            'ldapHeaderAuthTrustedProxies' => Configure::read('LdapAuth.ldapHeaderAuthTrustedProxies') ?? [],
         ];
+
+        if (is_string(self::$conf['ldapHeaderAuthTrustedProxies'])) {
+            self::$conf['ldapHeaderAuthTrustedProxies'] = array_filter(
+                array_map('trim', explode(',', self::$conf['ldapHeaderAuthTrustedProxies']))
+            );
+        }
 
         if (self::$conf['ldapEscape'] && self::$conf['ldapSearchFilter']) {
             self::$conf['ldapSearchFilter'] = ldap_escape(self::$conf['ldapSearchFilter'], self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
@@ -507,8 +516,176 @@ class LdapAuthenticate extends BaseAuthenticate
     /*
      * Retrieve a user by validating the request data
      */
+    // Returns the username asserted by a trusted front-end proxy, or null.
+    //
+    // Null means "carry on as normal": the feature is off, no header was
+    // supplied, or the header cannot be trusted. The request is not refused in
+    // that last case, it simply falls through to the login form, so a stray
+    // header from an untrusted client cannot lock anyone out.
+    private function getTrustedHeaderUsername()
+    {
+        if (!self::$conf['ldapHeaderAuth']) {
+            return null;
+        }
+
+        if (empty(self::$conf['ldapHeaderAuthHeader'])) {
+            CakeLog::error(
+                "[LdapAuth] ldapHeaderAuth is enabled but ldapHeaderAuthHeader names no header, ignoring header authentication."
+            );
+            return null;
+        }
+
+        $username = $this->readAuthHeader(self::$conf['ldapHeaderAuthHeader']);
+        if ($username === null) {
+            return null;
+        }
+
+        // Anyone who can reach MISP can send a header, so it is worth nothing
+        // unless the request demonstrably came from a proxy we put there. With
+        // no list configured there is nothing to check it against, so refuse
+        // rather than trust it: the alternative is silent impersonation of any
+        // account by anybody.
+        if (empty(self::$conf['ldapHeaderAuthTrustedProxies'])) {
+            CakeLog::error(
+                "[LdapAuth] Header authentication is enabled but ldapHeaderAuthTrustedProxies is empty; refusing to trust the header from anyone."
+            );
+            return null;
+        }
+
+        // REMOTE_ADDR, never a forwarded-for style header: the peer address is
+        // the one thing in the request the client cannot choose. MISP's own
+        // _remoteIp() honours MISP.log_client_ip_header, which is fine for
+        // logging and useless for a trust decision.
+        $peer = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+        if (!$this->isTrustedProxy($peer, self::$conf['ldapHeaderAuthTrustedProxies'])) {
+            CakeLog::error(
+                "[LdapAuth] Ignoring the authentication header for '$username': the request came from '$peer', which is not in ldapHeaderAuthTrustedProxies."
+            );
+            return null;
+        }
+
+        return $username;
+    }
+
+    // Reads the configured header, accepting either the HTTP header name
+    // (`X-Remote-User`) or a raw server variable (`REMOTE_USER`, which Apache
+    // sets itself when it does the Kerberos handshake in the same process).
+    private function readAuthHeader($header)
+    {
+        $candidates = [$header, 'HTTP_' . strtoupper(str_replace('-', '_', $header))];
+        foreach ($candidates as $key) {
+            if (!empty($_SERVER[$key])) {
+                $value = trim($_SERVER[$key]);
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function isTrustedProxy($peer, $trustedProxies)
+    {
+        if ($peer === '' || $peer === null) {
+            return false;
+        }
+
+        foreach ((array)$trustedProxies as $entry) {
+            $entry = trim($entry);
+            if ($entry === '') {
+                continue;
+            }
+            if (strpos($entry, '/') === false) {
+                if ($entry === $peer) {
+                    return true;
+                }
+                continue;
+            }
+            if ($this->addressInCidr($peer, $entry)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Compares packed addresses so the same code covers IPv4 and IPv6. A
+    // mismatched family never matches, rather than matching by accident.
+    private function addressInCidr($address, $cidr)
+    {
+        $parts = explode('/', $cidr, 2);
+        $packedAddress = @inet_pton($address);
+        $packedSubnet = @inet_pton($parts[0]);
+        if ($packedAddress === false || $packedSubnet === false) {
+            return false;
+        }
+        if (strlen($packedAddress) !== strlen($packedSubnet)) {
+            return false;
+        }
+
+        $bits = (int)$parts[1];
+        if ($bits < 0 || $bits > strlen($packedAddress) * 8) {
+            return false;
+        }
+
+        $wholeBytes = intdiv($bits, 8);
+        if ($wholeBytes > 0 && strncmp($packedAddress, $packedSubnet, $wholeBytes) !== 0) {
+            return false;
+        }
+
+        $remainingBits = $bits % 8;
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = chr((0xFF << (8 - $remainingBits)) & 0xFF);
+        return ($packedAddress[$wholeBytes] & $mask) === ($packedSubnet[$wholeBytes] & $mask);
+    }
+
+    // Logs in a username vouched for by a proxy. No password is involved, so
+    // the user bind is skipped, but everything else the password path does
+    // still applies: the entry must exist under ldapDn, must not be disabled,
+    // and org and role still come from the directory.
+    private function authenticateFromHeader($username)
+    {
+        CakeLog::debug("[LdapAuth] Header authentication for: $username");
+        $this->settings['fields'] = ["username" => "email"];
+
+        $ldapconn = $this->ldapConnect();
+
+        $ldapbind = ldap_bind($ldapconn, self::$conf['ldapReaderUser'], self::$conf['ldapReaderPassword']);
+        if (!$ldapbind) {
+            CakeLog::error("[LdapAuth] Invalid LDAP reader user credentials: " . ldap_error($ldapconn));
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+        }
+
+        $ldapUserData = $this->getLdapUserData($ldapconn, $username);
+
+        // No mixedAuth fallback here on purpose. Falling back to the local
+        // database would mean the header alone logs in an account the
+        // directory knows nothing about, which is a wider trust grant than
+        // the setting asks for.
+        if ($ldapUserData['count'] == 0) {
+            CakeLog::error("[LdapAuth] Header authenticated user '$username' not found in LDAP.");
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+        }
+
+        $this->refuseIfDirectoryAccountDisabled($ldapUserData, $username);
+
+        return $this->provisionUser($ldapconn, $ldapUserData, $username);
+    }
+
     public function getUser($request)
     {
+        // Header authentication is tried first, and deliberately not gated on
+        // a form POST: AuthComponent calls getUser() on every request that has
+        // no session, which is what lets an identity asserted by a front-end
+        // proxy work without anyone submitting the login form.
+        $headerUsername = $this->getTrustedHeaderUsername();
+        if ($headerUsername !== null) {
+            return $this->authenticateFromHeader($headerUsername);
+        }
+
         if (!array_key_exists("User", $request->data)) {
             return false;
         }
@@ -556,24 +733,7 @@ class LdapAuthenticate extends BaseAuthenticate
             }
         }
 
-        // Mirror an account Active Directory has disabled.
-        //
-        // Checked against the directory entry rather than the bind result on
-        // purpose: AD refuses the bind for a disabled account, so waiting for
-        // that would never tell us why and would leave the MISP account
-        // enabled. Doing it here means the local account is revoked the next
-        // time that person tries to log in.
-        if ($this->isDirectoryAccountDisabled($ldapUserData)) {
-            $disabledUsername = $this->getEmailAddress(self::$conf['ldapEmailField'], $ldapUserData);
-            if (!empty($disabledUsername) && $this->_findUser($disabledUsername)) {
-                CakeLog::debug("[LdapAuth] Account disabled in LDAP, disabling MISP user '$disabledUsername'.");
-                $this->disableUser($disabledUsername);
-            }
-            CakeLog::error(
-                "[LdapAuth] userAccountControl marks '$email' as disabled, refusing login."
-            );
-            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
-        }
+        $this->refuseIfDirectoryAccountDisabled($ldapUserData, $email);
 
         // Try to log-in with user LDAP password
         $ldapbind = ldap_bind($ldapconn, $ldapUserData[0]['dn'], $password);
@@ -582,6 +742,35 @@ class LdapAuthenticate extends BaseAuthenticate
             return false;
         }
 
+        return $this->provisionUser($ldapconn, $ldapUserData, $email);
+    }
+
+    // Refuses the login when the directory says the account is disabled, and
+    // takes the MISP account down with it. Shared by every way of logging in,
+    // so a new entry point cannot forget the check.
+    private function refuseIfDirectoryAccountDisabled($ldapUserData, $email)
+    {
+        if (!$this->isDirectoryAccountDisabled($ldapUserData)) {
+            return;
+        }
+
+        $disabledUsername = $this->getEmailAddress(self::$conf['ldapEmailField'], $ldapUserData);
+        if (!empty($disabledUsername) && $this->_findUser($disabledUsername)) {
+            CakeLog::debug("[LdapAuth] Account disabled in LDAP, disabling MISP user '$disabledUsername'.");
+            $this->disableUser($disabledUsername);
+        }
+        CakeLog::error(
+            "[LdapAuth] userAccountControl marks '$email' as disabled, refusing login."
+        );
+        throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+    }
+
+    // Turns a directory entry into a MISP user: works out which account it
+    // maps to, resolves the organisation and role, and creates or refreshes
+    // the row. Everything after the credentials have been accepted, so the
+    // password and header paths cannot drift apart on provisioning rules.
+    private function provisionUser($ldapconn, $ldapUserData, $email)
+    {
         if (!isset(self::$conf['ldapEmailField']) && isset($ldapUserData[0]['mail'][0])) {
             // Assign the real user for MISP
             $mispUsername = $ldapUserData[0]['mail'][0];

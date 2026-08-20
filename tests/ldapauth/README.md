@@ -109,6 +109,11 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   search-filter injection, accounts sitting outside `ldapDn`, and accounts
   Active Directory has disabled via `userAccountControl`. Also pins the one
   case where a refusal is silently undone, see below.
+* `test_header_auth.py`: authenticating on a header asserted by a front-end
+  proxy, and the refusals that make it safe -- no trusted-proxy list, an
+  untrusted peer address, the feature off. Note these drive HTML requests: MISP
+  authenticates `.json` requests by authkey without consulting the plugin, so a
+  JSON probe would report "not logged in" whatever the plugin did.
 * `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
   `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
   `updateUser`, and role and organisation resolution via `ldapRoleField` /
