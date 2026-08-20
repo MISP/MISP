@@ -262,6 +262,26 @@ login, so the two cannot disagree about who is allowed in.
 directory owns those fields at all, and a CLI run should not overrule an
 instance that has turned it off.
 
+### Scheduling it
+
+The same reconciliation is schedulable from the UI, under
+*Administration → Scheduled Tasks → Add*, as task type **Admin** with one of:
+
+| Action | Equivalent to |
+| --- | --- |
+| Check User Validity (report only) | `check_validity` |
+| Check User Validity (disable invalid users) | `check_validity --block_invalid --update` |
+
+They are separate actions rather than one with a checkbox so that scheduling
+the destructive variant is an explicit choice. Both are also available as
+`cake Admin checkUserValidity` / `cake Admin blockInvalidUsers`, which is what
+the scheduler runs; each dispatches `cake User check_validity` rather than
+reimplementing it, and writes its outcome to the task's job so the Tasks index
+shows the result and per-user lines are in the job log.
+
+Scheduled tasks need the scheduler worker running — the Tasks index says so if
+it is not.
+
 Four things worth knowing before running it with `--block_invalid`:
 
 * **Site admins are reported but never disabled or moved.** Nothing

@@ -34,7 +34,12 @@ class SchedulerWorkerShell extends AppShell
         'updateTaxonomies',
         'updateWarningLists',
         'updateNoticeLists',
-        'updateObjectTemplates'
+        'updateObjectTemplates',
+        // Reconcile MISP accounts with the external identity provider. The
+        // reporting variant changes nothing; the blocking one disables users
+        // it no longer backs, so it is a separate, explicit choice.
+        'checkUserValidity',
+        'blockInvalidUsers'
     ];
 
     public function getOptionParser(): ConsoleOptionParser

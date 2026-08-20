@@ -164,6 +164,47 @@ def test_role_is_updated_only_when_update_user_is_enabled(console, misp_config,
     assert int(misp_admin_api.view_user(user_id)["role_id"]) == expected_role
 
 
+@pytest.mark.parametrize("admin_action,expected_disabled", [
+    ("blockInvalidUsers", True),
+    ("checkUserValidity", False),
+])
+def test_schedulable_admin_action_matches_the_cli(console, misp_config,
+                                                  misp_admin_api, ldap_admin,
+                                                  ldap_settings, ldap_fixtures,
+                                                  admin_action,
+                                                  expected_disabled):
+    """The Admin actions the Tasks UI schedules do what the CLI does.
+
+    `cake Admin blockInvalidUsers` is what a scheduled task ends up running,
+    so it is worth asserting directly rather than trusting that it dispatches
+    the right thing. The reporting variant is the control: same situation, no
+    change, which is what makes it safe to schedule.
+    """
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to read the disabled flag")
+
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    ldap_settings.set(mixedAuth=False)
+
+    client = MispClient(misp_config)
+    client.login(user["mail"], user["password"])
+    client.assert_logged_in(user["mail"])
+    client.session.close()
+
+    user_id = misp_admin_api.find_user_id(user["mail"])
+    assert ldap_admin.delete(user["dn"]), ldap_admin.result
+
+    code, output = console.run("Admin", admin_action)
+    assert code == 0, "{} exited {}:\n{}".format(admin_action, code, output[-2000:])
+
+    disabled = misp_admin_api.view_user(user_id)["disabled"]
+    assert disabled is expected_disabled, (
+        "{} left disabled={}".format(admin_action, disabled)
+    )
+
+
 def test_directory_disabled_account_is_disabled(console, misp_config,
                                                 misp_admin_api,
                                                 user_account_control_supported,
