@@ -333,12 +333,18 @@ def _directory_accepts_user_account_control(ldap_config):
 
 
 @pytest.fixture(scope="session")
-def user_account_control_supported(ldap_config):
+def user_account_control_supported(ldap_config, ldap_admin):
     """Whether test entries can carry userAccountControl, adding it if needed.
 
     No standard schema defines the attribute, so OpenLDAP rejects it outright.
     Rather than skip the ACCOUNTDISABLE tests, load a minimal schema for it,
     the same on-demand approach used for the memberof overlay.
+
+    Takes `ldap_admin` because ldap3 validates object classes against the
+    schema it read when that connection opened, and this fixture may add the
+    class afterwards. Without re-reading it, every add() using the new class
+    fails client-side even though the server would accept it -- which is
+    exactly what happens on a directory that starts out without the schema.
     """
     if _directory_accepts_user_account_control(ldap_config):
         return True
@@ -366,6 +372,15 @@ def user_account_control_supported(ldap_config):
                 )
             )
             return False
+
+    # ldap3 checks object classes against the schema it read when the shared
+    # connection opened, so it must re-read after the class is added or every
+    # add() using it fails client-side while the server would accept it.
+    try:
+        ldap_admin.refresh_server_info()
+    except LDAPException as exc:
+        warnings.warn("Could not refresh the cached LDAP schema: {}".format(exc))
+        return False
 
     return _directory_accepts_user_account_control(ldap_config)
 
