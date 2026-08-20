@@ -223,11 +223,17 @@ class LdapAuthenticate extends BaseAuthenticate
         }
 
         if ($usesGroupMapping) {
-            foreach ($groups as $group) {
-                if (!isset(self::$conf['ldapOrgGroupMapping'][$group])) {
+            // Walk the mapping rather than the memberships, so a user in
+            // several mapped groups lands in the organisation listed first and
+            // the config alone tells you which. Resolving against the
+            // directory's result order instead would leave it up to whatever
+            // sequence the server returns, which is not stable across servers.
+            $memberships = array_flip($groups);
+
+            foreach (self::$conf['ldapOrgGroupMapping'] as $group => $value) {
+                if (!isset($memberships[$group])) {
                     continue;
                 }
-                $value = self::$conf['ldapOrgGroupMapping'][$group];
                 $orgId = $this->findOrganisationId($userModel, $value);
                 if ($orgId !== null) {
                     return $orgId;

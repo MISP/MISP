@@ -450,6 +450,60 @@ def test_group_membership_maps_to_an_organisation(misp, misp_org, ldap_config,
     assert int(misp.current_user()["org_id"]) == int(misp_org["id"])
 
 
+@pytest.fixture
+def another_misp_org(misp_admin_api):
+    """A second throwaway organisation, for precedence between two of them.
+
+    A fixture rather than an inline create/delete so pytest tears it down
+    after `ldap_fixtures` has removed the accounts: MISP refuses to delete an
+    organisation that still has users in it.
+    """
+    if misp_admin_api is None:
+        pytest.skip("needs AUTH to create an organisation")
+
+    org = misp_admin_api.create_org("ldaptest-{}".format(uuid.uuid4().hex[:8]))
+    yield org
+    misp_admin_api.delete_org(org["id"])
+
+
+def test_org_group_mapping_precedence_follows_settings_order(misp_config,
+                                                             misp_admin_api,
+                                                             misp_org,
+                                                             another_misp_org,
+                                                             ldap_config,
+                                                             ldap_settings,
+                                                             ldap_fixtures):
+    """A user in several mapped groups lands in the one listed first.
+
+    Group-to-organisation stays fixed while only the order of the mapping
+    changes, so each ordering has a different expected outcome and one of them
+    necessarily contradicts whatever sequence the directory returns
+    memberships in.
+    """
+    from conftest import MispClient
+
+    user = ldap_fixtures.add_user()
+    first_group = ldap_fixtures.add_group(members=[user["dn"]])
+    second_group = ldap_fixtures.add_group(members=[user["dn"]])
+    pairs = [(first_group, misp_org), (second_group, another_misp_org)]
+
+    for ordering in (pairs, list(reversed(pairs))):
+        ldap_settings.set(
+            ldapDn=ldap_config.root,
+            ldapOrgGroupMapping={
+                group["cn"]: org["name"] for group, org in ordering
+            },
+        )
+
+        client = MispClient(misp_config)
+        client.login(user["mail"], user["password"])
+        client.assert_logged_in(user["mail"])
+        assert int(client.current_user()["org_id"]) == int(ordering[0][1]["id"]), (
+            "the organisation listed first should win"
+        )
+        client.session.close()
+
+
 def test_org_field_wins_over_group_mapping(misp, misp_admin_api, misp_org,
                                            ldap_config, ldap_settings,
                                            ldap_fixtures):
