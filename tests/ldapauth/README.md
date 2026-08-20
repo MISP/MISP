@@ -55,6 +55,7 @@ Override anything via environment variables:
 | `LDAP_AUTO_MEMBEROF` | `1` | Set `0` to never touch the directory's config |
 | `LDAP_MEMBEROF_MODULE` | `/opt/bitnami/openldap/lib/openldap/memberof.so` | Absolute path, see below |
 | `MISP_CONTAINER` | `misp-docker-misp-core-1` | Empty when MISP runs on this host |
+| `MISP_APP_DIR` | `/var/www/MISP` | Where `app/Console/cake` lives |
 | `MISP_CONFIG_SETTLE_SECONDS` | auto-detected | Wait after a config write, see below |
 | `MISP_URL` | `https://localhost` | |
 | `MISP_VERIFY_SSL` | `0` | Set to `1` for a real certificate |
@@ -114,6 +115,10 @@ curl -sk -H "Authorization: $AUTH" -H "Accept: application/json" \
   untrusted peer address, the feature off. Note these drive HTML requests: MISP
   authenticates `.json` requests by authkey without consulting the plugin, so a
   JSON probe would report "not logged in" whatever the plugin did.
+* `test_check_validity.py`: the `cake User check_validity` sync -- disabling
+  accounts the directory no longer backs, honouring `mixedAuth` and
+  `updateUser`, and never disabling a site admin. Drives the real console
+  command through the `misp_console` fixture.
 * `test_settings.py`: settings that change how a login resolves, `mixedAuth`,
   `ldapSearchFilter`, `ldapSearchAttribute`, the `ldapEmailField` fallback,
   `updateUser`, and role and organisation resolution via `ldapRoleField` /

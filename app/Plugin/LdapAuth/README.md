@@ -231,6 +231,59 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `false`
 - **Example**: `true`
 
+## Reconciling accounts from the CLI
+
+A login is the only thing that normally re-checks a user against the
+directory, so somebody removed from LDAP keeps their MISP account — and any
+API keys on it — until they next try to sign in. `cake User check_validity`
+closes that gap by re-running the same decisions in bulk:
+
+```bash
+# report only
+app/Console/cake User check_validity
+
+# disable accounts the directory no longer backs
+app/Console/cake User check_validity --block_invalid
+
+# also write back organisation and role changes
+app/Console/cake User check_validity --block_invalid --update
+
+# a single user, by id or address
+app/Console/cake User check_validity alice@example.com
+```
+
+An account is considered invalid when it is **absent from the directory**,
+**disabled there** (`userAccountControl`, if `ldapCheckUserAccountControl` is
+on), or **no longer resolves to a role**. The same code decides this as at
+login, so the two cannot disagree about who is allowed in.
+
+`--update` additionally applies organisation and role changes, but only when
+`updateUser` is also enabled: the flag says *do it now*, the setting says the
+directory owns those fields at all, and a CLI run should not overrule an
+instance that has turned it off.
+
+Four things worth knowing before running it with `--block_invalid`:
+
+* **Site admins are reported but never disabled or moved.** Nothing
+  distinguishes an LDAP-provisioned account from a local one — the plugin
+  creates users with an empty password, which is then hashed like any other —
+  so a directory that does not list `admin@admin.test` makes it look invalid.
+  Disabling every site admin would lock the instance out of its own
+  administration, and that cannot be undone from inside MISP. Revoke admins in
+  the directory and disable them by hand.
+* **With `mixedAuth` enabled, absence from LDAP is ignored.** Local accounts
+  are legitimate in that mode and indistinguishable from LDAP ones, so they
+  are left alone. Only with `mixedAuth` off does a missing entry mean the
+  account is dead.
+* **It only ever disables, never re-enables.** The command skips accounts that
+  are already disabled, so someone restored in the directory is re-enabled by
+  their next successful login (which `updateUser` does), not by this command.
+* **A failed reader bind aborts the run** rather than treating every user as
+  missing. Otherwise one wrong credential would disable the entire instance.
+
+If both `OidcAuth.Oidc` and `LdapAuth.Ldap` are in `Security.auth`, the
+command uses OIDC, which is what it did before LDAP support was added.
+
 ## Authenticating on a header from a front-end proxy
 
 For deployments where an Apache in front of MISP performs the authentication —

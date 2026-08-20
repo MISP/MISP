@@ -87,7 +87,7 @@ class LdapAuthenticate extends BaseAuthenticate
         return $user;
     }
 
-    private function ldapConnect()
+    protected function ldapConnect()
     {
         if (self::$conf['debug']) {
             ldap_set_option(null, LDAP_OPT_DEBUG_LEVEL, 7);
@@ -138,7 +138,7 @@ class LdapAuthenticate extends BaseAuthenticate
     // Returns the value of the first attribute in $fields that the entry
     // carries, or null. Shared by every setting that names an attribute, so
     // they all agree on how entries are read.
-    private function getFirstAttributeValue($fields, $ldapUserData)
+    protected function getFirstAttributeValue($fields, $ldapUserData)
     {
         $entry = isset($ldapUserData[0]) ? $ldapUserData[0] : [];
         foreach ((array)$fields as $field) {
@@ -174,7 +174,7 @@ class LdapAuthenticate extends BaseAuthenticate
     //
     // An all-digit value is read as an organisation id, anything else as an
     // organisation name, so either can be published by the directory.
-    private function findOrganisationId($userModel, $value)
+    protected function findOrganisationId($userModel, $value)
     {
         $conditions = ctype_digit((string)$value)
             ? ['Organisation.id' => (int)$value]
@@ -207,7 +207,7 @@ class LdapAuthenticate extends BaseAuthenticate
     // organisation: an organisation is a sharing boundary in MISP, and
     // defaulting into it would widen someone's access on the strength of
     // missing data.
-    private function getOrganisationId($userModel, $ldapUserData, $groups = [])
+    protected function getOrganisationId($userModel, $ldapUserData, $groups = [])
     {
         $usesOrgField = !empty(self::$conf['ldapOrgField']);
         $usesGroupMapping = !empty(self::$conf['ldapOrgGroupMapping']);
@@ -263,7 +263,7 @@ class LdapAuthenticate extends BaseAuthenticate
     }
 
     // Looks up one role by id or by name, the same way organisations resolve.
-    private function findRoleId($userModel, $value)
+    protected function findRoleId($userModel, $value)
     {
         $conditions = ctype_digit((string)$value)
             ? ['Role.id' => (int)$value]
@@ -286,7 +286,7 @@ class LdapAuthenticate extends BaseAuthenticate
     // `ldapDefaultRoleId` has always accepted an array to mean exactly this,
     // so that spelling keeps working and is treated as an alias of
     // `ldapRoleGroupMapping`, which takes precedence when both are given.
-    private function getRoleGroupMapping()
+    protected function getRoleGroupMapping()
     {
         if (!empty(self::$conf['ldapRoleGroupMapping'])) {
             return self::$conf['ldapRoleGroupMapping'];
@@ -320,7 +320,7 @@ class LdapAuthenticate extends BaseAuthenticate
     // caller turns into a refused login rather than a default role: handing
     // out `ldapDefaultRoleId` on missing data would grant permissions nobody
     // asked for.
-    private function getRoleId($userModel, $ldapUserData, $groups = [])
+    protected function getRoleId($userModel, $ldapUserData, $groups = [])
     {
         $groupMapping = $this->getRoleGroupMapping();
         $usesRoleField = !empty(self::$conf['ldapRoleField']);
@@ -378,7 +378,7 @@ class LdapAuthenticate extends BaseAuthenticate
     // account reads 512 and the same account disabled reads 514, so this has
     // to mask the flag rather than compare for equality. Directories that do
     // not publish the attribute simply never match.
-    private function isDirectoryAccountDisabled($ldapUserData)
+    protected function isDirectoryAccountDisabled($ldapUserData)
     {
         if (!self::$conf['ldapCheckUserAccountControl']) {
             return false;
@@ -392,7 +392,7 @@ class LdapAuthenticate extends BaseAuthenticate
         return ((int)$value & self::ADS_UF_ACCOUNTDISABLE) === self::ADS_UF_ACCOUNTDISABLE;
     }
 
-    private function getUserMemberships($ldapconn, $ldapUserData)
+    protected function getUserMemberships($ldapconn, $ldapUserData)
     {
         $nested = self::$conf['ldapNestedGroups'];
 
@@ -473,7 +473,7 @@ class LdapAuthenticate extends BaseAuthenticate
         $userModel->save($user, false);
     }
 
-    private function getLdapUserData($ldapconn, $email)
+    protected function getLdapUserData($ldapconn, $email)
     {
         // LDAP search filter
         $email = ldap_escape($email, '', LDAP_ESCAPE_FILTER);

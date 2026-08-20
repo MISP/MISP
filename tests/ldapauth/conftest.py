@@ -685,6 +685,53 @@ class LdapSettings:
         self.instance_config.replace(self.original)
 
 
+class MispConsole:
+    """Runs `app/Console/cake` against the instance under test."""
+
+    def __init__(self, container, php_user, app_dir):
+        self.container = container
+        self.php_user = php_user
+        self.app_dir = app_dir
+
+    def run(self, *arguments):
+        command = []
+        if self.container:
+            command += ["docker", "exec", "-w", self.app_dir, self.container]
+        if self.php_user:
+            command += ["sudo", "-u", self.php_user]
+        command += ["app/Console/cake"] + list(arguments)
+
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            cwd=None if self.container else self.app_dir,
+        )
+        # The console prints diagnostics to both streams and LdapAuth.debug
+        # makes the LDAP library very chatty, so hand back everything and let
+        # the caller look for what it cares about.
+        return result.returncode, result.stdout + result.stderr
+
+    def available(self):
+        try:
+            code, output = self.run("User")
+            return code == 0 or "check_validity" in output
+        except OSError:
+            return False
+
+
+@pytest.fixture(scope="session")
+def misp_console():
+    """CLI runner, or None when the console cannot be reached."""
+    console = MispConsole(
+        container=_env("MISP_CONTAINER", "misp-docker-misp-core-1",
+                       allow_empty=True),
+        php_user=_env("MISP_PHP_USER", "www-data", allow_empty=True),
+        app_dir=_env("MISP_APP_DIR", "/var/www/MISP"),
+    )
+    return console if console.available() else None
+
+
 @pytest.fixture(scope="session")
 def misp_instance_config():
     """Helper for mutating the instance's config, or None when unreachable."""
