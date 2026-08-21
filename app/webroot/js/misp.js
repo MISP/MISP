@@ -1092,6 +1092,48 @@ function deleteEventPopup(eventId) {
     $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
 }
 
+function multiSelectAlertEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    }); 
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massAlert/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectPublishEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    }); 
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massPublish/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectUnpublishEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    }); 
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massUnpublish/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
+}
+
 function multiSelectExportEvents() {
     var selected = [];
     $(".select:checked").each(function() {

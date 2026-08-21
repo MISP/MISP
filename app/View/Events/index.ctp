@@ -139,7 +139,35 @@
                             'data' => [
                                 'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/event/local:1',
                             ],
-                        )
+                        ),
+                    ),
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'id' => 'multi-publish-button',
+                            'title' => __('(Re)publish all selected events'),
+                            'html' => '<i class="fas fa-envelope"></i> <i class="fas fa-upload"></i>',
+                            'class' => 'hidden mass-tag',
+                            'requirement' => $this->Acl->canAccess('events', 'publish'),
+                            'onClick' => 'multiSelectAlertEvents',
+                        ),
+                        array(
+                            'id' => 'multi-publish-button-no-email',
+                            'title' => __('(Re)publish all selected events (No Email)'),
+                            'html' => '<i class="fas fa-envelope-open"></i> <i class="fas fa-upload"></i>',
+                            'class' => 'hidden mass-tag',
+                            'requirement' => $this->Acl->canAccess('events', 'publish'),
+                            'onClick' => 'multiSelectPublishEvents',
+                        ),
+                        array(
+                            'id' => 'multi-unpublish-button',
+                            'title' => __('Unpublish all selected events'),
+                            'html' => '<i class="fas fa-download"></i>',
+                            'class' => 'hidden mass-tag',
+                            'requirement' => $this->Acl->canAccess('events', 'publish'),
+                            'onClick' => 'multiSelectUnpublishEvents',
+                        ),
                     )
                 ),
                 array(

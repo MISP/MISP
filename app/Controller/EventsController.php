@@ -4900,6 +4900,70 @@ class EventsController extends AppController
         }
     }
 
+    public function massUnpublish($ids = null)
+    {
+        $idList = is_numeric($ids) ? [(int)$ids] : json_decode($ids, true);
+        if (!is_array($idList) || empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successes = $fails = [];
+            $kafkaEnabled = Configure::read('Plugin.Kafka_enable')
+                && Configure::read('Plugin.Kafka_event_publish_notifications_enable');
+            $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+            $kafkaOn = $kafkaEnabled && !empty($kafkaTopic);
+            $kafkaPubTool = $kafkaOn ? $this->Event->getKafkaPubTool() : null;
+
+            foreach ($idList as $eid) {
+                if (!is_numeric($eid)) { continue; }
+
+                $this->Event->id = $eid;
+                $this->Event->recursive = -1;
+                $event = $this->Event->read(null, $eid);
+                if (empty($event)) { $fails[] = $eid; continue; }
+
+                if (!$this->__canModifyEvent($this->Event->data)) {
+                    $fails[] = $eid; continue;
+                }
+                $this->Event->insertLock($this->Auth->user(), $eid);
+
+                $event['Event']['published'] = 0;
+                $result = $this->Event->save($event, ['fieldList' => ['published', 'id', 'info']]);
+                if (!$result) { $fails[] = $eid; continue; }
+
+                $successes[] = $eid;
+
+                // Preserve the single-event Kafka side effect
+                if ($kafkaOn) {
+                    $params = ['eventid' => $eid];
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $pubEvent = $this->Event->fetchEvent($this->Auth->user(), $params);
+                    if (!empty($pubEvent)) {
+                        $kafkaPubTool->publishJson($kafkaTopic, $pubEvent[0], 'unpublish');
+                    }
+                }
+            }
+
+            $msg = sprintf(
+                '%d event(s) unpublished, %d failed (missing permission, not found, or save error).',
+                count($successes), count($fails)
+            );
+            $this->Flash->{empty($fails) ? 'success' : 'error'}($msg);
+            $this->redirect(['action' => 'index']);
+        } else {
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+            }
+            $this->layout = false;
+            $this->set('idList', $idList);
+            $this->set('ids', $ids);
+            $this->render('ajax/massUnpublishConfirmationForm');
+        }
+    }
+
     public function publishSightings($id = null)
     {
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
@@ -4955,24 +5019,40 @@ class EventsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $errors = array();
             // Performs all the actions required to publish an event
-            $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
-            if (!Configure::read('MISP.background_jobs')) {
-                if (!is_array($result)) {
-                    if ($result === true) {
-                        $message = __('Event published without alerts');
+
+            $idList = $this->request->data['Event']['id'];
+            if (!is_array($idList)) {
+                if (is_numeric($idList) || Validation::uuid($idList)) {
+                    $idList = array($idList);
+                } else {
+                    $idList = $this->_jsonDecode($idList);
+                }
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+
+            foreach ($idList as $eid) {
+                $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
+                if (!Configure::read('MISP.background_jobs')) {
+                    if (!is_array($result)) {
+                        if ($result === true) {
+                            $message = __('Event published without alerts');
+                        } else {
+                            $message = __('Event publishing failed due to a blocking module failing. The reason for the failure: %s', $result);
+                            $errors['Module'] = 'Module failure.';
+                        }
                     } else {
-                        $message = __('Event publishing failed due to a blocking module failing. The reason for the failure: %s', $result);
-                        $errors['Module'] = 'Module failure.';
+                        $errors['failed_servers'] = $result;
+                        $lastResult = array_pop($result);
+                        $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
+                        $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                     }
                 } else {
-                    $errors['failed_servers'] = $result;
-                    $lastResult = array_pop($result);
-                    $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-                    $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
+                    $message = 'Job queued';
                 }
-            } else {
-                $message = 'Job queued';
             }
+
             if ($this->_isRest()) {
                 if (!empty($errors)) {
                     return $this->RestResponse->saveFailResponse('Events', 'publish', $event['Event']['id'], $errors);
@@ -5000,6 +5080,50 @@ class EventsController extends AppController
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }
+
+
+    public function massPublish($ids = null) 
+    {
+        $idList = is_numeric($ids) ? [(int)$ids] : json_decode($ids, true);
+        if (!is_array($idList) || empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successes = $fails = [];
+            foreach ($idList as $eid) {
+                if (!is_numeric($eid)) { continue; }
+                try {
+                    $event = $this->__prepareForPublish($eid);
+                } catch (Exception $e) {
+                    $fails[] = $eid; continue;
+                }
+                $result = $this->Event->publishRouter(
+                    $event['Event']['id'], null, $this->Auth->user()
+                );
+                // publishRouter returns true (or a job id string) on success,
+                // an array of failed sync server names on partial failure
+                (!empty($result) && !is_array($result))
+                    ? $successes[] = $eid
+                    : $fails[] = $eid;
+            }
+            $msg = sprintf(
+                '%d event(s) (re)published, %d failed (missing permission, not found, or sync errors).',
+                count($successes), count($fails)
+            );
+            $this->Flash->{empty($fails) ? 'success' : 'error'}($msg);
+            $this->redirect(['action' => 'index']);
+        } else {
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+            }
+            $this->layout = false;
+            $this->set('idList', $idList);
+            $this->set('ids', $ids);
+            $this->render('ajax/massPublishConfirmationForm');
+        }
+    }
+    
 
     // Send out an alert email to all the users that wanted to be notified.
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
@@ -5076,6 +5200,45 @@ class EventsController extends AppController
             $this->set('servers', $servers);
             $this->set('type', 'alert');
             $this->render('ajax/eventPublishConfirmationForm');
+        }
+    }
+
+    public function massAlert($ids = null)
+    {
+        $idList = is_numeric($ids) ? [(int)$ids] : json_decode($ids, true);
+        if (!is_array($idList) || empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successes = $fails = [];
+            foreach ($idList as $eid) {
+                if (!is_numeric($eid)) { continue; }
+                try {
+                    // Reuse the per-event guard; catch its exceptions so one bad event doesn't kill the batch
+                    $event = $this->__prepareForPublish($eid);
+                } catch (Exception $e) {
+                    $fails[] = $eid; continue;
+                }
+                $emailResult = $this->Event->sendAlertEmailRouter(
+                    $event['Event']['id'], $this->Auth->user(), $event['Event']['publish_timestamp']
+                );
+                $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
+                (!empty($result) && !is_array($result) && $emailResult === true)
+                    ? $successes[] = $eid
+                    : $fails[] = $eid;
+            }
+            $msg = sprintf('%d event(s) alerted, %d failed.', count($successes), count($fails));
+            $this->Flash->{empty($fails) ? 'success' : 'error'}($msg);
+            $this->redirect(['action' => 'index']);
+        } else {
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+            }
+            $this->layout = false;
+            $this->set('idList', $idList);
+            $this->set('ids', $ids);           // pass the JSON string through for the form action
+            $this->render('ajax/massAlertConfirmationForm');
         }
     }
 
