@@ -8392,6 +8392,12 @@ class EventsController extends AppController
 
     public function cullEmptyEvents()
     {
+        // Irreversible mass delete, and it runs with skipBlocklist set, so the
+        // deleted events leave no trace to re-sync against. Both shipped themes
+        // already reach it by postButton/postLink; without this guard a bodyless
+        // GET is never CSRF-validated (SecurityComponent::startup computes
+        // $hasData false for one), so an <img src> was enough to fire it.
+        $this->request->allowMethod(['post']);
         $eventIds = $this->Event->find('list', array(
             'conditions' => array('Event.published' => 1),
             'fields' => array('Event.id', 'Event.uuid'),
