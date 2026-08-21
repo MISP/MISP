@@ -1049,11 +1049,18 @@ function listCheckboxesChecked() {
 }
 
 function listCheckboxesCheckedEventIndex() {
-    // Show mass delete just when user has permission to delete at least one of selected event
+    // Show mass delete or unpublish just when user has permission to modify at least one of selected event
     if ($('.select:checked[data-can-modify="1"]').length > 0) {
-        $('.mass-delete').removeClass('hidden');
+        $('.mass-delete, .mass-unpublish').removeClass('hidden');
     } else {
-        $('.mass-delete').addClass('hidden');
+        $('.mass-delete, .mass-unpublish').addClass('hidden');
+    }
+
+    // Mass publish / alert: needs publish permission on at least one selected event
+    if ($('.select:checked[data-can-publish="1"]').length > 0) {
+        $('.mass-publish').removeClass('hidden');
+    } else {
+        $('.mass-publish').addClass('hidden');
     }
 
     if ($('.select:checked').length > 0) {
@@ -1095,7 +1102,7 @@ function deleteEventPopup(eventId) {
 function multiSelectAlertEvents() {
     var selected = [];
     $(".select:checked").each(function() {
-        if ($(this).data('can-modify')) {
+        if ($(this).data('can-publish')) {
             var temp = $(this).data("id");
             if (temp != null) {
                 selected.push(temp);
@@ -1109,7 +1116,7 @@ function multiSelectAlertEvents() {
 function multiSelectPublishEvents() {
     var selected = [];
     $(".select:checked").each(function() {
-        if ($(this).data('can-modify')) {
+        if ($(this).data('can-publish')) {
             var temp = $(this).data("id");
             if (temp != null) {
                 selected.push(temp);
