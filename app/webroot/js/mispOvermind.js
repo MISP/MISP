@@ -608,7 +608,7 @@ function buildFilterUrl() {
         const name  = el.getAttribute('name');
         const value = el.value;
         if (!name) return;
-        if (value !== '') filters[name] = value;
+        if (value !== '') filters[name] = encodeURIComponent(value);
         else delete filters[name];
     });
 
@@ -647,7 +647,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
-    document.querySelectorAll('.topbar-filter').forEach(el => {
+    // [data-manual] filters (free-text value_match inputs) are applied by their
+    // own button/Enter handler in filter_bar.ctp, never on change.
+    document.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
         el.addEventListener('change', () => {
             window.location.href = buildFilterUrl();
         });
@@ -2781,6 +2783,186 @@ function initTagPickerSection(root, catData, initTags, options) {
     render();
     var first = root.querySelector('.tag-cat-btn');
     setCategory(first ? first.getAttribute('data-cat') : 'all');
+
+    return { ids: ids };
+}
+
+/*******************************
+ * galaxyBadgeStyle
+ * The client-side mirror of GalaxyColour::palette()/badgeStyle() — a cluster
+ * badge drawn by JavaScript has to come out looking exactly like one drawn by
+ * PHP, so keep the numbers in sync with the lib.
+ * @param {number} hue  GalaxyColour::hue() of the cluster's galaxy
+ *******************************/
+function galaxyBadgeStyle(hue) {
+    hue = (hue == null) ? 270 : hue;
+    return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
+        + 'color:hsl(' + hue + ',65%,28%);'
+        + 'border:1px solid hsl(' + hue + ',55%,65%);'
+        + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
+        + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
+}
+
+/*******************************
+ * initGalaxyPickerSection
+ * The galaxy cluster picker used everywhere in the theme: galaxy category
+ * buttons, a TomSelect searching the cluster endpoint remotely (an empty query
+ * lists the scoped galaxy's clusters, "All Galaxies" needs 2 characters), and
+ * the picked clusters drawn below as galaxy badges with a remove cross. Drives
+ * both the standalone edit-clusters modal (Modals/galaxy_picker.ctp, one
+ * section per locality) and the in-form field (Forms/galaxy_picker_field.ctp).
+ *
+ * `root` must contain .galaxy-cat-btn buttons (the per-galaxy ones carrying
+ * data-galaxy-id), a select.galaxy-picker, .galaxy-selected and
+ * .galaxy-selected-empty.
+ *
+ * @param {Element} root          Section container
+ * @param {Array}   initClusters  Pre-selected [{id,name,galaxy,hue}]
+ * @param {object}  options       searchUrl: cluster search endpoint (required);
+ *                                localMarker: draw the local user glyph on badges;
+ *                                onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initGalaxyPickerSection(root, initClusters, options) {
+    options = options || {};
+    var selEl = root.querySelector('.galaxy-selected');
+    var emptyEl = root.querySelector('.galaxy-selected-empty');
+    var pickerEl = root.querySelector('.galaxy-picker');
+    var searchUrl = options.searchUrl;
+
+    var selected = {};          /* id(string) -> {id,name,galaxy,hue} */
+    var currentGalaxyId = null; /* null = "All" (search across galaxies) */
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addCluster(c) {
+        if (!c || c.id == null) { return; }
+        selected[String(c.id)] = {
+            id: c.id, name: c.name, galaxy: c.galaxy || '',
+            hue: (c.hue == null ? 270 : c.hue)
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var c = selected[id];
+
+            var badge = document.createElement('span');
+            badge.className = 'badge p-2 d-inline-flex align-items-center gap-2';
+            badge.style.cssText = galaxyBadgeStyle(c.hue);
+            if (c.galaxy) { badge.title = c.galaxy; }
+
+            var txt = document.createElement('span');
+            txt.style.cssText = 'overflow:hidden;text-overflow:ellipsis;'
+                + 'white-space:nowrap;min-width:0;';
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(c.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8; flex-shrink:0;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            selEl.appendChild(badge);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function renderOpt(item, escape) {
+        return '<div class="d-flex flex-column py-1">'
+            + '<span>' + escape(item.name) + '</span>'
+            + (item.galaxy
+                ? '<span class="text-muted" style="font-size:.72rem;">'
+                    + escape(item.galaxy) + '</span>'
+                : '')
+            + '</div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField:   'id',
+        labelField:   'name',
+        searchField:  ['name', 'galaxy'],
+        maxItems:     1,
+        options:      [],
+        loadThrottle: 300,
+        /* Use a different class name for the loading state to avoid a CSS collision. */
+        loadingClass: 'ts-loading',
+        /* When a galaxy is selected, even an empty query lists its clusters */
+        shouldLoad:   function (q) {
+            return currentGalaxyId ? true : q.length >= 2;
+        },
+        load: function (query, callback) {
+            var url = searchUrl + '?q=' + encodeURIComponent(query);
+            if (currentGalaxyId) {
+                url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
+            }
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (json) { callback(json); })
+                .catch(function () { callback(); });
+        },
+        render: {
+            option: renderOpt,
+            item: renderOpt,
+            option_create: false,
+            /* Use a custom loading spinner to avoid a CSS collision */
+            loading: function () {
+                return '<div class="text-center py-2">'
+                    + '<span class="spinner-border spinner-border-sm '
+                    + 'text-galaxy" role="status" aria-hidden="true">'
+                    + '</span></div>';
+            }
+        },
+        onItemAdd: function (value) {
+            var item = this.options[value];
+            if (item) { addCluster(item); render(); }
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    /* Category buttons: "All" (remote search) or one galaxy (scoped) */
+    root.querySelectorAll('.galaxy-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            root.querySelectorAll('.galaxy-cat-btn').forEach(function (b) {
+                b.classList.toggle('active', b === btn);
+            });
+            var gid = btn.getAttribute('data-galaxy-id');
+            currentGalaxyId = gid ? gid : null;
+
+            /* reset cache + options so the new scope reloads cleanly */
+            ts.clearOptions();
+            ts.clearCache();
+
+            if (currentGalaxyId) {
+                /* preload this galaxy's clusters and show them */
+                ts.load('');
+                ts.focus();
+                ts.open();
+            }
+        });
+    });
+
+    (initClusters || []).forEach(addCluster);
+    render();
 
     return { ids: ids };
 }
