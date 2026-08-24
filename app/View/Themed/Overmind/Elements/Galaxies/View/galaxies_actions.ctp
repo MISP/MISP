@@ -2,21 +2,18 @@
 $id = $data['id'];
 $enabled = !empty($data['enabled']);
 
-$canEdit = empty($data['default']) && (
-    $isSiteAdmin
-    || (!empty($me['Role']['perm_galaxy_editor']) && isset($data['org_id']) && $data['org_id'] == $me['org_id'])
-);
-
 $actions = [];
 
-if ($canEdit) {
+if ($this->Acl->canModifyGalaxy($galaxy)) {
     $actions[] = [
         'url' => "$baseurl/galaxies/edit/$id",
         'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/edit/$id');",
         'icon' => 'fas fa-pen-to-square',
         'label' => __('Edit Galaxy'),
     ];
+}
 
+if ($this->Acl->canAccess('galaxies', 'add')) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/add/$id",
         'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/add/$id');",
