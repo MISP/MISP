@@ -54,7 +54,7 @@ foreach ($filter_bar['children'] as $child) {
             }
             ?>
             <div class="flex-grow-1" style="max-width: 600px">
-                <div class="input-group">
+                <div class="input-group" data-tour="index-search">
                     <input
                         class="form-control"
                         id="filterField"
@@ -142,7 +142,7 @@ foreach ($filter_bar['children'] as $child) {
         ?>
     </div>
 
-    <div class="btn-group" role="group">
+    <div class="btn-group" role="group" data-tour="index-view">
         <?php if (!empty($filter_bar['view_switch'])): ?>
             <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->
             <?php foreach ($filter_bar['view_switch'] as $vs): ?>

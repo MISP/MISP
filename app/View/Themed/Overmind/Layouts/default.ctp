@@ -73,6 +73,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
                 ['misp-iconify', ['preload' => true]],
+                ['onboarding', ['preload' => true]],
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -223,11 +224,15 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <?php
         if ($useBootstrap5) {
             // Bootstrap 5 JS
+            $bs5Js = [
+                'bootstrap.bundle.min',
+                'mispOvermind',
+            ];
+            if (!$isAuthPage) {
+                $bs5Js[] = 'onboarding';
+            }
             echo $this->element('genericElements/assetLoader', [
-                'js' => [
-                    'bootstrap.bundle.min',
-                    'mispOvermind',
-                ],
+                'js' => $bs5Js,
             ]);
         } else {
             // Bootstrap 2 JS
@@ -252,6 +257,13 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
 <?php if ($autoLogoutEnabled): ?>
         window.mispAutoLogout = true;
+<?php endif; ?>
+<?php if ($useBootstrap5 && !$isAuthPage && !empty($onboardingAutostart)): ?>
+        <?php // Set by AppController::beforeRender when the user has never been
+              // shown the tour. onboarding.js reads it on DOMContentLoaded,
+              // which has not fired yet at this point in the document, and
+              // clears the marker server-side once the tour is up. ?>
+        window.mispOnboardingAutostart = true;
 <?php endif; ?>
 
     </script>

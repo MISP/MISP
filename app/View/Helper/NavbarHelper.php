@@ -992,6 +992,11 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Dark mode'),
                 'icon'  => 'fas fa-moon',
             ],
+            [
+                'type' => 'tutorial',
+                'label' => __('Replay the tutorial'),
+                'icon' => 'fas fa-graduation-cap',
+            ],
             ['divider' => true],
             [
                 'label' => __('My Profile'),

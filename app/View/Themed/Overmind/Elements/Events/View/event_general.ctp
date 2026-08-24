@@ -51,7 +51,7 @@ $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
 $this->set('headerDescription', $headerDescription);
 ?>
 
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-general">
     <div class="card-body">
 
         <!-- ── EVENT REPORT PREVIEW ──────────────────────────── -->

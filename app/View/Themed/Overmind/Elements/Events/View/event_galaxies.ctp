@@ -40,6 +40,7 @@ $mayModify = $this->Acl->canModifyTag($data);
             <?php if ($mayModify || $isSiteAdmin): ?>
             <button type="button"
                     class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    data-tour="event-galaxies-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')">
                 <i class="fas fa-pen-to-square"></i>
                 <?= __('Edit Galaxy Clusters') ?>

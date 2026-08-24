@@ -42,6 +42,7 @@ $mayModify = $this->Acl->canModifyTag($data);
             <!-- Edit button -->
             <button type="button"
                     class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-tags-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')"
                     title="<?= __('Edit Tags') ?>">
                 <i class="fas fa-pen-to-square me-1"></i>

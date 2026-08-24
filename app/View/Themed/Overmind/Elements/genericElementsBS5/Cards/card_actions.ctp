@@ -7,13 +7,15 @@
  * - 'success' => bool (optional),
  * - 'danger' => bool (optional),
  * - 'onclick' => string (optional)
+ * - 'tour' => string (optional) — emits data-tour, an anchor for the
+ *   onboarding tour to spotlight this specific action.
  */
 
 $actions = $actions ?? [];
 ?>
 
 
-<div class="card shadow-sm mb-3">
+<div class="card shadow-sm mb-3" data-tour="quick-actions">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
@@ -70,11 +72,15 @@ $actions = $actions ?? [];
                             if (!empty($action['id'])) {
                                 $postOptions['data'] = ['id' => $action['id']];
                             }
+                            if (!empty($action['tour'])) {
+                                $postOptions['data-tour'] = $action['tour'];
+                            }
                             echo $this->Form->postLink($innerHtml, $url, $postOptions);
                         ?>
                     <?php else: ?>
                         <a class="<?= $fullBtnClass ?>"
                            href="<?= h($url) ?>"
+                           <?= !empty($action['tour']) ? 'data-tour="' . h($action['tour']) . '"' : '' ?>
                            <?= !empty($action['onclick']) ? 'onclick="' . $action['onclick'] . '"' : '' ?>>
                             <?= $innerHtml ?>
                         </a>

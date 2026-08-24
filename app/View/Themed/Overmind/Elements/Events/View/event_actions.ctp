@@ -19,6 +19,7 @@ if ($isSiteAdmin || $mayModify) {
         'url' => "$baseurl/attributes/add/$eventId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/attributes/add/$eventId');",
         'icon' => 'misp-icon misp-icon-attribute misp-simple',
+        'tour' => 'action-add-attribute',
         'label' => __('Add Attribute')
     ];
 
@@ -40,6 +41,7 @@ if ($isSiteAdmin || $mayModify) {
         'url' => "$baseurl/events/populateFrom/$eventId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/populateFrom/$eventId');",
         'icon' => 'fas fa-sign-in-alt',
+        'tour' => 'action-populate-from',
         'label' => __('Populate from')
     ];
 
@@ -55,6 +57,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
         'url' => "",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/publish/$eventId', 'md');",
         'icon' => 'fas fa-upload',
+        'tour' => 'action-publish',
         'label' => __('Publish Event'),
         'success' => true
     ];
@@ -63,6 +66,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
         'url' => "",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId', 'md');",
         'icon' => 'fas fa-download',
+        'tour' => 'action-unpublish',
         'label' => __('Unpublish Event'),
         'warning' => true
     ];

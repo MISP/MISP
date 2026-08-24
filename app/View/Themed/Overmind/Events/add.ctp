@@ -144,7 +144,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 px-2" data-tour="event-distribution">
             <div class="text-primary fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Distribution / Sharing Group') ?>
@@ -172,7 +172,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
 
         <!-- ── ANALYSIS LEVEL ──────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 px-2" data-tour="event-analysis">
             <div class="text-primary fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Analysis Level') ?>
@@ -226,7 +226,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
 
         <!-- ── THREAT LEVEL ────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 px-2" data-tour="event-threat">
             <div class="text-primary fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Threat Level') ?>
@@ -278,7 +278,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
         </div>
 
         <!-- ── DATE ───────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 px-2" data-tour="event-date">
             <div class="text-primary fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Event Date (UTC)') ?>
@@ -321,6 +321,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                 '<i class="fas fa-circle-plus me-1"></i> '
                     . ($isEdit ? __('Save Changes') : __('Create Event Entry')),
                 [
+                    'id'          => 'EventSubmitButton',
                     'class'       => 'btn btn-primary btn-sm',
                     'escapeTitle' => false,
                 ]

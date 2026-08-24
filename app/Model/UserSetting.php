@@ -143,13 +143,22 @@ class UserSetting extends AppModel
             'options' => ['auto', 'light', 'dark'],
             'validation' => 'validate_dashboard_theme',
         ],
+        // One-shot marker for the Overmind onboarding tour. Set at a user's
+        // very first login and cleared the first time the tour is actually
+        // displayed, so a brand new account is walked through the interface
+        // exactly once. Internal: it is plumbing, not a user preference.
+        'onboarding_pending' => [
+            'internal' => true,
+            'placeholder' => true,
+            'validation' => 'validate_json',
+        ],
     );
 
     public static function validate_homepage($value, $user)
     {
         // If it's already an array, use it. Otherwise, decode the string.
         $path = is_string($value) ? json_decode($value, true) : $value;
-        
+
         if (empty($path['path'])) {
             return false;
         }
