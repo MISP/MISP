@@ -180,8 +180,7 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             $this->paginate['conditions'] = $conditions;
-            $attributeCount = 0;
-            $attributes = $this->MispAttribute->fetchAttributes($user, $params, $attributeCount, true);
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
             App::uses('CustomPaginationTool', 'Tools');
             $customPagination = new CustomPaginationTool();
             $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
@@ -258,7 +257,6 @@ class AttributesController extends AppController
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
-        $this->set('headerCount', $attributeCount);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
