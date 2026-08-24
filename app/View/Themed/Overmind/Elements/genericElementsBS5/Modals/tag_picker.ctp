@@ -150,11 +150,21 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
     var localSection  = makeSection('local',  initSelected.local);
 
     /*
+     * A tag collection can carry galaxy clusters - they live in the collection as
+     * `misp-galaxy:` tags - so a save here can change the galaxies card too.
+     */
+    function reloadGalaxiesCard() {
+        var fn = window['reloadGalaxiesCard_' + uid.replace('-tags-', '-galaxies-')];
+        if (typeof fn === 'function') { fn(); }
+    }
+
+    /*
      * After a successful save: prefer an event-view card reload hook
      * (window['<reloadHook>' + uid]); otherwise fall back to refreshing the
      * attribute index table (set by view_attributes.ctp).
      */
     function afterSave() {
+        reloadGalaxiesCard();
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
