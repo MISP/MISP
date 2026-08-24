@@ -150,7 +150,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Publish'),
-                'icon' => 'upload text-success',
+                'icon' => 'upload',
                 'url' => $baseurl . '/galaxy_clusters/publish/%id%',
                 'size' => 'sm',
                 'requirement' => function ($row) use ($me) {
