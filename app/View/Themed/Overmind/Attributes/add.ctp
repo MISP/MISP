@@ -66,7 +66,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <!-- ── CATEGORY + TYPE ─────────────────────────────────── -->
         <div class="row g-3">
 
-            <div class="col-md-6">
+            <div class="col-md-6" data-tour="attribute-category">
                 <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Category') ?>
@@ -85,7 +85,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                      style="display:none;overflow:hidden;"></div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-6" data-tour="attribute-type">
                 <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Type') ?>
@@ -108,7 +108,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
 
         <!-- ── VALUE ───────────────────────────────────────────── -->
-        <div class="w-100">
+        <div class="w-100" data-tour="attribute-value">
             <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Value') ?>
