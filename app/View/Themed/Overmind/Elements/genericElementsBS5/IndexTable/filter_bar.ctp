@@ -73,6 +73,55 @@ foreach ($filter_bar['children'] as $child) {
             </div>
         <?php endif; ?>
 
+        <?php if ($child['type'] === 'value_match'): ?>
+            <?php
+            // A second free-text filter that must NOT be confused with the index
+            // search: it lives in its own labelled panel, drives its own named
+            // param and is applied explicitly (button / Enter), never on blur.
+            $vmId = $filterId . '-value-match';
+            $vmVal = $currentFilters[$child['name']] ?? null;
+            $vmVal = $vmVal !== null ? urldecode($vmVal) : '';
+            $vmActive = $vmVal !== '';
+            ?>
+            <div class="dropdown dropdown-filters flex-shrink-0">
+                <button class="btn <?= $vmActive ? 'btn-primary' : 'btn-outline-primary' ?> dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside"
+                        data-tour="index-value-match">
+                    <i class="<?= h($child['icon'] ?? 'fas fa-crosshairs') ?> me-1"></i>
+                    <?= h($child['label'] ?? __('Search a value')) ?>
+                </button>
+
+                <div class="dropdown-menu p-3" style="min-width: 26rem">
+                    <div class="input-group">
+                        <input
+                            id="<?= h($vmId) ?>"
+                            class="form-control topbar-filter value-match-input"
+                            type="text"
+                            name="<?= h($child['name']) ?>"
+                            data-manual="1"
+                            value="<?= h($vmVal) ?>"
+                            placeholder="<?= h($child['placeholder'] ?? '') ?>"
+                        >
+                        <?php if ($vmActive): ?>
+                            <button class="btn btn-outline-secondary value-match-clear"
+                                    type="button"
+                                    title="<?= __('Clear') ?>">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        <?php endif; ?>
+                        <button class="btn btn-primary value-match-apply" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <?php if (!empty($child['hint'])): ?>
+                        <div class="form-text"><?= h($child['hint']) ?></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if ($child['type'] === 'dropdown'): ?>
             <select
                 class="form-select flex-shrink-0 w-auto topbar-filter"
@@ -184,9 +233,17 @@ $isAjaxBar = $this->request->is('ajax');
 // (e.g. searchemail: scope, positional pass-args) must never show as a
 // removable chip and must survive "Clear all".
 $controlKeys = [];
+// Optional per-control `chip_label`, so a chip can read "Value: 8.8.8.8"
+// instead of exposing the raw url key.
+$controlLabels = [];
 foreach (($filter_bar['children'] ?? []) as $c) {
     $ctype = $c['type'] ?? '';
-    if ($ctype === 'search') {
+    if (!empty($c['name']) && !empty($c['chip_label'])) {
+        $controlLabels[$c['name']] = $c['chip_label'];
+    }
+    if ($ctype === 'value_match' && !empty($c['name'])) {
+        $controlKeys[] = $c['name'];
+    } elseif ($ctype === 'search') {
         $cmode = $c['mode'] ?? 'quickFilter';
         if ($cmode === 'event' || $cmode === 'legacy') {
             if (!empty($c['name'])) $controlKeys[] = $c['name'];
@@ -225,7 +282,7 @@ if ($explicitActive !== null) {
 
         <?php foreach ($activeToShow as $key => $value): ?>
             <span class="badge bg-primary">
-                <?= h($key) ?>: <?= h(urldecode($value)) ?>
+                <?= h($controlLabels[$key] ?? $key) ?>: <?= h(urldecode($value)) ?>
             </span>
         <?php endforeach; ?>
 
@@ -412,7 +469,7 @@ function isMobile() {
     if (ajaxContainer) {
         scope.querySelector('#filterButton')?.addEventListener('click', () => go(buildScopedUrl()));
         scope.querySelector('#filterField')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') go(buildScopedUrl()); });
-        scope.querySelectorAll('.topbar-filter').forEach(el => el.addEventListener('change', () => go(buildScopedUrl())));
+        scope.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => el.addEventListener('change', () => go(buildScopedUrl())));
 
         // "Clear all": drop this bar's own filters but keep the scope (search
         // field + dropdowns are reset, then buildScopedUrl keeps only the scope).
@@ -467,12 +524,58 @@ function isMobile() {
             if (e.key === 'Enter') window.location.href = buildFilterUrl();
         });
 
-        scope.querySelectorAll('.topbar-filter').forEach(el => {
+        scope.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
             el.addEventListener('change', () => {
                 window.location.href = buildFilterUrl();
             });
         });
     }
+
+    // `value_match` controls: free text is only applied when the user asks for
+    // it (search button or Enter), so a half-typed value never triggers a
+    // reload. The input still carries .topbar-filter, so the URL builders pick
+    // its value up like any other filter.
+    function applyFilters() {
+        if (ajaxContainer) {
+            go(buildScopedUrl());
+        } else {
+            window.location.href = buildFilterUrl();
+        }
+    }
+
+    // Looking a value up in the list entries can take a moment on large
+    // warninglists, so the control shows it is working.
+    function applyValueMatch(el) {
+        const btn = el?.closest('.input-group')?.querySelector('.value-match-apply');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        }
+        applyFilters();
+    }
+
+    scope.querySelectorAll('.value-match-input').forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyValueMatch(input);
+            }
+        });
+    });
+
+    scope.querySelectorAll('.value-match-apply').forEach(btn => {
+        btn.addEventListener('click', () => applyValueMatch(btn));
+    });
+
+    scope.querySelectorAll('.value-match-clear').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = btn.closest('.input-group')?.querySelector('.value-match-input');
+            if (input) {
+                input.value = '';
+            }
+            applyFilters();
+        });
+    });
 
 <?php if ($hasMassActions): ?>
     // Guard so reloading an ajax index does not stack duplicate change listeners.

@@ -24,7 +24,6 @@ if ($this->Acl->canAccess('warninglists', 'add')) {
         'url' => $baseurl . '/warninglists/add'
     ];
 }
-
 $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);
@@ -178,7 +177,29 @@ $fields = [
         ]
     ]
 ];
-xdebug_break();
+
+/**
+ * When a value search is active, show what actually matched inside each list
+ * (`$matchValues` / `Warninglist.value_matches` are set by the controller).
+ */
+if (!empty($matchValues)) {
+    $matchField = [
+        'name' => __('Matched'),
+        'data_path' => 'Warninglist.value_matches',
+        'element' => 'warninglist_matches',
+        'show_searched' => count($matchValues) > 1,
+        'card_section' => 'attribute',
+        'display_in' => ['table', 'card']
+    ];
+    $insertAt = count($fields);
+    foreach ($fields as $index => $field) {
+        if (($field['element'] ?? '') === 'name_description') {
+            $insertAt = $index + 1;
+            break;
+        }
+    }
+    array_splice($fields, $insertAt, 0, [$matchField]);
+}
 
 
 /**
@@ -207,6 +228,15 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'placeholder' => 'Search by warninglist name',
                         'name'        => 'value',
                         'mode'        => 'legacy',
+                    ],
+                    [
+                        'type' => 'value_match',
+                        'name' => 'matchValue',
+                        'label' => __('Search a value'),
+                        'chip_label' => __('Value match'),
+                        'icon' => 'fas fa-crosshairs',
+                        'placeholder' => __('8.8.8.8, example.com || example.eu'),
+                        'hint' => __('Searches the entries of the enabled warninglists. Several values: a||b'),
                     ],
                     [
                         'type' => 'more_filters',
