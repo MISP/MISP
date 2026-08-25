@@ -11,7 +11,7 @@ class OvermindPages
         // Events and their content
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view2',
-            'importChoice', 'automation', 'export', 'getEventInfoById',
+            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex'
         ),
         'attributes' => array(
