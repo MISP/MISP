@@ -17,11 +17,16 @@ $useBootstrap5 = OvermindPages::isMigrated($currentController, $currentAction);
 $isAuthPage  = $useBootstrap5 && OvermindPages::isAuthPage($currentController, $currentAction);
 
 
+$isLegacyFullViewportPage = !$useBootstrap5
+    && OvermindPages::normalise($currentController) === 'workflows'
+    && OvermindPages::normalise($currentAction) === 'editor';
+
 // Offset behavior for the legacy navbar 
 $mainStyle = '';
 if (!$useBootstrap5) {
     $debugBarShown = !empty($debugMode) && $debugMode !== 'debugOff';
-    $mainStyle = ' style="padding-top:' . ($debugBarShown ? 0 : 50) . 'px;"';
+    $navbarOffset = ($debugBarShown || $isLegacyFullViewportPage) ? 0 : 50;
+    $mainStyle = ' style="padding-top:' . $navbarOffset . 'px;"';
 }
 
 // Conversion between ISO 639-2 code (`Config.language`) and BCP 47 tag (lang attribute) 
@@ -81,11 +86,11 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         } else {
             $css = [
                 ['bootstrap', ['preload' => true]],
-                ['main', ['preload' => true]],
                 ['bootstrap-datepicker', ['preload' => true]],
                 ['bootstrap-colorpicker', ['preload' => true]],
                 ['font-awesome', ['preload' => true]],
                 ['chosen.min', ['preload' => true]],
+                ['main', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
             $js = [
@@ -107,6 +112,15 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             'js' => $js,
         ]);
     ?>
+    <?php if ($isLegacyFullViewportPage): ?>
+        <style>
+            /* Give the workflow editor full viewport height */
+            body[data-controller="workflows"][data-action="editor"] .root-container {
+                height: 100vh;
+                margin-top: 0;
+            }
+        </style>
+    <?php endif; ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
 <body class="bg-light" data-controller="<?= h($currentController) ?>" data-action="<?= h($currentAction) ?>">
@@ -115,7 +129,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         <header>
             <?php
                 if (!$useBootstrap5) {
-                    echo $this->element('global_menu');
+                    if (!$isLegacyFullViewportPage) {
+                        echo $this->element('global_menu');
+                    }
                 } elseif (!$isAuthPage) {
                     $context = [
                         'me' => $me ?? null,
@@ -208,7 +224,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <!-- Footer -->
     <?php
         if (!$useBootstrap5) {
-            echo $this->element('footer');
+            if (!$isLegacyFullViewportPage) {
+                echo $this->element('footer');
+            }
         } elseif (!$isAuthPage) {
             echo $this->element('footerBS5');
         }
