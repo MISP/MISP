@@ -12,13 +12,20 @@
         array(
             'key' => __('Enabled'),
             'boolean' => $data['enabled'],
-            'html' => $me['Role']['perm_warninglist'] ? sprintf(
-                ' <a href="%s/warninglists/enableWarninglist/%s%s" title="%s">%s</a>',
-                $baseurl,
-                h($warninglist['Warninglist']['id']),
-                $data['enabled'] ? '' : '/1',
+            'html' => $me['Role']['perm_warninglist'] ? ' ' . $this->Form->postLink(
                 $data['enabled'] ? __('Disable') : __('Enable'),
-                $data['enabled'] ? __('Disable') : __('Enable')
+                sprintf(
+                    '%s/warninglists/enableWarninglist/%s%s',
+                    $baseurl,
+                    h($warninglist['Warninglist']['id']),
+                    $data['enabled'] ? '' : '/1'
+                ),
+                array(
+                    'title' => $data['enabled'] ? __('Disable') : __('Enable'),
+                ),
+                $data['enabled']
+                    ? __('Are you sure you want to disable this warninglist?')
+                    : __('Are you sure you want to enable this warninglist?')
             ): '',
         ),
     );
