@@ -4715,6 +4715,17 @@ class EventsController extends AppController
             } else if (isset($this->request->data['Event']['distribution'])) {
                 // A non-sharing-group distribution must not carry a sharing group id.
                 $this->request->data['Event']['sharing_group_id'] = 0;
+            } else if (
+                !empty($this->request->data['Event']['sharing_group_id']) &&
+                $this->request->data['Event']['sharing_group_id'] != $event['Event']['sharing_group_id']
+            ) {
+                // No distribution submitted at all, so the event keeps its stored one - and
+                // an event already at distribution 4 will persist this id. Gating solely on
+                // the submitted distribution let a form omit that field and skip the check.
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
 
             // always force the org, but do not force it for admins
