@@ -168,7 +168,6 @@ class Collection extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $conditions['OR'] = [
                 [
-                    'Collection.orgc_id' => $user['org_id'],
                     'Collection.org_id' => $user['org_id']
                 ],
                 [
