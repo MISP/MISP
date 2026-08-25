@@ -1442,7 +1442,16 @@ class AppController extends Controller
                 $user = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
                 if ($user) {
                     $this->User->updateLoginTimes($user);
-                    //$this->Session->renew();
+                    // Rotate the session id, but only when this request is a genuinely
+                    // new authentication - this helper runs from beforeFilter() on every
+                    // request, and renewing unconditionally destroys the old session on
+                    // each one, which is what 26ad0ef60 disabled it for in 2023. Compare
+                    // the id alone: updateLoginTimes() above mutates the user array, so a
+                    // whole-array comparison would differ every time and reinstate that.
+                    $sessionUser = $this->Session->read(AuthComponent::$sessionKey);
+                    if (empty($sessionUser['id']) || (int)$sessionUser['id'] !== (int)$user['id']) {
+                        $this->Session->renew();
+                    }
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
