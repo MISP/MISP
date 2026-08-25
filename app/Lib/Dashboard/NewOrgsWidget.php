@@ -186,7 +186,12 @@ class NewOrgsWidget
         $data = $this->Organisation->find('all', [
             'recursive' => -1,
             'conditions' => $params['conditions'],
-            'limit' => isset($options['limit']) ? (int)$options['limit'] : 10,
+            // empty() rather than isset(): DboSource::limit() emits no LIMIT
+            // clause at all for a falsy value (DboSource.php:3065), so the
+            // isset() form let limit=0 - and limit=-1, which sprintf('%u')
+            // turns into a huge number - dump the whole organisations table.
+            // Matches the guard the sibling widgets already use.
+            'limit' => empty($options['limit']) ? 10 : (int)$options['limit'],
             'fields' => array_keys($fields),
             'order' => 'Organisation.date_created DESC'
         ]);
@@ -196,5 +201,22 @@ class NewOrgsWidget
             'fields' => $fields,
             'description' => $this->tableDescription
         ];
+    }
+
+    /**
+     * Enumerating the organisation directory is exactly what
+     * `Security.hide_organisation_index_from_users` exists to prevent, and
+     * `organisations/index` refuses outright when it is set. Mirror that
+     * predicate here - `renderWidget`'s `exportjson` hands back this handler's
+     * return value verbatim, so without this the widget is a way around the
+     * setting. Kept in sync with the `organisation_index` dynamic check in
+     * ACLComponent.php:1171, and with the copy in OrgsContributorsGeneric.
+     */
+    public function checkPermissions($user)
+    {
+        if (Configure::read('Security.hide_organisation_index_from_users')) {
+            return !empty($user['Role']['perm_sharing_group']);
+        }
+        return true;
     }
 }
