@@ -42,7 +42,7 @@
     <?php $eventLinkId = Configure::read('MISP.use_uuids_in_urls') ? h($event['Event']['uuid']) : h($eventId); ?>
     <tr id="event_<?= $eventId ?>">
         <td style="width:10px">
-            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-can-modify="<?= $this->Acl->canModifyEvent($event) ? 1 : 0 ?>">
+            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-can-modify="<?= $this->Acl->canModifyEvent($event) ? 1 : 0 ?>" data-can-publish="<?= $this->Acl->canPublishEvent($event) ? 1 : 0 ?>">
         </td>
         <td class="dblclickElement" style="width:30px">
             <a href="<?= "$baseurl/events/view/$eventLinkId" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
