@@ -3725,6 +3725,18 @@ class AttributesController extends AppController
         if (!$this->request->is('post') || !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
         }
+        // Enrichment persists module-derived attributes into the parent event, so it is a
+        // write on that event, not on the attribute alone. Being able to *view* the attribute
+        // (fetchAttributes uses read scope) is not sufficient; require modify rights on the
+        // event, mirroring EventsController::enrichEvent(). Otherwise any user who can merely
+        // see a cross-org/"all communities" event could inject attributes into it.
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $attribute['Attribute']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
         $modules = [];
         foreach ($this->request->data as $module => $enabled) {
             if ($enabled) {
