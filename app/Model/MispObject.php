@@ -423,16 +423,21 @@ class MispObject extends AppModel
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
-                if ($newObjectAttributeCount === count($previousNewObject)) {
-                    if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectId = $previousNewObject['Object']['id'];
-                        $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
+                if ($newObjectAttributeCount === count($previousNewObject['attributes'])) {
+                    if (empty(array_diff($previousNewObject['attributes'], $newObjectAttributes))) {
+                        // In-batch objects typically have no database id yet, only a uuid
+                        $duplicatedObjectId = $previousNewObject['id'];
+                        $duplicateObjectUuid = $previousNewObject['uuid'];
                         return true;
                     }
                 }
             }
         }
-        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = $newObjectAttributes;
+        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = array(
+            'attributes' => $newObjectAttributes,
+            'id' => isset($object['Object']['id']) ? $object['Object']['id'] : null,
+            'uuid' => isset($object['Object']['uuid']) ? $object['Object']['uuid'] : null,
+        );
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
@@ -1151,13 +1156,13 @@ class MispObject extends AppModel
             // Set seen of object at attribute level
             if (
                 (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
+                (array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
             ) {
                 $newAttribute['first_seen'] = $object['Object']['first_seen'];
             }
             if (
                 (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
+                (array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
             }
