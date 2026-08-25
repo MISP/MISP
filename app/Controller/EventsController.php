@@ -8250,7 +8250,6 @@ class EventsController extends AppController
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
             }
-            $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
             if ($overmindModal) {
                 $this->layout = false;
                 $this->render('mactime_resolution');
