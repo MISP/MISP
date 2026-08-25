@@ -61,6 +61,8 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     'url_params_data_paths' => array(
                         'OrgBlocklist.id'
                     ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
                     'icon' => 'trash',
                     'title' => 'Delete Blocklist',
                 ]
