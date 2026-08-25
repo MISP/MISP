@@ -470,7 +470,15 @@ class CollectionsController extends AppController
             if (!is_array($orgcNames)) {
                 $orgcNames = [$orgcNames];
             }
+            // Track whether an OR-rule (allow-list) was supplied separately from
+            // whether it resolved: a NOT-rule against an org that doesn't exist
+            // locally should impose no restriction, not exclude everything. Only
+            // "caller asked for specific orgs, none exist" should return nothing.
+            $hasOrRule = false;
             foreach ($orgcNames as $orgcName) {
+                if (!is_string($orgcName) || $orgcName === '') {
+                    continue;
+                }
                 // Collections key the creator org by integer FK (orgc_id), not the
                 // orgc_uuid string column that analyst data filters on — resolve the
                 // name to a local org id before building the condition.
@@ -481,6 +489,7 @@ class CollectionsController extends AppController
                     }
                     $options[]['AND'][] = ['Collection.orgc_id !=' => $orgc['id']];
                 } else {
+                    $hasOrRule = true;
                     $orgc = $this->Organisation->fetchOrg($orgcName);
                     if ($orgc === false) {
                         continue;
@@ -488,7 +497,7 @@ class CollectionsController extends AppController
                     $options['OR'][] = ['Collection.orgc_id' => $orgc['id']];
                 }
             }
-            if (empty($options)) {
+            if ($hasOrRule && empty($options['OR'])) {
                 return $this->RestResponse->viewData([], $this->response->type());
             }
         }
