@@ -497,7 +497,7 @@ class AttributesController extends AppController
         }
 
         if ($this->request->is('post')) {
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -922,7 +922,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1668,7 +1668,7 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['distribution'] = $requestData['distribution'];
             }
             if ($requestData['distribution'] == 4) {
-                $sharingGroupId = $requestData['sharing_group_id'];
+                $sharingGroupId = isset($requestData['sharing_group_id']) ? $requestData['sharing_group_id'] : null;
                 if (!$this->__canUseSharingGroup($sharingGroupId)) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -3658,8 +3658,7 @@ class AttributesController extends AppController
      */
     private function __canUseSharingGroup($sharingGroupId)
     {
-        $sg = $this->MispAttribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
-        return !empty($sg);
+        return $this->MispAttribute->Event->SharingGroup->canUse($this->Auth->user(), $sharingGroupId);
     }
 
     private function __setIndexFilterConditions($filters = [])
