@@ -66,11 +66,9 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 
         <select class="galaxy-picker"
                 placeholder="<?= __('Search clusters to add…') ?>"></select>
-        <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-             style="font-size:.75rem;">
-            <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-            <?= __('Type at least 2 characters to search across all galaxies.') ?>
-        </div>
+        <?= $this->element('genericElementsBS5/Forms/field_hint', [
+            'text' => __('Type at least 2 characters to search across all galaxies.'),
+        ]) ?>
 
         <div class="mt-2 d-flex flex-wrap gap-2 galaxy-selected"></div>
         <div class="text-muted small fst-italic galaxy-selected-empty">
@@ -81,27 +79,13 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06);
-            border-bottom:2px solid var(--galaxy);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-galaxy"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($headerEyebrow) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <span class="fas fa-pen-to-square text-galaxy"
-                  style="font-size:1.25rem;"></span>
-            <?= __('Edit Galaxy Clusters') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Pick a galaxy, search the input, and the selected clusters appear below. ') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => $headerEyebrow,
+    'title' => __('Edit Galaxy Clusters'),
+    'titleIcon' => 'fas fa-pen-to-square',
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -119,22 +103,16 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?php if ($mayModify): ?>
-        <button type="button"
-                id="edit-galaxies-save-btn"
-                class="btn btn-galaxy btn-sm text-white">
-            <i class="fas fa-save me-1"></i>
-            <?= __('Save Clusters') ?>
-        </button>
-        <?php endif; ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'galaxy',
+        'align' => 'end',
+        'submit' => $mayModify ? [
+            'label' => __('Save Clusters'),
+            'icon' => 'fas fa-save',
+            'id' => 'edit-galaxies-save-btn',
+            'type' => 'button',
+        ] : false,
+    ]) ?>
 
 </div>
 

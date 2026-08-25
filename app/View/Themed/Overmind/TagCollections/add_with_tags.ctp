@@ -10,26 +10,13 @@ echo $this->Form->create('TagCollection', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--bs-primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Tag Collections') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Tag Collection') : __('Add Tag Collection') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A collection groups the tags and galaxy clusters that are usually applied together, so they can be attached in one go.') ?>
-        </p>
-    </div>
-    <i class="fas fa-layer-group text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Tag Collections'),
+    'title' => $isEdit ? __('Edit Tag Collection') : __('Add Tag Collection'),
+    'description' => __('A collection groups the tags and galaxy clusters that are usually applied together, so they can be attached in one go.'),
+    'icon' => 'fas fa-layer-group',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -58,10 +45,10 @@ echo $this->Form->create('TagCollection', [
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
@@ -115,10 +102,10 @@ echo $this->Form->create('TagCollection', [
 
         <!-- ── VISIBILITY ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Visibility') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Visibility'),
+            ]) ?>
             <?php $allOrgs = !empty($collection['all_orgs']); ?>
             <label class="d-flex align-items-center gap-3 rounded-2 p-3 w-100
                           user-select-none mb-0"
@@ -150,30 +137,11 @@ echo $this->Form->create('TagCollection', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($collection['id'])): ?>
-                <?= __('Collection') ?>:
-                <strong class="text-body">#<?= h($collection['id']) ?></strong>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Collection')),
-                [
-                    'class' => 'btn btn-primary btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($collection['id']) ? [['label' => __('Collection'), 'id' => $collection['id']]] : [],
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Collection')],
+    ]) ?>
 
 </div>
 

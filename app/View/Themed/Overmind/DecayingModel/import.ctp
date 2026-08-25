@@ -1,4 +1,11 @@
 <?php
+$isModal = !empty($ajax);
+
+$headerDescription = __(
+    'Paste a MISP decaying-model JSON below, or provide a JSON file.'
+    . 'The imported model is added to your organisation as a non-default model.'
+);
+
 echo $this->Form->create('DecayingModel', [
     'enctype' => 'multipart/form-data',
     'class' => 'needs-validation',
@@ -6,41 +13,78 @@ echo $this->Form->create('DecayingModel', [
 ]);
 ?>
 
-<div class="container-fluid px-0">
-    <div class="card border-0">
-        <div class="card-body">
+<?php if ($isModal): ?>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'primary',
+    'eyebrow' => __('Decaying Models'),
+    'title' => __('Import Decaying Model'),
+    'description' => $headerDescription,
+    'icon' => 'fas fa-file-import',
+]) ?>
+<?php endif; ?>
 
-            <h3 class="mb-1"><?= __('Import decaying model') ?></h3>
-            <div class="form-text mb-3">
-                <?= __('Paste a MISP decaying-model JSON below, or provide a JSON file. The imported model is added to your organisation as a non-default model.') ?>
-            </div>
+<div class="<?= $isModal ? 'p-4' : 'container-fluid px-4 py-3' ?>">
 
-            <div class="mb-3">
-                <?= $this->Form->label('json', __('Model JSON'), ['class' => 'form-label fw-semibold']) ?>
-                <?= $this->Form->textarea('json', [
-                    'class' => 'form-control font-monospace',
-                    'rows' => 12,
-                    'placeholder' => '{ "name": "...", "formula": "Polynomial", "parameters": { ... } }',
-                ]) ?>
-            </div>
-
-            <div class="mb-2">
-                <?= $this->Form->label('submittedjson', __('… or upload a JSON file'), ['class' => 'form-label fw-semibold']) ?>
-                <?= $this->Form->file('submittedjson', ['class' => 'form-control']) ?>
-            </div>
-
-            <div class="d-flex justify-content-end gap-3 mt-4">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
-                <?= $this->Form->button(
-                    '<i class="fas fa-file-import me-1"></i> ' . __('Import'),
-                    ['class' => 'btn btn-primary', 'escapeTitle' => false]
-                ) ?>
-            </div>
-
+    <?php if (!empty($importErrors)): ?>
+        <div class="alert alert-danger" role="alert">
+            <strong><?= __('Could not import:') ?></strong>
+            <ul class="mb-0">
+                <?php foreach ($importErrors as $importError): ?>
+                    <li><?= h($importError) ?></li>
+                <?php endforeach; ?>
+            </ul>
         </div>
+    <?php endif; ?>
+
+    <div class="d-flex flex-column gap-4">
+
+        <!-- ── Decaying Model DOCUMENT ───────────────────────────────── -->
+        <div class="w-100 px-2">
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                        text-uppercase mb-2"
+                 style="font-size:.65rem; letter-spacing:.1em;">
+                <?= __('Decaying Model JSON') ?>
+                <span class="badge bg-primary"
+                      style="font-size:.55rem; opacity:.8; font-weight:700;">
+                    <?= __('REQUIRED') ?>
+                </span>
+            </div>
+            <?= $this->Form->textarea('json', [
+                'class' => 'form-control bg-light font-monospace',
+                'rows' => 14,
+                'style' => 'font-size:.8rem;',
+                'placeholder' => __(
+                    '{ "name": "...", "formula": "Polynomial", "parameters": { ... } }'
+                ),
+            ]) ?>
+        </div>
+
+        <!-- ── JSON FILE ───────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Or Upload a JSON File'),
+            ]) ?>
+            <?= $this->Form->file('submittedjson', [
+                'class' => 'form-control bg-light',
+                'accept' => 'application/json,.json',
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Optional — if both a pasted document and a file are provided, the file wins.'),
+            ]) ?>
+        </div>
+
     </div>
+
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'hint' => __('The import is refused whole if any element fails validation.'),
+        'cancel' => $isModal ? [] : [
+            'label' => __('Cancel'),
+            'href' => $baseurl . '/decayingModel/index',
+            'attrs' => [],
+        ],
+        'submit' => ['label' => __('Import'), 'icon' => 'fas fa-upload'],
+    ]) ?>
 </div>
 
-<?= $this->Form->end(); ?>
+<?= $this->Form->end() ?>

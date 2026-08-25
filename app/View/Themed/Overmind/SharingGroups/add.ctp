@@ -12,27 +12,13 @@ echo $this->Form->create('SharingGroup', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Sharing Groups') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $edit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $edit ? __('Edit Sharing Group') : __('Add Sharing Group') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Complete each section below — use the accordions to navigate, or "Next" to proceed step by step.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-sharing-group misp-simple text-primary"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Sharing Groups'),
+    'title' => $edit ? __('Edit Sharing Group') : __('Add Sharing Group'),
+    'description' => __('Complete each section below — use the accordions to navigate, or "Next" to proceed step by step.'),
+    'icon' => 'misp-icon misp-icon-sharing-group misp-simple',
+    'isEdit' => $edit,
+]) ?>
 
 <div class="container-fluid px-4 py-4" id="sg-wizard">
 
@@ -338,38 +324,27 @@ echo $this->Form->create('SharingGroup', [
                     </div>
                 </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($edit && !empty($sharingGroup['SharingGroup']['id'])): ?>
-                <?= __('Sharing group') ?>:
-                <strong class="text-body">#<?= h($sharingGroup['SharingGroup']['id']) ?></strong>
-                <?php if (!empty($sharingGroup['SharingGroup']['name'])): ?>
-                    &nbsp;|&nbsp;
-                    <strong class="text-body"><?= h($sharingGroup['SharingGroup']['name']) ?></strong>
-                <?php endif; ?>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Your own organisation and this instance are included by default.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <!--
-                Delegates to the wizard's own Submit (step 4), which is what
-                initSharingGroupForm() binds the payload build and submit to.
-            -->
-            <button type="button" class="btn btn-primary btn-sm"
-                    onclick="var b = document.getElementById('sg-submit-btn'); if (b) { b.click(); }">
-                <i class="fas fa-<?= $edit ? 'floppy-disk' : 'circle-plus' ?> me-1"></i>
-                <?= $edit ? __('Save Changes') : __('Add Sharing Group') ?>
-            </button>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if ($edit && !empty($sharingGroup['SharingGroup']['id'])) {
+        $footerMeta[] = ['label' => __('Sharing group'), 'id' => $sharingGroup['SharingGroup']['id']];
+        if (!empty($sharingGroup['SharingGroup']['name'])) {
+            $footerMeta[] = ['value' => $sharingGroup['SharingGroup']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'meta' => $footerMeta,
+        'hint' => __('Your own organisation and this instance are included by default.'),
+        /* Delegates to the wizard's own Submit (step 4), which is what
+         * initSharingGroupForm() binds the payload build and submit to. */
+        'submit' => [
+            'label' => $edit ? __('Save Changes') : __('Add Sharing Group'),
+            'type' => 'button',
+            'attrs' => ['onclick' => "var b = document.getElementById('sg-submit-btn'); if (b) { b.click(); }"],
+        ],
+    ]);
+    ?>
 
     <?= $this->Form->input('json', [
         'style'  => 'display:none;',

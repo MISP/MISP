@@ -2,7 +2,7 @@
 // Overmind BS5 confirm fragment for toggleEnabled. $enabled is the TARGET state
 // (the controller sets it to !$task.enabled). Native submit → the Overmind
 // branch of toggleEnabled() POST saves + redirects to the (themed) index.
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title' => $enabled
         ? __('Enable Scheduled Task #%s', h($id))
         : __('Disable Scheduled Task #%s', h($id)),

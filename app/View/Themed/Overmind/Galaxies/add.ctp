@@ -21,23 +21,12 @@ echo $this->Form->create('Galaxy', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06);
-            border-bottom:2px solid var(--bs-galaxy);">
-    <div>
-        <div class="text-galaxy text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Galaxies') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-galaxy" style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Galaxy') : __('Add Custom Galaxy') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => __('Galaxies'),
+    'title' => $isEdit ? __('Edit Galaxy') : __('Add Custom Galaxy'),
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
@@ -97,10 +86,10 @@ echo $this->Form->create('Galaxy', [
 
     <!-- DISTRIBUTION CARDS -->
     <div class="mt-3">
-        <div class="text-galaxy fw-bold text-uppercase mb-2"
-             style="font-size:.65rem; letter-spacing:.1em;">
-            <?= __('Distribution') ?>
-        </div>
+        <?= $this->element('genericElementsBS5/Forms/section_label', [
+            'accent' => 'galaxy',
+            'label' => __('Distribution'),
+        ]) ?>
         <?= $this->Form->select('distribution', $distributionLevels, [
             'id' => 'GalaxyDistribution',
             'class' => 'Galaxy_distribution_select',

@@ -46,26 +46,14 @@ $identityCard = function ($side, $accent) {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(220,53,69,.06);
-            border-bottom:2px solid var(--bs-danger);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-danger"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Organisations') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-code-merge text-danger" style="font-size:1.25rem;"></i>
-            <?= __('Merge Organisations') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Hand over every record of one organisation to another one, then remove the emptied organisation.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-organisation misp-simple text-danger"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'danger',
+    'eyebrow' => __('Organisations'),
+    'title' => __('Merge Organisations'),
+    'description' => __('Hand over every record of one organisation to another one, then remove the emptied organisation.'),
+    'titleIcon' => 'fas fa-code-merge',
+    'icon' => 'misp-icon misp-icon-organisation misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -163,19 +151,17 @@ $identityCard = function ($side, $accent) {
         </label>
     </div>
 
-    <!-- ── FOOTER ──────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid #d8dde3;">
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-            </button>
-            <button type="submit" class="btn btn-danger btn-sm" id="mergeSubmitBtn" disabled
-                    title="<?= h(__('Merge organisations')) ?>">
-                <i class="fas fa-code-merge me-1"></i><?= __('Merge organisations') ?>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'danger',
+        'align' => 'end',
+        'cancel' => ['label' => __('Cancel')],
+        'submit' => [
+            'label' => __('Merge organisations'),
+            'icon' => 'fas fa-code-merge',
+            'id' => 'mergeSubmitBtn',
+            'disabled' => true,
+        ],
+    ]) ?>
 
     <?= $this->Form->end() ?>
 

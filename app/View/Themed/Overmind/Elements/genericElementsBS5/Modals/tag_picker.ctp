@@ -61,27 +61,13 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(219,106,71,.06);
-            border-bottom:2px solid var(--tag);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-tag"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($headerEyebrow) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <span class="fas fa-pen-to-square text-tag"
-                  style="font-size:1.25rem;"></span>
-            <?= __('Edit Tags') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Pick a category, search the input, and the selected tags appear below.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-tag misp-simple text-tag"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'tag',
+    'eyebrow' => $headerEyebrow,
+    'title' => __('Edit Tags'),
+    'titleIcon' => 'fas fa-pen-to-square',
+    'icon' => 'misp-icon misp-icon-tag misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -99,22 +85,16 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?php if ($mayModify): ?>
-        <button type="button"
-                id="edit-tags-save-btn"
-                class="btn btn-tag btn-sm text-white">
-            <i class="fas fa-save me-1"></i>
-            <?= __('Save Tags') ?>
-        </button>
-        <?php endif; ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'tag',
+        'align' => 'end',
+        'submit' => $mayModify ? [
+            'label' => __('Save Tags'),
+            'icon' => 'fas fa-save',
+            'id' => 'edit-tags-save-btn',
+            'type' => 'button',
+        ] : false,
+    ]) ?>
 
 </div>
 

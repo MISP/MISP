@@ -8,7 +8,7 @@
  * hidden 'id' field is unused but harmless. The ownership gate stays in the
  * controller's beforeDelete on the POST path.
  */
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title' => __('Detach signing key'),
     'model' => 'CryptographicKey',
     'url' => $baseurl . '/cryptographicKeys/delete/' . h($id),

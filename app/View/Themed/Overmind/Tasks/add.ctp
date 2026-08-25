@@ -61,24 +61,13 @@ echo $this->Form->create('Task', array_merge(
 ));
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--bs-primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Scheduled Tasks') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $edit ? 'pen-to-square' : 'circle-plus' ?> text-primary" style="font-size:1.25rem;"></i>
-            <?= $edit ? __('Edit scheduled task') : __('Add scheduled task') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Runs a background job (server, feed, workflow, TAXII, summary or admin update) on a recurring schedule.') ?>
-        </p>
-    </div>
-    <i class="fas fa-clock text-primary" style="font-size:2rem; opacity:.5;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Scheduled Tasks'),
+    'title' => $edit ? __('Edit scheduled task') : __('Add scheduled task'),
+    'description' => __('Runs a background job (server, feed, workflow, TAXII, summary or admin update) on a recurring schedule.'),
+    'icon' => 'fas fa-clock',
+    'isEdit' => $edit,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -311,16 +300,14 @@ echo $this->Form->create('Task', array_merge(
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center mt-4 pt-3 flex-wrap gap-2 border-top">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?= $this->Form->button(
-            '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Save changes') : __('Add task')),
-            ['class' => 'btn btn-primary btn-sm', 'escapeTitle' => false, 'type' => 'submit']
-        ) ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'align' => 'end',
+        'submit' => [
+            'label' => $edit ? __('Save changes') : __('Add task'),
+            'icon' => 'fas fa-check',
+        ],
+    ]) ?>
 
 </div>
 

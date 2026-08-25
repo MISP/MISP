@@ -45,10 +45,7 @@ $__count = count($__templates);
 
 // The header band swaps to a warning tone when the feature can't run, so the
 // modal reads as a diagnostic rather than a broken picker.
-$__accent = $__unavailable ? 'var(--bs-warning)' : 'var(--event, var(--primary))';
-$__tint = $__unavailable ? 'rgba(255,193,7,.08)' : 'rgba(24,146,177,.06)';
-$__accentText = $__unavailable ? 'text-warning-emphasis' : 'text-event';
-$__accentIcon = $__unavailable ? 'text-warning' : 'text-event';
+$__accent = $__unavailable ? 'warning' : 'event';
 $__fixCommand = 'cd ' . rtrim(APP, DS) . ' && composer install';
 ?>
 <div class="modal fade et-template-picker" id="<?= h($__uid) ?>" tabindex="-1"
@@ -57,41 +54,28 @@ $__fixCommand = 'cd ' . rtrim(APP, DS) . ' && composer install';
         <div class="modal-content border-0" style="margin:auto;">
             <div class="modal-body p-0 m-0">
 
-                <!-- ── MODAL HEADER ─────────────────────────────────── -->
-                <div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-                     style="background:<?= $__tint ?>;
-                            border-bottom:2px solid <?= $__accent ?>;">
-                    <div>
-                        <div class="<?= $__accentText ?> text-uppercase fw-semibold mb-1"
-                             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-                            <?= __('Events') ?>
-                        </div>
-                        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2"
-                            id="<?= h($__uid) ?>-title">
-                            <i class="fas fa-<?= $__unavailable ? 'plug-circle-exclamation' : 'circle-plus' ?> <?= $__accentIcon ?>"
-                               style="font-size:1.25rem;"></i>
-                            <?= $__unavailable
-                                ? __('Event templating is unavailable')
-                                : __('Create Event from Template') ?>
-                        </h4>
-                        <p class="text-muted mb-0" style="font-size:.75rem;">
-                            <?= $__unavailable
-                                ? __('This MISP instance is missing PHP packages that the event-templating feature depends on.')
-                                : __('Pick a guided template — it walks you through the fields and builds the event, its attributes and its objects for you.') ?>
-                        </p>
-                    </div>
-                    <span class="fas fa-wand-magic-sparkles <?= $__accentIcon ?>"
-                          style="font-size:2rem; opacity:.5;"></span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/modal_header', [
+                    'accent' => $__accent,
+                    'eyebrow' => __('Events'),
+                    'title' => $__unavailable
+                        ? __('Event templating is unavailable')
+                        : __('Create Event from Template'),
+                    'titleId' => $__uid . '-title',
+                    'titleIcon' => 'fas fa-' . ($__unavailable ? 'plug-circle-exclamation' : 'circle-plus'),
+                    'description' => $__unavailable
+                        ? __('This MISP instance is missing PHP packages that the event-templating feature depends on.')
+                        : __('Pick a guided template — it walks you through the fields and builds the event, its attributes and its objects for you.'),
+                    'icon' => 'fas fa-wand-magic-sparkles',
+                ]) ?>
 
                 <!-- ── BODY ─────────────────────────────────────────── -->
                 <div class="p-4">
 
                     <?php if ($__unavailable): ?>
-                        <div class="fw-bold text-uppercase mb-2 text-primary"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('Missing PHP package(s)') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'primary',
+                            'label' => __('Missing PHP package(s)'),
+                        ]) ?>
                         <ul class="list-group mb-4">
                             <?php foreach ($__missingDeps as $__package): ?>
                                 <li class="list-group-item d-flex align-items-center gap-2 py-2">
@@ -101,10 +85,10 @@ $__fixCommand = 'cd ' . rtrim(APP, DS) . ' && composer install';
                             <?php endforeach; ?>
                         </ul>
 
-                        <div class="fw-bold text-uppercase mb-2 text-primary"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('How to fix it') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'primary',
+                            'label' => __('How to fix it'),
+                        ]) ?>
                         <p class="text-muted" style="font-size:.85rem;">
                             <?= __('MISP\'s standard upgrade flow (git pull + %s) does not install composer packages. An administrator has to run the following on the MISP host, then reload this page.',
                                 '<code>cake Admin runUpdates</code>') ?>
@@ -214,44 +198,40 @@ $__fixCommand = 'cd ' . rtrim(APP, DS) . ' && composer install';
                         </div>
                     <?php endif; ?>
 
-                    <!-- ── FOOTER ───────────────────────────────────── -->
-                    <div class="d-flex justify-content-between align-items-center
-                                mt-4 pt-3 flex-wrap gap-2"
-                         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-                        <div class="text-muted d-flex align-items-center gap-3"
-                             style="font-size:.75rem;">
-                            <?php if ($__count): ?>
-                                <span class="et-tp-count"
-                                      data-label-one="<?= h(__('%s template available')) ?>"
-                                      data-label-many="<?= h(__('%s templates available')) ?>">
-                                    <?= h(sprintf(
-                                        $__count === 1
-                                            ? __('%s template available')
-                                            : __('%s templates available'),
-                                        $__count
-                                    )) ?>
-                                </span>
-                            <?php endif; ?>
-                            <?php if ($__canManage && !$__unavailable): ?>
-                                <a href="<?= h($baseurl . '/event_templates/index') ?>"
-                                   class="text-decoration-none">
-                                    <i class="fas fa-list me-1"></i><?= __('Manage templates') ?>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                                    data-bs-dismiss="modal">
-                                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-                            </button>
-                            <?php if ($__unavailable && $__canManage): ?>
-                                <a href="<?= h($baseurl . '/event_templates/index') ?>"
-                                   class="btn btn-primary btn-sm">
-                                    <i class="fas fa-circle-info me-1"></i><?= __('More details') ?>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php
+                    /* The count is rewritten client-side as the search filters the list, so it
+                     * carries both plural forms and stays raw HTML. */
+                    $footerMeta = '';
+                    if ($__count) {
+                        $footerMeta = sprintf(
+                            '<span class="et-tp-count" data-label-one="%s" data-label-many="%s">%s</span>',
+                            h(__('%s template available')),
+                            h(__('%s templates available')),
+                            h(sprintf(
+                                $__count === 1 ? __('%s template available') : __('%s templates available'),
+                                $__count
+                            ))
+                        );
+                    }
+                    if ($__canManage && !$__unavailable) {
+                        $footerMeta .= sprintf(
+                            '<a href="%s" class="text-decoration-none ms-2">'
+                                . '<i class="fas fa-list me-1"></i>%s</a>',
+                            h($baseurl . '/event_templates/index'),
+                            h(__('Manage templates'))
+                        );
+                    }
+                    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+                        'accent' => $__accent,
+                        'metaHtml' => $footerMeta,
+                        'submit' => $__unavailable && $__canManage ? [
+                            'label' => __('More details'),
+                            'icon' => 'fas fa-circle-info',
+                            'href' => $baseurl . '/event_templates/index',
+                            'class' => 'btn-primary',
+                        ] : false,
+                    ]);
+                    ?>
 
                 </div>
             </div>

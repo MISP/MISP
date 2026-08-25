@@ -1,6 +1,6 @@
 <?php
 
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title'   => __('Destroy sessions'),
     'model'   => 'User',
     'url'     => $baseurl . '/admin/users/destroy/' . h($userId),

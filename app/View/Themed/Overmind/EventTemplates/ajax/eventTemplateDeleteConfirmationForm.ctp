@@ -23,7 +23,7 @@ if ($libraryManaged > 0) {
         );
 }
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Event Template Deletion'),
     'model' => 'EventTemplate',
     'url' => $baseurl . '/event_templates/deleteSelection',

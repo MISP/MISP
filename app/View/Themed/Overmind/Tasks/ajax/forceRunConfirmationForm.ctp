@@ -1,7 +1,7 @@
 <?php
 // Overmind BS5 confirm fragment for forceRun. Native submit → the untouched
 // forceRun() POST branch saves + redirects to the (themed) index with a Flash.
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title' => __('Force Run Scheduled Task #%s', h($task['Task']['id'])),
     'model' => 'Task',
     'url' => $baseurl . '/tasks/forceRun/' . h($id),

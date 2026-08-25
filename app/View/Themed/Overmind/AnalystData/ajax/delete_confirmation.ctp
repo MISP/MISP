@@ -1,5 +1,5 @@
 <?php
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title'   => __('Delete %s', $adType),
     'model'   => $adType,
     'url'     => $baseurl . '/analystData/delete/' . $adType . '/' . $adId,

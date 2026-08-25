@@ -6,7 +6,7 @@ $relationSummary = sprintf(
     !empty($relation['TargetCluster']['value']) ? $relation['TargetCluster']['value'] : __('Unknown target')
 );
 
-echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
+echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
     'title' => __('Galaxy Cluster Relationship Deletion'),
     'model' => 'GalaxyClusterRelation',
     'url' => $baseurl . '/galaxy_cluster_relations/delete/' . h($relation['GalaxyClusterRelation']['id']),

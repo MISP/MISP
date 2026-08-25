@@ -56,11 +56,9 @@ $brandIcons = [
     </div>
 
     <select class="galaxy-picker" placeholder="<?= h($placeholder) ?>"></select>
-    <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-         style="font-size:.75rem;">
-        <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-        <?= __('Type at least 2 characters to search across all galaxies.') ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+        'text' => __('Type at least 2 characters to search across all galaxies.'),
+    ]) ?>
 
     <div class="mt-2 d-flex flex-wrap gap-2 galaxy-selected"></div>
     <div class="text-muted small fst-italic galaxy-selected-empty">
