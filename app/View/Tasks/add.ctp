@@ -122,7 +122,9 @@ echo $this->element('genericElements/Form/genericForm', [
                     'updateTaxonomies' => 'Update Taxonomies',
                     'updateWarningLists' => 'Update Warninglists',
                     'updateNoticeLists' => 'Update Noticelists',
-                    'updateObjectTemplates' => 'Update Object Templates'
+                    'updateObjectTemplates' => 'Update Object Templates',
+                    'checkUserValidity' => 'Check User Validity (report only)',
+                    'blockInvalidUsers' => 'Check User Validity (disable invalid users)'
                 ],
                 'type' => 'dropdown',
                 'class' => 'span6',
