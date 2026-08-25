@@ -246,6 +246,8 @@
                     ],
                     'icon' => 'sync',
                     'title' => __('Pull updates to events that already exist locally'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull updates to events that already exist locally from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']);
@@ -260,6 +262,8 @@
                     ],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Pull all'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull all events from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']);
@@ -274,6 +278,8 @@
                     ],
                     'icon' => 'tags',
                     'title' => __('Pull known relevant custom clusters'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull the known relevant custom clusters from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']) && !empty($row['Server']['pull_galaxy_clusters']);
@@ -288,6 +294,8 @@
                     ],
                     'icon' => 'arrow-circle-up',
                     'title' => __('Push all'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to push all events to this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['push']);
@@ -301,6 +309,8 @@
                     ],
                     'icon' => 'memory',
                     'title' => __('Cache instance'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to cache the contents of this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['caching_enabled']);
