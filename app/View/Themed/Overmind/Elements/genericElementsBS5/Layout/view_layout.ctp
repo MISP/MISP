@@ -1,12 +1,22 @@
+<?php
+$activeTabIndex = 0;
+foreach ($tabs as $i => $tab) {
+    if (!empty($tab['active'])) {
+        $activeTabIndex = $i;
+        break;
+    }
+}
+?>
 <div class="container-fluid">
     <ul class="nav nav-tabs mb-3 fs-5" role="tablist">
         <?php foreach ($tabs as $i => $tab): ?>
+            <?php $isActive = $i === $activeTabIndex; ?>
             <li class="nav-item"  role="presentation">
-                <a class="nav-view nav-link d-flex align-items-center gap-2 bg-light text-dark <?= $i === 0 ? 'active' : '' ?>"
+                <a class="nav-view nav-link d-flex align-items-center gap-2 bg-light text-dark <?= $isActive ? 'active' : '' ?>"
                     data-bs-toggle="tab"
                     href="#tab-<?= h($tab['id']) ?>"
                     role="tab"
-                    aria-selected="<?= $i === 0 ? 'true' : 'false' ?>">
+                    aria-selected="<?= $isActive ? 'true' : 'false' ?>">
 
                     <?php if (!empty($tab['icon'])): ?>
                         <i class="<?= h($tab['icon']) ?>"></i>
@@ -26,7 +36,7 @@
 
     <div class="tab-content">
         <?php foreach ($tabs as $i => $tab): ?>
-            <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>"
+            <div class="tab-pane fade <?= $i === $activeTabIndex ? 'show active' : '' ?>"
                 id="tab-<?= h($tab['id']) ?>"
                 role="tabpanel">
                 <div class="row">

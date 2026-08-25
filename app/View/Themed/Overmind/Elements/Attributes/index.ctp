@@ -57,6 +57,10 @@ $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
 $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
+// Enrichment / Cortex expansion (misp-modules): the "Enrich" actions are only
+// offered when the matching services plugin is enabled and the user can add data.
+$_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
+$_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
 // Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
 $inEventView = empty($show_event_id) && !empty($event['Event']['id']);
 
@@ -267,6 +271,30 @@ $fields = array_merge($fields, [
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
                     return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled, $_cortexEnabled) {
+                    return $_canModify && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich'),
+                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
+                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled) {
+                    return $_canModify && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich (Cortex)'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
+                'requirement' => function($row) use ($_canModify, $_cortexEnabled) {
+                    return $_canModify && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [

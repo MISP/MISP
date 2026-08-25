@@ -20,6 +20,9 @@ $this->set('headerActions', $headerActions);
 $canEdit = $this->Acl->canAccess('eventBlocklists', 'edit');
 $canDelete = $this->Acl->canAccess('eventBlocklists', 'delete');
 
+// Card anatomy mirrors the Events index: an identity row (top), a bold
+// title, then a `meta` footer separated by an <hr> holding the
+// self-labelled metadata, with the actions in `extra`.
 $fields = [
     [
         'element' => 'checkbox',
@@ -33,7 +36,7 @@ $fields = [
         'element' => 'id',
         'url' => '#',
         'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['card']
     ],
     [
         'name' => __('Event UUID'),
@@ -41,36 +44,32 @@ $fields = [
         'data_path' => 'EventBlocklist.event_uuid',
         'element' => 'uuid',
         'url' => '#',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Creating organisation'),
-        'sort' => 'EventBlocklist.event_orgc',
-        'data_path' => 'EventBlocklist.event_orgc',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Event info'),
         'sort' => 'EventBlocklist.event_info',
-        'data_path' => 'EventBlocklist.event_info',
-        'card_section' => 'links',
-        'display_in' => ['table', 'card']
+        'data_path' => 'EventBlocklist.event_info, EventBlocklist.comment',
+        'element' => 'name_description',
+        'card_section' => 'title',
+        'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Comment'),
-        'sort' => 'EventBlocklist.comment',
-        'data_path' => 'EventBlocklist.comment',
-        'card_section' => 'links',
+        'name' => __('Creating organisation'),
+        'sort' => 'EventBlocklist.event_orgc',
+        'data_path' => 'EventBlocklist.event_orgc',
+        'element' => 'organisation',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Created'),
         'sort' => 'EventBlocklist.created',
         'data_path' => 'EventBlocklist.created',
-        'element' => 'datetime',
-        'card_section' => 'extra',
+        'element' => 'timestamp',
+        'mode' => 'created',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
@@ -78,6 +77,7 @@ $fields = [
         'element' => 'row_actions',
         'data_path' => 'EventBlocklist.id',
         'card_section' => 'extra',
+        'display_in' => ['table', 'card'],
         'actions' => array_values(array_filter([
             $canEdit ? [
                 'type' => 'modal',
@@ -118,6 +118,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $response,
             'filter_bar' => $filterBar,
             'fields' => $fields,
+            'primary_id_path' => 'EventBlocklist.id',
         ]
     ],
     'item_url' => '/eventBlocklists'

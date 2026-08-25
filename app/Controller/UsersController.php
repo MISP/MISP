@@ -365,7 +365,7 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
-    
+
         $this->User->recursive = 0;
         $this->User->read(null, $id);
         $this->User->set('password', '');
@@ -376,6 +376,9 @@ class UsersController extends AppController
 
     public function admin_index()
     {
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
@@ -889,6 +892,10 @@ class UsersController extends AppController
                 }
             }
             $this->set('currentOrg', $this->Auth->user('org_id'));
+            // Pre-select an organisation when opened from an org view
+            if (!empty($this->passedArgs['organisation']) && $this->_isSiteAdmin() && empty($this->request->data['User']['org_id'])) {
+                $this->request->data['User']['org_id'] = $this->passedArgs['organisation'];
+            }
             $this->set('isSiteAdmin', $this->_isSiteAdmin());
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
@@ -942,18 +949,39 @@ class UsersController extends AppController
                 $this->request->data['User'] = $this->request->data;
             }
             $abortPost = false;
+            $isOvermindAjax = !$this->_isRest() && $this->request->is('ajax') && $this->theme === 'Overmind';
+            $jsonResponse = function (array $payload) {
+                return new CakeResponse(array(
+                    'body' => json_encode($payload),
+                    'status' => 200,
+                    'type' => 'json',
+                ));
+            };
             if (!$this->_isRest() || empty($this->request->header('Authorization'))) {
                 if (Configure::read('Security.require_password_confirmation')) {
+                    $currentPasswordError = false;
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                         if (!$hashed) {
                             $abortPost = true;
-                            $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                            $currentPasswordError = __('Incorrect password');
+                            if (!$isOvermindAjax) {
+                                $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                            }
                         }
                         unset($this->request->data['User']['current_password']);
                     } else {
                         $abortPost = true;
-                        $this->Flash->info('Please enter your current password to continue.');
+                        $currentPasswordError = __('Please enter your current password to continue.');
+                        if (!$isOvermindAjax) {
+                            $this->Flash->info('Please enter your current password to continue.');
+                        }
+                    }
+                    if ($abortPost && $isOvermindAjax) {
+                        return $jsonResponse(array(
+                            'success' => false,
+                            'errors' => array('current_password' => $currentPasswordError),
+                        ));
                     }
                 }
             }
@@ -974,7 +1002,14 @@ class UsersController extends AppController
                         }
                     }
                     if ($abortPost) {
-                        $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+                        $domainError = __('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']);
+                        if ($isOvermindAjax) {
+                            return $jsonResponse(array(
+                                'success' => false,
+                                'errors' => array('email' => $domainError),
+                            ));
+                        }
+                        $this->Flash->error($domainError);
                     }
                 }
             }
@@ -1100,6 +1135,9 @@ class UsersController extends AppController
                             unset($user['User']['authkey']);
                         }
                         return $this->RestResponse->viewData($user, $this->response->type());
+                    } elseif ($isOvermindAjax) {
+                        $this->Flash->success(__('The user has been saved'));
+                        return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
                         $this->redirect(array('action' => 'index'));
@@ -1107,6 +1145,12 @@ class UsersController extends AppController
                 } else {
                     if ($this->_isRest()) {
                         return $this->RestResponse->saveFailResponse('Users', 'admin_edit', $id, $this->User->validationErrors, $this->response->type());
+                    } elseif ($isOvermindAjax) {
+                        return $jsonResponse(array(
+                            'success' => false,
+                            'message' => __('The user could not be saved. Please, try again.'),
+                            'errors' => $this->User->validationErrors,
+                        ));
                     } else {
                         $this->Flash->error(__('The user could not be saved. Please, try again.'));
                     }
@@ -1743,6 +1787,10 @@ class UsersController extends AppController
             $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
         }
 
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
+
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
@@ -1817,6 +1865,9 @@ class UsersController extends AppController
                 } else {
                     $this->Flash->success(__('E-mails sent.'));
                 }
+                if (!$this->_isRest() && $this->theme === 'Overmind') {
+                    $this->redirect('/admin/users/index');
+                }
             }
 
             $this->set('users', $temp);
@@ -1848,6 +1899,16 @@ class UsersController extends AppController
         if ($this->request->is('post')) {
             if (isset($this->request->data['User']['firstTime'])) {
                 $firstTime = $this->request->data['User']['firstTime'];
+            }
+            if (!$this->_isRest() && $this->theme === 'Overmind') {
+                // Redirect back with a flash message instead of the raw JSON
+                $success = $this->User->initiatePasswordReset($user, $firstTime, true);
+                if ($success) {
+                    $this->Flash->success(__('New credentials have been generated and sent to the user.'));
+                } else {
+                    $this->Flash->error(__('There was an error notifying the user. Their credentials were not altered.'));
+                }
+                $this->redirect($this->referer());
             }
             return new CakeResponse($this->User->initiatePasswordReset($user, $firstTime));
         } else {
@@ -2691,7 +2752,8 @@ class UsersController extends AppController
             'body' => $publicKey,
             'type' => 'text/plain',
         ));
-        $response->download($fingerprint . '.asc');
+        // The /gpg.asc route supplies the historic filename, otherwise use the fingerprint
+        $response->download($this->request->param('filename') ?: $fingerprint . '.asc');
         return $response;
     }
 
@@ -2877,6 +2939,13 @@ class UsersController extends AppController
             if (empty($id) && !empty($this->params['named']['id'])) {
                 $id = $this->params['named']['id'];
             }
+            // Mass discard posts the selection as a JSON array
+            if (is_string($id) && isset($id[0]) && $id[0] === '[') {
+                $decoded = json_decode($id, true);
+                if (is_array($decoded)) {
+                    $id = $decoded;
+                }
+            }
             $this->loadModel('Inbox');
             if (!is_array($id)) {
                 $id = array($id);
@@ -2926,6 +2995,13 @@ class UsersController extends AppController
         if (empty($id) && !empty($this->params['named']['id'])) {
             $id = $this->params['named']['id'];
         }
+        // Mass accept posts the selection as a JSON array
+        if (is_string($id) && isset($id[0]) && $id[0] === '[') {
+            $decoded = json_decode($id, true);
+            if (is_array($decoded)) {
+                $id = $decoded;
+            }
+        }
         $this->loadModel('Inbox');
         if (Validation::uuid($id)) {
             $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
@@ -2947,6 +3023,8 @@ class UsersController extends AppController
             if ($this->request->is('get')) {
                 $suggestedOrg = $this->User->Organisation->checkDesiredOrg($suggestedOrg, $registrations[$k]);
                 $suggestedRole = $this->User->Role->checkDesiredRole($suggestedRole, $registrations[$k]);
+                $registrations[$k]['suggestedOrg'] = $this->User->Organisation->checkDesiredOrg(null, $registrations[$k]);
+                $registrations[$k]['suggestedRole'] = $this->User->Role->checkDesiredRole(null, $registrations[$k]);
             }
         }
         $default_role = $this->User->Role->find('first', array(
@@ -2987,11 +3065,30 @@ class UsersController extends AppController
             if (!empty($suggestedOrg)) {
                 $orgConditions['OR'][] = array('Organisation.id' => $suggestedOrg[0]);
             }
+            $suggestedOrgIds = array();
+            foreach ($registrations as $reg) {
+                if (!empty($reg['suggestedOrg']) && is_array($reg['suggestedOrg']) && !empty($reg['suggestedOrg'][0])) {
+                    $suggestedOrgIds[] = $reg['suggestedOrg'][0];
+                }
+            }
+            if (!empty($suggestedOrgIds)) {
+                $orgConditions['OR'][] = array('Organisation.id' => array_unique($suggestedOrgIds));
+            }
             $this->set('orgs', $this->User->Organisation->find('list', array(
                 'fields' => array('id', 'name'),
                 'recursive' => -1,
                 'conditions' => $orgConditions
             )));
+            $defaultRoleId = !empty($default_role) ? $default_role['Role']['id'] : null;
+            foreach ($registrations as $reg) {
+                $regId = $reg['Inbox']['id'];
+                $this->request->data['User'][$regId] = array(
+                    'org_id' => (!empty($reg['suggestedOrg']) && is_array($reg['suggestedOrg']) && !empty($reg['suggestedOrg'][0])) ? $reg['suggestedOrg'][0] : null,
+                    'role_id' => $defaultRoleId,
+                );
+            }
+            $this->set('registrations', $registrations);
+            $this->set('defaultRoleId', $defaultRoleId);
             $this->set('registration', $registrations[$k]);
             $this->set('suggestedOrg', $suggestedOrg);
             $this->set('suggestedRole', $suggestedRole);
@@ -3000,27 +3097,36 @@ class UsersController extends AppController
             $this->layout = false;
         } else {
             $results = array('successes' => 0, 'fails' => 0);
-            if (!isset($this->request->data['User']['role_id'])) {
-                if (!empty($default_role)) {
-                    $this->request->data['User']['role_id'] = $default_role['Role']['id'];
+            $userData = isset($this->request->data['User']) ? $this->request->data['User'] : array();
+            $defaultRoleId = !empty($default_role) ? $default_role['Role']['id'] : null;
+            foreach ($registrations as $registration) {
+                $regId = $registration['Inbox']['id'];
+                // Overmind sends one org/role per user: data[User][<regId>][...].
+                // The legacy form sends a single org_id/role_id for the whole batch.
+                if (isset($userData[$regId]) && is_array($userData[$regId])) {
+                    $orgId = isset($userData[$regId]['org_id']) ? $userData[$regId]['org_id'] : null;
+                    $roleId = isset($userData[$regId]['role_id']) ? $userData[$regId]['role_id'] : null;
                 } else {
+                    $orgId = isset($userData['org_id']) ? $userData['org_id'] : null;
+                    $roleId = isset($userData['role_id']) ? $userData['role_id'] : null;
+                }
+                if (empty($roleId)) {
+                    $roleId = $defaultRoleId;
+                }
+                if (empty($roleId)) {
                     throw new BadRequestException(__('Role ID not provided and no default role exist on the instance'));
                 }
-            }
-            if (!isset($this->request->data['User']['org_id'])) {
-                throw new BadRequestException(__('No organisation selected. Supply an Organisation ID'));
-            } else {
-                if (Validation::uuid($this->request->data['User']['org_id'])) {
-                    $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);
-                    $this->request->data['User']['org_id'] = $id;
+                if (empty($orgId)) {
+                    throw new BadRequestException(__('No organisation selected. Supply an Organisation ID'));
                 }
-            }
-            foreach ($registrations as $registration) {
+                if (Validation::uuid($orgId)) {
+                    $orgId = $this->Toolbox->findIdByUuid($this->User->Organisation, $orgId);
+                }
                 $result = $this->User->registerUser(
                     $this->Auth->user(),
                     $registration['Inbox'],
-                    $this->request->data['User']['org_id'],
-                    $this->request->data['User']['role_id']
+                    $orgId,
+                    $roleId
                 );
                 $results[($result ? 'successes' : 'fails')] += 1;
             }
@@ -3210,6 +3316,13 @@ class UsersController extends AppController
             }
             $this->Flash->success($message);
             $this->redirect($this->referer());
+        }
+
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->set('targetLabel', implode(', ', array_keys($userIds)));
+            $this->set('userId', $id);
+            return $this->render('/Users/ajax/user_destroy_confirmation');
         }
 
         $this->set(

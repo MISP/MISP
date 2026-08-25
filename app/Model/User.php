@@ -20,6 +20,8 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 class User extends AppModel
 {
     private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
+    private const GPG_PUBLIC_KEY_CACHE_KEY = 'misp:instance_gpg_public_key';
+    private const GPG_PUBLIC_KEY_CACHE_TTL = 180;
     public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
 
     public $displayField = 'email';
@@ -1396,11 +1398,33 @@ class User extends AppModel
     }
 
     /**
+     * Instance public key, cached in redis to avoid a gnupg export on every
+     * request - the endpoint serving it is reachable unauthenticated.
+     *
      * @return array|null
      * @throws Exception
      */
     public function getGpgPublicKey()
     {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            $redis = false;
+        }
+        if ($redis) {
+            try {
+                $cached = $redis->get(self::GPG_PUBLIC_KEY_CACHE_KEY);
+                if (!empty($cached)) {
+                    $cached = RedisTool::deserialize($cached);
+                    if (is_array($cached) && count($cached) === 2) {
+                        return $cached;
+                    }
+                }
+            } catch (Exception $e) {
+                // Cached value could not be fetched or read, generate it again
+            }
+        }
+
         $cryptGpg = $this->initializeGpg();
         $this->CryptoGraphicKey = ClassRegistry::init('CryptographicKey');
         $fingerprint = $this->CryptoGraphicKey->ingestInstanceKey();
@@ -1409,7 +1433,19 @@ class User extends AppModel
         }
 
         $publicKey = $cryptGpg->exportPublicKey($fingerprint);
-        return array($fingerprint, $publicKey);
+        $key = array($fingerprint, $publicKey);
+        if ($redis) {
+            try {
+                $redis->setex(
+                    self::GPG_PUBLIC_KEY_CACHE_KEY,
+                    self::GPG_PUBLIC_KEY_CACHE_TTL,
+                    RedisTool::serialize($key)
+                );
+            } catch (Exception $e) {
+                // Caching the key is best effort only
+            }
+        }
+        return $key;
     }
 
     public function getOrgActivity($orgId, $params=array())

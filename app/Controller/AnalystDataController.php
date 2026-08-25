@@ -477,7 +477,15 @@ class AnalystDataController extends AppController
                 $orgcNames = [$orgcNames];
             }
             $filterName = 'orgc_uuid';
+            // Track whether an OR-rule (allow-list) was supplied separately from
+            // whether it resolved: a NOT-rule against an org that doesn't exist
+            // locally should impose no restriction, not exclude everything. Only
+            // "caller asked for specific orgs, none exist" should return nothing.
+            $hasOrRule = false;
             foreach ($orgcNames as $orgcName) {
+                if (!is_string($orgcName) || $orgcName === '') {
+                    continue;
+                }
                 if ($orgcName[0] === '!') {
                     $orgc = $this->AnalystData->Orgc->fetchOrg(substr($orgcName, 1));
                     if ($orgc === false) {
@@ -485,6 +493,7 @@ class AnalystDataController extends AppController
                     }
                     $options[]['AND'][] = ["{$filterName} !=" => $orgc['uuid']];
                 } else {
+                    $hasOrRule = true;
                     $orgc = $this->AnalystData->Orgc->fetchOrg($orgcName);
                     if ($orgc === false) {
                         continue;
@@ -493,7 +502,7 @@ class AnalystDataController extends AppController
                 }
             }
 
-            if (empty($options)) {
+            if ($hasOrRule && empty($options['OR'])) {
                 return $this->RestResponse->viewData([], $this->response->type());
             }
         }

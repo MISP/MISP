@@ -141,10 +141,189 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
 
-            let modal = new bootstrap.Modal(document.getElementById('mainModal'));
+            // Reuse the single instance for #mainModal — calling openModal again
+            // while a modal is already open must not spawn a second Bootstrap.Modal instance
+            let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mainModal'));
             modal.show();
         });
 }
+
+/**
+ * Announce that page entity attributes may have changed so derived cards can update.
+ *
+ * Listeners use document.addEventListener('misp:attributes-changed').
+ */
+function notifyAttributesChanged() {
+    document.dispatchEvent(new CustomEvent('misp:attributes-changed'));
+}
+window.notifyAttributesChanged = notifyAttributesChanged;
+
+// Attribute mutations in the event view all go through #mainModal, so closing it
+// is the point where derived cards can re-read the event.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._attrChangeBound) {
+        return;
+    }
+    modalEl._attrChangeBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        // A chained open only swaps content and does not mutate data.
+        if (modalEl._chaining) {
+            modalEl._chaining = false;
+            return;
+        }
+        notifyAttributesChanged();
+    });
+})();
+
+// Once #mainModal is fully closed, remove any leftover backdrops and restore body scrolling.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._backdropReaperBound) {
+        return;
+    }
+    modalEl._backdropReaperBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        window.setTimeout(function () {
+            if (document.querySelector('.modal.show')) {
+                return;
+            }
+            document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }, 300);
+    });
+})();
+
+// Hover enrichment
+(function () {
+    if (window._omHoverEnrichmentBound) {
+        return;
+    }
+    window._omHoverEnrichmentBound = true;
+
+    const SHOW_DELAY = 400;
+    const HIDE_DELAY = 250;
+    let showTimer = null;
+    let hideTimer = null;
+    let currentId = null;
+    const cache = {};
+    let pop = null;
+
+    function popover() {
+        if (!pop) {
+            pop = document.createElement('div');
+            pop.id = 'omHoverEnrichment';
+            pop.className = 'shadow border rounded bg-body';
+            pop.style.cssText = 'position:fixed; z-index:1090; width:min(520px,92vw); max-height:70vh; overflow:auto; display:none;';
+            pop.addEventListener('mouseenter', function () { window.clearTimeout(hideTimer); });
+            pop.addEventListener('mouseleave', hideSoon);
+            document.body.appendChild(pop);
+        }
+        return pop;
+    }
+
+    function place(anchor) {
+        const p = popover();
+        const r = anchor.getBoundingClientRect();
+        p.style.visibility = 'hidden';
+        p.style.display = 'block';
+        const pw = p.offsetWidth;
+        const ph = p.offsetHeight;
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+        let top = r.bottom + 6;
+        if (top + ph > window.innerHeight - 8) {
+            const above = r.top - 6 - ph;
+            top = above > 8 ? above : Math.max(8, window.innerHeight - ph - 8);
+        }
+        p.style.left = left + 'px';
+        p.style.top = top + 'px';
+        p.style.visibility = 'visible';
+    }
+
+    function show(anchor, id) {
+        currentId = id;
+        const p = popover();
+        if (cache[id] !== undefined) {
+            p.innerHTML = cache[id];
+            p.style.display = 'block';
+            place(anchor);
+            return;
+        }
+        p.innerHTML = '<div class="p-3 text-muted small d-flex align-items-center gap-2">'
+                    + '<span class="spinner-border spinner-border-sm"></span></div>';
+        p.style.display = 'block';
+        place(anchor);
+        fetch(baseurl + '/attributes/hoverEnrichment/' + encodeURIComponent(id), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                cache[id] = html;
+                if (currentId === id) { p.innerHTML = html; place(anchor); }
+            })
+            .catch(function () {
+                if (currentId === id) {
+                    p.innerHTML = '<div class="p-3 text-danger small">'
+                        + '<i class="fas fa-triangle-exclamation me-1"></i>Enrichment lookup failed.</div>';
+                }
+            });
+    }
+
+    function hideSoon() {
+        window.clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(function () {
+            if (pop) { pop.style.display = 'none'; }
+            currentId = null;
+        }, HIDE_DELAY);
+    }
+
+    function hideNow() {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+        if (pop) { pop.style.display = 'none'; }
+        currentId = null;
+    }
+
+    document.body.addEventListener('mouseover', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(hideTimer);
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (id === currentId) { return; }
+        window.clearTimeout(showTimer);
+        showTimer = window.setTimeout(function () { show(el, id); }, SHOW_DELAY);
+    });
+
+    document.body.addEventListener('mouseout', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="hover"]');
+        if (!el) { return; }
+        window.clearTimeout(showTimer);
+        hideSoon();
+    });
+
+    document.body.addEventListener('click', function (e) {
+        const el = e.target.closest && e.target.closest('.om-hover-enrichment[data-hover-trigger="click"]');
+        if (!el) { return; }
+        e.preventDefault();
+        const id = el.getAttribute('data-hover-enrichment-id');
+        if (pop && pop.style.display === 'block' && currentId === id) { hideNow(); return; }
+        show(el, id);
+    });
+
+    // Dismiss the popover on an outside click / Escape / page scroll.
+    document.addEventListener('click', function (e) {
+        if (!pop || pop.style.display !== 'block') { return; }
+        if (pop.contains(e.target)) { return; }
+        if (e.target.closest && e.target.closest('.om-hover-enrichment')) { return; }
+        hideNow();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hideNow(); } });
+    window.addEventListener('scroll', function (e) {
+        if (pop && pop.style.display === 'block' && !(pop.contains(e.target))) { hideNow(); }
+    }, true);
+})();
 
 // Close the currently-open #mainModal (if any) and then open `url` in it.
 // Used to chain modals without stacking a second Bootstrap backdrop.
@@ -156,6 +335,7 @@ function openModalChained(url, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             openModal(url, size);
         });
+        el._chaining = true;
         inst.hide();
     } else {
         openModal(url, size);
@@ -204,19 +384,20 @@ function openModalPostChained(url, body, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             run();
         });
+        el._chaining = true;
         inst.hide();
     } else {
         run();
     }
 }
 
-function multiSelectItems(url, suffixe) {
+function multiSelectItems(url, suffixe, size = 'sm') {
     if (selectedItems.size === 0) {
         return;
     }
     const ids = Array.from(selectedItems.keys());
     const fullUrl = url + '/' + JSON.stringify(ids) + suffixe;
-    openModal(fullUrl, 'sm');
+    openModal(fullUrl, size);
 }
 
 function redirectToExportResult() {
@@ -295,6 +476,7 @@ function updateMultiSelectToolbar() {
     const objectButton   = scope.querySelector('#mass-object-button');
     const relationshipButton = scope.querySelector('#mass-relationship-button');
     const sightingButton = scope.querySelector('#mass-sighting-button');
+    const fetchButton    = scope.querySelector('#mass-fetch-button');
     const enableButton   = scope.querySelector('#mass-enable-button');
     const disableButton  = scope.querySelector('#mass-disable-button');
     const requireButton   = scope.querySelector('#mass-require-button');
@@ -342,6 +524,8 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
+
+    fetchButton?.classList.toggle('d-none', !allEnabled);
 
     if (enableButton && disableButton) {
         if (allDisabled) {
@@ -2417,6 +2601,190 @@ function distBadgeHtml(level, withLabel, labels) {
         + '</span>';
 }
 
+/*******************************
+ * tagTextColour / tagBadgeStyle
+ * The client-side mirror of TextColourHelper::getTextColour() and of the
+ * badge styling in Elements/genericElementsBS5/Badges/tag.ctp — a tag drawn
+ * by JavaScript has to come out looking exactly like one drawn by PHP.
+ * @param {string} hex  Tag colour, '#rrggbb'
+ *******************************/
+function tagTextColour(hex) {
+    hex = hex || '#0088cc';
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return ((2 * r) + b + (3 * g)) / 6 < 127 ? 'white' : 'black';
+}
+
+function tagBadgeStyle(colour) {
+    colour = colour || '#0088cc';
+    return 'background-color:' + colour + '; color:' + tagTextColour(colour) + ';'
+        + ' filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5));'
+        + ' background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%,'
+        + ' rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%);'
+        + ' text-align:left; white-space:normal; word-wrap:break-word;';
+}
+
+/*******************************
+ * initTagPickerSection
+ * The tag picker used everywhere in the theme: category buttons, a TomSelect
+ * search over the current category, and the picked tags drawn below as real
+ * MISP badges with a remove cross. Drives both the standalone edit-tags modal
+ * (Modals/tag_picker.ctp, one section per locality) and the in-form field
+ * (Forms/tag_picker_field.ctp).
+ *
+ * `root` must contain .tag-cat-btn buttons (each with data-cat), a
+ * select.tag-picker, .tag-selected and .tag-selected-empty.
+ *
+ * @param {Element}  root      Section container
+ * @param {object}   catData   {<cat>: [{id,name,colour}], collections: [{id,name,tags:[…]}]}
+ * @param {Array}    initTags  Pre-selected [{id,name,colour}]
+ * @param {object}   [options] localMarker: draw the local user glyph on badges;
+ *                             onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initTagPickerSection(root, catData, initTags, options) {
+    options = options || {};
+    var selEl = root.querySelector('.tag-selected');
+    var emptyEl = root.querySelector('.tag-selected-empty');
+    var pickerEl = root.querySelector('.tag-picker');
+
+    var selected = {};               /* id(string) -> {id,name,colour} */
+    var currentCat = 'all';
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addTag(tag) {
+        if (!tag || tag.id == null) { return; }
+        selected[String(tag.id)] = {
+            id: tag.id, name: tag.name, colour: tag.colour || '#0088cc'
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var t = selected[id];
+
+            var wrap = document.createElement('div');
+            wrap.className = 'd-inline-flex align-items-center';
+
+            var badge = document.createElement('span');
+            badge.className = 'badge me-1 mb-1 d-inline-flex align-items-center gap-1';
+            badge.style.cssText = tagBadgeStyle(t.colour);
+
+            var txt = document.createElement('span');
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(t.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            wrap.appendChild(badge);
+            selEl.appendChild(wrap);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function buildOptions(cat) {
+        if (cat === 'collections') {
+            return (catData.collections || []).map(function (c) {
+                return {
+                    value: String(c.id), name: c.name,
+                    count: (c.tags || []).length, isCollection: true
+                };
+            });
+        }
+        return (catData[cat] || []).map(function (t) {
+            return { value: String(t.id), name: t.name, colour: t.colour };
+        });
+    }
+
+    function renderOpt(item, escape) {
+        if (item.isCollection) {
+            return '<div class="d-flex align-items-center gap-2 py-1">'
+                + '<i class="fas fa-layer-group text-tag"></i>'
+                + '<span class="text-truncate">'
+                + escape(item.name) + '</span>'
+                + '<span class="badge bg-light text-muted ms-auto">'
+                + (item.count || 0) + '</span></div>';
+        }
+        var col = item.colour || '#0088cc';
+        return '<div class="d-flex align-items-center gap-2 py-1">'
+            + '<span style="display:inline-block;width:10px;height:10px;'
+            + 'border-radius:2px;flex-shrink:0;background:' + escape(col) + ';"></span>'
+            + '<span class="text-truncate">'
+            + escape(item.name) + '</span></div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField: 'value',
+        labelField: 'name',
+        searchField: ['name'],
+        maxItems: 1,
+        options: [],
+        render: { option: renderOpt, item: renderOpt, option_create: false },
+        onItemAdd: function (value) {
+            if (currentCat === 'collections') {
+                var coll = (catData.collections || []).find(function (c) {
+                    return String(c.id) === String(value);
+                });
+                if (coll) { (coll.tags || []).forEach(addTag); }
+            } else {
+                var tag = (catData[currentCat] || []).find(function (t) {
+                    return String(t.id) === String(value);
+                });
+                if (tag) { addTag(tag); }
+            }
+            render();
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    function setCategory(cat) {
+        currentCat = cat;
+        root.querySelectorAll('.tag-cat-btn').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-cat') === cat);
+        });
+        ts.clear(true);
+        ts.clearOptions();
+        ts.addOptions(buildOptions(cat));
+        ts.refreshOptions(false);
+    }
+
+    root.querySelectorAll('.tag-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setCategory(btn.getAttribute('data-cat'));
+        });
+    });
+
+    (initTags || []).forEach(addTag);
+    render();
+    var first = root.querySelector('.tag-cat-btn');
+    setCategory(first ? first.getAttribute('data-cat') : 'all');
+
+    return { ids: ids };
+}
+
 function initDistributionSelect(elId, onChange) {
     var el = document.getElementById(elId);
     if (!el || el.tomselect) { return; }
@@ -2748,11 +3116,107 @@ function initAttributeForm(currentDist, isEdit) {
         });
     }
 
+    /* Live format validation of the Value field against the selected Type.
+     * Reuses the server-side AttributeValidationTool via an AJAX endpoint so
+     * the rules stay in sync with what MISP will actually accept. */
+    function setupValueValidation() {
+        var valueEl = document.getElementById('AttributeValue');
+        var typeEl  = document.getElementById('AttributeType');
+        if (!valueEl || !typeEl) { return; }
+
+        var batchEl = document.getElementById('AttributeBatchImport');
+        var form    = valueEl.form || (valueEl.closest && valueEl.closest('form'));
+        var base    = (typeof baseurl !== 'undefined') ? baseurl : '';
+        var errorId = 'AttributeValueError';
+        var lastValid = true;   // best-effort submit guard
+        var seq = 0;            // ignore out-of-order responses
+
+        function showError(message) {
+            lastValid = false;
+            valueEl.style.borderColor = '#dc3545';
+            var msg = document.getElementById(errorId);
+            if (!msg) {
+                msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-start gap-1 mt-1';
+                msg.style.fontSize = '.75rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                icon.style.marginTop = '.15rem';
+                msg.appendChild(icon);
+                msg.appendChild(document.createElement('span'));
+                valueEl.parentNode.appendChild(msg);
+            }
+            msg.querySelector('span').textContent = message;
+        }
+
+        function clearError() {
+            lastValid = true;
+            valueEl.style.borderColor = '#d8dde3';
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        function validate() {
+            var value = valueEl.value;
+            var type  = typeEl.value;
+            if (!type || !value.trim()) { clearError(); return; }
+
+            var mySeq = ++seq;
+            var params = new URLSearchParams();
+            params.append('type', type);
+            params.append('value', value);
+            if (batchEl && batchEl.checked) { params.append('batch', '1'); }
+
+            fetch(base + '/attributes/validateValue', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (mySeq !== seq) { return; } // a newer check superseded this
+                    if (res && res.valid === false) {
+                        showError(res.message
+                            || 'The value does not match the expected format.');
+                    } else {
+                        clearError();
+                    }
+                })
+                .catch(function () { /* network issue: don't block the user */ });
+        }
+
+        valueEl.addEventListener('blur', validate);
+        valueEl.addEventListener('input', function () {
+            /* remove stale error while the user is fixing the value */
+            if (!lastValid) { clearError(); }
+        });
+        typeEl.addEventListener('change', validate);
+        if (batchEl) { batchEl.addEventListener('change', validate); }
+
+        /* Block submission only when we already know the value is invalid. */
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (!lastValid && valueEl.value.trim() && typeEl.value) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    valueEl.focus();
+                }
+            });
+        }
+    }
+
     initCategorySelect();
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
     setupTemporalInputs();
+    setupValueValidation();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
     toggleSg(currentDist);
@@ -2852,11 +3316,62 @@ function initEventForm(base) {
         });
     }
 
+    /* Require a non-empty Event Info (name) before submitting */
+    function setupInfoValidation() {
+        var info = document.getElementById('EventInfo');
+        if (!info) { return; }
+        var form = info.form || (info.closest && info.closest('form'));
+        if (!form) { return; }
+
+        var errorId = 'EventInfoError';
+        var message = info.dataset.requiredMsg
+            || 'Please provide a name for the event.';
+
+        function showError() {
+            info.style.setProperty('border', '1px solid #dc3545', 'important');
+            info.style.setProperty('border-radius', '4px', 'important');
+            if (!document.getElementById(errorId)) {
+                var msg = document.createElement('div');
+                msg.id        = errorId;
+                msg.className  = 'text-danger d-flex align-items-center gap-1';
+                msg.style.fontSize  = '.75rem';
+                msg.style.marginTop = '.35rem';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-circle-exclamation';
+                msg.appendChild(icon);
+                msg.appendChild(document.createTextNode(message));
+                info.parentNode.appendChild(msg);
+            }
+        }
+
+        function clearError() {
+            info.style.removeProperty('border');
+            info.style.removeProperty('border-radius');
+            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
+            var msg = document.getElementById(errorId);
+            if (msg) { msg.remove(); }
+        }
+
+        form.addEventListener('submit', function (e) {
+            if (!info.value.trim()) {
+                e.preventDefault();
+                e.stopPropagation();
+                showError();
+                info.focus();
+            }
+        });
+
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { clearError(); }
+        });
+    }
+
     initDistributionSelect('distribution-select', null);
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
     setupUuidPreview();
     setupRadioCards();
     setupDateInput();
+    setupInfoValidation();
 }
 
 /*******************************
@@ -2901,3 +3416,221 @@ function updateActiveFilterBadge(container, searchTerm, clearCb, labelActive, la
     wrap.appendChild(clearBtn);
     filterBar.insertAdjacentElement('afterend', wrap);
 }
+
+
+/**
+ * Auto-dismiss the flash messages after 5s.
+ *
+ */
+function initFlashAutoDismiss() {
+    const flash = document.getElementById('flashContainer');
+    if (!flash || flash.children.length === 0) return;
+
+    setTimeout(function () {
+        flash.classList.add('fade-out');
+        setTimeout(function () {
+            flash.innerHTML = '';
+            flash.classList.remove('fade-out');
+        }, 600);
+    }, 5000);
+}
+
+/**
+ * Move Cake's debug output into the collapsible debug strip and badge the
+ * error count. No-op unless the layout emitted the strip (debug > 0).
+ */
+function initDebugStrip() {
+    const container = document.getElementById('debugAccordionContent');
+    if (!container) return;
+
+    const cakeErrors = document.querySelectorAll('.cake-error');
+    const count = cakeErrors.length;
+    const badge = document.getElementById('debugErrorBadge');
+
+    if (badge) {
+        badge.textContent = count + ' error' + (count > 1 ? 's' : '');
+        badge.classList.remove(count > 0 ? 'bg-success' : 'bg-danger');
+        badge.classList.add(count > 0 ? 'bg-danger' : 'bg-success');
+    }
+
+    cakeErrors.forEach(error => container.appendChild(error));
+}
+
+/**
+ * Turn the filter-bar selects into TomSelect widgets.
+ *
+ * Scoped so that fragments injected after page load (an .ajax-tab-content
+ * index, a modal body) can initialise their own selects, and idempotent so a
+ * second pass over the same scope is a no-op.
+ *
+ * Both guards are needed. TomSelect copies the original element's classes
+ * onto the .ts-wrapper <div> it builds, so a bare `.topbar-filter` query
+ * matches that wrapper too on a second pass — and the wrapper carries no
+ * `.tomselect` back-reference, so it would be handed to TomSelect as if it
+ * were a fresh control (which throws). Hence: select elements only, and skip
+ * the ones TomSelect already owns.
+ *
+ * @param {ParentNode} scope defaults to the whole document
+ */
+function initTopbarFilterSelects(scope) {
+    if (typeof TomSelect === 'undefined') return;
+
+    const selects = (scope || document).querySelectorAll('select.topbar-filter');
+    selects.forEach(function (el) {
+        if (el.tomselect) return;
+        new TomSelect(el, {
+            create: false,
+            sortField: { field: 'text', direction: 'asc' }
+        });
+    });
+}
+
+/**
+ * Fetch an ajax container's URL into it, once, and run the scripts it brings.
+ *
+ * @param {Element} container carries data-url, gains data-loaded
+ */
+function loadAjaxContainer(container) {
+    if (!container || container.dataset.loaded) return;
+
+    const url = container.dataset.url;
+    if (!url) return;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(html => {
+            container.innerHTML = html;
+            container.dataset.loaded = '1';
+
+            // innerHTML does not execute <script>, so re-create each one.
+            container.querySelectorAll('script').forEach(function (oldScript) {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                document.head.appendChild(newScript);
+                document.head.removeChild(newScript);
+            });
+
+            initTopbarFilterSelects(container);
+        })
+        .catch(() => {
+            container.innerHTML =
+                '<div class="text-danger">Error loading content</div>';
+        });
+}
+
+/**
+ * Reload an already-loaded ajax index container against a new (filtered,
+ * sorted or paginated) URL, keeping the user inside the current tab instead
+ * of navigating the whole page. Called by IndexTable/filter_bar.
+ *
+ * @param {Element} container
+ * @param {string} url
+ */
+window.reloadAjaxTabIndex = function (container, url) {
+    if (!container || !url) return;
+    container.dataset.url = url;
+    delete container.dataset.loaded;
+    container.innerHTML =
+        '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+    loadAjaxContainer(container);
+};
+
+// Lazy-load a tab's ajax content the first time it is shown, and drop the
+// selection state of the tab being left so its checkboxes don't bleed into
+// the newly active tab's mass-select toolbar.
+document.addEventListener('shown.bs.tab', function (event) {
+    const target = event.target.getAttribute('data-bs-target')
+        || event.target.getAttribute('href');
+    const tabPane = target ? document.querySelector(target) : null;
+    if (!tabPane) return;
+
+    const prevTarget = event.relatedTarget
+        ? (event.relatedTarget.getAttribute('data-bs-target')
+            || event.relatedTarget.getAttribute('href'))
+        : null;
+    const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+    if (prevPane) {
+        prevPane.querySelectorAll('.item-checkbox:checked').forEach(function (cb) {
+            cb.checked = false;
+        });
+    }
+    if (typeof selectedItems !== 'undefined') {
+        selectedItems.clear();
+    }
+    if (typeof updateMultiSelectToolbar === 'function') {
+        updateMultiSelectToolbar();
+    }
+
+    tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
+});
+
+/**
+ * Session watchdog — send the user to the login page once their session is
+ * gone, instead of leaving them on a page whose every action will bounce.
+ *
+ * Enabled by the layout (window.mispAutoLogout) when MISP.disable_auto_logout
+ * is off and someone is logged in.
+ *
+ */
+function initSessionWatchdog() {
+    if (!window.mispAutoLogout || typeof baseurl === 'undefined') return;
+
+    const MIN_INTERVAL = 10000; // don't re-check on every focus flicker
+    let lastCheck = 0;
+    let inFlight = false;
+
+    function check() {
+        if (document.hidden || inFlight) return;
+
+        const now = Date.now();
+        if (now - lastCheck < MIN_INTERVAL) return;
+        lastCheck = now;
+        inFlight = true;
+
+        // Measured against the endpoint (session cookie, X-Requested-With):
+        //   authenticated -> 200
+        //   session gone  -> 401 (the ajax pre-auth branch)
+        // The `.json` form answers 200/403 instead, but routes through
+        // AppController's REST branch, which authenticates by Authorization
+        // header rather than by session — so the plain URL is the narrower
+        // question to ask. 403 and a follow-through to /users/login are
+        // accepted too, since both mean the same thing.
+        fetch(baseurl + '/users/checkIfLoggedIn', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store'
+        })
+            .then(res => {
+                const loggedOut = res.status === 401
+                    || res.status === 403
+                    || (res.redirected && /\/users\/login/.test(res.url));
+                if (loggedOut) {
+                    window.location.replace(baseurl + '/users/login');
+                }
+            })
+            // A network blip must not throw the user out.
+            .catch(() => {})
+            .finally(() => { inFlight = false; });
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) check();
+    });
+    window.addEventListener('focus', check);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initFlashAutoDismiss();
+    initDebugStrip();
+    initTopbarFilterSelects();
+    initSessionWatchdog();
+    // The tab that is already active gets no shown.bs.tab event.
+    document.querySelectorAll('.tab-pane.active .ajax-tab-content')
+        .forEach(loadAjaxContainer);
+});

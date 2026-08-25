@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '186';
+    private $__queryVersion = '203';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -304,25 +304,14 @@ class AppController extends Controller
                     }
                 }
                 $this->set('theme', $currentTheme);
-                $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
+                $availableThemes = MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug'));
+                $this->set('themes', $availableThemes);
 
-                $userSetting = ClassRegistry::init('UserSetting');
-                $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
-                foreach ($themes as $t) {
-                    if ($t === 'Default') {
+                foreach ($availableThemes as $availableTheme) {
+                    if ($availableTheme->name === 'Default') {
                         continue;
                     }
-                    $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
-                    if (file_exists($themeFile)) {
-                        $themeConfig = include $themeFile;
-                        if (!empty($themeConfig['label'])) {
-                            $themeLabels[$t] = $themeConfig['label'];
-                        }
-                    }
-                    if (!isset($themeLabels[$t])) {
-                        $themeLabels[$t] = $t . ' UI';
-
-                    }
+                    $themeLabels[$availableTheme->name] = $availableTheme->label;
                 }
             } else {
                 $this->set('themes', []);
@@ -1170,7 +1159,7 @@ class AppController extends Controller
                                 $leftover = substr($existingParamKey, strlen($param)-1);
                                 if (
                                     $root == substr($existingParamKey, 0, strlen($root)) &&
-                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                    preg_match('/^[\w.\- ]+$/', $leftover) == 1
                                 ) {
                                     $data[$existingParamKey] = $temp[$existingParamKey];
                                     break;

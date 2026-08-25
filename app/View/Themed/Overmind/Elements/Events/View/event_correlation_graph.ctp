@@ -315,21 +315,10 @@ echo $this->element('genericElements/assetLoader', [
     }
 
     /* ── events list with correlating attributes ──────────── */
-    var _distMap = {
-        0: {bg:'#f8d7da', color:'#842029', icon:'fas fa-building',
-            label:<?= json_encode(h(__('Your organisation only'))) ?>},
-        1: {bg:'#ffe5b4', color:'#b45309', icon:'fas fa-users',
-            label:<?= json_encode(h(__('This community only'))) ?>},
-        2: {bg:'#e7d3c3', color:'#5a3e2b', icon:'fas fa-network-wired',
-            label:<?= json_encode(h(__('Connected communities'))) ?>},
-        3: {bg:'#d1f7e0', color:'#0f5132', icon:'fas fa-globe',
-            label:<?= json_encode(h(__('All communities'))) ?>},
-        4: {bg:'#6a96ee', color:'#0e146d',
-            icon:'misp-icon misp-icon-sharing-group misp-hexagone',
-            label:<?= json_encode(h(__('Sharing group'))) ?>},
-        5: {bg:'#e6b7df', color:'#380f33', icon:'fas fa-code-fork',
-            label:<?= json_encode(h(__('Inherited'))) ?>}
-    };
+    var _distMap = <?= json_encode(array_map(function ($meta) {
+        $meta['label'] = h($meta['label']);
+        return $meta;
+    }, $this->DistributionLevel->all()), JSON_FORCE_OBJECT) ?>;
     var _distFallback = {bg:'#f1f5f9', color:'#64748b', icon:'fas fa-link', label:''};
 
     function renderCorrelationsList(eventDetails, eventCounts, attributeMap) {

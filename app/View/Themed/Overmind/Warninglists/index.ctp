@@ -148,7 +148,9 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/warninglists/edit/%id%',
-                'requirement' => $me['Role']['perm_warninglist']
+                'requirement' => function ($row) use ($me) {
+                    return $me['Role']['perm_warninglist'] && !$row['Warninglist']['default'];
+                }
             ],
             [
                 'type' => 'modal',
@@ -176,7 +178,6 @@ $fields = [
         ]
     ]
 ];
-
 
 
 /**

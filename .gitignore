@@ -142,3 +142,5 @@ vagrant/*.log
 !/app/View/Emails/text/Custom/empty
 
 .vscode/launch.json
+
+/tests/ldapauth/__pycache__

@@ -44,6 +44,7 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
         $this->Security->unlockedActions[] = 'editField';
+        $this->Security->unlockedActions[] = 'validateValue';
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -179,8 +180,7 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             $this->paginate['conditions'] = $conditions;
-            $attributeCount = 0;
-            $attributes = $this->MispAttribute->fetchAttributes($user, $params, $attributeCount, true);
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
             App::uses('CustomPaginationTool', 'Tools');
             $customPagination = new CustomPaginationTool();
             $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
@@ -257,7 +257,6 @@ class AttributesController extends AppController
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
-        $this->set('headerCount', $attributeCount);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
@@ -1645,9 +1644,9 @@ class AttributesController extends AppController
         $clusters_ids_remove = json_decode($requestData['clusters_ids_remove']);
         $clusters_ids_add = json_decode($requestData['clusters_ids_add']);
         $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
-            || ($tags_ids_add === null || count($tags_ids_add) > 0)
-            || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
-            || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+            || ($tags_ids_add !== null && count($tags_ids_add) > 0)
+            || ($clusters_ids_remove !== null && count($clusters_ids_remove) > 0)
+            || ($clusters_ids_add !== null && count($clusters_ids_add) > 0);
 
         $changeInAttribute = ($requestData['to_ids'] != 2) || ($requestData['distribution'] != 6) || ($requestData['comment'] != null) || ($requestData['disable_correlation'] != 2);
 
@@ -1923,6 +1922,83 @@ class AttributesController extends AppController
             throw new NotFoundException();
         }
         $this->set('fails', $this->MispAttribute->checkComposites());
+    }
+
+    /**
+     * Lightweight AJAX endpoint used by the add/edit attribute form to give the
+     * user immediate feedback on whether the entered value matches the format
+     * expected for the selected type. Reuses AttributeValidationTool so the
+     * client stays in sync with the server-side validation rules.
+     * Expects a POST with `type`, `value` and optional `batch` (one value per
+     * line). Returns JSON: {valid: bool, message: string}.
+     */
+    public function validateValue()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects a POST request.'));
+        }
+        $data = $this->request->data;
+        if (isset($data['Attribute'])) {
+            $data = $data['Attribute'];
+        }
+        $type = $data['type'] ?? '';
+        $value = $data['value'] ?? '';
+        $batch = !empty($data['batch']);
+
+        $response = ['valid' => true, 'message' => ''];
+
+        // Without a known type we cannot validate the format, so don't block.
+        if ($type === '' || !isset($this->MispAttribute->typeDefinitions[$type])) {
+            return $this->__jsonResponse($response);
+        }
+
+        $compositeTypes = $this->MispAttribute->getCompositeTypes();
+        $lines = $batch ? preg_split('/\r\n|\r|\n/', $value) : [$value];
+
+        foreach ($lines as $index => $line) {
+            if (trim($line) === '') {
+                continue; // ignore blank lines
+            }
+            $error = $this->__validateAttributeValue($type, $line, $compositeTypes);
+            if ($error !== true) {
+                $response['valid'] = false;
+                $response['message'] = $batch
+                    ? __('Line %s: %s', $index + 1, $error)
+                    : $error;
+                break;
+            }
+        }
+
+        return $this->__jsonResponse($response);
+    }
+
+    /**
+     * Validate a single value against a type, mirroring validTypesForValue().
+     * @return true|string True when valid, otherwise a human readable message.
+     */
+    private function __validateAttributeValue($type, $value, array $compositeTypes)
+    {
+        if (in_array($type, $compositeTypes, true) && substr_count($value, '|') !== 1) {
+            return __('This type expects a composite value in the format part1|part2.');
+        }
+        $modifiedValue = AttributeValidationTool::modifyBeforeValidation($type, $value);
+        $result = AttributeValidationTool::validate($type, $modifiedValue);
+        if ($result === true) {
+            return true;
+        }
+        if (is_string($result)) {
+            return $result;
+        }
+        return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst(str_replace('-', ' ', $type)));
+    }
+
+    private function __jsonResponse(array $body)
+    {
+        return new CakeResponse([
+            'body' => json_encode($body),
+            'status' => 200,
+            'type' => 'json',
+        ]);
     }
 
     public function downloadAttachment($key='download', $id)
@@ -3648,6 +3724,18 @@ class AttributesController extends AppController
         $attribute = $attributes[0];
         if (!$this->request->is('post') || !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
+        }
+        // Enrichment persists module-derived attributes into the parent event, so it is a
+        // write on that event, not on the attribute alone. Being able to *view* the attribute
+        // (fetchAttributes uses read scope) is not sufficient; require modify rights on the
+        // event, mirroring EventsController::enrichEvent(). Otherwise any user who can merely
+        // see a cross-org/"all communities" event could inject attributes into it.
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $attribute['Attribute']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $modules = [];
         foreach ($this->request->data as $module => $enabled) {

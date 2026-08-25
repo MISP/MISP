@@ -4,12 +4,32 @@ $this->set('headerTitle', __('Users'));
 $canAdmin = !empty($isSiteAdmin) || !empty($me['Role']['perm_admin']);
 
 $headerActions = [];
+
+$headerActions[] = [
+    'type'  => 'navigate',
+    'label' => __('View registrations'),
+    'icon'  => 'person-circle-plus',
+    'url'   => $baseurl . '/users/registrations',
+];
+
+
+if ($canAdmin) {
+    $headerActions[] = [
+        'type'  => 'modal',
+        'label' => __('Contact users'),
+        'icon'  => 'envelope',
+        'url'   => $baseurl . '/admin/users/email',
+        'class' => 'btn btn-outline-primary',
+    ];
+}
+
 $headerActions[] = [
     'type'  => 'modal',
     'label' => __('Add user'),
     'icon'  => 'plus',
     'url'   => $baseurl . '/admin/users/add',
 ];
+
 $this->set('headerActions', $headerActions);
 
 $fields = [
@@ -122,7 +142,30 @@ $fields = [
                 'requirement' => $canAdmin,
             ],
             [
+                'type' => 'modal',
+                'label' => __('Create new credentials'),
+                'icon' => 'key',
+                'size' => 'lg',
+                'url' => $baseurl . '/users/initiatePasswordReset/%id%',
+                // perm_admin over a user in the same org, or any site admin.
+                'requirement' => function ($row) use ($me, $isSiteAdmin) {
+                    return !empty($isSiteAdmin)
+                        || (!empty($me['Role']['perm_admin'])
+                            && isset($row['User']['org_id'])
+                            && $row['User']['org_id'] == $me['org_id']);
+                },
+            ],
+            [
                 'type' => 'divider',
+                'requirement' => !empty($isSiteAdmin),
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Destroy sessions'),
+                'icon' => 'bomb',
+                'class' => 'text-danger',
+                'size' => 'sm',
+                'url' => $baseurl . '/admin/users/destroy/%id%',
                 'requirement' => !empty($isSiteAdmin),
             ],
             [
@@ -153,15 +196,21 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'placeholder' => __('Search by email, org or role'),
                     ],
                     [
-                        'type' => 'dropdown',
-                        'name' => 'status',
-                        'label' => __('Status'),
-                        'options' => [
-                            ''         => __(''),
-                            'enabled'  => __('Enabled'),
-                            'disabled' => __('Disabled'),
-                            'inactive' => __('Inactive'),
-                        ],
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'name' => 'status',
+                                'label' => __('Status'),
+                                'options' => [
+                                    ''         => __(''),
+                                    'enabled'  => __('Enabled'),
+                                    'disabled' => __('Disabled'),
+                                    'inactive' => __('Inactive'),
+                                ]
+                            ]
+                        ]
                     ],
                 ],
             ],

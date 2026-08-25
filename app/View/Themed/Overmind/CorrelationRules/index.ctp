@@ -37,38 +37,34 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Name'),
-        'sort' => 'CorrelationRule.name',
-        'data_path' => 'CorrelationRule.name',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
-    ],
-    [
         'name' => __('UUID'),
         'data_path' => 'CorrelationRule.uuid',
         'element' => 'uuid',
         'url' => '#',
         'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['card']
     ],
     [
-        'name' => __('Comment'),
-        'data_path' => 'CorrelationRule.comment',
-        'card_section' => 'links',
+        'name' => __('Name'),
+        'sort' => 'CorrelationRule.name',
+        'data_path' => 'CorrelationRule.name, CorrelationRule.comment',
+        'element' => 'name_description',
+        'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Type'),
         'sort' => 'CorrelationRule.selector_type',
         'data_path' => 'CorrelationRule.selector_type',
-        'card_section' => 'top',
+        'element' => 'type',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Selectors'),
         'data_path' => 'CorrelationRule.selector_list',
         'element' => 'json',
-        'card_section' => 'extra',
+        'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],
     [
@@ -76,16 +72,16 @@ $fields = [
         'sort' => 'CorrelationRule.created',
         'data_path' => 'CorrelationRule.created',
         'element' => 'datetime',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Modified'),
         'sort' => 'CorrelationRule.timestamp',
         'data_path' => 'CorrelationRule.timestamp',
-        'element' => 'timestamp',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card']
+        'element' => 'datetime',
+        'card_section' => 'meta',
+        'display_in' => ['card']
     ],
     [
         'name' => __('Actions'),

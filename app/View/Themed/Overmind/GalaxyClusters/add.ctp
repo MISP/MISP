@@ -16,13 +16,7 @@ $formUrl = $isEdit
     ? $baseurl . '/galaxy_clusters/edit/' . h($clusterId ?? $id ?? '')
     : $baseurl . '/galaxy_clusters/add/' . h($galaxy_id);
 
-$distIconMap = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-    4 => ['bg' => '#dce8ff', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-];
+$distIconMap = $this->DistributionLevel->all();
 
 echo $this->Form->create('GalaxyCluster', [
     'id' => 'galaxyClusterAddForm',

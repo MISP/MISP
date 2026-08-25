@@ -22,7 +22,7 @@ class WarninglistsController extends AppController
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(['value', 'category', 'type', 'enabled']);
+        $filters = $this->IndexFilter->harvestParameters(['value', 'category', 'type', 'enabled', 'id']);
         if (!empty($filters['value'])) {
             $this->paginate['conditions'] = [
                 'OR' => [
@@ -30,6 +30,12 @@ class WarninglistsController extends AppController
                     'LOWER(Warninglist.description) LIKE' => '%' . strtolower($filters['value']) . '%',
                     'LOWER(Warninglist.type)' => strtolower($filters['value']),
                 ]
+            ];
+        }
+        if (!empty($filters['id'])) {
+            // `id:3||7||12` — for Warning Lists card links
+            $this->paginate['conditions'][] = [
+                'Warninglist.id' => array_map('intval', (array)$filters['id']),
             ];
         }
         if (isset($filters['category'])) {
@@ -244,6 +250,13 @@ class WarninglistsController extends AppController
                 }
                 if (empty($warninglist['WarninglistEntry'])) {
                     $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
+                }
+                // When the field is empty, be sure to select "all types" as the value
+                // instead of keaping the types that have already been saved.
+                if (array_key_exists('matching_attributes', $warninglist['Warninglist'])
+                    && empty($warninglist['Warninglist']['matching_attributes'])
+                ) {
+                    $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
                 }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];

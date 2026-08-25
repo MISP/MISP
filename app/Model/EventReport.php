@@ -1020,7 +1020,10 @@ class EventReport extends AppModel
             ])
         ];
 
-        $module = $mispModule->getEnabledModule($moduleName, 'expansion');
+        $module = $mispModule->getEnabledModule($moduleName, 'expansion', $user);
+        if (!is_array($module)) {
+            throw new MethodNotAllowedException('The requested module is not available.');
+        }
         if (isset($module['meta']['config'])) {
             foreach ($module['meta']['config'] as $conf) {
                 $postData['config'][$conf] = Configure::read('Plugin.Enrichment_' . $moduleName . '_' . $conf);
@@ -1467,10 +1470,10 @@ class EventReport extends AppModel
         return false;
     }
 
-    public function isFetchURLModuleEnabled($moduleName = 'html_to_markdown')
+    public function isFetchURLModuleEnabled(array $user, $moduleName = 'html_to_markdown')
     {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'expansion');
+        $module = $this->Module->getEnabledModule($moduleName, 'expansion', $user);
         return !empty($module) ? $module : false;
     }
 
@@ -1497,7 +1500,7 @@ class EventReport extends AppModel
 
     public function isFetchURLModuleEnabledAndAllowed($user, $moduleName = 'html_to_markdown')
     {
-        $module = $this->isFetchURLModuleEnabled($moduleName);
+        $module = $this->isFetchURLModuleEnabled($user, $moduleName);
         if (empty($module)) {
             return false;
         }

@@ -22,6 +22,42 @@ $filter_bar = $filter_bar ?? [];
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['fetch'])): ?>
+            <?php
+                // Remote-preview indexes are scoped by a positional id, so they
+                // pass the whole path in `fetch_url` instead of a suffix.
+                $massFetchUrl = !empty($filter_bar['fetch_url'])
+                    ? ($baseurl . $filter_bar['fetch_url'])
+                    : ($baseurl . $item_url . $filter_bar['fetch']);
+            ?>
+            <button id="mass-fetch-button"
+                    class="btn btn-primary btn-sm ms-2 d-none"
+                    title="<?= __('Fetch the selected events') ?>"
+                    aria-label="<?= __('Fetch the selected events') ?>"
+                    onclick="multiSelectItems('<?= h($massFetchUrl) ?>', '')">
+                <i class="fas fa-circle-arrow-down"></i>
+                <?= __('Fetch') ?>
+            </button>
+        <?php endif; ?>
+
+        <?php
+            /*
+             * Only for specific indexes that need a custom action button in the mass-action toolbar.
+             */
+            foreach (($filter_bar['custom_actions'] ?? []) as $customAction):
+        ?>
+            <button id="<?= h($customAction['id']) ?>"
+                    class="btn btn-sm ms-2 <?= h($customAction['class'] ?? 'btn-primary') ?>"
+                    title="<?= h($customAction['label']) ?>"
+                    aria-label="<?= h($customAction['label']) ?>"
+                    onclick="<?= h($customAction['onclick']) ?>">
+                <?php if (!empty($customAction['icon'])): ?>
+                    <i class="fas fa-<?= h($customAction['icon']) ?>"></i>
+                <?php endif; ?>
+                <?= h($customAction['label']) ?>
+            </button>
+        <?php endforeach; ?>
+
         <?php if (!empty($filter_bar['mass_edit'])): ?>
             <button id="mass-edit-button"
                     class="btn btn-secondary btn-sm d-none"
@@ -111,16 +147,30 @@ $filter_bar = $filter_bar ?? [];
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['enable'])): ?>
+            <?php
+                /*
+                 * Controllers exposing a single toggle endpoint that takes the
+                 * target state positionally (feeds: /toggleSelected/<on>/<cache>)
+                 * pass the whole path in `enable_url` / `disable_url` instead of
+                 * relying on the massEnable/massDisable convention.
+                 */
+                $massEnableUrl = !empty($filter_bar['enable_url'])
+                    ? ($baseurl . $filter_bar['enable_url'])
+                    : ($baseurl . $item_url . '/massEnable');
+                $massDisableUrl = !empty($filter_bar['disable_url'])
+                    ? ($baseurl . $filter_bar['disable_url'])
+                    : ($baseurl . $item_url . '/massDisable');
+            ?>
             <button id="mass-enable-button"
                     class="btn btn-outline-success btn-sm d-none"
                     title="<?= __('Enable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massEnableUrl) ?>', '')">
                 <i class="fas fa-play"></i> <?= __('Enable') ?>
             </button>
             <button id="mass-disable-button"
                     class="btn btn-outline-danger btn-sm d-none"
                     title="<?= __('Disable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massDisableUrl) ?>', '')">
                 <i class="fas fa-stop"></i> <?= __('Disable') ?>
             </button>
         <?php endif; ?>
@@ -178,6 +228,28 @@ $filter_bar = $filter_bar ?? [];
                     onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['soft_delete']) ?>', '')">
                 <i class="fas fa-trash"></i>
                 <span> <?= __('Soft-delete') ?></span>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['accept'])): ?>
+            <button id="mass-accept-button"
+                    class="btn btn-success btn-sm"
+                    title="<?= __('Process the selected registrations') ?>"
+                    aria-label="<?= __('Process the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['accept']) ?>', '', 'xl')">
+                <i class="fas fa-check"></i>
+                <span> <?= __('Process') ?></span>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['discard'])): ?>
+            <button id="mass-discard-button"
+                    class="btn btn-danger btn-sm"
+                    title="<?= __('Discard the selected registrations') ?>"
+                    aria-label="<?= __('Discard the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['discard']) ?>', '')">
+                <i class="fas fa-trash text-white"></i>
+                <span class="text-white"> <?= __('Discard') ?></span>
             </button>
         <?php endif; ?>
 

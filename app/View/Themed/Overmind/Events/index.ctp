@@ -14,17 +14,28 @@ $canPickTemplate = (
     $this->Acl->canAccess('eventTemplates', 'index')
     && $this->Acl->canAccess('eventTemplates', 'instantiate')
 );
+
+if ($this->Acl->canAccess('events', 'importEvent')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Import Event'),
+        'icon' => 'file-import',
+        'url' => $baseurl . '/events/importEvent',
+    ];
+}
+
 if ($canPickTemplate) {
     $headerActions[] = [
-        'type' => 'navigate',
+        'type' => 'modal',
         'id' => 'event-template-picker-button',
         'label' => __('From template'),
-        'icon' => 'clone',
+        'icon' => 'wand-magic-sparkles',
         'url' => '#',
         'onClick' => 'openEventTemplatePicker'
     ];
     echo $this->element('eventTemplates/templatePickerModal');
 }
+
 if ($this->Acl->canAccess('events', 'add')) {
     $headerActions[] = [
         'type' => 'modal',

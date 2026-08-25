@@ -132,166 +132,18 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
         local:  <?= $initLJson ?: '[]' ?>
     };
 
-    /* MISP text-colour rule (mirrors TextColourHelper::getTextColour) */
-    function textColour(hex) {
-        hex = hex || '#0088cc';
-        var r = parseInt(hex.slice(1, 3), 16);
-        var g = parseInt(hex.slice(3, 5), 16);
-        var b = parseInt(hex.slice(5, 7), 16);
-        return ((2 * r) + b + (3 * g)) / 6 < 127 ? 'white' : 'black';
-    }
-
-    /* Badge styling identical to Elements/.../Badges/tag.ctp */
-    function badgeStyle(colour) {
-        var fg = textColour(colour);
-        return 'background-color:' + colour + '; color:' + fg + ';'
-            + ' filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5));'
-            + ' background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%,'
-            + ' rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%);'
-            + ' text-align:left; white-space:normal; word-wrap:break-word;';
-    }
-
     /*
-     * Build one Global/Local section: its own selected map, picker and
-     * category buttons. catData (option source) is shared.
+     * One section per locality. initTagPickerSection() (mispOvermind.js) is the
+     * picker itself — the same code the in-form field uses, so both look and
+     * behave identically.
      */
     function makeSection(scope, initTags) {
-        var root     = document.querySelector('[data-section="' + scope + '"]');
-        var selEl    = root.querySelector('.tag-selected');
-        var emptyEl  = root.querySelector('.tag-selected-empty');
-        var pickerEl = root.querySelector('.tag-picker');
-        var isLocal  = (scope === 'local');
-
-        var selected = {};               /* id(string) -> {id,name,colour} */
-        var currentCat = 'all';
-
-        function addTag(tag) {
-            if (!tag || tag.id == null) { return; }
-            selected[String(tag.id)] = {
-                id: tag.id, name: tag.name, colour: tag.colour || '#0088cc'
-            };
-        }
-
-        function render() {
-            var ids = Object.keys(selected);
-            emptyEl.classList.toggle('d-none', ids.length > 0);
-            selEl.innerHTML = '';
-            ids.sort(function (a, b) {
-                return selected[a].name.localeCompare(selected[b].name);
-            });
-            ids.forEach(function (id) {
-                var t   = selected[id];
-                var col = t.colour || '#0088cc';
-                var fg  = textColour(col);
-
-                var wrap = document.createElement('div');
-                wrap.className = 'd-inline-flex align-items-center';
-
-                var badge = document.createElement('span');
-                badge.className = 'badge me-1 mb-1 d-inline-flex align-items-center gap-1';
-                badge.style.cssText = badgeStyle(col);
-
-                var txt = document.createElement('span');
-                if (isLocal) {
-                    txt.innerHTML = '<i class="fas fa-user me-1"></i>';
-                }
-                txt.appendChild(document.createTextNode(t.name));
-
-                var x = document.createElement('i');
-                x.className = 'fas fa-times';
-                x.style.cssText = 'cursor:pointer; opacity:.8;';
-                x.setAttribute('role', 'button');
-                x.setAttribute('aria-label', 'Remove');
-                x.addEventListener('click', function () {
-                    delete selected[id];
-                    render();
-                });
-
-                badge.appendChild(txt);
-                badge.appendChild(x);
-                wrap.appendChild(badge);
-                selEl.appendChild(wrap);
-            });
-        }
-
-        function buildOptions(cat) {
-            if (cat === 'collections') {
-                return (catData.collections || []).map(function (c) {
-                    return {
-                        value: String(c.id), name: c.name,
-                        count: (c.tags || []).length, isCollection: true
-                    };
-                });
-            }
-            return (catData[cat] || []).map(function (t) {
-                return { value: String(t.id), name: t.name, colour: t.colour };
-            });
-        }
-
-        function renderOpt(item, escape) {
-            if (item.isCollection) {
-                return '<div class="d-flex align-items-center gap-2 py-1">'
-                    + '<i class="fas fa-layer-group text-tag"></i>'
-                    + '<span class="text-truncate">'
-                    + escape(item.name) + '</span>'
-                    + '<span class="badge bg-light text-muted ms-auto">'
-                    + (item.count || 0) + '</span></div>';
-            }
-            var col = item.colour || '#0088cc';
-            return '<div class="d-flex align-items-center gap-2 py-1">'
-                + '<span style="display:inline-block;width:10px;height:10px;'
-                + 'border-radius:2px;flex-shrink:0;background:' + escape(col) + ';"></span>'
-                + '<span class="text-truncate">'
-                + escape(item.name) + '</span></div>';
-        }
-
-        var ts = new TomSelect(pickerEl, {
-            valueField: 'value',
-            labelField: 'name',
-            searchField: ['name'],
-            maxItems: 1,
-            options: [],
-            render: { option: renderOpt, item: renderOpt, option_create: false },
-            onItemAdd: function (value) {
-                if (currentCat === 'collections') {
-                    var coll = catData.collections.find(function (c) {
-                        return String(c.id) === String(value);
-                    });
-                    if (coll) { (coll.tags || []).forEach(addTag); }
-                } else {
-                    var tag = (catData[currentCat] || []).find(function (t) {
-                        return String(t.id) === String(value);
-                    });
-                    if (tag) { addTag(tag); }
-                }
-                render();
-                var self = this;
-                setTimeout(function () { self.clear(true); self.blur(); }, 0);
-            }
-        });
-
-        function setCategory(cat) {
-            currentCat = cat;
-            root.querySelectorAll('.tag-cat-btn').forEach(function (b) {
-                b.classList.toggle('active', b.getAttribute('data-cat') === cat);
-            });
-            ts.clear(true);
-            ts.clearOptions();
-            ts.addOptions(buildOptions(cat));
-            ts.refreshOptions(false);
-        }
-
-        root.querySelectorAll('.tag-cat-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                setCategory(btn.getAttribute('data-cat'));
-            });
-        });
-
-        (initTags || []).forEach(addTag);
-        render();
-        setCategory('all');
-
-        return { ids: function () { return Object.keys(selected).map(Number); } };
+        return initTagPickerSection(
+            document.querySelector('[data-section="' + scope + '"]'),
+            catData,
+            initTags,
+            { localMarker: scope === 'local' }
+        );
     }
 
     var globalSection = makeSection('global', initSelected.global);

@@ -88,7 +88,11 @@ class FeedsController extends AppController
                 'source_format',
                 'enabled',
                 'caching_enabled',
-                'default'
+                'default',
+                'input_source',
+                'distribution',
+                'lookup_visible',
+                'orgc_id'
             ],
             'quickFilters' => [
                 'Feed.name',
@@ -144,12 +148,50 @@ class FeedsController extends AppController
         $distributionLevels[5] = __('Inherit from feed');
         $this->set('distributionLevels', $distributionLevels);
         $this->set('scope', $scope);
+
+        $providers = $this->Feed->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['DISTINCT Feed.provider'],
+            'order' => ['Feed.provider ASC'],
+        ]);
+        $providerOptions = [];
+        foreach (Hash::extract($providers, '{n}.Feed.provider') as $provider) {
+            if ($provider !== null && $provider !== '') {
+                $providerOptions[$provider] = $provider;
+            }
+        }
+        $this->set('providerOptions', $providerOptions);
+
+        $feedOrgIds = $this->Feed->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['DISTINCT Feed.orgc_id'],
+        ]);
+        $orgOptions = [];
+        $feedOrgIds = array_filter(Hash::extract($feedOrgIds, '{n}.Feed.orgc_id'));
+        if (!empty($feedOrgIds)) {
+            $orgOptions = $this->Feed->Orgc->find('list', [
+                'conditions' => ['Orgc.id' => $feedOrgIds],
+                'fields' => ['Orgc.id', 'Orgc.name'],
+                'order' => ['Orgc.name' => 'ASC'],
+                'recursive' => -1,
+            ]);
+        }
+        $this->set('orgOptions', $orgOptions);
+
+        $inputSources = ['network' => __('Network')];
+        if (empty(Configure::read('Security.disable_local_feed_access'))) {
+            $inputSources['local'] = __('Local');
+        }
+        $this->set('inputSourceOptions', $inputSources);
+        $this->set('feedTypeOptions', $this->Feed->getFeedTypesOptions());
     }
 
     public function view($feedId)
     {
         $this->CRUD->view($feedId, [
-            'contain' => ['Tag'],
+            'contain' => ['Tag', 'SharingGroup', 'Orgc'],
             'afterFind' => function (array $feed) {
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
@@ -161,6 +203,7 @@ class FeedsController extends AppController
                 $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
 
                 if ($this->_isRest()) {
+                    unset($feed['SharingGroup'], $feed['Orgc']);
                     if (empty($feed['Tag']['id'])) {
                         unset($feed['Tag']);
                     }
@@ -176,6 +219,21 @@ class FeedsController extends AppController
         $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
         $this->set('other_feeds', $otherFeeds);
         $this->set('feedId', $feedId);
+
+        $this->loadModel('Event');
+        $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
+        $this->set('distributionLevels', $distributionLevels);
+
+        if (!empty($this->viewVars['data']['Feed']['tag_collection_id'])) {
+            $this->loadModel('TagCollection');
+            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), [
+                'conditions' => [
+                    'TagCollection.id' => $this->viewVars['data']['Feed']['tag_collection_id'],
+                ]
+            ]);
+            $this->set('tagCollection', empty($tagCollection) ? null : $tagCollection[0]);
+        }
     }
 
     public function feedCoverage($feedId)
@@ -212,6 +270,14 @@ class FeedsController extends AppController
                 $this->Flash->{$flashType}($message);
                 $this->redirect(array('controller' => 'Feeds', 'action' => 'index', 'all'));
             }
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            // Feed::importFeeds() skips an entry whose url is already known, so the
+            // form can tell beforehand which of the pasted feeds are actually new.
+            $this->set('existingFeedUrls', $this->Feed->find('column', [
+                'fields' => ['Feed.url']
+            ]));
         }
     }
 
@@ -346,6 +412,10 @@ class FeedsController extends AppController
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
         $this->set('pull_scope', 'feed');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     private function __checkRegex($pattern)
@@ -510,6 +580,9 @@ class FeedsController extends AppController
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         }
         $this->set('pull_scope', 'feed');
+        if ($this->theme === "Overmind") {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -519,6 +592,22 @@ class FeedsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Feed',
+            'restName' => 'Feeds',
+            'itemName' => 'feed',
+            'view' => 'ajax/feedDeleteConfirmationForm',
+            'checkModifyCallback' => function () {
+                return $this->_isSiteAdmin();
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s feed deleted.', '%s feeds deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function fetchFromFeed($feedId)
@@ -665,6 +754,148 @@ class FeedsController extends AppController
         }
     }
 
+
+    public function fetchSelectedFeeds($idList = null)
+    {
+        $isPost = $this->request->is(array('post', 'put'));
+        if ($isPost && isset($this->request->data['Feed']['id'])) {
+            $idList = $this->request->data['Feed']['id'];
+        }
+        // Header action "Fetch and store all feed data" — same modal, but the
+        // selection is every enabled feed. The modal posts the resolved list
+        // back, so this only ever has to resolve on the GET.
+        $isAll = ($idList === 'all');
+        if ($isAll) {
+            $idList = $this->Feed->find('column', array(
+                'conditions' => array('Feed.enabled' => 1),
+                'fields' => array('Feed.id'),
+            ));
+        }
+        if (!is_array($idList)) {
+            $idList = is_numeric($idList) ? array($idList) : json_decode($idList, true);
+        }
+        $ids = array();
+        foreach ((array)$idList as $feedId) {
+            if (is_numeric($feedId)) {
+                $ids[] = (int)$feedId;
+            }
+        }
+
+        if (empty($ids) && !$isAll) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        $feeds = $this->Feed->find('all', array(
+            'conditions' => array('Feed.id' => $ids),
+            'recursive' => -1,
+            'fields' => array('Feed.id', 'Feed.name', 'Feed.enabled'),
+        ));
+
+        // A disabled feed cannot be pulled — list those separately so the modal
+        // can say what it is going to leave out.
+        $fetchable = array();
+        $skipped = array();
+        foreach ($feeds as $feed) {
+            if (empty($feed['Feed']['enabled'])) {
+                $skipped[] = array('name' => $feed['Feed']['name'], 'reason' => __('not enabled'));
+            } else {
+                $fetchable[] = $feed['Feed'];
+            }
+        }
+
+        if (!$isPost) {
+            $this->request->data['Feed']['id'] = json_encode($ids);
+            $this->set('fetchable', $fetchable);
+            $this->set('skipped', $skipped);
+            $this->set('isAll', $isAll);
+            $this->set('backgroundJobs', (bool)Configure::read('MISP.background_jobs'));
+            $this->layout = false;
+            return $this->render('ajax/fetchFeedsConfirmationForm');
+        }
+
+        $queued = 0;
+        $succeeded = 0;
+        $failed = 0;
+        foreach ($fetchable as $feed) {
+            $outcome = $this->__fetchSingleFeed($feed['id']);
+            if ($outcome === 'queued') {
+                $queued++;
+            } elseif ($outcome === 'success') {
+                $succeeded++;
+            } else {
+                $failed++;
+            }
+        }
+
+        $messages = array();
+        if ($queued) {
+            $messages[] = __n('Pull queued for %s feed.', 'Pull queued for %s feeds.', $queued, $queued);
+        }
+        if ($succeeded) {
+            $messages[] = __n('%s feed fetched.', '%s feeds fetched.', $succeeded, $succeeded);
+        }
+        if ($failed) {
+            $messages[] = __n('%s feed could not be fetched.', '%s feeds could not be fetched.', $failed, $failed);
+        }
+        if (!empty($skipped)) {
+            $messages[] = __n(
+                '%s feed skipped (not enabled or invalid target event).',
+                '%s feeds skipped (not enabled or invalid target event).',
+                count($skipped),
+                count($skipped)
+            );
+        }
+        $message = implode(' ', $messages);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+        }
+        if (!$queued && !$succeeded) {
+            $this->Flash->error($message ?: __('No feed was fetched, none of the selected feeds is enabled.'));
+        } elseif ($failed || !empty($skipped)) {
+            $this->Flash->warning($message);
+        } else {
+            $this->Flash->success($message);
+        }
+        $this->redirect(array('action' => 'index'));
+    }
+
+    /**
+     * Pull a single feed the same way fetchFromFeed does: through a background
+     * job when those are enabled, inline otherwise.
+     *
+     * @param int $feedId
+     * @return string 'queued', 'success' or 'failed'
+     */
+    private function __fetchSingleFeed($feedId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'fetch_feeds',
+                'Feed: ' . $feedId,
+                __('Starting fetch from Feed.')
+            );
+            $this->Feed->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
+                true,
+                $jobId
+            );
+            return 'queued';
+        }
+        try {
+            $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+        } catch (Exception $e) {
+            $result = false;
+        }
+        return empty($result) ? 'failed' : 'success';
+    }
+
     public function getEvent($feedId, $eventUuid, $all = false)
     {
         $this->Feed->id = $feedId;
@@ -695,6 +926,140 @@ class FeedsController extends AppController
             }
         } else {
             $this->Flash->error(__('Download failed.'));
+        }
+        $this->redirect(array('action' => 'previewIndex', $feedId));
+    }
+
+    /**
+     * A galaxy cluster is attached to an event both as a Galaxy entry and as a
+     * plain tag; strip the tag side so the two are not rendered twice. Mirrors
+     * ServersController::__removeGalaxyClusterTags, but tolerates the keys being
+     * absent — a feed event is remote JSON, not a local find() result.
+     *
+     * @param array $event rearranged event, modified in place
+     * @return void
+     */
+    private function __removeGalaxyClusterTags(array &$event)
+    {
+        if (empty($event['Galaxy']) || empty($event['Tag'])) {
+            return;
+        }
+        $galaxyTagIds = [];
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] ?? [] as $galaxyCluster) {
+                if (isset($galaxyCluster['tag_id'])) {
+                    $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+                }
+            }
+        }
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+        foreach ($event['Tag'] as $k => $eventTag) {
+            if (isset($eventTag['id'], $galaxyTagIds[$eventTag['id']])) {
+                unset($event['Tag'][$k]);
+            }
+        }
+        $event['Tag'] = array_values($event['Tag']);
+    }
+
+    /**
+     * Fetch a selection of events off a feed's manifest, driven by the mass-fetch
+     * toolbar of the Overmind feed preview index.
+     *
+     * GET  renders the confirmation modal, POST performs the fetches. Events are
+     * downloaded one at a time in-request, mirroring getEvent().
+     *
+     * @param int $feedId
+     * @param string $uuidList JSON-encoded list of event uuids, or a single uuid
+     * @return CakeResponse|void
+     */
+    public function getSelectedEvents($feedId, $uuidList = null)
+    {
+        $feed = $this->Feed->find('first', array(
+            'conditions' => array('Feed.id' => $feedId),
+            'recursive' => -1
+        ));
+        if (empty($feed)) {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        if (empty($feed['Feed']['enabled'])) {
+            throw new MethodNotAllowedException(__('Feed is currently not enabled. Make sure you enable it.'));
+        }
+
+        $isPost = $this->request->is(array('post', 'put'));
+        if ($isPost && isset($this->request->data['Feed']['uuids'])) {
+            $uuidList = $this->request->data['Feed']['uuids'];
+        }
+        if (!is_array($uuidList)) {
+            $uuidList = Validation::uuid($uuidList) ? array($uuidList) : json_decode($uuidList, true);
+        }
+        $uuids = array();
+        foreach ((array)$uuidList as $uuid) {
+            if (Validation::uuid($uuid)) {
+                $uuids[] = $uuid;
+            }
+        }
+        if (empty($uuids)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+
+        if (!$isPost) {
+            $this->request->data['Feed']['uuids'] = json_encode($uuids);
+            $this->set('feed', $feed);
+            $this->set('uuids', $uuids);
+            $this->layout = false;
+            return $this->render('ajax/fetchEventsConfirmationForm');
+        }
+
+        if (!empty($feed['Feed']['settings'])) {
+            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+        }
+        $added = 0;
+        $updated = 0;
+        $unchanged = 0;
+        $failed = 0;
+        foreach ($uuids as $uuid) {
+            try {
+                $result = $this->Feed->downloadAndSaveEventFromFeed($feed, $uuid, $this->Auth->user());
+            } catch (Exception $e) {
+                $result = false;
+            }
+            if (empty($result['action']) || empty($result['result'])) {
+                $failed++;
+            } elseif ($result['result'] === 'No change') {
+                $unchanged++;
+            } elseif ($result['action'] === 'add') {
+                $added++;
+            } else {
+                $updated++;
+            }
+        }
+
+        $messages = array();
+        if ($added) {
+            $messages[] = __n('%s event added.', '%s events added.', $added, $added);
+        }
+        if ($updated) {
+            $messages[] = __n('%s event updated.', '%s events updated.', $updated, $updated);
+        }
+        if ($unchanged) {
+            $messages[] = __n('%s event already up to date.', '%s events already up to date.', $unchanged, $unchanged);
+        }
+        if ($failed) {
+            $messages[] = __n('%s event could not be fetched.', '%s events could not be fetched.', $failed, $failed);
+        }
+        $message = implode(' ', $messages);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+        }
+        if ($failed && !($added || $updated || $unchanged)) {
+            $this->Flash->error($message);
+        } elseif ($failed) {
+            $this->Flash->warning($message);
+        } else {
+            $this->Flash->success($message);
         }
         $this->redirect(array('action' => 'previewIndex', $feedId));
     }
@@ -822,6 +1187,18 @@ class FeedsController extends AppController
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
 
+        if (!empty($this->params['named']['searchall'])) {
+            $searchAll = trim(mb_strtolower($this->params['named']['searchall']));
+            $resultArray = array_values(array_filter($resultArray, function (array $item) use ($searchAll) {
+                foreach (array('value', 'default_type', 'category', 'comment') as $field) {
+                    if (!empty($item[$field]) && strpos(mb_strtolower($item[$field]), $searchAll) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
+
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($resultArray, array('page' => $currentPage, 'limit' => 60), 'Feed', $sort = false);
@@ -852,6 +1229,13 @@ class FeedsController extends AppController
             'fields' => array('Event.id', 'Event.info'),
             'conditions' => array('Event.id' => $correlatingEvents)
         ));
+        if ((int)$feed['Feed']['distribution'] === 4 && !empty($feed['Feed']['sharing_group_id'])) {
+            $feed['SharingGroup'] = $this->Feed->SharingGroup->find('first', array(
+                'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id']),
+                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+                'recursive' => -1,
+            ))['SharingGroup'] ?? array('name' => __('Unknown sharing group'));
+        }
         $this->set('correlatingEventInfos', $correlatingEventInfos);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
         $this->set('feed', $feed);
@@ -899,7 +1283,14 @@ class FeedsController extends AppController
             }
 
             $this->loadModel('Event');
+
+            if ($this->theme === 'Overmind') {
+                $all = true;
+            }
             $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+            // Galaxy clusters are also carried as event tags; drop them so the
+            // tags card does not repeat what the galaxy card already shows.
+            $this->__removeGalaxyClusterTags($event);
             $this->params->params['paging'] = array('Feed' => $params);
             $this->set('event', $event);
             $this->set('feed', $feed);
@@ -919,6 +1310,8 @@ class FeedsController extends AppController
                 }
             }
             $this->set('threatLevels', $this->Event->ThreatLevel->find('list'));
+            $this->set('title_for_layout', __('Feed event preview'));
+            $this->set('previewContext', $this->__feedPreviewContext($feed, $eventUuid));
         } else {
             if ($event === 'blocked') {
                 throw new MethodNotAllowedException(__('This event is blocked by the Feed filters.'));
@@ -928,9 +1321,112 @@ class FeedsController extends AppController
         }
     }
 
+    /**
+     * Attributes tab of the Overmind feed event preview, as a lazily loaded
+     * fragment. Keeping the big tables out of previewEvent is what makes that
+     * page load quickly on events with thousands of attributes/objects.
+     *
+     * @param int $feedId
+     * @param string $eventUuid
+     * @return void
+     */
+    public function previewEventAttributes($feedId, $eventUuid, $all = false)
+    {
+        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_attributes', $all);
+    }
+
+    /**
+     * Objects tab of the Overmind feed event preview, as a lazily loaded fragment.
+     *
+     * @param int $feedId
+     * @param string $eventUuid
+     * @return void
+     */
+    public function previewEventObjects($feedId, $eventUuid, $all = false)
+    {
+        $this->__previewEventFragment($feedId, $eventUuid, 'preview_event_objects', $all);
+    }
+
+    /**
+     * Shared body of the two preview tab fragments: re-download the remote event,
+     * rearrange it whole and render one tab's partial without a layout.
+     *
+     * @param int $feedId
+     * @param string $eventUuid
+     * @param string $view themed view under Feeds/ajax/
+     * @return void
+     */
+    private function __previewEventFragment($feedId, $eventUuid, $view, $all = false)
+    {
+        $feed = $this->Feed->find('first', [
+            'conditions' => ['Feed.id' => $feedId],
+            'recursive' => -1,
+        ]);
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        try {
+            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid, true);
+        } catch (Exception $e) {
+            throw new NotFoundException(__('Could not download the selected Event'));
+        }
+        if (!is_array($event)) {
+            throw new NotFoundException(__('Could not download the selected Event'));
+        }
+        if (isset($event['Event']['Attribute'])) {
+            $this->loadModel('Warninglist');
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+        }
+
+        $this->loadModel('Event');
+        // The fragment always carries the whole tab, never a 60-row slice.
+        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, true);
+        $this->params->params['paging'] = array('Feed' => $params);
+        $this->set('event', $event);
+        $this->set('feed', $feed);
+        $this->set('showAllAttributes', !empty($all));
+        $this->set('previewContext', $this->__feedPreviewContext($feed, $eventUuid));
+        $this->layout = false;
+        $this->render('ajax/' . $view);
+    }
+
+    /**
+     * Tells the shared preview partials how to address this feed: events are keyed
+     * by uuid (a server previews by id) and the remote index can only be filtered
+     * with a free-text searchall.
+     *
+     * @param array $feed
+     * @param string $eventUuid
+     * @return array
+     */
+    private function __feedPreviewContext(array $feed, $eventUuid)
+    {
+        // AppController::beforeFilter normalises this (trailing slash stripped).
+        $baseurl = $this->baseurl;
+        $feedId = (int)$feed['Feed']['id'];
+        $canFetch = !empty($feed['Feed']['enabled']) && $this->_isSiteAdmin();
+
+        return [
+            'eventUrl' => $baseurl . '/feeds/previewEvent/' . $feedId . '/%id%',
+            'eventKey' => 'uuid',
+            'tagFilterUrl' => $baseurl . '/feeds/previewIndex/' . $feedId . '/searchall:%tag%',
+            'tagFilterKey' => 'name',
+            'pagingModel' => 'Feed',
+            // The attributes tab caps how many rows it renders; this reloads it uncapped.
+            'viewAllUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId
+                . '/' . $eventUuid . '/all',
+            'fetchUrl' => $canFetch
+                ? $baseurl . '/feeds/getSelectedEvents/' . $feedId . '/' . $eventUuid
+                : null,
+        ];
+    }
+
     public function enable($id)
     {
         $result = $this->__toggleEnable($id, true);
+        if (!$this->_isRest()) {
+            return $this->__redirectAfterToggleEnable($result);
+        }
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
         $this->set('url', $this->here);
@@ -945,6 +1441,9 @@ class FeedsController extends AppController
     public function disable($id)
     {
         $result = $this->__toggleEnable($id, false);
+        if (!$this->_isRest()) {
+            return $this->__redirectAfterToggleEnable($result);
+        }
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
         $this->set('url', $this->here);
@@ -954,6 +1453,23 @@ class FeedsController extends AppController
             $this->set('errors', $result);
             $this->set('_serialize', array('name', 'message', 'url', 'errors'));
         }
+    }
+
+    /**
+     * There is no enable/disable view, so browser calls (the feed index row
+     * action) get a flash message and are sent back where they came from.
+     *
+     * @param array $result outcome of __toggleEnable()
+     * @return CakeResponse
+     */
+    private function __redirectAfterToggleEnable(array $result)
+    {
+        if (empty($result['success'])) {
+            $this->Flash->error($result['message']);
+        } else {
+            $this->Flash->success($result['message']);
+        }
+        return $this->redirect($this->referer(array('action' => 'index')));
     }
 
     private function __toggleEnable($id, $enable = true)
@@ -977,6 +1493,7 @@ class FeedsController extends AppController
             $result['result'] = $this->Feed->validationErrors;
         }
         $action = $enable ? 'enable' : 'disable';
+        $result['success'] = !$fail;
         $result['message'] = $fail ? 'Could not ' . $action . ' feed.' : 'Feed ' . $action . 'd.';
         return $result;
     }
@@ -1000,6 +1517,11 @@ class FeedsController extends AppController
             $this->Flash->success(__('Data pulled.'));
         } catch (Exception $e) {
             $this->Flash->error(__('Could not pull the selected data. Reason: %s', $e->getMessage()));
+        }
+        if ($this->theme === 'Overmind') {
+            // Back to the preview the selection was made in, where the pulled
+            // values now show up as correlations.
+            $this->redirect(array('controller' => 'feeds', 'action' => 'previewIndex', $id));
         }
         $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }
@@ -1096,6 +1618,10 @@ class FeedsController extends AppController
         } else {
             $this->set('feedList', $feedList);
             $this->set('enable', $enable);
+            $this->set('cache', $cache);
+            if ($this->theme === 'Overmind') {
+                $this->layout = false;
+            }
             $this->render('ajax/feedToggleConfirmation');
         }
     }

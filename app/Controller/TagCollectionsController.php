@@ -87,9 +87,16 @@ class TagCollectionsController extends AppController
         }
         $this->layout=false;
         $this->loadModel('Tag');
-        $allTags = $this->Tag->getAllTagsForSelect($this->Auth->user());
-        $this->set('allTags', $allTags);
+        $this->__setPickerTags();
+        $this->set('currentTags', []);
         $this->set('action', 'add');
+    }
+
+    private function __setPickerTags()
+    {
+        $user = $this->Auth->user();
+        $this->set('pickerAllTags', $this->Tag->getAllTagsForPicker($user));
+        $this->set('pickerCustomTags', $this->Tag->getCustomTagsForPicker($user));
     }
 
     public function import()
@@ -199,7 +206,12 @@ class TagCollectionsController extends AppController
         $tagCollection = $this->TagCollection->find('first', [
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => ['TagCollectionTag']
+            // The Tag rows feed the picker's pre-selected badges (name + colour)
+            'contain' => [
+                'TagCollectionTag' => [
+                    'Tag' => ['fields' => ['id', 'name', 'colour']]
+                ]
+            ]
         ]);
 
         if (empty($tagCollection)) {
@@ -250,9 +262,15 @@ class TagCollectionsController extends AppController
 
         $this->layout = false;
         $this->loadModel('Tag');
-        $allTags = $this->Tag->getAllTagsForSelect($this->Auth->user());
+        $this->__setPickerTags();
 
-        $this->set('allTags', $allTags);
+        $currentTags = [];
+        foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
+            if (!empty($collectionTag['Tag'])) {
+                $currentTags[] = $this->Tag->pickerTagEntry($collectionTag['Tag']);
+            }
+        }
+        $this->set('currentTags', $currentTags);
         $this->set('action', 'editWithTags');
         $this->render('addWithTags');
     }

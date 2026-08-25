@@ -50,6 +50,7 @@ class NavbarHelper extends AppHelper {
         'roles'              => 'administration',
         'auth_keys'          => 'administration',
         'workflows'          => 'administration',
+        'workflowblueprints' => 'administration',
         'jobs'               => 'administration',
         'tasks'              => 'administration',
         'benchmarks'         => 'administration',
@@ -60,12 +61,11 @@ class NavbarHelper extends AppHelper {
         'correlations'       => 'administration',
         'user_settings'      => 'administration',
         'users'              => [
-            'default'    => 'account',
-            'statistics' => 'datapoints',
-            'add'        => 'administration',
-            'index'      => 'administration',
-            'email'      => 'administration',
-            'terms'      => 'resources',
+            'default'       => 'account',
+            'admin_default' => 'administration', // any admin_* action (index, view, add, email, edit…)
+            'statistics'    => 'datapoints',
+            'terms'         => 'resources',
+            'registrations' => 'administration',
         ],
         // Logs
         'logs'        => 'logs',
@@ -240,14 +240,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Statistics'),
-                'url' => $baseurl . '/users/statistics',
-                'controller' => 'users',
-                'action' => 'statistics',
-                'icon' => 'fas fa-pie-chart',
-            ]
+            // [
+            //     'type' => 'group',
+            //     'label' => __('Statistics'),
+            //     'url' => $baseurl . '/users/statistics',
+            //     'controller' => 'users',
+            //     'action' => 'statistics',
+            //     'icon' => 'fas fa-pie-chart',
+            // ]
         ];
 
         return [
@@ -319,19 +319,19 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-hourglass-half',
                 'children' => [
                     [
-                        'label' => __('Decaying Models Tools'),
-                        'url' => $baseurl . '/decayingModel/decayingTool',
-                        'controller' => 'decayingModel',
-                        'action' => 'decayingTool',
-                        'icon' => 'fas fa-toolbox'
-                    ],
-                    [
-                        'label' => __('List Decaying Models'),
+                        'label' => __('Index'),
                         'url' => $baseurl . '/decayingModel/index',
                         'controller' => 'decayingModel',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
-                    ]
+                    ],
+                    // [
+                    //     'label' => __('Decaying Models Tool'),
+                    //     'url' => $baseurl . '/decayingModel/decayingTool',
+                    //     'controller' => 'decayingModel',
+                    //     'action' => 'decayingTool',
+                    //     'icon' => 'fas fa-toolbox'
+                    // ]
                 ]
             ],
             ['divider' => true],
@@ -340,6 +340,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Templates'),
                 'icon' => 'fas fa-file-code',
                 'children' => [
+                    [
+                        'label' => __('List Event Templates'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                        'icon' => 'misp-icon misp-icon-event misp-simple'
+                    ],
                     [
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
@@ -354,22 +362,14 @@ class NavbarHelper extends AppHelper {
                         'action' => 'index',
                         'icon' => 'fas fa-cubes'
                     ],
-                    [
-                        'label' => __('Event Templates'),
-                        'url' => $baseurl . '/event_templates/index',
-                        'controller' => 'event_templates',
-                        'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
-                        'icon' => 'misp-icon misp-icon-event misp-simple'
-                    ],
-                    [
-                        'label' => __('Add Event Template'),
-                        'url' => $baseurl . '/event_templates/add',
-                        'controller' => 'event_templates',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ]
+                    // [
+                    //     'label' => __('Add Event Template'),
+                    //     'url' => $baseurl . '/event_templates/add',
+                    //     'controller' => 'event_templates',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ]
                 ]
             ],
             ['divider' => true],
@@ -592,6 +592,7 @@ class NavbarHelper extends AppHelper {
                 'url' => $baseurl . '/servers/serverSettings',
                 'controller' => 'servers',
                 'action' => 'serverSettings',
+                'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
             ['divider' => true],
@@ -600,14 +601,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Users & Orgs'),
                 'icon' => 'fas fa-building-user',
                 'children' => [
-                    [
-                        'label' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add',
-                        'controller' => 'users',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('users', 'admin_add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add User'),
+                    //     'url' => $baseurl . '/admin/users/add',
+                    //     'controller' => 'users',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('users', 'admin_add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Users'),
                         'url' => $baseurl . '/admin/users/index',
@@ -617,12 +618,12 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'misp-icon misp-icon-user2 misp-simple'
                     ],
                     [
-                        'label' => __('Contact User'),
-                        'url' => $baseurl . '/admin/users/email',
-                        'controller' => 'users',
-                        'action' => 'email',
+                        'label' => __('User Settings'),
+                        'url' => $baseurl . '/user_settings/index',
+                        'controller' => 'user_settings',
+                        'action' => 'index',
                         'requirement' => $isAdmin,
-                        'icon' => 'fas fa-envelope'
+                        'icon' => 'fas fa-sliders'
                     ],
                     [
                         'label' => __('List Organisations'),
@@ -665,9 +666,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Workflow'),
-                        'url' => $baseurl . '/workflows/triggers',
+                        'url' => $baseurl . '/workflows/index',
                         'controller' => 'workflows',
-                        'action' => 'triggers',
+                        'action' => 'index',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-project-diagram'
                     ],
@@ -757,29 +758,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'overCorrelations',
                         'requirement' => $isSiteAdmin,
                         'icon' => 'fas fa-hexagon-nodes-bolt'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'group',
-                'label' => __('Settings'),
-                'icon' => 'fas fa-sliders',
-                'children' => [
-                    [
-                        'label' => __('Set User Settings'),
-                        'url' => $baseurl . '/user_settings/setSetting',
-                        'controller' => 'user_settings',
-                        'action' => 'setSetting',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-gear'
-                    ],
-                    [
-                        'label' => __('List User Settings'),
-                        'url' => $baseurl . '/user_settings/index',
-                        'controller' => 'user_settings',
-                        'action' => 'index',
-                        'requirement' => $isAdmin,
-                        'icon' => 'fas fa-users-gear'
                     ]
                 ]
             ]
@@ -978,13 +956,13 @@ class NavbarHelper extends AppHelper {
             'icon' => 'fas fa-home'
         ];
 
-        $bookmarksChildren[] = [
-            'label' => __('Add Bookmark'),
-            'url' => $baseurl . '/bookmarks/add',
-            'controller' => 'bookmarks',
-            'action' => 'add',
-            'icon' => 'fas fa-plus'
-        ];
+        // $bookmarksChildren[] = [
+        //     'label' => __('Add Bookmark'),
+        //     'url' => $baseurl . '/bookmarks/add',
+        //     'controller' => 'bookmarks',
+        //     'action' => 'add',
+        //     'icon' => 'fas fa-plus'
+        // ];
         $bookmarksChildren[] = [
             'label' => __('Manage Bookmarks'),
             'url' => $baseurl . '/bookmarks/index',
@@ -1123,7 +1101,14 @@ class NavbarHelper extends AppHelper {
         if (is_string($entry)) {
             return $entry;
         }
-        return $entry[strtolower($action)] ?? $entry['default'] ?? null;
+        $action = strtolower($action);
+        if (isset($entry[$action])) {
+            return $entry[$action];
+        }
+        if (strpos($action, 'admin_') === 0 && isset($entry['admin_default'])) {
+            return $entry['admin_default'];
+        }
+        return $entry['default'] ?? null;
     }
 
     private function markActive(array $items, ?string $activeMenuId): array

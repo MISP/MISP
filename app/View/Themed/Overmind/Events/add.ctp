@@ -2,8 +2,13 @@
 $action = $this->request->params['action'];
 $isEdit = $action === 'edit';
 
+App::uses('EventTemplateDependencies', 'Tools');
+
 $offerTemplateAlternative = false;
-if (!$isEdit && $this->Acl->canAccess('eventTemplates', 'instantiate')) {
+if (!$isEdit
+    && !EventTemplateDependencies::missing()
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+) {
     App::uses('ClassRegistry', 'Utility');
     $__et = ClassRegistry::init('EventTemplate');
     $__conds = ['EventTemplate.active' => 1];
@@ -104,11 +109,13 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                 </span>
             </div>
             <?= $this->Form->textarea('info', [
-                'class'       => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style'       => 'border-bottom:1px solid #d8dde3 !important;'
+                'class'             => 'w-100 border-0 bg-transparent fs-5 py-1',
+                'style'             => 'border-bottom:1px solid #d8dde3 !important;'
                     . ' resize:none; outline:none;',
-                'rows'        => 2,
-                'placeholder' => __('Describe the threat event in precise terms…'),
+                'rows'              => 2,
+                'placeholder'       => __('Describe the threat event in precise terms…'),
+                'id'                => 'EventInfo',
+                'data-required-msg' => __('Please provide a name for the event.'),
             ]) ?>
         </div>
 
@@ -118,7 +125,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Extends Event') ?>
             </div>
-            <div class="border rounded px-3 pt-2 pb-2"
+            <div class="border rounded px-2 py-2"
                  style="border-color:#d8dde3;">
                 <?= $this->Form->control('extends_uuid', [
                     'class'       => 'w-100 border-0 bg-transparent p-0',
@@ -276,7 +283,7 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Event Date (UTC)') ?>
             </div>
-            <div class="border rounded px-3 pt-2 pb-2"
+            <div class="border rounded px-2 py-2"
                  style="border-color:#d8dde3;">
                 <input type="text"
                        id="EventDateDisplay"

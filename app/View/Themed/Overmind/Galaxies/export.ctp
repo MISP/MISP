@@ -39,13 +39,23 @@ $this->Form->unlockField('Galaxy.download');
 
         <!-- CLUSTERS' DISTRIBUTION -->
         <?php
-        $distMeta = [
-            0 => ['title' => __('Organisation'), 'bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-            1 => ['title' => __('Download'), 'bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-            2 => ['title' => __('Connected'), 'bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-            3 => ['title' => __('All communities'), 'bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-            4 => ['title' => __('Sharing groups'), 'bg' => '#dce8ff', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
+        /*
+         * Colours and icons come from the canonical table; only the wording is
+         * local, because these cards sit two-per-row and need a short title
+         * where the rest of the theme shows the full sentence.
+         */
+        $distTitles = [
+            0 => __('Organisation'),
+            1 => __('Community'),
+            2 => __('Connected'),
+            3 => __('All communities'),
+            4 => __('Sharing groups'),
         ];
+        $distMeta = [];
+        foreach ($distTitles as $distLevel => $distTitle) {
+            $distMeta[$distLevel] = ['title' => $distTitle]
+                + $this->DistributionLevel->get($distLevel);
+        }
         ?>
         <div class="mb-4">
             <div class="text-galaxy fw-bold text-uppercase mb-2 export-section-label">

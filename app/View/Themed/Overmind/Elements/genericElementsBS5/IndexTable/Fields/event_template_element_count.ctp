@@ -28,5 +28,25 @@ foreach ($structure as $el) {
         }
     }
 }
-echo (int)$count;
+$styles = array(
+    'section' => array(
+        'colour' => '#8B5CF6',
+        'icon' => 'fas fa-folder-tree',
+        'title' => __('Sections in this template'),
+    ),
+    'non_section' => array(
+        'colour' => '#0D9488',
+        'icon' => 'fas fa-puzzle-piece',
+        'title' => __('Fields in this template'),
+    ),
+);
+$style = isset($styles[$mode]) ? $styles[$mode] : $styles['non_section'];
+
+// Zero reads as "nothing here" rather than as a value worth colouring
+$background = $count === 0 ? 'var(--bs-secondary)' : $style['colour'];
 ?>
+<span class="badge rounded-pill px-3 py-2 shadow-sm"
+      style="background-color:<?= h($background) ?>; color:#fff;"
+      title="<?= h($style['title']) ?>">
+    <i class="<?= h($style['icon']) ?> me-1"></i><?= (int)$count ?>
+</span>

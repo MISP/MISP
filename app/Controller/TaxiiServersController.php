@@ -322,6 +322,10 @@ class TaxiiServersController extends AppController
         $this->layout = false;
         $this->set('title', h($id));
         $this->set('json', $result);
-        $this->render('/genericTemplates/display');
+        if ($this->theme === "Overmind") {
+            $this->render('object_view');
+        } else {
+            $this->render('/genericTemplates/display');
+        }
     }
 }

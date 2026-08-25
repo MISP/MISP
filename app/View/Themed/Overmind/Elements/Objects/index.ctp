@@ -1,4 +1,5 @@
 <?php
+App::uses('DistributionLevel', 'Tools');
 
 $eventId   = $event['Event']['id'];
 $total     = (int)($total ?? 0);
@@ -31,17 +32,13 @@ $canTagObj = isset($event)
     ? $this->Acl->canModifyTag($event)
     : false;
 
-// Inline helper: render a small distribution badge
+$_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
+$_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
+
+// Inline helper: render a small distribution badge. A named function has no
+// $this, so the lib is called statically rather than through the helper.
 function _objDistBadge($dist) {
-    static $map = [
-        0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-        1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-        2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-        3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-        4 => ['bg' => '#6a96ee', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-        5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork'],
-    ];
-    $c = $map[(int)$dist] ?? ['bg' => '#f1f1f1', 'color' => '#333', 'icon' => 'fas fa-question'];
+    $c = DistributionLevel::get($dist);
     return sprintf(
         '<span class="badge d-inline-flex align-items-center px-2 py-1"'
         . ' style="background:%s;color:%s;border:1px solid %s20;font-weight:500;">'
@@ -230,18 +227,38 @@ function _objDistBadge($dist) {
                                 </button>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['first_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-plus me-1"></i>
-                                <?= __('First seen: %s',
-                                    h($object['first_seen'])) ?>
+                        <?php
+                            $fmtSeen = function ($value) {
+                                $dt = date_create((string)$value);
+                                if ($dt === false) {
+                                    return ['date' => (string)$value, 'time' => ''];
+                                }
+                                return [
+                                    'date' => $dt->format('Y-m-d'),
+                                    'time' => $dt->format('H:i:s'),
+                                ];
+                            };
+                        ?>
+                        <?php if (!empty($object['first_seen'])): $fs = $fmtSeen($object['first_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['first_seen']) ?>">
+                                <i class="fas fa-calendar-plus text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('First seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($fs['date']) ?><?php if ($fs['time'] !== ''): ?><span class="text-muted ms-1"><?= h($fs['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['last_seen'])): ?>
-                            <span>
-                                <i class="fas fa-calendar-check me-1"></i>
-                                <?= __('Last seen: %s',
-                                    h($object['last_seen'])) ?>
+                        <?php if (!empty($object['last_seen'])): $ls = $fmtSeen($object['last_seen']); ?>
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  title="<?= h($object['last_seen']) ?>">
+                                <i class="fas fa-calendar-check text-secondary"></i>
+                                <span class="text-uppercase fw-semibold"
+                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('Last seen') ?></span>
+                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
+                                    <?= h($ls['date']) ?><?php if ($ls['time'] !== ''): ?><span class="text-muted ms-1"><?= h($ls['time']) ?></span><?php endif; ?>
+                                </span>
                             </span>
                         <?php endif; ?>
                         <?php if (!empty($object['template_version'])): ?>
@@ -269,6 +286,14 @@ function _objDistBadge($dist) {
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
+                            <?php if ($_enrichmentEnabled && !$isDeleted): ?>
+                                <a href="<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object"
+                                   class="btn btn-sm btn-outline-enrichment"
+                                   onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object');">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i>
+                                    <?= __('Enrich') ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
                             <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
@@ -500,6 +525,26 @@ function _objDistBadge($dist) {
                                                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
                                                             <i class="fas fa-comment-dots me-2"></i>
                                                             <?= __('Propose change') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
+                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
+                                                            <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
+                                                            <?= __('Enrich') ?>
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
+                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
+                                                    <li>
+                                                        <a class="dropdown-item justify-content-start"
+                                                           href="#"
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
+                                                            <i class="fas fa-eye me-2"></i>
+                                                            <?= __('Enrich (Cortex)') ?>
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>

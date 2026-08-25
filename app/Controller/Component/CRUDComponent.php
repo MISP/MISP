@@ -70,6 +70,13 @@ class CRUDComponent extends Component
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
             $query['includeAnalystData'] = true;
+            // Optional pagination overrides — web UI only, REST returns the full set.
+            if (!empty($options['limit'])) {
+                $query['limit'] = $options['limit'];
+            }
+            if (!empty($options['maxLimit'])) {
+                $query['maxLimit'] = $options['maxLimit'];
+            }
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {

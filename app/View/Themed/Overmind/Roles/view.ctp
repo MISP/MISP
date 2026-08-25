@@ -1,5 +1,9 @@
 <?php
-$this->set('headerTitle', __('Role: %s', $data['Role']['name'] ?? ''));
+$roleChip = $this->element('genericElementsBS5/IndexTable/Fields/role', [
+    'row' => $data,
+    'field' => ['data_path' => 'Role', 'no_link' => true, 'size' => 'lg'],
+]);
+$this->set('headerTitleHtml', $roleChip);
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
@@ -11,7 +15,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'left' => [
                 'Roles/View/roles_general',
             ],
+            'right' => [
+                'Roles/View/roles_actions',
+            ],
         ],
     ]
 ]);
-?>

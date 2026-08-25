@@ -7,6 +7,13 @@ $actions  = $field['actions'] ?? [];
 $seed     = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
 
+$renderIcon = function ($icon) {
+    $icon = (string)$icon;
+    $isFullClass = strpos($icon, ' ') !== false || strpos($icon, 'misp-icon') !== false;
+    $cls = $isFullClass ? $icon : 'fas fa-' . $icon;
+    return '<i class="' . h($cls) . ' me-2"></i>';
+};
+
 
 if ($field['data_path'] === 'Event.id') {
     $mayModify  = $this->Acl->canModifyEvent($row);
@@ -85,65 +92,71 @@ if ($field['data_path'] === 'Event.id') {
                         <?php if (!empty($action['download'])): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" download="<?= h($title_for_layout) . h($id) . '.json' ?>">
                                 <div>
-                                    <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                    <?= $renderIcon($action['icon']) ?>
                                     <?= h($action['label']) ?>
                                 </div>
                             </a>
                         <?php else: ?>
                             <a class="dropdown-item" href="<?= h($url) ?>">
                                 <div>
-                                    <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                    <?= $renderIcon($action['icon']) ?>
                                     <?= h($action['label']) ?>
                                 </div>
                             </a>
                         <?php endif; ?>
                     <?php elseif ($action['type'] === 'toggle'): ?>
                         <?php
-                            if ($action['label_on'] === "Unpublish"){
-                                $state = Hash::get($row, $action['publish_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], [$state ? 'unpublish' : 'publish', $id], $url);
+                            /*
+                             * Resolve which boolean the action flips and which
+                             * endpoint to hit. Preferred form: the caller passes
+                             * state_path plus action_on/action_off. The label
+                             * matching below is the legacy form, kept for the
+                             * indexes that still rely on it.
+                             */
+                            if (!empty($action['state_path'])) {
+                                $statePath = $action['state_path'];
+                                $toggleAction = null;
+                            } elseif ($action['label_on'] === "Unpublish") {
+                                $statePath = $action['publish_path'];
+                                $toggleAction = null;
+                            } elseif ($action['label_on'] === "Disable") {
+                                $statePath = $action['enable_path'];
+                                $toggleAction = 'toggleEnable';
+                            } elseif ($action['label_on'] === "Optional") {
+                                $statePath = $action['require_path'];
+                                $toggleAction = 'toggleRequired';
+                            } elseif ($action['label_on'] === "Remove Highlight") {
+                                $statePath = $action['highlight_path'];
+                                $toggleAction = 'toggleHighlighted';
+                            } elseif ($action['label_on'] === "Deactivate") {
+                                $statePath = $action['active_path'];
+                                $toggleAction = 'toggleActive';
                             }
 
-                            if ($action['label_on'] === "Disable"){
-                                $state = Hash::get($row, $action['enable_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleEnable', $id], $url);
-                            }
+                            $state = Hash::get($row, $statePath);
+                            $label = $state ? $action['label_on'] : $action['label_off'];
+                            $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
 
-                            if ($action['label_on'] === "Optional"){
-                                $state = Hash::get($row, $action['require_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleRequired', $id], $url);
+                            if ($toggleAction === null) {
+                                // One endpoint per state rather than a single
+                                // toggle endpoint: publish/unpublish, and
+                                // whatever action_on/action_off name.
+                                $toggleAction = $state
+                                    ? ($action['action_on'] ?? 'unpublish')
+                                    : ($action['action_off'] ?? 'publish');
                             }
-
-                            if ($action['label_on'] === "Remove Highlight"){
-                                $state = Hash::get($row, $action['highlight_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleHighlighted', $id], $url);
-                            }
-
-                            if ($action['label_on'] === "Deactivate"){
-                                $state = Hash::get($row, $action['active_path']);
-                                $label = $state ? $action['label_on'] : $action['label_off'];
-                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleActive', $id], $url);
-                            }
+                            $url = str_replace(['%action%', '%id%'], [$toggleAction, $id], $url);
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
                                 <div>
-                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= $renderIcon($iconClass) ?>
                                     <?= h($label) ?>
                                 </div>
                             </a>
                         <?php else: ?>
                             <?= $this->Form->postLink(
-                                '<div><i class="fas fa-' . h($iconClass) . ' me-2"></i>' . h($label) . '</div>',
+                                '<div>' . $renderIcon($iconClass) . h($label) . '</div>',
                                 $url,
                                 [
                                     'escape' => false,
@@ -167,7 +180,20 @@ if ($field['data_path'] === 'Event.id') {
                            href="<?= h($url) ?>"
                            onclick="<?= h($onclick) ?>">
                             <div>
-                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
+                    <?php elseif ($action['type'] === 'js'): ?>
+                        <?php
+                            $onclick = str_replace('%id%', $id, $action['onclick']);
+                        ?>
+                        <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
+                           href="#"
+                           onclick="event.preventDefault(); <?= h($onclick) ?>">
+                            <div>
+                                <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
@@ -181,14 +207,14 @@ if ($field['data_path'] === 'Event.id') {
                            href="#"
                            onclick="event.preventDefault(); copyValueToClipboard('<?= h($copyValue) ?>', '<?= h($copyMessage) ?>');">
                             <div>
-                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
 
                     <?php elseif ($action['type'] === 'postLink'): ?>
                         <?= $this->Form->postLink(
-                            '<div><i class="fas fa-' . h($action['icon']) . ' me-2"></i>' . h($action['label']) . '</div>',
+                            '<div>' . $renderIcon($action['icon']) . h($action['label']) . '</div>',
                             $url,
                             [
                                 'escape' => false,

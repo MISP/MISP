@@ -209,6 +209,7 @@ class CollectionElement extends AppModel
         // from the remote by Collection::captureCollection(), so element saves/
         // deletes here must NOT bump it to the local now (D5 / D6 dedup).
         $this->skipCollectionModifiedBump = true;
+        try {
         $temp = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
@@ -246,10 +247,28 @@ class CollectionElement extends AppModel
                 if (empty($element['CollectionElement']['id'])) {
                     $this->create();
                 }
-                try{
-                    $this->save($element);
+                try {
+                    if (!$this->save($element)) {
+                        $this->log(
+                            sprintf(
+                                'Could not save CollectionElement %s for collection %s: %s',
+                                $element['CollectionElement']['uuid'] ?? '',
+                                $data['Collection']['id'],
+                                json_encode($this->validationErrors)
+                            ),
+                            LOG_WARNING
+                        );
+                    }
                 } catch (PDOException $e) {
-                    // duplicate value?
+                    $this->log(
+                        sprintf(
+                            'Could not save CollectionElement %s for collection %s: %s',
+                            $element['CollectionElement']['uuid'] ?? '',
+                            $data['Collection']['id'],
+                            $e->getMessage()
+                        ),
+                        LOG_WARNING
+                    );
                 }
             }
             foreach ($oldElements as $toDelete) {
@@ -264,8 +283,9 @@ class CollectionElement extends AppModel
                 $data['Collection']['CollectionElement'][] = $element['CollectionElement'];
             }
         }
-
-        $this->skipCollectionModifiedBump = false;
+        } finally {
+            $this->skipCollectionModifiedBump = false;
+        }
         return $data;
     }
 }

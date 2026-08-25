@@ -2,6 +2,15 @@
 $data = $scaffold_data['data'];
 ?>
 
+<?php if (empty($data['data'])): ?>
+
+<div class="d-flex flex-column align-items-center text-secondary py-5">
+    <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+    <?= __('No items to display') ?>
+</div>
+
+<?php else: ?>
+
 <div class="table-scroll row g-3 bg-light">
 
 <?php foreach ($data['data'] as $k => $row): ?>
@@ -160,3 +169,5 @@ foreach ($cardFields as $column => $field) {
 <?php endforeach; ?>
 
 </div>
+
+<?php endif; ?>

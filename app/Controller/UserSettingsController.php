@@ -23,8 +23,12 @@ class UserSettingsController extends AppController
             'UserSetting.id' => 'DESC'
         ),
         'contain' => array(
-            'User.id',
-            'User.email'
+            'User' => array(
+                'fields' => array('id', 'email', 'org_id'),
+                'Organisation' => array(
+                    'fields' => array('id', 'name', 'uuid')
+                )
+            )
         )
     );
 
@@ -43,7 +47,7 @@ class UserSettingsController extends AppController
     {
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => array('setting', 'user_id', 'sort', 'direction', 'page', 'limit'),
+            'paramArray' => array('setting', 'quickFilter', 'user_id', 'sort', 'direction', 'page', 'limit'),
             'named_params' => $this->params['named']
         );
         $exception = false;
@@ -52,6 +56,12 @@ class UserSettingsController extends AppController
         if (!empty($filters['setting'])) {
             $conditions['AND'][] = array(
                 'setting' => $filters['setting']
+            );
+        }
+        // Filter bar for Overmind theme
+        if (!empty($filters['quickFilter'])) {
+            $conditions['AND'][] = array(
+                'UserSetting.setting LIKE' => '%' . $filters['quickFilter'] . '%',
             );
         }
         if (!empty($filters['user_id'])) {
@@ -128,12 +138,17 @@ class UserSettingsController extends AppController
         } else {
             $this->paginate['conditions'] = $conditions;
             $data = $this->paginate();
+            $authUser = $this->Auth->user();
             foreach ($data as $k => $v) {
                 if (!empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']])) {
                     $data[$k]['UserSetting']['restricted'] = empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted']) ? '' : UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted'];
                 } else {
                     $data[$k]['UserSetting']['restricted'] = array();
                 }
+                $data[$k]['UserSetting']['_canDelete'] = (
+                    $this->UserSetting->checkAccess($authUser, $v)
+                    && $this->UserSetting->checkSettingAccess($authUser, $v['UserSetting']['setting']) === true
+                );
             }
             $this->set('data', $data);
             $this->set('context', empty($context) ? 'null' : $context);
@@ -257,6 +272,9 @@ class UserSettingsController extends AppController
         $this->set('users', $users);
         $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
         $this->set('title_for_layout', __('Set User Setting'));
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     public function getSetting($userId = null, $setting = null)
@@ -368,6 +386,118 @@ class UserSettingsController extends AppController
          * For UI users, redirect to where they issued the request from.
          */
         $this->redirect($this->referer());
+    }
+
+    public function deleteSelection($id = false)
+    {
+        $authUser = $this->Auth->user();
+
+        if ($this->request->is(array('post', 'put', 'delete'))) {
+            $idList = $this->request->data['UserSetting']['id'] ?? $id;
+            if (!is_array($idList)) {
+                $idList = is_numeric($idList) ? array($idList) : json_decode($idList, true);
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+
+            $deleted = 0;
+            $failed = 0;
+            $blocked = 0;
+            foreach ($idList as $settingId) {
+                if (!is_numeric($settingId)) {
+                    $failed++;
+                    continue;
+                }
+                $userSetting = $this->UserSetting->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('UserSetting.id' => $settingId),
+                    'contain' => array('User.id', 'User.org_id')
+                ));
+                if (empty($userSetting)) {
+                    $failed++;
+                    continue;
+                }
+                if (
+                    !$this->UserSetting->checkAccess($authUser, $userSetting) ||
+                    $this->UserSetting->checkSettingAccess($authUser, $userSetting['UserSetting']['setting']) !== true
+                ) {
+                    $blocked++;
+                    continue;
+                }
+                if ($this->UserSetting->delete($userSetting['UserSetting']['id'])) {
+                    $deleted++;
+                } else {
+                    $failed++;
+                }
+            }
+
+            $messages = array();
+            if ($deleted) {
+                $messages[] = __n('%s setting deleted.', '%s settings deleted.', $deleted, $deleted);
+            }
+            if ($blocked) {
+                $messages[] = __n('%s setting was skipped (insufficient permissions).', '%s settings were skipped (insufficient permissions).', $blocked, $blocked);
+            }
+            if ($failed) {
+                $messages[] = __n('%s setting could not be deleted.', '%s settings could not be deleted.', $failed, $failed);
+            }
+            $message = trim(implode(' ', $messages));
+
+            if ($this->_isRest()) {
+                if ($deleted) {
+                    return $this->RestResponse->saveSuccessResponse('UserSettings', 'deleteSelection', $id, $this->response->type(), $message);
+                }
+                return $this->RestResponse->saveFailResponse('UserSettings', 'deleteSelection', false, $message, $this->response->type());
+            }
+
+            if ($deleted && !$blocked && !$failed) {
+                $this->Flash->success($message);
+            } elseif ($deleted) {
+                $this->Flash->warning($message);
+            } else {
+                $this->Flash->error($message ?: __('No settings were deleted.'));
+            }
+            return $this->redirect(array('action' => 'index'));
+        }
+
+        // GET → build the confirmation modal.
+        $idList = is_numeric($id) ? array($id) : json_decode($id, true);
+        if (empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+        $userSettings = $this->UserSetting->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('UserSetting.id' => $idList),
+            'contain' => array('User.id', 'User.org_id', 'User.email')
+        ));
+        $deletable = array();
+        $blocked = array();
+        foreach ($userSettings as $userSetting) {
+            $label = $userSetting['UserSetting']['setting'];
+            if (!empty($userSetting['User']['email'])) {
+                $label .= ' (' . $userSetting['User']['email'] . ')';
+            }
+            if (
+                !$this->UserSetting->checkAccess($authUser, $userSetting) ||
+                $this->UserSetting->checkSettingAccess($authUser, $userSetting['UserSetting']['setting']) !== true
+            ) {
+                $blocked[] = array('id' => $userSetting['UserSetting']['id'], 'label' => $label);
+            } else {
+                $deletable[] = array('id' => $userSetting['UserSetting']['id'], 'label' => $label);
+            }
+        }
+
+        // Only the entries the user may actually delete are submitted.
+        $deletableIds = array_map(function ($entry) {
+            return $entry['id'];
+        }, $deletable);
+        $this->request->data['UserSetting']['id'] = json_encode($deletableIds);
+        $this->set('idArray', $idList);
+        $this->set('deletable', $deletable);
+        $this->set('blocked', $blocked);
+        $this->layout = false;
+        $this->render('/UserSettings/ajax/user_setting_delete_confirmation');
     }
 
     public function setHomePage()

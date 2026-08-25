@@ -1,31 +1,15 @@
 <?php
 // Title of the index displayed in the header section, leaving it empty will fallback to controller name
-$headerTitle = __('');
+$headerTitle = __('Event Templates');
 
 // Description displayed under the title in the header section, leave empty if not needed
 $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
-if ($this->Acl->canAccess('eventTemplates', 'add')) {
-    $headerActions[] = [
-        'type' => 'navigate',
-        'label' => __('Add Event Template'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/event_templates/add',
-    ];
-}
-if ($this->Acl->canAccess('eventTemplates', 'import')) {
-    $headerActions[] = [
-        'type' => 'navigate',
-        'label' => __('Import'),
-        'icon' => 'upload',
-        'url' => $baseurl . '/event_templates/import',
-    ];
-}
 if ($this->Acl->canAccess('eventTemplates', 'update')) {
     $headerActions[] = [
-        'type' => 'navigate',
+        'type' => 'action',
         'label' => __('Update from library'),
         'icon' => 'sync',
         // headerSection.ctp's onClick wiring fires
@@ -34,6 +18,24 @@ if ($this->Acl->canAccess('eventTemplates', 'update')) {
         // kept as a no-script fallback / right-click target.
         'url' => $baseurl . '/event_templates/update',
         'onClick' => 'openEventTemplateLibraryUpdatePopup',
+    ];
+}
+
+if ($this->Acl->canAccess('eventTemplates', 'import')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Import Template'),
+        'icon' => 'file-import',
+        'url' => $baseurl . '/event_templates/import',
+    ];
+}
+
+if ($this->Acl->canAccess('eventTemplates', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Event Template'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/event_templates/add',
     ];
 }
 
@@ -57,21 +59,30 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Name'),
-        'sort' => 'EventTemplate.name',
-        'data_path' => 'EventTemplate.name',
-        'element' => 'generic_field',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card'],
-    ],
-    [
         'name' => __('UUID'),
         'sort' => 'EventTemplate.uuid',
         'data_path' => 'EventTemplate.uuid',
         'element' => 'uuid',
         'url' => $baseurl . '/event_templates/view/%id%',
-        'card_section' => 'meta',
+        'card_section' => 'top',
+        'display_in' => ['card'],
+    ],
+    [
+        'name' => __('Name'),
+        'sort' => 'EventTemplate.name',
+        'data_path' => 'EventTemplate',
+        'element' => 'event_template_name',
+        'url' => $baseurl . '/event_templates/view/%id%',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
+    ],
+    [
+        'name' => __('Distribution'),
+        'sort' => 'EventTemplate.distribution',
+        'data_path' => 'EventTemplate.distribution',
+        'element' => 'distribution',
+        'card_section' => 'top',
+        'display_in' => ['card'],
     ],
     [
         'name' => __('Organisation'),
@@ -82,35 +93,20 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Distribution'),
-        'sort' => 'EventTemplate.distribution',
-        'data_path' => 'EventTemplate.distribution',
-        'element' => 'distribution',
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
-    ],
-    [
         'name' => __('Active'),
         'sort' => 'EventTemplate.active',
         'data_path' => 'EventTemplate.active',
-        'element' => 'boolean',
+        'element' => 'active',
+        'title_off' => __('Inactive templates are hidden from the "From template" picker'),
         'card_section' => 'top',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['card'],
     ],
     [
-        'name' => __('Sections'),
-        'data_path' => 'EventTemplate.definition.structure',
-        'element' => 'event_template_element_count',
-        'count_type' => 'section',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card'],
-    ],
-    [
-        'name' => __('Elements'),
-        'data_path' => 'EventTemplate.definition.structure',
-        'element' => 'event_template_element_count',
-        'count_type' => 'non_section',
-        'card_section' => 'extra',
+        'name' => __('Version'),
+        'sort' => 'EventTemplate.version',
+        'data_path' => 'EventTemplate.version',
+        'element' => 'version',
+        'card_section' => 'top',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -122,21 +118,29 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Version'),
-        'sort' => 'EventTemplate.version',
-        'data_path' => 'EventTemplate.version',
-        'element' => 'version',
-        'card_section' => 'extra',
+        'name' => __('Sections'),
+        'data_path' => 'EventTemplate.definition.structure',
+        'element' => 'event_template_element_count',
+        'count_type' => 'section',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card'],
+    ],
+    [
+        'name' => __('Elements'),
+        'data_path' => 'EventTemplate.definition.structure',
+        'element' => 'event_template_element_count',
+        'count_type' => 'non_section',
+        'card_section' => 'top',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Modified'),
         'sort' => 'EventTemplate.modified',
         'data_path' => 'EventTemplate.modified',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'modified',
         'card_section' => 'meta',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['card'],
     ],
     [
         'name' => __('Actions'),
@@ -151,24 +155,26 @@ $fields = [
                 'url' => $baseurl . '/event_templates/view/%id%',
             ],
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Create event from template'),
                 'icon' => 'play',
                 'url' => $baseurl . '/event_templates/instantiate/%id%',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
             ],
             [
-                'type' => 'navigate',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/event_templates/edit/%id%',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'edit'),
             ],
             [
+                // GET renders the confirmation modal, POST duplicates.
                 'type' => 'modal',
                 'label' => __('Duplicate'),
                 'icon' => 'copy',
                 'url' => $baseurl . '/event_templates/duplicate/%id%',
+                'size' => 'md',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'duplicate'),
             ],
             [
@@ -186,7 +192,8 @@ $fields = [
                 'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'url' => $baseurl . '/event_templates/delete/%id%',
+                'url' => $baseurl . '/event_templates/deleteSelection/%id%',
+                'size' => 'md',
                 'class' => 'text-danger',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
             ],
@@ -221,14 +228,16 @@ if (empty($list) && !$filterActive) {
                 <div class="d-flex gap-2 justify-content-center">
                     <?php if ($canAdd): ?>
                         <a href="<?= h($baseurl . '/event_templates/add') ?>"
-                           class="btn btn-primary">
+                           class="btn btn-primary"
+                           onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_templates/add') ?>');">
                             <i class="fas fa-plus me-1"></i>
                             <?= __('Add your first template') ?>
                         </a>
                     <?php endif; ?>
                     <?php if ($canImport): ?>
                         <a href="<?= h($baseurl . '/event_templates/import') ?>"
-                           class="btn btn-outline-secondary">
+                           class="btn btn-outline-secondary"
+                           onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_templates/import') ?>');">
                             <i class="fas fa-upload me-1"></i>
                             <?= __('Import from JSON') ?>
                         </a>
@@ -256,6 +265,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'mode' => 'quickFilter',
                     ],
                 ],
+                'delete' => $this->Acl->canAccess('eventTemplates', 'delete')
+                    ? '/deleteSelection'
+                    : null,
             ],
             'fields' => $fields,
             'primary_id_path' => 'EventTemplate.id',

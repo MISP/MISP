@@ -34,29 +34,119 @@ class JobsController extends AppController
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
         $queues = ['email', 'default', 'cache', 'prio', 'update'];
+        $queue = $this->passedArgs['worker'] ?? $queue;
+        $conditions = [];
         if ($queue && in_array($queue, $queues, true)) {
-            $this->paginate['conditions'] = ['Job.worker' => $queue];
+            $conditions['Job.worker'] = $queue;
         }
-        $jobs = $this->paginate();
-        foreach ($jobs as &$job) {
-            if (!empty($job['Job']['process_id'])) {
-                $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
-                $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
-            } else {
-                $job['Job']['job_status'] = 'Unknown';
-                $job['Job']['failed'] = null;
+        // Enrich every row with its live status (Redis / BackgroundJobsTool) and
+        // the worker health — the same post-processing the legacy index did, now
+        // hung off CRUD->index's afterFind hook.
+        $enrich = function (array $data) use ($workers) {
+            foreach ($data as &$job) {
+                if (!empty($job['Job']['process_id'])) {
+                    $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
+                    $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
+                } else {
+                    $job['Job']['job_status'] = 'Unknown';
+                    $job['Job']['failed'] = null;
+                }
+                if (Configure::read('SimpleBackgroundJobs.enabled')) {
+                    $job['Job']['worker_status'] = true;
+                } else {
+                    $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
+                }
             }
-            if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                $job['Job']['worker_status'] = true;
-            } else {
-                $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
-            }
-        }
+            unset($job);
+            return $data;
+        };
+        $this->CRUD->index([
+            'contain' => ['Org'],
+            'conditions' => $conditions,
+            'quickFilters' => ['Job.worker', 'Job.job_type', 'Job.job_input', 'Job.message', 'Job.process_id'],
+            'afterFind' => $enrich,
+        ]);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($jobs, $this->response->type());
+            return $this->restResponsePayload;
         }
-        $this->set('list', $jobs);
         $this->set('queue', $queue);
+    }
+
+    public function deleteSelection($id = null)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+
+        if ($this->request->is(['post', 'put', 'delete'])) {
+            $idList = $this->request->data['Job']['id'] ?? $id;
+            if (!is_array($idList)) {
+                $idList = is_numeric($idList) ? [$idList] : json_decode($idList, true);
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+
+            $deleted = 0;
+            $failed = 0;
+            foreach ($idList as $jobId) {
+                $job = $this->Job->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['Job.id' => $jobId],
+                ]);
+                if (empty($job)) {
+                    $failed++;
+                    continue;
+                }
+                if ($this->Job->delete($job['Job']['id'])) {
+                    $deleted++;
+                } else {
+                    $failed++;
+                }
+            }
+
+            $messages = [];
+            if ($deleted) {
+                $messages[] = __n('%s job entry deleted.', '%s job entries deleted.', $deleted, $deleted);
+            }
+            if ($failed) {
+                $messages[] = __n('%s job entry could not be deleted.', '%s job entries could not be deleted.', $failed, $failed);
+            }
+            $message = trim(implode(' ', $messages));
+
+            if ($this->_isRest()) {
+                if ($deleted) {
+                    return $this->RestResponse->saveSuccessResponse('Jobs', 'deleteSelection', $id, $this->response->type(), $message);
+                }
+                return $this->RestResponse->saveFailResponse('Jobs', 'deleteSelection', false, $message, $this->response->type());
+            }
+
+            if ($deleted && !$failed) {
+                $this->Flash->success($message);
+            } elseif ($deleted) {
+                $this->Flash->warning($message);
+            } else {
+                $this->Flash->error($message ?: __('No job entries were deleted.'));
+            }
+            return $this->redirect(['action' => 'index']);
+        }
+
+        // GET → build the confirmation modal.
+        $idList = is_numeric($id) ? [$id] : json_decode($id, true);
+        if (empty($idList)) {
+            throw new NotFoundException(__('Invalid input.'));
+        }
+        $jobs = $this->Job->find('all', [
+            'recursive' => -1,
+            'conditions' => ['Job.id' => $idList],
+            'fields' => ['Job.id', 'Job.worker', 'Job.job_type', 'Job.process_id', 'Job.message'],
+        ]);
+
+        $this->request->data['Job']['id'] = json_encode($idList);
+        $this->set('jobs', $jobs);
+        $this->set('idArray', $idList);
+        $this->layout = false;
+        $this->render('ajax/jobDeleteConfirmationForm');
     }
 
     public function getError($id)
