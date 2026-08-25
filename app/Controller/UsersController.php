@@ -2116,12 +2116,20 @@ class UsersController extends AppController
         if (empty($user)) {
             $this->redirect('login');
         }
+        $this->Bruteforce = ClassRegistry::init('Bruteforce');
+        // Guards both branches on purpose: a blocked source must neither submit
+        // another guess nor have a fresh OTP generated and mailed on its behalf.
+        if ($this->Bruteforce->isBlocklisted($user['email'])) {
+            $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+            throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
+        }
         $redis = RedisTool::init();
         $user_id = $user['id'];
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
+            if (!empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp))) {
                 // we invalidate the previously generated OTP
                 $redis->del('misp:otp:' . $user_id);
                 // We login the user with CakePHP
@@ -2131,6 +2139,15 @@ class UsersController extends AppController
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
                 $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong email OTP token';
                 $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
+                $this->Bruteforce->insert($user['email']);
+                if ($this->Bruteforce->isBlocklisted($user['email'])) {
+                    // The OTP is keyed on the user rather than on the pending login,
+                    // so every parallel session of that user shares this one value.
+                    // Burn it as soon as the attempt budget is spent, otherwise the
+                    // sessions can outrun the counter against a still valid code.
+                    $redis->del('misp:otp:' . $user_id);
+                }
+                $this->request->data['User']['otp'] = '';
             }
         } else {
             // GET Request
