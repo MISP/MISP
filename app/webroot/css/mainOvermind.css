@@ -1311,6 +1311,53 @@ tr.attr-proposal-row td:first-child {
     background: #f8fafc;
 }
 
+/* count pill on the right of an event row - expands the attribute list */
+.corr-attr-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 9px;
+    border: 1px solid rgba(66, 139, 202, 0.28);
+    border-radius: 999px;
+    background: rgba(66, 139, 202, 0.1);
+    color: #2f6c9e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.45;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+
+.corr-attr-toggle:hover {
+    background: rgba(66, 139, 202, 0.2);
+    border-color: rgba(66, 139, 202, 0.45);
+}
+
+.corr-attr-toggle:focus-visible {
+    outline: 2px solid rgba(66, 139, 202, 0.5);
+    outline-offset: 1px;
+}
+
+.corr-attr-toggle.is-expanded {
+    background: rgba(66, 139, 202, 0.22);
+    border-color: rgba(66, 139, 202, 0.5);
+}
+
+.corr-attr-toggle-chevron {
+    font-size: 0.6rem;
+    transition: transform .16s ease;
+}
+
+.corr-attr-toggle.is-expanded .corr-attr-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* kept visible when collapsed, so the warning is not lost with the rows */
+.corr-attr-toggle-warning {
+    font-size: 0.65rem;
+    color: var(--bs-warning, #f59e0b);
+}
+
 .corr-attr-row {
     min-height: 1.5rem;
 }

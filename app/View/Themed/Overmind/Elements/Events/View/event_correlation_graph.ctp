@@ -270,6 +270,8 @@ echo $this->element('genericElements/assetLoader', [
     var _wlHintNone   = <?= json_encode(h(__('No correlating attribute matches an enabled warninglist'))) ?>;
     var _wlHiddenOne  = <?= json_encode(__('%s warninglisted attribute hidden')) ?>;
     var _wlHiddenMany = <?= json_encode(__('%s warninglisted attributes hidden')) ?>;
+    var _attrPillOne  = <?= json_encode(__('%s correlating attribute - click to expand')) ?>;
+    var _attrPillMany = <?= json_encode(__('%s correlating attributes - click to expand')) ?>;
 
     function _isWarninglisted(parentId) {
         return !!(_warninglistHits && _warninglistHits[parentId]);
@@ -449,7 +451,6 @@ echo $this->element('genericElements/assetLoader', [
 
         sortedEids.forEach(function (eid) {
             var det     = eventDetails[eid] || {};
-            var count   = eventCounts[eid]  || 0;
             var attrs   = attributeMap[eid] || [];
             var info    = det.info    || ('#' + eid);
             var date    = det.date    || '';
@@ -491,12 +492,16 @@ echo $this->element('genericElements/assetLoader', [
             distBadge.innerHTML = '<i class="' + dist.icon
                 + '" style="color:' + dist.color + ';font-size:.85rem;"></i>';
 
-            /* event link row */
+            /* header row - the link no longer spans it, the pill is a button */
+            var header = document.createElement('div');
+            header.className =
+                'd-flex align-items-start gap-3 px-3 py-2 corr-event-row';
+
             var link = document.createElement('a');
             link.href = baseurl + '/events/view2/' + eid;
             link.className =
-                'd-flex align-items-start gap-3 px-3 py-2'
-                + ' text-decoration-none text-dark corr-event-row';
+                'd-flex align-items-start gap-3 flex-fill overflow-hidden'
+                + ' text-decoration-none text-dark';
 
             var meta = document.createElement('div');
             meta.className = 'flex-fill overflow-hidden';
@@ -520,7 +525,9 @@ echo $this->element('genericElements/assetLoader', [
 
             /* attributes — index format: italic category > bordered type value */
             var attrsEl = document.createElement('div');
-            attrsEl.className = 'px-3 pb-2 pt-1 d-flex flex-column gap-1';
+            attrsEl.id = 'corr-attrs-' + eid;
+            attrsEl.className =
+                'corr-event-attrs d-none px-3 pb-2 pt-1 d-flex flex-column gap-1';
 
             uniqueAttrs.forEach(function (a) {
                 var row = document.createElement('div');
@@ -564,12 +571,61 @@ echo $this->element('genericElements/assetLoader', [
                 attrsEl.appendChild(row);
             });
 
-            card.appendChild(link);
+            var shown      = uniqueAttrs.length;
+            var anyWarned   = uniqueAttrs.some(function (a) {
+                return _isWarninglisted(a.id);
+            });
+            var toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'corr-attr-toggle flex-shrink-0 mt-1';
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-controls', attrsEl.id);
+            toggle.title = (shown === 1 ? _attrPillOne : _attrPillMany)
+                .replace('%s', shown);
+            toggle.innerHTML = (anyWarned
+                    ? '<i class="fa-solid fa-triangle-exclamation'
+                      + ' corr-attr-toggle-warning"></i>'
+                    : '')
+                + '<span>' + shown + '</span>'
+                + '<i class="fa-solid fa-chevron-down corr-attr-toggle-chevron"></i>';
+
+            header.appendChild(link);
+            header.appendChild(toggle);
+            card.appendChild(header);
             card.appendChild(attrsEl);
             bodyEl.appendChild(card);
         });
 
+        _delegateCorrListToggle(bodyEl);
         listEl.style.display = '';
+    }
+
+    /* ── expand / collapse a card's attribute list ──────────── */
+    var _corrListDelegated = false;
+
+    function _setCardExpanded(card, expanded) {
+        if (!card) return;
+        var btn   = card.querySelector('.corr-attr-toggle');
+        var attrs = card.querySelector('.corr-event-attrs');
+        if (!btn || !attrs) return;
+        attrs.classList.toggle('d-none', !expanded);
+        btn.classList.toggle('is-expanded', expanded);
+        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    /* one listener on the body, which survives every re-render */
+    function _delegateCorrListToggle(bodyEl) {
+        if (_corrListDelegated || !bodyEl) return;
+        _corrListDelegated = true;
+        bodyEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('.corr-attr-toggle');
+            if (!btn) return;
+            e.preventDefault();
+            _setCardExpanded(
+                btn.closest('.corr-event-card'),
+                btn.getAttribute('aria-expanded') !== 'true'
+            );
+        });
     }
 
     /* ── list filter helpers ───────────────────────────────── */
@@ -585,6 +641,8 @@ echo $this->element('genericElements/assetLoader', [
                     row.style.opacity =
                         row.getAttribute('data-parent-id') === attrStr ? '1' : '0.25';
                 });
+                /* the highlight is worthless while the list is collapsed */
+                _setCardExpanded(card, true);
             } else {
                 card.style.display = 'none';
             }
@@ -599,6 +657,7 @@ echo $this->element('genericElements/assetLoader', [
             card.querySelectorAll('.corr-attr-row').forEach(function (row) {
                 row.style.opacity = '';
             });
+            _setCardExpanded(card, false);
         });
     }
 
