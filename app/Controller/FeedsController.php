@@ -837,7 +837,7 @@ class FeedsController extends AppController
         }
 
         $this->params->params['paging'] = array($this->modelClass => $params);
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id'], $this->Auth->user());
         // remove all duplicates
         $correlatingEvents = array();
         foreach ($resultArray as $k => $v) {
