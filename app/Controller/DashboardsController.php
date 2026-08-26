@@ -641,18 +641,65 @@ class DashboardsController extends AppController
         if (is_string($firstKey)) {
             $rows = array();
             foreach ($toConvert as $k => $v) {
-                $rows[] = sprintf('%s,%s', $k, json_encode($v));
+                // Both halves are attacker-reachable: widgets key their
+                // payload on tag names (TrendingTagsWidget) and on raw
+                // Attribute.value1 (TrendingAttributesWidget), so a value
+                // carrying a comma, a quote or a newline used to split the
+                // row into extra columns. Quote only where the field needs
+                // it, so anything that parsed correctly before is still
+                // byte-identical.
+                // Strings carry their own text - CSV quoting replaces the
+                // JSON quoting v1 gave them, so a consumer parses the same
+                // value out. Everything else keeps its JSON encoding, so
+                // 1 / true / null / {..} are unchanged.
+                $encoded = is_string($v) ? $v : json_encode($v);
+                $rows[] = $this->_csvField($k, false) . ',' . $this->_csvField($encoded, false);
             }
             return implode(PHP_EOL, $rows) . PHP_EOL;
         }
         $headerKeys = array_keys(Hash::flatten($toConvert[0]));
-        $header = implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, array_map('strval', $headerKeys)));
+        // This branch already wrapped every field, but never doubled an
+        // embedded quote, so a tag name containing `"` broke out of its
+        // own field and desynced the header from the rows. Keep the
+        // always-quote convention and make it correct.
+        $header = implode(',', array_map(function ($s) { return $this->_csvField($s, true); }, $headerKeys));
         $rows = array_map(function ($row) {
             $flat = array_values(Hash::flatten($row));
-            $strs = array_map('strval', $flat);
-            return implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, $strs));
+            return implode(',', array_map(function ($s) { return $this->_csvField($s, true); }, $flat));
         }, $toConvert);
         return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
+    }
+
+    /**
+     * Render one RFC 4180 CSV field.
+     *
+     * `$alwaysQuote` preserves each caller's existing convention rather
+     * than imposing one: the associative branch never quoted, so it
+     * quotes only when the field would otherwise corrupt the row, and
+     * the tabular branch always quoted, so it still does. Output is
+     * therefore unchanged for every payload that was not already
+     * mis-parsing.
+     *
+     * Deliberately does NOT neutralise spreadsheet formula prefixes
+     * (`=`, `+`, `-`, `@`, CWE-1236). Widget CSV carries raw indicator
+     * values, and prefixing them with an apostrophe would corrupt the
+     * data for the tooling that ingests it - see the V15 entry in the
+     * tracker for the full rationale.
+     */
+    private function _csvField($value, $alwaysQuote)
+    {
+        if (is_array($value)) {
+            // Hash::flatten leaves empty arrays in place; strval() turned
+            // those into the literal string "Array" plus a PHP warning.
+            $value = json_encode($value);
+        }
+        // Otherwise cast exactly as strval() did, so booleans and nulls
+        // keep the bytes v1 emitted for them.
+        $value = (string)$value;
+        if (!$alwaysQuote && strpbrk($value, "\",\r\n") === false) {
+            return $value;
+        }
+        return '"' . str_replace('"', '""', $value) . '"';
     }
 
     /**
