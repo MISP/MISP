@@ -8251,7 +8251,6 @@ class EventsController extends AppController
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
             }
-            $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
             if ($overmindModal) {
                 $this->layout = false;
                 $this->render('mactime_resolution');
@@ -8593,9 +8592,10 @@ class EventsController extends AppController
             'order' => array('Attribute.event_id ASC'),
         ));
         foreach ($events as $k => $event) {
-            $this->Event->read(null, $event['Attribute']['event_id']);
-            $this->Event->set('attribute_count', $event[0]['attribute_count']);
-            $this->Event->save();
+            $this->Event->updateAll(
+                array('Event.attribute_count' => (int)$event[0]['attribute_count']),
+                array('Event.id' => $event['Attribute']['event_id'])
+            );
         }
         $this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
         $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));

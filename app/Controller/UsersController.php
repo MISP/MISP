@@ -2769,7 +2769,8 @@ class UsersController extends AppController
             'body' => $publicKey,
             'type' => 'text/plain',
         ));
-        $response->download($fingerprint . '.asc');
+        // The /gpg.asc route supplies the historic filename, otherwise use the fingerprint
+        $response->download($this->request->param('filename') ?: $fingerprint . '.asc');
         return $response;
     }
 

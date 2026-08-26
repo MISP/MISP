@@ -51,6 +51,12 @@ class AdminShell extends AppShell
         $parser->addSubcommand('updateJSONLite', array(
             'help' => __('***TESTING ONLY*** Update the JSON definitions of MISP - but with a minimal set, only meant for testing.'),
         ));
+        $parser->addSubcommand('checkUserValidity', array(
+            'help' => __('Report users that the external identity provider no longer backs. Schedulable as an Admin task.'),
+        ));
+        $parser->addSubcommand('blockInvalidUsers', array(
+            'help' => __('Disable users that the external identity provider no longer backs, and apply role and organisation changes. Schedulable as an Admin task.'),
+        ));
         $parser->addSubcommand('updateWarningLists', array(
             'help' => __('Update the JSON definition of warninglists.'),
             'parser' => [
@@ -501,6 +507,61 @@ class AdminShell extends AppShell
             } else {
                 echo 'Could not enable taxonomy tags' . PHP_EOL;
             }
+        }
+    }
+
+    /**
+     * Report which users the identity provider no longer backs. Changes nothing.
+     */
+    public function checkUserValidity()
+    {
+        $this->__runUserValidityCheck(false);
+    }
+
+    /**
+     * Disable users the identity provider no longer backs, and apply role and
+     * organisation changes it dictates.
+     */
+    public function blockInvalidUsers()
+    {
+        $this->__runUserValidityCheck(true);
+    }
+
+    /**
+     * Both of the above, so a scheduled run and `cake User check_validity`
+     * cannot diverge: this dispatches that command rather than repeating it.
+     *
+     * @param bool $enforce Disable invalid users and write back role/org.
+     */
+    private function __runUserValidityCheck($enforce)
+    {
+        $jobId = empty($this->args[0]) ? null : $this->args[0];
+
+        $command = 'User check_validity';
+        if ($enforce) {
+            $command .= ' --block_invalid --update';
+        }
+
+        try {
+            // The dispatched command prints a line per user, which the worker
+            // captures as the job's output.
+            $this->dispatchShell($command);
+        } catch (Exception $e) {
+            $message = __('User validity check failed: %s', $e->getMessage());
+            $this->out($message);
+            if ($jobId !== null) {
+                $this->Job->saveStatus($jobId, false, $message);
+            }
+            $this->_stop(1);
+            return;
+        }
+
+        $message = $enforce
+            ? __('User validity check complete, invalid users disabled.')
+            : __('User validity check complete, no changes made.');
+        $this->out($message);
+        if ($jobId !== null) {
+            $this->Job->saveStatus($jobId, true, $message);
         }
     }
 

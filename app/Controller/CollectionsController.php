@@ -136,6 +136,20 @@ class CollectionsController extends AppController
 
     private function __attachElementToCollection($collectionId, $elementType, $elementUuid)
     {
+        if ($elementType === 'Event') {
+            // Mirror CollectionElementsController::addElementToCollection()'s visibility
+            // check: without it, a user could attach a UUID they cannot see to a
+            // collection they control, and probe for the existence of arbitrary event
+            // UUIDs (view() only ever renders ACL-filtered fetchSimpleEvents() output,
+            // so this does not itself grant read access to the event's content).
+            $this->loadModel('Event');
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $elementUuid, [
+                'fields' => ['Event.id']
+            ]);
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid event or not authorized.'));
+            }
+        }
         $this->Collection->CollectionElement->create();
         try {
             $this->Collection->CollectionElement->save([
@@ -175,12 +189,6 @@ class CollectionsController extends AppController
                 $this->request->data = ['Collection' => $this->request->data];
             }
             $data = $this->request->data;
-            if (
-                isset($data['Collection']['modified']) &&
-                $data['Collection']['modified'] <= $oldCollection['Collection']['modified']
-            ) {
-                throw new ForbiddenException(__('Collection received older or same as local version.'));
-            }
             // The sharing-group authorisation check must run against the EFFECTIVE distribution
             // and sharing group after the edit, not only when 'distribution' is present in the
             // body. CRUDComponent::edit() retains the stored value for any field the request
@@ -456,7 +464,15 @@ class CollectionsController extends AppController
             if (!is_array($orgcNames)) {
                 $orgcNames = [$orgcNames];
             }
+            // Track whether an OR-rule (allow-list) was supplied separately from
+            // whether it resolved: a NOT-rule against an org that doesn't exist
+            // locally should impose no restriction, not exclude everything. Only
+            // "caller asked for specific orgs, none exist" should return nothing.
+            $hasOrRule = false;
             foreach ($orgcNames as $orgcName) {
+                if (!is_string($orgcName) || $orgcName === '') {
+                    continue;
+                }
                 // Collections key the creator org by integer FK (orgc_id), not the
                 // orgc_uuid string column that analyst data filters on — resolve the
                 // name to a local org id before building the condition.
@@ -467,6 +483,7 @@ class CollectionsController extends AppController
                     }
                     $options[]['AND'][] = ['Collection.orgc_id !=' => $orgc['id']];
                 } else {
+                    $hasOrRule = true;
                     $orgc = $this->Organisation->fetchOrg($orgcName);
                     if ($orgc === false) {
                         continue;
@@ -474,7 +491,7 @@ class CollectionsController extends AppController
                     $options['OR'][] = ['Collection.orgc_id' => $orgc['id']];
                 }
             }
-            if (empty($options)) {
+            if ($hasOrRule && empty($options['OR'])) {
                 return $this->RestResponse->viewData([], $this->response->type());
             }
         }

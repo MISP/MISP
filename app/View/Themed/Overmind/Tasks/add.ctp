@@ -184,6 +184,8 @@ echo $this->Form->create('Task', array_merge(
                         'updateWarningLists' => __('Update Warninglists'),
                         'updateNoticeLists' => __('Update Noticelists'),
                         'updateObjectTemplates' => __('Update Object Templates'),
+                        'checkUserValidity' => __('Check User Validity (report only)'),
+                        'blockInvalidUsers' => __('Check User Validity (disable invalid users)'),
                     ], ['class' => 'form-select bg-light', 'id' => 'TaskAdminAction', 'value' => $adminActionSel, 'empty' => false]) ?>
                 </div>
 
