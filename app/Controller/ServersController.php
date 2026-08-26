@@ -1943,6 +1943,15 @@ class ServersController extends AppController
                 throw new NotFoundException(__('Invalid type.'));
             }
             App::uses('File', 'Utility');
+            // $filename is a raw route parameter. Strip any path component
+            // before joining, exactly as uploadFile() below already does, so
+            // the target cannot leave the type's own directory. basename()
+            // leaves '.' and '..' as-is and both resolve to a directory, so
+            // reject them rather than handing a directory to File::delete().
+            $filename = basename($filename);
+            if ($filename === '' || $filename === '.' || $filename === '..') {
+                throw new NotFoundException(__('Invalid filename.'));
+            }
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
                 $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
