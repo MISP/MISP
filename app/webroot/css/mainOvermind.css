@@ -1097,6 +1097,69 @@ tr.attr-proposal-row td:first-child {
                 0 0 0 3px rgba(76, 217, 100, 0.18);
 }
 
+/* Display options are grouped on one rail rather than floating loose */
+.sankey-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 3px 4px;
+    border: 1px solid #e2e9f1;
+    border-radius: 12px;
+    background: #f8fafc;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.sankey-toggle-group-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: #9aa8b6;
+    font-size: 11px;
+}
+
+.sankey-toggle-group .sankey-toggle {
+    position: relative;
+    gap: 6px;
+    padding: 3px 10px;
+}
+
+/* slightly tighter switches, so four of them still fit on one row */
+.sankey-toggle-group .sankey-toggle-switch {
+    width: 34px;
+    height: 20px;
+}
+
+.sankey-toggle-group .sankey-toggle-switch::after {
+    width: 16px;
+    height: 16px;
+}
+
+.sankey-toggle-group .sankey-toggle input:checked + .sankey-toggle-switch::after {
+    transform: translateX(14px);
+}
+
+.sankey-toggle-group .sankey-toggle + .sankey-toggle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1px;
+    height: 18px;
+    background: #dfe7ef;
+    transform: translateY(-50%);
+}
+
+.sankey-toggle.sankey-toggle-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sankey-toggle-disabled .sankey-toggle-switch {
+    background: #d8dfe6;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Correlated-event timeline strip
    ═══════════════════════════════════════════════════════════ */

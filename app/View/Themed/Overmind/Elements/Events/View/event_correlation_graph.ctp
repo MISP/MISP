@@ -40,7 +40,8 @@ echo $this->element('genericElements/assetLoader', [
             <div id="sankey-stage" class="sankey-stage" style="display:none;">
 
                 <!-- Toolbar -->
-                <div class="d-flex align-items-center gap-2 flex-wrap mb-2" style="min-height:24px;">
+                <div id="sankey-toolbar" class="d-flex align-items-center gap-2 flex-wrap mb-2"
+                     style="min-height:24px;">
                     <span id="sankey-filter-badge" class="badge text-bg-danger d-none">
                         <i class="fas fa-filter me-1"></i>
                         <span id="sankey-filter-label"></span>
@@ -51,7 +52,12 @@ echo $this->element('genericElements/assetLoader', [
                         </a>
                     </span>
                     <span id="sankey-limit-msg" class="small text-muted"></span>
-                    <div class="ms-auto d-flex align-items-center gap-3 flex-wrap">
+                    <span id="sankey-wl-msg" class="small text-muted"></span>
+                    <div class="sankey-toggle-group ms-auto" role="group"
+                         aria-label="<?= h(__('Graph display options')) ?>">
+                        <span class="sankey-toggle-group-icon" aria-hidden="true">
+                            <i class="fa-solid fa-sliders"></i>
+                        </span>
                         <label for="sankey-date-align" class="sankey-toggle mb-0">
                             <span class="sankey-toggle-label"><?= h(__('Use timeline')) ?></span>
                             <input type="checkbox" id="sankey-date-align" checked>
@@ -67,8 +73,18 @@ echo $this->element('genericElements/assetLoader', [
                             <input type="checkbox" id="sankey-show-publisher" checked>
                             <span class="sankey-toggle-switch" aria-hidden="true"></span>
                         </label>
+                        <label for="sankey-hide-warninglist" class="sankey-toggle mb-0"
+                               id="sankey-hide-warninglist-toggle">
+                            <span class="sankey-toggle-label"><?= h(__('Hide warninglist hits')) ?></span>
+                            <input type="checkbox" id="sankey-hide-warninglist">
+                            <span class="sankey-toggle-switch" aria-hidden="true"></span>
+                        </label>
                     </div>
                 </div>
+
+                <!-- Empty state (no correlation, or everything filtered out) -->
+                <div id="sankey-empty"
+                     class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
 
                 <!-- Graph -->
                 <div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
@@ -119,7 +135,10 @@ echo $this->element('genericElements/assetLoader', [
     var eventDate = <?= json_encode($eventDate) ?>;
 
     /* ── state ─────────────────────────────────────────────── */
-    var _correlationData         = null;
+    var _correlationData         = null;   // working set (warninglist filter applied)
+    var _rawCorrelationData      = null;   // untouched API payload
+    var _warninglistHits         = {};     // parent attribute id -> [warninglist name, ..]
+    var _warninglistHitCount     = 0;
     var _correlationEventDetails = null;
     var _correlationsLoading     = false;
     var _currentEventDateTs      = eventDate ? Date.parse(eventDate + 'T00:00:00Z') : NaN;
@@ -223,7 +242,8 @@ echo $this->element('genericElements/assetLoader', [
         var loaderEl  = document.getElementById('correlations-loader');
         var contentEl = document.getElementById('correlations-content');
         var url = baseurl + '/correlations/eventCorrelations/' + eventId
-                + '.json?include_attributes=1&include_org_names=1';
+                + '.json?include_attributes=1&include_org_names=1'
+                + '&include_warninglist_hits=1';
 
         fetch(url)
             .then(function (r) {
@@ -244,9 +264,111 @@ echo $this->element('genericElements/assetLoader', [
             });
     }
 
+    /* ── warninglist filter ────────────────────────────────── */
+    var _wlLabel      = <?= json_encode(h(__('Warninglist'))) ?>;
+    var _wlHintOn     = <?= json_encode(h(__('Drop every correlating attribute that matches an enabled warninglist'))) ?>;
+    var _wlHintNone   = <?= json_encode(h(__('No correlating attribute matches an enabled warninglist'))) ?>;
+    var _wlHiddenOne  = <?= json_encode(__('%s warninglisted attribute hidden')) ?>;
+    var _wlHiddenMany = <?= json_encode(__('%s warninglisted attributes hidden')) ?>;
+
+    function _isWarninglisted(parentId) {
+        return !!(_warninglistHits && _warninglistHits[parentId]);
+    }
+
+    function _warninglistNames(parentId) {
+        return (_warninglistHits[parentId] || []).join(', ');
+    }
+
+    function _hideWarninglisted() {
+        var input = document.getElementById('sankey-hide-warninglist');
+        return !!(input && input.checked && !input.disabled);
+    }
+
+    /* the toggle is dead weight when nothing in the graph is warninglisted */
+    function _syncWarninglistToggle() {
+        var input = document.getElementById('sankey-hide-warninglist');
+        var label = document.getElementById('sankey-hide-warninglist-toggle');
+        if (!input || !label) return;
+        var hasHits = _warninglistHitCount > 0;
+        input.disabled = !hasHits;
+        if (!hasHits) input.checked = false;
+        label.classList.toggle('sankey-toggle-disabled', !hasHits);
+        label.title = hasHits ? _wlHintOn : _wlHintNone;
+    }
+
+    /* ── empty states ──────────────────────────────────────── */
+    function _showEmptyState(filteredOut) {
+        var stageEl   = document.getElementById('sankey-stage');
+        var toolbarEl = document.getElementById('sankey-toolbar');
+        var emptyEl   = document.getElementById('sankey-empty');
+        var graphEl   = document.getElementById('sankey');
+        var timeline  = document.getElementById('correlations-timeline');
+        var listEl    = document.getElementById('correlations-list');
+
+        if (stageEl)  stageEl.style.display  = '';
+        if (timeline) timeline.style.display = 'none';
+        if (listEl)   listEl.style.display   = 'none';
+        if (graphEl) {
+            graphEl.innerHTML     = '';
+            graphEl.style.height  = '0px';
+            graphEl.style.opacity = '1';
+        }
+        /* renderSankey() never ran, so its counter still describes the old set */
+        var limitMsgEl = document.getElementById('sankey-limit-msg');
+        if (limitMsgEl) limitMsgEl.textContent = '';
+        /* keep the toolbar reachable when the filter is what emptied the graph */
+        if (toolbarEl) toolbarEl.classList.toggle('d-none', !filteredOut);
+        if (emptyEl) {
+            emptyEl.classList.remove('d-none');
+            emptyEl.innerHTML =
+                '<i class="fas fa-' + (filteredOut ? 'filter' : 'link')
+                + ' fa-2x mb-2 d-block opacity-50"></i>'
+                + (filteredOut
+                    ? <?= json_encode(h(__('Every correlating attribute is warninglisted.'))) ?>
+                    : <?= json_encode(h(__('No correlated events found.'))) ?>);
+        }
+    }
+
+    /* d-none, not style.display - .d-flex is an !important utility */
+    function _hideEmptyState() {
+        var toolbarEl = document.getElementById('sankey-toolbar');
+        var emptyEl   = document.getElementById('sankey-empty');
+        if (emptyEl)   emptyEl.classList.add('d-none');
+        if (toolbarEl) toolbarEl.classList.remove('d-none');
+    }
+
     /* ── process API response ──────────────────────────────── */
-    function renderCorrelations(data) {
+    function renderCorrelations(payload) {
+        _rawCorrelationData = (payload && payload.correlations !== undefined)
+            ? (payload.correlations || {})
+            : (payload || {});
+        _warninglistHits     = (payload && payload.warninglist_hits) || {};
+        _warninglistHitCount = Object.keys(_warninglistHits).length;
+        _syncWarninglistToggle();
+        _registerToggleListeners();
+        applyCorrelations({});
+    }
+
+    /* ── build the working set, then (re)draw ──────────────── */
+    function applyCorrelations(options) {
+        options = options || {};
+        var hideWl = _hideWarninglisted();
+        var data   = {};
+        var hidden = 0;
+        for (var rawPid in _rawCorrelationData) {
+            if (!Object.prototype.hasOwnProperty.call(_rawCorrelationData, rawPid)) continue;
+            if (hideWl && _isWarninglisted(rawPid)) { hidden++; continue; }
+            data[rawPid] = _rawCorrelationData[rawPid];
+        }
         _correlationData = data;
+
+        var wlMsgEl = document.getElementById('sankey-wl-msg');
+        if (wlMsgEl) {
+            wlMsgEl.textContent = hidden > 0
+                ? (hidden === 1 ? _wlHiddenOne : _wlHiddenMany).replace('%s', hidden)
+                : '';
+        }
+
         var eventDetails  = {};
         var eventCounts   = {};
         var attributeMap  = {};
@@ -296,22 +418,15 @@ echo $this->element('genericElements/assetLoader', [
         }
 
         if (total === 0) {
-            var stageEl = document.getElementById('sankey-stage');
-            if (stageEl) {
-                stageEl.style.display = '';
-                stageEl.innerHTML =
-                    '<div class="d-flex flex-column align-items-center text-muted pt-2 small">'
-                    + '<i class="fas fa-link fa-2x mb-2 d-block opacity-50"></i>'
-                    + <?= json_encode(h(__('No correlated events found.'))) ?>
-                    + '</div>';
-            }
+            _showEmptyState(hidden > 0);
             return;
         }
+        _hideEmptyState();
 
         renderCorrelationsTimeline(eventDetails);
-        renderSankey(data, eventDetails, null, {});
+        renderSankey(data, eventDetails, null,
+            options.animateToggle ? {animateToggle: true} : {});
         renderCorrelationsList(eventDetails, eventCounts, attributeMap);
-        _registerToggleListeners();
     }
 
     /* ── events list with correlating attributes ──────────── */
@@ -437,6 +552,15 @@ echo $this->element('genericElements/assetLoader', [
                 valEl.textContent = a.value;
                 row.appendChild(valEl);
 
+                if (_isWarninglisted(a.id)) {
+                    var wlIcon = document.createElement('i');
+                    wlIcon.className =
+                        'fa-solid fa-triangle-exclamation text-warning ms-1';
+                    wlIcon.style.fontSize = '.7rem';
+                    wlIcon.title = _wlLabel + ': ' + _warninglistNames(a.id);
+                    row.appendChild(wlIcon);
+                }
+
                 attrsEl.appendChild(row);
             });
 
@@ -502,6 +626,16 @@ echo $this->element('genericElements/assetLoader', [
                 renderSankey(_correlationData, _correlationEventDetails, null, {animateToggle: true});
             }
         });
+        var wlInput = document.getElementById('sankey-hide-warninglist');
+        if (wlInput) {
+            wlInput.addEventListener('change', function () {
+                if (!_rawCorrelationData) return;
+                /* the working set changes under it, so drop any node filter */
+                var badge = document.getElementById('sankey-filter-badge');
+                if (badge) badge.classList.add('d-none');
+                applyCorrelations({animateToggle: true});
+            });
+        }
     }
 
     /* ── renderSankey ──────────────────────────────────────── */
@@ -593,7 +727,13 @@ echo $this->element('genericElements/assetLoader', [
             if (!filtered.length) return;
 
             var attrValue = (relations[0] && relations[0].value) ? relations[0].value : ('Attr #' + pid);
-            var attrIdx   = addNode(attrValue, 'attribute', pid);
+            var attrLabel = attrValue;
+            var attrTitle = attrValue;
+            if (_isWarninglisted(pid)) {
+                attrLabel = '\u26a0 ' + attrValue;
+                attrTitle = attrValue + ' | ' + _wlLabel + ': ' + _warninglistNames(pid);
+            }
+            var attrIdx   = addNode(attrLabel, 'attribute', pid, attrTitle);
             links.push({source: sourceIdx, target: attrIdx, value: filtered.length});
 
             filtered.forEach(function (rel) {
