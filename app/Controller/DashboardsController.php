@@ -1296,9 +1296,18 @@ class DashboardsController extends AppController
                                 ['Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')],
                                 ['Dashboard.restrict_to_role_id' => 0]
                             ]],
+                            // 'unrestricted' has to be matched as a STRING.
+                            // restrict_to_permission_flag is a varchar, so
+                            // comparing it against the integer 0 makes MySQL
+                            // coerce the column: 'perm_site_admin' = 0 is TRUE,
+                            // and the whole clause becomes a no-op. The two
+                            // values that actually mean unrestricted are the
+                            // column default '' and the '0' the save form
+                            // posts - which is exactly what the !empty() test
+                            // in Dashboard::getDashboardTemplate() accepts.
                             ['OR' => [
                                 ['Dashboard.restrict_to_permission_flag' => $permission_flags],
-                                ['Dashboard.restrict_to_permission_flag' => 0]
+                                ['Dashboard.restrict_to_permission_flag' => ['', '0']]
                             ]]
                         ]
                     ]
