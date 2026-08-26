@@ -82,6 +82,34 @@ echo $this->element('genericElements/assetLoader', [
                     </div>
                 </div>
 
+                <!-- Correlated-event timeline: sets the period the graph draws -->
+                <div id="correlations-timeline" class="event-timeline" style="display:none;">
+                    <div class="event-timeline-header">
+                        <span class="event-timeline-title">
+                            <i class="fas fa-stream"></i>
+                            <?= h(__('Correlated event timeline')) ?>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <span class="event-timeline-range" id="correlations-timeline-range"></span>
+                            <button type="button" id="correlations-timeline-reset"
+                                    class="event-timeline-reset d-none"
+                                    title="<?= h(__('Show the whole period')) ?>">
+                                <i class="fa-solid fa-arrows-left-right-to-line"></i>
+                                <?= h(__('Reset')) ?>
+                            </button>
+                        </span>
+                    </div>
+                    <div class="event-timeline-track">
+                        <div class="event-timeline-ticks" aria-hidden="true"></div>
+                        <div class="event-timeline-selection" aria-hidden="true"></div>
+                        <div class="event-timeline-markers"></div>
+                        <button type="button" class="event-timeline-handle" data-handle="start"
+                                aria-label="<?= h(__('Start of the displayed period')) ?>"></button>
+                        <button type="button" class="event-timeline-handle" data-handle="end"
+                                aria-label="<?= h(__('End of the displayed period')) ?>"></button>
+                    </div>
+                </div>
+
                 <!-- Empty state (no correlation, or everything filtered out) -->
                 <div id="sankey-empty"
                      class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
@@ -91,21 +119,6 @@ echo $this->element('genericElements/assetLoader', [
                     <div id="sankey-shell" class="sankey-shell">
                         <div id="sankey" style="width:100%;height:400px;margin:0 auto;overflow-x:auto;"></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Correlated-event timeline (shown below the graph) -->
-            <div id="correlations-timeline" class="event-timeline" style="display:none;">
-                <div class="event-timeline-header">
-                    <span class="event-timeline-title">
-                        <i class="fas fa-stream"></i>
-                        <?= h(__('Correlated event timeline')) ?>
-                    </span>
-                    <span class="event-timeline-range" id="correlations-timeline-range"></span>
-                </div>
-                <div class="event-timeline-track">
-                    <div class="event-timeline-ticks" aria-hidden="true"></div>
-                    <div class="event-timeline-markers"></div>
                 </div>
             </div>
 
@@ -143,6 +156,13 @@ echo $this->element('genericElements/assetLoader', [
     var _correlationsLoading     = false;
     var _currentEventDateTs      = eventDate ? Date.parse(eventDate + 'T00:00:00Z') : NaN;
     var _sankeyListenersReady    = false;
+    var _dataMinTs = NaN, _dataMaxTs = NaN;    // first / last correlated event
+    var _domainMinTs = NaN, _domainMaxTs = NaN; // same, snapped to month or year
+    var _rangeMinTs  = NaN, _rangeMaxTs  = NaN; // period the graph draws
+    var _rangeIsFull = true;
+    var _timelineDragReady = false;
+    var _timelineHasData   = false;
+    var _dragScale = null;   // scale frozen while a handle is being dragged
     var updateTargetPositionsOnly = function () {};   // set inside renderSankey
 
     /* ── helpers ───────────────────────────────────────────── */
@@ -154,13 +174,283 @@ echo $this->element('genericElements/assetLoader', [
         return y + '-' + m + '-' + day;
     }
 
+    /* ── UTC date helpers, shared by the strip and the graph ─ */
+    function startOfUtcMonth(ts) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+    }
+    function addUtcMonths(ts, n) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1);
+    }
+    function startOfUtcYear(ts) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), 0, 1);
+    }
+    function addUtcYears(ts, n) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear() + n, 0, 1);
+    }
+    function formatSankeyGridDate(ts, unit) {
+        var d = new Date(ts);
+        if (unit === 'year') return String(d.getUTCFullYear());
+        return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+    }
+
+    /* A single reference generator for both scales to ensure they remain aligned when zooming in or out. */
+    function buildSankeyGridTicks(minTs, maxTs, laneStart, laneEnd) {
+        var laneWidth = laneEnd - laneStart;
+        if (!isFinite(minTs) || !isFinite(maxTs) || laneWidth <= 0) return [];
+        var yr = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
+        if (maxTs <= minTs) return [{x: laneStart + laneWidth / 2, label: formatSankeyGridDate(minTs, yr ? 'year' : 'month'), isEdge: true}];
+        var ticks = [], cursor = minTs, idx = 0;
+        while (cursor <= maxTs) {
+            var ratio = (cursor - minTs) / Math.max(1, (maxTs - minTs));
+            ticks.push({x: laneStart + laneWidth * ratio, label: formatSankeyGridDate(cursor, yr ? 'year' : 'month'), isEdge: idx === 0});
+            cursor = yr ? addUtcYears(cursor, 1) : addUtcMonths(cursor, 1);
+            idx++;
+        }
+        if (ticks.length) ticks[ticks.length - 1].isEdge = true;
+        var maxT = yr ? 7 : 8;
+        if (ticks.length > maxT) {
+            var interval = Math.ceil((ticks.length - 1) / (maxT - 1));
+            var limited  = ticks.filter(function (t, i) { return i === 0 || i === ticks.length - 1 || (i % interval) === 0; });
+            if (limited[limited.length - 1].x !== ticks[ticks.length - 1].x) limited.push(ticks[ticks.length - 1]);
+            ticks = limited;
+            ticks[0].isEdge = true;
+            ticks[ticks.length - 1].isEdge = true;
+        }
+        return ticks;
+    }
+
+    /* ── shared date domain ────────────────────────────────── */
+    function _computeDateDomain(detailsMap) {
+        var minTs = Infinity, maxTs = -Infinity;
+        Object.keys(detailsMap || {}).forEach(function (eid) {
+            var date = (detailsMap[eid] || {}).date || '';
+            var ts   = date ? Date.parse(date + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return;
+            minTs = Math.min(minTs, ts);
+            maxTs = Math.max(maxTs, ts);
+        });
+        _dataMinTs = isFinite(minTs) ? minTs : NaN;
+        _dataMaxTs = isFinite(maxTs) ? maxTs : NaN;
+        if (isFinite(_currentEventDateTs)) {
+            minTs = Math.min(minTs, _currentEventDateTs);
+            maxTs = Math.max(maxTs, _currentEventDateTs);
+        }
+        if (!isFinite(minTs) || !isFinite(maxTs)) {
+            _domainMinTs = _domainMaxTs = NaN;
+            _rangeMinTs  = _rangeMaxTs  = NaN;
+            return;
+        }
+        var useYear = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
+        _domainMinTs = useYear ? startOfUtcYear(minTs) : startOfUtcMonth(minTs);
+        _domainMaxTs = useYear
+            ? addUtcYears(startOfUtcYear(maxTs), 1)
+            : addUtcMonths(startOfUtcMonth(maxTs), 1);
+        /* a selection the user made survives a re-render, clamped */
+        if (_rangeIsFull || !isFinite(_rangeMinTs) || !isFinite(_rangeMaxTs)) {
+            _rangeMinTs = _domainMinTs;
+            _rangeMaxTs = _domainMaxTs;
+            _rangeIsFull = true;
+        } else {
+            _rangeMinTs = Math.max(_domainMinTs, Math.min(_rangeMinTs, _domainMaxTs));
+            _rangeMaxTs = Math.max(_rangeMinTs, Math.min(_rangeMaxTs, _domainMaxTs));
+            _rangeIsFull = _rangeMinTs <= _domainMinTs && _rangeMaxTs >= _domainMaxTs;
+        }
+    }
+
+    /* Band superimposed on the graph: when the cursor is moved, 
+    it remains stationary, and the background is updated as soon as the cursor stops moving.*/
+    function _scaleMin() { return _dragScale ? _dragScale.min : _rangeMinTs; }
+    function _scaleMax() { return _dragScale ? _dragScale.max : _rangeMaxTs; }
+
+    function _tsToPct(ts) {
+        var lo = _scaleMin(), span = _scaleMax() - lo;
+        if (!isFinite(span) || span <= 0) return 0;
+        return Math.max(0, Math.min(100, ((ts - lo) / span) * 100));
+    }
+
+    function _pctToTs(pct) {
+        var lo = _scaleMin(), span = _scaleMax() - lo;
+        if (!isFinite(span) || span <= 0) return lo;
+        return lo + (span * (pct / 100));
+    }
+
+    function _syncTimelineVisibility() {
+        var timeline = document.getElementById('correlations-timeline');
+        var alignEl  = document.getElementById('sankey-date-align');
+        if (!timeline) return;
+        /* no date axis on the graph means no period to pick */
+        timeline.style.display =
+            (_timelineHasData && alignEl && alignEl.checked) ? '' : 'none';
+    }
+
+    /* ── range selection ───────────────────────────────────── */
+    function _paintRange() {
+        var timeline = document.getElementById('correlations-timeline');
+        if (!timeline || !isFinite(_domainMinTs)) return;
+        var sel   = timeline.querySelector('.event-timeline-selection');
+        var start = timeline.querySelector('.event-timeline-handle[data-handle="start"]');
+        var end   = timeline.querySelector('.event-timeline-handle[data-handle="end"]');
+        var label = document.getElementById('correlations-timeline-range');
+        var reset = document.getElementById('correlations-timeline-reset');
+        var p0 = _tsToPct(_rangeMinTs), p1 = _tsToPct(_rangeMaxTs);
+
+        if (sel) {
+            sel.style.left  = p0 + '%';
+            sel.style.width = Math.max(0, p1 - p0) + '%';
+        }
+        if (start) start.style.left = p0 + '%';
+        if (end)   end.style.left   = p1 + '%';
+        if (label) {
+            /* at full range show the real first/last event, not the snapped bound */
+            var from = _rangeIsFull && isFinite(_dataMinTs) ? _dataMinTs : _rangeMinTs;
+            var to   = _rangeIsFull && isFinite(_dataMaxTs) ? _dataMaxTs : _rangeMaxTs;
+            label.textContent = formatTimelineDateUtc(from) === formatTimelineDateUtc(to)
+                ? formatTimelineDateUtc(from)
+                : formatTimelineDateUtc(from) + ' → ' + formatTimelineDateUtc(to);
+        }
+        if (reset) reset.classList.toggle('d-none', _rangeIsFull);
+    }
+
+    function _moveHandle(which, pct) {
+        var span = _scaleMax() - _scaleMin();
+        if (!isFinite(span) || span <= 0) return;
+        var minGap = Math.max(86400000, span * 0.05);
+        var ts = _pctToTs(pct);
+        if (which === 'start') {
+            _rangeMinTs = Math.max(_domainMinTs, Math.min(ts, _rangeMaxTs - minGap));
+        } else {
+            _rangeMaxTs = Math.min(_domainMaxTs, Math.max(ts, _rangeMinTs + minGap));
+        }
+        _rangeIsFull = _rangeMinTs <= _domainMinTs && _rangeMaxTs >= _domainMaxTs;
+        _paintRange();
+    }
+
+    function _applyRangeToGraph() {
+        if (!_correlationData || !_correlationEventDetails) return;
+        /* re-rendering drops any node filter, so retire its badge too */
+        var badge = document.getElementById('sankey-filter-badge');
+        if (badge) badge.classList.add('d-none');
+        _resetCorrList();
+        renderSankey(_correlationData, _correlationEventDetails, null, {animateToggle: true});
+    }
+
+    /* Lay the strip's track exactly over the graph's date lane, so a date
+       sits at the same x in both. Cleared when the graph has no date axis. */
+    function _alignTimelineToLane(marginLeft, laneStart, laneEnd) {
+        var timeline = document.getElementById('correlations-timeline');
+        var track    = timeline && timeline.querySelector('.event-timeline-track');
+        if (!track) return;
+        function clear() {
+            track.style.marginLeft = '';
+            track.style.width      = '';
+        }
+        var svgEl   = document.querySelector('#sankey svg');
+        var alignEl = document.getElementById('sankey-date-align');
+        if (!svgEl || !alignEl || !alignEl.checked) { clear(); return; }
+
+        var svgRect = svgEl.getBoundingClientRect();
+        var tlRect  = timeline.getBoundingClientRect();
+        var style   = getComputedStyle(timeline);
+        /* getBoundingClientRect includes the card border, the content box does not */
+        var padLeft  = (parseFloat(style.paddingLeft)  || 0)
+                     + (parseFloat(style.borderLeftWidth)  || 0);
+        var padRight = (parseFloat(style.paddingRight) || 0)
+                     + (parseFloat(style.borderRightWidth) || 0);
+        var contentLeft  = tlRect.left + padLeft;
+        var contentWidth = tlRect.width - padLeft - padRight;
+        var laneWidth = laneEnd - laneStart;
+        var offset    = (svgRect.left + marginLeft + laneStart) - contentLeft;
+
+        /* bail out rather than push the track outside its own card */
+        if (!(laneWidth > 40) || offset < 0 || (offset + laneWidth) > contentWidth + 2) {
+            clear();
+            return;
+        }
+        track.style.marginLeft = offset + 'px';
+        track.style.width      = laneWidth + 'px';
+    }
+
+    function _setupTimelineHandles() {
+        if (_timelineDragReady) return;
+        var timeline = document.getElementById('correlations-timeline');
+        var track    = timeline && timeline.querySelector('.event-timeline-track');
+        if (!track) return;
+        _timelineDragReady = true;
+        var dragging = null;
+
+        function pctFromEvent(e) {
+            var rect = track.getBoundingClientRect();
+            if (rect.width <= 0) return 0;
+            return Math.max(0, Math.min(100,
+                ((e.clientX - rect.left) / rect.width) * 100));
+        }
+        function stopDrag() {
+            if (!dragging) return;
+            dragging = null;
+            _dragScale = null;
+            track.querySelectorAll('.event-timeline-handle').forEach(function (h) {
+                h.classList.remove('is-dragging');
+            });
+            /* the sankey is expensive, so it redraws on release, not per move */
+            renderCorrelationsTimeline(_correlationEventDetails);
+            _applyRangeToGraph();
+        }
+
+        track.addEventListener('pointerdown', function (e) {
+            var handle = e.target.closest('.event-timeline-handle');
+            if (!handle) return;
+            dragging = handle.getAttribute('data-handle');
+            _dragScale = {min: _rangeMinTs, max: _rangeMaxTs};
+            handle.classList.add('is-dragging');
+            handle.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+        track.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            _moveHandle(dragging, pctFromEvent(e));
+        });
+        track.addEventListener('pointerup', stopDrag);
+        track.addEventListener('pointercancel', stopDrag);
+        track.addEventListener('keydown', function (e) {
+            var handle = e.target.closest && e.target.closest('.event-timeline-handle');
+            if (!handle) return;
+            var which = handle.getAttribute('data-handle');
+            var step  = (_domainMaxTs - _domainMinTs) / 100;
+            var cur   = which === 'start' ? _rangeMinTs : _rangeMaxTs;
+            var next;
+            if (e.key === 'ArrowLeft')       next = cur - step;
+            else if (e.key === 'ArrowRight') next = cur + step;
+            else if (e.key === 'Home')       next = _domainMinTs;
+            else if (e.key === 'End')        next = _domainMaxTs;
+            else return;
+            e.preventDefault();
+            _moveHandle(which, _tsToPct(next));
+            renderCorrelationsTimeline(_correlationEventDetails);
+            _applyRangeToGraph();
+        });
+
+        var reset = document.getElementById('correlations-timeline-reset');
+        if (reset) {
+            reset.addEventListener('click', function () {
+                _rangeMinTs = _domainMinTs;
+                _rangeMaxTs = _domainMaxTs;
+                _rangeIsFull = true;
+                renderCorrelationsTimeline(_correlationEventDetails);
+                _applyRangeToGraph();
+            });
+        }
+    }
+
     /* ── timeline ──────────────────────────────────────────── */
     function renderCorrelationsTimeline(detailsMap) {
-        var timeline   = document.getElementById('correlations-timeline');
+        var timeline = document.getElementById('correlations-timeline');
         if (!timeline) return;
-        var markers    = timeline.querySelector('.event-timeline-markers');
-        var ticks      = timeline.querySelector('.event-timeline-ticks');
-        var rangeLabel = document.getElementById('correlations-timeline-range');
+        var markers  = timeline.querySelector('.event-timeline-markers');
+        var ticks    = timeline.querySelector('.event-timeline-ticks');
         if (!markers || !ticks) return;
 
         var items = Object.keys(detailsMap || {}).map(function (eid) {
@@ -171,68 +461,62 @@ echo $this->element('genericElements/assetLoader', [
             return { id: eid, title: det.info || '', date: date, ts: ts };
         }).filter(Boolean);
 
-        if (!items.length) { timeline.style.display = 'none'; return; }
-
-        items.sort(function (a, b) { return a.ts - b.ts; });
-        var itemMinTs = items[0].ts;
-        var itemMaxTs = items[items.length - 1].ts;
-        var minTs = itemMinTs, maxTs = itemMaxTs;
-        if (isFinite(_currentEventDateTs)) {
-            minTs = Math.min(minTs, _currentEventDateTs);
-            maxTs = Math.max(maxTs, _currentEventDateTs);
+        if (!items.length) {
+            _domainMinTs = _domainMaxTs = _rangeMinTs = _rangeMaxTs = NaN;
+            _timelineHasData = false;
+            _syncTimelineVisibility();
+            return;
         }
-        var rawRange = maxTs - minTs;
-        var range    = Math.max(rawRange, 1);
+
+        _computeDateDomain(detailsMap);
+        if (!isFinite(_domainMinTs) || !isFinite(_domainMaxTs)) {
+            _timelineHasData = false;
+            _syncTimelineVisibility();
+            return;
+        }
+        items.sort(function (a, b) { return a.ts - b.ts; });
 
         ticks.innerHTML = '';
-        var tickCount = rawRange === 0 ? 1 : Math.min(7, Math.max(3, items.length + 1));
-        for (var i = 0; i < tickCount; i++) {
-            var tick      = document.createElement('span');
-            var pctTick   = tickCount === 1 ? 50 : (i / (tickCount - 1)) * 100;
-            var isEdge    = i === 0 || i === tickCount - 1;
-            tick.className = 'event-timeline-tick' + (isEdge ? ' event-timeline-tick-edge' : '');
-            tick.style.left = pctTick + '%';
-            var tickTs    = rawRange === 0 ? minTs : minTs + ((range * i) / Math.max(1, tickCount - 1));
-            var label     = document.createElement('span');
+        var gridTicks = buildSankeyGridTicks(_rangeMinTs, _rangeMaxTs, 0, 100);
+        gridTicks.forEach(function (t, i) {
+            var tick = document.createElement('span');
+            tick.className = 'event-timeline-tick'
+                + (t.isEdge ? ' event-timeline-tick-edge' : '');
+            tick.style.left = t.x + '%';
+            var label = document.createElement('span');
             label.className = 'event-timeline-tick-label'
-                + (i === 0               ? ' event-timeline-tick-label-start' : '')
-                + (i === tickCount - 1   ? ' event-timeline-tick-label-end'   : '');
-            label.textContent = formatTimelineDateUtc(tickTs);
+                + (i === 0                   ? ' event-timeline-tick-label-start' : '')
+                + (i === gridTicks.length - 1 ? ' event-timeline-tick-label-end'  : '');
+            label.textContent = t.label;
             tick.appendChild(label);
             ticks.appendChild(tick);
-        }
+        });
 
+        /* event marks are light strokes now - blue is reserved for the handles */
         markers.innerHTML = '';
-        if (isFinite(_currentEventDateTs)) {
+        if (isFinite(_currentEventDateTs)
+            && _currentEventDateTs >= _rangeMinTs
+            && _currentEventDateTs <= _rangeMaxTs) {
             var cm = document.createElement('span');
             cm.className = 'event-timeline-current-marker';
-            cm.style.left = (range > 0 ? ((_currentEventDateTs - minTs) / range) * 100 : 50) + '%';
-            cm.setAttribute('aria-hidden', 'true');
+            cm.style.left = _tsToPct(_currentEventDateTs) + '%';
+            cm.title = <?= json_encode(__('This Event')) ?>
+                + ' — ' + formatTimelineDateUtc(_currentEventDateTs);
             markers.appendChild(cm);
-
-            var cl = document.createElement('span');
-            cl.className = 'event-timeline-current-label';
-            cl.style.left = cm.style.left;
-            cl.textContent = '★ ' + <?= json_encode(__('This Event')) ?>;
-            cl.setAttribute('aria-hidden', 'true');
-            markers.appendChild(cl);
         }
         items.forEach(function (item) {
-            var mk = document.createElement('button');
-            mk.type = 'button';
+            if (item.ts < _rangeMinTs || item.ts > _rangeMaxTs) return;
+            var mk = document.createElement('span');
             mk.className = 'event-timeline-marker';
-            mk.style.left = (range > 0 ? ((item.ts - minTs) / range) * 100 : 50) + '%';
-            mk.title = (item.title || 'Event #' + item.id) + ' — ' + item.date;
-            mk.setAttribute('data-event-id', item.id);
+            mk.style.left = _tsToPct(item.ts) + '%';
+            mk.title = (item.title || ('Event #' + item.id)) + ' — ' + item.date;
             markers.appendChild(mk);
         });
 
-        if (rangeLabel) {
-            var start = formatTimelineDateUtc(itemMinTs);
-            var end   = formatTimelineDateUtc(maxTs);
-            rangeLabel.textContent = start === end ? start : (start + ' → ' + end);
-        }
-        timeline.style.display = '';
+        _paintRange();
+        _setupTimelineHandles();
+        _timelineHasData = true;
+        _syncTimelineVisibility();
     }
 
     /* ── fetch ─────────────────────────────────────────────── */
@@ -308,6 +592,7 @@ echo $this->element('genericElements/assetLoader', [
         var listEl    = document.getElementById('correlations-list');
 
         if (stageEl)  stageEl.style.display  = '';
+        _timelineHasData = false;
         if (timeline) timeline.style.display = 'none';
         if (listEl)   listEl.style.display   = 'none';
         if (graphEl) {
@@ -673,6 +958,13 @@ echo $this->element('genericElements/assetLoader', [
         _sankeyListenersReady = true;
 
         document.getElementById('sankey-date-align').addEventListener('change', function () {
+            _syncTimelineVisibility();
+            if (!_rangeIsFull && _correlationData && _correlationEventDetails) {
+                /* the period filter follows the axis, so the drawn set changes */
+                renderSankey(_correlationData, _correlationEventDetails, null,
+                    {animateToggle: true});
+                return;
+            }
             updateTargetPositionsOnly(true);
         });
         document.getElementById('sankey-latest-events').addEventListener('change', function () {
@@ -738,6 +1030,18 @@ echo $this->element('genericElements/assetLoader', [
             parentIds = parentIds.slice(0, 100);
         }
 
+        /* the strip above restricts which period the graph draws */
+        var rangeActive = alignToDate && isFinite(_rangeMinTs)
+            && isFinite(_rangeMaxTs) && !_rangeIsFull;
+        function relInRange(rel) {
+            if (!rangeActive) return true;
+            var det = eventDetails && eventDetails[rel.id] ? eventDetails[rel.id] : null;
+            var evDate = rel.date || (det && det.date) || '';
+            var ts = evDate ? Date.parse(evDate + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return true;   // undated events stay visible
+            return ts >= _rangeMinTs && ts <= _rangeMaxTs;
+        }
+
         var allowedTargetEventIds = null;
         if (latestEventsOnly) {
             var latestTargetEvents = [];
@@ -745,6 +1049,7 @@ echo $this->element('genericElements/assetLoader', [
             parentIds.forEach(function (pid) {
                 (data[pid] || []).forEach(function (rel) {
                     if (seen[rel.id]) return;
+                    if (!relInRange(rel)) return;
                     seen[rel.id] = true;
                     var det = eventDetails && eventDetails[rel.id] ? eventDetails[rel.id] : null;
                     var evDate = rel.date || (det && det.date) || '';
@@ -769,6 +1074,7 @@ echo $this->element('genericElements/assetLoader', [
         parentIds.forEach(function (pid) {
             (data[pid] || []).forEach(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return;
+                if (!relInRange(rel)) return;
                 eventLinkCounts[rel.id] = (eventLinkCounts[rel.id] || 0) + 1;
             });
         });
@@ -777,6 +1083,7 @@ echo $this->element('genericElements/assetLoader', [
             var relations = data[pid] || [];
             var filtered  = relations.filter(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return false;
+                if (!relInRange(rel)) return false;
                 if (filterOrgId) {
                     var relOrgId = rel.org_id || (eventDetails && eventDetails[rel.id] && eventDetails[rel.id].org) || 'unknown';
                     return String(relOrgId) === String(filterOrgId);
@@ -849,27 +1156,6 @@ echo $this->element('genericElements/assetLoader', [
         if (sankeyStageEl) sankeyStageEl.style.display = '';
 
         /* ── layout helpers (hoisted) ─────────────────────── */
-        function startOfUtcMonth(ts) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-        }
-        function addUtcMonths(ts, n) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1);
-        }
-        function startOfUtcYear(ts) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), 0, 1);
-        }
-        function addUtcYears(ts, n) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear() + n, 0, 1);
-        }
-        function formatSankeyGridDate(ts, unit) {
-            var d = new Date(ts);
-            if (unit === 'year') return String(d.getUTCFullYear());
-            return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
-        }
         function truncateSourceLabel(name) {
             return name.length > 30 ? name.substring(0, 30) + '...' : name;
         }
@@ -957,19 +1243,29 @@ echo $this->element('genericElements/assetLoader', [
             }
         });
 
-        var hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max) && targetDateExtents.max > targetDateExtents.min;
-        var sankeyDomainMinTs = targetDateExtents.min, sankeyDomainMaxTs = targetDateExtents.max;
-        if (isFinite(currentEventDateTs)) {
-            sankeyDomainMinTs = isFinite(sankeyDomainMinTs) ? Math.min(sankeyDomainMinTs, currentEventDateTs) : currentEventDateTs;
-            sankeyDomainMaxTs = isFinite(sankeyDomainMaxTs) ? Math.max(sankeyDomainMaxTs, currentEventDateTs) : currentEventDateTs;
+        var hasSpreadableDates, sankeyScaleMinTs, sankeyScaleMaxTs;
+        if (isFinite(_rangeMinTs) && isFinite(_rangeMaxTs) && _rangeMaxTs > _rangeMinTs) {
+            /* the strip above is the single source of truth for the scale */
+            sankeyScaleMinTs = _rangeMinTs;
+            sankeyScaleMaxTs = _rangeMaxTs;
+            hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max);
+        } else {
+            hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max) && targetDateExtents.max > targetDateExtents.min;
+            var sankeyDomainMinTs = targetDateExtents.min, sankeyDomainMaxTs = targetDateExtents.max;
+            if (isFinite(currentEventDateTs)) {
+                sankeyDomainMinTs = isFinite(sankeyDomainMinTs) ? Math.min(sankeyDomainMinTs, currentEventDateTs) : currentEventDateTs;
+                sankeyDomainMaxTs = isFinite(sankeyDomainMaxTs) ? Math.max(sankeyDomainMaxTs, currentEventDateTs) : currentEventDateTs;
+            }
+            var useYearScale = isFinite(sankeyDomainMinTs) && isFinite(sankeyDomainMaxTs)
+                && new Date(sankeyDomainMinTs).getUTCFullYear() !== new Date(sankeyDomainMaxTs).getUTCFullYear();
+            sankeyScaleMinTs = isFinite(sankeyDomainMinTs) ? (useYearScale ? startOfUtcYear(sankeyDomainMinTs) : startOfUtcMonth(sankeyDomainMinTs)) : sankeyDomainMinTs;
+            sankeyScaleMaxTs = isFinite(sankeyDomainMaxTs) ? (useYearScale ? addUtcYears(startOfUtcYear(sankeyDomainMaxTs), 1) : addUtcMonths(startOfUtcMonth(sankeyDomainMaxTs), 1)) : sankeyDomainMaxTs;
         }
-        var useYearScale = isFinite(sankeyDomainMinTs) && isFinite(sankeyDomainMaxTs)
-            && new Date(sankeyDomainMinTs).getUTCFullYear() !== new Date(sankeyDomainMaxTs).getUTCFullYear();
-        var sankeyScaleMinTs = isFinite(sankeyDomainMinTs) ? (useYearScale ? startOfUtcYear(sankeyDomainMinTs) : startOfUtcMonth(sankeyDomainMinTs)) : sankeyDomainMinTs;
-        var sankeyScaleMaxTs = isFinite(sankeyDomainMaxTs) ? (useYearScale ? addUtcYears(startOfUtcYear(sankeyDomainMaxTs), 1) : addUtcMonths(startOfUtcMonth(sankeyDomainMaxTs), 1)) : sankeyDomainMaxTs;
 
         var rightLabelPadding = showPublisher ? 16 : 10;
-        var orgLabelReserve   = showPublisher ? 260 : 28;
+        var orgLabelReserve   = showPublisher
+            ? Math.max(96, Math.min(260, Math.round(longestOrgLen * 6.2) + 40))
+            : 28;
         var targetToOrgGap    = alignToDate ? (showPublisher ? 84 : 52) : (showPublisher ? 56 : 36);
         var targetLaneStartFloor = attributeMaxX1 + 90;
         var targetLaneStart      = targetLaneStartFloor;
@@ -984,6 +1280,10 @@ echo $this->element('genericElements/assetLoader', [
         }
         var orgColumnX0  = Math.max(attributeMaxX1 + targetToOrgGap + sankeyNodeWidth, width - sankeyNodeWidth - rightLabelPadding);
         var targetLaneEnd = alignToDate ? Math.min(alignedLaneEnd, orgColumnX0 - targetToOrgGap) : Math.max(alignedLaneEnd, orgColumnX0 - targetToOrgGap);
+        /* nodes span [alignedLaneStart, alignedLaneEnd - nodeWidth] by their left
+           edge, so their centres - and therefore the date axis - live here */
+        var dateLaneStart = alignedLaneStart + (sankeyNodeWidth / 2);
+        var dateLaneEnd   = alignedLaneEnd   - (sankeyNodeWidth / 2);
         var targetFixedX0 = Math.max(targetLaneStart, targetLaneEnd - Math.max(42, Math.floor(width * 0.035)));
         var orgLabelGap   = 18, targetLabelGap = 18, targetHoverPad = 14, orgLabelMaxLength = 34;
 
@@ -1138,33 +1438,9 @@ echo $this->element('genericElements/assetLoader', [
 
         /* ── timeline grid ────────────────────────────────── */
         var gridGroup = null;
-        function buildSankeyGridTicks(minTs, maxTs, laneStart, laneEnd) {
-            var laneWidth = laneEnd - laneStart;
-            if (!isFinite(minTs) || !isFinite(maxTs) || laneWidth <= 0) return [];
-            var yr = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
-            if (maxTs <= minTs) return [{x: laneStart + laneWidth / 2, label: formatSankeyGridDate(minTs, yr ? 'year' : 'month'), isEdge: true}];
-            var ticks = [], cursor = minTs, idx = 0;
-            while (cursor <= maxTs) {
-                var ratio = (cursor - minTs) / Math.max(1, (maxTs - minTs));
-                ticks.push({x: laneStart + laneWidth * ratio, label: formatSankeyGridDate(cursor, yr ? 'year' : 'month'), isEdge: idx === 0});
-                cursor = yr ? addUtcYears(cursor, 1) : addUtcMonths(cursor, 1);
-                idx++;
-            }
-            if (ticks.length) ticks[ticks.length - 1].isEdge = true;
-            var maxT = yr ? 7 : 8;
-            if (ticks.length > maxT) {
-                var interval = Math.ceil((ticks.length - 1) / (maxT - 1));
-                var limited  = ticks.filter(function (t, i) { return i === 0 || i === ticks.length - 1 || (i % interval) === 0; });
-                if (limited[limited.length - 1].x !== ticks[ticks.length - 1].x) limited.push(ticks[ticks.length - 1]);
-                ticks = limited;
-                ticks[0].isEdge = true;
-                ticks[ticks.length - 1].isEdge = true;
-            }
-            return ticks;
-        }
 
-        if (targetNodes.length > 0 && targetLaneEnd > targetLaneStart && alignToDate) {
-            var gridTicks  = buildSankeyGridTicks(sankeyScaleMinTs, sankeyScaleMaxTs, targetLaneStart, targetLaneEnd);
+        if (targetNodes.length > 0 && dateLaneEnd > dateLaneStart && alignToDate) {
+            var gridTicks  = buildSankeyGridTicks(sankeyScaleMinTs, sankeyScaleMaxTs, dateLaneStart, dateLaneEnd);
             var laneTop    = Math.max(0, d3.min(targetNodes, function (d) { return d.y0; }) - 12);
             var laneBottom = Math.min(height, d3.max(targetNodes, function (d) { return d.y1; }) + 8);
             var laneHeight = Math.max(0, laneBottom - laneTop);
@@ -1173,10 +1449,10 @@ echo $this->element('genericElements/assetLoader', [
                 gridGroup = svg.append('g').attr('class', 'sankey-target-grid');
                 var axisY  = laneTop - 28, tickTopY = axisY - 12;
 
-                gridGroup.append('rect').attr('x', targetLaneStart).attr('y', laneTop)
-                    .attr('width', targetLaneEnd - targetLaneStart).attr('height', laneHeight)
+                gridGroup.append('rect').attr('x', dateLaneStart).attr('y', laneTop)
+                    .attr('width', dateLaneEnd - dateLaneStart).attr('height', laneHeight)
                     .attr('fill', 'rgba(84,142,94,.035)').attr('stroke', 'rgba(71,109,79,.12)').attr('stroke-width', 1);
-                gridGroup.append('line').attr('x1', targetLaneStart).attr('x2', targetLaneEnd)
+                gridGroup.append('line').attr('x1', dateLaneStart).attr('x2', dateLaneEnd)
                     .attr('y1', axisY).attr('y2', axisY)
                     .attr('stroke', 'rgba(63,88,70,.34)').attr('stroke-width', 2).attr('shape-rendering', 'geometricPrecision');
 
@@ -1199,9 +1475,10 @@ echo $this->element('genericElements/assetLoader', [
 
                 if (isFinite(currentEventDateTs) && sankeyScaleMaxTs > sankeyScaleMinTs) {
                     var ceRatio = Math.max(0, Math.min(1, (currentEventDateTs - sankeyScaleMinTs) / Math.max(1, (sankeyScaleMaxTs - sankeyScaleMinTs))));
-                    var ceX     = targetLaneStart + ((targetLaneEnd - targetLaneStart) * ceRatio);
+                    var ceX     = dateLaneStart + ((dateLaneEnd - dateLaneStart) * ceRatio);
                     var ceNW    = sankeyNodeWidth;
-                    var ceNX    = Math.max(targetLaneStart, Math.min(targetLaneEnd - ceNW, ceX - ceNW / 2));
+                    var ceNX    = Math.max(dateLaneStart - (ceNW / 2),
+                                  Math.min(dateLaneEnd - (ceNW / 2), ceX - ceNW / 2));
                     var ceNY    = laneTop - 18, ceNH = 16;
                     var ceCY    = ceNY + ceNH / 2, ceLX = ceNX + ceNW + targetLabelGap;
                     var mg = gridGroup.append('g').attr('class', 'sankey-current-event-marker');
@@ -1373,6 +1650,8 @@ echo $this->element('genericElements/assetLoader', [
             if (gridGroup) {
                 gridGroup.transition().duration(dur).style('opacity', useDate ? 1 : 0);
             }
+
+            _alignTimelineToLane(margin.left, dateLaneStart, dateLaneEnd);
         };
 
         /* ── fade in after toggle re-render ───────────────── */
@@ -1380,6 +1659,8 @@ echo $this->element('genericElements/assetLoader', [
             d3.select('#sankey svg').transition().duration(260).style('opacity', 1);
             if (sankeyEl) sankeyEl.style.opacity = '1';
         }
+
+        _alignTimelineToLane(margin.left, dateLaneStart, dateLaneEnd);
     }
 
     /* ── public: filter ────────────────────────────────────── */
