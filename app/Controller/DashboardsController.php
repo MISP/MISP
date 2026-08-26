@@ -1307,13 +1307,27 @@ class DashboardsController extends AppController
         }
 
         $currentUserId = $this->Auth->user('id');
+        // Template owners' e-mail addresses are a privilege decision, not a
+        // rendering one. The redaction used to sit inside the !_isRest()
+        // branch of afterFind() below, so the same session returned the
+        // addresses verbatim the moment it asked for JSON - and _isRest() is
+        // chosen by the caller (URL suffix / Accept header), so it never was
+        // a boundary. Decide it here instead, on the same rule the two
+        // e-mail-bearing dashboard widgets use, and simply do not fetch the
+        // column when it may not be shown - the shape ObjectTemplatesController
+        // ::view() already uses for exactly this field.
+        App::uses('User', 'Model');
+        $contain = ['User.id'];
+        if (User::canSeeEmails($this->Auth->user())) {
+            $contain[] = 'User.email';
+        }
         $params = [
             'filters' => ['name', 'description', 'uuid', 'value'],
             'quickFilters' => ['name', 'description', 'uuid'],
             'quickFilterParameter' => 'value',
             'conditions' => $conditions,
-            'contain' => ['User.id', 'User.email'],
-            'afterFind' => function ($data) use ($accessible_widgets, $currentUserId) {
+            'contain' => $contain,
+            'afterFind' => function ($data) use ($accessible_widgets) {
                 foreach ($data as &$element) {
                     $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
                     if (!$this->_isRest()) {
@@ -1332,9 +1346,6 @@ class DashboardsController extends AppController
                             }
                         }
                         $element['Dashboard']['widgets'] = $temp;
-                        if ($element['Dashboard']['user_id'] != $currentUserId) {
-                            $element['User']['email'] = '';
-                        }
                     }
                 }
                 return $data;
