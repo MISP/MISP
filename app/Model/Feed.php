@@ -525,11 +525,45 @@ class Feed extends AppModel
         } else {
             return array();
         }
-        // Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
-        // The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
-        $correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
-        $correlations2 = $this->Attribute->find('list', array('conditions' => array('Attribute.value2' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value2')));
-        $correlations = array_merge_recursive($correlations, $correlations2);
+        // Scoped to what $user may actually read. These were two raw
+        // find('list') calls filtered only on `deleted = 0`, with no user
+        // and no ACL - and MispAttribute has no beforeFind hook to catch
+        // that - so the preview reported correlations against events the
+        // caller cannot open, and FeedsController then resolved those ids
+        // to their Event.info. fetchAttributesSimple() applies
+        // buildConditions($user), which covers event distribution, the
+        // caller's own org, sharing groups, and attribute- and
+        // object-level distribution; for a site admin it is empty, so
+        // they lose nothing.
+        //
+        // One find with an OR replaces the pair: the previous version ran
+        // value1 and value2 separately and array_merge_recursive'd the
+        // results, which appended duplicates because event ids are numeric
+        // keys. Grouping by the matched value here dedupes instead.
+        $valueSet = array_flip($values);
+        $correlatingAttributes = $this->Attribute->fetchAttributesSimple($user, array(
+            'conditions' => array(
+                'Attribute.deleted' => 0,
+                'OR' => array(
+                    'Attribute.value1' => $values,
+                    'Attribute.value2' => $values,
+                ),
+            ),
+            'fields' => array('Attribute.event_id', 'Attribute.value1', 'Attribute.value2'),
+        ));
+        $correlations = array();
+        foreach ($correlatingAttributes as $correlatingAttribute) {
+            $eventId = $correlatingAttribute['Attribute']['event_id'];
+            foreach (array('value1', 'value2') as $valueField) {
+                $value = $correlatingAttribute['Attribute'][$valueField];
+                // Skip the empty value2 that every non-composite attribute
+                // carries, so an empty feed line cannot match the lot.
+                if ($value === '' || $value === null || !isset($valueSet[$value])) {
+                    continue;
+                }
+                $correlations[$value][$eventId] = $eventId;
+            }
+        }
         foreach ($data as $key => $value) {
             if (isset($correlations[$value['value']])) {
                 $data[$key]['correlations'] = array_values($correlations[$value['value']]);
