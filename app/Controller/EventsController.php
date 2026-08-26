@@ -3063,8 +3063,9 @@ class EventsController extends AppController
                 'GalaxyCluster.default'   => true,
             ],
         ];
-        if ($q !== '') {
-            $conditions['GalaxyCluster.value LIKE'] = '%' . $q . '%';
+        $search = $this->GalaxyCluster->valueSearchConditions($q);
+        if (!empty($search)) {
+            $conditions['AND'] = $search;
         }
         if ($galaxyId > 0) {
             $conditions['GalaxyCluster.galaxy_id'] = $galaxyId;

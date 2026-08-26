@@ -2909,14 +2909,23 @@ function initGalaxyPickerSection(root, initClusters, options) {
         shouldLoad:   function (q) {
             return currentGalaxyId ? true : q.length >= 2;
         },
+        /* The endpoint handles matching, so TomSelect's filter is disabled to keep all server-sorted results. */
+        score:        function () {
+            return function () { return 1; };
+        },
         load: function (query, callback) {
+            var self = this;
             var url = searchUrl + '?q=' + encodeURIComponent(query);
             if (currentGalaxyId) {
                 url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
             }
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(function (r) { return r.json(); })
-                .then(function (json) { callback(json); })
+                .then(function (json) {
+                    /* clearOptions() clears stale results and forces the endpoint to reload when the query changes. */
+                    self.clearOptions();
+                    callback(json);
+                })
                 .catch(function () { callback(); });
         },
         render: {
@@ -2937,6 +2946,14 @@ function initGalaxyPickerSection(root, initClusters, options) {
             var self = this;
             setTimeout(function () { self.clear(true); self.blur(); }, 0);
         }
+    });
+
+    /* Clear stale results when the query is too short to offer any valid options. */
+    ts.on('type', function (q) {
+        if (currentGalaxyId || q.length >= 2) { return; }
+        if (Object.keys(ts.options).length === 0) { return; }
+        ts.clearOptions();
+        ts.refreshOptions();
     });
 
     /* Category buttons: "All" (remote search) or one galaxy (scoped) */
