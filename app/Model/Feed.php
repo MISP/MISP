@@ -473,10 +473,17 @@ class Feed extends AppModel
         $this->Attribute = ClassRegistry::init('MispAttribute');
         $redis = $this->setupRedis();
         if ($redis !== false) {
+            // `url` is deliberately absent. The whole row is pushed into
+            // $data[...]['feed_correlations'] below and returned to the
+            // caller by the REST branch of FeedsController::__previewFreetext,
+            // and this query is scoped only by `Feed.id !=` - so it reaches
+            // across every cached feed on the instance, including the ones
+            // not marked lookup_visible. Nothing renders or reads the URL:
+            // it was disclosure with no consumer.
             $feeds = $this->find('all', array(
                 'recursive' => -1,
                 'conditions' => array('Feed.id !=' => $feedId),
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                'fields' => array('id', 'name', 'provider', 'source_format')
             ));
             foreach ($feeds as $k => $v) {
                 if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {
