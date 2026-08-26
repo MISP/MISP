@@ -1251,7 +1251,10 @@ class FeedsController extends AppController
     private function __canViewFeed($feed)
     {
         $host_org_id = (int)Configure::read('MISP.host_org_id');
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
+        // (int) on the session value too: it arrives from the database as a
+        // string, so under strict !== the host-org carve-out could never
+        // match and every host-org user was treated as an outsider.
+        if (!$this->_isSiteAdmin() && (int)$this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
             return false;
         }
         return true;
