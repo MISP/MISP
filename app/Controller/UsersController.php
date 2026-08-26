@@ -1449,26 +1449,10 @@ class UsersController extends AppController
         // Events list
         $url = $this->Session->consume('pre_login_requested_url') ?? '';
 
-        $url = rawurldecode($url);
-        $parts = parse_url($url);
-
-        if (
-            $url === '' ||
-            $parts === false ||
-            isset($parts['host']) ||
-            isset($parts['scheme']) ||
-            isset($parts['user']) ||
-            !isset($parts['path']) ||
-            $parts['path'][0] !== '/' ||
-            // reject "//x" and "/\x" - both resolve to a protocol-relative (off-site) URL
-            (isset($parts['path'][1]) && ($parts['path'][1] === '/' || $parts['path'][1] === '\\'))
-        ) {
-            $url = '';
-        } else {
-            $url = $parts['path']
-                . (isset($parts['query']) ? '?' . $parts['query'] : '')
-                . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
-        }
+        // Decode before validating and redirect what comes back: '/%2f%2fevil'
+        // must not become '//evil' after the check has run.
+        App::uses('InternalRedirectValidator', 'Tools');
+        $url = InternalRedirectValidator::sanitize(rawurldecode($url));
         
         if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
             if (substr($url, 0, 7) === "http://") {
@@ -1476,10 +1460,11 @@ class UsersController extends AppController
             }
         }
         if (empty($url)) {
-            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
-            if (!empty($homepage)) {
-                $url = $homepage['path'];
-            } else {
+            // The stored homepage is the same kind of value as the session URL
+            // above and gets the same check - a leading '/' alone let
+            // '//attacker.example' through to the Location header verbatim.
+            $url = $this->User->UserSetting->getHomepagePath($this->Auth->user('id'));
+            if ($url === '') {
                 $url = array('controller' => 'events', 'action' => 'index');
             }
         }

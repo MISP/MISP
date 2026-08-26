@@ -498,9 +498,9 @@ class AppController extends Controller
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
-            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
-            if (!empty($homepage)) {
-                $this->set('homepage', $homepage);
+            $homepagePath = $this->User->UserSetting->getHomepagePath($user['id']);
+            if ($homepagePath !== '') {
+                $this->set('homepage', array('path' => $homepagePath));
             }
 
             if (PHP_MAJOR_VERSION < 8) {
