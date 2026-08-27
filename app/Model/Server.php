@@ -3278,9 +3278,15 @@ class Server extends AppModel
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $canEditAnalystData = isset($remoteVersion['perm_analyst_data']) ? $remoteVersion['perm_analyst_data'] : false;
-        $remoteVersionString = $remoteVersion['version'];
-        $remoteVersion = explode('.', $remoteVersion['version']);
-        if (!isset($remoteVersion[0])) {
+        $remoteVersionString = isset($remoteVersion['version']) ? $remoteVersion['version'] : null;
+        $remoteVersion = $remoteVersionString === null ? [] : explode('.', $remoteVersionString);
+        // The comparison ladder below reads $remoteVersion[0], [1] and [2], so all three
+        // components must be present and numeric. The previous guard tested
+        // `!isset($remoteVersion[0])`, which explode() can never make false - it always
+        // returns at least one element - so a truncated version such as "2" or "2.4" fell
+        // straight through to the ladder and produced undefined-array-key warnings and
+        // null comparisons on PHP 8 instead of the intended clean error.
+        if (count($remoteVersion) !== 3 || $remoteVersion !== array_filter($remoteVersion, 'ctype_digit')) {
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
             $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $message);
             return $message;
