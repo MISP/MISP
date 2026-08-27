@@ -9253,7 +9253,7 @@ class Event extends AppModel
      * @param int|false $jobId
      * @param int $elementCounter
      * @param bool $renderView
-     * @return TmpFileTool
+     * @return array|TmpFileTool Array of massaged filters when $paramsOnly is true
      * @throws Exception
      */
     public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
@@ -9280,7 +9280,7 @@ class Event extends AppModel
         $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export, $user);
 
         $filters = $this->addFiltersFromUserSettings($user, $filters);
-        if (empty($exportTool->mock_query_only)) {
+        if (empty($exportTool->mock_query_only) && !$paramsOnly) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
             $eventCount = count($eventid);
@@ -9306,6 +9306,9 @@ class Event extends AppModel
             if (!isset($filters['published'])) {
                 $filters['published'] = 1;
             }
+        }
+        if ($paramsOnly) {
+            return $filters;
         }
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
