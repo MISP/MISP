@@ -113,11 +113,19 @@ for kv in "Session.autoRegenerate 0" "Session.timeout 600" "Session.cookieTimeou
           "Plugin.ZeroMQ_redis_host 127.0.0.1" "Plugin.ZeroMQ_redis_port 6379" \
           "Plugin.ZeroMQ_redis_database 1" "Plugin.ZeroMQ_enable 1" \
           "Plugin.ZeroMQ_audit_notifications_enable 1" \
-          "SimpleBackgroundJobs.enabled 0" "MISP.background_jobs 0" \
+          "SimpleBackgroundJobs.enabled 0" \
           "MISP.server_settings_skip_backup_rotate 1"; do
     # shellcheck disable=SC2086
     cake Admin setSetting $kv
 done
+# MISP.background_jobs needs --force. `cake Admin setSetting` refuses it
+# otherwise - "Setting change rejected ... It is highly recommended that this
+# setting is enabled" - and the refusal is not an error exit, so passing it
+# through the loop above silently leaves it at its default of true, and
+# Event::publishRouter goes on enqueueing to a queue this job starts no worker
+# to drain.
+cake Admin setSetting --force "MISP.background_jobs" 0
+
 # Empty string: the loop above word-splits $kv, so "" would vanish.
 cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
 cake Admin setSetting --force debug true
