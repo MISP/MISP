@@ -34,7 +34,6 @@ foreach ($structure as $element) {
 
 $isActive = (int)($tpl['active'] ?? 0) === 1;
 
-xdebug_break();
 $descParts = [];
 if (!empty($tpl['created'])) {
     $descParts[] = '<span>'
