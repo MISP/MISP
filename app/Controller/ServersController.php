@@ -2361,6 +2361,7 @@ class ServersController extends AppController
 
     public function removeOrphanedCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {
