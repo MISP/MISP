@@ -280,7 +280,7 @@ class User extends AppModel
             $user['authkey'] = $this->generateAuthKey();
         }
         if (empty($user['nids_sid'])) {
-            $user['nids_sid'] = mt_rand(1000000, 9999999);
+            $user['nids_sid'] = mt_rand(5000000, 9999999);
         }
         if (!empty(Configure::read('Security.limit_site_admins_to_host_org'))){
             if (!empty($user['role_id']) and !empty($user['org_id'] and $user['org_id'] != Configure::read('MISP.host_org_id'))){
@@ -1187,7 +1187,7 @@ class User extends AppModel
             'password' => 'admin',
             'confirm_password' => 'admin',
             'authkey' => $authKeyOld,
-            'nids_sid' => 4000000,
+            'nids_sid' => 5000000,
             'newsread' => 0,
             'role_id' => 1,
             'change_pw' => 1
