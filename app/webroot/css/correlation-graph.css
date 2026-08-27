@@ -100,3 +100,9 @@ line.link {
     top: 60px;
     right:10px;
 }
+
+.correlation-toids-btn {
+    position: absolute;
+    top: 95px;
+    right:10px;
+}
