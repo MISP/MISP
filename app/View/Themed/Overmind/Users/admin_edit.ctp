@@ -237,6 +237,14 @@ echo $this->Form->create('User', [
                 <?= $switch('contactalert', __('Receive "Contact reporter" request emails')) ?>
                 <?= $switch('disabled', __('Immediately disable this account')) ?>
             </div>
+            <div class="mt-2">
+                <?= $this->Form->label('expiration', __('Account expiration (keep empty for no expiration)'), ['class' => 'form-label fw-semibold']) ?>
+                <?= $this->Form->text('expiration', [
+                    'class' => 'form-control bg-light',
+                    'placeholder' => 'YYYY-MM-DD',
+                    'value' => empty($this->request->data['User']['expiration']) ? '' : substr($this->request->data['User']['expiration'], 0, 10),
+                ]) ?>
+            </div>
         </div>
 
         <!-- NOTIFICATIONS -->

@@ -807,7 +807,7 @@ class UsersController extends AppController
                         $this->Flash->error(__('The user could not be saved. Invalid organisation.'));
                     }
                 } else {
-                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified', 'last_pw_change');
+                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'expiration', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified', 'last_pw_change');
                     if ($this->User->save($this->request->data, true, $fieldList)) {
                         $notification_message = '';
                         if (!empty($this->request->data['User']['notify'])) {

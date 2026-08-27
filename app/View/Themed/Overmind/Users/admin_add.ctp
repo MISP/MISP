@@ -252,6 +252,10 @@ echo $this->Form->create('User', [
                 <?= $switch('disabled', __('Immediately disable this account')) ?>
                 <?= $switch('notify', __('Send credentials automatically'), $checkedOr('notify', true)) ?>
             </div>
+            <div class="mt-2">
+                <?= $this->Form->label('expiration', __('Account expiration (keep empty for no expiration)'), ['class' => 'form-label fw-semibold']) ?>
+                <?= $this->Form->text('expiration', ['class' => 'form-control bg-light', 'placeholder' => 'YYYY-MM-DD']) ?>
+            </div>
         </div>
 
     </div>

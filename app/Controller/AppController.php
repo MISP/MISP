@@ -683,6 +683,24 @@ class AppController extends Controller
             return false;
         }
 
+        // Check if the user account itself has expired
+        if (!empty($user['expiration']) && strtotime($user['expiration']) < ($_SERVER['REQUEST_TIME'] ?? time())) {
+            if ($this->_shouldLog('expired_user:' . $user['id'])) {
+                $this->Log = ClassRegistry::init('Log');
+                $change = $this->User->UserLoginProfile->_getUserProfile();
+                $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by expired user.', json_encode($change));
+            }
+
+            $this->Auth->logout();
+            if ($this->_isRest()) {
+                throw new ForbiddenException('Authentication failed. Your user account has expired.');
+            } else {
+                $this->Flash->error(__('Your user account has expired.'));
+                $this->_redirectToLogin();
+            }
+            return false;
+        }
+
         // Check if auth key is not expired. Make sense when Security.authkey_keep_session is enabled.
         if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
             $time = $_SERVER['REQUEST_TIME'] ?? time();
