@@ -65,7 +65,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
     $actions[] = [
         'url' => "",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId', 'md');",
-        'icon' => 'fas fa-download',
+        'icon' => 'fas fa-eye-slash',
         'tour' => 'action-unpublish',
         'label' => __('Unpublish Event'),
         'warning' => true

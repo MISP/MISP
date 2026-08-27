@@ -22,6 +22,10 @@
  *                    becomes the header's watermark glyph
  *   $submitClass  => full class attribute of the submit button, for a colour the
  *                    accent table has no name for — prefer $accent
+ *   $submitLabelHtml => raw HTML for the submit button instead of
+ *                    $submitLabel / $submitIcon, for a label JavaScript rewrites
+ *                    through an inner element — carry your own glyph, and escape
+ *                    it yourself
  *   $accent       => accent key, see ModalAccent; defaults to the scope
  *                    $submitClass names, then 'primary'
  *   $eyebrow      => small uppercase label above the title (default Confirmation)
@@ -30,7 +34,11 @@
  *   $icon         => full class attribute of the right-hand watermark glyph
  *   $warning      => a cautionary line, or an array of them, rendered as a
  *                    callout under the question
+ *   $bodyHtml     => raw HTML between the question and the warning, for the few
+ *                    confirmations that show what they are about to act on (the
+ *                    event publish modal lists the servers) — escape it yourself
  *   $hint         => muted line in the footer, left of the buttons
+ *   $meta         => footer chips instead of $hint, each ['label' =>, 'id' =>]
  *   $canProceed   => false to drop the submit button, leaving only a way out
  *                    (nothing in the selection is actionable)
  *   $escape       => h() the question and the warnings (default true — pass
@@ -64,6 +72,13 @@ $submitSpec = [
 ];
 if ($submitClass !== null && $namedAccent === null) {
     $submitSpec['class'] = trim(preg_replace('/(^|\s)btn(\s|$)/', ' ', $submitClass));
+}
+
+/* A label the modal's own script rewrites — the raw HTML brings its own glyph,
+ * so the spec's icon steps aside. */
+if (!empty($submitLabelHtml)) {
+    $submitSpec['labelHtml'] = $submitLabelHtml;
+    $submitSpec['icon'] = '';
 }
 
 /* A dialog with nothing to act on is an explanation rather than a question, and
@@ -111,12 +126,14 @@ $text = function ($value) use ($escape) {
     }
     ?>
 
-    <div class="px-4 pt-4 <?= empty($warnings) ? 'pb-4' : 'pb-3' ?>">
+    <div class="px-4 py-4 d-flex flex-column gap-3">
         <p class="mb-0 lh-base"><?= $text($message) ?></p>
-    </div>
 
-    <?php if (!empty($warnings)): ?>
-        <div class="px-4 pb-4">
+        <?php if (!empty($bodyHtml)): ?>
+            <?= $bodyHtml ?>
+        <?php endif; ?>
+
+        <?php if (!empty($warnings)): ?>
             <div class="d-flex gap-2 p-3 rounded-2 bg-warning-subtle text-warning-emphasis border-start border-3 border-warning"
                  role="note">
                 <i class="fas fa-triangle-exclamation" style="font-size:.8rem; margin-top:.15rem;"></i>
@@ -132,14 +149,15 @@ $text = function ($value) use ($escape) {
                     <?php endif; ?>
                 </div>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
         'accent' => $accent,
         'bleed' => true,
-        'align' => empty($hint) ? 'end' : 'between',
+        'align' => (empty($hint) && empty($meta)) ? 'end' : 'between',
         'hint' => $hint ?? '',
+        'meta' => $meta ?? [],
         'cancel' => [
             'label' => $canProceed ? __('Cancel') : __('Close'),
             'icon' => 'fas fa-xmark',
