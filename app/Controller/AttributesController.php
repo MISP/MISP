@@ -1746,6 +1746,101 @@ class AttributesController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
     }
 
+    public function getMassEnrichForm($eventId)
+    {
+        if (!$this->request->is('ajax') || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX and POST.'));
+        }
+        if (!isset($eventId)) {
+            throw new MethodNotAllowedException(__('No event ID provided.'));
+        }
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array(
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp')
+        ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+        $selectedAttributeIds = $this->_jsonDecode($this->request->data['selected_ids']);
+        if (empty($selectedAttributeIds)) {
+            throw new MethodNotAllowedException(__('No attributes selected'));
+        }
+
+        $this->loadModel('Module');
+        $modules = $this->Module->getEnabledModules($this->Auth->user(), 'expansion');
+        if (!is_array($modules)) {
+            // getEnabledModules() returns an error string when the module system is unreachable
+            $modules = array();
+        }
+
+        $this->layout = false;
+        $this->set('id', $event['Event']['id']);
+        $this->set('selectedAttributeIds', $selectedAttributeIds);
+        $this->set('modules', $modules);
+        $this->render('ajax/attributeEnrichMassForm');
+    }
+
+    public function enrichSelected($eventId)
+    {
+        $this->request->allowMethod(['post']);
+
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array(
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp')
+        ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+
+        $requestData = isset($this->request->data['Attribute']) ? $this->request->data['Attribute'] : $this->request->data;
+        $attributeIds = $this->_jsonDecode($requestData['attribute_ids']);
+        if (empty($attributeIds)) {
+            throw new MethodNotAllowedException(__('No attributes selected'));
+        }
+        $modules = array();
+        foreach ($requestData as $module => $enabled) {
+            if ($module === 'attribute_ids' || $module === 'event_id') {
+                continue;
+            }
+            if ($enabled) {
+                $modules[] = $module;
+            }
+        }
+        if (empty($modules)) {
+            throw new MethodNotAllowedException(__('No enrichment module selected'));
+        }
+
+        // Resolve the selected attribute IDs to UUIDs, scoped to this event and to what the
+        // user is allowed to see, as Event::enrichment() filters on `attribute_uuids`.
+        $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array(
+            'conditions' => array('Attribute.id' => $attributeIds, 'Attribute.event_id' => $event['Event']['id']),
+            'flatten' => true,
+        ));
+        if (empty($attributes)) {
+            throw new NotFoundException(__('Invalid attributes'));
+        }
+        $attributeUuids = array();
+        foreach ($attributes as $attribute) {
+            $attributeUuids[] = $attribute['Attribute']['uuid'];
+        }
+
+        $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+        $result = $this->MispAttribute->Event->enrichmentRouter(array(
+            'user' => $this->Auth->user(),
+            'event_id' => $event['Event']['id'],
+            'modules' => $modules,
+            'attribute_uuids' => $attributeUuids,
+        ));
+        if ($this->_isRest()) {
+            return $this->RestResponse->successResponse($event['Event']['id'], 'enrichSelected', $result);
+        }
+        return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => $result)), 'status' => 200, 'type' => 'json'));
+    }
+
     private function __getSearchFilters(&$exception)
     {
         if (isset($this->request->data['Attribute'])) {
