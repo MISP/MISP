@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The integration suite boots the real CakePHP stack and needs a configured
+  database, so it is kept out of phpunit.xml: the unit layer's framework
+  stubs and the real Cake classes cannot coexist in one process.
+
+  Run with:  ./Vendor/bin/phpunit -c phpunit-integration.xml
+-->
+<phpunit bootstrap="Test/bootstrap_integration.php"
+         colors="true"
+         convertDeprecationsToExceptions="false"
+         cacheResultFile="tmp/.phpunit-integration.result.cache">
+  <testsuites>
+    <testsuite name="integration">
+      <directory suffix="Test.php">Test/Integration</directory>
+    </testsuite>
+  </testsuites>
+  <coverage processUncoveredFiles="false">
+    <include>
+      <directory suffix=".php">Model</directory>
+      <directory suffix=".php">Controller</directory>
+      <directory suffix=".php">Lib</directory>
+      <directory suffix=".php">Console</directory>
+    </include>
+    <exclude>
+      <directory>Lib/cakephp</directory>
+      <directory>Vendor</directory>
+      <directory>Plugin/DebugKit</directory>
+      <directory>Plugin/CakeResque</directory>
+    </exclude>
+  </coverage>
+</phpunit>
