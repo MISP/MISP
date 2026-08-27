@@ -2493,23 +2493,38 @@ function initSharingGroupForm(container) {
 }
 
 /*******************************
- * Sighting cells — popover lazy-init + add-sighting
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Lazy index-table popovers
+ * Index rows are re-rendered by AJAX pagination and filtering, so these
+ * popovers are built on the first hover/focus rather than initialised up
+ * front on every render. `container: 'body'` keeps them out of the table's
+ * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    /* Lazy popover */
-    document.addEventListener('mouseenter', function (e) {
-        var el = e.target.closest('.sighting-counts');
+    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter';
+
+    function lazyPopover(e) {
+        var el = e.target && e.target.closest ? e.target.closest(LAZY_POPOVERS) : null;
         if (!el || el._popoverReady) return;
         el._popoverReady = true;
         new bootstrap.Popover(el, {
             trigger:   'hover focus',
             html:      true,
             placement: 'top',
+            container: 'body',
         }).show();
-    }, true);
+    }
 
+    // The triggering event predates the instance, hence the .show() above.
+    document.addEventListener('mouseenter', lazyPopover, true);
+    document.addEventListener('focusin', lazyPopover);
+})();
+
+/*******************************
+ * Sighting cells — add-sighting buttons
+ * i18n strings are injected once per page via window._sightingI18n
+ * (set by the sightings.ctp field partial)
+ *******************************/
+(function () {
     document.addEventListener('click', async function (e) {
         var btn = e.target.closest('.add-sighting-btn');
         if (!btn) return;

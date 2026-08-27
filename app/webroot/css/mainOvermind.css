@@ -2255,3 +2255,83 @@ tr.attr-proposal-row td:first-child {
     border-color: var(--bs-primary);
     background: var(--bs-primary-bg-subtle);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Role permissions cell — IndexTable/Fields/role_permissions.ctp
+ *
+ * The counter pill opens a popover listing every permission flag as granted
+ * or denied, the same breakdown Roles/view shows in its "Permission flags"
+ * grid, only denser: two columns, a check/cross instead of a Granted/Denied
+ * badge. The popover is rendered into <body> (container: 'body'), so it is
+ * scoped by the custom class rather than by an ancestor.
+ * ───────────────────────────────────────────────────────────────────────── */
+.role-perm-counter {
+    cursor: pointer;
+}
+
+.role-perm-popover.popover {
+    max-width: 30rem;
+}
+
+.role-perm-popover .popover-body {
+    padding: .5rem .6rem;
+}
+
+.role-perm-popover .rp-head {
+    margin-bottom: .4rem;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+.role-perm-popover .rp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .25rem;
+}
+
+.role-perm-popover .rp-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .1rem .4rem;
+    font-size: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+}
+
+.role-perm-popover .rp-item .rp-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-perm-popover .rp-item .rp-mark {
+    flex-shrink: 0;
+    font-size: .7rem;
+    opacity: .55;
+}
+
+.role-perm-popover .rp-on {
+    font-weight: 500;
+    border-color: var(--bs-success-border-subtle);
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-body-color);
+}
+
+.role-perm-popover .rp-on .rp-mark {
+    opacity: 1;
+    color: var(--bs-success);
+}
+
+/* Two 15rem columns are unreadable on a phone; stack them. */
+@media (max-width: 575.98px) {
+    .role-perm-popover .rp-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
