@@ -515,6 +515,7 @@ body[data-controller="users"][data-action="change_pw"] {
 .table-scroll .idx-col-id,
 .table-scroll .idx-col-type,
 .table-scroll .idx-col-category,
+.table-scroll .idx-col-tag_name,
 .table-scroll .idx-col-tag_list,
 .table-scroll .idx-col-galaxy,
 .table-scroll .idx-col-datetime{
