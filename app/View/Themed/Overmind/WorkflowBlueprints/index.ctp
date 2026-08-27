@@ -68,7 +68,7 @@ $fields = [
         'sort' => 'WorkflowBlueprint.id',
         'data_path' => 'WorkflowBlueprint.id',
         'element' => 'id',
-        'url' => $baseurl . '/workflowBlueprints/view/%id%',
+        'url' => '#', // $baseurl . '/workflowBlueprints/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
