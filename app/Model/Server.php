@@ -710,14 +710,15 @@ class Server extends AppModel
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
-        // Event::_edit() returns its (empty) validationErrors array when the pulled event is
-        // not newer than the local copy, and __checkIfPulledEventExistsAndAddOrUpdate() stores
-        // the json_encode()d result in $fails - which is why "failed" and "didn't need an
-        // update" used to be reported as a single number. Tell them apart again.
+        // Event::_edit() reports an event that is not newer than the local copy as an error
+        // (app/Model/Event.php - 'Event in the request not newer than the local copy.'), which
+        // __checkIfPulledEventExistsAndAddOrUpdate() then stores in $fails alongside genuine
+        // failures - which is why "failed" and "didn't need an update" used to be reported as
+        // a single number. Tell them apart again.
         $unchanged = 0;
         $failed = array();
         foreach ($fails as $failedEventId => $reason) {
-            if (in_array($reason, array('[]', '{}', '', 'null'), true)) {
+            if (is_string($reason) && strpos($reason, 'not newer than the local copy') !== false) {
                 $unchanged++;
             } else {
                 $failed[$failedEventId] = $reason;
