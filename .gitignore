@@ -143,4 +143,7 @@ vagrant/*.log
 
 .vscode/launch.json
 
+# Written by build/coverage/ci_setup_misp.sh; holds absolute paths.
+build/coverage/covconfig.php
+
 /tests/ldapauth/__pycache__
