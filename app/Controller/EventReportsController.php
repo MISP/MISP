@@ -32,6 +32,16 @@ class EventReportsController extends AppController
         )
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // purgeUnusedPictures is only ever reached by the picture management
+        // page's hand-built AJAX, which has no rendered form behind it to
+        // produce the field hash _validatePost() compares against. It sends
+        // the page's CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['purgeUnusedPictures']);
+    }
+
     public function add($eventId = false)
     {
         if ($this->request->is('get') && $this->_isRest()) {
@@ -752,6 +762,7 @@ class EventReportsController extends AppController
 
     public function purgeUnusedPictures()
     {
+        $this->request->allowMethod(['post']);
         $this->EventReport->purgeUnusedPictures();
         $message = __('Purged all unused pictures');
         return $this->__getSuccessResponseBasedOnContext($message, null, 'purgeUnusedPictures');
