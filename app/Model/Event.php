@@ -35,6 +35,9 @@ class Event extends AppModel
     const NO_PUSH_DISTRIBUTION = 'distribution',
         NO_PUSH_SERVER_RULES = 'push_rules';
 
+    /** Maximum number of e-mail addresses spelled out in the aggregated encryption failure log entry. */
+    const ENCRYPTION_FAILURE_LOG_LIMIT = 200;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -4677,6 +4680,8 @@ class Event extends AppModel
 
         $userCount = count($usersWithAccess);
         $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
+        // Collected instead of logged one by one - see logEncryptionFailures() below.
+        $encryptionFailures = [];
         foreach ($usersWithAccess as $k => $user) {
             // Fetch event for user that will receive alert e-mail to respect all ACLs
             $eventForUser = $this->fetchEvent($user, [
@@ -4695,17 +4700,63 @@ class Event extends AppModel
             $eventForUser = $eventForUser[0];
             if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(['User' => $user], $body, false, null);
+                $this->User->sendEmail(['User' => $user], $body, false, null, false, $encryptionFailures);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
             }
         }
 
+        $this->logEncryptionFailures($senderUser, $id, $userCount, $encryptionFailures);
+
         if ($jobId) {
             $this->Job->saveStatus($jobId, true, __('Mails sent.'));
         }
         return true;
+    }
+
+    /**
+     * Write a single Log entry summarising the recipients that could not be alerted because
+     * `GnuPG.onlyencrypted` is set and they have no usable encryption key.
+     *
+     * Before this existed, User::sendEmail() wrote one entry per affected recipient, which on a
+     * large instance means hundreds of near-identical rows for a single publish.
+     *
+     * @param array $senderUser
+     * @param int $eventId
+     * @param int $userCount Total number of users with alerting enabled that were attempted.
+     * @param array $encryptionFailures E-mail addresses that could not be encrypted for.
+     * @return void
+     */
+    private function logEncryptionFailures(array $senderUser, $eventId, $userCount, array $encryptionFailures)
+    {
+        if (empty($encryptionFailures)) {
+            return;
+        }
+        if (Configure::read('MISP.log_skip_email_encryption_failures')) {
+            return;
+        }
+        $failureCount = count($encryptionFailures);
+        // `logs`.`change` is a TEXT column, so do not let a very large instance overflow it.
+        $listed = array_slice($encryptionFailures, 0, self::ENCRYPTION_FAILURE_LOG_LIMIT);
+        $affected = implode(', ', $listed);
+        if ($failureCount > count($listed)) {
+            $affected .= __(' and %s more', $failureCount - count($listed));
+        }
+        $title = __(
+            'Encrypted e-mails are enforced, but no valid encryption key was found for %s of the %s users with alerting enabled for event #%s, so no alert e-mail could be sent to them.',
+            $failureCount,
+            $userCount,
+            $eventId
+        );
+        $this->loadLog()->createLogEntry(
+            $senderUser,
+            'email',
+            'Event',
+            $eventId,
+            $title,
+            __('Affected users: %s', $affected)
+        );
     }
 
     /**

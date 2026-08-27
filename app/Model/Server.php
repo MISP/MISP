@@ -6659,6 +6659,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'log_skip_email_encryption_failures' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When `GnuPG.onlyencrypted` is enabled, MISP logs an entry every time an e-mail cannot be sent because the recipient has no valid encryption key. Publish alerts already collapse these into a single entry per event, but on an instance where a large share of the users have no key even that summary may be unwanted noise. Enable this to skip these log entries entirely. The failures are still reported in the error log.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'delegation' => array(
                     'level' => 1,
                     'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
