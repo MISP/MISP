@@ -707,7 +707,6 @@ dd {
     border-collapse: separate;
     box-shadow: 5px 5px 5px #888888;
     width:100%;
-    max-width:900px;
 }
 
 .discussionBoxTD {
