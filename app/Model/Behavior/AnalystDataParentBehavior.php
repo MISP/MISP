@@ -25,6 +25,15 @@ class AnalystDataParentBehavior extends ModelBehavior
                 $this->__currentUser = $this->User->getAuthUser($user_id);
             }
         }
+        // Without an acting user there is nothing to evaluate ACL against, and
+        // every downstream call assumes one: SharingGroup::authorizedIds() is
+        // typed `array $user` and raises a fatal TypeError when handed null.
+        // Configure's CurrentUserId is set by an authenticated request, but not
+        // by console shells, background workers or tests - so attach nothing
+        // rather than dying with an error that names SharingGroup.
+        if (empty($this->__currentUser)) {
+            return $object;
+        }
         if (empty($this->__isRest)) {
             $this->__isRest = Configure::read('CurrentRequestIsRest');
         }
