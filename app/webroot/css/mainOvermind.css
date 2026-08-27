@@ -1848,12 +1848,13 @@ tr.attr-proposal-row td:first-child {
 }
 .ss-scope .ss-section-header {
     display: flex; align-items: center; gap: .75rem; cursor: pointer;
-    background: color-mix(in srgb, var(--ss-accent) 10%, var(--bs-body-bg));
+    background: transparent;
     border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color .15s ease-in-out;
 }
 .ss-scope .ss-section-header.collapsed { border-bottom-color: transparent; }
-.ss-scope .ss-section-header:hover {
-    background: color-mix(in srgb, var(--ss-accent) 17%, var(--bs-body-bg));
+.ss-scope .ss-section-header[data-bs-toggle="collapse"]:hover {
+    background: color-mix(in srgb, var(--ss-accent) 9%, var(--bs-body-bg));
 }
 .ss-scope .ss-section-icon {
     flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: .5rem;
