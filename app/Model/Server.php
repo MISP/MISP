@@ -1153,9 +1153,20 @@ class Server extends AppModel
             // Safety net against a remote that honours `limit` but ignores `page`
             // (would otherwise loop forever): the minimal index is sorted by
             // Event.id asc, so the max id must strictly advance between pages.
-            $maxId = (int)max(array_column($eventArray, 'id'));
-            $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
-            $previousMaxId = $maxId;
+            // `id` is guaranteed by the `minimal=1` index of any MISP remote, but a
+            // remote that answers with well-formed rows carrying no `id` would leave
+            // array_column() empty and max([]) throws a ValueError on PHP 8 - i.e. the
+            // guard written to survive a misbehaving remote would crash on one. When no
+            // id is available we cannot prove the page advanced, so we treat it exactly
+            // like a non-advancing page: process it and stop paginating.
+            $ids = array_column($eventArray, 'id');
+            if ($ids === []) {
+                $notAdvancing = true;
+            } else {
+                $maxId = (int)max($ids);
+                $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
+                $previousMaxId = $maxId;
+            }
 
             if (!$all) {
                 if (!empty($this->EventBlocklist)) {
