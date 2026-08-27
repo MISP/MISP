@@ -1327,23 +1327,29 @@ class Server extends AppModel
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
                             'Event.published' => 1,
-                            'OR' => array(
-                                array('Event.attribute_count >' => 0),
-                                array($eventReportQuery),
-                            ),
-                            'OR' => array(
+                            'AND' => array(
                                 array(
-                                    'AND' => array(
-                                        array('Event.distribution >' => 0),
-                                        array('Event.distribution <' => 4),
+                                    'OR' => array(
+                                        array('Event.attribute_count >' => 0),
+                                        array($eventReportQuery),
                                     ),
                                 ),
                                 array(
-                                    'AND' => array(
-                                        'Event.distribution' => 4,
-                                        'Event.sharing_group_id' => $sgIds
+                                    'OR' => array(
+                                        array(
+                                            'AND' => array(
+                                                array('Event.distribution >' => 0),
+                                                array('Event.distribution <' => 4),
+                                            ),
+                                        ),
+                                        array(
+                                            'AND' => array(
+                                                'Event.distribution' => 4,
+                                                'Event.sharing_group_id' => $sgIds
+                                            ),
+                                        )
                                     ),
-                                )
+                                ),
                             )
                     ), // array of conditions
                     'recursive' => -1, //int
@@ -3200,23 +3206,29 @@ class Server extends AppModel
                     'conditions' => [
                         $eventid_conditions_key => $eventid_conditions_value,
                         'Event.published' => 1,
-                        'OR' => [
-                            ['Event.attribute_count >' => 0],
-                            [$eventReportQuery],
-                        ],
-                        'OR' => [
+                        'AND' => [
                             [
-                                'AND' => [
-                                    ['Event.distribution >' => 0],
-                                    ['Event.distribution <' => 4],
+                                'OR' => [
+                                    ['Event.attribute_count >' => 0],
+                                    [$eventReportQuery],
                                 ],
                             ],
                             [
-                                'AND' => [
-                                    'Event.distribution' => 4,
-                                    'Event.sharing_group_id' => $sgIds
+                                'OR' => [
+                                    [
+                                        'AND' => [
+                                            ['Event.distribution >' => 0],
+                                            ['Event.distribution <' => 4],
+                                        ],
+                                    ],
+                                    [
+                                        'AND' => [
+                                            'Event.distribution' => 4,
+                                            'Event.sharing_group_id' => $sgIds
+                                        ],
+                                    ]
                                 ],
-                            ]
+                            ],
                         ]
                     ],
                     'recursive' => -1,
