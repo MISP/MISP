@@ -28,6 +28,7 @@ App::uses('JsonTool', 'Tools');
 App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('Folder', 'Utility');
+App::uses('MigrationRunner', 'Migration');
 
 class AppModel extends Model
 {
@@ -52,6 +53,9 @@ class AppModel extends Model
     public $includeAnalystDataRecursive;
 
     private $dbiq = null;
+
+    /** @var MigrationRunner|null */
+    private $migrationRunner = null;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -2807,172 +2811,7 @@ class AppModel extends Model
                 return false;
         }
 
-        // switch MISP instance live to false
-        if ($liveOff) {
-            $this->setLive(false);
-        }
-        $sql_update_count = count($sqlArray);
-        $index_update_count = count($indexArray);
-        $total_update_count = $sql_update_count + $index_update_count;
-        $this->__setUpdateProgress(0, $total_update_count, $command);
-        $str_index_array = array();
-        foreach ($indexArray as $toIndex) {
-            $str_index_array[] = __('Indexing %s -> %s', $toIndex[0], $toIndex[1]);
-        }
-        $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
-        $flagStop = false;
-        $errorCount = 0;
-
-        // execute test before update. Exit if it fails
-        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'])) {
-            $function_name = self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'];
-            try {
-                $this->{$function_name}();
-            } catch (Exception $e) {
-                $this->__setPreUpdateTestState(false);
-                $this->__setUpdateProgress(0, false);
-                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `%s`. The returned error is: %s', $function_name, $e->getMessage()) . PHP_EOL);
-                $this->__setUpdateError(0);
-                $errorCount++;
-                $exitOnError = true;
-                $flagStop = true;
-            }
-        }
-
-        if (!$flagStop) {
-            $this->__setPreUpdateTestState(true);
-            foreach ($sqlArray as $i => $sql) {
-                try {
-                    $this->__setUpdateProgress($i, false);
-                    $this->query($sql);
-                    $this->Log->create();
-                    $this->Log->saveOrFailSilently(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => __('Successfully executed the SQL query for ') . $command,
-                        'change' => __('The executed SQL query was: %s', $sql),
-                    ));
-                    $this->__setUpdateResMessages($i, __('Successfully executed the SQL query for %s', $command));
-                } catch (Exception $e) {
-                    $errorMessage = $e->getMessage();
-                    $this->Log->create();
-                    $logMessage = array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => __('Issues executing the SQL query for %s', $command),
-                        'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
-                    );
-                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s', $command, $errorMessage));
-                    if (!$this->isAcceptedDatabaseError($errorMessage)) {
-                        $this->__setUpdateError($i);
-                        $errorCount++;
-                        if ($exitOnError) {
-                            $flagStop = true;
-                            break;
-                        }
-                    } else {
-                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
-                    }
-                    $this->Log->saveOrFailSilently($logMessage);
-                }
-            }
-        }
-        if (!$flagStop) {
-            if (!empty($indexArray)) {
-                if ($clean) {
-                    $this->cleanCacheFiles();
-                }
-                foreach ($indexArray as $i => $iA) {
-                    $this->__setUpdateProgress(count($sqlArray)+$i, false);
-                    if (isset($iA[2])) {
-                        $indexSuccess = $this->__addIndex($iA[0], $iA[1], $iA[2]);
-                    } else {
-                        $indexSuccess = $this->__addIndex($iA[0], $iA[1]);
-                    }
-                    if ($indexSuccess['success']) {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfully indexed %s -> %s', $iA[0], $iA[1]));
-                    } else {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s',
-                            __('Failed to add index'),
-                            sprintf('%s -> %s', $iA[0], $iA[1]),
-                            __('The returned error is:') . PHP_EOL,
-                            $indexSuccess['errorMessage']
-                        ));
-                        $this->__setUpdateError(count($sqlArray)+$i);
-                    }
-                }
-            }
-            $this->__setUpdateProgress(count($sqlArray) + count($indexArray), false);
-         }
-        if ($clean) {
-            $this->cleanCacheFiles();
-        }
-        if ($liveOff) {
-            $this->setLive(true);
-        }
-        if (!$flagStop && $errorCount == 0) {
-            $this->__postUpdate($command);
-        }
-        if ($flagStop && $errorCount > 0) {
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'update_database',
-                'user_id' => 0,
-                'title' => __('Issues executing the SQL query for %s', $command),
-                'change' => __('Database updates stopped as some errors occurred and the stop flag is enabled.')
-            ));
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Set if misp is live in redis or in config file as fallback
-     * @param bool $isLive
-     */
-    private function setLive($isLive)
-    {
-        try {
-            $redis = $this->setupRedisWithException();
-            if ($isLive) {
-                $redis->del('misp:live');
-            } else {
-                $redis->set('misp:live', '0');
-            }
-        } catch (Exception $e) {
-            // pass
-        }
-
-        if (!isset($this->Server)) {
-            $this->Server = ClassRegistry::init('Server');
-        }
-        $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
-    }
-
-    /**
-     * Check whether the adminSetting should be updated after the update.
-     * @param string $command
-     * @return void
-     */
-    private function __postUpdate($command)
-    {
-        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['record'])) {
-            if (self::ADVANCED_UPDATES_DESCRIPTION[$command]['record']) {
-                $this->AdminSetting->changeSetting($command, 1);
-            }
-        }
+        return $this->getMigrationRunner()->run($command, $sqlArray, $indexArray, $liveOff, $exitOnError, $clean);
     }
 
     private function __dropIndex($table, $field)
@@ -3012,6 +2851,20 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * Public entry point to __addIndex() for MigrationRunner's deferred index loop.
+     * The update switch itself keeps calling the private method directly.
+     *
+     * @param string $table
+     * @param string $field
+     * @param int|null $length
+     * @param bool $unique
+     * @return array
+     */
+    public function addIndex($table, $field, $length = null, $unique = false)
+    {
+        return $this->__addIndex($table, $field, $length, $unique);
+    }
     private function __addIndex($table, $field, $length = null, $unique = false)
     {
         $this->Log = ClassRegistry::init('Log');
@@ -3357,170 +3210,62 @@ class AppModel extends Model
         $this->User->updateAll(['date_modified' => time()]);
     }
 
-    private function __setUpdateProgress($current, $total=false, $toward_db_version=false)
+    /**
+     * @return MigrationRunner The shared executor for both the legacy update path and the migration system.
+     */
+    private function getMigrationRunner()
     {
-        $updateProgress = $this->getUpdateProgress();
-        $updateProgress['current'] = $current;
-        if ($total !== false) {
-            $updateProgress['total'] = $total;
-        } else {
-            $now = new DateTime();
-            $updateProgress['time']['started'][$current] = $now->format('Y-m-d H:i:s');
+        if ($this->migrationRunner === null) {
+            $this->migrationRunner = new MigrationRunner($this);
         }
-        if ($toward_db_version !== false) {
-            $updateProgress['toward_db_version'] = $toward_db_version;
-        }
-        $this->__saveUpdateProgress($updateProgress);
+        return $this->migrationRunner;
     }
 
-    private function __setPreUpdateTestState($state)
-    {
-        $updateProgress = $this->getUpdateProgress();
-        $updateProgress['preTestSuccess'] = $state;
-        $this->__saveUpdateProgress($updateProgress);
-    }
+    /**
+     * The following are thin delegators to MigrationRunner, which owns the update
+     * state held in admin_settings. They stay here because they are consumed from
+     * outside the model layer (ServersController, Server::dbSchemaDiagnostic(),
+     * AdminShell) and from runUpdates() below.
+     */
 
-    private function __setUpdateError($index)
+    public function getUpdateProgress()
     {
-        $updateProgress = $this->getUpdateProgress();
-        $updateProgress['failed_num'][] = $index;
-        $this->__saveUpdateProgress($updateProgress);
-    }
-
-    private function __getEmptyUpdateMessage()
-    {
-        return array(
-            'commands' => array(),
-            'results' => array(),
-            'time' => array('started' => array(), 'elapsed' => array()),
-            'current' => '',
-            'total' => '',
-            'failed_num' => array(),
-            'toward_db_version' => ''
-        );
+        return $this->getMigrationRunner()->getUpdateProgress();
     }
 
     private function __resetUpdateProgress()
     {
-        $updateProgress = $this->__getEmptyUpdateMessage();
-        $this->__saveUpdateProgress($updateProgress);
-    }
-
-    private function __setUpdateCmdMessages($messages)
-    {
-        $updateProgress = $this->getUpdateProgress();
-        $updateProgress['commands'] = $messages;
-        $this->__saveUpdateProgress($updateProgress);
-    }
-
-    private function __setUpdateResMessages($index, $message)
-    {
-        $updateProgress = $this->getUpdateProgress();
-        $updateProgress['results'][$index] = $message;
-        $temp = new DateTime();
-        $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$index]));
-        $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
-        $this->__saveUpdateProgress($updateProgress);
-    }
-
-    public function getUpdateProgress()
-    {
-        if (!isset($this->AdminSetting)) {
-            $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        }
-        $updateProgress = $this->AdminSetting->getSetting('update_progress');
-        if ($updateProgress !== false) {
-            $updateProgress = json_decode($updateProgress, true);
-        } else {
-            $updateProgress = $this->__getEmptyUpdateMessage();
-        }
-        foreach($updateProgress as $setting => $value) {
-            if (!is_array($value)) {
-                if (is_numeric($value)) {
-                    $value = intval($value);
-                }
-            }
-            $updateProgress[$setting] = $value;
-        }
-        return $updateProgress;
-    }
-
-    private function __saveUpdateProgress($updateProgress)
-    {
-        if (!isset($this->AdminSetting)) {
-            $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        }
-        $data = json_encode($updateProgress);
-        $this->AdminSetting->changeSetting('update_progress', $data);
+        $this->getMigrationRunner()->resetUpdateProgress();
     }
 
     public function changeLockState($locked)
     {
-        if (!isset($this->AdminSetting)) {
-            $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        }
-        $this->AdminSetting->changeSetting('update_locked', $locked);
-    }
-
-    private function getUpdateLockState()
-    {
-        if (!isset($this->AdminSetting)) {
-            $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        }
-        $locked = $this->AdminSetting->getSetting('update_locked');
-        return is_null($locked) ? false : $locked;
+        $this->getMigrationRunner()->changeLockState($locked);
     }
 
     public function getLockRemainingTime()
     {
-        $lockState = $this->getUpdateLockState();
-        if ($lockState !== false && $lockState !== '') {
-            // if lock is old, still allows the update
-            // This can be useful if the update process crashes
-            $diffSec = time() - intval($lockState);
-            if (Configure::read('MISP.updateTimeThreshold')) {
-                $updateWaitThreshold = intval(Configure::read('MISP.updateTimeThreshold'));
-            } else {
-                $this->Server = ClassRegistry::init('Server');
-                $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
-            }
-            $remainingTime = $updateWaitThreshold - $diffSec;
-            return $remainingTime > 0 ? $remainingTime : 0;
-        } else {
-            return 0;
-        }
+        return $this->getMigrationRunner()->getLockRemainingTime();
     }
 
     public function isUpdateLocked()
     {
-        $remainingTime = $this->getLockRemainingTime();
-        $failThresholdReached = $this->UpdateFailNumberReached();
-        return $remainingTime > 0 || $failThresholdReached;
-    }
-
-    private function getUpdateFailNumber()
-    {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
-        return ($updateFailNumber !== false && $updateFailNumber !== '') ? $updateFailNumber : 0;
+        return $this->getMigrationRunner()->isUpdateLocked();
     }
 
     public function resetUpdateFailNumber()
     {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $this->AdminSetting->changeSetting('update_fail_number', 0);
+        $this->getMigrationRunner()->resetUpdateFailNumber();
     }
 
     private function __increaseUpdateFailNumber()
     {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
-        $this->AdminSetting->changeSetting('update_fail_number', $updateFailNumber+1);
+        $this->getMigrationRunner()->increaseUpdateFailNumber();
     }
 
     public function UpdateFailNumberReached()
     {
-        return $this->getUpdateFailNumber() > 3;
+        return $this->getMigrationRunner()->UpdateFailNumberReached();
     }
 
     private function __queueCleanDB()
