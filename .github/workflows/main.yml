@@ -391,6 +391,17 @@ jobs:
           python tools/misp-feed/validate.py
           deactivate
 
+      # Deliberately after the Python suites, not beside "Run PHP tests".
+      # This suite writes to the events table, and although it deletes its own
+      # rows, InnoDB does not roll AUTO_INCREMENT back. tests/curl_tests_GH.sh
+      # hardcodes event id 1 - it POSTs tests/event.json and then diffs
+      # GET /events/csv/download/1 - so running the integration suite before it
+      # makes that diff fail, and because the script runs under `set -e` it
+      # aborts BEFORE its own cleanup `POST /events/delete/1`, leaving 38
+      # attributes behind that break the suites after it.
+      - name: Run PHP integration tests
+        run: sudo -u www-data ./app/Vendor/bin/phpunit -c app/phpunit-integration.xml
+
       # Deliberately after the other suites: this switches the instance to
       # LDAP authentication, which changes how every subsequent form login
       # behaves. Nothing after this point logs in through the web form.
