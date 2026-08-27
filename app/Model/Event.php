@@ -5313,10 +5313,6 @@ class Event extends AppModel
         if ($fromXml) {
             // Workaround for different structure in XML/array than what CakePHP expects
             $data = $this->cleanupEventArrayFromXML($data);
-            // the event_id field is not set (normal) so make sure no validation errors are thrown
-            // LATER do this with   $this->validator()->remove('event_id');
-            unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
-            unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
         }
         unset($data['Event']['id']);
         if (
@@ -5407,48 +5403,65 @@ class Event extends AppModel
 
             $this->dedupAttributesForCorrelation($data);
 
-            if (!empty($data['Event']['Attribute'])) {
-                $attributeHashes = [];
-                foreach ($data['Event']['Attribute'] as $attribute) {
-                    if (!empty($attribute['deleted'])) {
-                        $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
-                    } else {
-                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                            $attributeHashes[$attributeHash] = true;
+            // The event_id field is not set in the pushed attributes (normal), so make sure no
+            // validation errors are thrown. This is scoped to the capturing of this event only:
+            // the Attribute model is shared for the whole request / worker run, so leaving these
+            // rules unset would silently disable the duplicate attribute check for every event
+            // handled afterwards by the same process (for example the rest of a pull).
+            // LATER do this with   $this->Attribute->validator()->remove('event_id');
+            $removedAttributeRules = [];
+            if ($fromXml) {
+                $removedAttributeRules = $this->Attribute->removeValidationRules([
+                    ['event_id'],
+                    ['value', 'uniqueValue'], // we are saving a new event, there are no values to compare against
+                ]);
+            }
+            try {
+                if (!empty($data['Event']['Attribute'])) {
+                    $attributeHashes = [];
+                    foreach ($data['Event']['Attribute'] as $attribute) {
+                        if (!empty($attribute['deleted'])) {
                             $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        } else {
+                            $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                            if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                                $attributeHashes[$attributeHash] = true;
+                                $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                            }
                         }
                     }
+                    unset($attributeHashes);
                 }
-                unset($attributeHashes);
-            }
 
-            if (!empty($data['Event']['Object'])) {
-                $referencesToCapture = [];
-                foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
-                    if (isset($object['ObjectReference'])) {
-                        foreach ($object['ObjectReference'] as $objectRef) {
-                            $objectRef['source_uuid'] = $object['uuid'];
-                            $referencesToCapture[] = $objectRef;
+                if (!empty($data['Event']['Object'])) {
+                    $referencesToCapture = [];
+                    foreach ($data['Event']['Object'] as $object) {
+                        $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
+                        if (isset($object['ObjectReference'])) {
+                            foreach ($object['ObjectReference'] as $objectRef) {
+                                $objectRef['source_uuid'] = $object['uuid'];
+                                $referencesToCapture[] = $objectRef;
+                            }
+                        }
+                    }
+                    foreach ($referencesToCapture as $referenceToCapture) {
+                        $result = $this->Object->ObjectReference->captureReference(
+                            $referenceToCapture,
+                            $this->id
+                        );
+                        if ($result !== true) {
+                            $title = "Could not save object reference when capturing event with ID {$this->id}";
+                            $this->loadLog()->validationError($user, 'add', 'ObjectReference', $title, $result, $referenceToCapture);
                         }
                     }
                 }
-                foreach ($referencesToCapture as $referenceToCapture) {
-                    $result = $this->Object->ObjectReference->captureReference(
-                        $referenceToCapture,
-                        $this->id
-                    );
-                    if ($result !== true) {
-                        $title = "Could not save object reference when capturing event with ID {$this->id}";
-                        $this->loadLog()->validationError($user, 'add', 'ObjectReference', $title, $result, $referenceToCapture);
+                if (!empty($data['Event']['EventReport'])) {
+                    foreach ($data['Event']['EventReport'] as $report) {
+                        $result = $this->EventReport->captureReport($user, $report, $this->id, $server);
                     }
                 }
-            }
-            if (!empty($data['Event']['EventReport'])) {
-                foreach ($data['Event']['EventReport'] as $report) {
-                    $result = $this->EventReport->captureReport($user, $report, $this->id, $server);
-                }
+            } finally {
+                $this->Attribute->restoreValidationRules($removedAttributeRules);
             }
 
             // capture new keys, update existing, remove those no longer in the pushed data
