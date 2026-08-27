@@ -201,7 +201,57 @@ class DashboardsController extends AppController
             $widgets = is_array($decoded) ? $decoded : array();
         }
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
         $widgets = LayoutFixup::applyReadFixups($widgets);
+
+        // The whole-layout save carries widget configs too, so it takes
+        // the same schema validation updateWidgetSettings() applies —
+        // otherwise a value refused there is simply posted here instead.
+        // Scoped to configs that actually CHANGED against what is
+        // stored: a layout drag re-POSTs every widget verbatim, and a
+        // pre-existing value that no longer validates must not make the
+        // board unmovable. Values already in the wild stay neutralised
+        // where they always were, at render.
+        $user = $this->Auth->user();
+        $previous = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        $previousConfig = array();
+        if (is_array($previous)) {
+            foreach (LayoutFixup::applyReadFixups($previous) as $pw) {
+                if (!empty($pw['instance_id'])) {
+                    $previousConfig[$pw['instance_id']] =
+                        isset($pw['config']) && is_array($pw['config'])
+                            ? $pw['config']
+                            : array();
+                }
+            }
+        }
+        $validationErrors = array();
+        foreach ($widgets as $offset => $w) {
+            $config = isset($w['config']) && is_array($w['config'])
+                ? $w['config']
+                : array();
+            $instanceId = !empty($w['instance_id']) ? $w['instance_id'] : null;
+            if ($instanceId !== null
+                && array_key_exists($instanceId, $previousConfig)
+                && $previousConfig[$instanceId] === $config
+            ) {
+                continue;
+            }
+            $errs = $this->__validateWidgetConfig(
+                $user,
+                isset($w['widget']) ? $w['widget'] : null,
+                $config
+            );
+            if ($errs !== null) {
+                $validationErrors[$instanceId !== null ? $instanceId : $offset] = $errs;
+            }
+        }
+        if (!empty($validationErrors)) {
+            throw new BadRequestException(__(
+                'Canonical-type validation failed: %s',
+                json_encode($validationErrors, JSON_UNESCAPED_SLASHES)
+            ));
+        }
 
         // UserSetting's validate_json hook expects the value as a JSON
         // string (matches v1's wire form: Dashboard[value]=<encoded>);
@@ -419,6 +469,37 @@ class DashboardsController extends AppController
      * `updateSettings` so first-save users aren't stuck) or on an
      * unknown instance_id (likely concurrent removal in another tab).
      */
+    /**
+     * Validate one widget's config against its declared $schema.
+     *
+     * Split out of updateWidgetSettings() so updateSettings(), which
+     * writes a whole layout blob, can apply the same check — a
+     * persistence guard that lives on only one of two save paths is not
+     * a guard. An unknown or ACL-blocked widget class validates as
+     * clean: the render path surfaces the underlying error, and
+     * refusing the save would strand a layout the user cannot repair.
+     *
+     * @param array $user
+     * @param string|null $className
+     * @param array $config
+     * @return array|null Per-key errors, or null when the config is fine
+     */
+    private function __validateWidgetConfig(array $user, $className, array $config)
+    {
+        if (empty($className) || !is_string($className)) {
+            return null;
+        }
+        try {
+            $widget = $this->Dashboard->loadWidget($user, $className);
+        } catch (Exception $e) {
+            return null;
+        }
+        if (empty($widget)) {
+            return null;
+        }
+        return CanonicalTypeAdapter::validate($widget, $config);
+    }
+
     public function updateWidgetSettings()
     {
         if (!$this->request->is('post')) {
@@ -492,20 +573,13 @@ class DashboardsController extends AppController
             if (!isset($index[$p['instance_id']])) {
                 throw new NotFoundException(__('Widget instance not found in saved layout.'));
             }
-            $className = $widgets[$index[$p['instance_id']]]['widget'];
-            try {
-                $widget = $this->Dashboard->loadWidget($user, $className);
-            } catch (Exception $e) {
-                // Widget class missing or ACL-blocked — skip validation
-                // for this patch and let the save proceed. The render-
-                // time path will surface the underlying error.
-                $widget = null;
-            }
-            if ($widget !== null) {
-                $errs = CanonicalTypeAdapter::validate($widget, $p['config']);
-                if ($errs !== null) {
-                    $validationErrors[$p['instance_id']] = $errs;
-                }
+            $errs = $this->__validateWidgetConfig(
+                $user,
+                $widgets[$index[$p['instance_id']]]['widget'],
+                $p['config']
+            );
+            if ($errs !== null) {
+                $validationErrors[$p['instance_id']] = $errs;
             }
         }
         if (!empty($validationErrors)) {
