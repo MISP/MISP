@@ -2584,9 +2584,11 @@ class EventsController extends AppController
     }
 
     /**
-     * Returns an Overmind-styled HTML fragment listing the
-     * non-galaxy tags of a given event. Rendered with
-     * layout=false for AJAX injection / post-tag-action refresh.
+     * Returns an Overmind-styled HTML fragment listing the plain tags of
+     * a given event - every tag that the galaxy card does not render,
+     * which includes galaxy tags whose cluster is unknown to this
+     * instance. Rendered with layout=false for AJAX injection /
+     * post-tag-action refresh.
      *
      * @param int|string $id Event ID or UUID
      */
@@ -2610,16 +2612,44 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
-        /* Strip galaxy-cluster tags */
-        $nonGalaxyTags = array_filter(
+        $galaxyTagNames = [];
+        foreach ($event['EventTag'] ?? [] as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$et['Tag']['id']] = $et['Tag']['name'];
+            }
+        }
+
+        $resolvedTagNames = [];
+        if (!empty($galaxyTagNames)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, false, false
+            );
+            foreach ($clusters as $cluster) {
+                $tagName = $cluster['GalaxyCluster']['tag_name'] ?? null;
+                if ($tagName !== null) {
+                    $resolvedTagNames[strtolower($tagName)] = true;
+                }
+            }
+        }
+
+        $tags = array_filter(
             $event['EventTag'] ?? [],
-            function ($et) {
-                return empty($et['Tag']['is_galaxy']);
+            function ($et) use ($resolvedTagNames) {
+                if (empty($et['Tag']['is_galaxy'])) {
+                    return true;
+                }
+                /* Orphan galaxy tag: no cluster resolved for it. */
+                return !isset(
+                    $resolvedTagNames[
+                        strtolower($et['Tag']['name'] ?? '')
+                    ]
+                );
             }
         );
 
-        $this->set('eventTags', array_values($nonGalaxyTags));
-        $this->set('eventId',   $event['Event']['id']);
+        $this->set('eventTags', array_values($tags));
+        $this->set('eventId', $event['Event']['id']);
 
         $mayModify = $this->__canModifyTag(
             $event, $user

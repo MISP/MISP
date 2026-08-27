@@ -337,14 +337,23 @@ $this->set('headerDescription', $headerDescription);
         $eventId = h($event['id'] ?? '');
         $statsUid = 'evtstats-' . $eventId;
 
-        /* Counts available immediately from already-loaded data */
-        $tagCount = count(array_filter(
-            $eventTags, fn($et) => empty($et['Tag']['is_galaxy'])
-        ));
         $clusterCount = 0;
+        $galaxyTagNames = [];
         foreach ($data['Galaxy'] ?? [] as $gal) {
             $clusterCount += count($gal['GalaxyCluster'] ?? []);
+            foreach ($gal['GalaxyCluster'] ?? [] as $cluster) {
+                if (!empty($cluster['tag_name'])) {
+                    $galaxyTagNames[strtolower($cluster['tag_name'])] = true;
+                }
+            }
         }
+        $tagCount = count(array_filter(
+            $eventTags,
+            fn($et) => empty($et['Tag']['is_galaxy'])
+                || !isset(
+                    $galaxyTagNames[strtolower($et['Tag']['name'] ?? '')]
+                )
+        ));
         ?>
 
         <hr class="my-4">
