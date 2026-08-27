@@ -282,6 +282,15 @@ class User extends AppModel
         if (empty($user['nids_sid'])) {
             $user['nids_sid'] = mt_rand(1000000, 9999999);
         }
+        if (array_key_exists('expiration', $user)) {
+            if (empty($user['expiration'])) {
+                $user['expiration'] = null; // no expiration set, keep the column NULL
+            } elseif (!is_string($user['expiration']) || strtotime($user['expiration']) === false) {
+                $this->invalidate('expiration', __('Invalid expiration date, use the YYYY-MM-DD format.'));
+            } else {
+                $user['expiration'] = date('Y-m-d H:i:s', strtotime($user['expiration']));
+            }
+        }
         if (!empty(Configure::read('Security.limit_site_admins_to_host_org'))){
             if (!empty($user['role_id']) and !empty($user['org_id'] and $user['org_id'] != Configure::read('MISP.host_org_id'))){
                 $role = $this->Role->find('first', array(
