@@ -876,11 +876,15 @@ class User extends AppModel
      * @param string|false $bodyNoEnc
      * @param string|null $subject
      * @param array|false $replyToUser
+     * @param array|null $encryptionFailures Opt-in collector for callers that send to many users at once.
+     *      When an array is passed by reference, a "no valid encryption key" failure appends the recipient's
+     *      e-mail address to it instead of writing an individual Log entry, leaving it to the caller to write
+     *      a single aggregated entry after its loop. Every other failure is logged as before.
      * @return bool
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      */
-    public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
+    public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false, &$encryptionFailures = null)
     {
         if (Configure::read('MISP.disable_emailing')) {
             return true;
@@ -903,7 +907,19 @@ class User extends AppModel
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
+            $isEncryptionKeyMissing = $e instanceof SendEmailEncryptionKeyMissingException;
+            // Opt-in aggregation: the caller owns the loop and writes one summary entry for all
+            // of the recipients it could not encrypt for, so nothing is recorded per recipient.
+            if ($isEncryptionKeyMissing && is_array($encryptionFailures)) {
+                $encryptionFailures[] = $user['User']['email'];
+                return false;
+            }
             $this->logException("Exception during sending e-mail with subject '$subject' to {$user['User']['email']}", $e);
+            // Opt-in suppression of this specific, expected and potentially very noisy entry.
+            // The exception above is still written to the error log.
+            if ($isEncryptionKeyMissing && Configure::read('MISP.log_skip_email_encryption_failures')) {
+                return false;
+            }
             $log->create();
             $log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
