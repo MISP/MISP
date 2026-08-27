@@ -3,10 +3,13 @@ $message = count($idArray) > 1
     ? __('Are you sure you want to delete %s event blocklist entries ?', count($idArray))
     : __('Are you sure you want to delete event blocklist entry #%s ?', $idArray[0]);
 
-echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Event Blocklist Deletion'),
     'model' => 'EventBlocklist',
     'url' => $baseurl . '/eventBlocklists/deleteSelection',
-    'message' => $message
+    'message' => $message,
+    'accent' => 'danger',
+    'submitLabel' => __('Delete'),
+    'submitIcon' => 'trash',
 ]);
 ?>

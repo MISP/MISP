@@ -1,8 +1,10 @@
 <?php
-echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => $title,
     'model' => 'CorrelationRule',
     'url' => $baseurl . '/correlationRules/executeRule/' . $id,
-    'message' => $question
+    'message' => $question,
+    'submitLabel' => __('Execute'),
+    'submitIcon' => 'play',
 ]);
 ?>

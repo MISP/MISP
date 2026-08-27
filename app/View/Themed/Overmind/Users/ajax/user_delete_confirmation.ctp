@@ -11,12 +11,13 @@ $uid = $targetUser['User']['id'];
 // ignores → the modal reloads without deleting. A create-style form posts as POST.
 // admin_delete reads the id from the URL anyway.
 
-echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title'   => __('Delete user'),
     'model'   => 'User',
     'url'     => $baseurl . '/admin/users/delete/' . h($uid),
-    'message' => __(
-        'Are you sure you want to delete %s? It is strongly recommended to disable the user instead of deleting them.',
-        h($targetUser['User']['email'])
-    ),
+    'message' => __('Are you sure you want to delete %s?', h($targetUser['User']['email'])),
+    'warning' => __('It is strongly recommended to disable the user instead of deleting them.'),
+    'accent' => 'danger',
+    'submitLabel' => __('Delete user'),
+    'submitIcon' => 'user-xmark',
 ]);

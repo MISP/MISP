@@ -20,9 +20,12 @@ $message = $count > 1
     )
     : __('Are you sure you wish to discard this registration request?');
 
-echo $this->element('genericElementsBS5/Modals/delete_confirmation_form', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title'   => __('Discard registration'),
     'model'   => 'User',
     'url'     => $url,
     'message' => $message,
+    'accent' => 'danger',
+    'submitLabel' => __('Discard'),
+    'submitIcon' => 'trash',
 ]);
