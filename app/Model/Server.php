@@ -710,18 +710,62 @@ class Server extends AppModel
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
+        // Event::_edit() returns its (empty) validationErrors array when the pulled event is
+        // not newer than the local copy, and __checkIfPulledEventExistsAndAddOrUpdate() stores
+        // the json_encode()d result in $fails - which is why "failed" and "didn't need an
+        // update" used to be reported as a single number. Tell them apart again.
+        $unchanged = 0;
+        $failed = array();
+        foreach ($fails as $failedEventId => $reason) {
+            if (in_array($reason, array('[]', '{}', '', 'null'), true)) {
+                $unchanged++;
+            } else {
+                $failed[$failedEventId] = $reason;
+            }
+        }
+
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters, %s analyst data and %s collections pulled or updated. %s events failed, %s events did not need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
             $pulledAnalystData,
             $pulledCollections,
-            count($fails)
+            count($failed),
+            $unchanged
         );
-        $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
+        if (!empty($failed)) {
+            $change .= ' ' . $this->__summariseFailedEvents($failed);
+        }
+        $title = 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email;
+        if ($jobId) {
+            $title .= ' (job #' . $jobId . ')';
+        }
+        $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], $title, $change);
         return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData, $pulledCollections];
+    }
+
+    /**
+     * Renders a capped summary of the events that failed during a pull, so that a failed
+     * sync can be traced back to the individual events from the log entry alone.
+     *
+     * @param array $failed Event ID => reason
+     * @param int $limit Maximum number of events to name
+     * @return string
+     */
+    private function __summariseFailedEvents(array $failed, $limit = 10)
+    {
+        $parts = array();
+        foreach (array_slice($failed, 0, $limit, true) as $failedEventId => $reason) {
+            $parts[] = sprintf('#%s (%s)', $failedEventId, mb_substr((string)$reason, 0, 200));
+        }
+        $summary = 'Failed events: ' . implode(', ', $parts);
+        $remaining = count($failed) - count($parts);
+        if ($remaining > 0) {
+            $summary .= sprintf(' and %s more', $remaining);
+        }
+        return $summary . '.';
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -1471,7 +1515,7 @@ class Server extends AppModel
             'email' => $user['email'],
             'action' => 'push',
             'user_id' => $user['id'],
-            'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
+            'title' => 'Push to ' . $url . ' initiated by ' . $user['email'] . ($jobId ? ' (job #' . $jobId . ')' : ''),
             'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update. ' . $pushedCollections . ' collections pushed.'
         ));
         if ($jobId) {
