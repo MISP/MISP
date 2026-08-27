@@ -383,6 +383,12 @@ jobs:
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
           python tests/testlive_security.py -v
+          # Suites that live in tests/ and drive the running instance over
+          # HTTP, the same way the three above do.
+          python tests/testlive_dashboards.py -v
+          python tests/testlive_workflows.py -v
+          python tests/testlive_export_formats.py -v
+          python tests/testlive_console.py -v
           cp PyMISP/tests/keys.py PyMISP/examples/events/
           pushd PyMISP/examples/events/
           python ./create_massive_dummy_events.py -l 5 -a 30
