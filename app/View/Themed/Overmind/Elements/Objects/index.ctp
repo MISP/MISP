@@ -282,7 +282,7 @@ function _objDistBadge($dist) {
                             ?>
                             <a href="<?= $delUrl ?>"
                             class="btn btn-sm btn-outline-danger"
-                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'sm');">
+                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'md');">
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
@@ -561,7 +561,7 @@ function _objDistBadge($dist) {
                                                     <li>
                                                         <a class="dropdown-item text-danger justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'sm');">
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'md');">
                                                             <i class="fas fa-trash me-2"></i>
                                                             <?= __('Delete') ?>
                                                         </a>

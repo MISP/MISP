@@ -75,7 +75,7 @@ if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
 if ($isSiteAdmin || $mayModify) {
     $actions[] = [
         'url' => "$baseurl/events/delete/$eventId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Event'),
         'danger' => true

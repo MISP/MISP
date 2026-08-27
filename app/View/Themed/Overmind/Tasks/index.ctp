@@ -208,7 +208,7 @@ $fields = [
                 'requirement' => function ($row) {
                     return empty($row['Task']['enabled']);
                 },
-                'size' => 'sm',
+                'size' => 'md',
             ],
             [
                 'type' => 'modal',
@@ -218,7 +218,7 @@ $fields = [
                 'requirement' => function ($row) {
                     return !empty($row['Task']['enabled']);
                 },
-                'size' => 'sm',
+                'size' => 'md',
             ],
             [
                 'type' => 'modal',

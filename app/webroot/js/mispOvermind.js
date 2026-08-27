@@ -49,6 +49,28 @@ function showToast(message, variant = 'success') {
 }
 
 /*******************************
+ * Size the shared #mainModal dialog.
+ *
+ * Bootstrap ships four widths but only three classes: 'md' IS the class-less
+ * default (500px), so a medium modal is obtained by removing every size class,
+ * never by adding one. `modal-md` is in the remove list because the theme used
+ * to add it — it never had any CSS, so it silently meant 500px, but it stuck to
+ * the dialog for every later open.
+ *
+ *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *******************************/
+function setModalSize(size, dialog) {
+    dialog = dialog || document.querySelector('#mainModal .modal-dialog');
+    if (!dialog) {
+        return;
+    }
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    if (size && size !== 'md') {
+        dialog.classList.add('modal-' + size);
+    }
+}
+
+/*******************************
  * Confirmation modal (inline — no AJAX)
  *
  * opts:
@@ -57,7 +79,7 @@ function showToast(message, variant = 'success') {
  *   confirmLabel  (string)   — confirm button text
  *   confirmClass  (string)   — Bootstrap btn class, default 'btn-primary'
  *   cancelLabel   (string)   — cancel button text, default 'Cancel'
- *   size          (string)   — modal size suffix: 'sm'|'lg'|'xl', default 'sm'
+ *   size          (string)   — see setModalSize: 'sm'|'md'|'lg'|'xl', default 'md'
  *   onConfirm     (function) — called after the user confirms
  *******************************/
 function showConfirmModal(opts) {
@@ -65,7 +87,7 @@ function showConfirmModal(opts) {
     const modalBody = document.getElementById('mainModalBody');
     if (!modalEl || !modalBody) return;
 
-    const size         = opts.size         || 'sm';
+    const size         = opts.size         || 'md';
     const confirmClass = opts.confirmClass || 'btn-primary';
     const confirmLabel = opts.confirmLabel || 'Confirm';
     const cancelLabel  = opts.cancelLabel  || 'Cancel';
@@ -86,9 +108,7 @@ function showConfirmModal(opts) {
             '</div>' +
         '</div>';
 
-    const dialog = modalEl.querySelector('.modal-dialog');
-    dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    dialog.classList.add('modal-' + size);
+    setModalSize(size, modalEl.querySelector('.modal-dialog'));
 
     const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
     bsModal.show();
@@ -111,11 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Index Filtering Bar
  *******************************/
 function openModal(url, size = 'xl') {
-    const modalDialog = document.querySelector('#mainModal .modal-dialog');
-    modalDialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    if (size) {
-        modalDialog.classList.add('modal-' + size);
-    }
+    setModalSize(size);
 
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
@@ -367,11 +383,7 @@ function openModalPostChained(url, body, size = 'xl') {
     const el = document.getElementById('mainModal');
     const inst = el ? bootstrap.Modal.getInstance(el) : null;
     const run = () => {
-        const dialog = el.querySelector('.modal-dialog');
-        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-        if (size) {
-            dialog.classList.add('modal-' + size);
-        }
+        setModalSize(size, el.querySelector('.modal-dialog'));
         fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(response => response.text())
             .then(html => {
@@ -391,7 +403,7 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe, size = 'sm') {
+function multiSelectItems(url, suffixe, size = 'md') {
     if (selectedItems.size === 0) {
         return;
     }

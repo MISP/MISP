@@ -33,7 +33,7 @@ if ($isSiteAdmin) {
     if (!$enabled) {
         $actions[] = [
             'url' => "$baseurl/galaxies/enable/$id",
-            'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'sm');",
+            'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'md');",
             'icon' => 'fas fa-play',
             'label' => __('Enable Galaxy'),
             'success' => true,
@@ -41,7 +41,7 @@ if ($isSiteAdmin) {
     } else {
         $actions[] = [
             'url' => "$baseurl/galaxies/disable/$id",
-            'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'sm');",
+            'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'md');",
             'icon' => 'fas fa-stop',
             'label' => __('Disable Galaxy'),
             'warning' => true,
@@ -50,7 +50,7 @@ if ($isSiteAdmin) {
 
     $actions[] = [
         'url' => "$baseurl/galaxies/deleteSelection/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/deleteSelection/$id', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/deleteSelection/$id', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Galaxy'),
         'danger' => true,
