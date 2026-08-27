@@ -710,7 +710,20 @@ class EventReportsController extends AppController
     }
 
     /**
-     * No real ACL. If someone know the UUID, he can get the picture
+     * Serve a picture from the instance's asset folder.
+     *
+     * These files are instance-wide assets rather than event-scoped
+     * content, and are deliberately readable by any authenticated user.
+     * Only site admins can store one (see uploadPicture(), which forces
+     * every other role down the attachment path), the folder is curated
+     * globally from managedImportedPictures(), and a picture may be given
+     * an alias and reused across reports of different events.
+     *
+     * There is therefore no owning report to authorise against: the only
+     * reference that exists is the picture's mention in report content,
+     * and that is writable by anyone holding perm_add. Imagery that has to
+     * follow an event's distribution must be stored as an attachment,
+     * which inherits the event's ACL.
      */
     public function viewPicture($filename)
     {

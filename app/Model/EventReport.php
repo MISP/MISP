@@ -1829,14 +1829,7 @@ class EventReport extends AppModel
 
         foreach ($files as $filename) {
             $theAlias = $this->getAliasForImage($filename);
-            // check if this file is used in at least one report
-            $reportCount = $this->find('count', [
-                'recursive' => -1,
-                'conditions' => [
-                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $filename),
-                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $theAlias),
-                ]
-            ]);
+            $reportCount = $this->countReportsReferencingPicture($filename, $theAlias);
             if (empty($reportCount)) {
                 $fileNotReferenced[] = $filename;
             } else {
@@ -1857,17 +1850,38 @@ class EventReport extends AppModel
         $pictureFolder = new Folder(self::PICTURE_FOLDER_PATH);
         $files = $pictureFolder->find();
         foreach ($files as $filename) {
-            // check if this file is used in at least one report
-            $reportCount = $this->find('count', [
-                'recursive' => -1,
-                'conditions' => [
-                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $filename)
-                ]
-            ]);
-            if (empty($reportCount)) {
+            if (empty($this->countReportsReferencingPicture($filename))) {
                 $this->purgeImage($filename);
             }
         }
+    }
+
+    /**
+     * Count the reports that reference a picture, by filename or by the
+     * alias it is published under. Both spellings occur in report content,
+     * so a picture referenced only by its alias is still in use.
+     *
+     * @param string $filename
+     * @param string|null $alias Resolved from the filename when not given
+     * @return int
+     */
+    private function countReportsReferencingPicture($filename, $alias = null)
+    {
+        if ($alias === null) {
+            $alias = $this->getAliasForImage($filename);
+        }
+        $conditions = [
+            ['content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $filename)],
+        ];
+        if (!empty($alias)) {
+            $conditions[] = [
+                'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $alias),
+            ];
+        }
+        return $this->find('count', [
+            'recursive' => -1,
+            'conditions' => ['OR' => $conditions],
+        ]);
     }
 
     public function purgeImage($filename)
