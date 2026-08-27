@@ -1,0 +1,211 @@
+# Measures how much of MISP the existing test suites actually execute.
+#
+# The PHPUnit suite is measured directly with pcov. The Python live suite
+# drives MISP over HTTP, so PHPUnit cannot attribute its coverage: pcov is
+# hooked into both mod_php and the CLI through auto_prepend_file
+# (build/coverage/covcollect.php), every request writes a capture, and the
+# captures are merged with the PHPUnit clover report into one union number.
+#
+# The ratchet exists because coverage that is not enforced silently decays.
+#
+# Requires app/phpunit.xml and the PHPUnit 9.6 bump from MISP/MISP#10964.
+name: coverage
+
+on:
+  push:
+    branches: [ '2.5' ]
+  pull_request:
+    branches: [ '2.5' ]
+
+env:
+  PHP_VERSION: '8.3'
+
+  # The ratchet is on covered LINES, not on a coverage percentage.
+  #
+  # A percentage floor was tried first and failed on its own terms: a merge
+  # that added ~2300 statements of new, untested code took the percentage
+  # DOWN while the number of covered lines went UP. The denominator is the
+  # size of the tree, which nobody controls per-PR, so a gate hung off it
+  # eventually demands that someone lower the gate - and a ratchet that gets
+  # lowered is decoration. Covered lines fall only when the tests stop
+  # executing code, which is the thing worth gating on. The percentage is
+  # still reported, it just does not gate.
+  #
+  # This starting value is deliberately slack. The number this job will
+  # report has never been measured on MISP/MISP's own runners, and it is
+  # sensitive to how much of the live suite completes. Rather than guess a
+  # tight floor and hand the project a red gate on day one, the floor starts
+  # below anything plausible and asks to be raised:
+  #
+  #   RAISE THIS to the `union` line of the first green run on 2.5, minus a
+  #   little headroom (~1.5% is enough; some live tests fail rather than
+  #   error, and which ones can vary between runs), and raise it again as
+  #   each tranche of tests lands.
+  MIN_UNION_LINES: '15000'
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: bar
+          MARIADB_DATABASE: misp
+          MARIADB_USER: misp
+          MARIADB_PASSWORD: blah
+        ports: [ '3306:3306' ]
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -pbar"
+          --health-interval=5s --health-timeout=3s --health-retries=30
+      redis:
+        image: redis:7
+        ports: [ '6379:6379' ]
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s --health-timeout=3s --health-retries=30
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: 'recursive'
+
+      - name: Setup PHP with pcov
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu, intl, zip, pcntl, pcov
+          ini-values: memory_limit=2048M, pcov.enabled=1
+
+      # The `zip` BINARY is required, not just ext-zip: MISP shells out to it
+      # when building attachment archives, and its absence surfaces as
+      # `proc_open(): posix_spawn() failed: No such file or directory`.
+      - name: Install system deps
+        run: |
+          sudo apt-get -y update --allow-releaseinfo-change
+          sudo apt-get -y install curl zip unzip gnupg python3 python3-pip \
+                                  python3-virtualenv apache2 libapache2-mod-php${{ env.PHP_VERSION }}
+
+      # app/composer.lock is gitignored, so `composer install` here is really
+      # `composer update`: it re-resolves from the network every run, and the
+      # same commit can go from green to red because a dependency published.
+      # A coverage RATCHET measured against a moving dependency set is
+      # measuring the weather. build/composer-ci.lock pins it.
+      #
+      # The lock lives here rather than at app/composer.lock on purpose: it
+      # was resolved under PHP 8.3, and symfony/console, symfony/filesystem,
+      # symfony/string and nette/utils in it require PHP >= 8.2 - dropping it
+      # into app/ would make the `build (ubuntu-22.04, 8.1)` job in main.yml
+      # unresolvable. Pinning is therefore scoped to this job, which is the
+      # one with a gate to protect. `composer validate` fails loudly (exit 2)
+      # if a change to app/composer.json leaves the lock stale, at which point
+      # regenerate it with:
+      #   cd app && composer update --ignore-platform-reqs \
+      #     && mv composer.lock ../build/composer-ci.lock
+      - name: Install PHP dependencies
+        run: |
+          cp build/composer-ci.lock app/composer.lock
+          cd app
+          composer validate --no-check-all --no-check-publish
+          composer install --no-progress --no-interaction
+
+      # -- instance --------------------------------------------------------
+      # Mirrors the install main.yml performs inline, kept in a script so the
+      # two cannot drift.
+      - name: Install and configure MISP
+        run: bash build/coverage/ci_setup_misp.sh
+
+      # -- PHPUnit suite ---------------------------------------------------
+      # After the install, as in main.yml, and deliberately BEFORE the
+      # instrumentation is enabled below: this run is measured by PHPUnit
+      # itself (clover.xml). Were it to run afterwards, the CLI
+      # auto_prepend_file would capture it a second time and inflate the
+      # "live" line of the report. The union is unaffected either way.
+      - name: PHPUnit suite with coverage
+        run: |
+          cd app
+          ./Vendor/bin/phpunit -c phpunit.xml --coverage-clover ../clover.xml
+
+      # -- live suite ------------------------------------------------------
+      # covcollect.php is hooked into both SAPIs by ci_setup_misp.sh, but it
+      # only records once ENABLED exists. That is how instance setup - schema
+      # import, runUpdates, updateJSON - is kept out of the numbers: none of
+      # it is test coverage.
+      - name: Enable coverage instrumentation
+        env:
+          MISP_COV_DIR: ${{ github.workspace }}/cov
+        run: |
+          mkdir -p "$MISP_COV_DIR" && chmod 777 "$MISP_COV_DIR"
+          touch "$MISP_COV_DIR/ENABLED"
+
+      # Runs before the Python suites, as it does in main.yml, and the order
+      # is load-bearing: tests/curl_tests_GH.sh hardcodes event id 1 - it
+      # POSTs tests/event.json and then diffs GET /events/csv/download/1
+      # against tests/event.csv - so it is only correct against a database
+      # whose events table has never been written to. Run after anything that
+      # inserts events, the diff fails, and because the script runs under
+      # `set -e` it aborts BEFORE its own cleanup `POST /events/delete/1`,
+      # leaving 38 attributes behind that then break the suites after it.
+      #
+      # It sits after "Enable coverage instrumentation" so its requests are
+      # counted, and is deliberately not fatal to the job: the ratchet is the
+      # gate here, and a suite failure should be visible in the log rather
+      # than mask the coverage number. main.yml is where these gate.
+      - name: Curl smoke tests
+        env:
+          MISP_COV_DIR: ${{ github.workspace }}/cov
+        run: |
+          # AUTH is read from key.txt rather than the environment, and HOST is
+          # spelled out here, because ci_setup_misp.sh only exports AUTH to
+          # $GITHUB_ENV and defaults HOST internally - neither is guaranteed
+          # to be set for a step that does not source the script.
+          AUTH="$(cat "${{ github.workspace }}/key.txt")"
+          HOST=127.0.0.1
+          cd tests
+          bash ./curl_tests_GH.sh "$AUTH" "$HOST" || echo "curl_tests_GH.sh failed"
+
+      - name: Live suite under instrumentation
+        env:
+          MISP_COV_DIR: ${{ github.workspace }}/cov
+          MISP_APP_ROOT: ${{ github.workspace }}/app/
+        run: bash build/coverage/ci_run_live_suite.sh
+
+      # -- report ----------------------------------------------------------
+      - name: Merge and report
+        env:
+          MISP_COV_DIR: ${{ github.workspace }}/cov
+        run: |
+          python3 build/coverage/merge_coverage.py "$MISP_COV_DIR" merged.json \
+            "${{ github.workspace }}/app/"
+          # The failure is caught with `|| status=$?` and re-raised at the end
+          # so the report is still printed. It is NOT piped into tee: a
+          # pipeline returns tee's status, which would swallow report.py's
+          # non-zero exit and leave the ratchet inert.
+          status=0
+          python3 build/coverage/report.py clover.xml merged.json \
+            --json coverage-summary.json --min-union-lines "$MIN_UNION_LINES" \
+            > coverage-report.txt || status=$?
+          cat coverage-report.txt
+          exit "$status"
+
+      - name: Summarise on the run page
+        if: ${{ always() }}
+        run: |
+          {
+            echo '## Coverage'
+            echo '```'
+            cat coverage-report.txt 2>/dev/null || echo 'no report produced'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            clover.xml
+            merged.json
+            coverage-summary.json
+            coverage-report.txt
