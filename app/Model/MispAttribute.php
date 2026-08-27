@@ -471,7 +471,11 @@ class MispAttribute extends AppModel
     public $validTypeGroups = array(
             'File' => array(
                 'description' => '',
-                'types' => array('filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'),
+                'types' => array(
+                    'filename',
+                    'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512',
+                    'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512'
+                ),
             ),
             'CnC' => array(
                 'description' => '',
