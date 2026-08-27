@@ -2031,6 +2031,23 @@ class EventsController extends AppController
         $this->set('shortDist',
             $this->Event->shortDist
         );
+        // Allows the quick action card to determine whether you can offer a delegation or accept/decline a requested one
+        if (Configure::read('MISP.delegation')) {
+            $this->loadModel('EventDelegation');
+            $delegationConditions = ['EventDelegation.event_id' => $event['Event']['id']];
+            if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
+                $delegationConditions['OR'] = [
+                    'EventDelegation.org_id' => $user['org_id'],
+                    'EventDelegation.requester_org_id' => $user['org_id'],
+                ];
+            }
+            $this->set('delegationRequest', $this->EventDelegation->find('first', [
+                'conditions' => $delegationConditions,
+                'recursive' => -1,
+                'contain' => ['Org', 'RequesterOrg'],
+            ]));
+        }
+
         $this->set('menuData', [
             'menuList' => 'event',
             'menuItem' => 'viewEvent',
@@ -4938,7 +4955,10 @@ class EventsController extends AppController
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('action' => 'view', $event['Event']['id']));
+                $this->redirect([
+                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    $event['Event']['id']
+                ]);
             }
         } else {
             $this->set('id', $id);
@@ -5168,7 +5188,10 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($return_message);
                     // redirect to the view event page
-                    $this->redirect(array('action' => 'view', $event['Event']['id']));
+                    $this->redirect([
+                        'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                        $event['Event']['id']
+                    ]);
                 }
             } else {
                 $return_message = __('Sending of email failed.');
@@ -5177,7 +5200,10 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->error($return_message, 'default', array(), 'error');
                     // redirect to the view event page
-                    $this->redirect(array('action' => 'view', $event['Event']['id']));
+                    $this->redirect([
+                        'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                        $event['Event']['id']
+                    ]);
                 }
             }
         }
@@ -8031,7 +8057,10 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->error($errorMessage);
                 }
-                $this->redirect('/events/view/' . $id);
+                $this->redirect([
+                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    $id
+                ]);
             }
         } else {
             $this->loadModel('Workflow');
@@ -8102,7 +8131,10 @@ class EventsController extends AppController
                     $result = __('Enrichment task queued for background processing. Check back later to see the results.');
                 }
                 $this->Flash->success($result);
-                $this->redirect('/events/view/' . $id);
+                $this->redirect([
+                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    $id
+                ]);
             }
         } else {
             $this->loadModel('Module');

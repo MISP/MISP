@@ -1,17 +1,45 @@
 <?php
 /**
- * Params :
+ * The quick-action card of a detail view: one full-width button per action.
+ *
+ * An entry is an action, or a separator when it carries 'divider' — which is
+ * how a long list (the event view has ~16 entries) is broken into groups
+ * without every call site having to draw its own rule.
+ *
+ * Action params :
  * - 'url' => string,
  * - 'icon' => string,
  * - 'label' => string,
  * - 'success' => bool (optional),
+ * - 'warning' => bool (optional),
  * - 'danger' => bool (optional),
  * - 'onclick' => string (optional)
  * - 'tour' => string (optional) — emits data-tour, an anchor for the
  *   onboarding tour to spotlight this specific action.
+ * - 'type' => 'post' (optional) — renders a postLink, with 'confirm' and 'id'
+ *
+ * Separator params :
+ * - 'divider' => true          a hairline between two groups
+ * - 'label' => string          turns it into a group heading (optional)
  */
 
 $actions = $actions ?? [];
+
+/* A group heading, or a bare rule when it has no label. */
+$renderDivider = function (array $spec) {
+    if (empty($spec['label'])) {
+        return '<hr class="my-1 opacity-25">';
+    }
+
+    return sprintf(
+        '<div class="d-flex align-items-center gap-2 mt-2">'
+            . '<span class="text-uppercase fw-semibold text-body-secondary flex-shrink-0"'
+            . ' style="font-size:.72rem; letter-spacing:.1em;">%s</span>'
+            . '<span class="flex-grow-1 border-top"></span>'
+        . '</div>',
+        h($spec['label'])
+    );
+};
 ?>
 
 
@@ -34,6 +62,10 @@ $actions = $actions ?? [];
         <div class="d-flex flex-column gap-2">
             <?php if(!empty($actions)): ?>
                 <?php foreach ($actions as $action):
+                    if (!empty($action['divider'])) {
+                        echo $renderDivider($action);
+                        continue;
+                    }
                     $isSuccess = !empty($action['success']);
                     $isWarning = !empty($action['warning']);
                     $isDanger = !empty($action['danger']);
@@ -60,13 +92,15 @@ $actions = $actions ?? [];
                         <i class="fas fa-chevron-right ' . $chevronColorClass . '"></i>
                     ';
 
-                    $fullBtnClass = "quick-action btn $btnClass d-flex align-items-center justify-content-between rounded-4 py-3 px-3 w-100 border-0";
+                    $fullBtnClass = "quick-action btn $btnClass d-flex align-items-center justify-content-between rounded-4 p-3 w-100 border-0";
+                    $btnStyle = 'font-size:.9rem;';
                 ?>
                     <?php if (isset($action['type']) && $action['type'] === 'post'): ?>
                         <?php
                             $postOptions = [
                                 'escape' => false,
                                 'class' => $fullBtnClass,
+                                'style' => $btnStyle,
                                 'confirm' => $action['confirm'] ?? null,
                             ];
                             if (!empty($action['id'])) {
@@ -79,6 +113,7 @@ $actions = $actions ?? [];
                         ?>
                     <?php else: ?>
                         <a class="<?= $fullBtnClass ?>"
+                           style="<?= $btnStyle ?>"
                            href="<?= h($url) ?>"
                            <?= !empty($action['tour']) ? 'data-tour="' . h($action['tour']) . '"' : '' ?>
                            <?= !empty($action['onclick']) ? 'onclick="' . $action['onclick'] . '"' : '' ?>>
