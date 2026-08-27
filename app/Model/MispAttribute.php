@@ -2827,15 +2827,68 @@ class MispAttribute extends AppModel
     public function validateAttribute(array $attribute, $context = true)
     {
         $this->set($attribute);
+        // The model instance is shared for the whole request, so any validation rule that is
+        // removed here has to be put back afterwards - otherwise every subsequent attribute
+        // saved in the same request / worker run skips these checks as well.
+        $removedRules = [];
         if (!$context) {
-            unset($this->validate['event_id']);
-            unset($this->validate['value']['uniqueValue']);
-            unset($this->validate['uuid']['unique']);
+            $removedRules = $this->removeValidationRules([
+                ['event_id'],
+                ['value', 'uniqueValue'],
+                ['uuid', 'unique'],
+            ]);
         }
-        if ($this->validates()) {
-            return true;
-        } else {
-            return $this->validationErrors;
+        try {
+            if ($this->validates()) {
+                return true;
+            } else {
+                return $this->validationErrors;
+            }
+        } finally {
+            $this->restoreValidationRules($removedRules);
+        }
+    }
+
+    /**
+     * Temporarily remove validation rules from the shared model instance.
+     *
+     * @param array $paths List of rule paths, either ['field'] or ['field', 'rule']
+     * @return array Removed rules, to be handed to MispAttribute::restoreValidationRules()
+     */
+    public function removeValidationRules(array $paths)
+    {
+        $removed = [];
+        foreach ($paths as $path) {
+            if (count($path) === 1) {
+                if (isset($this->validate[$path[0]])) {
+                    $removed[] = [$path, $this->validate[$path[0]]];
+                    unset($this->validate[$path[0]]);
+                }
+            } else {
+                if (isset($this->validate[$path[0]][$path[1]])) {
+                    $removed[] = [$path, $this->validate[$path[0]][$path[1]]];
+                    unset($this->validate[$path[0]][$path[1]]);
+                }
+            }
+        }
+        return $removed;
+    }
+
+    /**
+     * Restore validation rules removed by MispAttribute::removeValidationRules().
+     *
+     * @param array $removedRules
+     * @return void
+     */
+    public function restoreValidationRules(array $removedRules)
+    {
+        foreach ($removedRules as $removedRule) {
+            list($path, $rule) = $removedRule;
+            if (count($path) === 1) {
+                $this->validate[$path[0]] = $rule;
+            } else {
+                $this->validate[$path[0]][$path[1]] = $rule;
+            }
         }
     }
 
@@ -3157,8 +3210,9 @@ class MispAttribute extends AppModel
             }
         }
         // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
+        $removedRules = [];
         if ($breakOnDuplicate === false) {
-            unset($this->validate['value']['uniqueValue']);
+            $removedRules = $this->removeValidationRules([['value', 'uniqueValue']]);
             $existingAttribute = $this->findAttributeByValue($attribute);
             if (!empty($existingAttribute)) {
                 $attribute['id'] = $existingAttribute['Attribute']['id'];
@@ -3166,7 +3220,12 @@ class MispAttribute extends AppModel
                 $this->id = $attribute['id'];
             }
         }
-        $savedAttribute = $this->save(['Attribute' => $attribute], $params);
+        try {
+            $savedAttribute = $this->save(['Attribute' => $attribute], $params);
+        } finally {
+            // the model instance is shared, only skip the uniqueness check for this attribute
+            $this->restoreValidationRules($removedRules);
+        }
         if (!$savedAttribute) {
             $this->logDropped($user, $attribute);
         } else {
