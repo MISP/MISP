@@ -1,0 +1,4 @@
+$TTL 1w;
+@               SOA localhost. root.localhost (2026082700 2h 30m 30d 1h)
+                NS localhost.
+
