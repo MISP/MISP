@@ -588,13 +588,14 @@ class Server extends AppModel
      * @param array $server
      * @param int|false $jobId
      * @param bool $force
+     * @param ServerSyncTool|null $serverSync Injectable sync client; a fresh one is built when omitted.
      * @return array|string
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws Exception
      */
-    public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
+    public function pull(array $user, $technique, array $server, $jobId = false, $force = false, ServerSyncTool $serverSync = null)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
@@ -604,7 +605,7 @@ class Server extends AppModel
             $email = $user['email'];
         }
 
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
             $server['Server']['version'] = $serverSync->info()['version'];
         } catch (Exception $e) {
@@ -1244,10 +1245,11 @@ class Server extends AppModel
      * @param int|false $jobId
      * @param HttpSocket $HttpSocket
      * @param array $user
+     * @param ServerSyncTool|null $serverSync Injectable sync client; a fresh one is built when omitted.
      * @return array|bool
      * @throws Exception
      */
-    public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
+    public function push($id, $technique, $jobId = false, $HttpSocket, array $user, ServerSyncTool $serverSync = null)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
@@ -1256,7 +1258,7 @@ class Server extends AppModel
         if (!$server) {
             throw new NotFoundException('Server not found');
         }
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         $this->Event = ClassRegistry::init('Event');
         $url = $server['Server']['url'];
@@ -1411,7 +1413,7 @@ class Server extends AppModel
                 $server['Server']['lastpushedid'] = $lastpushedid;
                 $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $server, null, null, $this->Event);
+            $this->syncProposals($HttpSocket, $server, null, null, $this->Event, $serverSync);
         }
 
         if ($push['canPush'] || $push['canSight']) {
@@ -1573,14 +1575,23 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
+    /**
+     * @param HttpSocket|null $HttpSocket
+     * @param array $server
+     * @param int|null $sa_id
+     * @param int|null $event_id
+     * @param Event $eventModel
+     * @param ServerSyncTool|null $serverSync Injectable sync client; a fresh one is built when omitted.
+     * @return bool
+     */
+    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel, ServerSyncTool $serverSync = null)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+                $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
                 try {
                     $ids = $this->getEventIdsFromServer($serverSync, true, true);
                 } catch (Exception $e) {
