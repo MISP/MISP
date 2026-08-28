@@ -713,8 +713,11 @@ jobs:
           #
           # /!\ --force is load-bearing: without it `setSetting` REFUSES this
           # value ("It is highly recommended that this setting is enabled") and
-          # still exits 0, so the setting would silently stay at its default and
-          # the suites would fail much later, in confusing ways.
+          # the setting stays at its default, so the suites would fail much
+          # later, in confusing ways. The refusal does exit non-zero
+          # (AdminShell::setSetting -> Shell::error -> _stop(CODE_ERROR)), so a
+          # step that runs this bare would fail loudly; it is a silent no-op
+          # only when the exit status is swallowed by a surrounding loop.
           app/Console/cake Admin setSetting --force "MISP.background_jobs" 0
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 0
 
