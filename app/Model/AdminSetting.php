@@ -83,6 +83,7 @@ class AdminSetting extends AppModel
         }
         if ((time()) > ($last_collection + 3600)) {
             $this->__cleanTmpFiles();
+            $this->changeSetting('last_gc_timestamp', time());
         }
     }
 
@@ -103,7 +104,6 @@ class AdminSetting extends AppModel
                 if ($time > $tmp_file->lastChange() + 3600) {
                     $tmp_file->delete();
                 }
-                unlink($scripts_tmp_path . '/' . $file);
             }
         }
     }
