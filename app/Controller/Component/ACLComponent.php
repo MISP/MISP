@@ -470,7 +470,7 @@ class ACLComponent extends Component
             'index' => ['*'],
             'loadDefaultFeeds' => array(),
             'previewEvent' => ['*'],
-            'previewEventAttributes' => ['theming_enabled*'],
+            'previewEventAttributes' => ['theming_enabled'],
             'previewEventObjects' => ['theming_enabled'],
             'previewIndex' => ['*'],
             'searchCaches' => ['*'],
