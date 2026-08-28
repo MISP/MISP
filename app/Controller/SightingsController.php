@@ -269,7 +269,7 @@ class SightingsController extends AppController
             'unique' => true,
         ));
         if (empty($sightedEvents)) {
-            $this->RestResponse->viewData(array());
+            return $this->RestResponse->viewData(array());
         }
         $events = $this->Sighting->Event->fetchEventIds($this->Auth->user(), [
             'eventIdList' => $sightedEvents
