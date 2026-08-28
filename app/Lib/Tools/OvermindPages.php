@@ -12,7 +12,8 @@ class OvermindPages
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view2',
             'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
-            'freeTextImport', 'proposalEventIndex'
+            'freeTextImport', 'proposalEventIndex',
+            'merge'
         ),
         'attributes' => array(
             'index', 'add', 'edit', 'delete', 'add_attachment'
