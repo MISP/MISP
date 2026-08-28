@@ -3934,7 +3934,7 @@ class MispAttribute extends AppModel
         natsort($intel);
         $intel = array_unique($intel);
         if (empty($skipHeader)) {
-            array_unshift($intel, $export->header);
+            array_unshift($intel, $export->header());
         }
         return $intel;
     }
