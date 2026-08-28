@@ -230,14 +230,13 @@ class RPZExport
 
     private function convertIp($input, $action)
     {
-        $isIpv6 = filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
-        if ($isIpv6) {
-            $prefix = '128';
-        } else {
-            $prefix = '32';
-        }
-        if (strpos($input, '/')) {
+        $prefix = null;
+        if (strpos($input, '/') !== false) {
             list($input, $prefix) = explode('/', $input);
+        }
+        $isIpv6 = (bool)filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+        if ($prefix === null) {
+            $prefix = $isIpv6 ? '128' : '32';
         }
         $converted = $isIpv6 ? $this->__ipv6($input) : $this->__ipv4($input);
         return $prefix . '.' . $converted . '.rpz-ip CNAME ' . $action . PHP_EOL;
@@ -245,7 +244,7 @@ class RPZExport
 
     private function __ipv6($input)
     {
-        return implode('.', array_reverse(preg_split('/:/', str_replace('::', ':zz:', $input), null, PREG_SPLIT_NO_EMPTY)));
+        return implode('.', array_reverse(preg_split('/:/', str_replace('::', ':zz:', $input), -1, PREG_SPLIT_NO_EMPTY)));
     }
 
     private function __ipv4($input)
