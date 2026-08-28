@@ -615,18 +615,43 @@ class Log extends AppModel
         $users = [];
         $orgs = [];
         $deleted_event_ids = [];
+        if (empty($deletions)) {
+            return $deleted_events;
+        }
+        $candidateEventIds = array_unique(array_column(array_column($deletions, 'Log'), 'model_id'));
+        // Events that still exist have been restored already - fetch them all in one go
+        // instead of issuing one existence check per deletion entry.
+        $existingEventIds = array_flip($this->Event->find('column', [
+            'recursive' => -1,
+            'conditions' => ['Event.id' => $candidateEventIds],
+            'fields' => ['Event.id']
+        ]));
+        // Same for the creation log entries. Ordering by Log.id and keeping the first
+        // row seen per model_id reproduces the previous per-event find('first') result,
+        // including when an event id has more than one 'add' entry.
+        $creationEntries = [];
+        $creationEntryRows = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model_id' => $candidateEventIds,
+                'model' => 'Event',
+                'action' => 'add'
+            ],
+            'order' => ['Log.id']
+        ]);
+        foreach ($creationEntryRows as $creationEntryRow) {
+            if (!isset($creationEntries[$creationEntryRow['Log']['model_id']])) {
+                $creationEntries[$creationEntryRow['Log']['model_id']] = $creationEntryRow;
+            }
+        }
+        unset($creationEntryRows);
         foreach ($deletions as $deletion_entry) {
             if (!empty($deleted_event_ids[$deletion_entry['Log']['model_id']])) {
                 continue;
             } else {
                 $deleted_event_ids[$deletion_entry['Log']['model_id']] = true;
             }
-            $event = $this->Event->find('first', [
-                'conditions' => ['Event.id' => $deletion_entry['Log']['model_id']],
-                'recursive' => -1,
-                'fields' => ['Event.id']
-            ]);
-            if (!empty($event)) {
+            if (isset($existingEventIds[$deletion_entry['Log']['model_id']])) {
                 // event is already restored / not deleted
                 continue;
             }
@@ -635,14 +660,7 @@ class Log extends AppModel
                 'user_id' => $deletion_entry['Log']['user_id'],
                 'created' => $deletion_entry['Log']['created']
             ];
-            $event_creation_entry = $this->find('first', [
-                'recursive' => -1,
-                'conditions' => [
-                    'model_id' => $temp['event_id'],
-                    'model' => 'Event',
-                    'action' => 'add'
-                ]
-            ]);
+            $event_creation_entry = $creationEntries[$temp['event_id']] ?? [];
             $event = $this->changeParser($event_creation_entry['Log']['change']);
             $temp['event_info'] = $event['info'];
             $temp['event_org_id'] = $event['org_id'];
@@ -660,17 +678,21 @@ class Log extends AppModel
                 }
                 $temp['event_' . $scope . '_name'] = $orgs[$temp['event_' . $scope . '_id']];
             }
-            $users[$temp['user_id']] = array_values($this->Event->User->find('list', [
-                'recursive' => -1,
-                'conditions' => array('id' => $temp['user_id']),
-                'fields' => array('id', 'email')
-            ]))[0];
+            if (empty($users[$temp['user_id']])) {
+                $users[$temp['user_id']] = array_values($this->Event->User->find('list', [
+                    'recursive' => -1,
+                    'conditions' => array('id' => $temp['user_id']),
+                    'fields' => array('id', 'email')
+                ]))[0];
+            }
             $temp['user_name'] = $users[$temp['user_id']];
-            $users[$temp['event_user_id']] = array_values($this->Event->User->find('list', [
-                'recursive' => -1,
-                'conditions' => array('id' => $temp['event_user_id']),
-                'fields' => array('id', 'email')
-            ]))[0];
+            if (empty($users[$temp['event_user_id']])) {
+                $users[$temp['event_user_id']] = array_values($this->Event->User->find('list', [
+                    'recursive' => -1,
+                    'conditions' => array('id' => $temp['event_user_id']),
+                    'fields' => array('id', 'email')
+                ]))[0];
+            }
             $temp['event_user_name'] = $users[$temp['event_user_id']];
             $deleted_events[] = $temp;
         }
