@@ -952,12 +952,13 @@ class Feed extends AppModel
         }
         if (!empty($url_params['publish_timestamp'])) {
             $timestamps = $this->Attribute->setTimestampConditions($url_params['publish_timestamp'], [], '', true);
+            $publishTimestamp = $event['publish_timestamp'] ?? 0;
             if (is_array($timestamps)) {
-                if ($event['timestamp'] < $timestamps[0] || $event['timestamp'] > $timestamps[1]) {
+                if ($publishTimestamp < $timestamps[0] || $publishTimestamp > $timestamps[1]) {
                     return false;
                 }
             } else {
-                if ($event['timestamp'] < $timestamps) {
+                if ($publishTimestamp < $timestamps) {
                     return false;
                 }
             }
