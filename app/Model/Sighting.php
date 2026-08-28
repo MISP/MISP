@@ -852,7 +852,7 @@ class Sighting extends AppModel
         }
         $sightingsAdded = 0;
         foreach ($attributes as $attribute) {
-            if ($type === '2') {
+            if ((int)$type === 2) {
                 // remove existing expiration by the same org if it exists
                 $this->deleteAll(array(
                     'Sighting.org_id' => $user['org_id'],
@@ -1288,7 +1288,7 @@ class Sighting extends AppModel
 
             list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
 
-            if ($s['type'] === '2') {
+            if ((int)$s['type'] === 2) {
                 // remove existing expiration by the same org if it exists
                 $this->deleteAll(array(
                     'Sighting.org_id' => $user['org_id'],
