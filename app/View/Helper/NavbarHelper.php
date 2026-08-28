@@ -515,7 +515,7 @@ class NavbarHelper extends AppHelper {
                         'url' => $baseurl . '/SharingGroupBlueprints/index',
                         'controller' => 'SharingGroupBlueprints',
                         'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'add'),
+                        'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'index'),
                         'icon' => 'fas fa-drafting-compass'
                     ]
                 ]
