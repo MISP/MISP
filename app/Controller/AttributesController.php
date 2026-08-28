@@ -3322,6 +3322,27 @@ class AttributesController extends AppController
                     $this->MispAttribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
                 }
                 $changeTimestamp = false;
+                // Fetch the tags already attached to this attribute once, rather than
+                // re-querying them for every entry of $tag_id_list. $attachedTagIds mirrors
+                // the previous AttributeTag::hasAny() check, which was not scoped by `local`
+                // (a local and a non-local attachment both count as already attached), while
+                // $tagsOnAttribute mirrors the local-scoped tag name list that the taxonomy
+                // exclusivity check consumes. Both are kept up to date below as tags are
+                // attached, so tags added earlier in this same request are still taken into
+                // account exactly as the per-pair queries did.
+                $attachedTagIds = array();
+                $tagsOnAttribute = array();
+                $attributeTags = $this->MispAttribute->AttributeTag->find('all', array(
+                    'conditions' => array('AttributeTag.attribute_id' => $id),
+                    'contain' => 'Tag',
+                    'fields' => array('AttributeTag.tag_id', 'AttributeTag.local', 'Tag.name'),
+                ));
+                foreach ($attributeTags as $attributeTag) {
+                    $attachedTagIds[$attributeTag['AttributeTag']['tag_id']] = true;
+                    if ((int)$attributeTag['AttributeTag']['local'] === $local && isset($attributeTag['Tag']['name'])) {
+                        $tagsOnAttribute[] = $attributeTag['Tag']['name'];
+                    }
+                }
                 foreach ($tag_id_list as $tag_id) {
                     if (!isset($tags[$tag_id])) {
                         // Tag not found or user don't have permission to add it.
@@ -3329,23 +3350,11 @@ class AttributesController extends AppController
                         continue;
                     }
                     $tagName = $tags[$tag_id];
-                    $found = $this->MispAttribute->AttributeTag->hasAny([
-                        'attribute_id' => $id,
-                        'tag_id' => $tag_id,
-                    ]);
-                    if ($found) {
+                    if (isset($attachedTagIds[$tag_id])) {
                         // Tag is already assigned to given attribute.
                         $fails++;
                         continue;
                     }
-                    $tagsOnAttribute = $this->MispAttribute->AttributeTag->find('column', array(
-                        'conditions' => array(
-                            'AttributeTag.attribute_id' => $id,
-                            'AttributeTag.local' => $local,
-                        ),
-                        'contain' => 'Tag',
-                        'fields' => array('Tag.name'),
-                    ));
                     $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tagName, $tagsOnAttribute);
                     if (!$exclusiveTestPassed) {
                         $fails++;
@@ -3353,6 +3362,8 @@ class AttributesController extends AppController
                     }
                     $this->MispAttribute->AttributeTag->create();
                     if ($this->MispAttribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $attribute['Event']['id'], 'local' => $local))) {
+                        $attachedTagIds[$tag_id] = true;
+                        $tagsOnAttribute[] = $tagName;
                         if (!$local) {
                             $changeTimestamp = true;
                         }
