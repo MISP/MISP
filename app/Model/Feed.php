@@ -764,14 +764,14 @@ class Feed extends AppModel
             try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
                 if ($result === true) {
-                    $results['add']['success'] = $uuid;
+                    $results['add']['success'][] = $uuid;
                 } else if ($result !== 'blocked') {
-                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
+                    $results['add']['fail'][] = ['uuid' => $uuid, 'reason' => $result];
                     $this->log("Could not add event '$uuid' from feed {$feed['Feed']['id']}: $result", LOG_WARNING);
                 }
             } catch (Exception $e) {
                 $this->logException("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e);
-                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                $results['add']['fail'][] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
@@ -783,14 +783,14 @@ class Feed extends AppModel
             try {
                 $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
                 if ($result === true) {
-                    $results['add']['success'] = $uuid;
+                    $results['edit']['success'][] = $uuid;
                 } else if ($result !== 'blocked') {
-                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
+                    $results['edit']['fail'][] = ['uuid' => $uuid, 'reason' => $result];
                     $this->log("Could not edit event '$uuid' from feed {$feed['Feed']['id']}: " . json_encode($result), LOG_WARNING);
                 }
             } catch (Exception $e) {
                 $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
-                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                $results['edit']['fail'][] = array('uuid' => $uuid, 'reason' => $e->getMessage());
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
