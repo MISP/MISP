@@ -256,7 +256,7 @@ class Dashboard extends AppModel
                 'user_id' => $user['id'],
                 'uuid' => CakeText::uuid()
             );
-            if (empty($user['role']['perm_site_admin'])) {
+            if (empty($user['Role']['perm_site_admin'])) {
                 $data['restrict_to_org_id'] = $user['org_id'];
             }
         }
