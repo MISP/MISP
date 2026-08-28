@@ -2406,12 +2406,19 @@ class UsersController extends AppController
             'recursive' => -1,
             'fields' => array('Event.orgc_id', 'count(*)', 'sum(Event.attribute_count) as attributeCount')
         ));
+        $orgcIdsWithEvents = array();
         foreach ($events as $event) {
             $orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
             $orgs[$event['Event']['orgc_id']]['attributeCount'] = $event[0]['attributeCount'];
-            $orgs[$event['Event']['orgc_id']]['orgActivity'] = $this->User->getOrgActivity($event['Event']['orgc_id'], array('event_timestamp' => '365d'));
+            $orgcIdsWithEvents[] = $event['Event']['orgc_id'];
         }
         unset($events);
+        // Fetch the activity of every organisation in one query instead of one query per organisation
+        $orgActivity = $this->__orgActivityBulk($orgcIdsWithEvents, '365d');
+        foreach ($orgcIdsWithEvents as $orgcId) {
+            $orgs[$orgcId]['orgActivity'] = $orgActivity[$orgcId];
+        }
+        unset($orgActivity, $orgcIdsWithEvents);
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
         // f*** php
         uksort($orgs, 'strcasecmp');
@@ -2427,6 +2434,60 @@ class UsersController extends AppController
             $this->set('orgs', $orgs);
             $this->render('statistics_orgs');
         }
+    }
+
+    /**
+     * Batched equivalent of User::getOrgActivity() for several organisations at once.
+     *
+     * Issues one Event query covering every passed organisation instead of one query per
+     * organisation, then buckets the rows per organisation in PHP the same way
+     * User::getOrgActivity() does.
+     *
+     * @param array $orgcIds List of organisation ids
+     * @param string $timeframe Timestamp delta understood by Event::set_filter_timestamp(), for example '365d'
+     * @return array Keyed by organisation id, each entry in the shape returned by User::getOrgActivity()
+     */
+    private function __orgActivityBulk(array $orgcIds, $timeframe)
+    {
+        $result = array();
+        if (empty($orgcIds)) {
+            return $result;
+        }
+        $filterParam = array('event_timestamp' => $timeframe);
+        $conditions = $this->User->Event->set_filter_timestamp($filterParam, array(), array('filter' => 'event_timestamp'));
+        $conditions['Event.orgc_id'] = $orgcIds;
+        $events = $this->User->Event->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Event.orgc_id', 'Event.timestamp', 'Event.attribute_count'),
+            'conditions' => $conditions,
+            'order' => 'Event.timestamp'
+        ));
+        $sparklineData = array();
+        foreach ($events as $event) {
+            $date = date("Y-m-d", $event['Event']['timestamp']);
+            // Same last-write-wins behaviour as User::getOrgActivity()
+            $sparklineData[$event['Event']['orgc_id']][$date] = $event['Event']['attribute_count'];
+        }
+        unset($events);
+        $startDate = $this->User->Event->resolveTimeDelta($timeframe);
+        $endDate = time();
+        $dates = array();
+        for ($d = $startDate; $d < $endDate; $d = $d + 3600 * 24) {
+            $dates[] = date('Y-m-d', $d);
+        }
+        foreach ($orgcIds as $orgcId) {
+            $data = isset($sparklineData[$orgcId]) ? $sparklineData[$orgcId] : array();
+            $csv = 'Date,Close\n';
+            foreach ($dates as $date) {
+                $csv .= sprintf('%s,%s\n', $date, isset($data[$date]) ? $data[$date] : 0);
+            }
+            $result[$orgcId] = array(
+                'csv' => $csv,
+                'data' => $data,
+                'orgId' => $orgcId
+            );
+        }
+        return $result;
     }
 
     private function __statisticsUsers($params = array())
