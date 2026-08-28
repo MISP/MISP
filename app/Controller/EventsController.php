@@ -6357,10 +6357,23 @@ class EventsController extends AppController
                 $message = "Event not found.";
                 $success = false;
             } else {
+                // Pre-index the event's existing proposals so the dedup check below scans only
+                // the candidates sharing the same (event_uuid, type, category) instead of every
+                // existing proposal for every incoming one. The value/to_ids comparison stays
+                // inside the loop with the original loose == semantics.
+                $oldShadowAttributes = array();
+                if (isset($event['ShadowAttribute'])) {
+                    foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
+                        $bucket = $oldsa['event_uuid'] . '|' . $oldsa['type'] . '|' . $oldsa['category'];
+                        $oldShadowAttributes[$bucket][$oldk] = $oldsa;
+                    }
+                }
+                $proposalAlertNeeded = false;
                 foreach ($this->request->data as $k => $sa) {
-                    if (isset($event['ShadowAttribute'])) {
-                        foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
-                            if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
+                    $bucket = $sa['event_uuid'] . '|' . $sa['type'] . '|' . $sa['category'];
+                    if (isset($oldShadowAttributes[$bucket])) {
+                        foreach ($oldShadowAttributes[$bucket] as $oldk => $oldsa) {
+                            if ($sa['value'] == $oldsa['value'] && $sa['to_ids'] == $oldsa['to_ids']) {
                                 if ($oldsa['timestamp'] < $sa['timestamp']) {
                                     $this->Event->ShadowAttribute->delete($oldsa['id']);
                                 } else {
@@ -6390,8 +6403,14 @@ class EventsController extends AppController
                         $counter++;
                     }
                     if (!$sa['deleted']) {
-                        $this->Event->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']);
+                        $proposalAlertNeeded = true;
                     }
+                }
+                // The proposal e-mail lock means at most one alert is sent per event per lock
+                // window anyway, so send it once after the batch instead of paying an
+                // Event->read() lock check for every single proposal pushed.
+                if ($proposalAlertNeeded) {
+                    $this->Event->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']);
                 }
             }
             if ($success) {
