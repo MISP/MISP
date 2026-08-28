@@ -896,13 +896,14 @@ class Feed extends AppModel
                 continue;
             }
             if (isset($filterRules['tags']['OR']) && !empty($filterRules['tags']['OR'])) {
-                if (!isset($event['Tag']) || empty($event['Tag'])) {
+                if (empty($event['Tag'])) {
                     unset($events[$k]);
+                    continue;
                 }
                 $found = false;
                 foreach ($event['Tag'] as $tag) {
                     foreach ($filterRules['tags']['OR'] as $filterTag) {
-                        if (strpos(strtolower($tag['name']), strtolower($filterTag))) {
+                        if (strpos(strtolower($tag['name']), strtolower($filterTag)) !== false) {
                             $found = true;
                         }
                     }
@@ -917,7 +918,7 @@ class Feed extends AppModel
                     $found = false;
                     foreach ($event['Tag'] as $tag) {
                         foreach ($filterRules['tags']['NOT'] as $filterTag) {
-                            if (strpos(strtolower($tag['name']), strtolower($filterTag))) {
+                            if (strpos(strtolower($tag['name']), strtolower($filterTag)) !== false) {
                                 $found = true;
                             }
                         }
