@@ -81,7 +81,7 @@ class CertificateAuthenticate extends BaseAuthenticate
             } else {
                 self::$client = array();
             }
-            foreach($map as $n=>$d) {
+            foreach((array)$map as $n=>$d) {
                 if(isset($_SERVER[$n])) {
                     self::$client[$d] = $_SERVER[$n];
                 }
@@ -141,6 +141,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                 $userModelKey = empty(Configure::read('CertAuth.userModelKey')) ? 'email' : Configure::read('CertAuth.userModelKey');
                 $userDefaults = Configure::read('CertAuth.userDefaults');
                 $this->User = ClassRegistry::init('User');
+                $existingUser = false;
                 if (!empty(self::$user[$userModelKey])) {
                     $existingUser = $this->User->find('first', array(
                         'conditions' => array($userModelKey => self::$user[$userModelKey]),
