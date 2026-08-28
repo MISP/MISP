@@ -967,11 +967,14 @@ class DashboardsController extends AppController
      *      name: string }, ...]
      *
      * Read-only; same '*' ACL policy as the other dashboard picker
-     * endpoints. Organisation names + UUIDs are not sensitive (any
-     * MISP user can already see them via the org index page); per-
-     * org event/attribute ACL is enforced downstream by the
-     * consumer widget's query path against an already-ACL-filtered
-     * base set. Result order: name ASC for deterministic UX.
+     * endpoints, but the result set is scoped: organisation names are
+     * only non-sensitive while `Security.hide_organisation_index_from_users`
+     * is off. With it on, `/organisations/index` refuses outright and
+     * `Organisation::canSee()` gates the per-organisation view, so this
+     * picker honours the same control via `createConditions()`. Per-org
+     * event/attribute ACL is still enforced downstream by the consumer
+     * widget's query path against an already-ACL-filtered base set.
+     * Result order: name ASC for deterministic UX.
      */
     public function searchOrganisations()
     {
@@ -986,6 +989,21 @@ class DashboardsController extends AppController
             // Same LIKE-wildcard scrub as the galaxy cluster search.
             $cleanQ = str_replace(['%', '_'], '', $q);
             $conditions['Organisation.name LIKE'] = '%' . $cleanQ . '%';
+        }
+        // Scope to the organisations the caller is allowed to know about.
+        // `createConditions()` is the plural form of `Organisation::canSee()`,
+        // which `/organisations/view` already enforces: it returns [] (no
+        // restriction) when `Security.hide_organisation_index_from_users` is
+        // off or the caller holds `perm_sharing_group` - the same two
+        // conditions the ACL's `organisation_index` dynamic check reads - and
+        // otherwise narrows to the organisations whose events or proposals the
+        // caller can already see, plus their own. Narrowing rather than
+        // refusing keeps the picker usable for the users it is meant for,
+        // where the blunt ACL entry `/organisations/index` carries would empty
+        // it; the same choice `searchGalaxyClusters` below makes.
+        $acl = $this->Organisation->createConditions($this->Auth->user());
+        if (!empty($acl)) {
+            $conditions[] = $acl;
         }
         $rows = $this->Organisation->find('all', [
             'recursive'  => -1,
