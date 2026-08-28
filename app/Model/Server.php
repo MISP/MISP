@@ -5363,14 +5363,30 @@ class Server extends AppModel
     }
 
     /**
+     * Update the JSON structures shipped with MISP.
+     *
+     * When $lite is set, the structures are read from the minimal fixture set in app/files/lite
+     * instead of the (submodule backed) full corpus in app/files. That set is only meant for
+     * testing - it is deliberately tiny and is not a substitute for the real definitions.
+     *
+     * @param bool $lite Ingest the minimal testing fixture set instead of the full corpus
      * @return Generator[string, array]
      */
-    public function updateJSON()
+    public function updateJSON($lite = false)
     {
-        foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
+        $baseDir = $lite ? APP . 'files' . DS . 'lite' : null;
+        $targets = [
+            'Galaxy' => [false, $baseDir],
+            'Noticelist' => [$baseDir],
+            'Warninglist' => [$baseDir],
+            'Taxonomy' => [false, $baseDir],
+            'ObjectTemplate' => [false, false, false, $baseDir],
+            'ObjectRelationship' => [$baseDir],
+        ];
+        foreach ($targets as $target => $arguments) {
             $model = ClassRegistry::init($target);
             $start = microtime(true);
-            $result = $model->update();
+            $result = $lite ? $model->update(...$arguments) : $model->update();
             $duration = microtime(true) - $start;
             yield $target => ['success' => $result !== false, 'result' => $result, 'duration' => $duration];
         }
