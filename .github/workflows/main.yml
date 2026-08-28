@@ -79,8 +79,22 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v5
-        with:
-          submodules: 'recursive'
+
+      # Only the submodules this job actually reads are checked out. The other
+      # ten (the six python STIX ones, misp-opendata, misp-event-templates,
+      # misp-workflow-blueprints, misp-iconify) are never touched by any step
+      # here. See the PR that introduced this step for the per-submodule
+      # justification. To restore the old behaviour, drop this step and put
+      # `with: submodules: 'recursive'` back on the checkout above.
+      #
+      # /!\ --depth 1 is load-bearing. actions/checkout runs
+      # `git submodule update --init --force --depth=1 --recursive`, because its
+      # fetch-depth input defaults to 1. Doing the same by hand WITHOUT --depth
+      # clones the full history of every submodule instead, which is slower than
+      # the recursive checkout this step replaces - misp-warninglists alone is a
+      # 467 MB repository.
+      - name: Checkout the submodules used by this job
+        run: git submodule update --init --recursive --depth 1 -- app/Lib/cakephp PyMISP app/files/taxonomies app/files/warninglists app/files/misp-galaxy app/files/misp-objects app/files/noticelists app/files/misp-decaying-models
 
       - name: Stop default MySQL (if present)
         run: sudo service mysql stop || true
