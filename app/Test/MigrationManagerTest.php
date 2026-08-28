@@ -1,0 +1,233 @@
+<?php
+/**
+ * The ledger, and the set arithmetic on top of it.
+ *
+ * pending() is the whole point of this project in one method. The system it
+ * replaces asks "how far did this instance get?" and answers with a single
+ * integer, which means a migration that arrives numbered below where an
+ * instance already stands is never seen again. The ledger asks "did this
+ * particular migration run?", one row per migration, and that question has no
+ * way to skip anything.
+ *
+ * So the assertion that matters most here is testAMigrationOlderThanTheLedgerIsStillPending:
+ * a migration dated before ones that have already been applied is still applied.
+ * Under a high-water mark that migration is invisible.
+ *
+ * @see MigrationOrderingTest for what happens when one of them fails.
+ * @see MigrationLedgerStubs.php for the migration classes and the in-memory manager.
+ */
+
+require_once __DIR__ . '/MigrationLedgerStubs.php';
+
+use PHPUnit\Framework\TestCase;
+
+class MigrationManagerTest extends TestCase
+{
+    /** All five stub migrations, as a directory listing would give them. */
+    private static $allFiles = array(
+        'Migration_20200101_000000_older_than_the_freeze.php',
+        'Migration_20260101_000000_add_column.php',
+        'Migration_20260102_000000_backfill_column.php',
+        'Migration_20260103_000000_drop_old_column.php',
+        'Migration_20260104_000000_unrelated.php',
+    );
+
+    private function manager(array $rows = array(), array $files = null)
+    {
+        return new TestMigrationManager(
+            $files === null ? self::$allFiles : $files,
+            $rows
+        );
+    }
+
+    // -------------------------------------------------------------- pending
+
+    public function testAnEmptyLedgerLeavesEverythingPending()
+    {
+        $manager = $this->manager();
+        $this->assertSame($manager->ids(), array_keys($manager->pending()));
+    }
+
+    public function testPendingIsDiscoveredMinusApplied()
+    {
+        $manager = $this->manager(array(
+            '20260101_000000_add_column' => TestMigrationManager::row('20260101_000000_add_column', MigrationManager::STATUS_APPLIED),
+            '20260102_000000_backfill_column' => TestMigrationManager::row('20260102_000000_backfill_column', MigrationManager::STATUS_APPLIED),
+        ));
+
+        $this->assertSame(
+            array(
+                '20200101_000000_older_than_the_freeze',
+                '20260103_000000_drop_old_column',
+                '20260104_000000_unrelated',
+            ),
+            array_keys($manager->pending())
+        );
+    }
+
+    /**
+     * The regression the ledger exists to remove, asserted directly.
+     *
+     * A later migration has already been applied. An earlier one has not. Under
+     * a single db_version high-water mark the earlier one is below the line and
+     * is skipped forever; under the ledger it is simply absent, so it is pending.
+     */
+    public function testAMigrationOlderThanTheLedgerIsStillPending()
+    {
+        $manager = $this->manager(array(
+            '20260104_000000_unrelated' => TestMigrationManager::row('20260104_000000_unrelated', MigrationManager::STATUS_APPLIED),
+        ));
+
+        $pending = $manager->pending();
+        $this->assertArrayHasKey('20200101_000000_older_than_the_freeze', $pending);
+        $this->assertArrayNotHasKey('20260104_000000_unrelated', $pending);
+    }
+
+    public function testAFailedRowLeavesTheMigrationPending()
+    {
+        $manager = $this->manager(array(
+            '20260101_000000_add_column' => TestMigrationManager::row('20260101_000000_add_column', MigrationManager::STATUS_FAILED),
+        ));
+
+        $this->assertArrayHasKey('20260101_000000_add_column', $manager->pending());
+        $this->assertSame(array('20260101_000000_add_column'), $manager->failed());
+        $this->assertSame(array(), $manager->applied());
+    }
+
+    public function testALedgerRowWithNoFileBehindItIsReportedButNotPending()
+    {
+        $manager = $this->manager(array(
+            '20251111_111111_reverted_out_of_the_tree' => TestMigrationManager::row('20251111_111111_reverted_out_of_the_tree', MigrationManager::STATUS_APPLIED),
+        ));
+
+        $this->assertArrayHasKey('20251111_111111_reverted_out_of_the_tree', $manager->ledger());
+        $this->assertSame($manager->ids(), array_keys($manager->pending()));
+    }
+
+    /**
+     * pending() has the same shape findUpgrades() produces, so that
+     * runUpdates() can union the two and keep its single loop.
+     */
+    public function testPendingCarriesTheRequiresLogoutFlag()
+    {
+        $pending = $this->manager()->pending();
+
+        $this->assertTrue($pending['20260101_000000_add_column']);
+        $this->assertFalse($pending['20260102_000000_backfill_column']);
+    }
+
+    // -------------------------------------------------------- status writing
+
+    public function testASuccessfulApplyIsRecordedAsApplied()
+    {
+        $manager = $this->manager();
+        $this->assertTrue($manager->apply('20260101_000000_add_column'));
+
+        $row = $manager->ledger();
+        $row = $row['20260101_000000_add_column'];
+        $this->assertSame(MigrationManager::STATUS_APPLIED, $row['status']);
+        $this->assertNull($row['error']);
+        $this->assertIsInt($row['duration_ms']);
+        $this->assertArrayNotHasKey('20260101_000000_add_column', $manager->pending());
+    }
+
+    public function testAFailedApplyIsRecordedWithItsError()
+    {
+        $manager = $this->manager();
+        $manager->failing = array('20260101_000000_add_column');
+
+        $this->assertFalse($manager->apply('20260101_000000_add_column'));
+
+        $row = $manager->ledger();
+        $row = $row['20260101_000000_add_column'];
+        $this->assertSame(MigrationManager::STATUS_FAILED, $row['status']);
+        $this->assertSame('scripted failure of 20260101_000000_add_column', $row['error']);
+        $this->assertSame('scripted failure of 20260101_000000_add_column', $manager->lastError());
+    }
+
+    public function testARetrySucceedingClearsTheFailedRow()
+    {
+        $manager = $this->manager();
+        $manager->failing = array('20260101_000000_add_column');
+        $manager->apply('20260101_000000_add_column');
+
+        $manager->failing = array();
+        $this->assertTrue($manager->apply('20260101_000000_add_column'));
+
+        $row = $manager->ledger();
+        $row = $row['20260101_000000_add_column'];
+        $this->assertSame(MigrationManager::STATUS_APPLIED, $row['status']);
+        $this->assertNull($row['error']);
+        $this->assertSame(array('20260101_000000_add_column'), $manager->applied());
+        $this->assertSame(array(), $manager->failed());
+    }
+
+    public function testAnExceptionOutOfAMigrationIsAFailureNotACrash()
+    {
+        $manager = new ThrowingMigrationManager(self::$allFiles);
+
+        $this->assertFalse($manager->apply('20260101_000000_add_column'));
+
+        $row = $manager->ledger();
+        $row = $row['20260101_000000_add_column'];
+        $this->assertSame(MigrationManager::STATUS_FAILED, $row['status']);
+        $this->assertSame('the table was not there', $row['error']);
+    }
+
+    public function testTheLedgerIsWrittenOncePerApply()
+    {
+        $manager = $this->manager();
+        $manager->apply('20260101_000000_add_column');
+        $manager->apply('20260102_000000_backfill_column');
+
+        $this->assertSame(2, $manager->ledgerWrites);
+    }
+
+    public function testTheLedgerIsReadOnceAndThenKeptInStep()
+    {
+        $manager = $this->manager();
+        $manager->pending();
+        $manager->apply('20260101_000000_add_column');
+        $manager->pending();
+        $manager->applied();
+
+        $this->assertSame(1, $manager->ledgerReads);
+        $this->assertArrayHasKey('20260101_000000_add_column', $manager->ledger());
+    }
+
+    // ------------------------------------------------------------- rendering
+
+    public function testUpIsRenderedThroughTheGrammarWithoutExecutingAnything()
+    {
+        $manager = new SchemaRenderingMigrationManager(self::$allFiles);
+
+        $this->assertSame(
+            array('ALTER TABLE `events` ADD `replacement` varchar(40) DEFAULT NULL;'),
+            $manager->toSql('20260101_000000_add_column')
+        );
+        $this->assertSame(array(), $manager->executed);
+    }
+
+    public function testAMigrationWithNoUpRendersNothing()
+    {
+        $manager = new SchemaRenderingMigrationManager(self::$allFiles);
+
+        $this->assertSame(array(), $manager->toSql('20260102_000000_backfill_column'));
+    }
+}
+
+if (!class_exists('ThrowingMigrationManager', false)) {
+    /**
+     * A migration whose DDL blows up. The manager has to turn that into a
+     * recorded failure - a migration that throws its way past the ledger leaves
+     * no trace of having been attempted.
+     */
+    class ThrowingMigrationManager extends TestMigrationManager
+    {
+        protected function execute($id, AbstractMigration $migration)
+        {
+            $this->executed[] = $id;
+            throw new RuntimeException('the table was not there');
+        }
+    }
+}
