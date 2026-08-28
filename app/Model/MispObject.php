@@ -1194,6 +1194,14 @@ class MispObject extends AppModel
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
         }
+        // saveObject()/deltaMerge() take attributes in a sibling 'Attribute'
+        // key ($object['Attribute']); captureObject() itself only ever
+        // consumed the nested $object['Object']['Attribute']. Accept the
+        // sibling shape too so a caller that builds the saveObject()-style
+        // payload does not silently lose every attribute.
+        if (empty($object['Object']['Attribute']) && !empty($object['Attribute'])) {
+            $object['Object']['Attribute'] = $object['Attribute'];
+        }
         $duplicationCheckCacheKey = null;
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicatedObjectId = null;
@@ -1204,7 +1212,12 @@ class MispObject extends AppModel
                     __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
                     'Duplicate object found.'
                 );
-                return true;
+                // Distinguishable from the boolean `true` returned on a real
+                // save, matching the existing 'fail' precedent below for
+                // validation failures - a caller that only checks truthiness
+                // still treats this as non-fatal, but one that cares can
+                // tell "captured" apart from "dropped as a duplicate".
+                return 'duplicate';
             }
         }
         unset($object['Object']['id']);
@@ -1297,7 +1310,12 @@ class MispObject extends AppModel
                 if ($existingObject['Object']['event_id'] != $eventId) {
                     $change = 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)';
                     $this->loadLog()->createLogEntry($user, 'edit','MispObject', 0, 'Duplicate UUID found in object', $change);
-                    return true;
+                    // Not `true`: the edit was dropped, not applied. Event::_edit()
+                    // already treats any non-true editObject() result as an error
+                    // to surface (`if ($result !== true) { $validationErrors['Object'][] = $result; }`),
+                    // so returning a message here - rather than the same `true`
+                    // a real edit returns - lets that existing handling work.
+                    return 'Duplicate UUID found in object: the uuid ' . $object['uuid'] . ' is owned by another event.';
                 }
                 if (isset($object['timestamp'])) {
                     if ($force || $existingObject['Object']['timestamp'] >= $object['timestamp']) {
