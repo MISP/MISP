@@ -1162,7 +1162,6 @@ class AppController extends Controller
                                     preg_match('/^[\w.\- ]+$/', $leftover) == 1
                                 ) {
                                     $data[$existingParamKey] = $temp[$existingParamKey];
-                                    break;
                                 }
                             }
                         } else if (isset($temp[$param])) {
