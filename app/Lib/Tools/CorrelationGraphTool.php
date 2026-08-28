@@ -186,7 +186,7 @@ App::uses('OrgImgHelper', 'View/Helper');
               $current_event_id = $this->__createNode('event', $event);
               $this->__addLink($current_tag_id, $current_event_id, 100);
           }
-          $this->_json['nodes'][$current_tag_id]['expanded'] = 1;
+          $this->data['nodes'][$current_tag_id]['expanded'] = 1;
       }
 
       private function __handleGalaxies($galaxies, $anchor_id)
@@ -216,7 +216,7 @@ App::uses('OrgImgHelper', 'View/Helper');
               $current_event_id = $this->__createNode('event', $event);
               $this->__addLink($current_event_id, $current_galaxy_id);
           }
-          $this->_json['nodes'][$current_galaxy_id]['expanded'] = 1;
+          $this->data['nodes'][$current_galaxy_id]['expanded'] = 1;
       }
 
       private function __addGalaxy($id)
