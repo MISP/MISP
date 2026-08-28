@@ -249,12 +249,16 @@ class Galaxy extends AppModel
         // Start transaction
         $this->getDataSource()->begin();
 
+        // Build every row first, then insert them in batches. The clusters used
+        // to be saved one Model::save() at a time, which is ~55k round trips for
+        // a full misp-galaxy and dominated `cake Admin updateJSON`.
+        $rows = [];
+        $pending = [];
         foreach ($cluster_package['values'] as $cluster) {
             if (empty($cluster['version'])) {
                 $cluster['version'] = 1;
             }
             $template['version'] = $cluster['version'];
-            $this->GalaxyCluster->create();
             $cluster_to_save = $template;
             if (isset($cluster['description'])) {
                 $cluster_to_save['description'] = $cluster['description'];
@@ -274,13 +278,18 @@ class Galaxy extends AppModel
             $cluster_to_save['published'] = false;
             $cluster_to_save['org_id'] = 0;
             $cluster_to_save['orgc_id'] = 0;
-            // We are already in transaction
-            $result = $this->GalaxyCluster->save($cluster_to_save, ['atomic' => false, 'validate' => false]);
-            if (!$result) {
-                $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}.");
+            $rows[] = $cluster_to_save;
+            $pending[] = $cluster;
+        }
+
+        $clusterIds = $this->__bulkInsertClusters($rows);
+
+        foreach ($pending as $i => $cluster) {
+            // null means the row could not be inserted; it was logged already.
+            if (!isset($clusterIds[$i])) {
                 continue;
             }
-            $galaxyClusterId = $this->GalaxyCluster->id;
+            $galaxyClusterId = $clusterIds[$i];
             if (isset($cluster['meta'])) {
                 foreach ($cluster['meta'] as $key => $value) {
                     if (!is_array($value)) {
@@ -328,6 +337,73 @@ class Galaxy extends AppModel
         $this->getDataSource()->commit();
 
         return [$elements, $relations];
+    }
+
+    /**
+     * Insert prepared galaxy cluster rows in batches, returning the ids assigned
+     * to them positionally aligned with $rows (null where the row was skipped).
+     *
+     * The ids cannot be recovered by looking the clusters up by uuid afterwards:
+     * misp-galaxy ships duplicate cluster uuids - 1033 across the corpus when
+     * this was written, 7 of them within a single galaxy - so uuid is not a key
+     * here. InnoDB does assign one contiguous block of auto increment values to
+     * a single multi row INSERT whose row count it knows up front, so the block
+     * beginning at LAST_INSERT_ID() maps onto the batch by position.
+     *
+     * If a batch cannot be inserted the whole batch is retried one row at a
+     * time, so that a single malformed cluster is skipped and logged rather than
+     * taking the other rows of its batch down with it - which is what saving
+     * row by row used to do.
+     *
+     * @param array $rows
+     * @return array
+     */
+    private function __bulkInsertClusters(array $rows)
+    {
+        $fields = [
+            'uuid', 'collection_uuid', 'type', 'value', 'tag_name', 'description',
+            'galaxy_id', 'source', 'authors', 'version', 'distribution',
+            'org_id', 'orgc_id', 'default', 'published',
+        ];
+        $db = $this->getDataSource();
+        $ids = [];
+        foreach (array_chunk($rows, 1000, true) as $chunk) {
+            $values = [];
+            foreach ($chunk as $row) {
+                $value = [];
+                foreach ($fields as $field) {
+                    $value[] = isset($row[$field]) ? $row[$field] : ($field === 'uuid' ? '' : null);
+                }
+                $values[] = $value;
+            }
+            $inserted = false;
+            try {
+                $inserted = $db->insertMulti('galaxy_clusters', $fields, $values);
+            } catch (Exception $e) {
+                $inserted = false;
+            }
+            if ($inserted) {
+                $firstId = (int)$db->lastInsertId();
+                $offset = 0;
+                foreach (array_keys($chunk) as $key) {
+                    $ids[$key] = $firstId + $offset;
+                    $offset++;
+                }
+                continue;
+            }
+            // Slow path: one row at a time, so one bad row only costs itself.
+            foreach ($chunk as $key => $row) {
+                $this->GalaxyCluster->create();
+                if ($this->GalaxyCluster->save($row, ['atomic' => false, 'validate' => false])) {
+                    $ids[$key] = $this->GalaxyCluster->id;
+                } else {
+                    $uuid = isset($row['uuid']) ? $row['uuid'] : '';
+                    $this->log("Could not save galaxy cluster with UUID {$uuid}.");
+                    $ids[$key] = null;
+                }
+            }
+        }
+        return $ids;
     }
 
     public function update($force = false)
