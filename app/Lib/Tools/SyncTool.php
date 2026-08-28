@@ -24,7 +24,7 @@ class SyncTool
             if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;
                 $params['ssl_verify_peer_name'] = false;
-                if (!isset($server[$model]['cert_file'])) {
+                if (empty($server[$model]['cert_file'])) {
                     $params['ssl_verify_peer'] = false;
                 }
             }
