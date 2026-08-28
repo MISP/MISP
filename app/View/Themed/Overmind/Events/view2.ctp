@@ -11,6 +11,11 @@
         'js'  => ['markdown-it', 'Chart.min']
     ]);
 
+    // Extended / extending view: say so, and carry the mode into every lazy
+    // tab so a tab load never drops back to the atomic view.
+    echo $this->element('Events/View/extension_banner');
+    $extensionSuffix = $extensionSuffix ?? '';
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $event,
@@ -47,7 +52,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s',h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],
@@ -60,7 +65,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewAttributes/%s',h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],
@@ -73,7 +78,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewEventReports/%s', h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewEventReports/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],

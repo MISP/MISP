@@ -75,8 +75,18 @@ foreach ($cardFields as $column => $field) {
 }
 ?>
 
+<?php
+$cardClass = '';
+if (!empty($data['row_class_callable']) && is_callable($data['row_class_callable'])) {
+    $cardClass = call_user_func($data['row_class_callable'], $row);
+}
+$cardStyle = '';
+if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable'])) {
+    $cardStyle = call_user_func($data['row_style_callable'], $row);
+}
+?>
 <div class="ps-2 pe-2">
-    <div class="card shadow-sm idx-card">
+    <div class="card shadow-sm idx-card <?= h($cardClass) ?>"<?= $cardStyle === '' ? '' : ' style="' . h($cardStyle) . '"' ?>>
 
         <div class="card-body">
 

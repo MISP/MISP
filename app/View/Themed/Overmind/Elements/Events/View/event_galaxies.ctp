@@ -1,7 +1,8 @@
 <?php
 $eventId  = h($data['Event']['id'] ?? '');
 $uid      = 'evt-galaxies-' . $eventId;
-$fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId);
+$fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId
+    . ($extensionSuffix ?? ''));
 $editUrl  = h($baseurl . '/events/editEventGalaxies/' . $eventId);
 $mayModify = $this->Acl->canModifyTag($data);
 ?>

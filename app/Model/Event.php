@@ -1817,6 +1817,94 @@ class Event extends AppModel
     }
 
     /**
+     * Resolve the events that make up an extended / extending view.
+     *
+     * `extended` pulls in the events that extend the one being viewed (its
+     * children), `extending` pulls in the event it extends (its parent). Both
+     * may be on at once. The viewed event is always part of the set and always
+     * comes first, so callers that colour-code the origin land on a stable
+     * mapping.
+     *
+     * Only direct relatives are resolved — MISP's extension chain is not walked
+     * recursively, mirroring fetchEvent()'s own extended handling.
+     *
+     * @param array $user
+     * @param array $event     event with at least Event.id, Event.uuid and
+     *                         Event.extends_uuid
+     * @param bool  $extended  merge the events extending this one
+     * @param bool  $extending merge the event this one extends
+     * @return array [
+     *   'ids'    => int[] every event id in the view, viewed event first,
+     *   'events' => [id => [
+     *       'id', 'uuid', 'info', 'org_id', 'orgc_id', 'user_id',
+     *       'Orgc' => ['id', 'name'],
+     *       'role' => 'self'|'extension'|'extended',
+     *   ]],
+     * ]
+     */
+    public function getExtensionEventSet(
+        array $user,
+        array $event,
+        $extended = false,
+        $extending = false
+    ) {
+        $primaryId = (int)$event['Event']['id'];
+        $set = [
+            $primaryId => [
+                'id' => $primaryId,
+                'uuid' => $event['Event']['uuid'] ?? null,
+                'info' => $event['Event']['info'] ?? null,
+                'org_id' => $event['Event']['org_id'] ?? null,
+                'orgc_id' => $event['Event']['orgc_id'] ?? null,
+                'user_id' => $event['Event']['user_id'] ?? null,
+                'Orgc' => $event['Orgc'] ?? [],
+                'role' => 'self',
+            ],
+        ];
+
+        $lookups = [];
+        if ($extended && !empty($event['Event']['uuid'])) {
+            $lookups['extension'] = [
+                'Event.extends_uuid' => $event['Event']['uuid'],
+            ];
+        }
+        if ($extending && !empty($event['Event']['extends_uuid'])) {
+            $lookups['extended'] = [
+                'Event.uuid' => $event['Event']['extends_uuid'],
+            ];
+        }
+
+        foreach ($lookups as $role => $conditions) {
+            $relatives = $this->fetchSimpleEvents(
+                $user,
+                ['conditions' => $conditions],
+                true
+            );
+            foreach ($relatives as $relative) {
+                $relativeId = (int)$relative['Event']['id'];
+                if (isset($set[$relativeId])) {
+                    continue;
+                }
+                $set[$relativeId] = [
+                    'id' => $relativeId,
+                    'uuid' => $relative['Event']['uuid'],
+                    'info' => $relative['Event']['info'],
+                    'org_id' => $relative['Event']['org_id'] ?? null,
+                    'orgc_id' => $relative['Event']['orgc_id'] ?? null,
+                    'user_id' => $relative['Event']['user_id'] ?? null,
+                    'Orgc' => $relative['Orgc'] ?? [],
+                    'role' => $role,
+                ];
+            }
+        }
+
+        return [
+            'ids' => array_keys($set),
+            'events' => $set,
+        ];
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -1832,6 +1920,8 @@ class Event extends AppModel
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
      *   - searchFor (string|null) value substring search
+     *   - eventIds (int[]|null) extended / extending view: every event whose
+     *     attributes belong in the list. $eventId stays the primary one.
      * @return array ['Attribute' => [...], 'total' => int]
      */
     public function fetchPaginatedAttributes(
@@ -1850,15 +1940,24 @@ class Event extends AppModel
         $allowedSortFields = [
             'id', 'uuid', 'type', 'category', 'value',
             'to_ids', 'timestamp', 'distribution', 'comment',
-            'first_seen', 'last_seen',
+            'first_seen', 'last_seen', 'event_id',
         ];
         if (!in_array($sort, $allowedSortFields, true)) {
             $sort = 'timestamp';
         }
 
+        // In an extended / extending view the list spans every event merged
+        // into it. $eventId stays the primary one: enrichment (correlations,
+        // feed hits) is still resolved against the event you are looking at.
+        $eventIds = empty($options['eventIds'])
+            ? [(int)$eventId]
+            : array_values(array_unique(array_map(
+                'intval', (array)$options['eventIds']
+            )));
+
         // Base conditions
         $conditions = [
-            'Attribute.event_id' => $eventId,
+            'Attribute.event_id' => $eventIds,
         ];
         if (empty($options['flatten'])) {
             $conditions['Attribute.object_id'] = 0;
@@ -2069,7 +2168,7 @@ class Event extends AppModel
         }
 
         $enriched = $this->__enrichAttributes(
-            $flat, $user, $eventId
+            $flat, $user, $eventId, $eventIds
         );
         $attributesOut = $enriched['attributes'];
 
@@ -2080,7 +2179,7 @@ class Event extends AppModel
         // based correlations / sightings.
         if (!empty($options['proposal'])) {
             $attributesOut = $this->__attachProposals(
-                $attributesOut, $eventId, $page, $options
+                $attributesOut, $eventIds, $page, $options
             );
         }
 
@@ -2168,7 +2267,14 @@ class Event extends AppModel
      * @param array $options viewAttributes filters (category/type/searchFor)
      * @return array
      */
-    private function __attachProposals(array $attributes, $eventId, $page, array $options)
+    /**
+     * @param array $attributes
+     * @param array $eventIds every event in the (possibly extended) view
+     * @param int   $page
+     * @param array $options
+     * @return array
+     */
+    private function __attachProposals(array $attributes, array $eventIds, $page, array $options)
     {
         // Pending proposed edits / deletions for attributes on this page.
         $attrIds = array_column($attributes, 'id');
@@ -2177,7 +2283,7 @@ class Event extends AppModel
             $edits = $this->ShadowAttribute->find('all', [
                 'conditions' => [
                     'ShadowAttribute.old_id' => $attrIds,
-                    'ShadowAttribute.event_id' => $eventId,
+                    'ShadowAttribute.event_id' => $eventIds,
                     'ShadowAttribute.deleted' => 0,
                 ],
                 'recursive' => -1,
@@ -2191,7 +2297,7 @@ class Event extends AppModel
         $newProposals = [];
         if ((int)$page === 1) {
             $conditions = [
-                'ShadowAttribute.event_id' => $eventId,
+                'ShadowAttribute.event_id' => $eventIds,
                 'ShadowAttribute.old_id' => 0,
                 'ShadowAttribute.deleted' => 0,
             ];
@@ -2254,7 +2360,7 @@ class Event extends AppModel
             $sa = $decorate($p['ShadowAttribute']);
             $rows[] = [
                 'id' => $sa['id'],
-                'event_id' => $eventId,
+                'event_id' => $sa['event_id'],
                 'category' => $sa['category'],
                 'type' => $sa['type'],
                 'value' => $sa['value'],
@@ -2298,6 +2404,8 @@ class Event extends AppModel
      *   - name (string|null) object template name filter
      *   - meta-category (string|null)
      *   - searchFor (string|null) search in object attribute values
+     *   - eventIds (int[]|null) extended / extending view: every event whose
+     *     objects belong in the list
      * @return array ['Object' => [...], 'total' => int]
      */
     public function fetchPaginatedObjects(
@@ -2324,9 +2432,16 @@ class Event extends AppModel
 
         $isSiteAdmin = $user['Role']['perm_site_admin'];
 
+        // In an extended / extending view the list spans every event merged into it.
+        $eventIds = empty($options['eventIds'])
+            ? [(int)$eventId]
+            : array_values(array_unique(array_map(
+                'intval', (array)$options['eventIds']
+            )));
+
         // Object-level conditions
         $conditions = [
-            'Object.event_id' => $eventId,
+            'Object.event_id' => $eventIds,
         ];
 
         // Deleted filter
@@ -2406,7 +2521,7 @@ class Event extends AppModel
                 'table' => 'attributes',
                 'alias' => 'Attribute',
                 'conditions' => [
-                    'Attribute.event_id' => $eventId,
+                    'Attribute.event_id' => $eventIds,
                     'Attribute.object_id !=' => 0,
                     'Attribute.value1 LIKE' =>
                         '%' . $options['searchFor'] . '%',
@@ -2462,7 +2577,7 @@ class Event extends AppModel
             $attrDeleted = 0;
         }
         $attrConditions = [
-            'Attribute.event_id' => $eventId,
+            'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,
             'Attribute.deleted' => $attrDeleted,
         ];
@@ -2768,8 +2883,12 @@ class Event extends AppModel
     private function __enrichAttributes(
         array $attributes,
         array $user,
-        $eventId
+        $eventId,
+        array $eventIds = []
     ) {
+        if (empty($eventIds)) {
+            $eventIds = [(int)$eventId];
+        }
         if (empty($attributes)) {
             return [
                 'attributes' => [],
@@ -2826,14 +2945,22 @@ class Event extends AppModel
         }
         unset($attribute);
 
-        // Sighting data
+        // Sighting data. In an extended view a row can belong to any event of
+        // the set, so the statistics are asked for all of them at once.
+        $orgIdByEvent = $this->find('list', [
+            'conditions' => ['Event.id' => $eventIds],
+            'fields' => ['Event.id', 'Event.org_id'],
+            'recursive' => -1,
+        ]);
+        $sightingEvents = [];
+        foreach ($eventIds as $sightingEventId) {
+            $sightingEvents[] = ['Event' => [
+                'id' => $sightingEventId,
+                'org_id' => $orgIdByEvent[$sightingEventId] ?? null,
+            ]];
+        }
         $sightingsData = $this->Sighting->eventsStatistic(
-            [['Event' => [
-                'id' => $eventId,
-                'org_id' => $this->field('org_id', [
-                    'Event.id' => $eventId,
-                ]),
-            ]]],
+            $sightingEvents,
             $user
         );
         foreach ($attributes as &$attribute) {

@@ -1021,6 +1021,20 @@ tr.attr-proposal-row td:first-child {
     box-shadow: inset 3px 0 0 0 var(--bs-warning, #f59e0b);
 }
 
+/* Rows and cards carried in from another event in an extended / extending
+   view. Both colours identify the origin event, so they arrive inline per row
+   (see ExtensionEventColour) and this only says where they apply. */
+tr.evt-extension-row {
+    background-color: var(--extension-tint, transparent);
+}
+tr.evt-extension-row td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--extension-accent, transparent);
+}
+.idx-card.evt-extension-row {
+    background-color: var(--extension-tint, transparent);
+    border-left: 3px solid var(--extension-accent, transparent);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Sankey graph
    ═══════════════════════════════════════════════════════════ */

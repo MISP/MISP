@@ -316,19 +316,10 @@ $this->set('headerDescription', $headerDescription);
                 </div>
             </div>
 
-            <!-- EXTENDS UUID -->
-            <?php if (!empty($event['extends_uuid'])): ?>
-            <div class="col-12">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Extends Event') ?>
-                </div>
-                <a href="<?= h($baseurl . '/events/view/' . $event['extends_uuid']) ?>"
-                   class="font-monospace small text-decoration-none">
-                    <i class="fas fa-code-branch me-1 text-muted"></i>
-                    <?= h($event['extends_uuid']) ?>
-                </a>
-            </div>
-            <?php endif; ?>
+            <!-- EXTENSIONS: what this event extends, what extends it -->
+            <?= $this->element('Events/View/event_extensions', [
+                'data' => $data,
+            ]) ?>
 
         </div>
 

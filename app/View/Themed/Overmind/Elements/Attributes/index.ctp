@@ -63,6 +63,10 @@ $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable')
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
 // Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
 $inEventView = empty($show_event_id) && !empty($event['Event']['id']);
+// Extended / extending event view: rows can belong to any event of the merged
+// set, so each one says where it comes from and wears its origin's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
 
 $path = function($field) use ($model) {
     if (empty($model)) return $field;
@@ -74,6 +78,24 @@ $canTagAttr = false;
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $canTagAttr = $this->Acl->canModifyTag($event);
 }
+
+// In an extended / extending view a row may belong to an event you cannot
+// touch, so the row actions ask the origin event rather than the one whose
+// page you are on.
+$_rowMayModify = function ($row) use ($_canModify, $inExtensionView, $extensionEvents) {
+    if (!$inExtensionView) {
+        return $_canModify;
+    }
+    $origin = $extensionEvents[(int)($row['event_id'] ?? 0)] ?? null;
+    return $origin !== null && !empty($origin['mayModify']);
+};
+$_rowMayTag = function ($row) use ($canTagAttr, $inExtensionView, $extensionEvents) {
+    if (!$inExtensionView) {
+        return $canTagAttr;
+    }
+    $origin = $extensionEvents[(int)($row['event_id'] ?? 0)] ?? null;
+    return $origin !== null && !empty($origin['mayModifyTag']);
+};
 
 $fields = [
     [
@@ -156,7 +178,7 @@ $fields = array_merge($fields, [
         'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card'],
-        'add_tag' => $canTagAttr,
+        'add_tag' => $_rowMayTag,
         'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
         'add_tag_id_path' => $path('id'),
     ],
@@ -166,7 +188,7 @@ $fields = array_merge($fields, [
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card'],
-        'add_galaxy' => $canTagAttr,
+        'add_galaxy' => $_rowMayTag,
         'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
         'add_galaxy_id_path' => $path('id'),
     ],
@@ -275,8 +297,8 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'divider',
-                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled, $_cortexEnabled) {
-                    return $_canModify && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled, $_cortexEnabled) {
+                    return $_rowMayModify($row) && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -284,8 +306,8 @@ $fields = array_merge($fields, [
                 'label' => __('Enrich'),
                 'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
                 'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
-                'requirement' => function($row) use ($_canModify, $_enrichmentEnabled) {
-                    return $_canModify && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled) {
+                    return $_rowMayModify($row) && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -293,8 +315,8 @@ $fields = array_merge($fields, [
                 'label' => __('Enrich (Cortex)'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
-                'requirement' => function($row) use ($_canModify, $_cortexEnabled) {
-                    return $_canModify && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify, $_cortexEnabled) {
+                    return $_rowMayModify($row) && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -308,8 +330,8 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'divider',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -317,8 +339,8 @@ $fields = array_merge($fields, [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -327,8 +349,8 @@ $fields = array_merge($fields, [
                 'icon' => 'rotate-left',
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && !empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ],
             [
@@ -337,8 +359,8 @@ $fields = array_merge($fields, [
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%',
                 'class' => 'text-danger',
-                'requirement' => function($row) use ($_canModify) {
-                    return $_canModify && empty($row['deleted']) && empty($row['is_proposal']);
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ]
         ]
@@ -457,7 +479,8 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $currentProposal = (int)($namedParams['proposal'] ?? 0);
     $toggleDeleted   = $currentDeleted ? 0 : 1;
     $toggleProposal  = $currentProposal ? 0 : 1;
-    $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId;
+    $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId
+        . ($extensionSuffix ?? '');
 
     // Fallback hrefs (real toggles are handled by view_attributes.ctp)
     $deletedUrl  = $attrBaseUrl
@@ -490,11 +513,34 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'data' => [
             'data' => $attributes,
             'primary_id_path' => $path('id'),
-            'row_class_callable' => function($row) {
+            'row_class_callable' => function($row) use ($inExtensionView, $extensionEvents) {
+                $classes = [];
                 if (!empty($row['is_proposal'])) {
-                    return 'attr-proposal-row';
+                    $classes[] = 'attr-proposal-row';
+                } elseif (!empty($row['deleted'])) {
+                    $classes[] = 'attr-deleted';
                 }
-                return !empty($row['deleted']) ? 'attr-deleted' : '';
+                if ($inExtensionView) {
+                    $origin = $extensionEvents[(int)($row['event_id'] ?? 0)] ?? null;
+                    if ($origin !== null && $origin['role'] !== 'self') {
+                        $classes[] = 'evt-extension-row';
+                    }
+                }
+                return implode(' ', $classes);
+            },
+            'row_style_callable' => function($row) use ($inExtensionView, $extensionEvents) {
+                if (!$inExtensionView) {
+                    return '';
+                }
+                $origin = $extensionEvents[(int)($row['event_id'] ?? 0)] ?? null;
+                if ($origin === null || $origin['role'] === 'self') {
+                    return '';
+                }
+                return sprintf(
+                    '--extension-tint:%s;--extension-accent:%s;',
+                    $origin['palette']['sectionBg'],
+                    $origin['palette']['badgeBorder']
+                );
             },
             'filter_bar' => [
                 'pull' => 'right',

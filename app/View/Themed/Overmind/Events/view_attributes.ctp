@@ -7,13 +7,18 @@ $currentCategory = $namedParams['category'] ?? '';
 $currentType     = $namedParams['type']     ?? '';
 $currentWarninglist = $namedParams['warninglist'] ?? '';
 
-$this->Paginator->options([
-    'url' => [
-        'controller' => 'events',
-        'action'     => 'viewAttributes',
-        $attrEventId,
-    ]
-]);
+$paginatorUrl = [
+    'controller' => 'events',
+    'action'     => 'viewAttributes',
+    $attrEventId,
+];
+if (!empty($extended)) {
+    $paginatorUrl['extended'] = 1;
+}
+if (!empty($extending)) {
+    $paginatorUrl['extending'] = 1;
+}
+$this->Paginator->options(['url' => $paginatorUrl]);
 
 ?>
 
@@ -54,7 +59,8 @@ echo $this->element('Attributes/index', [
     // Shared mutable state — updated every IIFE run so ALL closures see latest values
     window.mispView = window.mispView || {};
     window.mispView.attrs = Object.assign(window.mispView.attrs || {}, {
-        attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>,
+        attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>
+                           + <?= json_encode($extensionSuffix ?? '') ?>,
         deletedState:  <?= (int)$currentDeleted ?>,
         proposalState: <?= (int)$currentProposal ?>,
         activeFilters: <?= json_encode(array_filter([
