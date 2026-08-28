@@ -36,9 +36,28 @@ class MigrationRunner
     /** @var Server */
     private $Server;
 
+    /**
+     * Non-tolerated error messages from the most recent run(), in the order they
+     * happened. The logs table and the progress blob both already carry them,
+     * but neither is something a caller can read back cheaply - and the
+     * migration ledger has to record *why* a migration failed, not just that it
+     * did.
+     *
+     * @var array
+     */
+    private $errors = array();
+
     public function __construct(Model $model)
     {
         $this->model = $model;
+    }
+
+    /**
+     * @return array The errors that stopped or degraded the most recent run.
+     */
+    public function lastErrors()
+    {
+        return $this->errors;
     }
 
     /**
@@ -55,6 +74,7 @@ class MigrationRunner
     public function run($command, array $sqlArray, array $indexArray, $liveOff = false, $exitOnError = false, $clean = true)
     {
         $this->Log = ClassRegistry::init('Log');
+        $this->errors = array();
 
         // switch MISP instance live to false
         if ($liveOff) {
@@ -82,6 +102,7 @@ class MigrationRunner
                 $this->__setUpdateProgress(0, false);
                 $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `%s`. The returned error is: %s', $function_name, $e->getMessage()) . PHP_EOL);
                 $this->__setUpdateError(0);
+                $this->errors[] = __('Pre-update test `%s` failed: %s', $function_name, $e->getMessage());
                 $errorCount++;
                 $exitOnError = true;
                 $flagStop = true;
@@ -122,6 +143,7 @@ class MigrationRunner
                     $this->__setUpdateResMessages($i, __('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s', $command, $errorMessage));
                     if (!$this->model->isAcceptedDatabaseError($errorMessage)) {
                         $this->__setUpdateError($i);
+                        $this->errors[] = $errorMessage;
                         $errorCount++;
                         if ($exitOnError) {
                             $flagStop = true;
@@ -156,6 +178,7 @@ class MigrationRunner
                             $indexSuccess['errorMessage']
                         ));
                         $this->__setUpdateError(count($sqlArray)+$i);
+                        $this->errors[] = $indexSuccess['errorMessage'];
                     }
                 }
             }
