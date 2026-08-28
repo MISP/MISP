@@ -155,7 +155,7 @@ class BroExport
 		return "\n";
 	}
 
-    public function export($items, $orgs, $valueField, $whitelist = array(), $instanceString)
+    public function export($items, $orgs, $valueField, $whitelist = array(), $instanceString = '')
     {
         $intel = array();
         //For bro format organisation
@@ -225,7 +225,17 @@ class BroExport
                 "\r\n" => ' ',
                 "\n" => ' '
         );
-        return html_entity_decode(filter_var(strtr($value, $replace_pairs), FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
+        $value = strtr($value, $replace_pairs);
+        // FILTER_SANITIZE_STRING was deprecated in PHP 8.1 and is slated for
+        // removal, so it cannot stay. The observable effect of the previous
+        //   html_entity_decode(filter_var($v, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH))
+        // was: drop bytes >= 0x80, strip tags, and encode the quote characters
+        // only for html_entity_decode() to turn them straight back. The two
+        // steps below reproduce that without the deprecated constant. High
+        // bytes are dropped first, so a truncated multibyte sequence cannot
+        // combine into a '<' that strip_tags() would then act on.
+        $value = preg_replace('/[\x80-\xFF]/', '', $value);
+        return strip_tags($value);
     }
 
     public function checkWhitelist($value, $whitelist)
