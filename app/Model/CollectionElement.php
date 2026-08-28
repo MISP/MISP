@@ -225,11 +225,15 @@ class CollectionElement extends AppModel
                     $element['uuid'] = CakeText::uuid();
                 }
                 if (isset($oldElements[$element['uuid']])) {
-                    if (isset($element['description'])) {
-                        $oldElements[$element['uuid']]['description'] = $element['description'];
-                    }
-                    $elementsToSave[$k] = $oldElements[$element['uuid']];
+                    $existingElement = $oldElements[$element['uuid']];
                     unset($oldElements[$element['uuid']]);
+                    // Only queue an existing element for saving if something actually changed.
+                    // `description` is the only field that this capture updates on an existing row,
+                    // so an element whose description is unchanged needs no write at all.
+                    if (isset($element['description']) && $element['description'] !== $existingElement['description']) {
+                        $existingElement['description'] = $element['description'];
+                        $elementsToSave[$k] = $existingElement;
+                    }
                 } else {
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
@@ -271,8 +275,9 @@ class CollectionElement extends AppModel
                     );
                 }
             }
-            foreach ($oldElements as $toDelete) {
-                $this->delete($toDelete['id']);
+            if (!empty($oldElements)) {
+                // Single DELETE for every element that no longer exists upstream.
+                $this->deleteAll(['CollectionElement.id' => array_column($oldElements, 'id')], false);
             }
             $temp = $this->find('all', [
                 'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']],
