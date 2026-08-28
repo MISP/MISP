@@ -237,8 +237,12 @@ class Organisation extends AppModel
                 $organisation['uuid'] = $uuid;
             }
             $this->create();
-            $this->save($organisation);
-            return $returnUUID ? $organisation['uuid'] : $this->id;
+            if (!$this->save($organisation)) {
+                return false;
+            }
+            // beforeValidate() generates the uuid into $this->data, not into the
+            // local $organisation array, so read it back from there.
+            return $returnUUID ? $this->data[$this->alias]['uuid'] : $this->id;
         } else {
             $changed = false;
             if (isset($org['uuid']) && empty($existingOrg[$this->alias]['uuid'])) {
