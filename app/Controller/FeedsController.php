@@ -669,11 +669,11 @@ class FeedsController extends AppController
             }
             $message = __('Fetching the feed has successfully completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                if (isset($result['add'])) {
-                    $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                if (isset($result['add']['success'])) {
+                    $message .= ' Downloaded ' . count($result['add']['success']) . ' new event(s).';
                 }
-                if (isset($result['edit'])) {
-                    $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+                if (isset($result['edit']['success'])) {
+                    $message .= ' Updated ' . count($result['edit']['success']) . ' event(s).';
                 }
             }
         }
@@ -734,11 +734,11 @@ class FeedsController extends AppController
                 }
                 $message = __('Fetching the feed has successfully completed.');
                 if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                    if (isset($result['add'])) {
-                        $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['add']['success'])) {
+                        $message .= ' Downloaded ' . count($result['add']['success']) . ' new event(s).';
                     }
-                    if (isset($result['edit'])) {
-                        $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                    if (isset($result['edit']['success'])) {
+                        $message .= ' Updated ' . count($result['edit']['success']) . ' event(s).';
                     }
                 }
             }
