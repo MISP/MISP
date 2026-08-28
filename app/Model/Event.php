@@ -902,7 +902,7 @@ class Event extends AppModel
             'org_id' => $event['Event']['orgc_id']
         );
         // Fetch event with details
-        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['Event']['id'], 'metadata' => true]);
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['Event']['id'], 'metadata' => true, 'excludeLocalTags' => false]);
         $event = $event[0];
 
         $this->Server = ClassRegistry::init('Server');
