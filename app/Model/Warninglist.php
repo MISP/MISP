@@ -287,7 +287,11 @@ class Warninglist extends AppModel
         }
     }
 
-    public function update()
+    /**
+     * @param string|null $baseDir Base directory to load the warninglists from, defaults to APP/files
+     * @return array
+     */
+    public function update($baseDir = null)
     {
         // Fetch existing default warninglists
         $existingWarninglist = $this->find('all', [
@@ -297,7 +301,7 @@ class Warninglist extends AppModel
         ]);
         $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
 
-        $directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob(($baseDir ?: APP . 'files') . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $result = ['success' => [], 'fails' => []];
         foreach ($directories as $dir) {
             $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
