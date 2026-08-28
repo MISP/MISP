@@ -3646,10 +3646,64 @@ class Event extends AppModel
         return $eventTagCache;
     }
 
+    /**
+     * Fetch, in one query, the tags of every attribute referenced by the
+     * event's RelatedAttribute set.
+     *
+     * @param array $relatedAttributes event['RelatedAttribute']
+     * @param bool $excludeLocalTags
+     * @return array attribute_id => (tag id => tag)
+     */
+    private function __cacheRelatedAttributeTags(array $relatedAttributes, $excludeLocalTags)
+    {
+        $attributeIds = array();
+        foreach ($relatedAttributes as $relatedAttributeList) {
+            foreach ($relatedAttributeList as $relatedAttribute) {
+                $attributeIds[$relatedAttribute['attribute_id']] = true;
+            }
+        }
+        if (empty($attributeIds)) {
+            return array();
+        }
+        $params = array(
+            'contain' => array(
+                'Tag' => array(
+                    'fields' => array(
+                        'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                    )
+                )
+            ),
+            'recursive' => -1,
+            'conditions' => array(
+                'AttributeTag.attribute_id' => array_keys($attributeIds)
+            )
+        );
+        if ($excludeLocalTags) {
+            $params['conditions']['AttributeTag.local'] = 0;
+        }
+        $attributeTags = $this->Attribute->AttributeTag->find('all', $params);
+        $cache = array();
+        foreach ($attributeTags as $at) {
+            $cache[$at['AttributeTag']['attribute_id']][$at['Tag']['id']] = $at['Tag'];
+        }
+        return $cache;
+    }
+
     private function includeRelatedTags(array $event, array $options)
     {
         $eventTagCache = array();
         $excludeLocalTags = !empty($options['excludeLocalTags']);
+        // Fetch the tags of every correlated attribute in a single query
+        // instead of one query per (attribute, correlated attribute) pair.
+        $attributeTagCache = $this->__cacheRelatedAttributeTags($event['RelatedAttribute'], $excludeLocalTags);
+        // id => position map, so the lookup below stays O(1) rather than a
+        // linear scan of the event's attributes per related attribute.
+        $attributePosCache = array();
+        foreach ($event['Attribute'] as $k => $attribute) {
+            if (!isset($attributePosCache[$attribute['id']])) {
+                $attributePosCache[$attribute['id']] = $k;
+            }
+        }
         foreach ($event['RelatedAttribute'] as $attributeId => $relatedAttributes) {
             $tags = [];
             foreach ($relatedAttributes as $relatedAttribute) {
@@ -3657,35 +3711,14 @@ class Event extends AppModel
                 foreach ($eventTagCache[$relatedAttribute['id']] as $tagId => $tag) {
                     $tags[$tagId]= $tag;
                 }
-                $params = array(
-                    'contain' => array(
-                        'Tag' => array(
-                            'fields' => array(
-                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
-                            )
-                        )
-                    ),
-                    'recursive' => -1,
-                    'conditions' => array(
-                        'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
-                    )
-                );
-                if ($excludeLocalTags) {
-                    $params['conditions']['AttributeTag.local'] = 0;
-                }
-                $attributeTags = $this->Attribute->AttributeTag->find('all', $params);
-                foreach ($attributeTags as $at) {
-                    $tags[$at['Tag']['id']] = $at['Tag'];
+                if (isset($attributeTagCache[$relatedAttribute['attribute_id']])) {
+                    foreach ($attributeTagCache[$relatedAttribute['attribute_id']] as $tagId => $tag) {
+                        $tags[$tagId] = $tag;
+                    }
                 }
             }
             if (!empty($tags)) {
-                $attributePos = false;
-                foreach ($event['Attribute'] as $k => $attribute) {
-                    if ($attribute['id'] == $attributeId) {
-                        $attributePos = $k;
-                        break;
-                    }
-                }
+                $attributePos = isset($attributePosCache[$attributeId]) ? $attributePosCache[$attributeId] : false;
                 $event['Attribute'][$attributePos]['RelatedTags'] = array_values($tags);
             }
         }
