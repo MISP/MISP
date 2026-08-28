@@ -55,6 +55,19 @@ class AdminSetting extends AppModel
         }
     }
 
+    /**
+     * Is there any outstanding database work?
+     *
+     * findUpgrades() answers for both the frozen legacy corpus and the migration
+     * ledger, so this needs no second question - but it does mean each check now
+     * reads the ledger and the migrations directory rather than walking an
+     * in-memory constant, which is why the blocking form no longer spins flat
+     * out. Scripted deployments wait on this, so it has to stay cheap enough to
+     * poll.
+     *
+     * @param bool $blocking Wait until there is nothing outstanding.
+     * @return bool
+     */
     public function updatesDone($blocking = false)
     {
         if ($blocking) {
@@ -62,6 +75,9 @@ class AdminSetting extends AppModel
             while ($continue == false) {
                 $db_version = $this->find('first', array('conditions' => array('setting' => 'db_version')));
                 $continue = empty($this->findUpgrades($db_version['AdminSetting']['value']));
+                if (!$continue) {
+                    sleep(1);
+                }
             }
             return true;
         } else {

@@ -137,15 +137,14 @@ if (!class_exists('TestMigrationManager', false)) {
         }
 
         /**
-         * Forget what has been read, so a second run() sees the ledger the way
-         * a fresh process would.
+         * Forget the discovered set, the way a fresh process would start. The
+         * ledger needs no forgetting - it is never cached.
          *
          * @return void
          */
-        public function forgetCaches()
+        public function forgetDiscovery()
         {
             $this->migrations = null;
-            $this->ledger = null;
         }
 
         public function ensureLedger()

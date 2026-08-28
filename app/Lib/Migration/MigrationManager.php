@@ -116,11 +116,6 @@ class MigrationManager
     protected $migrations;
 
     /**
-     * @var array|null id => ledger row. Null until read.
-     */
-    protected $ledger;
-
-    /**
      * @var bool Whether the ledger table has been confirmed to exist this run.
      */
     private $ledgerReady = false;
@@ -226,6 +221,15 @@ class MigrationManager
     /**
      * The ledger as it stands, keyed by id.
      *
+     * **Read fresh every time, deliberately.** The obvious optimisation - cache
+     * it on first read - is wrong here, because the interesting callers are
+     * asking precisely because the answer may have just changed underneath them:
+     * AdminSetting::updatesDone(true) polls in a loop while *another* process
+     * applies the migrations, and the fleet diagnostic is polled for the same
+     * reason. A cached ledger turns both into a process that can never observe
+     * progress. The table holds one short row per migration and the callers are
+     * all cold paths, so there is nothing to save.
+     *
      * May contain ids with no file behind them - a migration that was reverted
      * out of the tree leaves its row. pending() ignores those; migrationStatus
      * reports them.
@@ -234,10 +238,7 @@ class MigrationManager
      */
     public function ledger()
     {
-        if ($this->ledger === null) {
-            $this->ledger = $this->readLedger();
-        }
-        return $this->ledger;
+        return $this->readLedger();
     }
 
     /**
@@ -466,11 +467,18 @@ class MigrationManager
     }
 
     /**
-     * @return array id => ledger row.
+     * @return array id => ledger row. Empty when the table is not there yet.
      */
     protected function readLedger()
     {
-        $this->ensureLedger();
+        // Reading does not create. An instance that has never applied a
+        // migration has an empty ledger whether or not the table exists, and
+        // asking what is pending - which findUpgrades() and updatesDone() both
+        // now do on ordinary requests - should not write DDL as a side effect.
+        // ensureLedger() runs on the write path instead.
+        if (!$this->inspector()->hasTable(self::LEDGER_TABLE)) {
+            return array();
+        }
         $db = $this->dataSource();
         $sql = sprintf(
             'SELECT %s FROM %s;',
@@ -488,8 +496,7 @@ class MigrationManager
     }
 
     /**
-     * Record an outcome, replacing any previous one for the same id, and keep
-     * the in-memory view of the ledger in step with it.
+     * Record an outcome, replacing any previous one for the same id.
      *
      * @param string $id
      * @param string $status
@@ -500,18 +507,13 @@ class MigrationManager
     protected function writeLedger($id, $status, $durationMs, $error = null)
     {
         $this->ensureLedger();
-        $row = array(
+        $this->persistLedgerRow(array(
             'id' => $id,
             'applied_at' => date('Y-m-d H:i:s'),
             'duration_ms' => (int)$durationMs,
             'status' => $status,
             'error' => $error,
-        );
-        $this->persistLedgerRow($row);
-        if ($this->ledger === null) {
-            $this->ledger = array();
-        }
-        $this->ledger[$id] = $row;
+        ));
     }
 
     /**

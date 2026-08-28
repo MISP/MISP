@@ -143,7 +143,7 @@ class MigrationOrderingTest extends TestCase
         $manager->applyPending();
 
         // A second process: same ledger, nothing remembered in memory.
-        $manager->forgetCaches();
+        $manager->forgetDiscovery();
         $manager->executed = array();
         $manager->failing = array();
         $manager->applyPending();

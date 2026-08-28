@@ -183,16 +183,26 @@ class MigrationManagerTest extends TestCase
         $this->assertSame(2, $manager->ledgerWrites);
     }
 
-    public function testTheLedgerIsReadOnceAndThenKeptInStep()
+    /**
+     * The ledger is never cached, and that is load-bearing rather than lazy.
+     *
+     * updatesDone(true) polls in a loop while another process applies the
+     * migrations, and the fleet diagnostic is polled for the same reason. A
+     * ledger read once and remembered turns both into a process that can never
+     * observe progress - it would spin forever against a snapshot taken before
+     * the work started.
+     */
+    public function testTheLedgerIsReadFreshSoAnotherProcessesWorkIsVisible()
     {
         $manager = $this->manager();
-        $manager->pending();
-        $manager->apply('20260101_000000_add_column');
-        $manager->pending();
-        $manager->applied();
+        $this->assertArrayHasKey('20260101_000000_add_column', $manager->pending());
 
-        $this->assertSame(1, $manager->ledgerReads);
-        $this->assertArrayHasKey('20260101_000000_add_column', $manager->ledger());
+        // Another process applies it. Nothing tells this manager.
+        $manager->rows['20260101_000000_add_column'] =
+            TestMigrationManager::row('20260101_000000_add_column', MigrationManager::STATUS_APPLIED);
+
+        $this->assertArrayNotHasKey('20260101_000000_add_column', $manager->pending());
+        $this->assertGreaterThan(1, $manager->ledgerReads);
     }
 
     // ------------------------------------------------------------- rendering

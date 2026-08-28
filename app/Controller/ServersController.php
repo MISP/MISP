@@ -2301,8 +2301,11 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
-        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        // Not max(array_keys(Server::DB_CHANGES)) - $dbVersion any more: that
+        // counted version numbers rather than updates, and after the freeze
+        // db_version cannot move at all, so it would count nothing while ledger
+        // migrations were still pending.
+        $updateProgress['complete_update_remaining'] = $this->Server->countPendingUpdates($dbVersion);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
         $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();

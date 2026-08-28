@@ -29,6 +29,7 @@ App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('Folder', 'Utility');
 App::uses('MigrationRunner', 'Migration');
+App::uses('MigrationManager', 'Migration');
 App::uses('LegacyMigrationsTrait', 'Migration');
 
 class AppModel extends Model
@@ -60,6 +61,9 @@ class AppModel extends Model
 
     /** @var MigrationRunner|null */
     private $migrationRunner = null;
+
+    /** @var MigrationManager|null */
+    private $migrationManager = null;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -108,6 +112,19 @@ class AppModel extends Model
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
         153 => false, 154 => false, 157 => false, 158 => false, 159 => false
     );
+
+    /**
+     * The last number DB_CHANGES will ever carry.
+     *
+     * Everything after it is a migration under app/Lib/Migration/Migrations/,
+     * recorded in the schema_migrations ledger rather than in db_version. The
+     * corpus above is an archive of what instances in the wild have already run;
+     * adding to it now would reintroduce the very bug the ledger removes, since
+     * a number below an instance's high-water mark is silently never applied.
+     *
+     * findUpgrades() enforces this rather than trusting the comment.
+     */
+    const DB_CHANGES_FREEZE = 159;
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
@@ -412,6 +429,8 @@ class AppModel extends Model
                 $this->__resetUpdateProgress();
 
                 $update_done = 0;
+                $haltedOn = null;
+                $migrationManager = $this->getMigrationManager();
                 foreach ($updates as $update => $temp) {
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
@@ -421,24 +440,50 @@ class AppModel extends Model
                         $job['Job']['message'] = __('Running update %s', $update);
                         $this->Job->save($job);
                     }
-                    $dbUpdateSuccess = $this->updateMISP($update);
+                    // findUpgrades() merged two key spaces into one map; this is
+                    // where they part company again.
+                    $isMigration = $migrationManager->has($update);
+                    $dbUpdateSuccess = $isMigration ? $migrationManager->apply($update) : $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
                     }
-                    if ($dbUpdateSuccess) {
-                        $db_version['AdminSetting']['value'] = $update;
-                        $this->AdminSetting->save($db_version);
-                        $this->resetUpdateFailNumber();
-                    } else {
-                        $this->__increaseUpdateFailNumber();
-                    }
-                    if ($verbose) {
-                        echo "\033[32mDone\033[0m" . PHP_EOL;
-                    }
                     $update_done++;
+                    if ($dbUpdateSuccess) {
+                        if (!$isMigration) {
+                            $db_version['AdminSetting']['value'] = $update;
+                            $this->AdminSetting->save($db_version);
+                        }
+                        // A migration has already recorded itself in the ledger,
+                        // and db_version is frozen, so there is nothing to move.
+                        $this->resetUpdateFailNumber();
+                        if ($verbose) {
+                            echo "\033[32mDone\033[0m" . PHP_EOL;
+                        }
+                    } else {
+                        $haltedOn = $update;
+                        $this->__increaseUpdateFailNumber();
+                        $this->__logUpdateHalted($update, array_slice(array_keys($updates), $update_done));
+                        if ($verbose) {
+                            echo "\033[31mFailed\033[0m" . PHP_EOL;
+                        }
+                        // Updates are frequently interdependent - the canonical
+                        // shape is add a column, migrate data into it, drop the
+                        // old one - and running the successors of a failure has
+                        // been destroying data quietly: the last of the three
+                        // succeeds, advances db_version past the one that failed
+                        // and resets the failure counter, so the instance ends up
+                        // reporting itself fully updated with the data gone.
+                        // Stop instead, and stay stopped until someone looks.
+                        break;
+                    }
                 }
                 if (!empty($job)) {
-                    $job['Job']['message'] = __('Update done');
+                    // A halted run is not a finished one. Saying "Update done"
+                    // over a stalled instance is the same silence the ledger
+                    // fields in the schema diagnostic exist to break.
+                    $job['Job']['message'] = $haltedOn === null
+                        ? __('Update done')
+                        : __('Update halted: %s failed', $haltedOn);
                 }
                 $this->changeLockState(false);
                 $this->__queueCleanDB();
@@ -461,6 +506,40 @@ class AppModel extends Model
     }
 
     /**
+     * Record that a failed update stopped the run, and name what it blocked.
+     *
+     * Without this the halt is invisible: the failure itself is logged by
+     * whichever path produced it, but nothing says that six further updates were
+     * never attempted, which is the part an administrator needs in order to
+     * understand why the instance has stopped moving.
+     *
+     * Deliberately not phrased like the titles
+     * AdminShell::recoverSinceLastSuccessfulUpdate() LIKE-queries the logs table
+     * for - those are load-bearing and this must not be mistaken for one.
+     *
+     * @param string|int $failed The update that stopped the run.
+     * @param array $blocked The updates after it, none of which were attempted.
+     * @return void
+     */
+    private function __logUpdateHalted($failed, array $blocked)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => __('Database updates halted: %s failed', $failed),
+            'change' => empty($blocked)
+                ? __('Nothing was left to run after it.')
+                : __('%s update(s) after it were not attempted and remain pending: %s', count($blocked), implode(', ', $blocked)),
+        ));
+    }
+
+    /**
      * Update date_modified for all users, this will ensure that all users will refresh their session data.
      */
     private function refreshSessions()
@@ -478,6 +557,33 @@ class AppModel extends Model
             $this->migrationRunner = new MigrationRunner($this);
         }
         return $this->migrationRunner;
+    }
+
+    /**
+     * @return MigrationManager The new-style migrations and their ledger.
+     */
+    public function getMigrationManager()
+    {
+        if ($this->migrationManager === null) {
+            $this->migrationManager = new MigrationManager($this);
+        }
+        return $this->migrationManager;
+    }
+
+    /**
+     * How much work runUpdates() has left to do, legacy and migrations together.
+     *
+     * Replaces the arithmetic the progress UI used to do for itself
+     * (max(array_keys(DB_CHANGES)) - db_version), which counts version *numbers*
+     * rather than updates - DB_CHANGES has gaps - and which after the freeze
+     * would count nothing at all, since db_version can no longer move.
+     *
+     * @param string|int $db_version
+     * @return int
+     */
+    public function countPendingUpdates($db_version)
+    {
+        return count($this->findUpgrades($db_version));
     }
 
     /**
@@ -550,11 +656,24 @@ class AppModel extends Model
     }
 
     /**
+     * Everything runUpdates() still has to apply, in the order it must apply it.
+     *
+     * Two sources, one map. The legacy corpus is frozen at DB_CHANGES_FREEZE and
+     * keyed by an integer high-water mark; migrations are keyed by their ledger
+     * ID and are pending purely because the ledger has no applied row for them.
+     * The union is safe because the two key spaces cannot collide - a legacy key
+     * is an int or a '2.4.x' string, and a migration ID is a timestamp and a
+     * slug, which PHP will not cast to an integer key - and the union operator
+     * preserves left-hand order, so all pending legacy updates come first,
+     * followed by the migrations in ID order, with no sorting step.
+     *
      * @param string $db_version
-     * @return array
+     * @return array command => requiresLogout
+     * @throws Exception If the frozen corpus has grown.
      */
     protected function findUpgrades($db_version)
     {
+        $this->assertLegacyCorpusFrozen();
         $updates = array();
         if (strpos($db_version, '.')) {
             $version = explode('.', $db_version);
@@ -586,7 +705,31 @@ class AppModel extends Model
                 $updates[$db_change] = $requiresLogout;
             }
         }
-        return $updates;
+        return $updates + $this->getMigrationManager()->pending();
+    }
+
+    /**
+     * Nothing may be added to DB_CHANGES after the freeze.
+     *
+     * A case numbered above it would be applied by instances below that number
+     * and silently skipped by every instance already past it - which is exactly
+     * the failure the ledger was built to remove, reappearing in the code that
+     * removed it. Checked here rather than left to a comment, because a process
+     * rule alone is what produced the original bug.
+     *
+     * @return void
+     * @throws Exception
+     */
+    private function assertLegacyCorpusFrozen()
+    {
+        $highest = max(array_keys(self::DB_CHANGES));
+        if ($highest > self::DB_CHANGES_FREEZE) {
+            throw new Exception(sprintf(
+                'DB_CHANGES is frozen at %d but carries %d. New schema changes belong in app/Lib/Migration/Migrations/ as migration classes, not in the legacy corpus - a case added above the freeze is applied by some instances and silently skipped by others.',
+                self::DB_CHANGES_FREEZE,
+                $highest
+            ));
+        }
     }
 
     public function checkFilename($filename)
