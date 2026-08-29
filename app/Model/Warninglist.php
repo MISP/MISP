@@ -110,6 +110,9 @@ class Warninglist extends AppModel
      */
     public function attachWarninglistToAttributes(array &$attributes)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            return [];
+        }
         if (empty($attributes)) {
             return [];
         }
@@ -289,6 +292,9 @@ class Warninglist extends AppModel
 
     public function update()
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            return ['success' => [], 'fails' => []];
+        }
         // Fetch existing default warninglists
         $existingWarninglist = $this->find('all', [
             'fields' => ['id', 'name', 'version', 'enabled'],
@@ -331,6 +337,9 @@ class Warninglist extends AppModel
 
     public function quickDelete($id)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $result = $this->WarninglistEntry->deleteAll(
             array('WarninglistEntry.warninglist_id' => $id),
             false
@@ -355,6 +364,9 @@ class Warninglist extends AppModel
      */
     public function import(array $list)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $existingWarninglist = $this->find('first', [
             'fields' => ['id', 'name', 'version', 'enabled', 'default'],
             'recursive' => -1,
@@ -825,6 +837,9 @@ class Warninglist extends AppModel
      */
     public function save($data = null, $validate = true, $fieldList = array())
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $db = $this->getDataSource();
         $transactionBegun = $db->begin();
 

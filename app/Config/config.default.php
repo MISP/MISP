@@ -94,6 +94,7 @@ $config = array(
         'event_view_filter_fields'       => 'id, uuid, value, comment, type, category, Tag.name',
         'live'                           => true,
         'uuid'                           => '',
+        'primary_uuid'                   => '',
         'delegation'                     => true,
         'max_correlations_per_event'     => 5000,
         'disable_auto_logout'            => false,

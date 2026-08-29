@@ -946,6 +946,11 @@ class Event extends AppModel
             throw new InvalidArgumentException('Invalid Server array provided.');
         }
 
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            $reason = "Not a Primary Instance in HA deployment";
+            return false;
+        }
+
         // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
         // But keep it here just for sure
         if (!$server['Server']['internal'] && $event['Event']['distribution'] < self::DISTRIBUTION_CONNECTED) {
@@ -978,6 +983,10 @@ class Event extends AppModel
     public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
+
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            return 'Not a Primary Instance in a HA deployment.';
+        }
 
         if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
             return 'The server rules blocks it from being pushed.';
@@ -4586,6 +4595,20 @@ class Event extends AppModel
             ));
             return true;
         }
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Event',
+                    'model_id' => $id,
+                    'email' => $user['email'],
+                    'action' => 'publish',
+                    'title' => 'E-mail alerts not sent out during publishing. Reason: Not the primay instance in a HA deployment.',
+                    'change' => null,
+            ));
+            return true;
+        }
         $banStatus = $this->getEventRepublishBanStatus($id);
         $banStatusUser = $this->User->checkNotificationBanStatus($user);
         if ($banStatus['active'] || $banStatusUser['active']) {
@@ -6365,6 +6388,9 @@ class Event extends AppModel
      */
     public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            return false;
+        }
         if (is_numeric($id)) {
             $condition = array('Event.id' => $id);
         } else {

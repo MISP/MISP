@@ -1807,6 +1807,9 @@ class Feed extends AppModel
 
     public function importFeeds($feeds, $user, $default = false)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         if (is_string($feeds)) {
             $feeds = json_decode($feeds, true);
         }
@@ -2109,6 +2112,9 @@ class Feed extends AppModel
      */
     private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
         }

@@ -1106,6 +1106,16 @@ class AppController extends Controller
         return $this->userRole['perm_site_admin'];
     }
 
+    // checks if HA is enabled and this instance is the Primary one
+    protected function _isHAPrimary()
+    {
+        if (!empty(Configure::read('MISP.uuid')) && !empty(Configure::read('MISP.primary_uuid'))) {
+            return (Configure::read('MISP.uuid') === Configure::read('MISP.primary_uuid'));
+        }
+        // back compatibility
+        return true;
+    }
+
     private function __captureParam($data, $param, $value)
     {
         if ($this->{$this->modelClass}->checkParam($param)) {
