@@ -27,6 +27,11 @@ echo $this->element(
                 'type' => 'boolean'
             ],
             [
+                'key' => __('Exposed to All Users'),
+                'path' => 'Bookmark.exposed_to_all',
+                'type' => 'boolean'
+            ],
+            [
                 'key' => __('User'),
                 'path' => 'User.email',
             ],

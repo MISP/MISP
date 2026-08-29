@@ -48,6 +48,7 @@ class Bookmark extends AppModel
         }
         if (empty($this->current_user['Role']['perm_site_admin'])) {
             $this->data['Bookmark']['org_id'] = $this->current_user['Organisation']['id']; // Only site-admins can create Bookmarks for other orgs.
+            $this->data['Bookmark']['exposed_to_all'] = 0; // Only site-admins can create Bookmarks for all users.
         }
         if (empty($this->current_user['Role']['perm_admin'])) {
             $this->data['Bookmark']['exposed_to_org'] = 0; // Only org-admins can create Bookmarks for their own org.
@@ -62,10 +63,13 @@ class Bookmark extends AppModel
             'conditions' => [
                 'OR' => [
                     'Bookmark.user_id' => $user['id'],
-                    'AND' => [
-                        'Bookmark.org_id' => $user['Organisation']['id'],
-                        'Bookmark.exposed_to_org' => true,
+                    [
+                        'AND' => [
+                            'Bookmark.org_id' => $user['Organisation']['id'],
+                            'Bookmark.exposed_to_org' => true,
+                        ]
                     ],
+                    ['Bookmark.exposed_to_all' => true],
                 ],
             ]
         ]);
@@ -121,6 +125,9 @@ class Bookmark extends AppModel
         if ($user['org_id'] == $bookmark['Bookmark']['org_id'] && !empty($bookmark['Bookmark']['exposed_to_org'])) {
             return true;
         }
+        if (!empty($bookmark['Bookmark']['exposed_to_all'])) {
+            return true;
+        }
         return false;
     }
 
@@ -141,6 +148,9 @@ class Bookmark extends AppModel
             return true;
         }
         if ($user['Role']['perm_admin'] && $user['org_id'] == $bookmark['Bookmark']['org_id'] && !empty($bookmark['Bookmark']['exposed_to_org'])) {
+            return true;
+        }
+        if (!empty($bookmark['Bookmark']['exposed_to_all'])) {
             return true;
         }
         return false;
