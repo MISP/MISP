@@ -5226,6 +5226,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $this->Flash->info(__('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.'));
         }
+        
         // Check if the background jobs are enabled - if not, fall back to old export page.
         if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports', true)) {
             $now = time();
