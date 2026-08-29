@@ -1,22 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import argparse
 import json
-
-try:
-    from pymisp import pymisp_json_default, AbstractMISP
-    from pymisp.tools import make_binary_objects
-except ImportError:
-    pass
-
+import argparse
 
 def check():
     missing_dependencies = {'pydeep': False, 'lief': False, 'magic': False, 'pymisp': False}
     try:
         import pymisp  # noqa
     except ImportError:
-        missing_dependencies['pymisp'] = 'Please install pydeep: pip install pymisp'
+        missing_dependencies['pymisp'] = 'Please install pymisp: pip install pymisp'
     try:
         import pydeep  # noqa
     except ImportError:
@@ -26,13 +17,16 @@ def check():
     except ImportError:
         missing_dependencies['lief'] = 'Please install lief, documentation here: https://github.com/lief-project/LIEF'
     try:
-        import magic  # noqa
+        import pure_magic_rs  # noqa
     except ImportError:
-        missing_dependencies['magic'] = 'Please install python-magic: pip install python-magic.'
+        missing_dependencies['magic'] = 'Please install pure_magic_rs: pip install pure_magic_rs.'
     return json.dumps(missing_dependencies)
 
 
 def make_objects(path):
+    from pymisp import pymisp_json_default
+    from pymisp.tools import make_binary_objects
+
     to_return = {'objects': [], 'references': []}
     fo, peo, seos = make_binary_objects(path)
 
@@ -69,7 +63,6 @@ if __name__ == '__main__':
     group.add_argument("-p", "--path", help="Path to process.")
     group.add_argument("-c", "--check", action='store_true', help="Check the dependencies.")
     args = parser.parse_args()
-    a = AbstractMISP()
 
     if args.check:
         print(check())
