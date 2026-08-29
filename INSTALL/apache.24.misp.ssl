@@ -60,7 +60,7 @@ Protocols h2 http/1.1
     # Header always set X-XSS-Protection "1; mode=block"
     # Header always set Content-Security-Policy "default-src 'none'; style-src 'self' ... script-src/font-src/img-src/connect-src
     # Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    # Header always set Feature-Policy "geolocation 'self'; midi 'none'; notifications 'self'; push 'self'; sync-xhr 'self'; microphone 'none'; camera 'self'; magnetometer 'self'; gyroscope 'self'; speake 'none'; vibrate 'self'; fullscreen 'none'"
+    # Header always set Feature-Policy "geolocation 'self'; midi 'none'; notifications 'self'; push 'self'; sync-xhr 'self'; microphone 'none'; camera 'self'; magnetometer 'self'; gyroscope 'self'; speaker-selection 'none'; vibrate 'self'; fullscreen 'none'"
 </VirtualHost>
 
 # strongciphers4All! \o/

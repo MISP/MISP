@@ -1,4 +1,4 @@
-function toggleVisiblity(termId, auto, show) {
+function toggleVisibility(termId, auto, show) {
     var term = $('div[data-terminalid='+termId+']')
     if (auto === true) {
         if (term.data('manual') !== true) { //  show if manual is not set
@@ -57,7 +57,7 @@ function update_state(hard_reload) {
             var failArray = data['failed_num'];
             for (var i=0; i<total; i++) {
                 var term = $('div[data-terminalid='+i+']')
-                toggleVisiblity(i, true, false);
+                toggleVisibility(i, true, false);
                 if (i < current) {
                     if (failArray.indexOf(String(i)) != -1) {
                         update_row_state(i, 2);
@@ -67,10 +67,10 @@ function update_state(hard_reload) {
                 } else if (i == current) {
                     if (failArray.indexOf(String(i)) != -1) {
                         update_row_state(i, 2);
-                        toggleVisiblity(i, true, true);
+                        toggleVisibility(i, true, true);
                     } else {
                         update_row_state(i, 1);
-                        toggleVisiblity(i-1, true, true);
+                        toggleVisibility(i-1, true, true);
                     }
                     update_single_update_progress(i, data);
                 } else {

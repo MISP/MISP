@@ -267,7 +267,7 @@ class TrainingShell extends AppShell {
             )
         ));
         if (empty($org)) {
-            $this->__printReport('Stopping execution, no host_org_id set on the current instance, or the setting points to a non-existing org. Data created so far:' . PHP_EOL . PHP_EOL);
+            $this->__printReport('Stopping execution, no host_org_id set on the current instance, or the setting points to a nonexistent org. Data created so far:' . PHP_EOL . PHP_EOL);
             die();
         }
         return $org;

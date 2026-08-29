@@ -26,7 +26,7 @@ class ApacheAuthenticate extends BaseAuthenticate
      */
     private function isUserMemberOf($group, $ldapUserData)
     {
-        // return true of false depending on if user is a member of group.
+        // return true or false depending on if user is a member of group.
         $returnCode = false;
         unset($ldapUserData[0]['memberof']["count"]);
         foreach ($ldapUserData[0]['memberof'] as $result) {
@@ -127,7 +127,7 @@ class ApacheAuthenticate extends BaseAuthenticate
             }
         }
 
-        // insert user in database if not existent
+        // insert user in database if nonexistent
         $userModel = ClassRegistry::init($this->settings['userModel']);
         $org_id = Configure::read('ApacheSecureAuth.ldapDefaultOrg');
         // If not in config, take default org

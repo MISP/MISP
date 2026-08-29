@@ -798,7 +798,7 @@ class LdapAuthenticate extends BaseAuthenticate
             return $user;
         }
 
-        // Insert user in database if not existent
+        // Insert user in database if nonexistent
         $userModel = ClassRegistry::init($this->settings['userModel']);
 
         // Group memberships can decide the role, the organisation or both, so

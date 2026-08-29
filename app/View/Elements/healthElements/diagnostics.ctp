@@ -608,7 +608,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <h3><?php echo __('Verify bad link on attachments');?></h3>
     <p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
     <div class="diagnostics-box">
-        <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
+        <?php echo __('Nonexistent attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
     <h3><?php echo __('Recover deleted events'); ?></h3>

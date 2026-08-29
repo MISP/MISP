@@ -366,7 +366,7 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal_org:
             self.assertEqual(event["orgc_uuid"], self.test_org.uuid)
 
-        # Search by non-existing uuid
+        # Search by nonexistent uuid
         minimal_org_uuid_non_existing = self.user_misp_connector.search_index(minimal=True, org=uuid.uuid4())
         self.assertEqual(len(minimal_org_uuid_non_existing), 0)
 
