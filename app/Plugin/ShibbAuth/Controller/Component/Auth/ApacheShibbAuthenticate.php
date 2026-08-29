@@ -27,23 +27,21 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
      *
      * Configuration in app/Config/Config.php is:
      *
-     * 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
+     * 'ApacheShibbAuth' =>
      *     array(
-     *      'MailTag' => 'EMAIL_TAG',
-     *      'OrgTag' => 'FEDERATION_TAG',
-     *      'GroupTag' => 'GROUP_TAG',
-     *      'GroupSeparator' => ';',
-     *      'GroupRoleMatching' => array(                // 3:User, 1:admin. May be good to set "1" for the first user
-     *          'group_three' => '3',
-     *          'group_two' => 2,
-     *          'group_one' => 1,
+     *      'MailTag'               => 'EMAIL_TAG',
+     *      'OrgTag'                => 'ORG_TAG',
+     *      'DefaultOrg'            => 'MY_ORG',
+     *      'GroupTag'              => 'GROUP_TAG',
+     *      'GroupSeparator'        => ';',
+     *      'GroupRoleMatching'     => array(
+     *          'value_3' => 3,
+     *          'value_2' => 2,
+     *          'value_1' => 1,
      *       ),
-     *      'DefaultOrg' => 'MY_ORG',
-     *      'DefaultRole' => false,                  // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
-     *      'BlockRoleModifications' => false,       // set to true if you wish for the roles never to be updated during login. Especially
-     *                                               // useful if you manually change roles in MISP
-     *      'BlockOrgModifications' => false,        // set to true if you wish for the organizations never to be updated during login. Especially
-     *                                               // useful if you manually change orgs in MISP
+     *      'DefaultRole'            => 3,
+     *      'BlockRoleModifications' => false,
+     *      'BlockOrgModifications'  => false,
      * ),
      * @param CakeRequest $request The request that contains login information.
      * @param CakeResponse $response Unused response object.
@@ -70,9 +68,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
 
         // Get Default parameters
         $roleId = -1;
-        $org = Configure::read('ApacheShibbAuth.DefaultOrg');
-        $useDefaultOrg = Configure::read('ApacheShibbAuth.UseDefaultOrg');
         $blockOrgModifications = Configure::check('ApacheShibbAuth.BlockOrgModifications') ? Configure::read('ApacheShibbAuth.BlockOrgModifications') : false;
+        $defaultOrg = Configure::read('ApacheShibbAuth.DefaultOrg');
+        $defaulRole = Configure::read('ApacheShibbAuth.DefaultRole');
         // Get tags from SSO config
         $mailTag = Configure::read('ApacheShibbAuth.MailTag');
         $orgTag = Configure::read('ApacheShibbAuth.OrgTag');
@@ -101,9 +99,17 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         // Find user with real username (mail)
         $user = $this->_findUser($mispUsername);
 
-        // Obtain default org. If default is not enforced and it is given, org keeps the default value
-        if (!$useDefaultOrg && isset($_SERVER[$orgTag])) {
+        // get user organization dynamically
+        if ($orgTag && isset($_SERVER[$orgTag])) {
             $org = $_SERVER[$orgTag];
+        // Use default organization as fallback, if provided
+        } else {
+            if ($defaultOrg) {
+                $org = $defaultOrg;
+            } else {
+                CakeLog::error('No organization given the SSO SP, and no default organization. Not processing login.');
+                return false;
+            }
         }
 
         // Check if the organization exits and create it if not
@@ -112,14 +118,21 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             return false;
         }
 
-        // Get user role from its list of groups
-        list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
-        if ($roleId < 0) {
-            CakeLog::error('No role was assigned, no egroup matched the configuration.');
-            return false; // Deny if the user is not in any egroup
+        // Get user role dynamically
+        if ($groupTag && $groupRoleMatching && isset($_SERVER[$groupTag])) {
+            list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
         }
-        // if a default role is set, override the currently parsed out selection and use that instead.
-        $roleId = Configure::check('ApacheShibbAuth.DefaultRole') ? Configure::read('ApacheShibbAuth.DefaultRole') : $roleId;
+
+        // Use default role as fallback, if provided
+        if ($roleId < 0) {
+            if ($defaultRole) {
+                $roleId = $defaultRole;
+            } else {
+                CakeLog::error('No group given the SSO SP, or no matching role, and no default role. Not processing login.');
+                return false;
+            }
+        }
+
         if ($roleChanged) {
             CakeLog::write('info', "User role $roleId assigned.");
         }
@@ -203,7 +216,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         // Check the role mapping to get the user's role level and update it if needed
         $roleChanged = false;
         if (isset($_SERVER[$groupTag])) {
-            $groupSeparator = Configure::read('ApacheShibbAuth.GroupSeparator');
+            $groupSeparator = Configure::check('ApacheShibbAuth.GroupSeparator') ? Configure::read('ApacheShibbAuth.GroupSeparator') : ';';
             $groupList = explode($groupSeparator, $_SERVER[$groupTag]);
             // Check user roles and egroup match and update if needed
             foreach ($groupList as $group) {
