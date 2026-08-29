@@ -663,6 +663,28 @@ class Correlation extends AppModel
     }
 
     /**
+     * @param string $value
+     * @param array $values
+     * @return array
+     */
+    private function ssdeepCompareMultiple($value, array $values)
+    {
+        $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
+        if (function_exists('ssdeep_fuzzy_compare_multiple')) {
+            return array_keys(ssdeep_fuzzy_compare_multiple($value, $values, $threshold, true));
+        } else {
+            $output = [];
+            foreach ($values as $attributeId => $v) {
+                $ssdeepValue = ssdeep_fuzzy_compare($value, $v);
+                if ($ssdeepValue >= $threshold) {
+                    $output[] = $attributeId;
+                }
+            }
+            return $output;
+        }
+    }
+
+    /**
      * @param array $attribute Simple attribute array
      * @return array[]|false
      */
@@ -674,23 +696,19 @@ class Correlation extends AppModel
         $value = $attribute['Attribute']['value1'];
         $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($value, $attribute['Attribute']['id']);
         if (!empty($fuzzyIds)) {
-            $ssdeepIds = $this->Attribute->find('list', array(
+            $ssdeepIds = $this->Attribute->find('list', [
                 'recursive' => -1,
                 'conditions' => array(
                     'Attribute.type' => 'ssdeep',
-                    'Attribute.id' => $fuzzyIds
+                    'Attribute.id' => $fuzzyIds,
                 ),
-                'fields' => array('Attribute.id', 'Attribute.value1')
-            ));
-            $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
-            $attributeIds = [];
-            foreach ($ssdeepIds as $attributeId => $v) {
-                $ssdeepValue = ssdeep_fuzzy_compare($value, $v);
-                if ($ssdeepValue >= $threshold) {
-                    $attributeIds[] = $attributeId;
-                }
+                'fields' => ['Attribute.id', 'Attribute.value1'],
+            ]);
+            $matches = $this->ssdeepCompareMultiple($value, $ssdeepIds);
+            if (empty($matches)) {
+                return false;
             }
-            return ['Attribute.id' => $attributeIds];
+            return ['Attribute.id' => $matches];
         }
         return false;
     }
