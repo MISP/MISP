@@ -19,7 +19,7 @@
         "browscap/browscap-php": "^7.0",
         "matthiasmullie/scrapbook": ">=1.5.3",
         "league/flysystem": ">=1.0",
-        "supervisorphp/supervisor": "^4.0",
+        "supervisorphp/supervisor": "^5.1",
         "guzzlehttp/guzzle": "^7.4.5",
         "lstrojny/fxmlrpc": "*",
         "php-http/message": "*",
