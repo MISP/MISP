@@ -1188,6 +1188,9 @@ class ACLComponent extends Component
         if (!isset($event['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
+        if (!isset($event['Event']['user_id'])) {
+            throw new InvalidArgumentException('Passed Event object does not contain `user_id` field.');
+        }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
