@@ -161,7 +161,7 @@ class AppController extends Controller
         }
         if (!$this->_isRest()) {
             $this->__contentSecurityPolicy();
-            $this->response->header('X-XSS-Protection', '1; mode=block');
+            $this->response->header('X-XSS-Protection', '0');
         }
 
         $this->_setupDatabaseConnection();
