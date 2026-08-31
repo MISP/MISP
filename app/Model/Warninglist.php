@@ -643,6 +643,45 @@ class Warninglist extends AppModel
     }
 
     /**
+     * Check one or more raw values against every enabled warninglist, using
+     * each list's own matching rules (cidr, hostname, string, substring,
+     * regex). Powers both `warninglists/checkValue` and the value search of
+     * the warninglist index, so both stay in sync.
+     *
+     * @param array $values
+     * @return array [value => [['id' => int, 'name' => string, 'matched' => string], ..]]
+     * @throws JsonException
+     */
+    public function checkValues(array $values)
+    {
+        $hits = [];
+        $warninglists = $this->getEnabled();
+        foreach ($values as $value) {
+            $value = trim($value);
+            if ($value === '') {
+                continue;
+            }
+            foreach ($warninglists as $warninglist) {
+                $entries = $this->getFilteredEntries($warninglist);
+                $result = $this->checkValue(
+                    $entries,
+                    $value,
+                    '',
+                    $warninglist['Warninglist']['type']
+                );
+                if ($result !== false) {
+                    $hits[$value][] = [
+                        'id' => $warninglist['Warninglist']['id'],
+                        'name' => $warninglist['Warninglist']['name'],
+                        'matched' => $result[0],
+                    ];
+                }
+            }
+        }
+        return $hits;
+    }
+
+    /**
      * @param array|CidrTool $listValues
      * @param string $value
      * @param string $type

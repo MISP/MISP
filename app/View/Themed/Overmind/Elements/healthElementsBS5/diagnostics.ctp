@@ -737,7 +737,7 @@ $openCard('plug', '#198754', __('Services & integrations'),
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-dg-zmq="start"><?= __('Start') ?></button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-dg-zmq="stop"><?= __('Stop') ?></button>
                 <button type="button" class="btn btn-sm btn-outline-secondary"
-                        onclick="openModal('<?= h($baseurl . '/servers/statusZeroMQServer') ?>', 'sm')"><?= __('Status') ?></button>
+                        onclick="openModal('<?= h($baseurl . '/servers/statusZeroMQServer') ?>', 'md')"><?= __('Status') ?></button>
             </span>
         </span>
     </div>

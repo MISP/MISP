@@ -208,7 +208,7 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/decayingModel/deleteSelection/%id%',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($canEditRow) {
                     return $canEditRow($row) && empty($row['DecayingModel']['default']);
                 },

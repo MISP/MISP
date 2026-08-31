@@ -9,7 +9,7 @@ $message = $count === 1
     ? __('Fetch and save event #%s from "%s" on your instance?', $eventIds[0], $serverName)
     : __('Fetch and save %s events from "%s" on your instance?', $count, $serverName);
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Fetch events from remote server'),
     'model' => 'Server',
     'hiddenField' => 'event_ids',

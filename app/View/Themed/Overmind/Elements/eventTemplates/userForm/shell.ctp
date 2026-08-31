@@ -46,29 +46,16 @@
 ?>
 
 <?php if ($isModal): ?>
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event, var(--primary));">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-event"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Event Templates') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isPreview ? 'eye' : 'bolt' ?> text-event"
-               style="font-size:1.25rem;"></i>
-            <?= h($templateName !== '' ? $templateName : $pageTitle) ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= $isPreview
-                ? __('Preview — walk through the steps a reporter sees. Nothing is created.')
-                : __('Answer each step — MISP builds the event, its attributes and its objects from your answers.') ?>
-        </p>
-    </div>
-    <span class="fas fa-wand-magic-sparkles text-event"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Event Templates'),
+    'title' => $templateName !== '' ? $templateName : $pageTitle,
+    'titleIcon' => 'fas fa-' . ($isPreview ? 'eye' : 'bolt'),
+    'description' => $isPreview
+        ? __('Preview — walk through the steps a reporter sees. Nothing is created.')
+        : __('Answer each step — MISP builds the event, its attributes and its objects from your answers.'),
+    'icon' => 'fas fa-wand-magic-sparkles',
+]) ?>
 <?php endif; ?>
 
 <div class="event-template-user-form <?= $isModal ? 'p-4' : 'container-fluid px-4 py-3' ?>">
@@ -85,10 +72,10 @@
 
     <?php if ($templateDescription !== ''): ?>
         <div class="mb-4">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('About this template') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('About this template'),
+            ]) ?>
             <div class="et-template-description text-muted" style="font-size:.85rem;">
                 <?= $this->EventTemplateMarkdown->render($templateDescription) ?>
             </div>
@@ -207,46 +194,40 @@
             <?php endforeach; ?>
         </div>
 
-        <!-- ── FOOTER ─────────────────────────────────────────── -->
-        <div class="et-save-bar d-flex justify-content-between align-items-center
-                    mt-4 pt-3 flex-wrap gap-2"
-             style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-            <div class="d-flex align-items-center gap-3 flex-wrap text-muted"
-                 style="font-size:.75rem;">
-                <span id="et-step-progress"
-                      data-et-label="<?= h(__('Step %1$s of %2$s')) ?>"
-                      data-et-total="<?= $stepCount ?>">
-                    <?= $stepCount > 0 ? __('Step %1$s of %2$s', 1, $stepCount) : '' ?>
-                </span>
-                <span id="et-user-form-status"></span>
-            </div>
-            <div class="d-flex gap-2">
-                <?php if ($isModal): ?>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-                    </button>
-                <?php else: ?>
-                    <a class="btn btn-outline-secondary btn-sm"
-                       href="<?= h($isPreview
-                            ? $baseurl . '/event_templates/view/' . $templateId
-                            : $baseurl . '/event_templates/index') ?>">
-                        <i class="fas fa-times me-1"></i>
-                        <?= $isPreview ? __('Back to template') : __('Cancel') ?>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($isPreview): ?>
-                    <button type="button" class="btn btn-secondary btn-sm" disabled>
-                        <i class="fas fa-bolt me-1"></i><?= __('Create event (disabled in preview)') ?>
-                    </button>
-                <?php else: ?>
-                    <button type="button" id="et-user-form-submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-bolt me-1"></i><?= __('Create event') ?>
-                    </button>
-                <?php endif; ?>
-            </div>
-        </div>
+        <?php
+        /* The step counter and the status line are both filled in by the user-form
+         * script, so they are handed over raw. */
+        $footerMeta = sprintf(
+            '<span id="et-step-progress" data-et-label="%s" data-et-total="%d">%s</span>'
+                . '<span id="et-user-form-status" class="ms-2"></span>',
+            h(__('Step %1$s of %2$s')),
+            $stepCount,
+            $stepCount > 0 ? h(__('Step %1$s of %2$s', 1, $stepCount)) : ''
+        );
+        echo $this->element('genericElementsBS5/Forms/modal_footer', [
+            'metaHtml' => $footerMeta,
+            'cancel' => $isModal ? [] : [
+                'label' => $isPreview ? __('Back to template') : __('Cancel'),
+                'href' => $isPreview
+                    ? $baseurl . '/event_templates/view/' . $templateId
+                    : $baseurl . '/event_templates/index',
+                'attrs' => [],
+            ],
+            'submit' => $isPreview ? [
+                'label' => __('Create event (disabled in preview)'),
+                'icon' => 'fas fa-bolt',
+                'type' => 'button',
+                'class' => 'btn-secondary',
+                'disabled' => true,
+            ] : [
+                'label' => __('Create event'),
+                'icon' => 'fas fa-bolt',
+                'id' => 'et-user-form-submit',
+                'type' => 'button',
+                'class' => 'btn-primary',
+            ],
+        ]);
+        ?>
     </form>
 </div>
 

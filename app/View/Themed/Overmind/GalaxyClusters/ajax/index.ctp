@@ -150,9 +150,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Publish'),
-                'icon' => 'upload text-success',
+                'icon' => 'upload',
                 'url' => $baseurl . '/galaxy_clusters/publish/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($me) {
                     return empty($row['GalaxyCluster']['published'])
                         && (!empty($me['Role']['perm_site_admin'])
@@ -164,7 +164,7 @@ $fields = [
                 'label' => __('Restore'),
                 'icon' => 'trash-arrow-up text-success',
                 'url' => $baseurl . '/galaxy_clusters/restore/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($me) {
                     return !empty($row['GalaxyCluster']['deleted'])
                         && (!empty($me['Role']['perm_site_admin']) || $me['org_id'] == $row['GalaxyCluster']['orgc_id']);

@@ -12,19 +12,19 @@ if ($me['Role']['perm_sharing_group']) {
     ];
     $actions[] = [
         'url' => "$baseurl/SharingGroupBlueprints/push/$sharingGroupBlueprintId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/execute/$sharingGroupBlueprintId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/execute/$sharingGroupBlueprintId', 'md');",
         'icon' => 'fas fa-recycle',
         'label' => __('(Re)generate sharing group based on blueprint')
     ];
     $actions[] = [
         'url' => "$baseurl/SharingGroupBlueprints/push/$sharingGroupBlueprintId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/encodeSyncRule/$sharingGroupBlueprintId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/encodeSyncRule/$sharingGroupBlueprintId', 'md');",
         'icon' => 'fas fa-filter',
         'label' => __("Encode blueprint's contents as a sync rule")
     ];
     $actions[] = [
         'url' => "$baseurl/SharingGroupBlueprints/delete/$sharingGroupBlueprintId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/deleteSelection/$sharingGroupBlueprintId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroupBlueprints/deleteSelection/$sharingGroupBlueprintId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete SharingGroupBlueprint'),
         'danger' => true

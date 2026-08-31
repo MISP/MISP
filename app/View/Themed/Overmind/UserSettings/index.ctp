@@ -95,7 +95,7 @@ $fields = [
                 'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/user_settings/deleteSelection/%id%',
                 'class' => 'text-danger',
             ],

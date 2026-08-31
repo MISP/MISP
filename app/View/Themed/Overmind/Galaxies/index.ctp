@@ -185,9 +185,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Enable'),
-                'icon' => 'play text-success',
+                'icon' => 'play',
                 'url' => $baseurl . '/galaxies/enable/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($isSiteAdmin) {
                     return $isSiteAdmin && empty($row['Galaxy']['enabled']);
                 }
@@ -195,9 +195,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Disable'),
-                'icon' => 'stop text-danger',
+                'icon' => 'stop',
                 'url' => $baseurl . '/galaxies/disable/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($isSiteAdmin) {
                     return $isSiteAdmin && !empty($row['Galaxy']['enabled']);
                 }

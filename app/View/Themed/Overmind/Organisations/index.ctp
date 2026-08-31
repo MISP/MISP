@@ -174,7 +174,7 @@ $fields = [
                 'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/admin/organisations/deleteSelection/%id%',
                 'class' => 'text-danger',
             ] : null,

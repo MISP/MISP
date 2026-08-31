@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '203';
+    private $__queryVersion = '214';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -471,6 +471,12 @@ class AppController extends Controller
             }
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
+
+            // Onboarding marker, set at the user's first ever login.
+            // cleared by UsersController::onboardingSeen()
+            if ($this->Session->check('Overmind.onboarding_pending')) {
+                $this->set('onboardingAutostart', true);
+            }
 
             $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
             if (!empty($homepage)) {

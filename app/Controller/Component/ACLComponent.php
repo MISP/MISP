@@ -1004,6 +1004,8 @@ class ACLComponent extends Component
             'logout' => array('*'),
             'logout401' => array('*'),
             'notificationSettings' => ['*'],
+            'onboarding' => array('theming_enabled'),
+            'onboardingSeen' => array('theming_enabled'),
             'password_reset' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
             'register' => array('*'),
             'registrations' => array(),

@@ -1021,6 +1021,20 @@ tr.attr-proposal-row td:first-child {
     box-shadow: inset 3px 0 0 0 var(--bs-warning, #f59e0b);
 }
 
+/* Rows and cards carried in from another event in an extended / extending
+   view. Both colours identify the origin event, so they arrive inline per row
+   (see ExtensionEventColour) and this only says where they apply. */
+tr.evt-extension-row {
+    background-color: var(--extension-tint, transparent);
+}
+tr.evt-extension-row td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--extension-accent, transparent);
+}
+.idx-card.evt-extension-row {
+    background-color: var(--extension-tint, transparent);
+    border-left: 3px solid var(--extension-accent, transparent);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Sankey graph
    ═══════════════════════════════════════════════════════════ */
@@ -1097,6 +1111,69 @@ tr.attr-proposal-row td:first-child {
                 0 0 0 3px rgba(76, 217, 100, 0.18);
 }
 
+/* Display options are grouped on one rail rather than floating loose */
+.sankey-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 3px 4px;
+    border: 1px solid #e2e9f1;
+    border-radius: 12px;
+    background: #f8fafc;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.sankey-toggle-group-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: #9aa8b6;
+    font-size: 11px;
+}
+
+.sankey-toggle-group .sankey-toggle {
+    position: relative;
+    gap: 6px;
+    padding: 3px 10px;
+}
+
+/* slightly tighter switches, so four of them still fit on one row */
+.sankey-toggle-group .sankey-toggle-switch {
+    width: 34px;
+    height: 20px;
+}
+
+.sankey-toggle-group .sankey-toggle-switch::after {
+    width: 16px;
+    height: 16px;
+}
+
+.sankey-toggle-group .sankey-toggle input:checked + .sankey-toggle-switch::after {
+    transform: translateX(14px);
+}
+
+.sankey-toggle-group .sankey-toggle + .sankey-toggle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1px;
+    height: 18px;
+    background: #dfe7ef;
+    transform: translateY(-50%);
+}
+
+.sankey-toggle.sankey-toggle-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sankey-toggle-disabled .sankey-toggle-switch {
+    background: #d8dfe6;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Correlated-event timeline strip
    ═══════════════════════════════════════════════════════════ */
@@ -1135,9 +1212,7 @@ tr.attr-proposal-row td:first-child {
 
 .event-timeline-track {
     position: relative;
-    padding-top: 28px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding: 28px 0 0;
 }
 
 .event-timeline-ticks {
@@ -1191,19 +1266,102 @@ tr.attr-proposal-row td:first-child {
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #428bca;
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px rgba(66, 139, 202, 0.4);
-    cursor: pointer;
-    padding: 0;
-    transition: transform 150ms ease;
+    width: 2px;
+    height: 13px;
+    border-radius: 1px;
+    background: #94a9bd;
+    pointer-events: auto;
 }
 
 .event-timeline-marker:hover {
-    transform: translate(-50%, -50%) scale(1.3);
+    background: #52708c;
+    opacity: 1;
+}
+
+/* period the graph draws - its edges map to the graph's lane edges */
+.event-timeline-selection {
+    position: absolute;
+    top: 20px;
+    bottom: 0;
+    background: rgba(66, 139, 202, 0.12);
+    border-left: 1px solid rgba(66, 139, 202, 0.45);
+    border-right: 1px solid rgba(66, 139, 202, 0.45);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.event-timeline-handle {
+    position: absolute;
+    bottom: 0;
+    height: 20px;
+    width: 14px;
+    padding: 0;
+    transform: translateX(-50%);
+    border: none;
+    background: transparent;
+    cursor: ew-resize;
+    touch-action: none;
+    z-index: 3;
+}
+
+/* stem climbs through the ticks so the exact date is readable */
+.event-timeline-handle::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    width: 2px;
+    height: 34px;
+    margin-left: -1px;
+    background: rgba(66, 139, 202, 0.55);
+}
+
+.event-timeline-handle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    width: 13px;
+    height: 13px;
+    margin-left: -6.5px;
+    border-radius: 50%;
+    background: #428bca;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(66, 139, 202, 0.45);
+    transition: transform 120ms ease;
+}
+
+.event-timeline-handle:hover::after,
+.event-timeline-handle:focus-visible::after,
+.event-timeline-handle.is-dragging::after {
+    transform: scale(1.25);
+}
+
+.event-timeline-handle:focus-visible {
+    outline: none;
+}
+
+.event-timeline-handle:focus-visible::after {
+    box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.35);
+}
+
+.event-timeline-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    border: 1px solid rgba(66, 139, 202, 0.35);
+    border-radius: 999px;
+    background: rgba(66, 139, 202, 0.1);
+    color: #2f6c9e;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.event-timeline-reset:hover {
+    background: rgba(66, 139, 202, 0.2);
 }
 
 .event-timeline-current-marker {
@@ -1213,7 +1371,7 @@ tr.attr-proposal-row td:first-child {
     width: 0;
     border-left: 2px dashed rgba(111, 190, 128, 0.95);
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
 }
 
 .event-timeline-current-marker::before {
@@ -1246,6 +1404,53 @@ tr.attr-proposal-row td:first-child {
 
 .corr-event-row:hover {
     background: #f8fafc;
+}
+
+/* count pill on the right of an event row - expands the attribute list */
+.corr-attr-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 9px;
+    border: 1px solid rgba(66, 139, 202, 0.28);
+    border-radius: 999px;
+    background: rgba(66, 139, 202, 0.1);
+    color: #2f6c9e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.45;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+
+.corr-attr-toggle:hover {
+    background: rgba(66, 139, 202, 0.2);
+    border-color: rgba(66, 139, 202, 0.45);
+}
+
+.corr-attr-toggle:focus-visible {
+    outline: 2px solid rgba(66, 139, 202, 0.5);
+    outline-offset: 1px;
+}
+
+.corr-attr-toggle.is-expanded {
+    background: rgba(66, 139, 202, 0.22);
+    border-color: rgba(66, 139, 202, 0.5);
+}
+
+.corr-attr-toggle-chevron {
+    font-size: 0.6rem;
+    transition: transform .16s ease;
+}
+
+.corr-attr-toggle.is-expanded .corr-attr-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* kept visible when collapsed, so the warning is not lost with the rows */
+.corr-attr-toggle-warning {
+    font-size: 0.65rem;
+    color: var(--bs-warning, #f59e0b);
 }
 
 .corr-attr-row {
@@ -1657,12 +1862,13 @@ tr.attr-proposal-row td:first-child {
 }
 .ss-scope .ss-section-header {
     display: flex; align-items: center; gap: .75rem; cursor: pointer;
-    background: color-mix(in srgb, var(--ss-accent) 10%, var(--bs-body-bg));
+    background: transparent;
     border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color .15s ease-in-out;
 }
 .ss-scope .ss-section-header.collapsed { border-bottom-color: transparent; }
-.ss-scope .ss-section-header:hover {
-    background: color-mix(in srgb, var(--ss-accent) 17%, var(--bs-body-bg));
+.ss-scope .ss-section-header[data-bs-toggle="collapse"]:hover {
+    background: color-mix(in srgb, var(--ss-accent) 9%, var(--bs-body-bg));
 }
 .ss-scope .ss-section-icon {
     flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: .5rem;
@@ -2062,4 +2268,84 @@ tr.attr-proposal-row td:first-child {
     color: var(--bs-primary);
     border-color: var(--bs-primary);
     background: var(--bs-primary-bg-subtle);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Role permissions cell — IndexTable/Fields/role_permissions.ctp
+ *
+ * The counter pill opens a popover listing every permission flag as granted
+ * or denied, the same breakdown Roles/view shows in its "Permission flags"
+ * grid, only denser: two columns, a check/cross instead of a Granted/Denied
+ * badge. The popover is rendered into <body> (container: 'body'), so it is
+ * scoped by the custom class rather than by an ancestor.
+ * ───────────────────────────────────────────────────────────────────────── */
+.role-perm-counter {
+    cursor: pointer;
+}
+
+.role-perm-popover.popover {
+    max-width: 30rem;
+}
+
+.role-perm-popover .popover-body {
+    padding: .5rem .6rem;
+}
+
+.role-perm-popover .rp-head {
+    margin-bottom: .4rem;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+.role-perm-popover .rp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .25rem;
+}
+
+.role-perm-popover .rp-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .1rem .4rem;
+    font-size: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+}
+
+.role-perm-popover .rp-item .rp-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-perm-popover .rp-item .rp-mark {
+    flex-shrink: 0;
+    font-size: .7rem;
+    opacity: .55;
+}
+
+.role-perm-popover .rp-on {
+    font-weight: 500;
+    border-color: var(--bs-success-border-subtle);
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-body-color);
+}
+
+.role-perm-popover .rp-on .rp-mark {
+    opacity: 1;
+    color: var(--bs-success);
+}
+
+/* Two 15rem columns are unreadable on a phone; stack them. */
+@media (max-width: 575.98px) {
+    .role-perm-popover .rp-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
