@@ -477,7 +477,8 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $namedParams     = $this->request->params['named'] ?? [];
     $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
     $currentProposal = (int)($namedParams['proposal'] ?? 0);
-    $toggleDeleted   = $currentDeleted ? 0 : 1;
+    // deleted:2 is "only the soft-deleted ones"
+    $toggleDeleted   = $currentDeleted ? 0 : 2;
     $toggleProposal  = $currentProposal ? 0 : 1;
     $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId
         . ($extensionSuffix ?? '');

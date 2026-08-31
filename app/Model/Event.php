@@ -1989,6 +1989,16 @@ class Event extends AppModel
                 '%' . $options['searchFor'] . '%';
         }
 
+        // Proposals filter. The toggle narrows the list down to what carries
+        // a pending proposal instead of merely flagging it, so an attribute
+        // without one drops out. Standalone "new attribute" proposals have no
+        // attribute to match and are added as rows by __attachProposals().
+        if (!empty($options['proposal'])) {
+            $proposedIds = $this->proposedAttributeIds($eventIds);
+            $conditions['Attribute.id'] =
+                empty($proposedIds) ? [-1] : $proposedIds;
+        }
+
         // Distribution-based ACL for non-site-admins
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (!$isSiteAdmin) {
@@ -2053,6 +2063,18 @@ class Event extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
         ]);
+
+        // Standalone proposals are rows of their own, so they belong in the
+        // total: without them a page holding nothing else reports an empty
+        // list while __attachProposals() is about to render them.
+        if (!empty($options['proposal'])) {
+            $total += $this->ShadowAttribute->find('count', [
+                'conditions' => $this->__newProposalConditions(
+                    $eventIds, $options
+                ),
+                'recursive' => -1,
+            ]);
+        }
 
         // Fetch page
         $attributes = $this->Attribute->find('all', [
@@ -2194,6 +2216,83 @@ class Event extends AppModel
     }
 
     /**
+     * Ids of the attributes of $eventIds that carry a pending proposal, i.e.
+     * a proposed edit or deletion (ShadowAttribute.old_id = attribute id).
+     *
+     * Standalone "new attribute" proposals (old_id = 0) target no attribute
+     * and are deliberately left out.
+     *
+     * @param array $eventIds
+     * @return array Attribute ids, empty when the events hold no proposal
+     */
+    public function proposedAttributeIds(array $eventIds)
+    {
+        return $this->ShadowAttribute->find('column', [
+            'fields' => ['ShadowAttribute.old_id'],
+            'conditions' => [
+                'ShadowAttribute.event_id' => $eventIds,
+                'ShadowAttribute.deleted' => 0,
+                'ShadowAttribute.old_id !=' => 0,
+            ],
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * Ids of the objects of $eventIds holding at least one attribute with a
+     * pending proposal — what the objects index shows while its Proposals
+     * filter is on.
+     *
+     * $attrDeleted is the deleted scope of the attributes the index is about
+     * to render. Passing it keeps the selection honest: a proposal on a
+     * soft-deleted attribute must not pull in an object whose card will then
+     * show no proposal at all, because that attribute is filtered out of it.
+     *
+     * @param array $eventIds
+     * @param int|array $attrDeleted 0, 1 or [0, 1]
+     * @return array Object ids, empty when there is none
+     */
+    public function objectIdsWithProposals(array $eventIds, $attrDeleted = 0)
+    {
+        $proposedIds = $this->proposedAttributeIds($eventIds);
+        if (empty($proposedIds)) {
+            return [];
+        }
+        return $this->Attribute->find('column', [
+            'fields' => ['Attribute.object_id'],
+            'conditions' => [
+                'Attribute.event_id' => $eventIds,
+                'Attribute.id' => $proposedIds,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => $attrDeleted,
+            ],
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * Ids of the objects of $eventIds holding at least one soft-deleted
+     * attribute. The objects index needs them on top of the soft-deleted
+     * objects themselves: a deleted attribute of a live object would
+     * otherwise have nowhere left to show while the Deleted filter is on.
+     *
+     * @param array $eventIds
+     * @return array Object ids, empty when there is none
+     */
+    public function objectIdsWithDeletedAttributes(array $eventIds)
+    {
+        return $this->Attribute->find('column', [
+            'fields' => ['Attribute.object_id'],
+            'conditions' => [
+                'Attribute.event_id' => $eventIds,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => 1,
+            ],
+            'unique' => true,
+        ]);
+    }
+
+    /**
      * Ids of the attributes selected by $conditions that a given warninglist
      * flags.
      *
@@ -2252,6 +2351,44 @@ class Event extends AppModel
     }
 
     /**
+     * Conditions selecting the standalone "new attribute" proposals of an
+     * event view (ShadowAttribute.old_id = 0), narrowed by the same column
+     * filters as the attribute list itself.
+     *
+     * Shared by the pagination total and __attachProposals() so the rows that
+     * get rendered are exactly the rows that were counted.
+     *
+     * @param array $eventIds
+     * @param array $options viewAttributes filters (category/type/searchFor)
+     * @return array
+     */
+    private function __newProposalConditions(array $eventIds, array $options)
+    {
+        $conditions = [
+            'ShadowAttribute.event_id' => $eventIds,
+            'ShadowAttribute.old_id' => 0,
+            'ShadowAttribute.deleted' => 0,
+        ];
+        // A standalone proposal proposes a *new* attribute, so it is not part
+        // of what the deleted-only filter asks for. Selecting nothing here
+        // keeps the total and the rendered rows in step either way.
+        if ((int)($options['deleted'] ?? 0) === 2) {
+            $conditions['ShadowAttribute.id'] = -1;
+        }
+        if (!empty($options['category'])) {
+            $conditions['ShadowAttribute.category'] = $options['category'];
+        }
+        if (!empty($options['type'])) {
+            $conditions['ShadowAttribute.type'] = $options['type'];
+        }
+        if (!empty($options['searchFor'])) {
+            $conditions['ShadowAttribute.value1 LIKE'] =
+                '%' . $options['searchFor'] . '%';
+        }
+        return $conditions;
+    }
+
+    /**
      * Attach pending proposals to a page of attributes for the event view.
      *
      * - Proposed edits / deletions (ShadowAttribute.old_id = attribute id)
@@ -2296,22 +2433,10 @@ class Event extends AppModel
         // Standalone proposed-new attributes (old_id = 0), first page only.
         $newProposals = [];
         if ((int)$page === 1) {
-            $conditions = [
-                'ShadowAttribute.event_id' => $eventIds,
-                'ShadowAttribute.old_id' => 0,
-                'ShadowAttribute.deleted' => 0,
-            ];
-            if (!empty($options['category'])) {
-                $conditions['ShadowAttribute.category'] = $options['category'];
-            }
-            if (!empty($options['type'])) {
-                $conditions['ShadowAttribute.type'] = $options['type'];
-            }
-            if (!empty($options['searchFor'])) {
-                $conditions['ShadowAttribute.value1 LIKE'] = '%' . $options['searchFor'] . '%';
-            }
             $newProposals = $this->ShadowAttribute->find('all', [
-                'conditions' => $conditions,
+                'conditions' => $this->__newProposalConditions(
+                    $eventIds, $options
+                ),
                 'recursive' => -1,
                 'order' => ['ShadowAttribute.timestamp DESC'],
             ]);
@@ -2444,14 +2569,36 @@ class Event extends AppModel
             'Object.event_id' => $eventIds,
         ];
 
-        // Deleted filter
+        // Deleted filter. 2 is the index's Deleted toggle: it keeps only the
+        // objects holding something soft-deleted — the object itself, or one
+        // of its attributes, which would otherwise have nowhere left to show.
+        //
+        // The objects that survive are rendered whole ($attrDeleted), deleted
+        // rows highlighted: a deleted object stripped of its live attributes,
+        // or a live object down to its single deleted row, reads as data loss.
         $deleted = (int)($options['deleted'] ?? 0);
+        $attrDeleted = $deleted === 0 ? 0 : [0, 1];
         if ($deleted === 1) {
             $conditions['Object.deleted'] = [0, 1];
         } elseif ($deleted === 2) {
-            $conditions['Object.deleted'] = 1;
+            $objectIdsWithDeletedAttrs =
+                $this->objectIdsWithDeletedAttributes($eventIds);
+            $conditions[] = ['OR' => [
+                'Object.deleted' => 1,
+                'Object.id' => empty($objectIdsWithDeletedAttrs)
+                    ? [-1] : $objectIdsWithDeletedAttrs,
+            ]];
         } else {
             $conditions['Object.deleted'] = 0;
+        }
+
+        // Proposals filter: keep only the objects holding an attribute with a
+        // pending proposal, rather than flagging them inside the whole list.
+        if (!empty($options['proposal'])) {
+            $objectIdsWithProposals =
+                $this->objectIdsWithProposals($eventIds, $attrDeleted);
+            $conditions['Object.id'] = empty($objectIdsWithProposals)
+                ? [-1] : $objectIdsWithProposals;
         }
 
         // Optional filters
@@ -2566,16 +2713,8 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
-        // Fetch attributes for these objects with ACL.
-        // Mirror the object-level deleted filter so that attributes of
-        // soft-deleted objects are visible when deleted=1 or deleted=2.
-        if ($deleted === 1) {
-            $attrDeleted = [0, 1];
-        } elseif ($deleted === 2) {
-            $attrDeleted = 1;
-        } else {
-            $attrDeleted = 0;
-        }
+        // Fetch attributes for these objects with ACL, in the deleted scope
+        // settled above.
         $attrConditions = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,

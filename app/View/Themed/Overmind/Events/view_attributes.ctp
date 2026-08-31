@@ -190,8 +190,7 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    // Toggle buttons (deleted / proposals)
-    function wireToggle(selector, stateKey) {
+    function wireToggle(selector, stateKey, onValue) {
         var btn = container ? container.querySelector(selector) : null;
         if (!btn) return;
         var fresh = btn.cloneNode(true);
@@ -199,12 +198,12 @@ echo $this->element('Attributes/index', [
         fresh.addEventListener('click', function (e) {
             e.preventDefault();
             var S = window.mispView.attrs;
-            S[stateKey] = S[stateKey] ? 0 : 1;
+            S[stateKey] = S[stateKey] ? 0 : onValue;
             loadAttributes(buildAttrsUrl());
         });
     }
-    wireToggle('.attr-deleted-toggle', 'deletedState');
-    wireToggle('.attr-proposal-toggle', 'proposalState');
+    wireToggle('.attr-deleted-toggle', 'deletedState', 2);
+    wireToggle('.attr-proposal-toggle', 'proposalState', 1);
 
     // Warning-list banner: drop the filter and re-render the full list.
     var wlClear = container

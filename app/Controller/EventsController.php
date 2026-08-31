@@ -2530,21 +2530,31 @@ class EventsController extends AppController
         }
         $this->set('warninglistFilter', $warninglistFilter);
 
-        // Counts for the Proposals / Deleted toggle buttons. They cover the
-        // whole extension set, so they match what the toggles actually reveal.
+        // Counts for the Proposals / Deleted toggle buttons. Both toggles
+        // narrow the list down to what they flag, so each count is the number
+        // of rows its filter leaves — over the whole extension set, like the
+        // list itself.
         $countedEventIds = $extensionSet['ids'];
-        $nonObjectAttrIds = $this->Event->Attribute->find('column', [
-            'fields' => ['Attribute.id'],
-            'conditions' => ['Attribute.event_id' => $countedEventIds, 'Attribute.object_id' => 0, 'Attribute.deleted' => 0],
-        ]);
-        $proposalOr = [['ShadowAttribute.old_id' => 0]];
-        if (!empty($nonObjectAttrIds)) {
-            $proposalOr[] = ['ShadowAttribute.old_id' => $nonObjectAttrIds];
-        }
-        $this->set('proposalCount', $this->Event->ShadowAttribute->find('count', [
-            'conditions' => ['ShadowAttribute.event_id' => $countedEventIds, 'ShadowAttribute.deleted' => 0, 'OR' => $proposalOr],
+        $proposedIds = $this->Event->proposedAttributeIds($countedEventIds);
+        $proposalCount = empty($proposedIds) ? 0 : $this->Event->Attribute->find('count', [
+            'conditions' => [
+                'Attribute.event_id' => $countedEventIds,
+                'Attribute.id' => $proposedIds,
+                'Attribute.object_id' => 0,
+                'Attribute.deleted' => 0,
+            ],
             'recursive' => -1,
-        ]));
+        ]);
+        // Standalone "new attribute" proposals are rows of their own.
+        $proposalCount += $this->Event->ShadowAttribute->find('count', [
+            'conditions' => [
+                'ShadowAttribute.event_id' => $countedEventIds,
+                'ShadowAttribute.old_id' => 0,
+                'ShadowAttribute.deleted' => 0,
+            ],
+            'recursive' => -1,
+        ]);
+        $this->set('proposalCount', $proposalCount);
         $this->set('deletedCount', $this->Event->Attribute->find('count', [
             'conditions' => ['Attribute.event_id' => $countedEventIds, 'Attribute.deleted' => 1, 'Attribute.object_id' => 0],
             'recursive' => -1,
@@ -2625,19 +2635,31 @@ class EventsController extends AppController
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('proposal', !empty($options['proposal']));
 
-        // Counts for the Proposals / Deleted toggle buttons. Proposals on this
-        // index are the edits/deletions targeting attributes inside objects.
+        // Counts for the Proposals / Deleted toggle buttons. Both toggles
+        // narrow the list down, so each count is the number of object cards
+        // its filter leaves — matching the model's own selection.
         $countedEventIds = $extensionSet['ids'];
-        $objectAttributeIds = $this->Event->Attribute->find('column', [
-            'fields' => ['Attribute.id'],
-            'conditions' => ['Attribute.event_id' => $countedEventIds, 'Attribute.object_id !=' => 0, 'Attribute.deleted' => 0],
-        ]);
-        $this->set('proposalCount', empty($objectAttributeIds) ? 0 : $this->Event->ShadowAttribute->find('count', [
-            'conditions' => ['ShadowAttribute.old_id' => $objectAttributeIds, 'ShadowAttribute.deleted' => 0],
+        $objectIdsWithProposals =
+            $this->Event->objectIdsWithProposals($countedEventIds);
+        $this->set('proposalCount', empty($objectIdsWithProposals) ? 0 : $this->Event->Object->find('count', [
+            'conditions' => [
+                'Object.event_id' => $countedEventIds,
+                'Object.id' => $objectIdsWithProposals,
+                'Object.deleted' => 0,
+            ],
             'recursive' => -1,
         ]));
+        $deletedOr = ['Object.deleted' => 1];
+        $objectIdsWithDeletedAttrs =
+            $this->Event->objectIdsWithDeletedAttributes($countedEventIds);
+        if (!empty($objectIdsWithDeletedAttrs)) {
+            $deletedOr['Object.id'] = $objectIdsWithDeletedAttrs;
+        }
         $this->set('deletedCount', $this->Event->Object->find('count', [
-            'conditions' => ['Object.event_id' => $countedEventIds, 'Object.deleted' => 1],
+            'conditions' => [
+                'Object.event_id' => $countedEventIds,
+                'OR' => $deletedOr,
+            ],
             'recursive' => -1,
         ]));
         $this->layout = false;
