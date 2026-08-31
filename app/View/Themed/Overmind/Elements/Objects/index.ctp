@@ -14,7 +14,8 @@ $objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
 $namedParams     = $this->request->params['named'] ?? [];
 $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
-$toggleDeleted   = $currentDeleted ? 0 : 1;
+// deleted:2 is "only what holds something soft-deleted"
+$toggleDeleted   = $currentDeleted ? 0 : 2;
 $toggleProposal  = $currentProposal ? 0 : 1;
 // Fallback hrefs (the JS rebuilds the real URL); each preserves the other toggle.
 $toggleUrl       = $baseurl . $objectsUrl
@@ -803,7 +804,7 @@ function _objDistBadge($dist) {
             loadObjects(buildObjectsUrl());
         });
     }
-    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 1; });
+    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
 
     // Pagination link clicks
