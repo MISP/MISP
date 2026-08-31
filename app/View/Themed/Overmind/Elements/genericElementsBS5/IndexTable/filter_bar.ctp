@@ -350,6 +350,9 @@ function setView(view, save = true, scope = document) {
     const viewList  = scope.querySelector('#viewList');
     const viewCard  = scope.querySelector('#viewCard');
 
+    // Only a deliberate toggle launch the animation
+    if (save) window.animateIndexView?.(view === 'card' ? cardView : tableView);
+
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');

@@ -510,6 +510,25 @@ body[data-controller="users"][data-action="change_pw"] {
     word-break: break-word;
 }
 
+/* Switching between the table and the card view swaps one block for the other
+   in place (d-none), which reads as a jump cut. The incoming block fades up
+   over the outgoing one's footprint; the outgoing one is not animated out, so
+   a double-click on the toggle can never leave both visible. */
+@keyframes idxViewFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.idx-view-anim {
+    animation: idxViewFade .82s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .idx-view-anim {
+        animation: none;
+    }
+}
+
 /* Structured / naturally-short columns where string shouldn't wrap.
    Use Field file name */
 .table-scroll .idx-col-id,

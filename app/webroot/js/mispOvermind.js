@@ -449,11 +449,20 @@ function isMobile() {
     return window.innerWidth < 1000;
 }
 
+function animateIndexView(el) {
+    if (!el) return;
+    el.classList.remove('idx-view-anim');
+    void el.offsetWidth;
+    el.classList.add('idx-view-anim');
+}
+
 function setView(view, save = true) {
     const tableView = document.getElementById('tableView');
     const cardView  = document.getElementById('cardView');
     const viewList  = document.getElementById('viewList');
     const viewCard  = document.getElementById('viewCard');
+    // Only a deliberate toggle launch the animation
+    if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');
