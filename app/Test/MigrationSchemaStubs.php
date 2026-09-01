@@ -1,7 +1,8 @@
 <?php
 /**
- * Shared scaffolding for the app/Lib/Migration/ schema-DSL tests
- * (MigrationGrammarTest, SchemaBuilderTest, SchemaInspectorTest).
+ * Shared scaffolding for the app/Lib/Migration/ tests that need a real
+ * CakePHP datasource without a database behind it (MigrationGrammarTest,
+ * SchemaBuilderTest, SchemaInspectorTest, SqlDialectTest).
  *
  * Not a test file - the name deliberately does not end in `Test.php`, so
  * `phpunit app/Test/` does not collect it.
@@ -32,7 +33,7 @@
  * but the tests still pin it to show what MysqlExtended changes.
  *
  * This file lives here rather than being copy-pasted into each test file
- * because the three tests need the identical setup, and because the guarded
+ * because those tests need the identical setup, and because the guarded
  * framework stubs below have to stay compatible with the ones other test files
  * declare (all of which use a no-op App::uses, so this one does too).
  */
@@ -117,6 +118,7 @@ require_once APPLIBS . 'Migration/Grammar/OfflinePostgres.php';
 require_once APPLIBS . 'Migration/SchemaTableBuilder.php';
 require_once APPLIBS . 'Migration/SchemaBuilder.php';
 require_once APPLIBS . 'Migration/SchemaInspector.php';
+require_once APPLIBS . 'Migration/SqlDialect.php';
 
 // -------- connectionless datasources --------
 
