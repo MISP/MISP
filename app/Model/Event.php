@@ -4382,7 +4382,8 @@ class Event extends AppModel
                   $operand === 'NOT'
                 );
                 // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                     $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -4412,7 +4413,8 @@ class Event extends AppModel
                       $lookup_field
                     );
                     // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                    if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                         $subQuery[0] = explode('WHERE', $subQuery[0]);
                         $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                         $subQuery[0] = implode('WHERE', $subQuery[0]);
