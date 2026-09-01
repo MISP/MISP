@@ -12,6 +12,7 @@ Console/cake Admin migrationCreate my_change --description "What it is for"
 # edit app/Lib/Migration/Migrations/Migration_<id>_my_change.php
 Console/cake Admin migrationApply --dry-run --id <id>     # read both engines
 sudo -u www-data Console/cake Admin migrationApply        # or just log in
+# then update db_schema.json to match - see section 8
 ```
 
 ---
@@ -236,7 +237,35 @@ declarative, but `afterUp()` is yours to guard.
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,
 delete its `schema_migrations` row first, and be sure its `afterUp()` can take it.
 
-## 8. The ledger
+## 8. Then update `db_schema.json`
+
+A migration is not finished when it applies. `db_schema.json` at the repo root is
+the **canonical expected schema** — `Console/cake Admin schemaDiagnostics`
+compares a live database against it — so a migration that changes a column
+without changing the file makes every instance in the fleet report a diff it can
+do nothing about.
+
+```bash
+Console/cake Admin schemaDiagnostics    # your change is now listed as a difference
+# edit the affected entries in db_schema.json to match
+Console/cake Admin schemaDiagnostics    # it is not listed any more
+```
+
+**Edit the entries by hand; do not regenerate the whole file.**
+`Console/cake Admin dumpCurrentDatabaseSchema` rewrites it from whatever database
+it is pointed at, so on a development instance it silently promotes that box's
+own accumulated drift to canonical. Regenerating wholesale is a deliberate
+reconciliation exercise, not a step in shipping a column.
+
+The file's `db_version` field is not part of this. It is written from
+`admin_settings` and therefore reads 159 for good — the ledger, not that number,
+is what records a migration.
+
+`INSTALL/MYSQL.sql` usually needs nothing: it is the `db_version` 126 baseline,
+so a column added after 126 is not in it to change. Check anyway, and if the
+column *is* in the baseline, edit its `CREATE TABLE` there too.
+
+## 9. The ledger
 
 `schema_migrations`, one row per migration: `id`, `applied_at`, `duration_ms`,
 `status` (`applied` / `failed`), `error`.
@@ -254,7 +283,7 @@ but no longer on disk**; nothing else cares.
 `schemaDiagnostics` noise: the diagnostic iterates the *expected* schema, so a
 table it does not know about yields no diff.
 
-## 9. Checklist: regenerating an install baseline
+## 10. Checklist: regenerating an install baseline
 
 `INSTALL/MYSQL.sql` is a hand-edited dump that new installs load before the
 upgrade system carries them the rest of the way. It is refreshed rarely. **From
@@ -303,7 +332,7 @@ land together with an explicit legacy-replay step
 (`Console/cake Admin setDatabaseVersion 0` then `runUpdates`) or the frozen
 corpus stops being tested at all.
 
-## 10. Where things are
+## 11. Where things are
 
 | Path | What |
 |---|---|

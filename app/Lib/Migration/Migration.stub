@@ -4,10 +4,6 @@ App::uses('AbstractMigration', 'Migration');
 
 /**
  * {{description}}
- *
- * Applied once, in id order, and recorded in the schema_migrations ledger.
- * Editing a migration that has already run somewhere changes nothing on that
- * instance - write a new one instead.
  */
 class {{class}} extends AbstractMigration
 {
@@ -24,6 +20,10 @@ class {{class}} extends AbstractMigration
     /**
      * Declare the schema changes. No raw SQL: the same declaration is rendered
      * for every engine MISP supports.
+     *
+     * This runs once, in id order, and the ledger records that it did. Editing
+     * it after it has run somewhere changes nothing on that instance - write a
+     * new migration instead.
      *
      *     $schema->table('event_templates')
      *         ->addColumn('exposed', 'boolean', array(
@@ -43,6 +43,9 @@ class {{class}} extends AbstractMigration
      * See what it renders as, on both engines, without running anything:
      *
      *     Console/cake Admin migrationApply --dry-run --id {{id}}
+     *
+     * Once it has been applied, update db_schema.json to match, or every
+     * instance reports the change as a schema difference forever.
      *
      * @param SchemaBuilder $schema
      * @return void
