@@ -27,6 +27,8 @@ class GalaxiesController extends AppController
             'quickFilters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid'],
             'quickFilterParameter' => 'value',
             'conditions' => ['AND' => $aclConditions],
+            // For Overmind, card index
+            'contain' => ['Org', 'Orgc'],
             'order' => ['Galaxy.id' => 'DESC']
         ];
         $this->CRUD->index($params);
