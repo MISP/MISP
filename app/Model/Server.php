@@ -7599,6 +7599,22 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'pre_auth_flood_filter_enable' => array(
+                    'level' => 1,
+                    'description' => __('Cap the number of requests a single source address may make before it has authenticated. Every pre-auth surface does durable work before it knows who is calling - the password reset form writes an audit entry and queues a job, self-registration writes an inbox entry, and a REST call with no API key writes an authentication failure - so an anonymous flood costs storage on every request. Authenticated callers are never affected, including API keys and synchronisation. Leave this off unless the instance is exposed to the public internet; a shared egress address may need the threshold raised.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'pre_auth_flood_filter_threshold' => array(
+                    'level' => 1,
+                    'description' => __('The number of requests one source address may make in any 15 minute window before it has authenticated. Further requests are refused with a 429 until the window ends. Only used when Security.pre_auth_flood_filter_enable is on.'),
+                    'value' => 100,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
                 'self_registration_message' => array(
                     'level' => 1,
                     'bigField' => true,

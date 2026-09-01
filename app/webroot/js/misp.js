@@ -4450,9 +4450,12 @@ function serverOwnerOrganisationChange(host_org_id) {
 }
 
 function requestAPIAccess() {
+    // POST with the page's CSRF token in the header - the action has no rendered
+    // form, so it rides the _csrfTokenHeaderOnly() idiom.
     xhr({
-        type:"get",
+        type:"post",
         url: "/users/request_API/",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         success:function (data) {
             handleGenericAjaxResponse(data);
         },

@@ -34,7 +34,13 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '203';
+    /**
+     * Width of the window Security.pre_auth_flood_filter_threshold is counted
+     * over, in seconds. Fixed: the setting is the budget, not the window.
+     */
+    const PRE_AUTH_FLOOD_WINDOW = 900;
+
+    private $__queryVersion = '204';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -275,6 +281,14 @@ class AppController extends Controller
                 if ($this->__carriesApiKey()) {
                     $this->Security->csrfCheck = false;
                 }
+                // A REST caller holding neither an API key nor a session is
+                // unauthenticated whatever __loginByAuthKey() is about to decide,
+                // and the failure path below writes an auth_fail entry of its own.
+                // Spend the budget here, ahead of that write, rather than in the
+                // unauthenticated branch further down that this one never reaches.
+                if (!$this->__carriesApiKey() && !$this->Session->read(AuthComponent::$sessionKey)) {
+                    $this->__preAuthFloodFilter();
+                }
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
                     if ($this->IndexFilter->isXhr()) {
@@ -425,6 +439,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
+            $this->__preAuthFloodFilter();
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
@@ -1064,6 +1079,77 @@ class AppController extends Controller
                 $this->response->send();
                 $this->_stop();
             }
+        }
+    }
+
+    /**
+     * Per-source request budget for callers that have not authenticated.
+     *
+     * Every pre-auth surface MISP exposes does durable work before it knows who
+     * is calling: users/forgot writes an audit entry and queues a background
+     * job, users/register writes an inbox entry, and a REST request carrying no
+     * API key writes an auth_fail entry. None of that can be gated on identity,
+     * so an anonymous flood costs storage on every request. This caps it per
+     * source address.
+     *
+     * Both call sites establish that the caller is unauthenticated first: the
+     * REST one requires no API key and no session, and the other is the branch
+     * beforeFilter() takes when Auth resolved nobody. A session, an automation
+     * key and a synchronisation pull are therefore never counted.
+     *
+     * The key is the source address alone and never the submitted identity,
+     * because a budget that varied with the address supplied would answer
+     * "does this account exist?".
+     *
+     * Off by default: the right budget depends on whether the instance sits
+     * behind a shared egress address.
+     *
+     * @return void
+     */
+    private function __preAuthFloodFilter()
+    {
+        if (!Configure::read('Security.pre_auth_flood_filter_enable')) {
+            return;
+        }
+        // One charge per request. An uncaught exception hands the request to
+        // CakeErrorController, which extends this class and runs beforeFilter a
+        // second time - so without this an anonymous REST call would spend two
+        // units of a budget the setting describes in requests.
+        if (Configure::read('CurrentRequestPreAuthCounted')) {
+            return;
+        }
+        Configure::write('CurrentRequestPreAuthCounted', true);
+        $threshold = (int)Configure::read('Security.pre_auth_flood_filter_threshold');
+        if ($threshold <= 0) {
+            $threshold = 100;
+        }
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return; // Redis unavailable - fail open, as RateLimitComponent::check() does
+        }
+        $key = 'misp:pre_auth_flood:' . $this->User->_remoteIp();
+        $count = $redis->incr($key);
+        // The expiry rides the first request of a window and is never extended,
+        // so a blocked source is released when that window ends however hard it
+        // keeps knocking. The ttl test covers a process dying between the two
+        // calls, which would otherwise leave a key with no expiry at all.
+        if ($count === 1 || $redis->ttl($key) < 0) {
+            $redis->expire($key, self::PRE_AUTH_FLOOD_WINDOW);
+        }
+        if ($count > $threshold) {
+            // Deliberately no log entry per refused request: writing one would
+            // reinstate the flood this exists to stop.
+            $response = $this->RestResponse->throwException(
+                429,
+                __('Too many requests from this address before authenticating. Please try again later.'),
+                '/' . $this->request->params['controller'] . '/' . $this->request->params['action'],
+                false,
+                false,
+                ['X-Rate-Limit-Reset' => $redis->ttl($key)]
+            );
+            $response->send();
+            $this->_stop();
         }
     }
 

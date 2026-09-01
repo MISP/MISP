@@ -6,6 +6,11 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController
 {
+    /**
+     * Seconds one user must wait between API-access request mails.
+     */
+    const REQUEST_API_COOLDOWN = 900;
+
     public $newkey;
 
     public $components = array(
@@ -41,6 +46,11 @@ class UsersController extends AppController
         $this->Auth->allow($allowedActions);
 
         parent::beforeFilter();
+        // request_API is reached only by requestAPIAccess() in misp.js, hand-built
+        // AJAX with no rendered form behind it, so it cannot produce the field
+        // hash _validatePost() compares against. It sends the page's CSRF token in
+        // the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['request_API']);
     }
 
     public function view($id = null)
@@ -108,8 +118,16 @@ class UsersController extends AppController
 
     public function request_API()
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.disable_emailing')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
+        }
+        // One mail per user per cooldown window. The ACL on this action is ['*']
+        // while the link that reaches it renders only for users without
+        // perm_auth, so without a cooldown any account can mail its org admin as
+        // fast as it can issue requests.
+        if (!$this->__claimRequestApiCooldown($this->Auth->user('id'))) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access requests are rate limited to one every ' . (self::REQUEST_API_COOLDOWN / 60) . ' minutes. Please try again later.')), 'status'=>200, 'type' => 'json'));
         }
         $responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
         if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
@@ -123,6 +141,31 @@ class UsersController extends AppController
             }
         }
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
+    }
+
+    /**
+     * Claim this user's API-access-request slot for the cooldown window.
+     *
+     * SET NX EX is atomic, so parallel requests cannot both claim it. Fails open
+     * when Redis is unavailable, matching how every other optional Redis-backed
+     * control in the request path behaves - the cooldown is a courtesy limit on
+     * an authenticated action, not an authorisation decision.
+     *
+     * @param int $userId
+     * @return bool True when the caller may send, false when still in cooldown.
+     */
+    private function __claimRequestApiCooldown($userId)
+    {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return true;
+        }
+        return (bool)$redis->set(
+            'misp:request_api_cooldown:' . $userId,
+            time(),
+            ['nx', 'ex' => self::REQUEST_API_COOLDOWN]
+        );
     }
 
     public function unsubscribe($code, $type = null)
@@ -3471,9 +3514,30 @@ class UsersController extends AppController
             if (empty($this->request->data['User']['email'])) {
                 throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
             }
+            $email = $this->request->data['User']['email'];
+            // Bound and format-check the address before anything is written. The
+            // log entry below and the job forgotRouter() queues are both derived
+            // from this string and both persist it, so unvalidated it is an
+            // unauthenticated write of arbitrary length into two tables. The
+            // format rule is the one that governs account creation - register()
+            // applies the same validator - and the byte cap sits well above the
+            // 255 character users.email column, so neither test can refuse an
+            // address that could name a real user.
+            //
+            // Both tests read only the submitted string, never the database, so
+            // the response stays uniform for every well formed address whether or
+            // not it belongs to an account. That is deliberate: resolving the user
+            // first would make the reply time depend on the answer.
+            if (
+                !is_string($email) ||
+                strlen($email) > 1024 ||
+                !$this->User->validateEmail(['email' => $email])
+            ) {
+                throw new BadRequestException(__('Invalid email address supplied, cannot generate password reset message.'));
+            }
             $this->loadModel('Log');
-            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
-            $this->User->forgotRouter($this->request->data['User']['email'], $this->User->_remoteIp());
+            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $email);
+            $this->User->forgotRouter($email, $this->User->_remoteIp());
             $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);
