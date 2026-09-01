@@ -3,6 +3,9 @@ App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('AbstractMigration', 'Migration');
+App::uses('MigrationManager', 'Migration');
+App::uses('AbstractGrammar', 'Migration/Grammar');
 
 /**
  * @property Server $Server
@@ -174,6 +177,41 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('schemaDiagnostics', [
             'help' => __('Check differences between current and expected database schema')
+        ]);
+        $parser->addSubcommand('migrationStatus', [
+            'help' => __('Report the database migrations: which have been applied, which are still pending, and which failed.'),
+        ]);
+        $parser->addSubcommand('migrationApply', [
+            'help' => __('Apply every pending database migration in order, stopping at the first failure.'),
+            'parser' => [
+                'options' => [
+                    'id' => [
+                        'help' => __('Apply only the migration carrying this id. Default: every pending one, in order.'),
+                    ],
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Print the SQL the migrations would emit, for every engine MISP supports, without executing anything.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('migrationCreate', [
+            'help' => __('Scaffold a new migration class from the stub.'),
+            'parser' => [
+                'arguments' => [
+                    'slug' => [
+                        'help' => __('Short name for the migration - letters, digits and underscores only. The id is the current timestamp followed by this slug.'),
+                        'required' => true,
+                    ],
+                ],
+                'options' => [
+                    'description' => [
+                        'help' => __('One line on what the migration is for, written into the scaffolded class.'),
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('migrateOldTemplates', [
             'help' => __('Convert legacy-style templates (templates / template_elements*) into modern event_templates rows. Org name is resolved by lookup with the first site-admin user\'s org as fallback; legacy MISP-shipped templates are skipped; rows whose name collides with an existing event_template are skipped. Original templates are left untouched.'),
@@ -786,21 +824,385 @@ class AdminShell extends AppShell
 
     public function runUpdates()
     {
-        $whoami = ProcessTool::whoami();
         $this->AdminSetting->resetUpdateFailNumber();
-        if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
-            $this->out('Executing all updates to bring the database up to date with the current version.');
-            $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
-            if (!empty($lock)) {
-                $this->AdminSetting->delete($lock['AdminSetting']['id']);
-            }
-            $processId = empty($this->args[0]) ? false : $this->args[0];
-            $this->Server->runUpdates(true, false, $processId, true);
-            $this->Server->cleanCacheFiles();
-            $this->out('All updates completed.');
-        } else {
-            $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
+        $this->__assertOsUserMayWrite();
+        $this->out('Executing all updates to bring the database up to date with the current version.');
+        $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
+        if (!empty($lock)) {
+            $this->AdminSetting->delete($lock['AdminSetting']['id']);
         }
+        $processId = empty($this->args[0]) ? false : $this->args[0];
+        $this->Server->runUpdates(true, false, $processId, true);
+        $this->Server->cleanCacheFiles();
+        $this->out('All updates completed.');
+    }
+
+    /**
+     * Stop unless this process runs as the user the web server does.
+     *
+     * A command that writes to the database also writes cache files and, through
+     * a data migration, whatever else a model touches. Doing that as root or as
+     * a developer leaves files the web server cannot read behind, and the
+     * instance breaks some time later for reasons that no longer point here.
+     *
+     * @return void
+     */
+    private function __assertOsUserMayWrite()
+    {
+        $whoami = ProcessTool::whoami();
+        $allowed = ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'];
+        if (in_array($whoami, $allowed, true) || $whoami === Configure::read('MISP.osuser')) {
+            return;
+        }
+        $this->error(
+            'This OS user is not allowed to run this command.',
+            'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami
+        );
+    }
+
+    /**
+     * Report the migrations against the ledger: applied, failed, pending, and
+     * anything the ledger remembers that is no longer on disk.
+     *
+     * @return void
+     */
+    public function migrationStatus()
+    {
+        $manager = $this->__migrationManager();
+        $onDisk = $manager->migrations();
+        $ledger = $manager->ledger();
+        ksort($ledger);
+
+        if (empty($onDisk) && empty($ledger)) {
+            $this->out(__('No migrations in %s, and nothing recorded in the ledger.', $manager->directory()));
+            return;
+        }
+
+        $applied = [];
+        $failed = [];
+        $orphaned = [];
+        foreach ($ledger as $id => $row) {
+            if (!isset($onDisk[$id])) {
+                $orphaned[$id] = $row;
+            } elseif (isset($row['status']) && $row['status'] === MigrationManager::STATUS_FAILED) {
+                $failed[$id] = $row;
+            } else {
+                $applied[$id] = $row;
+            }
+        }
+        // pending() is everything on disk the ledger does not call applied, so
+        // it holds the failed ones too - they are a retry, not a decision.
+        $untried = array_diff_key($manager->pending(), $failed);
+
+        $width = 0;
+        foreach (array_merge(array_keys($ledger), array_keys($onDisk)) as $id) {
+            $width = max($width, strlen($id));
+        }
+
+        $this->out('# ' . __('Database migrations'));
+        $this->__outMigrationGroup(__('Applied (%s)', count($applied)), array_keys($applied), $ledger, $onDisk, $width);
+        $this->__outMigrationGroup(
+            __('Failed (%s) - retried before anything else on the next run', count($failed)),
+            array_keys($failed),
+            $ledger,
+            $onDisk,
+            $width
+        );
+        $this->__outMigrationGroup(__('Pending (%s)', count($untried)), array_keys($untried), $ledger, $onDisk, $width);
+        $this->__outMigrationGroup(
+            __('Recorded but no longer on disk (%s)', count($orphaned)),
+            array_keys($orphaned),
+            $ledger,
+            $onDisk,
+            $width
+        );
+
+        if (empty($untried) && empty($failed)) {
+            $this->out();
+            $this->out('<info>' . __('Everything on disk has been applied.') . '</info>');
+        }
+    }
+
+    /**
+     * One titled block of migrationStatus's report. Silent when the group is
+     * empty, so a healthy instance prints three lines rather than four headings.
+     *
+     * @param string $title
+     * @param array $ids
+     * @param array $ledger id => ledger row
+     * @param array $onDisk id => AbstractMigration
+     * @param int $width Widest id, so the columns line up across every group.
+     * @return void
+     */
+    private function __outMigrationGroup($title, array $ids, array $ledger, array $onDisk, $width)
+    {
+        if (empty($ids)) {
+            return;
+        }
+        $this->out();
+        $this->out($title . ':');
+        foreach ($ids as $id) {
+            $row = isset($ledger[$id]) ? $ledger[$id] : [];
+            $line = '  ' . str_pad($id, $width);
+            if (!empty($row['applied_at'])) {
+                $line .= '  ' . $row['applied_at'];
+            }
+            if (isset($row['duration_ms'])) {
+                $line .= '  ' . str_pad((int)$row['duration_ms'] . ' ms', 9, ' ', STR_PAD_LEFT);
+            }
+            if (!isset($onDisk[$id]) && !empty($row['status'])) {
+                $line .= '  ' . $row['status'];
+            }
+            $this->out(rtrim($line));
+            $description = isset($onDisk[$id]) ? trim((string)$onDisk[$id]->description) : '';
+            if ($description !== '') {
+                $this->out('    ' . $description);
+            }
+            if (!empty($row['error'])) {
+                $this->out('    <error>' . $row['error'] . '</error>');
+            }
+        }
+    }
+
+    /**
+     * Apply pending migrations, or render what they would do.
+     *
+     * @return void
+     */
+    public function migrationApply()
+    {
+        $manager = $this->__migrationManager();
+        $id = isset($this->params['id']) ? trim((string)$this->params['id']) : '';
+        if ($id !== '') {
+            if (!AbstractMigration::isMigrationId($id)) {
+                $this->error(
+                    __('"%s" is not a migration id.', $id),
+                    __('An id is YYYYMMDD_HHMMSS followed by a slug, which is the migration\'s file name without the Migration_ prefix.')
+                );
+            }
+            if (!$manager->has($id)) {
+                $this->error(
+                    __('No migration carries the id "%s".', $id),
+                    __('Expected %s.php in %s. `Admin migrationStatus` lists what is there.', AbstractMigration::classNameFromId($id), $manager->directory())
+                );
+            }
+        }
+
+        if (!empty($this->params['dry-run'])) {
+            $this->__migrationDryRun($manager, $id);
+            return;
+        }
+        $this->__assertOsUserMayWrite();
+
+        if ($id !== '') {
+            if (in_array($id, $manager->applied(), true)) {
+                $this->out(__('%s has already been applied - nothing to do.', $id));
+                return;
+            }
+            $this->out(__('Applying %s.', $id));
+            $results = [$id => $manager->apply($id)];
+        } else {
+            $pending = $manager->pending();
+            if (empty($pending)) {
+                $this->out(__('No pending migrations.'));
+                return;
+            }
+            $this->out(__n(
+                'Applying %s pending migration:',
+                'Applying %s pending migrations, in order:',
+                count($pending),
+                count($pending)
+            ));
+            foreach (array_keys($pending) as $each) {
+                $this->out('  ' . $each);
+            }
+            $this->out();
+            $results = $manager->applyPending();
+        }
+
+        // apply() records the timing and the error text in the ledger, so read
+        // the outcome back rather than keeping a second account of it here.
+        $ledger = $manager->ledger();
+        $failures = 0;
+        foreach ($results as $migrationId => $success) {
+            $row = isset($ledger[$migrationId]) ? $ledger[$migrationId] : [];
+            $duration = isset($row['duration_ms']) ? sprintf(' (%s ms)', (int)$row['duration_ms']) : '';
+            if ($success) {
+                $this->out('<info>' . __('applied') . '</info> ' . $migrationId . $duration);
+                continue;
+            }
+            $failures++;
+            $this->out('<error>' . __('FAILED') . '</error>  ' . $migrationId . $duration);
+            if (!empty($row['error'])) {
+                $this->out('  ' . $row['error']);
+            }
+        }
+
+        // applyPending() stops at the first failure and leaves the rest untried,
+        // which is the contract - say so rather than letting them look skipped.
+        if ($id === '') {
+            $untried = array_diff_key($manager->pending(), $results);
+            if (!empty($untried)) {
+                $this->out(__('Not attempted: %s', implode(', ', array_keys($untried))));
+            }
+        }
+
+        // Whatever runs next must not describe a table from before this ran.
+        $manager->inspector()->flushSchemaCacheFiles();
+        if ($failures > 0) {
+            $this->error(
+                __('The run stopped at a failed migration.'),
+                __('Fix it and run this again - a failed migration is retried before the ones behind it.')
+            );
+        }
+    }
+
+    /**
+     * Print what a migration would emit, on every engine, without touching the
+     * database.
+     *
+     * Both flavours are always rendered, including the one this host cannot
+     * connect to - that is the whole point, since a MySQL box is exactly where
+     * an unexamined PostgreSQL rendering goes wrong.
+     *
+     * @param MigrationManager $manager
+     * @param string $id Empty for every pending migration.
+     * @return void
+     */
+    private function __migrationDryRun(MigrationManager $manager, $id)
+    {
+        $ids = $id === '' ? array_keys($manager->pending()) : [$id];
+        if (empty($ids)) {
+            $this->out(__('No pending migrations - nothing to render.'));
+            return;
+        }
+        $live = AbstractGrammar::forDataSource($this->Server->getDataSource());
+        $failures = 0;
+        foreach ($ids as $each) {
+            $migration = $manager->migration($each);
+            $this->out('# ' . $each);
+            $description = trim((string)$migration->description);
+            if ($description !== '') {
+                $this->out('  ' . $description);
+            }
+            foreach (AbstractGrammar::flavours() as $flavour) {
+                $grammar = $flavour === $live->flavour() ? $live : AbstractGrammar::offline($flavour);
+                $this->out();
+                $this->out('## ' . $flavour . ($grammar === $live ? ' ' . __('(this instance)') : ''));
+                try {
+                    $statements = $manager->toSql($each, $grammar);
+                } catch (Exception $e) {
+                    $failures++;
+                    $this->out('  <error>' . __('Cannot be rendered for %s: %s', $flavour, $e->getMessage()) . '</error>');
+                    continue;
+                }
+                if (empty($statements)) {
+                    $this->out('  ' . __('No schema changes.'));
+                }
+                foreach ($statements as $statement) {
+                    $this->out('  ' . str_replace(PHP_EOL, PHP_EOL . '  ', $statement));
+                }
+                // Rendered as SQL comments so the whole block stays paste-able,
+                // and because a hint sat next to the statements at the same
+                // indent reads like one of them.
+                foreach ($grammar->takeDroppedHints() as $hint) {
+                    $this->out('  <warning>-- ' . $hint . '</warning>');
+                }
+            }
+            if ($this->__hasDataStep($migration)) {
+                $this->out();
+                $this->out('  <comment>' . __('This migration also has an afterUp() data step, which no SQL above describes.') . '</comment>');
+            }
+            $this->out();
+        }
+        if ($failures > 0) {
+            $this->error(__('%s rendering(s) failed.', $failures));
+        }
+    }
+
+    /**
+     * Does this migration do PHP data work on top of its DDL?
+     *
+     * Worth saying out loud in a dry run: the statements printed above are the
+     * whole of a schema-only migration, and only half of a data one.
+     *
+     * @param AbstractMigration $migration
+     * @return bool
+     */
+    private function __hasDataStep(AbstractMigration $migration)
+    {
+        $declaring = (new ReflectionMethod($migration, 'afterUp'))->getDeclaringClass();
+        return $declaring->getName() !== 'AbstractMigration';
+    }
+
+    /**
+     * Scaffold a migration class from the stub.
+     *
+     * @return void
+     */
+    public function migrationCreate()
+    {
+        $slug = isset($this->args[0]) ? trim((string)$this->args[0]) : '';
+        if ($slug === '') {
+            $this->error(
+                __('A slug is required.'),
+                __('Usage: Console/cake Admin migrationCreate <slug>, for example `migrationCreate event_templates_exposed`.')
+            );
+        }
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $slug)) {
+            $this->error(
+                __('"%s" cannot be used as a slug.', $slug),
+                __('Letters, digits and underscores only - the slug ends up inside a PHP class name.')
+            );
+        }
+
+        $manager = $this->Server->getMigrationManager();
+        $id = date('Ymd_His') . '_' . $slug;
+        if (!AbstractMigration::isMigrationId($id)) {
+            $this->error(__('The generated id "%s" is not a valid migration id.', $id));
+        }
+        $className = AbstractMigration::classNameFromId($id);
+        $path = $manager->directory() . DS . $className . '.php';
+        if (file_exists($path)) {
+            $this->error(__('%s already exists.', $path));
+        }
+
+        // The description is written into a docblock and into a single-quoted
+        // string literal, so it may not carry a line break or close either one.
+        $description = isset($this->params['description']) ? trim((string)$this->params['description']) : '';
+        $description = trim(str_replace(["\r", "\n", '*/'], ' ', $description));
+        if ($description === '') {
+            $description = __('TODO: one line on what this migration is for.');
+        }
+
+        $stub = FileAccessTool::readFromFile(APP . 'Lib' . DS . 'Migration' . DS . 'Migration.stub');
+        FileAccessTool::writeToFile($path, str_replace(
+            ['{{class}}', '{{id}}', '{{descriptionLiteral}}', '{{description}}'],
+            [$className, $id, addcslashes($description, "\\'"), $description],
+            $stub
+        ));
+
+        $this->out(__('Created %s', $path));
+        $this->out(__('Render it, on every engine, without running it: Console/cake Admin migrationApply --dry-run --id %s', $id));
+    }
+
+    /**
+     * The migration manager, with a discovery failure turned into a message
+     * rather than a stack trace - a malformed file name is an authoring
+     * mistake, and the exception already says exactly which file and why.
+     *
+     * @return MigrationManager
+     */
+    private function __migrationManager()
+    {
+        $manager = $this->Server->getMigrationManager();
+        try {
+            // Discovery is cached, so every later call is free.
+            $manager->migrations();
+        } catch (Exception $e) {
+            $this->error(__('The migrations on disk could not be read.'), $e->getMessage());
+        }
+        return $manager;
     }
 
     public function runDBScript()

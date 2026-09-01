@@ -140,6 +140,18 @@ class MigrationManager
     // ------------------------------------------------------------- discovery
 
     /**
+     * Where the migration classes live. Public because `cake Admin
+     * migrationCreate` scaffolds into it, and two copies of that path would be
+     * one copy too many.
+     *
+     * @return string
+     */
+    public function directory()
+    {
+        return $this->directory;
+    }
+
+    /**
      * Every migration on disk, keyed by id, in id order.
      *
      * @return array id => AbstractMigration
