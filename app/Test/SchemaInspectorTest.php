@@ -88,6 +88,34 @@ if (!class_exists('SchemaInspectorTestMysql', false)) {
     }
 }
 
+if (!class_exists('SchemaInspectorTestReader', false)) {
+    /**
+     * An inspector whose one connection-touching method is replaced.
+     *
+     * The runtime surface queries the catalog directly rather than through the
+     * driver, so - unlike the schema surface above - it cannot be exercised by
+     * overriding listSources()/describe()/index() on a connectionless
+     * datasource. fetchRows() is the single seam where this class reaches a
+     * real connection, so standing in for it leaves the SQL each engine builds
+     * and the shaping of the rows both under test, which is the whole of what
+     * these methods do.
+     */
+    class SchemaInspectorTestReader extends SchemaInspector
+    {
+        /** @var array Every statement fetchRows() was asked to run, in order. */
+        public $queries = array();
+
+        /** @var array Canned result sets, handed back one per call. */
+        public $results = array();
+
+        protected function fetchRows($sql)
+        {
+            $this->queries[] = $sql;
+            return empty($this->results) ? array() : array_shift($this->results);
+        }
+    }
+}
+
 class SchemaInspectorTest extends TestCase
 {
     /** @var SchemaInspectorTestMysql */
@@ -252,5 +280,229 @@ class SchemaInspectorTest extends TestCase
         // A subsequent read must not put it back up.
         $this->inspector->columns('events');
         $this->assertFalse($this->db->cacheSources);
+    }
+
+    // ------------------------------------------------------- runtime surface
+
+    /**
+     * @param array $results Canned result sets, one per fetchRows() call.
+     * @return SchemaInspectorTestReader
+     */
+    private function mysqlReader(array $results = array())
+    {
+        $reader = new SchemaInspectorTestReader(new MigrationTestMysqlExtended());
+        $reader->results = $results;
+        return $reader;
+    }
+
+    /**
+     * @param array $results Canned result sets, one per fetchRows() call.
+     * @return SchemaInspectorTestReader
+     */
+    private function postgresReader(array $results = array())
+    {
+        $reader = new SchemaInspectorTestReader(new MigrationTestPostgres());
+        $reader->results = $results;
+        return $reader;
+    }
+
+    /**
+     * No catalog query of its own: the driver's index() already answers this on
+     * both engines. A column inside a composite index counts, which is what the
+     * SHOW INDEX loop being replaced did.
+     */
+    public function testIndexNameForColumn()
+    {
+        $this->assertSame('uuid', $this->inspector->indexNameForColumn('events', 'uuid'));
+        $this->assertSame('lookup', $this->inspector->indexNameForColumn('events', 'org_id'));
+        $this->assertSame('lookup', $this->inspector->indexNameForColumn('events', 'date'));
+        $this->assertNull($this->inspector->indexNameForColumn('events', 'nothing_indexed'));
+        $this->assertNull($this->inspector->indexNameForColumn('no_such_table', 'id'));
+    }
+
+    public function testTableRowEstimateReadsInformationSchemaOnMysql()
+    {
+        $reader = $this->mysqlReader(array(array(array('row_estimate' => '4711'))));
+        $this->assertSame(4711, $reader->tableRowEstimate('attributes'));
+        $this->assertCount(1, $reader->queries);
+        $this->assertStringContainsString('information_schema.TABLES', $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_SCHEMA = 'misp'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_NAME = 'attributes'", $reader->queries[0]);
+    }
+
+    public function testTableRowEstimateReadsPgClassOnPostgres()
+    {
+        $reader = $this->postgresReader(array(array(array('row_estimate' => '4711'))));
+        $this->assertSame(4711, $reader->tableRowEstimate('attributes'));
+        $this->assertStringContainsString('pg_catalog.pg_class', $reader->queries[0]);
+        $this->assertStringContainsString("n.nspname = 'public'", $reader->queries[0]);
+        $this->assertStringContainsString("c.relname = 'attributes'", $reader->queries[0]);
+    }
+
+    /**
+     * MySQL reports NULL for a table it has never looked at and PostgreSQL 13
+     * and later report -1. Neither is a row count, and a caller putting the
+     * figure in a page header wants neither of them.
+     */
+    public function testTableRowEstimateHasNoNegativeOrMissingAnswers()
+    {
+        $this->assertSame(0, $this->mysqlReader(array(array()))->tableRowEstimate('attributes'));
+        $this->assertSame(
+            0,
+            $this->mysqlReader(array(array(array('row_estimate' => null))))->tableRowEstimate('attributes')
+        );
+        $this->assertSame(
+            0,
+            $this->postgresReader(array(array(array('row_estimate' => '-1'))))->tableRowEstimate('attributes')
+        );
+    }
+
+    /**
+     * The names and the schema filter are values, and they are quoted through
+     * the driver rather than concatenated - which is what the information_schema
+     * queries scattered through the tree do today.
+     */
+    public function testTheCatalogQueriesQuoteWhatTheyInterpolate()
+    {
+        $reader = $this->mysqlReader();
+        $reader->getDataSource()->config['database'] = "mi'sp";
+        $reader->tableRowEstimate("att'ributes");
+        $this->assertStringContainsString("TABLE_SCHEMA = 'mi''sp'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_NAME = 'att''ributes'", $reader->queries[0]);
+    }
+
+    /**
+     * PostgreSQL's namespace is configuration, not a constant, but a datasource
+     * that does not name one still has to produce a valid query.
+     */
+    public function testThePostgresSchemaFallsBackToPublic()
+    {
+        $reader = $this->postgresReader();
+        $reader->getDataSource()->config['schema'] = '';
+        $reader->tableRowEstimate('attributes');
+        $this->assertStringContainsString("n.nspname = 'public'", $reader->queries[0]);
+    }
+
+    /**
+     * Two very different catalogs, one entry shape - which is the point of
+     * putting this here rather than branching at the call site. The only field
+     * that legitimately differs is the reclaimable one: MySQL's DATA_FREE has
+     * no PostgreSQL counterpart, so the query hard-codes 0 there.
+     */
+    public function testTableSizesShapeTheSameOnBothEngines()
+    {
+        $mysql = $this->mysqlReader(array(array(
+            array(
+                'table_name' => 'attributes',
+                'data_length' => '2048',
+                'index_length' => '1024',
+                'data_free' => '512',
+                'row_estimate' => '17',
+            ),
+        )));
+        $mysqlSizes = $mysql->tableSizes();
+        $this->assertSame(
+            array(
+                'attributes' => array(
+                    'table' => 'attributes',
+                    'data_in_bytes' => 2048,
+                    'index_in_bytes' => 1024,
+                    'total_in_bytes' => 3072,
+                    'reclaimable_in_bytes' => 512,
+                    'row_estimate' => 17,
+                ),
+            ),
+            $mysqlSizes
+        );
+
+        $pgsql = $this->postgresReader(array(array(
+            array(
+                'table_name' => 'attributes',
+                'data_length' => '2048',
+                'index_length' => '1024',
+                'data_free' => '0',
+                'row_estimate' => '17',
+            ),
+        )));
+        $pgsqlSizes = $pgsql->tableSizes();
+        $this->assertSame(0, $pgsqlSizes['attributes']['reclaimable_in_bytes']);
+        $this->assertSame(
+            array_keys($mysqlSizes['attributes']),
+            array_keys($pgsqlSizes['attributes'])
+        );
+        unset($mysqlSizes['attributes']['reclaimable_in_bytes'], $pgsqlSizes['attributes']['reclaimable_in_bytes']);
+        $this->assertSame($mysqlSizes, $pgsqlSizes);
+    }
+
+    /**
+     * pg_class holds indexes, sequences and views next to the tables, so the
+     * relkind filter is not tidiness - without it the listing is wrong. MySQL
+     * gets the same treatment so that both engines answer the same question.
+     */
+    public function testTableSizesCountOnlyTables()
+    {
+        $mysql = $this->mysqlReader();
+        $mysql->tableSizes();
+        $this->assertStringContainsString("TABLE_TYPE = 'BASE TABLE'", $mysql->queries[0]);
+
+        $pgsql = $this->postgresReader();
+        $pgsql->tableSizes();
+        $this->assertStringContainsString("c.relkind IN ('r', 'p')", $pgsql->queries[0]);
+        $this->assertStringContainsString('pg_table_size(c.oid)', $pgsql->queries[0]);
+        $this->assertStringContainsString('pg_indexes_size(c.oid)', $pgsql->queries[0]);
+    }
+
+    /**
+     * A row the catalog answered with no name at all is skipped rather than
+     * keyed under the empty string.
+     */
+    public function testTableSizesIgnoreAnUnnamedRow()
+    {
+        $reader = $this->mysqlReader(array(array(array('data_length' => '1'))));
+        $this->assertSame(array(), $reader->tableSizes());
+    }
+
+    public function testServerVariablesFlattenToNameAndValueOnBothEngines()
+    {
+        $mysql = $this->mysqlReader(array(array(
+            array('Variable_name' => 'innodb_buffer_pool_size', 'Value' => '134217728'),
+            array('Variable_name' => 'max_allowed_packet', 'Value' => '67108864'),
+        )));
+        $this->assertSame(
+            array('innodb_buffer_pool_size' => '134217728', 'max_allowed_packet' => '67108864'),
+            $mysql->serverVariables()
+        );
+        $this->assertSame(array('SHOW VARIABLES;'), $mysql->queries);
+
+        $pgsql = $this->postgresReader(array(array(
+            array('name' => 'shared_buffers', 'setting' => '16384'),
+        )));
+        $this->assertSame(array('shared_buffers' => '16384'), $pgsql->serverVariables());
+        $this->assertStringContainsString('pg_catalog.pg_settings', $pgsql->queries[0]);
+    }
+
+    /**
+     * MariaDB's STAGE / MAX_STAGE / PROGRESS are what the update-progress screen
+     * reads, and there is nothing engine-neutral to rename them to, so the
+     * server's own column names come straight through.
+     */
+    public function testRunningQueriesPassTheServersColumnsThrough()
+    {
+        $row = array('ID' => '9', 'INFO' => 'ALTER TABLE attributes', 'STATE' => 'copy to tmp table', 'PROGRESS' => '12.5');
+        $reader = $this->mysqlReader(array(array($row)));
+        $this->assertSame(array($row), $reader->runningQueries());
+        $this->assertStringContainsString('information_schema.PROCESSLIST', $reader->queries[0]);
+    }
+
+    /**
+     * PostgreSQL has no equivalent of the stage-and-progress figures the only
+     * caller wants, so it answers with nothing at all - and asks the server
+     * nothing, rather than issuing a query whose result would be discarded.
+     */
+    public function testRunningQueriesAreEmptyOnPostgresAndCostNothing()
+    {
+        $reader = $this->postgresReader();
+        $this->assertSame(array(), $reader->runningQueries());
+        $this->assertSame(array(), $reader->queries);
     }
 }
