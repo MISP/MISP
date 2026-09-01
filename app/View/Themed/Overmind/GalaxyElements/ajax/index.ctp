@@ -90,39 +90,41 @@ if ($canModify) {
 
 <?php else: ?>
     <?php if ($isJson): ?>
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <div class="ms-auto">
-                        <div class="d-flex justify-content-end align-items-center gap-2">
-                            <?php if ($canModify): ?>
-                                <button type="button" class="btn btn-primary" title="<?= __('Add JSON as cluster\'s elements') ?>"
-                                        onclick="openModal('<?= $baseurl ?>/galaxy_elements/flattenJson/<?= h($clusterId) ?>');">
-                                    <i class="fas fa-plus me-1"></i><?= __("Add JSON as cluster's elements") ?>
-                                </button>
-                            <?php endif; ?>
-                            <div class="btn-group" role="group">
-                                <?php foreach ($viewSwitch as $vs): ?>
-                                    <a href="<?= h($vs['url']) ?>"
-                                    class="btn btn-outline-primary <?= !empty($vs['active']) ? 'active' : '' ?>"
-                                    title="<?= h($vs['title']) ?>">
-                                        <i class="<?= h($vs['icon']) ?>"></i>
-                                    </a>
-                                <?php endforeach; ?>
+        <div class = "container-fluid">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <div class="ms-auto">
+                            <div class="d-flex justify-content-end align-items-center gap-2">
+                                <?php if ($canModify): ?>
+                                    <button type="button" class="btn btn-primary" title="<?= __('Add JSON as cluster\'s elements') ?>"
+                                            onclick="openModal('<?= $baseurl ?>/galaxy_elements/flattenJson/<?= h($clusterId) ?>');">
+                                        <i class="fas fa-plus me-1"></i><?= __("Add JSON as cluster's elements") ?>
+                                    </button>
+                                <?php endif; ?>
+                                <div class="btn-group" role="group">
+                                    <?php foreach ($viewSwitch as $vs): ?>
+                                        <a href="<?= h($vs['url']) ?>"
+                                        class="btn btn-outline-primary <?= !empty($vs['active']) ? 'active' : '' ?>"
+                                        title="<?= h($vs['title']) ?>">
+                                            <i class="<?= h($vs['icon']) ?>"></i>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="position-relative">
-            <button type="button" class="btn btn-sm btn-light position-absolute top-0 end-0 m-2"
-                    title="<?= __('Copy to clipboard') ?>"
-                    onclick="copyValueToClipboard(document.getElementById('galaxyElementsJson').textContent, '<?= __('JSON copied to clipboard') ?>');">
-                <i class="fas fa-copy"></i>
-            </button>
-            <pre class="bg-light border rounded p-3 mb-0" style="max-height:55vh; overflow:auto;"><code id="galaxyElementsJson"><?= h(json_encode($JSONElements, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></code></pre>
+            <div class="position-relative">
+                <button type="button" class="btn btn-sm btn-light position-absolute top-0 end-0 m-2"
+                        title="<?= __('Copy to clipboard') ?>"
+                        onclick="copyValueToClipboard(document.getElementById('galaxyElementsJson').textContent, '<?= __('JSON copied to clipboard') ?>');">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <pre class="bg-light border rounded p-3 mb-0" style="max-height:55vh; overflow:auto;"><code id="galaxyElementsJson"><?= h(json_encode($JSONElements, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></code></pre>
+            </div>
         </div>
 
     <?php else: ?>
