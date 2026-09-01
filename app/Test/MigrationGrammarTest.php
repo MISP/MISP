@@ -85,6 +85,88 @@ class MigrationGrammarTest extends TestCase
         );
     }
 
+    /**
+     * The offline path `migrationApply --dry-run` renders its second flavour
+     * through.
+     *
+     * Not a convenience: PostgresGrammar needs a Postgres datasource for its
+     * type map and quoting, and constructing one throws unless pdo_pgsql is
+     * loaded. It is loaded on essentially no MISP host, so without this the one
+     * half of a dry run that nobody can otherwise check is the half that would
+     * never print.
+     */
+    public function testOfflineBuildsAGrammarWithNoConnection()
+    {
+        $this->assertInstanceOf('MysqlGrammar', AbstractGrammar::offline(AbstractGrammar::FLAVOUR_MYSQL));
+        $this->assertInstanceOf('PostgresGrammar', AbstractGrammar::offline(AbstractGrammar::FLAVOUR_PGSQL));
+    }
+
+    /**
+     * The offline datasources are the real drivers with the constructor skipped,
+     * not stand-ins for them. That is what makes what a dry run prints worth
+     * reading: the type map, the field parameters and the identifier quoting are
+     * the engine's own, and the connection is the only thing missing.
+     *
+     * MysqlExtended rather than Mysql on purpose - MISP ships four datasources
+     * and all of them are MysqlExtended or a subclass, so that is the rendering
+     * an author needs to see.
+     */
+    public function testTheOfflineDataSourcesAreTheRealDrivers()
+    {
+        $this->assertInstanceOf(
+            'MysqlExtended',
+            AbstractGrammar::offline(AbstractGrammar::FLAVOUR_MYSQL)->getDataSource()
+        );
+        $this->assertInstanceOf(
+            'Postgres',
+            AbstractGrammar::offline(AbstractGrammar::FLAVOUR_PGSQL)->getDataSource()
+        );
+    }
+
+    /**
+     * And rendering through them works end to end with nothing connected -
+     * every piece the drivers need, from the $columns map to the quoting of a
+     * default, is reachable without a socket.
+     */
+    public function testOfflineRendersWithoutAConnection()
+    {
+        $column = array('null' => false, 'default' => 0, 'after' => 'misp_default');
+
+        $this->assertSame(
+            array('ALTER TABLE `event_templates` ADD `exposed` tinyint(1) DEFAULT 0 NOT NULL AFTER `misp_default`;'),
+            AbstractGrammar::offline(AbstractGrammar::FLAVOUR_MYSQL)
+                ->addColumn('event_templates', 'exposed', 'boolean', $column)
+        );
+        $this->assertSame(
+            array('ALTER TABLE "event_templates" ADD "exposed" boolean DEFAULT \'FALSE\' NOT NULL;'),
+            AbstractGrammar::offline(AbstractGrammar::FLAVOUR_PGSQL)
+                ->addColumn('event_templates', 'exposed', 'boolean', $column)
+        );
+    }
+
+    public function testOfflineRejectsAFlavourWithNoGrammar()
+    {
+        $this->expectException('InvalidArgumentException');
+        $this->expectExceptionMessage('sqlite');
+        AbstractGrammar::offline('sqlite');
+    }
+
+    /**
+     * flavours() is what the dry run iterates, so its contents decide which
+     * engines an author is shown - a flavour missing from it is a flavour
+     * nobody checks before shipping.
+     */
+    public function testFlavoursListsEveryRenderableEngine()
+    {
+        $this->assertSame(
+            array(AbstractGrammar::FLAVOUR_MYSQL, AbstractGrammar::FLAVOUR_PGSQL),
+            AbstractGrammar::flavours()
+        );
+        foreach (AbstractGrammar::flavours() as $flavour) {
+            $this->assertSame($flavour, AbstractGrammar::offline($flavour)->flavour());
+        }
+    }
+
     public function testFlavourNames()
     {
         $this->assertSame(AbstractGrammar::FLAVOUR_MYSQL, $this->mysql->flavour());

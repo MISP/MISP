@@ -16,12 +16,20 @@
  *
  *   - the class chain (CakeObject -> DataSource -> DboSource -> Mysql/Postgres)
  *     loads with nothing but a no-op App::uses() and a Configure stub;
- *   - the test subclasses skip DboSource::__construct entirely - it would call
+ *   - the datasources skip DboSource::__construct entirely - it would call
  *     enabled(), which needs the PDO driver present, and connect();
  *   - $cacheMethods = false makes DboSource::cacheMethod() early-return, so
  *     name() never reaches the Cache facade;
  *   - value() is the only method that needs a connection, for quoting, so a
  *     three-line PDO stand-in covers it.
+ *
+ * The last three of those are no longer written here. They ship, in
+ * app/Lib/Migration/Grammar/, because `Admin migrationApply --dry-run` needs the
+ * same trick to print PostgreSQL SQL on a host with no pdo_pgsql - so the names
+ * below are thin aliases of OfflineMysql, OfflinePostgres and OfflineConnection,
+ * and every assertion in this suite lands on the code the CLI renders through.
+ * Vanilla Mysql keeps its own stub: MISP never runs it, so nothing ships for it,
+ * but the tests still pin it to show what MysqlExtended changes.
  *
  * This file lives here rather than being copy-pasted into each test file
  * because the three tests need the identical setup, and because the guarded
@@ -103,6 +111,9 @@ require_once __DIR__ . '/../Model/Datasource/Database/MysqlExtended.php';
 require_once APPLIBS . 'Migration/Grammar/AbstractGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/MysqlGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/PostgresGrammar.php';
+require_once APPLIBS . 'Migration/Grammar/OfflineConnection.php';
+require_once APPLIBS . 'Migration/Grammar/OfflineMysql.php';
+require_once APPLIBS . 'Migration/Grammar/OfflinePostgres.php';
 require_once APPLIBS . 'Migration/SchemaTableBuilder.php';
 require_once APPLIBS . 'Migration/SchemaBuilder.php';
 require_once APPLIBS . 'Migration/SchemaInspector.php';
@@ -111,15 +122,12 @@ require_once APPLIBS . 'Migration/SchemaInspector.php';
 
 if (!class_exists('MigrationTestPdo', false)) {
     /**
-     * Stands in for the PDO handle DboSource::value() quotes through. Quotes the
-     * way both real drivers do - single quotes, doubled to escape.
+     * Stands in for the PDO handle DboSource::value() quotes through.
+     *
+     * The shipped OfflineConnection, under the name the tests already use.
      */
-    class MigrationTestPdo
+    class MigrationTestPdo extends OfflineConnection
     {
-        public function quote($value, $type = null)
-        {
-            return "'" . str_replace("'", "''", (string)$value) . "'";
-        }
     }
 }
 
@@ -137,26 +145,18 @@ if (!class_exists('MigrationTestMysql', false)) {
     }
 }
 
+// These two used to be declared here in full. They are now the shipped
+// offline datasources under the names the tests already use, so every
+// assertion in this suite exercises the code `migrationApply --dry-run`
+// renders through rather than a look-alike that can drift away from it.
 if (!class_exists('MigrationTestMysqlExtended', false)) {
-    class MigrationTestMysqlExtended extends MysqlExtended
+    class MigrationTestMysqlExtended extends OfflineMysql
     {
-        public function __construct()
-        {
-            $this->_connection = new MigrationTestPdo();
-            $this->cacheMethods = false;
-            $this->config = array('prefix' => '', 'database' => 'misp');
-        }
     }
 }
 
 if (!class_exists('MigrationTestPostgres', false)) {
-    class MigrationTestPostgres extends Postgres
+    class MigrationTestPostgres extends OfflinePostgres
     {
-        public function __construct()
-        {
-            $this->_connection = new MigrationTestPdo();
-            $this->cacheMethods = false;
-            $this->config = array('prefix' => '', 'database' => 'misp', 'schema' => 'public');
-        }
     }
 }

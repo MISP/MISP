@@ -102,6 +102,46 @@ abstract class AbstractGrammar
     }
 
     /**
+     * A grammar for an engine this host cannot connect to.
+     *
+     * Rendering needs a datasource - for the type map, identifier quoting and
+     * literal quoting - but it never needs the socket underneath it. The
+     * offline datasources supply the first without opening the second, which is
+     * what lets a dry run print both flavours on a host that has only one PDO
+     * driver installed. That is every host: MISP requires neither pdo_mysql nor
+     * pdo_pgsql, and the PostgreSQL one is essentially never present.
+     *
+     * @param string $flavour One of the FLAVOUR_* constants.
+     * @return AbstractGrammar
+     * @throws InvalidArgumentException On a flavour with no grammar behind it.
+     */
+    public static function offline($flavour)
+    {
+        if ($flavour === self::FLAVOUR_MYSQL) {
+            App::uses('OfflineMysql', 'Migration/Grammar');
+            return self::forDataSource(new OfflineMysql());
+        }
+        if ($flavour === self::FLAVOUR_PGSQL) {
+            App::uses('OfflinePostgres', 'Migration/Grammar');
+            return self::forDataSource(new OfflinePostgres());
+        }
+        throw new InvalidArgumentException(sprintf(
+            'No grammar for the flavour "%s". Known flavours are: %s.',
+            $flavour,
+            implode(', ', self::flavours())
+        ));
+    }
+
+    /**
+     * @return array Every flavour a migration is rendered for, in the order a
+     *   dry run prints them.
+     */
+    public static function flavours()
+    {
+        return array(self::FLAVOUR_MYSQL, self::FLAVOUR_PGSQL);
+    }
+
+    /**
      * @return string One of the FLAVOUR_* constants.
      */
     abstract public function flavour();
