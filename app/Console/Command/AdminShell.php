@@ -180,6 +180,15 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('migrationStatus', [
             'help' => __('Report the database migrations: which have been applied, which are still pending, and which failed.'),
+            'parser' => [
+                'options' => [
+                    'json' => [
+                        'help' => __('Print the same report as JSON. What a regenerated install baseline needs, to seed the ledger with the migrations already baked into it.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('migrationApply', [
             'help' => __('Apply every pending database migration in order, stopping at the first failure.'),
@@ -873,11 +882,6 @@ class AdminShell extends AppShell
         $ledger = $manager->ledger();
         ksort($ledger);
 
-        if (empty($onDisk) && empty($ledger)) {
-            $this->out(__('No migrations in %s, and nothing recorded in the ledger.', $manager->directory()));
-            return;
-        }
-
         $applied = [];
         $failed = [];
         $orphaned = [];
@@ -893,6 +897,16 @@ class AdminShell extends AppShell
         // pending() is everything on disk the ledger does not call applied, so
         // it holds the failed ones too - they are a retry, not a decision.
         $untried = array_diff_key($manager->pending(), $failed);
+
+        if (!empty($this->params['json'])) {
+            $this->__outMigrationStatusJson($manager, $onDisk, $applied, $failed, $untried, $orphaned);
+            return;
+        }
+
+        if (empty($onDisk) && empty($ledger)) {
+            $this->out(__('No migrations in %s, and nothing recorded in the ledger.', $manager->directory()));
+            return;
+        }
 
         $width = 0;
         foreach (array_merge(array_keys($ledger), array_keys($onDisk)) as $id) {
@@ -962,6 +976,70 @@ class AdminShell extends AppShell
                 $this->out('    <error>' . $row['error'] . '</error>');
             }
         }
+    }
+
+    /**
+     * migrationStatus's report as JSON.
+     *
+     * Exists for one job in particular: a regenerated install baseline already
+     * contains the effects of every migration applied when it was dumped, so it
+     * has to ship a matching schema_migrations row for each of them. Without
+     * that a fresh install re-applies them all - wasteful for schema work, which
+     * guards itself, and a double-seed bug for anything done in afterUp().
+     * `.applied[].id` is the list to embed.
+     *
+     * @param MigrationManager $manager
+     * @param array $onDisk id => AbstractMigration
+     * @param array $applied id => ledger row
+     * @param array $failed id => ledger row
+     * @param array $untried id => requiresLogout
+     * @param array $orphaned id => ledger row, for migrations no longer on disk
+     * @return void
+     */
+    private function __outMigrationStatusJson(
+        MigrationManager $manager,
+        array $onDisk,
+        array $applied,
+        array $failed,
+        array $untried,
+        array $orphaned
+    ) {
+        $describe = function (array $rows) use ($onDisk) {
+            $out = [];
+            foreach ($rows as $id => $row) {
+                $entry = ['id' => $id];
+                foreach (['applied_at', 'status', 'error'] as $field) {
+                    if (isset($row[$field])) {
+                        $entry[$field] = $row[$field];
+                    }
+                }
+                if (isset($row['duration_ms'])) {
+                    $entry['duration_ms'] = (int)$row['duration_ms'];
+                }
+                if (isset($onDisk[$id])) {
+                    $entry['description'] = (string)$onDisk[$id]->description;
+                }
+                $out[] = $entry;
+            }
+            return $out;
+        };
+
+        $pending = [];
+        foreach ($untried as $id => $requiresLogout) {
+            $pending[] = [
+                'id' => $id,
+                'description' => isset($onDisk[$id]) ? (string)$onDisk[$id]->description : '',
+                'requires_logout' => (bool)$requiresLogout,
+            ];
+        }
+
+        $this->out(JsonTool::encode([
+            'directory' => $manager->directory(),
+            'applied' => $describe($applied),
+            'failed' => $describe($failed),
+            'pending' => $pending,
+            'orphaned' => $describe($orphaned),
+        ], true));
     }
 
     /**
