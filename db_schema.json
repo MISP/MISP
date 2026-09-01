@@ -9129,10 +9129,10 @@
                 "column_name": "auth_type",
                 "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "255",
+                "character_maximum_length": "191",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "varchar(255)",
+                "column_type": "varchar(191)",
                 "column_default": "'basic'",
                 "extra": ""
             },
