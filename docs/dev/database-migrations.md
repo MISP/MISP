@@ -12,7 +12,6 @@ Console/cake Admin migrationCreate my_change --description "What it is for"
 # edit app/Lib/Migration/Migrations/Migration_<id>_my_change.php
 Console/cake Admin migrationApply --dry-run --id <id>     # read both engines
 sudo -u www-data Console/cake Admin migrationApply        # or just log in
-# then update db_schema.json to match - see section 8
 ```
 
 ---
@@ -237,33 +236,47 @@ declarative, but `afterUp()` is yours to guard.
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,
 delete its `schema_migrations` row first, and be sure its `afterUp()` can take it.
 
-## 8. Then update `db_schema.json`
+## 8. `db_schema.json`, and why you do not touch it
 
-A migration is not finished when it applies. `db_schema.json` at the repo root is
-the **canonical expected schema** — `Console/cake Admin schemaDiagnostics`
-compares a live database against it — so a migration that changes a column
-without changing the file makes every instance in the fleet report a diff it can
-do nothing about.
+`db_schema.json` at the repo root is the **canonical expected schema** —
+`Console/cake Admin schemaDiagnostics` compares a live database against it — and
+it is **not** maintained migration by migration. Before a release it is
+regenerated wholesale from a freshly built, clean MISP database:
 
 ```bash
-Console/cake Admin schemaDiagnostics    # your change is now listed as a difference
-# edit the affected entries in db_schema.json to match
-Console/cake Admin schemaDiagnostics    # it is not listed any more
+# on a clean build, not on your working instance
+Console/cake Admin dumpCurrentDatabaseSchema
 ```
 
-**Edit the entries by hand; do not regenerate the whole file.**
-`Console/cake Admin dumpCurrentDatabaseSchema` rewrites it from whatever database
-it is pointed at, so on a development instance it silently promotes that box's
-own accumulated drift to canonical. Regenerating wholesale is a deliberate
-reconciliation exercise, not a step in shipping a column.
+So as a migration author you do nothing here. Between that regeneration and the
+next one, `schemaDiagnostics` will report your change as a difference on every
+instance that has applied it. That is expected and it clears itself at the next
+release.
 
-The file's `db_version` field is not part of this. It is written from
-`admin_settings` and therefore reads 159 for good — the ledger, not that number,
-is what records a migration.
+**The one rule: regenerate only from a clean build.**
+`dumpCurrentDatabaseSchema` rewrites the file from whatever database it is
+pointed at, and a development instance accumulates drift — replayed updates,
+abandoned experiments, columns from branches that never shipped. Regenerating
+there does not fix a diff, it promotes that box's history to canonical and
+teaches every instance in the fleet to expect it.
 
-`INSTALL/MYSQL.sql` usually needs nothing: it is the `db_version` 126 baseline,
-so a column added after 126 is not in it to change. Check anyway, and if the
-column *is* in the baseline, edit its `CREATE TABLE` there too.
+Two things worth knowing about the file:
+
+- **Its `db_version` field is permanently 159.** It is written from
+  `admin_settings`, which no longer moves. The ledger, not that number, is what
+  records a migration.
+- **`schema_migrations` will appear in it** from the first regeneration after a
+  clean build has applied a migration, because `Server::getActualDBSchema()`
+  enumerates every table in `information_schema` rather than a fixed list. Once
+  it is in the expected schema, an instance that has not yet run its updates
+  reports one critical line — ``Table `schema_migrations` does not exist`` —
+  rather than nothing. That is correct signal, not noise: such an instance really
+  does have schema work outstanding. But it is new, so expect it.
+
+`INSTALL/MYSQL.sql` is a different file with a different lifecycle, and it *is*
+hand-edited. It usually needs nothing from a migration: it is the `db_version`
+126 baseline, so a column added after 126 is not in it to change. When it is
+regenerated, §10 applies.
 
 ## 9. The ledger
 

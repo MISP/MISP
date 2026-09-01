@@ -44,8 +44,9 @@ class {{class}} extends AbstractMigration
      *
      *     Console/cake Admin migrationApply --dry-run --id {{id}}
      *
-     * Once it has been applied, update db_schema.json to match, or every
-     * instance reports the change as a schema difference forever.
+     * db_schema.json is not yours to update - it is regenerated from a clean
+     * build before a release, so schemaDiagnostics reporting this change as a
+     * difference until then is expected.
      *
      * @param SchemaBuilder $schema
      * @return void

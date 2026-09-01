@@ -169,7 +169,7 @@ Any change to the database schema is a **migration** under `app/Lib/Migration/Mi
 3. Data work goes in `afterUp()`, through models (`save()`/`updateAll()`), never as hand-written DML — and call `$Model->schema(true)` on any table the migration just altered, or writes to a new column are silently dropped.
 4. Always read `app/Console/cake Admin migrationApply --dry-run --id <id>` before applying. It renders **both** engines; the PostgreSQL half is the one nothing else will check, since a MISP host cannot connect to PostgreSQL at all.
 5. `rawSql()` is the escape hatch for things with no portable spelling (FULLTEXT, enum, version-gated statements). It requires a statement for every engine — a missing one is a hard error, not a skip.
-6. **A migration is not finished until `db_schema.json` matches it.** That file is the canonical expected schema `schemaDiagnostics` compares against, so a change that skips it makes every instance report a diff it cannot act on. Edit the affected entries by hand — `dumpCurrentDatabaseSchema` rewrites the whole file from whatever database it is pointed at, promoting that box's drift to canonical.
+6. **Do not touch `db_schema.json`.** It is regenerated wholesale from a clean build before a release, not maintained per migration, so `schemaDiagnostics` reporting your change as a difference in the meantime is expected. Never run `dumpCurrentDatabaseSchema` against a working development instance and commit the result — it promotes that box's accumulated drift to canonical.
 7. Regenerating `INSTALL/MYSQL.sql` now also has to seed `schema_migrations` with the ids already baked into the dump, or fresh installs re-run every migration. Checklist in the doc's final section.
 
 ### Dashboard v2 — widget render kinds
