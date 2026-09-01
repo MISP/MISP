@@ -1,0 +1,317 @@
+# Database migrations
+
+How to change MISP's database schema. This is the developer reference for the
+migration system under `app/Lib/Migration/`: where a migration lives, how it is
+written, how it is checked before it runs, and the two rules that are not
+negotiable.
+
+The short version:
+
+```bash
+Console/cake Admin migrationCreate my_change --description "What it is for"
+# edit app/Lib/Migration/Migrations/Migration_<id>_my_change.php
+Console/cake Admin migrationApply --dry-run --id <id>     # read both engines
+sudo -u www-data Console/cake Admin migrationApply        # or just log in
+```
+
+---
+
+## 1. The two rules
+
+**Nothing new goes into `AppModel::DB_CHANGES`.** The historic corpus is frozen
+at **159** and lives in `app/Lib/Migration/LegacyMigrationsTrait.php`, which is
+read, never edited. `AppModel::assertLegacyCorpusFrozen()` enforces it at runtime
+and `LegacyCorpusFreezeTest` enforces it in CI, so an added case fails the build
+rather than shipping. Every schema change from now on is a migration.
+
+**A migration writes no raw SQL.** It declares what it wants against a
+flavour-agnostic builder, and the builder renders that for each engine. Raw SQL
+in a migration is raw MySQL, and it silently does nothing useful anywhere else.
+`rawSql()` exists for the cases that genuinely have no portable spelling — see
+§6 — and it makes you write out every engine by hand.
+
+## 2. Why the counter was not enough
+
+The old system tracked one integer, `db_version`, and applied everything above
+it. That answers *how far did we get*, which is not the same question as *did
+this particular change run*. Two branches numbering their updates independently,
+or a branch merged after an instance had already moved past its numbers, and an
+update is skipped forever with nothing to show for it.
+
+Migrations are tracked by identity instead, one row per migration in the
+`schema_migrations` ledger. An unapplied migration stays pending no matter what
+else has happened around it, and it cannot be skipped by arriving late.
+
+`db_version` still exists and is still 159. It will not move again.
+
+## 3. Anatomy
+
+One class per file, under `app/Lib/Migration/Migrations/`:
+
+```
+file:  app/Lib/Migration/Migrations/Migration_20260901_120000_probe_shares.php
+class: Migration_20260901_120000_probe_shares
+id:    20260901_120000_probe_shares
+```
+
+**Identity is the file name and nothing else.** The id is the class name minus
+the `Migration_` prefix, and CakePHP requires the class name and file name to
+agree, so the three are one fact spelled once. There is deliberately no `$id`
+property: a declared id is free to disagree with its file, and a migration that
+disagrees with itself applies twice under two different keys.
+
+The prefix exists because a PHP class name cannot begin with a digit. The
+timestamp is fixed-width because that is what makes sorting ids as strings sort
+them chronologically, which is how pending migrations are ordered.
+
+`migrationCreate` derives the id from the current time and the slug you give it;
+slugs are `[A-Za-z0-9_]+` because the slug ends up inside a class name.
+
+A migration has two halves, both optional:
+
+```php
+class Migration_20260901_120000_probe_shares extends AbstractMigration
+{
+    public $description = 'One line, shown by migrationStatus';
+    public $requiresLogout = false;
+
+    public function up(SchemaBuilder $schema) { /* DDL */ }
+
+    public function afterUp() { /* PHP data work */ return true; }
+}
+```
+
+`up()` declares schema. `afterUp()` runs once every statement `up()` declared has
+landed, and is where the work that needs models rather than SQL goes — seeding
+rows, regenerating correlations, backfilling a column. Returning `false` from it
+marks the migration **failed**, exactly as a broken statement does: a migration
+is one unit, and a seeding step that could not finish must not be recorded as
+done.
+
+`requiresLogout` carries the meaning the old `DB_CHANGES` value had. Set it if
+the change touches a table the session data is built from.
+
+## 4. The schema DSL
+
+Table-scoped, chainable:
+
+```php
+$schema->table('event_templates')
+    ->addColumn('exposed', 'boolean', [
+        'null' => false, 'default' => 0, 'after' => 'misp_default',
+    ])
+    ->addIndex('exposed');
+```
+
+| Method | Notes |
+|---|---|
+| `addColumn($name, $type, $options)` | |
+| `changeColumn($name, $type, $options)` | `null` and `default` are **required** |
+| `renameColumn($from, $to, $type, $options)` | type restated; same requirement |
+| `dropColumn($name)` | |
+| `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext` |
+| `dropIndex($columnsOrName)` | The column set, or the index's own name |
+
+Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
+
+```php
+$schema->createTable('collection_shares', [
+    'id'            => ['type' => 'primary_key'],
+    'collection_id' => ['type' => 'integer', 'null' => false],
+    'uuid'          => ['type' => 'string', 'length' => 40, 'null' => false],
+], [
+    'indexes' => ['collection_id' => [], 'uuid' => ['unique' => true]],
+    'engine'  => 'InnoDB',
+    'charset' => 'utf8mb4',
+]);
+```
+
+Order is declaration order across the whole builder, so a migration that adds a
+column, creates a table and then indexes the column gets exactly that sequence.
+
+**`changeColumn` is stricter than the rest.** MySQL's `MODIFY` restates the whole
+definition, so anything you leave out is silently dropped — a `MODIFY` that omits
+`NOT NULL` makes the column nullable. Both `null` and `default` are therefore
+required rather than defaulted, because guessing either one is a data-loss bug
+wearing a convenience feature's clothes.
+
+**Hints that one engine cannot express are dropped, and reported.** `after` is
+cosmetic ordering PostgreSQL has no equivalent for, so it goes quietly. `charset`,
+`collate`, `comment`, `unsigned` and a table's `ENGINE` go the same way, for
+free — CakePHP's Postgres driver simply declares no such parameters. An index
+**prefix length** is different in kind: dropping it changes what the index
+indexes, so it is logged rather than vanishing. `--dry-run` prints all of these.
+
+**Data changes go through models, in `afterUp()`, never as DML.** A
+`save()`/`updateAll()` is portable by construction where a hand-written `INSERT`
+is not, and the entire historic corpus contains 34 data statements, so nothing is
+lost by declining to abstract them.
+
+**Call `$Model->schema(true)` in `afterUp()` for any table the migration
+altered.** CakePHP caches a table's description and `Model::save()` filters
+fields against it, so without that a write to a column added moments earlier is
+silently dropped. The migration runner turns the datasource's schema cache off
+before `afterUp()`, which handles the common case, but a model already
+initialised earlier in the process keeps its own copy.
+
+## 5. Check before you run
+
+```bash
+Console/cake Admin migrationApply --dry-run --id 20260901_120000_probe_shares
+```
+
+This prints the SQL for **every** engine and executes nothing. It is the only
+practical way to see the PostgreSQL rendering, since a MISP host has no
+`pdo_pgsql` and cannot connect to PostgreSQL at all — the grammar is rendered
+through a connectionless datasource specifically so this works.
+
+Read the PostgreSQL half. It is the half nothing else will exercise for you. The
+dry run also prints:
+
+- dropped hints, as SQL comments under the flavour that dropped them;
+- `No schema changes.` for a data-only migration;
+- a note when the migration carries an `afterUp()`, because otherwise "no schema
+  changes" reads as "does nothing";
+- a hard error for a `rawSql()` that does not cover every flavour.
+
+With no `--id`, it renders every pending migration.
+
+## 6. `rawSql`, and when to reach for it
+
+Some things have no portable spelling: a `FULLTEXT` index, an `enum`, a statement
+gated on a MySQL version. `rawSql()` takes one statement per engine:
+
+```php
+$schema->rawSql([
+    'mysql' => "ALTER TABLE `attributes` ADD FULLTEXT INDEX `value_ft` (`value1`);",
+    'pgsql' => "CREATE INDEX idx_attributes_value_ft ON attributes USING gin(to_tsvector('simple', value1));",
+]);
+```
+
+A `rawSql()` missing the flavour being rendered is a **hard error**, not a skip.
+A migration that quietly does nothing on one engine leaves that engine's schema
+behind the code that expects it, which is the failure this whole subsystem exists
+to end.
+
+Reach for it when the DSL genuinely cannot express the change — not when
+expressing it is inconvenient. Every `rawSql()` is a place a future engine has to
+be added by hand.
+
+## 7. Running, failing, retrying
+
+```bash
+Console/cake Admin migrationStatus                # applied / failed / pending / orphaned
+Console/cake Admin migrationApply                 # all pending, in id order
+Console/cake Admin migrationApply --id <id>       # one
+```
+
+Applying is also what `runUpdates()` does, so an ordinary login or
+`Console/cake Admin runUpdates` picks migrations up alongside the legacy corpus —
+legacy first in numeric order, then migrations in id order.
+
+`migrationApply` must run as the web server's user (`www-data`, `httpd`,
+`apache`, `wwwrun`, `www`, or whoever `MISP.osuser` names). Applying writes cache
+files and, through `afterUp()`, whatever else a model touches; doing that as root
+or as a developer leaves files the web server cannot read, and the instance
+breaks later for reasons that no longer point back here. `--dry-run`,
+`migrationStatus` and `migrationCreate` are not gated.
+
+**A failure halts the run.** Everything after the failed migration stays pending
+and untried, and the failed one is retried first on the next run. This is the
+contract, not an optimisation: a three-step change — add a column, backfill it,
+drop the old one — must not run its third step when its first one failed. The
+command names what it did not attempt and exits non-zero.
+
+The update lock is still released after a halt, so a stuck instance retries on
+the next run rather than sitting out the lock's TTL. But `update_fail_number`
+accumulates and no later success resets it, so a migration that keeps failing
+will lock the instance out after four attempts through the existing backstop.
+
+**A migration is not transactional.** MySQL DDL commits implicitly, so a
+migration whose third statement fails leaves the first two applied and the ledger
+row marked failed. Write migrations that can be re-run: the schema builder is
+declarative, but `afterUp()` is yours to guard.
+
+`migrationApply --id` on a migration already recorded as applied does nothing and
+exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,
+delete its `schema_migrations` row first, and be sure its `afterUp()` can take it.
+
+## 8. The ledger
+
+`schema_migrations`, one row per migration: `id`, `applied_at`, `duration_ms`,
+`status` (`applied` / `failed`), `error`.
+
+It is created on first write, not by a migration — a migration system whose
+ledger is a migration has nowhere to record that it ran. It is read fresh on
+every call and never cached, because the interesting callers are polling it while
+another process applies migrations. Asking what is pending never creates it.
+
+It may hold ids with no file behind them, if a migration was reverted out of the
+tree after running somewhere. `migrationStatus` reports those under **Recorded
+but no longer on disk**; nothing else cares.
+
+`schema_migrations` is absent from `db_schema.json` on purpose, and causes no
+`schemaDiagnostics` noise: the diagnostic iterates the *expected* schema, so a
+table it does not know about yields no diff.
+
+## 9. Checklist: regenerating an install baseline
+
+`INSTALL/MYSQL.sql` is a hand-edited dump that new installs load before the
+upgrade system carries them the rest of the way. It is refreshed rarely. **From
+the first migration onwards, refreshing it has an extra obligation.**
+
+A baseline dumped from an instance that has applied migrations already contains
+their effects. If it does not also carry their ledger rows, every fresh install
+re-applies all of them. For schema work that is merely wasteful — the DDL is
+guarded and lands as a no-op. For an `afterUp()` it is a **correctness bug**:
+data steps are author-guarded, not automatically idempotent, so a re-run can
+double-seed rows.
+
+When regenerating `INSTALL/MYSQL.sql` (or, later, `INSTALL/POSTGRESQL.sql`):
+
+1. Dump the schema from an instance that is fully up to date — no pending
+   migrations, nothing failed. Confirm with `Console/cake Admin migrationStatus`.
+2. Get the applied ids:
+   ```bash
+   Console/cake Admin migrationStatus --json    # .applied[].id
+   ```
+3. Add a `CREATE TABLE schema_migrations` block to the dump, and one
+   `INSERT IGNORE` per applied id, in the `Default values for initial
+   installation` block beside the existing seed rows. `status` is `applied`,
+   `duration_ms` may be `0`, and `applied_at` is the dump's own date — the value
+   is informational, only the row's existence matters.
+4. **Leave `db_version` alone.** It is `126` in `MYSQL.sql` today and that is
+   deliberate: the legacy corpus carries a fresh install 127 → 159, and it is
+   what CI exercises. Seeding the ledger is a separate obligation from moving the
+   version, and does not require moving it. (A future `POSTGRESQL.sql` is the
+   exception — legacy is MySQL-only and can never run there, so `159` is its
+   permanent floor.)
+5. Keep the literal comment `Default values for initial installation` verbatim —
+   `tools/misp-wipe/misp-wipe.sh` locates the seed block by matching it, strips
+   only the `admin_settings` and `db_version` lines, and replays the rest after a
+   wipe. Ledger rows written as `INSERT IGNORE` are therefore correct whether or
+   not a wipe ever touches them; `misp-wipe.sql` does not truncate
+   `schema_migrations`, and should not start to — a wipe clears data, not schema.
+6. Verify against a *fresh* install: load the dump, run
+   `Console/cake Admin migrationStatus`, and confirm every migration is reported
+   applied with nothing pending. If anything is pending, step 3 missed it.
+
+**One thing to watch when the MySQL baseline is finally advanced past 126:** CI
+loads `MYSQL.sql` and then runs `runUpdates`, which is what exercises the legacy
+corpus on every build. Advancing the baseline makes that a no-op, so it has to
+land together with an explicit legacy-replay step
+(`Console/cake Admin setDatabaseVersion 0` then `runUpdates`) or the frozen
+corpus stops being tested at all.
+
+## 10. Where things are
+
+| Path | What |
+|---|---|
+| `app/Lib/Migration/Migrations/` | The migrations |
+| `app/Lib/Migration/Migration.stub` | Scaffold template. Not `.php`, and not in `Migrations/`, so it is neither discovered nor linted |
+| `app/Lib/Migration/AbstractMigration.php` | The contract, and the id rules |
+| `app/Lib/Migration/SchemaBuilder.php` | The DSL |
+| `app/Lib/Migration/Grammar/` | Per-engine rendering, and the connectionless datasources `--dry-run` uses |
+| `app/Lib/Migration/MigrationManager.php` | Discovery, the ledger, applying |
+| `app/Lib/Migration/MigrationRunner.php` | Statement execution, logging, progress — shared with the legacy path |
+| `app/Lib/Migration/LegacyMigrationsTrait.php` | The frozen corpus. Read, never edit |
