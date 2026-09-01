@@ -1355,7 +1355,7 @@ class Feed extends AppModel
             }
             $disableCorrelation = false;
             if (!empty($feed['Feed']['settings'])) {
-                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+                $disableCorrelation = (bool)($feed['Feed']['settings']['disable_correlation'] ?? false);
             }
             $event = array(
                 'info' => $feed['Feed']['name'] . ' feed',
