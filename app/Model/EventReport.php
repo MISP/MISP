@@ -80,6 +80,8 @@ class EventReport extends AppModel
     const PICTURE_FOLDER_PATH =  APP . 'files/img/eventreports';
     const REDIS_KEY_PICTURE_ALIAS =  'eventreport_picture_alias';
     const REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS =  'eventreport_picture_filename_from_alias';
+    const REDIS_KEY_EXTRACTION_DICTIONARY = 'eventreport_extraction_dictionary';
+    const EXTRACTION_DICTIONARY_TTL = 3600;
 
     const SUPPORTED_IMAGES = ['gif', 'jpg', 'jpeg', 'png', 'svg',];
     private $imageCache = [];
@@ -1303,14 +1305,13 @@ class EventReport extends AppModel
         if ($options['attack']) {
             $clusterConditions = ['GalaxyCluster.galaxy_id !=' => $mitreAttackGalaxyId];
         }
-        $clusters = $this->GalaxyCluster->find('all', [
-            'conditions' => $clusterConditions,
-            'contain' => $clusterContain
-        ]);
+        $dictionary = $this->getExtractionDictionary($mitreAttackGalaxyId, $clusterConditions, $clusterContain, $options);
 
         $originalContent = $report['EventReport']['content'];
         // Remove all existing event report markers
         $content = preg_replace("/@\[(attribute|tag|galaxymatrix)]\([^)]*\)/", '', $originalContent);
+        $contentIndex = $this->buildContentMatchIndex($content);
+        $originalContentIndex = $this->buildContentMatchIndex($originalContent);
 
         if ($options['tags']) {
             $this->Tag = ClassRegistry::init('Tag');
@@ -1320,12 +1321,12 @@ class EventReport extends AppModel
                 if (strlen($tagName) < 3) {
                     continue;
                 }
-                $found = $this->isValidReplacementTag($content, $tagName);
+                $found = $this->isValidReplacementTagIndexed($contentIndex, $tagName);
                 if ($found) {
                     $replacedContext[$tagName][$tagName] = $tag['Tag'];
                 } else {
                     $tagNameUpper = strtoupper($tagName);
-                    $found = $this->isValidReplacementTag($content, $tagNameUpper);
+                    $found = $this->isValidReplacementTagIndexed($contentIndex, $tagNameUpper);
                     if ($found) {
                         $replacedContext[$tagNameUpper][$tagName] = $tag['Tag'];
                     }
@@ -1333,26 +1334,26 @@ class EventReport extends AppModel
             }
         }
 
-        foreach ($clusters as $cluster) {
-            if (strlen($cluster['GalaxyCluster']['value']) > 2) {
-                $cluster['GalaxyCluster']['colour'] = '#0088cc';
-                $tagName = $cluster['GalaxyCluster']['tag_name'];
-                $found = $this->isValidReplacementTag($content, $tagName);
+        // Collect the matches first, in the very same order the dictionary was built in, so that
+        // only the handful of clusters that actually matched has to be hydrated from the database.
+        $matches = [];
+        foreach ($dictionary['clusters'] as $entry) {
+            if (strlen($entry['value']) > 2) {
+                $tagName = $entry['tag_name'];
+                $found = $this->isValidReplacementTagIndexed($contentIndex, $tagName);
                 if ($found) {
-                    $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
+                    $matches[] = [$tagName, $tagName, $entry['id']];
                 }
-                $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
-                $found = strpos($originalContent, $toSearch) !== false;
+                $found = $this->containsPaddedValue($originalContentIndex, $entry['value']);
                 if ($found) {
-                    $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                    $matches[] = [$entry['value'], $tagName, $entry['id']];
                 }
                 if ($options['synonyms']) {
-                    foreach ($cluster['GalaxyElement'] as $element) {
-                        if (strlen($element['value']) >= $options['synonyms_min_characters']) {
-                            $toSearch = ' ' . $element['value'] . ' ';
-                            $found = strpos($content, $toSearch) !== false;
+                    foreach ($entry['synonyms'] as $synonym) {
+                        if (strlen($synonym) >= $options['synonyms_min_characters']) {
+                            $found = $this->containsPaddedValue($contentIndex, $synonym);
                             if ($found) {
-                                $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
+                                $matches[] = [$synonym, $tagName, $entry['id']];
                             }
                         }
                     }
@@ -1361,34 +1362,32 @@ class EventReport extends AppModel
         }
 
         if ($options['attack']) {
-            unset($clusterContain['Galaxy']);
-            $attackClusters = $this->GalaxyCluster->find('all', [
-                'conditions' => ['GalaxyCluster.galaxy_id' => $mitreAttackGalaxyId],
-                'contain' => $clusterContain
-            ]);
-            foreach ($attackClusters as $cluster) {
-                if (strlen($cluster['GalaxyCluster']['value']) > 2) {
-                    $cluster['GalaxyCluster']['colour'] = '#0088cc';
-                    $tagName = $cluster['GalaxyCluster']['tag_name'];
-                    $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
-                    $found = strpos($content, $toSearch) !== false;
+            foreach ($dictionary['attackClusters'] as $entry) {
+                if (strlen($entry['value']) > 2) {
+                    $tagName = $entry['tag_name'];
+                    $found = $this->containsPaddedValue($contentIndex, $entry['value']);
                     if ($found) {
-                        $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                        $matches[] = [$entry['value'], $tagName, $entry['id']];
                     } else {
-                        $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
-                        $toSearch = ' ' . $clusterParts[0] . ' ';
-                        $found = strpos($content, $toSearch) !== false;
+                        $clusterParts = explode(' - ', $entry['value'], 2);
+                        $found = $this->containsPaddedValue($contentIndex, $clusterParts[0]);
                         if ($found) {
-                            $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
+                            $matches[] = [$clusterParts[0], $tagName, $entry['id']];
                         } elseif (isset($clusterParts[1])) {
-                            $toSearch = ' ' . $clusterParts[1] . ' ';
-                            $found = strpos($content, $toSearch) !== false;
+                            $found = $this->containsPaddedValue($contentIndex, $clusterParts[1]);
                             if ($found) {
-                                $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
+                                $matches[] = [$clusterParts[1], $tagName, $entry['id']];
                             }
                         }
                     }
                 }
+            }
+        }
+
+        $matchedClusters = $this->fetchExtractionClusterRows($matches, $clusterContain);
+        foreach ($matches as $match) {
+            if (isset($matchedClusters[$match[2]])) {
+                $replacedContext[$match[0]][$match[1]] = $matchedClusters[$match[2]];
             }
         }
         $toReturn = [
@@ -1424,6 +1423,268 @@ class EventReport extends AppModel
             $toReturn['contentWithReplacements'] = $content;
         }
         return $toReturn;
+    }
+
+    /**
+     * getExtractionDictionary Return the compact galaxy cluster dictionary used by extractWithReplacements
+     *
+     * The dictionary only contains the strings that have to be searched for in the report content plus the
+     * cluster id they belong to. It is cached in redis, keyed on a stamp of the galaxy cluster and galaxy
+     * element tables so that galaxy updates invalidate it, with a TTL as an additional backstop.
+     *
+     * @param  int|string $mitreAttackGalaxyId
+     * @param  array $clusterConditions
+     * @param  array $clusterContain
+     * @param  array $options
+     * @return array
+     */
+    private function getExtractionDictionary($mitreAttackGalaxyId, array $clusterConditions, array $clusterContain, array $options)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            $redis = null;
+        }
+        $cacheKey = null;
+        if ($redis !== null) {
+            try {
+                $cacheKey = self::REDIS_KEY_EXTRACTION_DICTIONARY . ':' . md5(JsonTool::encode([
+                    $mitreAttackGalaxyId,
+                    $clusterConditions,
+                    $clusterContain,
+                    !empty($options['attack']),
+                    $this->getExtractionDictionaryStamp($clusterContain),
+                ]));
+                $data = $redis->get($cacheKey);
+                if ($data !== false) {
+                    $dictionary = RedisTool::deserialize(RedisTool::decompress($data));
+                    if (!empty($dictionary)) {
+                        return $dictionary;
+                    }
+                }
+            } catch (Exception $e) {
+                $cacheKey = null;
+            }
+        }
+        $dictionary = $this->buildExtractionDictionary($mitreAttackGalaxyId, $clusterConditions, $clusterContain, $options);
+        if ($cacheKey !== null) {
+            try {
+                $redis->setex($cacheKey, self::EXTRACTION_DICTIONARY_TTL, RedisTool::compress(RedisTool::serialize($dictionary)));
+            } catch (Exception $e) {
+                // A failing cache write must never break the extraction itself
+            }
+        }
+        return $dictionary;
+    }
+
+    /**
+     * getExtractionDictionaryStamp Cheap fingerprint of the galaxy data the dictionary is built from
+     *
+     * @param  array $clusterContain
+     * @return array
+     */
+    private function getExtractionDictionaryStamp(array $clusterContain)
+    {
+        $clusterStamp = $this->GalaxyCluster->find('first', [
+            'fields' => ['COUNT(*) AS cluster_count', 'MAX(GalaxyCluster.id) AS cluster_max_id', 'SUM(GalaxyCluster.version) AS cluster_sum_version'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $stamp = $clusterStamp[0];
+        if (isset($clusterContain['GalaxyElement'])) {
+            $elementStamp = $this->GalaxyCluster->GalaxyElement->find('first', [
+                'fields' => ['MAX(GalaxyElement.id) AS element_max_id'],
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            $stamp['element_max_id'] = $elementStamp[0]['element_max_id'];
+            $stamp['synonym_count'] = $this->GalaxyCluster->GalaxyElement->find('count', [
+                'conditions' => ['GalaxyElement.key' => 'synonyms'],
+                'recursive' => -1,
+            ]);
+        }
+        return $stamp;
+    }
+
+    /**
+     * buildExtractionDictionary Build the compact dictionary from the very same queries the extraction used to run
+     *
+     * @param  int|string $mitreAttackGalaxyId
+     * @param  array $clusterConditions
+     * @param  array $clusterContain
+     * @param  array $options
+     * @return array
+     */
+    private function buildExtractionDictionary($mitreAttackGalaxyId, array $clusterConditions, array $clusterContain, array $options)
+    {
+        $dictionary = ['clusters' => [], 'attackClusters' => []];
+        $clusters = $this->GalaxyCluster->find('all', [
+            'conditions' => $clusterConditions,
+            'contain' => $clusterContain
+        ]);
+        foreach ($clusters as $cluster) {
+            $entry = [
+                'id' => $cluster['GalaxyCluster']['id'],
+                'tag_name' => $cluster['GalaxyCluster']['tag_name'],
+                'value' => $cluster['GalaxyCluster']['value'],
+                'synonyms' => [],
+            ];
+            if (!empty($cluster['GalaxyElement'])) {
+                foreach ($cluster['GalaxyElement'] as $element) {
+                    $entry['synonyms'][] = $element['value'];
+                }
+            }
+            $dictionary['clusters'][] = $entry;
+        }
+        if ($options['attack']) {
+            unset($clusterContain['Galaxy']);
+            $attackClusters = $this->GalaxyCluster->find('all', [
+                'conditions' => ['GalaxyCluster.galaxy_id' => $mitreAttackGalaxyId],
+                'contain' => $clusterContain
+            ]);
+            foreach ($attackClusters as $cluster) {
+                $dictionary['attackClusters'][] = [
+                    'id' => $cluster['GalaxyCluster']['id'],
+                    'tag_name' => $cluster['GalaxyCluster']['tag_name'],
+                    'value' => $cluster['GalaxyCluster']['value'],
+                ];
+            }
+        }
+        return $dictionary;
+    }
+
+    /**
+     * fetchExtractionClusterRows Hydrate only the clusters that produced a match
+     *
+     * @param  array $matches
+     * @param  array $clusterContain
+     * @return array Cluster id => GalaxyCluster row
+     */
+    private function fetchExtractionClusterRows(array $matches, array $clusterContain)
+    {
+        if (empty($matches)) {
+            return [];
+        }
+        $clusterIds = [];
+        foreach ($matches as $match) {
+            $clusterIds[$match[2]] = true;
+        }
+        $clusters = $this->GalaxyCluster->find('all', [
+            'conditions' => ['GalaxyCluster.id' => array_keys($clusterIds)],
+            'contain' => $clusterContain
+        ]);
+        $rows = [];
+        foreach ($clusters as $cluster) {
+            $cluster['GalaxyCluster']['colour'] = '#0088cc';
+            $rows[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
+        }
+        return $rows;
+    }
+
+    /**
+     * buildContentMatchIndex Index a string so that a needle can be looked up without scanning the whole string
+     *
+     * @param  string $content
+     * @return array
+     */
+    private function buildContentMatchIndex($content)
+    {
+        $pieces = explode(' ', $content);
+        $pieceCount = count($pieces);
+        $wordPositions = [];
+        // Only a piece that has a space on both sides can start a space padded match
+        for ($i = 1; $i < $pieceCount - 1; $i++) {
+            $wordPositions[$pieces[$i]][] = $i;
+        }
+        $colonPositions = [];
+        $allColonPositions = [];
+        $offset = 0;
+        while (($position = strpos($content, ':', $offset)) !== false) {
+            $colonPositions[substr($content, $position, 2)][] = $position;
+            $allColonPositions[] = $position;
+            $offset = $position + 1;
+        }
+        return [
+            'content' => $content,
+            'length' => strlen($content),
+            'pieces' => $pieces,
+            'pieceCount' => $pieceCount,
+            'wordPositions' => $wordPositions,
+            'colonPositions' => $colonPositions,
+            'allColonPositions' => $allColonPositions,
+        ];
+    }
+
+    /**
+     * containsPaddedValue Equivalent of `strpos($content, ' ' . $value . ' ') !== false`, using the index
+     *
+     * @param  array $index
+     * @param  string $value
+     * @return bool
+     */
+    private function containsPaddedValue(array $index, $value)
+    {
+        if ($index['pieceCount'] < 3) {
+            return false;
+        }
+        $words = explode(' ', $value);
+        if (!isset($index['wordPositions'][$words[0]])) {
+            return false;
+        }
+        $wordCount = count($words);
+        $lastStart = $index['pieceCount'] - 1 - $wordCount;
+        foreach ($index['wordPositions'][$words[0]] as $start) {
+            if ($start > $lastStart) {
+                break;
+            }
+            $found = true;
+            for ($j = 1; $j < $wordCount; $j++) {
+                if ($index['pieces'][$start + $j] !== $words[$j]) {
+                    $found = false;
+                    break;
+                }
+            }
+            if ($found) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * isValidReplacementTagIndexed Search if tagName is in the indexed content
+     *
+     * A tag name containing ':' is searched for as a plain substring, any other one space padded.
+     *
+     * @param  array $index
+     * @param  string $tagName
+     * @return bool
+     */
+    private function isValidReplacementTagIndexed(array $index, $tagName)
+    {
+        $colonOffset = strpos($tagName, ':');
+        if ($colonOffset === false) {
+            return $this->containsPaddedValue($index, $tagName);
+        }
+        $key = substr($tagName, $colonOffset, 2);
+        if (strlen($key) === 1) {
+            $positions = $index['allColonPositions'];
+        } elseif (isset($index['colonPositions'][$key])) {
+            $positions = $index['colonPositions'][$key];
+        } else {
+            return false;
+        }
+        $needleLength = strlen($tagName);
+        foreach ($positions as $position) {
+            $start = $position - $colonOffset;
+            if ($start < 0 || $start + $needleLength > $index['length']) {
+                continue;
+            }
+            if (substr_compare($index['content'], $tagName, $start, $needleLength) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function downloadMarkdownFromURL($user, $event_id, $url, $format = 'html')
@@ -1508,19 +1769,6 @@ class EventReport extends AppModel
             return false;
         }
         return $module;
-    }
-
-    /**
-     * findValidReplacementTag Search if tagName is in content
-     *
-     * @param  string $content
-     * @param  string $tagName
-     * @return bool
-     */
-    private function isValidReplacementTag($content, $tagName)
-    {
-        $toSearch = !str_contains($tagName, ':') ? ' ' . $tagName . ' ' : $tagName;
-        return str_contains($content, $toSearch);
     }
 
     public function attachTagsAfterReplacements($user, $replacedContext, $eventId)
