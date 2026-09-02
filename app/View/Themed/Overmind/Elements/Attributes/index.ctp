@@ -533,10 +533,6 @@ $filterBar = [
 
 if (!$inEventView) {
     $filterBar['transport'] = 'query';
-    // The Paginator builds its links from scratch, so the active filters have to
-    // be handed back to it or page 2 comes back unfiltered. Paging keys are left
-    // out: the Paginator writes those as named params, and a stray query copy
-    // would win over them (_harvestParameters merges the query last).
     $queryFilters = array_diff_key(
         $this->request->query ?? [],
         array_flip(['page', 'limit', 'sort', 'direction'])
