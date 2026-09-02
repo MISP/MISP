@@ -5784,14 +5784,17 @@ class Event extends AppModel
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 $attributes = [];
-                foreach ($data['Event']['Attribute'] as $k => $attribute) {
-                    $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
-                    if (is_array($result)) {
-                        $attributes[] = $result;
-                    }
-                    if (!$nothingToChange) {
-                        $changed = true;
+                foreach (array_chunk($data['Event']['Attribute'], 100) as $attributeChunk) {
+                    $existingAttributes = $this->Attribute->fetchExistingAttributesByUuid($attributeChunk);
+                    foreach ($attributeChunk as $attribute) {
+                        $nothingToChange = false;
+                        $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server, $existingAttributes);
+                        if (is_array($result)) {
+                            $attributes[] = $result;
+                        }
+                        if (!$nothingToChange) {
+                            $changed = true;
+                        }
                     }
                 }
                 $this->Attribute->editAttributeBulk($attributes, $saveResult, $user, $server);
