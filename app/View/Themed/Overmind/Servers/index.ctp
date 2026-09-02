@@ -52,16 +52,14 @@ $fields = [
         'data_path' => 'Server.id',
         'element' => 'id',
         'url' => $baseurl . '/servers/previewIndex/%id%',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Name'),
         'sort' => 'Server.name',
         'data_path' => 'Server',
         'element' => 'server_name',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     // [
     //     'name' => __('Prio'),
@@ -105,24 +103,21 @@ $fields = [
         'element' => 'server_boolean',
         'true' => __('Internal'),
         'false' => __('Not internal'),
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Push rules'),
         'sort' => 'Server.push',
         'element' => 'server_push_pull',
         'mode' => 'push',
-        'card_section' => 'tag',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Pull rules'),
         'sort' => 'Server.pull',
         'element' => 'server_push_pull',
         'mode' => 'pull',
-        'card_section' => 'tag',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Sightings'),
@@ -131,8 +126,7 @@ $fields = [
         'element' => 'server_boolean',
         'true' => __('Enabled'),
         'false' => __('Disabled'),
-        'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Clusters'),
@@ -141,8 +135,7 @@ $fields = [
         'element' => 'server_boolean',
         'true' => __('Enabled'),
         'false' => __('Disabled'),
-        'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Analyst data'),
@@ -151,44 +144,38 @@ $fields = [
         'element' => 'server_boolean',
         'true' => __('Enabled'),
         'false' => __('Disabled'),
-        'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Cache'),
         'sort' => 'Server.caching_enabled',
         'data_path' => 'Server',
         'element' => 'server_cache_status',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Organisations'),
         'data_path' => '',
         'element' => 'server_organisations',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Options'),
         'data_path' => 'Server',
         'element' => 'server_options',
-        'card_section' => 'links',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Cert files'),
         'data_path' => 'Server',
         'element' => 'server_cert_files',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Bound sync users'),
         'data_path' => 'BoundUsers',
         'element' => 'server_bound_users',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Actions'),
@@ -254,6 +241,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'data' => [
             'data' => $servers,
             'primary_id_path' => 'Server.id',
+            // Custom card display for servers
+            'card_element' => 'Servers/server_card',
+            'cards_per_row' => ['' => 1, 'xl' => 2],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
@@ -306,14 +296,110 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'item_url' => '/servers'
 ]);
 ?>
-<!-- <script type="text/javascript">
-$(function() {
-    popoverStartup();
-    $('.rearrange-up').on('click', function() {
-        moveIndexRow($(this).data('server-id'), 'up', '/servers/changePriority');
+<script>
+(function () {
+    var LABELS = <?= json_encode([
+        'pending' => __('Not tested'),
+        'running' => __('Testing…'),
+        'ok' => __('Connected'),
+        'down' => __('Unreachable'),
+    ]) ?>;
+
+    var MAX_IN_FLIGHT = 2;
+    var queue = [];
+    var running = 0;
+
+    function pump() {
+        while (running < MAX_IN_FLIGHT && queue.length > 0) {
+            running++;
+            Promise.resolve(queue.shift()()).catch(function () {}).then(function () {
+                running--;
+                pump();
+            });
+        }
+    }
+
+    function probe(id, kind) {
+        var panel = document.getElementById(
+            (kind === 'connection' ? 'srv-conn-' : 'srv-sync-') + id
+        );
+        if (!panel) return;
+        panel.removeAttribute('data-probe-state');
+        queue.push(function () {
+            return kind === 'connection'
+                ? testConnection(id, panel)
+                : getRemoteSyncUser(id, panel);
+        });
+        pump();
+    }
+
+    function setPanelState(prefix, detail) {
+        var panel = document.getElementById(prefix + detail.id);
+        if (!panel) return;
+        if (detail.state === 'down') {
+            panel.setAttribute('data-probe-state', 'down');
+        } else {
+            panel.removeAttribute('data-probe-state');
+        }
+    }
+
+    // The connection test is what the header verdict speaks for; the sync user
+    // probe only dresses its own panel.
+    document.addEventListener('misp:server-connection', function (ev) {
+        setPanelState('srv-conn-', ev.detail);
+        var card = document.querySelector(
+            '.srv-card[data-server-id="' + ev.detail.id + '"]'
+        );
+        if (!card) return;
+        var state = ev.detail.state || 'pending';
+        card.setAttribute('data-srv-state', state);
+        var text = card.querySelector('.srv-status-text');
+        if (text && LABELS[state]) text.textContent = LABELS[state];
     });
-    $('.rearrange-down').on('click', function() {
-        moveIndexRow($(this).data('server-id'), 'down', '/servers/changePriority');
+
+    document.addEventListener('misp:server-sync-user', function (ev) {
+        setPanelState('srv-sync-', ev.detail);
     });
-});
-</script> -->
+
+    document.addEventListener('click', function (ev) {
+        var retry = ev.target.closest('.srv-retry');
+        if (retry) {
+            ev.preventDefault();
+            probe(retry.dataset.serverId, retry.dataset.probe);
+            return;
+        }
+
+        var reset = ev.target.closest('.srv-reset-key');
+        if (!reset) return;
+        ev.preventDefault();
+        var id = reset.dataset.serverId;
+        showConfirmModal({
+            title: <?= json_encode(__('Reset the API key?')) ?>,
+            body: <?= json_encode(__('A new sync key will be generated on the remote instance and stored here. The current key stops working immediately.')) ?>
+                + ' <strong>' + escapeHtml(reset.dataset.serverName || '') + '</strong>',
+            confirmLabel: <?= json_encode(__('Reset key')) ?>,
+            confirmClass: 'btn-danger',
+            onConfirm: function () {
+                var poster = document.getElementById('srv-reset-key-' + id);
+                if (poster) poster.click();
+            }
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var cards = document.querySelectorAll('.srv-card[data-server-id]');
+        if (cards.length === 0) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                observer.unobserve(entry.target);
+                probe(entry.target.dataset.serverId, 'connection');
+                probe(entry.target.dataset.serverId, 'sync-user');
+            });
+        }, { rootMargin: '120px' });
+
+        cards.forEach(function (card) { observer.observe(card); });
+    });
+}());
+</script>
