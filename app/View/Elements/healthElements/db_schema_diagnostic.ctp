@@ -181,7 +181,7 @@ function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
             : __('Updates are not locked'),
         $updateLocked ? 'times' : 'check'
     );
-    $validDataSource = in_array($dataSource, ['Database/Mysql', 'Database/MysqlExtended', 'Database/MysqlObserverExtended'], true);
+    $validDataSource = in_array($dataSource, ['Database/Mysql', 'Database/MysqlExtended', 'Database/MysqlObserverExtended', 'Database/PostgresObserverExtended'], true);
     echo sprintf('<span class="label label-%s" title="%s" style="margin-left: 5px;">%s <i class="fas fa-%s"></i></span>',
         $validDataSource ? 'success' : 'important',
         __('DataSource: ') . h($dataSource),
