@@ -78,6 +78,15 @@ class SharingGroup extends AppModel
 
     private $authorizedIds = [];
 
+    /**
+     * Memoisation of captureSG() results, keyed by user, server, sharing group uuid and the incoming modified date.
+     * captureSG is invoked once per sharing group distributed element of an event, always with the same blob,
+     * so without this the same sharing group is re-resolved for every attribute and object.
+     *
+     * @var array
+     */
+    private $__capturedSGCache = array();
+
     public function beforeValidate($options = array())
     {
         if (empty($this->data['SharingGroup']['uuid'])) {
@@ -627,6 +636,16 @@ class SharingGroup extends AppModel
         if (!empty($server) && !empty($server['Server']['local'])) {
             $syncLocal = true;
         }
+        $cacheKey = null;
+        if (!empty($sg['uuid'])) {
+            $cacheKey = (isset($user['id']) ? $user['id'] : '') . '|' .
+                (!empty($server['Server']['id']) ? $server['Server']['id'] : '') . '|' .
+                $sg['uuid'] . '|' .
+                (isset($sg['modified']) ? $sg['modified'] : '');
+            if (array_key_exists($cacheKey, $this->__capturedSGCache)) {
+                return $this->__capturedSGCache[$cacheKey];
+            }
+        }
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
@@ -648,6 +667,9 @@ class SharingGroup extends AppModel
         } else {
             $existingCaptureResult = $this->captureSGExisting($user, $existingSG, $sg);
             if ($existingCaptureResult !== true) {
+                if ($cacheKey !== null) {
+                    $this->__capturedSGCache[$cacheKey] = $existingCaptureResult;
+                }
                 return $existingCaptureResult;
             }
             $sg_id = $existingSG['SharingGroup']['id'];
@@ -660,7 +682,13 @@ class SharingGroup extends AppModel
             $this->captureCreatorOrg($user, $sg_id);
         }
         if (!empty($existingSG)) {
+            if ($cacheKey !== null) {
+                $this->__capturedSGCache[$cacheKey] = $existingSG[$this->alias]['id'];
+            }
             return $existingSG[$this->alias]['id'];
+        }
+        if ($cacheKey !== null) {
+            $this->__capturedSGCache[$cacheKey] = $this->id;
         }
         return $this->id;
     }
