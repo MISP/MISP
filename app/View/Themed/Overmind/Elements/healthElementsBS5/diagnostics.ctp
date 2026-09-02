@@ -514,6 +514,13 @@ $openCard('database', '#0dcaf0', __('Database status'),
         </div>
     <?php endif; ?>
 
+    <?php foreach (($dbSchemaDiagnostics['warnings'] ?? array()) as $warning): ?>
+        <div class="alert alert-warning d-flex gap-2" role="alert">
+            <i class="fas fa-triangle-exclamation mt-1"></i>
+            <div><?= h($warning) ?></div>
+        </div>
+    <?php endforeach; ?>
+
     <?php if (!empty($dbSchemaDiagnostics['update_fail_number_reached'])): ?>
         <div class="alert alert-danger d-flex gap-2" role="alert">
             <i class="fas fa-triangle-exclamation mt-1"></i>

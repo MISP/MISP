@@ -1991,9 +1991,24 @@ class Server extends AppModel
         $options = $defaults['MISP']['correlation_engine']['options'];
         if (!empty($value) && !in_array($value, array_keys($options))) {
             return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
-        } else {
-            return true;
         }
+        if ($value === 'OnDemand' && !$this->isMysql()) {
+            return $this->onDemandEngineUnsupportedMessage();
+        }
+        return true;
+    }
+
+    /**
+     * Why the On Demand correlation engine cannot be selected on anything but
+     * MySQL or MariaDB: its temporary tables and index hints are tuned
+     * against the MySQL planner, and porting it means re-tuning, not
+     * translating. The other two engines are portable.
+     *
+     * @return string
+     */
+    private function onDemandEngineUnsupportedMessage()
+    {
+        return __('The On Demand correlation engine is MySQL/MariaDB only: its MEMORY temporary tables and index hints are tuned against the MySQL planner. Use the Default or No ACL engine on this database.');
     }
 
     public function testLocalOrg($value)
@@ -3422,8 +3437,16 @@ class Server extends AppModel
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
-            'indexes' => array()
+            'indexes' => array(),
+            'warnings' => array(),
         );
+        // A setting that validates only on MySQL can still arrive on another
+        // engine with the rest of the configuration, for example through a
+        // pgloader migration. It is not an error - the engine simply is not
+        // usable here - but the instance should know.
+        if (!$this->isMysql() && Configure::read('MISP.correlation_engine') === 'OnDemand') {
+            $schemaDiagnostic['warnings'][] = $this->onDemandEngineUnsupportedMessage();
+        }
         // db_version is frozen, so actual_db_version and expected_db_version are
         // now the same number on every healthy *and* every stalled instance -
         // the pair fleet monitoring has always alerted on can no longer differ.
@@ -5837,7 +5860,7 @@ class Server extends AppModel
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
                         'NoAcl' => __('No ACL Engine'),
-                        'OnDemand' => __('On Demand Correlation Engine')
+                        'OnDemand' => __('On Demand Correlation Engine (MySQL/MariaDB only)')
                     ],
                 ],
                 'correlation_limit' => [

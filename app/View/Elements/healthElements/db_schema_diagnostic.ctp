@@ -142,6 +142,9 @@ function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
             );
         }
     }
+    foreach ((isset($warnings) ? $warnings : array()) as $warning) {
+        echo sprintf('<span class="label label-warning" style="margin-left: 5px;">%s</span>', h($warning));
+    }
     echo sprintf('<span class="label label-%s" style="margin-left: 5px;">%s</span>',
         is_numeric($expectedDbVersion) ? 'success' : 'important',
         __('Expected DB_version: ') . h($expectedDbVersion)

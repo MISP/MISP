@@ -1750,6 +1750,14 @@ class AdminShell extends AppShell
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
+        if (!empty($dbSchemaDiagnostics['warnings'])) {
+            $this->out('# Warnings');
+            foreach ($dbSchemaDiagnostics['warnings'] as $warning) {
+                $this->out(' - ' . $warning);
+            }
+            $this->out();
+        }
+
         $this->out('# Columns diagnostics');
         foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
             $diagnostics = array_filter($diagnostics, function ($c) {

@@ -4,6 +4,7 @@
     'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
     'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
     'error' => $dbSchemaDiagnostics['error'],
+    'warnings' => $dbSchemaDiagnostics['warnings'] ?? array(),
     'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
     'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
     'updateLocked' => $dbSchemaDiagnostics['update_locked']
