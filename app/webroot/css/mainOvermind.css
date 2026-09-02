@@ -505,9 +505,78 @@ body[data-controller="users"][data-action="change_pw"] {
 
 /* Card view
 */
+
+/* .table-scroll gives the grid a fixed height, and a flex container that tall
+   stretches its single line of cards over the whole of it. Packing the lines at
+   the top keeps every line as tall as its own content — cards on the same line
+   still match each other, which is what h-100 on the card is for. */
+.idx-card-grid {
+    align-content: flex-start;
+}
+
 .idx-card {
     overflow-wrap: break-word;
     word-break: break-word;
+}
+
+/* Two-line description clamp for card view. A card is a few hundred pixels
+   wide, so `text-truncate` (which needs white-space:nowrap) throws away almost
+   the whole sentence; two wrapped lines fit the card and still keep every card
+   on a line the same height. */
+.idx-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Grid tiers above Bootstrap's largest.
+   Bootstrap 5 stops at xxl (1400px), so on a 27" or an ultrawide the card grid
+   keeps its xxl count across the whole second half of the viewport. Adding the
+   tier to $grid-breakpoints and recompiling bootstrap5-custom.scss would
+   regenerate EVERY responsive utility for it (the whole spacing, display, flex
+   and text API, tens of KB) for the one family we actually need, so the two
+   tiers are hand-written here and cover row-cols only — what `cards_per_row`
+   emits in the index card view. mainOvermind.css is loaded after
+   bootstrap5-custom.min.css, so at equal specificity these win over the xxl
+   rules they extend. Extend this block if a layout ever needs another family;
+   do not fork the Bootstrap build for it. */
+
+@media (min-width: 1920px) {
+    .row-cols-xxxl-1 > * { flex: 0 0 auto; width: 100%; }
+    .row-cols-xxxl-2 > * { flex: 0 0 auto; width: 50%; }
+    .row-cols-xxxl-3 > * { flex: 0 0 auto; width: 33.33333333%; }
+    .row-cols-xxxl-4 > * { flex: 0 0 auto; width: 25%; }
+    .row-cols-xxxl-5 > * { flex: 0 0 auto; width: 20%; }
+    .row-cols-xxxl-6 > * { flex: 0 0 auto; width: 16.66666667%; }
+}
+
+@media (min-width: 2160px) {
+    .row-cols-xxxxl-1 > * { flex: 0 0 auto; width: 100%; }
+    .row-cols-xxxxl-2 > * { flex: 0 0 auto; width: 50%; }
+    .row-cols-xxxxl-3 > * { flex: 0 0 auto; width: 33.33333333%; }
+    .row-cols-xxxxl-4 > * { flex: 0 0 auto; width: 25%; }
+    .row-cols-xxxxl-5 > * { flex: 0 0 auto; width: 20%; }
+    .row-cols-xxxxl-6 > * { flex: 0 0 auto; width: 16.66666667%; }
+}
+
+/* Switching between the table and the card view swaps one block for the other
+   in place (d-none), which reads as a jump cut. The incoming block fades up
+   over the outgoing one's footprint; the outgoing one is not animated out, so
+   a double-click on the toggle can never leave both visible. */
+@keyframes idxViewFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.idx-view-anim {
+    animation: idxViewFade .82s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .idx-view-anim {
+        animation: none;
+    }
 }
 
 /* Structured / naturally-short columns where string shouldn't wrap.
@@ -2348,4 +2417,309 @@ tr.evt-extension-row td:first-child {
     .role-perm-popover .rp-grid {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Servers — bespoke index card
+   ═══════════════════════════════════════════════════════════ */
+
+.srv-card {
+    --srv-accent: var(--bs-secondary);
+    --srv-dot: var(--bs-secondary);
+    --srv-tint: #f4f6f8;
+    --srv-tint: color-mix(in srgb, var(--srv-accent) 12%, #fff);
+}
+
+.srv-card[data-srv-state="running"] {
+    --srv-dot: var(--bs-warning);
+}
+
+.srv-card[data-srv-state="ok"] {
+    --srv-accent: var(--primary);
+    --srv-dot: var(--bs-success);
+}
+
+.srv-card[data-srv-state="down"] {
+    --srv-accent: var(--bs-danger);
+    --srv-dot: var(--bs-danger);
+}
+
+.srv-head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    background: var(--srv-tint);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-card-inner-border-radius) var(--bs-card-inner-border-radius) 0 0;
+}
+
+.srv-glyph {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    background: var(--srv-accent);
+    color: #fff;
+}
+
+.srv-head-title {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.srv-name {
+    font-weight: 600;
+    color: var(--bs-body-color);
+    text-decoration: none;
+}
+
+.srv-name:hover {
+    color: var(--srv-accent);
+}
+
+.srv-head-meta {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.srv-status {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .2rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 2rem;
+    background: var(--bs-body-bg);
+    font-size: .75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.srv-status-dot {
+    font-size: .5rem;
+    color: var(--srv-dot);
+}
+
+.srv-card[data-srv-state="running"] .srv-status-dot {
+    animation: srvPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes srvPulse {
+    50% { opacity: .25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .srv-card[data-srv-state="running"] .srv-status-dot {
+        animation: none;
+    }
+}
+
+/* Panels */
+
+.srv-panel {
+    height: 100%;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+    padding: .65rem .75rem;
+}
+
+.srv-panel-head {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .5rem;
+}
+
+.srv-panel-title {
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.srv-panel[data-probe-state="down"] {
+    border-color: var(--bs-danger-border-subtle);
+    background: var(--bs-danger-bg-subtle);
+}
+
+.srv-retry {
+    color: var(--bs-secondary-color);
+    line-height: 1;
+    text-decoration: none;
+}
+
+.srv-retry:hover {
+    color: var(--srv-accent);
+}
+
+/* Label / value lines */
+
+.srv-kv {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .12rem 0;
+    font-size: .78rem;
+}
+
+.srv-kv-label {
+    color: var(--bs-secondary-color);
+}
+
+.srv-kv-value {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .35rem;
+    text-align: right;
+}
+
+.srv-kv-hint {
+    font-size: .7rem;
+    color: var(--bs-secondary-color);
+}
+
+.srv-flag {
+    display: inline-block;
+    padding: .05rem .45rem;
+    border-radius: 2rem;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 600;
+}
+
+.srv-flag-on {
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-success-text-emphasis);
+}
+
+.srv-detail {
+    display: flex;
+    flex-direction: column;
+    font-size: .78rem;
+    margin-bottom: .35rem;
+}
+
+.srv-url {
+    font-size: .78rem;
+    word-break: break-all;
+}
+
+.srv-user-chip {
+    padding: .1rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 2rem;
+    background: var(--bs-tertiary-bg);
+    font-size: .72rem;
+}
+
+.srv-flat .border {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.srv-flat,
+.srv-flat .d-flex {
+    font-size: .78rem;
+}
+
+.srv-flat .d-flex > span:first-child {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.srv-flat .d-flex > span:last-child {
+    text-align: right;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Event report template variables — index
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── The token ────────────────────────────────────────────── */
+
+.erv-token {
+    --erv-accent: var(--bs-report);
+    /* A name is a varchar(191); nowrap plus a shrink-wrapped column would let
+       one long name set the width of the whole table, so the name ellipses and
+       the title attribute carries the rest. */
+    max-width: min(100%, 20rem);
+    border: 1px solid color-mix(in srgb, var(--erv-accent) 30%, transparent);
+    background: color-mix(in srgb, var(--erv-accent) 9%, var(--bs-body-bg));
+    /* The column this sits in is sized to the content; a token that wraps is
+       the bug this whole block exists to fix. */
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .12s ease, border-color .12s ease;
+}
+
+.erv-token:hover,
+.erv-token:focus-visible {
+    background: color-mix(in srgb, var(--erv-accent) 16%, var(--bs-body-bg));
+    border-color: color-mix(in srgb, var(--erv-accent) 55%, transparent);
+    outline: none;
+}
+
+/* The braces are syntax, the name is the payload — same family, two weights. */
+.erv-token-brace {
+    color: color-mix(in srgb, var(--erv-accent) 60%, var(--bs-body-bg));
+}
+
+.erv-token-name {
+    color: color-mix(in srgb, var(--erv-accent) 72%, var(--bs-emphasis-color));
+    /* min-width:0 is what lets a flex item shrink below its content and so what
+       makes .text-truncate on it possible at all. */
+    min-width: 0;
+}
+
+/* The copy affordance only asks for attention once the pointer is on it. */
+.erv-token-copy {
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+.erv-token:hover .erv-token-copy,
+.erv-token:focus-visible .erv-token-copy {
+    opacity: .75;
+}
+
+/* ── The body ─────────────────────────────────────────────── */
+
+.erv-code {
+    border-left: 3px solid color-mix(in srgb, var(--bs-report) 45%, transparent);
+    /* pre-wrap, not pre: a non-wrapping block dictates the table's column
+       widths through its longest line. */
+    white-space: pre-wrap;
+    /* Exactly 4 lines plus the .py-1 padding, so the clamp lands on a line box
+       instead of slicing one in half. 1.25em is .lh-sm, the class the template
+       puts on this element. */
+    max-height: calc(4 * 1.25em + .5rem);
+    overflow: hidden;
+}
+
+/* The fade tells the reader the block is cut rather than finished  */
+.erv-value.is-clipped:not(.is-open) .erv-code {
+    -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+}
+
+.erv-value.is-open .erv-code {
+    max-height: 28rem;
+    overflow: auto;
+}
+
+.erv-more-icon {
+    transition: transform .15s ease;
+}
+
+.erv-value.is-open .erv-more-icon {
+    transform: rotate(180deg);
 }

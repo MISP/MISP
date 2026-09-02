@@ -61,7 +61,7 @@ $fields = [
         'name' => __('Queue / Type'),
         'sort' => 'worker',
         'element' => 'custom',
-        'card_section' => 'attribute',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
         'function' => function (array $row) use ($workerVariant) {
             $worker = $row['Job']['worker'] ?? '';
@@ -83,7 +83,7 @@ $fields = [
     [
         'name' => __('Details'),
         'element' => 'custom',
-        'card_section' => 'meta',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
         'style' => 'max-width: 320px;',
         'function' => function (array $row) {
@@ -139,7 +139,7 @@ $fields = [
         'name' => __('Status'),
         'sort' => 'status',
         'element' => 'custom',
-        'card_section' => 'top',
+        'card_section' => 'links',
         'display_in' => ['table', 'card'],
         'function' => function (array $row) use ($baseurl) {
             $status = $row['Job']['job_status'] ?? __('Unknown');
@@ -172,7 +172,7 @@ $fields = [
         'sort' => 'progress',
         'element' => 'progress',
         'style' => 'min-width: 200px;',
-        'card_section' => 'meta',
+        'card_section' => 'links',
         'display_in' => ['table', 'card'],
         'function' => function (array $row) {
             $job = $row['Job'];
@@ -258,6 +258,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'primary_id_path' => 'Job.id',
             'fields' => $fields,
             'filter_bar' => $scaffoldFilterBar,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
         ],
     ],
     'item_url' => '/jobs',

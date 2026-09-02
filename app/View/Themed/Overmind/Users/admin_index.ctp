@@ -185,6 +185,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $users,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => 'User.id',
             'row_dblclick_url' => $baseurl . '/admin/users/view/%id%',
             'filter_bar' => [

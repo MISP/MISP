@@ -3,6 +3,26 @@
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
+
+    $canEdit = $isSiteAdmin || $this->Acl->canModifyEvent($event);
+    if ($canEdit) {
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'attributes',
+            'label' => __('Add attribute'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/attributes/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
+
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'objects',
+            'label' => __('Add object'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/objects/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
+    }
+
     $this->set('headerTitle', $headerTitle);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
