@@ -472,6 +472,7 @@
             url: betaEventsIndexBaseurl + '/collections/getCollectionsForElements/Event.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             data: JSON.stringify({ uuids: uuids }),
             dataType: 'json',
             success: function(data) {

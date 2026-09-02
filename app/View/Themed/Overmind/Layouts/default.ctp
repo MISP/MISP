@@ -271,6 +271,10 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
     <script>
         var baseurl = <?= json_encode($baseurl, JSON_UNESCAPED_SLASHES) ?>;
+        // CSRF token for hand-built same-origin AJAX, which has no rendered form
+        // to carry _Token fields. Sent as the X-CSRF-Token header - see
+        // BetterSecurityComponent::_validateCsrf().
+        var csrfToken = <?= json_encode(isset($this->request->params['_Token']['key']) ? $this->request->params['_Token']['key'] : '') ?>;
         var here = <?= json_encode($here, JSON_UNESCAPED_SLASHES) ?>;
 
 <?php if ($autoLogoutEnabled): ?>

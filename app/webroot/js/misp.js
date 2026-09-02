@@ -4012,6 +4012,7 @@ function eventIndexColumnsToggle(columnName) {
     xhr({
         url: "/userSettings/eventIndexColumnToggle/" + columnName,
         method: "post",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         success: function () {
             window.location.reload(); // update page
         }
@@ -4449,9 +4450,12 @@ function serverOwnerOrganisationChange(host_org_id) {
 }
 
 function requestAPIAccess() {
+    // POST with the page's CSRF token in the header - the action has no rendered
+    // form, so it rides the _csrfTokenHeaderOnly() idiom.
     xhr({
-        type:"get",
+        type:"post",
         url: "/users/request_API/",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         success:function (data) {
             handleGenericAjaxResponse(data);
         },
@@ -5664,6 +5668,7 @@ function setHomePage() {
             $.ajax({
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 data: $tmp.serialize(),
                 success: function () {
                     showMessage('success', 'Homepage set.');

@@ -19,6 +19,8 @@
  * Rules:
  *   - Non-string / empty input            → null
  *   - Control characters (\x00–\x1f, \x7f) → null
+ *   - Any raw backslash                   → null (browsers read `\`
+ *     as `/` in the authority position, so `/\evil.com` is off-host)
  *   - javascript: / data: / vbscript: / file: schemes → null
  *     (case-insensitive, leading whitespace tolerated)
  *   - Relative URLs (path / query / fragment only)    → allowed
@@ -32,11 +34,12 @@
  *     and port all match an allowed origin's
  *
  * Allowed origins (DD-03 + analyst-track AD-09 relaxation): MISP's own
- * `MISP.baseurl`, PLUS the admin-configured external reference database the
- * dashboard is permitted to deep-link to — today `MISP.cveurl` (the CVE
- * lookup the trending-vulnerability widget links each identifier to,
- * resolved with MISP's documented default). Only these specific admin-set
- * hosts are allowed off-baseurl; arbitrary off-host links are still dropped.
+ * base URL (see baseUrl()), PLUS the admin-configured external reference
+ * database the dashboard is permitted to deep-link to — today
+ * `MISP.cveurl` (the CVE lookup the trending-vulnerability widget links
+ * each identifier to, resolved with MISP's documented default). Only
+ * these specific admin-set hosts are allowed off-baseurl; arbitrary
+ * off-host links are still dropped.
  *
  * Anything else → null.
  *
@@ -68,8 +71,34 @@ class DashboardURLValidator
     }
 
     /**
+     * MISP's own base URL, resolved exactly the way every dashboard link
+     * emitter resolves it: the admin-configured `MISP.baseurl`, falling
+     * back to the origin the request was served from when that setting is
+     * empty. `MISP.baseurl` is nullable (Server.php marks it
+     * `'null' => true`), and on such an install the emitters all use
+     * `Router::url('/', true)` — so without the same fallback here the
+     * gate and the emitters disagree and every own-host absolute link on
+     * the dashboard is dropped. Mirrors cveBaseUrl(): one resolver shared
+     * by the emitter and the gate, so the two can never drift.
+     *
+     * Note this fallback is request-derived. On a baseurl-less install the
+     * emitted links are request-derived too, so the allowlist is no weaker
+     * than the links it guards; setting `MISP.baseurl` is what pins both.
+     *
+     * @return string
+     */
+    public static function baseUrl()
+    {
+        $baseurl = Configure::read('MISP.baseurl');
+        if (is_string($baseurl) && $baseurl !== '') {
+            return $baseurl;
+        }
+        return rtrim(Router::url('/', true), '/');
+    }
+
+    /**
      * The set of origins an absolute / protocol-relative drilldown may point
-     * at: MISP's own baseurl plus the trusted CVE lookup base (above). Each
+     * at: MISP's own base URL plus the trusted CVE lookup base (above). Each
      * entry is a parse_url() array; unparseable / host-less candidates are
      * skipped. An empty result means nothing is configured → all absolute
      * URLs are dropped (fail-safe).
@@ -80,7 +109,7 @@ class DashboardURLValidator
     {
         $origins = array();
         $candidates = array(
-            Configure::read('MISP.baseurl'),
+            self::baseUrl(),
             self::cveBaseUrl(),
         );
         foreach ($candidates as $candidate) {
@@ -116,6 +145,18 @@ class DashboardURLValidator
         // about handling these and they can be used to bypass naive
         // string-prefix checks.
         if (preg_match('/[\x00-\x1f\x7f]/', $url)) {
+            return null;
+        }
+        // Reject any raw backslash. The WHATWG URL parser treats `\` as
+        // `/` in and around the authority, so `\\evil.com/x`,
+        // `/\evil.com/x`, `https:/\evil.com` and `https:\\evil.com` all
+        // resolve to evil.com while reading as "relative" to the
+        // scheme / `//` tests below. It also kills the userinfo spoof
+        // `\\misp.example.com@evil.com/x`, whose visible prefix is the
+        // real MISP host. A legitimate URL never needs a raw backslash —
+        // the percent-encoded form (%5C) stays an ordinary path
+        // character and is still accepted.
+        if (strpos($url, '\\') !== false) {
             return null;
         }
         // A URL is "absolute" only if it has a proper hierarchical

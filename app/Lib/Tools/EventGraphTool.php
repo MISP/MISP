@@ -583,12 +583,22 @@
 
         public function get_reference_data($uuid)
         {
+            // object_references.uuid is unique, so this yields at most one row.
             $objectReference = $this->__refModel->ObjectReference->find('all', array(
                 'conditions' => array('ObjectReference.uuid' => $uuid, 'ObjectReference.deleted' => false),
                 'recursive' => -1,
-                //'fields' => array('ObjectReference.id', 'relationship_type', 'comment', 'referenced_uuid')
                 ));
             if (empty($objectReference)) {
+                throw new NotFoundException('Invalid object reference');
+            }
+            // Authorise through the object the reference hangs off, exactly as
+            // ObjectReferencesController::view() does. The full row is returned
+            // once the caller is allowed to see that object: the sole consumer,
+            // event-graph.js, reads object_id to build the edit popup.
+            $object = $this->__refModel->fetchObjectSimple($this->__user, array(
+                'conditions' => array('Object.id' => $objectReference[0]['ObjectReference']['object_id']),
+            ));
+            if (empty($object)) {
                 throw new NotFoundException('Invalid object reference');
             }
             return $objectReference;

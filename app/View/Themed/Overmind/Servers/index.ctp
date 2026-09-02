@@ -190,28 +190,31 @@ $fields = [
                 'url' => $baseurl . '/servers/previewIndex/%id%',
             ],
             [
-                'type' => 'navigate',
+                'type' => 'postLink',
                 'label' => __('Pull all'),
                 'icon' => 'arrow-circle-down',
                 'url' => $baseurl . '/servers/pull/%id%/full',
+                'confirm' => __('Are you sure you want to pull all events from this server?'),
                 'requirement' => function (array $row) {
                     return !empty($row['Server']['pull']);
                 }
             ],
             [
-                'type' => 'navigate',
+                'type' => 'postLink',
                 'label' => __('Push all'),
                 'icon' => 'arrow-circle-up',
                 'url' => $baseurl . '/servers/push/%id%/full',
+                'confirm' => __('Are you sure you want to push all events to this server?'),
                 'requirement' => function (array $row) {
                     return !empty($row['Server']['push']);
                 }
             ],
             [
-                'type' => 'navigate',
+                'type' => 'postLink',
                 'label' => __('Cache instance'),
                 'icon' => 'database',
                 'url' => $baseurl . '/servers/cache/%id%',
+                'confirm' => __('Are you sure you want to cache the contents of this server?'),
                 'requirement' => function (array $row) {
                     return !empty($row['Server']['caching_enabled']);
                 }

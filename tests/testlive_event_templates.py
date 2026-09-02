@@ -365,6 +365,89 @@ class EventTemplatesRestTests(unittest.TestCase):
         self.assertIn("tlp:amber", tag_names,
                       f"expected tlp:amber on event; got {tag_names!r}")
 
+    def test_instantiate_refuses_unusable_sharing_group(self) -> None:
+        # The template author picks event_defaults.sharing_group_id and a
+        # community-distributed template is instantiated by other accounts,
+        # so the *instantiating* user's authorisation is what governs.
+        # Event::_add() only runs its own sharing-group check under $fromXml,
+        # which the instantiator is not. A sharing group that does not exist
+        # is unusable for everybody including site admin, which is what makes
+        # this assertion identity-independent.
+        ghost = _minimal_definition(name="ghost-sg-template")
+        ghost["event_defaults"] = {"distribution": 4, "sharing_group_id": 2147483000}
+        created = self._add(name="ghost-sg-tpl", definition=ghost)
+        tid = int(created["EventTemplate"]["id"])
+
+        r = requests.post(
+            f"{URL}/event_templates/instantiate/{tid}",
+            headers=_headers(),
+            data=json.dumps({"values": {}}),
+            timeout=15,
+        )
+        self.assertNotEqual(
+            r.status_code, 200,
+            f"instantiation into an unusable sharing group was accepted: {r.text[:300]}",
+        )
+        self.assertIn("sharing group", r.text.lower(), r.text[:300])
+        self.assertNotIn(
+            "event_id", r.json(),
+            f"an event was created despite the refusal: {r.text[:300]}",
+        )
+
+    def test_instantiate_attaches_local_only_tag_locally(self) -> None:
+        # Tag.local_only means "must never leave this instance"; the
+        # instantiator used to hardcode local => 0 for every tag, attaching
+        # such a tag globally so it would propagate on sync and export.
+        # EventsController::addTag refuses that for every role including site
+        # admin, so the only reading that attaches the tag at all is to attach
+        # it locally.
+        tag_name = f"local-only-{uuid.uuid4().hex[:8]}"
+        r = requests.post(
+            f"{URL}/tags/add",
+            headers=_headers(),
+            data=json.dumps({"Tag": {
+                "name": tag_name, "colour": "#993399", "local_only": 1,
+            }}),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:300])
+        tag_id = int(r.json()["Tag"]["id"])
+        self.addCleanup(
+            lambda: requests.post(f"{URL}/tags/delete/{tag_id}",
+                                  headers=_headers(), timeout=10)
+        )
+
+        definition = _minimal_definition(name="local-only-template")
+        definition["event_defaults"] = {
+            "distribution": 0, "tags": [{"name": tag_name}],
+        }
+        created = self._add(name="local-only-tpl", definition=definition)
+        tid = int(created["EventTemplate"]["id"])
+
+        r = requests.post(
+            f"{URL}/event_templates/instantiate/{tid}",
+            headers=_headers(),
+            data=json.dumps({"values": {}}),
+            timeout=15,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:300])
+        eid = int(r.json()["event_id"])
+        self._events.append(eid)
+
+        r = requests.get(
+            f"{URL}/events/view/{eid}", headers=_headers(), timeout=10
+        )
+        self.assertEqual(r.status_code, 200)
+        tags = r.json().get("Event", {}).get("Tag", []) or []
+        match = [t for t in tags if t["name"] == tag_name]
+        self.assertEqual(
+            len(match), 1, f"expected {tag_name} on the event; got {tags!r}"
+        )
+        self.assertTrue(
+            match[0].get("local"),
+            f"local_only tag was attached globally: {match[0]!r}",
+        )
+
     def test_instantiate_accepts_file_field_attachment(self) -> None:
         # Happy path for file_field `as: attachment` — supply a tiny
         # base64 payload and confirm an attachment attribute with the

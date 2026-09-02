@@ -14,41 +14,30 @@
 trait CLICommonTrait
 {
     /**
-     * Set the authenticated user context on all
-     * SysLogLogable behaviors so that audit logs
-     * attribute actions to the correct user.
+     * Publish the impersonated account to both
+     * audit engines, once, before any write.
      *
-     * @param array $user The authenticated user record
+     * `CurrentUserId` is what AuditLog (the new
+     * engine) and every other console shell use;
+     * it also feeds the non-audit readers - tag
+     * numerical-value overrides, workflow
+     * initiator, analyst-data author - so they
+     * see the impersonated user as the web would.
+     * SysLogLogable (the default engine) takes the
+     * same identity through its own static, which
+     * it resolves at write time; setting it on the
+     * loaded models' behaviour instances, as this
+     * once did, was undone by the first lazy model
+     * load, because the behaviour is a singleton
+     * whose setup() rewrote the shared identity.
+     *
+     * @param array $user The impersonated user record
      * @return void
      */
     private function __setUserContext(array $user)
     {
-        $logUser = [
-            'id' => $user['id'],
-            'email' => $user['email'],
-            'Organisation' => [
-                'name' => !empty(
-                    $user['Organisation']['name']
-                )
-                ? $user['Organisation']['name']
-                : '',
-            ],
-        ];
-        $models = [
-            'Event', 'MispAttribute', 'MispObject',
-            'Tag', 'EventTag', 'AttributeTag',
-        ];
-        foreach ($models as $modelName) {
-            if (
-                isset($this->{$modelName})
-                && $this->{$modelName}
-                    ->Behaviors->loaded('SysLogLogable')
-            ) {
-                $this->{$modelName}
-                    ->Behaviors->SysLogLogable
-                    ->user['User'] = $logUser;
-            }
-        }
+        Configure::write('CurrentUserId', $user['id']);
+        SysLogLogableBehavior::setShellUser($user);
     }
 
     /**
@@ -74,7 +63,7 @@ trait CLICommonTrait
             !empty(
                 $this->__user['Role']['perm_modify_org']
             )
-            && $event['Event']['orgc_id']
+            && ($event['Event']['orgc_id'] ?? null)
                 == $this->__user['org_id']
         ) {
             return true;
@@ -83,7 +72,7 @@ trait CLICommonTrait
             !empty(
                 $this->__user['Role']['perm_modify']
             )
-            && $event['Event']['user_id']
+            && ($event['Event']['user_id'] ?? null)
                 == $this->__user['id']
         ) {
             return true;
@@ -878,6 +867,261 @@ trait CLICommonTrait
                 $this->__fkCache[$cacheKey] =
                     '[' . $id . ']';
             }
+        }
+    }
+
+    /**
+     * Neutralise terminal control sequences in a
+     * value before it reaches the terminal.
+     *
+     * Everything the shell prints comes from the
+     * database and is attacker-controlled: any
+     * perm_add user can store an attribute whose
+     * value carries ESC[ sequences, and the core
+     * validator only rejects values made entirely
+     * of control characters. C0 controls, DEL and
+     * the C1 range are rewritten in cat -v caret
+     * notation so an analyst can still see that an
+     * indicator carries them; tab and newlines
+     * become spaces so the table layout holds; the
+     * Unicode bidi overrides and isolates are
+     * spelled out so a right-to-left override
+     * cannot make one indicator read as another.
+     *
+     * Applied by out()/err() to everything the
+     * shell prints, and by the list fetchers and
+     * detail-row builder before width math so the
+     * columns are sized on what is displayed.
+     *
+     * @param mixed $value Value to print
+     * @return mixed Sanitised copy (arrays mapped)
+     */
+    private function __term($value)
+    {
+        if (is_array($value)) {
+            return array_map([$this, '__term'], $value);
+        }
+        if ($value === null || $value === '') {
+            return $value;
+        }
+        $str = (string)$value;
+        // Fast path: no C0/DEL byte, no lead byte of
+        // the C1 (\xC2) or bidi (\xE2) code points -
+        // return the original unchanged, so a clean
+        // integer id stays an integer.
+        if (!preg_match('/[\x00-\x1F\x7F\xC2\xE2]/', $str)) {
+            return $value;
+        }
+        $value = $str;
+        $caret = function ($cp) {
+            if ($cp === 0x09 || $cp === 0x0A || $cp === 0x0D) {
+                return ' ';
+            }
+            if ($cp < 0x20) {
+                return '^' . chr($cp + 0x40);
+            }
+            if ($cp === 0x7F) {
+                return '^?';
+            }
+            if ($cp <= 0x9F) {
+                return 'M-^' . chr($cp - 0x80 + 0x40);
+            }
+            return sprintf('<U+%04X>', $cp);
+        };
+        $out = preg_replace_callback(
+            '/[\x{00}-\x{1F}\x{7F}\x{80}-\x{9F}'
+            . '\x{202A}-\x{202E}\x{2066}-\x{2069}]/u',
+            function ($m) use ($caret) {
+                return $caret(mb_ord($m[0], 'UTF-8'));
+            },
+            $value
+        );
+        if ($out === null) {
+            // Not valid UTF-8: byte-level C0/DEL only.
+            $out = preg_replace_callback(
+                '/[\x00-\x1F\x7F]/',
+                function ($m) use ($caret) {
+                    return $caret(ord($m[0]));
+                },
+                $value
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * Sanitise every scalar cell of a list result.
+     *
+     * @param array $rows List rows
+     * @return array
+     */
+    private function __termRows(array $rows)
+    {
+        foreach ($rows as &$row) {
+            foreach ($row as $k => $v) {
+                if (!is_array($v)) {
+                    $row[$k] = $this->__term($v);
+                }
+            }
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * Whether the CLI user may perform a write
+     * operation on an entity, mirroring the web ACL.
+     *
+     * Site admins always may. `adminOnly` and
+     * `writeAdminOnly` entities refuse everyone
+     * else. `writePerms` names the role flag needed
+     * per operation (add/edit/delete). An entity
+     * with none of these is writable by anyone,
+     * subject to the per-record checks (such as
+     * __canModifyEvent()) its own add/edit/delete
+     * code performs.
+     *
+     * @param string $entity Entity name
+     * @param string $op     add|edit|delete
+     * @return bool
+     */
+    private function __canWriteEntity($entity, $op)
+    {
+        $config = $this->__entityConfig[$entity];
+        $role = $this->__user['Role'];
+        if (!empty($role['perm_site_admin'])) {
+            return true;
+        }
+        if (
+            !empty($config['adminOnly'])
+            || !empty($config['writeAdminOnly'])
+        ) {
+            return false;
+        }
+        if (!empty($config['writePerms'][$op])) {
+            $flag = $config['writePerms'][$op];
+            return !empty($role[$flag]);
+        }
+        return true;
+    }
+
+    /**
+     * Print the permission-denied message for a
+     * refused write, naming what the user lacks.
+     *
+     * @param string $entity Entity name
+     * @param string $op     add|edit|delete
+     * @return void
+     */
+    private function __denyWrite($entity, $op)
+    {
+        $config = $this->__entityConfig[$entity];
+        $need = 'site admin access';
+        if (
+            empty($config['adminOnly'])
+            && empty($config['writeAdminOnly'])
+            && !empty($config['writePerms'][$op])
+            && $config['writePerms'][$op]
+                !== 'perm_site_admin'
+        ) {
+            $need = 'the '
+                . $config['writePerms'][$op]
+                . ' permission';
+        }
+        $this->err(
+            'Permission denied: ' . $op . ' '
+            . $entity . ' requires ' . $need . '.'
+        );
+    }
+
+    /**
+     * Columns to fetch for an entity's detail view:
+     * the model's schema minus the entity's
+     * `hiddenFields`, so a secret column is never
+     * read from the database rather than read and
+     * blanked afterwards.
+     *
+     * @param string $entity Entity name
+     * @return array Alias-qualified field list
+     */
+    private function __detailFields($entity)
+    {
+        $config = $this->__entityConfig[$entity];
+        $model = $this->{$config['model']};
+        $alias = $this->__modelAlias($entity);
+        $hidden = !empty($config['hiddenFields'])
+            ? $config['hiddenFields'] : [];
+        $fields = [];
+        foreach (array_keys($model->schema()) as $col) {
+            if (!in_array($col, $hidden, true)) {
+                $fields[] = $alias . '.' . $col;
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * Clamp pagination to a sane range: a limit
+     * that is missing, non-numeric or below 1
+     * becomes the default page size, anything
+     * above $__maxPerPage is capped there, and
+     * page is at least 1. A limit of 0, a negative
+     * or a non-numeric value used to make
+     * DboSource drop the LIMIT clause entirely and
+     * return the whole table.
+     *
+     * @param array $filters Parsed filters
+     * @return array Filters with limit/page clamped
+     */
+    private function __normalisePagination(
+        array $filters
+    ) {
+        $limit = isset($filters['limit'])
+            && is_numeric($filters['limit'])
+            ? (int)$filters['limit'] : 0;
+        if ($limit < 1) {
+            $limit = $this->__perPage;
+        }
+        $filters['limit'] = min(
+            $this->__maxPerPage, $limit
+        );
+        $page = isset($filters['page'])
+            && is_numeric($filters['page'])
+            ? (int)$filters['page'] : 1;
+        $filters['page'] = max(1, $page);
+        return $filters;
+    }
+
+    /**
+     * Warn about filter keys the entity does not
+     * implement rather than silently discarding
+     * them - `list attribute value=%evil%` used to
+     * return everything with no hint that the
+     * filter had been ignored.
+     *
+     * @param string $entity  Entity name
+     * @param array  $filters Parsed filters
+     * @return void
+     */
+    private function __warnUnsupportedFilters(
+        $entity,
+        array $filters
+    ) {
+        $config = $this->__entityConfig[$entity];
+        $supported = array_merge(
+            ['limit', 'page', 'sort_order'],
+            !empty($config['filters'])
+                ? $config['filters'] : []
+        );
+        $unknown = array_diff(
+            array_keys($filters), $supported
+        );
+        if (!empty($unknown)) {
+            $this->err(
+                'Ignoring unsupported filter(s) for '
+                . $entity . ': '
+                . implode(', ', $unknown)
+            );
         }
     }
 }
