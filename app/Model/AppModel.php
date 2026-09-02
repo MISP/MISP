@@ -31,6 +31,7 @@ App::uses('Folder', 'Utility');
 App::uses('MigrationRunner', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('SchemaInspector', 'Migration');
+App::uses('SqlDialect', 'Migration');
 App::uses('LegacyMigrationsTrait', 'Migration');
 
 class AppModel extends Model
@@ -68,6 +69,9 @@ class AppModel extends Model
 
     /** @var SchemaInspector|null */
     private $schemaInspector = null;
+
+    /** @var SqlDialect|null */
+    private $sqlDialect = null;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -595,6 +599,44 @@ class AppModel extends Model
             $this->schemaInspector = new SchemaInspector($this->getDataSource());
         }
         return $this->schemaInspector;
+    }
+
+    /**
+     * The engine's spelling for the constructs both engines can express.
+     *
+     * Anything that is only a spelling difference goes through here rather than
+     * behind an isMysql() branch at the call site; anything structural belongs
+     * in SchemaInspector, and anything that is a pure optimisation belongs in
+     * checkDbSupport().
+     *
+     * @return SqlDialect
+     */
+    public function getSqlDialect()
+    {
+        if ($this->sqlDialect === null) {
+            $this->sqlDialect = new SqlDialect($this->getDataSource());
+        }
+        return $this->sqlDialect;
+    }
+
+    /**
+     * Bring this table's auto-increment counter back in line with its contents,
+     * after rows were inserted with the key set by hand.
+     *
+     * Does nothing on MySQL, which tracks the high-water mark itself. The four
+     * call sites that used to open-code this each carried their own engine
+     * branch and their own hand-written setval() - one of them branching on the
+     * configured datasource *name* rather than on the engine.
+     *
+     * @param string $column The auto-incrementing column.
+     * @return void
+     */
+    public function resetAutoIncrement($column = 'id')
+    {
+        $sql = $this->getSqlDialect()->resetSequence($this->table, $column);
+        if ($sql !== null) {
+            $this->query($sql);
+        }
     }
 
     /**

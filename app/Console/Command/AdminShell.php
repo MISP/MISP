@@ -1714,8 +1714,9 @@ class AdminShell extends AppShell
             'width' => 50,
         ]);
 
+        $dialect = $this->Server->getSqlDialect();
         foreach ($tables as $table) {
-            $dataSource->query('OPTIMIZE TABLE ' . $dataSource->name($table));
+            $dataSource->query($dialect->optimizeTable($table));
             $progress->increment();
             $progress->draw();
         }
