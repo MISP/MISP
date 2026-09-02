@@ -29,17 +29,17 @@ class MISPElementHTMLFormatterTool
                             text-overflow: ellipsis;
                             white-space: nowrap;
                             line-height: 23px;"
-                    >domain-ip</span>
+                    >%s</span>
                 </span>
                 <span
                     style=""
                 >
                     <span
                         style="margin: 2px 3px; color: #0088cc; line-height: 23px;"
-                    >google.com</span>
+                    >%s</span>
                 </span>
             </span>',
-            $attribute['type'], $attribute['value']);
+            h($attribute['type']), h($attribute['value']));
         return $html;
     }
 
@@ -79,7 +79,7 @@ class MISPElementHTMLFormatterTool
                     >%s</span>
                 </span>
             </span>',
-            $object['name'], $attribute['object_relation'], $attribute['value']);
+            h($object['name']), h($attribute['object_relation']), h($attribute['value']));
         return $html;
     }
 
@@ -123,7 +123,7 @@ class MISPElementHTMLFormatterTool
                     >%s</span>
                 </span>
             </span>',
-            $object['name'], $firstAttributeValue);
+            h($object['name']), h($firstAttributeValue));
         return $html;
     }
 
@@ -144,7 +144,7 @@ class MISPElementHTMLFormatterTool
                     line-height: 14px;
                     font-size: 12px;"
             >%s</span>',
-            $tag['colour'], $tag['text_colour'], h($tag['name']));
+            h($tag['colour']), h($tag['text_colour']), h($tag['name']));
         return $html;
     }
 
