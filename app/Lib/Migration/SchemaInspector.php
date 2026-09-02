@@ -247,19 +247,30 @@ class SchemaInspector
      * column that appears in several indexes reports the first, which is what
      * the SHOW INDEX loop this replaces did.
      *
+     * Membership, not position: an index over (org_id, date) answers for both
+     * of its columns. That is deliberately looser than hasIndex(), which asks
+     * about an exact ordered column set, and it is the question the callers
+     * being replaced were really asking - `SHOW INDEX ... WHERE Column_name`
+     * matches a column wherever it sits in the index.
+     *
      * @param string $table
      * @param string $column
+     * @param bool|null $unique Constrain to unique/non-unique indexes; null matches either.
      * @return string|null
      */
-    public function indexNameForColumn($table, $column)
+    public function indexNameForColumn($table, $column, $unique = null)
     {
         foreach ($this->indexes($table) as $name => $index) {
             if (!isset($index['column'])) {
                 continue;
             }
-            if (in_array($column, (array)$index['column'], true)) {
-                return $name;
+            if (!in_array($column, (array)$index['column'], true)) {
+                continue;
             }
+            if ($unique !== null && (bool)$index['unique'] !== (bool)$unique) {
+                continue;
+            }
+            return $name;
         }
         return null;
     }

@@ -2312,14 +2312,16 @@ class ServersController extends AppController
         $currentIndex = $updateProgress['current'];
         $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
         $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        // Empty on an engine with no process list of its own, which degrades the
+        // screen to no live DDL state rather than erroring.
+        $sqlInfo = $this->Server->getSchemaInspector()->runningQueries();
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sqlInfo as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
-                    $sqlInfo = $row['PROCESSLIST'];
+            foreach ($sqlInfo as $row) {
+                if (isset($row['INFO']) && preg_replace('/\s{2,}/', '', $row['INFO']) == $lookupString) {
+                    $sqlInfo = $row;
                     break;
                 }
             }

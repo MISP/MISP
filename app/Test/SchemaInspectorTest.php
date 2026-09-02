@@ -320,6 +320,20 @@ class SchemaInspectorTest extends TestCase
         $this->assertNull($this->inspector->indexNameForColumn('no_such_table', 'id'));
     }
 
+    /**
+     * The uniqueness filter is what lets checkIndexExists() keep asking the
+     * question it always asked - SHOW INDEX ... AND Non_unique = 0/1 - without
+     * writing the SQL for it.
+     */
+    public function testIndexNameForColumnCanBeConstrainedToUniqueness()
+    {
+        $this->assertSame('uuid', $this->inspector->indexNameForColumn('events', 'uuid', true));
+        $this->assertNull($this->inspector->indexNameForColumn('events', 'uuid', false));
+
+        $this->assertSame('lookup', $this->inspector->indexNameForColumn('events', 'org_id', false));
+        $this->assertNull($this->inspector->indexNameForColumn('events', 'org_id', true));
+    }
+
     public function testTableRowEstimateReadsInformationSchemaOnMysql()
     {
         $reader = $this->mysqlReader(array(array(array('row_estimate' => '4711'))));

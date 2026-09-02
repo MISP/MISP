@@ -30,6 +30,7 @@ App::uses('BetterCakeEventManager', 'Tools');
 App::uses('Folder', 'Utility');
 App::uses('MigrationRunner', 'Migration');
 App::uses('MigrationManager', 'Migration');
+App::uses('SchemaInspector', 'Migration');
 App::uses('LegacyMigrationsTrait', 'Migration');
 
 class AppModel extends Model
@@ -64,6 +65,9 @@ class AppModel extends Model
 
     /** @var MigrationManager|null */
     private $migrationManager = null;
+
+    /** @var SchemaInspector|null */
+    private $schemaInspector = null;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -182,27 +186,31 @@ class AppModel extends Model
         return $isAccepted;
     }
 
+    /**
+     * Is this column indexed, with this uniqueness?
+     *
+     * Membership rather than position, matching what the SHOW INDEX query this
+     * replaces asked: an index over (org_id, date) answers for either column.
+     *
+     * @param string $table
+     * @param string $column_name
+     * @param bool $is_unique Match unique indexes rather than non-unique ones.
+     * @return bool
+     */
     public function checkIndexExists($table, $column_name, $is_unique = false): bool
     {
-        $query = sprintf(
-            'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
-            $table,
-            $column_name,
-            !empty($is_unique) ? '0' : '1'
-        );
-        $existing_index = $this->query($query);
-        return !empty($existing_index);
+        $inspector = $this->getSchemaInspector();
+        return $inspector->indexNameForColumn($table, $column_name, !empty($is_unique)) !== null;
     }
 
+    /**
+     * @param string $table
+     * @param string $index_name
+     * @return bool
+     */
     public function checkNamedIndexExists($table, $index_name): bool
     {
-        $query = sprintf(
-            'SHOW INDEX FROM %s WHERE Key_name = \'%s\';',
-            $table,
-            $index_name
-        );
-        $existing_index = $this->query($query);
-        return !empty($existing_index);
+        return $this->getSchemaInspector()->hasNamedIndex($table, $index_name);
     }
 
     public function cleanCacheFiles()
@@ -571,6 +579,25 @@ class AppModel extends Model
     }
 
     /**
+     * The live schema, for anything that needs to know what the database
+     * actually holds rather than what the models say it should.
+     *
+     * The migration system reaches it through MigrationManager; runtime code
+     * asks here. Same class either way, on purpose - the two used to hand-write
+     * their own information_schema and SHOW queries and could disagree about
+     * whether an index existed.
+     *
+     * @return SchemaInspector
+     */
+    public function getSchemaInspector()
+    {
+        if ($this->schemaInspector === null) {
+            $this->schemaInspector = new SchemaInspector($this->getDataSource());
+        }
+        return $this->schemaInspector;
+    }
+
+    /**
      * How much work runUpdates() has left to do, legacy and migrations together.
      *
      * Replaces the arithmetic the progress UI used to do for itself
@@ -865,12 +892,17 @@ class AppModel extends Model
 
     /**
      * Returns estimated number of table rows
+     *
+     * The estimate is now taken for *this* connection's database. The query
+     * this replaced filtered on the table name alone and took the first row, so
+     * on a server hosting more than one MISP it answered with whichever
+     * same-named table information_schema happened to list first.
+     *
      * @return int
      */
     public function tableRows()
     {
-        $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
-        return $rows[0]['TABLES']['TABLE_ROWS'];
+        return $this->getSchemaInspector()->tableRowEstimate($this->table);
     }
 
     // start a benchmark run for the given bench name
@@ -1809,35 +1841,25 @@ class AppModel extends Model
         return false;
     }
 
+    /**
+     * @param string $column
+     * @return string|null The index this column belongs to, if any.
+     */
     public function getIndexNameForColumn($column)
     {
-        $table = $this->table;
-
-        $indexes = $this->query("SHOW INDEX FROM `$table`");
-
-        foreach ($indexes as $index) {
-            if (
-                isset($index['STATISTICS']['Column_name']) &&
-                $index['STATISTICS']['Column_name'] === $column
-            ) {
-                return $index['STATISTICS']['Key_name'];
-            }
-        }
-        return null;
+        return $this->getSchemaInspector()->indexNameForColumn($this->table, $column);
     }
 
-    public function indexExists($table, $indexName) {
-        $db = $this->getDataSource();
-        $databaseName = $db->config['database'];
-
-        $query = "
-            SELECT COUNT(1) AS found
-            FROM information_schema.STATISTICS
-            WHERE TABLE_SCHEMA = ?
-            AND TABLE_NAME = ?
-            AND INDEX_NAME = ?
-        ";
-
-        return (bool)$this->query($query, [$databaseName, $table, $indexName])[0][0]['found'];
+    /**
+     * Same question as checkNamedIndexExists(), kept because both are public
+     * and callers exist for each.
+     *
+     * @param string $table
+     * @param string $indexName
+     * @return bool
+     */
+    public function indexExists($table, $indexName)
+    {
+        return $this->getSchemaInspector()->hasNamedIndex($table, $indexName);
     }
 }

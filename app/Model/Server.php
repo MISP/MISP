@@ -3354,6 +3354,20 @@ class Server extends AppModel
         return $existingServer[$this->alias]['id'];
     }
 
+    /**
+     * How much disk every table costs, keyed by table name.
+     *
+     * `used` and `reclaimable` are the human-readable forms the diagnostics
+     * screen renders; the `_in_bytes` trio is what LogShell and the Overmind
+     * theme do arithmetic on.
+     *
+     * The two engines used to answer in different shapes as well as different
+     * SQL - MySQL keyed by table with the byte figures, PostgreSQL an unkeyed
+     * list without them, which meant `dbSpaceUsage()['logs']` simply did not
+     * work there. One shape now, out of SchemaInspector.
+     *
+     * @return array
+     */
     public function dbSpaceUsage()
     {
         $inMb = function ($value) {
@@ -3361,49 +3375,19 @@ class Server extends AppModel
         };
 
         $result = [];
-        if ($this->isMysql()) {
-            $sql = sprintf(
-                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-
-            foreach ($sqlResult as $temp) {
-                $result[$temp['tables']['TABLE_NAME']] = [
-                    'table' => $temp['tables']['TABLE_NAME'],
-                    'used' => $inMb($temp['tables']['DATA_LENGTH'] + $temp['tables']['INDEX_LENGTH']),
-                    'reclaimable' => $inMb($temp['tables']['DATA_FREE']),
-                    'data_in_bytes' => (int) $temp['tables']['DATA_LENGTH'],
-                    'index_in_bytes' => (int) $temp['tables']['INDEX_LENGTH'],
-                    'reclaimable_in_bytes' => (int) $temp['tables']['DATA_FREE'],
-                ];
-            }
-
-        } else {
-            $sql = sprintf(
-                'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
-                "'" . $this->getDataSource()->config['database'] . "'",
-                "'.'",
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-            foreach ($sqlResult as $temp) {
-                foreach ($temp[0] as $k => $v) {
-                    if ($k == "table") {
-                        continue;
-                    }
-                    $temp[0][$k] = $inMb($v);
-                }
-                $temp[0]['reclaimable'] = '0 MB';
-                $result[] = $temp[0];
-            }
+        foreach ($this->getSchemaInspector()->tableSizes() as $table => $size) {
+            $result[$table] = [
+                'table' => $table,
+                'used' => $inMb($size['total_in_bytes']),
+                'reclaimable' => $inMb($size['reclaimable_in_bytes']),
+                'data_in_bytes' => $size['data_in_bytes'],
+                'index_in_bytes' => $size['index_in_bytes'],
+                'reclaimable_in_bytes' => $size['reclaimable_in_bytes'],
+            ];
         }
         return $result;
     }
 
-    /**
-     * @return array
-     */
     public function redisInfo()
     {
         $output = [
@@ -3485,42 +3469,36 @@ class Server extends AppModel
         return $schemaDiagnostic;
     }
 
-    /*
-     * Get RDBMS configuration values
+    /**
+     * The engine settings MISP has a recommendation for, and what they are set
+     * to right now.
+     *
+     * No engine branch any more, and none needed: the recommendations are all
+     * MySQL tunable names, and an engine that has none of them simply matches
+     * nothing and gets an empty list - which is exactly what the isMysql()
+     * branch used to return by hand. The SESSION_VARIABLES / session_variables
+     * key-casing dance is gone too; that existed only because Model::query()
+     * nests a raw row under a driver-dependent table name.
+     *
+     * @return array
      */
     public function dbConfiguration(): array
     {
-        if ($this->isMysql()) {
-            $configuration = [];
-
-            $dbVariables = $this->query("SHOW VARIABLES;");
-            $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
-
-            foreach ($dbVariables as $dbVariable) {
-                // different rdbms have different casing
-                if (isset($dbVariable['SESSION_VARIABLES'])) {
-                    $dbVariable = $dbVariable['SESSION_VARIABLES'];
-                } elseif (isset($dbVariable['session_variables'])) {
-                    $dbVariable = $dbVariable['session_variables'];
-                } else {
-                    continue;
-                }
-
-                if (in_array($dbVariable['Variable_name'], $settings)) {
-                    $configuration[] = [
-                        'name' => $dbVariable['Variable_name'],
-                        'value' => $dbVariable['Value'],
-                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['default'],
-                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['recommended'],
-                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['explanation'],
-                    ];
-                }
+        $configuration = [];
+        $variables = $this->getSchemaInspector()->serverVariables();
+        foreach (self::MYSQL_RECOMMENDED_SETTINGS as $name => $recommendation) {
+            if (!isset($variables[$name])) {
+                continue;
             }
-
-            return $configuration;
-        } else {
-            return [];
+            $configuration[] = [
+                'name' => $name,
+                'value' => $variables[$name],
+                'default' => $recommendation['default'],
+                'recommended' => $recommendation['recommended'],
+                'explanation' => $recommendation['explanation'],
+            ];
         }
+        return $configuration;
     }
 
     /*
