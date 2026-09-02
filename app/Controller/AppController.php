@@ -34,12 +34,24 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '216';
+    /**
+     * Width of the window Security.pre_auth_flood_filter_threshold is counted
+     * over, in seconds. Fixed: the setting is the budget, not the window.
+     */
+    const PRE_AUTH_FLOOD_WINDOW = 900;
+
+    private $__queryVersion = '215';
     public $pyMispVersion = '2.5.34.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
     private $isApiAuthed = false;
+
+    /**
+     * Memoised result of __carriesApiKey(), which beforeFilter asks twice.
+     * @var bool|null
+     */
+    private $__carriesApiKeyCache = null;
 
     /** @var redis */
     private $redis = null;
@@ -241,8 +253,14 @@ class AppController extends Controller
 
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
-            $this->Security->unlockedActions = [$action];
-            $this->Security->doNotGenerateToken = true;
+            // Being REST does not by itself earn an exemption from form security -
+            // see __carriesApiKey(). A request that only looks REST rides the
+            // regular SecurityComponent checks instead; that costs a GET nothing,
+            // since Cake does not validate a request with no body.
+            if ($this->__carriesApiKey()) {
+                $this->Security->unlockedActions = [$action];
+                $this->Security->doNotGenerateToken = true;
+            }
         }
 
         if (
@@ -258,15 +276,31 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
 
-                // disable CSRF for REST access
-                $this->Security->csrfCheck = false;
+                // disable CSRF for API key access - a session-authenticated caller
+                // keeps it, whatever content type it negotiated
+                if ($this->__carriesApiKey()) {
+                    $this->Security->csrfCheck = false;
+                }
+                // A REST caller holding neither an API key nor a session is
+                // unauthenticated whatever __loginByAuthKey() is about to decide,
+                // and the failure path below writes an auth_fail entry of its own.
+                // Spend the budget here, ahead of that write, rather than in the
+                // unauthenticated branch further down that this one never reaches.
+                if (!$this->__carriesApiKey() && !$this->Session->read(AuthComponent::$sessionKey)) {
+                    $this->__preAuthFloodFilter();
+                }
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
                     if ($this->IndexFilter->isXhr()) {
                         throw new ForbiddenException('Authentication failed.');
                     }
 
-                    if ($loginByAuthKeyResult === null) {
+                    // Throttled like its siblings, and keyed on the source
+                    // address rather than on anything the caller supplied: this
+                    // branch is reached precisely because no key was presented,
+                    // and a key derived from attacker input would let a caller
+                    // mint an unbounded number of Redis entries.
+                    if ($loginByAuthKeyResult === null && $this->_shouldLog('noauthkey:' . $this->User->_remoteIp())) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
                     }
@@ -399,6 +433,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
+            $this->__preAuthFloodFilter();
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
@@ -478,15 +513,102 @@ class AppController extends Controller
                 $this->set('onboardingAutostart', true);
             }
 
-            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
-            if (!empty($homepage)) {
-                $this->set('homepage', $homepage);
+            $homepagePath = $this->User->UserSetting->getHomepagePath($user['id']);
+            if ($homepagePath !== '') {
+                $this->set('homepage', array('path' => $homepagePath));
             }
 
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
         }
+    }
+
+    /**
+     * Mark actions that are only ever reached by hand-built same-origin AJAX.
+     *
+     * Such a caller has no rendered form behind it, so it cannot produce the
+     * field hash `_validatePost()` compares against - that check can only ever
+     * fail for it. CSRF protection is kept rather than dropped: the caller sends
+     * the page's token in the `X-CSRF-Token` header, which
+     * `BetterSecurityComponent::_validateCsrf()` accepts and which a cross-origin
+     * page cannot attach without a preflight.
+     *
+     * This is not `unlockedActions`, which switches both checks off. Call it from
+     * beforeFilter(), after parent::beforeFilter().
+     *
+     * @param array $actions
+     * @return void
+     */
+    protected function _csrfTokenHeaderOnly(array $actions)
+    {
+        if (in_array($this->request->params['action'], $actions, true)) {
+            $this->Security->validatePost = false;
+        }
+    }
+
+    /**
+     * Whether this request presents a MISP API key, as opposed to riding a
+     * browser session.
+     *
+     * `_isRest()` is established from the URL suffix or from the Accept header,
+     * and a cross-origin page controls both: `Accept: application/json` is a
+     * CORS-safelisted header, so it travels on a simple request that is never
+     * preflighted. Granting an exemption from form security on that basis let any
+     * site drive a state change on a victim's session, so the exemption is
+     * granted on the credential instead. An API key cannot be attached
+     * cross-origin without a preflight, which this instance refuses unless
+     * `Security.allow_cors` names the origin.
+     *
+     * This deliberately does not check that the key is *valid* - that is
+     * `__loginByAuthKey()`'s job, and it runs a few lines further down the same
+     * beforeFilter, rejecting the request outright when a key is present but
+     * wrong. All this decides is whether the caller is speaking API or browser.
+     *
+     * @return bool
+     */
+    private function __carriesApiKey()
+    {
+        if ($this->__carriesApiKeyCache !== null) {
+            return $this->__carriesApiKeyCache;
+        }
+        $this->__carriesApiKeyCache = false;
+        // A session established by an API key keeps the exemption, so
+        // Security.authkey_keep_session still works for the requests that follow.
+        $sessionUser = $this->Auth->user();
+        if (!empty($sessionUser['logged_by_authkey'])) {
+            $this->__carriesApiKeyCache = true;
+            return true;
+        }
+        $candidates = [];
+        if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $candidates[] = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        if (!empty($_SERVER['HTTP_X_MISP_AUTH'])) {
+            $candidates[] = $_SERVER['HTTP_X_MISP_AUTH'];
+        }
+        if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->request->params['named']['apikey'])) {
+            $candidates[] = $this->request->params['named']['apikey'];
+        }
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate)) {
+                continue;
+            }
+            // Once a user has authenticated to a fronting web server the browser
+            // attaches Basic credentials to every request by itself, including a
+            // cross-site one, so their presence says nothing about who initiated
+            // it. __loginByAuthKey() skips them too.
+            if (strcasecmp(substr($candidate, 0, 5), 'Basic') === 0) {
+                continue;
+            }
+            foreach (explode(',', $candidate) as $authKey) {
+                if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($authKey))) {
+                    $this->__carriesApiKeyCache = true;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -573,8 +695,12 @@ class AppController extends Controller
                     $this->Session->destroy();
                 }
             } else {
-                    $this->loadModel('Log');
-                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
+                    // Keyed on the source address for the same reason as above -
+                    // the malformed key itself is unbounded caller input.
+                    if ($this->_shouldLog('badauthkeylength:' . $this->User->_remoteIp())) {
+                        $this->loadModel('Log');
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
+                    }
             }
             return false;
         }
@@ -960,6 +1086,77 @@ class AppController extends Controller
         }
     }
 
+    /**
+     * Per-source request budget for callers that have not authenticated.
+     *
+     * Every pre-auth surface MISP exposes does durable work before it knows who
+     * is calling: users/forgot writes an audit entry and queues a background
+     * job, users/register writes an inbox entry, and a REST request carrying no
+     * API key writes an auth_fail entry. None of that can be gated on identity,
+     * so an anonymous flood costs storage on every request. This caps it per
+     * source address.
+     *
+     * Both call sites establish that the caller is unauthenticated first: the
+     * REST one requires no API key and no session, and the other is the branch
+     * beforeFilter() takes when Auth resolved nobody. A session, an automation
+     * key and a synchronisation pull are therefore never counted.
+     *
+     * The key is the source address alone and never the submitted identity,
+     * because a budget that varied with the address supplied would answer
+     * "does this account exist?".
+     *
+     * Off by default: the right budget depends on whether the instance sits
+     * behind a shared egress address.
+     *
+     * @return void
+     */
+    private function __preAuthFloodFilter()
+    {
+        if (!Configure::read('Security.pre_auth_flood_filter_enable')) {
+            return;
+        }
+        // One charge per request. An uncaught exception hands the request to
+        // CakeErrorController, which extends this class and runs beforeFilter a
+        // second time - so without this an anonymous REST call would spend two
+        // units of a budget the setting describes in requests.
+        if (Configure::read('CurrentRequestPreAuthCounted')) {
+            return;
+        }
+        Configure::write('CurrentRequestPreAuthCounted', true);
+        $threshold = (int)Configure::read('Security.pre_auth_flood_filter_threshold');
+        if ($threshold <= 0) {
+            $threshold = 100;
+        }
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return; // Redis unavailable - fail open, as RateLimitComponent::check() does
+        }
+        $key = 'misp:pre_auth_flood:' . $this->User->_remoteIp();
+        $count = $redis->incr($key);
+        // The expiry rides the first request of a window and is never extended,
+        // so a blocked source is released when that window ends however hard it
+        // keeps knocking. The ttl test covers a process dying between the two
+        // calls, which would otherwise leave a key with no expiry at all.
+        if ($count === 1 || $redis->ttl($key) < 0) {
+            $redis->expire($key, self::PRE_AUTH_FLOOD_WINDOW);
+        }
+        if ($count > $threshold) {
+            // Deliberately no log entry per refused request: writing one would
+            // reinstate the flood this exists to stop.
+            $response = $this->RestResponse->throwException(
+                429,
+                __('Too many requests from this address before authenticating. Please try again later.'),
+                '/' . $this->request->params['controller'] . '/' . $this->request->params['action'],
+                false,
+                false,
+                ['X-Rate-Limit-Reset' => $redis->ttl($key)]
+            );
+            $response->send();
+            $this->_stop();
+        }
+    }
+
     private function __rateLimitCheck(array $user)
     {
         $rateLimitCheck = $this->RateLimit->check(
@@ -1007,11 +1204,6 @@ class AppController extends Controller
                 'start_time' => $this->start_time,
                 'sql_time' => $sql_time
             ]);
-
-            //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
-                //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
-                //return true;
-            //}
 
         }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
@@ -1335,7 +1527,16 @@ class AppController extends Controller
                 $user = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
                 if ($user) {
                     $this->User->updateLoginTimes($user);
-                    //$this->Session->renew();
+                    // Rotate the session id, but only when this request is a genuinely
+                    // new authentication - this helper runs from beforeFilter() on every
+                    // request, and renewing unconditionally destroys the old session on
+                    // each one, which is what 26ad0ef60 disabled it for in 2023. Compare
+                    // the id alone: updateLoginTimes() above mutates the user array, so a
+                    // whole-array comparison would differ every time and reinstate that.
+                    $sessionUser = $this->Session->read(AuthComponent::$sessionKey);
+                    if (empty($sessionUser['id']) || (int)$sessionUser['id'] !== (int)$user['id']) {
+                        $this->Session->renew();
+                    }
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
@@ -1750,15 +1951,41 @@ class AppController extends Controller
      */
     protected function _shouldLog($key)
     {
+        // At most one entry per key per request, whatever the hourly throttle
+        // decides. beforeFilter() runs a second time for any request that ends in
+        // an exception - CakeErrorController extends this class and
+        // ExceptionRenderer::_getController() calls startupProcess() on it - and
+        // that is a different instance, so the memo is request scoped rather than
+        // a property. Two passes over one request are not two failures, which
+        // holds even for an operator who has asked for every individual one.
+        $alreadyLogged = Configure::read('CurrentRequestAuthFailKeys') ?: [];
+        if (isset($alreadyLogged[$key])) {
+            return false;
+        }
+
+        $shouldLog = false;
         if (Configure::read('Security.log_each_individual_auth_fail')) {
-            return true;
+            $shouldLog = true;
+        } else {
+            $redis = $this->User->setupRedis();
+            if (!$redis) {
+                // setupRedis() answers false rather than throwing, and this is a
+                // throttle rather than a gate: when it cannot reach the state that
+                // tells it what has already been logged, it must degrade to logging
+                // everything, not to silence. A Redis outage is precisely when an
+                // administrator still wants failed authentications in the audit log.
+                $shouldLog = true;
+            } elseif (!$redis->exists('misp:auth_fail_throttling:' . $key)) {
+                $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+                $shouldLog = true;
+            }
         }
-        $redis = $this->User->setupRedis();
-        if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
-            $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
-            return true;
+
+        if ($shouldLog) {
+            $alreadyLogged[$key] = true;
+            Configure::write('CurrentRequestAuthFailKeys', $alreadyLogged);
         }
-        return false;
+        return $shouldLog;
     }
 
     /**

@@ -5972,6 +5972,20 @@ class Event extends AppModel
                             return array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.');
                         }
                     }
+                } elseif (!isset($data['Event']['distribution']) && !empty($data['Event']['sharing_group_id'])) {
+                    // A sharing group submitted with no distribution at all still reaches
+                    // the save: the recoverFields loop below restores distribution from the
+                    // stored event, so an event already at distribution 4 keeps that value
+                    // and this id is persisted. Authorise it rather than leaving the gate
+                    // keyed on a field the caller can simply omit.
+                    // Deliberately narrow. A payload that *states* a non-4 distribution is
+                    // left alone: beforeValidate() zeroes the id for it, so there is no hole
+                    // to close, and rejecting it instead would turn a silent normalisation
+                    // into a failed pull for any peer that sends a stale id alongside a
+                    // non-sharing-group distribution.
+                    if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+                        return array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.');
+                    }
                 }
                 // If the above is true, we have two more options:
                 // For users that are of the creating org of the event, always allow the edit

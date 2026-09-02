@@ -6,6 +6,14 @@ class CollectionsController extends AppController
 
     public $components = ['Session', 'RequestHandler'];
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // Posted by hand-built AJAX from the event and index collection panels,
+        // which sends the CSRF token as the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['getCollectionsForElements']);
+    }
+
     public $paginate = [
         'limit' => 60,
         'order' => []
