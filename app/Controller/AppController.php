@@ -1201,11 +1201,6 @@ class AppController extends Controller
                 'sql_time' => $sql_time
             ]);
 
-            //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
-                //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
-                //return true;
-            //}
-
         }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();
@@ -1956,7 +1951,15 @@ class AppController extends Controller
             return true;
         }
         $redis = $this->User->setupRedis();
-        if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
+        if (!$redis) {
+            // setupRedis() answers false rather than throwing, and this is a
+            // throttle rather than a gate: when it cannot reach the state that
+            // tells it what has already been logged, it must degrade to logging
+            // everything, not to silence. A Redis outage is precisely when an
+            // administrator still wants failed authentications in the audit log.
+            return true;
+        }
+        if (!$redis->exists('misp:auth_fail_throttling:' . $key)) {
             $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
             return true;
         }
