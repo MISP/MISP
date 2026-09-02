@@ -1,11 +1,16 @@
 <?php
-$this->Paginator->options([
-    'url' => [
-        'controller' => 'events',
-        'action'     => 'viewEventReports',
-        $event['Event']['id'],
-    ]
-]);
+$paginatorUrl = [
+    'controller' => 'events',
+    'action'     => 'viewEventReports',
+    $event['Event']['id'],
+];
+if (!empty($extended)) {
+    $paginatorUrl['extended'] = 1;
+}
+if (!empty($extending)) {
+    $paginatorUrl['extending'] = 1;
+}
+$this->Paginator->options(['url' => $paginatorUrl]);
 ?>
 
 <?php echo $this->element('EventReports/index', [
@@ -15,6 +20,9 @@ $this->Paginator->options([
 <script>
 (function () {
     var eventId      = '<?= h($event['Event']['id']) ?>';
+    // Carries the extended / extending mode over every reload this tab drives.
+    var reportsBase  = baseurl + '/events/viewEventReports/' + eventId
+                     + <?= json_encode($extensionSuffix ?? '') ?>;
     var _sel         = '.ajax-tab-content[data-url*="viewEventReports"]';
     var _msgFail     = <?= json_encode(__('Could not load event reports.')) ?>;
     var _labelActive = <?= json_encode(__('Active filters')) ?>;
@@ -51,10 +59,7 @@ $this->Paginator->options([
                     container,
                     searchTerm,
                     function () {
-                        loadEventReports(
-                            baseurl + '/events/viewEventReports/' + eventId,
-                            ''
-                        );
+                        loadEventReports(reportsBase, '');
                     },
                     _labelActive,
                     _labelClear
@@ -68,7 +73,7 @@ $this->Paginator->options([
     function buildReportsUrl() {
         var field = document.querySelector(_sel + ' #filterField');
         var value = field ? field.value.trim() : '';
-        var url   = baseurl + '/events/viewEventReports/' + eventId;
+        var url   = reportsBase;
         if (value) url += '/searchFor:' + encodeURIComponent(value);
         return url;
     }
@@ -105,9 +110,7 @@ $this->Paginator->options([
             var href  = link.getAttribute('href');
             var match = href.match(/page[:\-](\d+)/);
             var page  = match ? match[1] : '1';
-            loadEventReports(
-                baseurl + '/events/viewEventReports/' + eventId + '/page:' + page
-            );
+            loadEventReports(reportsBase + '/page:' + page);
         });
     }
 }());

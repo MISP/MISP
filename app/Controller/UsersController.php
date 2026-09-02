@@ -40,6 +40,8 @@ class UsersController extends AppController
         }
         $this->Auth->allow($allowedActions);
 
+        $this->Security->unlockedActions[] = 'onboardingSeen';
+
         parent::beforeFilter();
     }
 
@@ -1386,6 +1388,7 @@ class UsersController extends AppController
     private function _postlogin()
     {
         $authUser = $this->Auth->user();
+
         if (empty($authUser['disabled'])) {
             $this->User->extralog($authUser, "login");
         }
@@ -1412,6 +1415,20 @@ class UsersController extends AppController
         if ($lastUserLogin) {
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
+        } else {
+            // Brand new account: arm the onboarding tour
+            $this->User->UserSetting->setSettingInternal(
+                $authUser['id'], 'onboarding_pending', true
+            );
+        }
+
+        // Mirror the marker into the session so that rendering a page costs a
+        // session lookup rather than a query.
+        $onboardingPending = $this->User->UserSetting->getValueForUser(
+            $authUser['id'], 'onboarding_pending'
+        );
+        if (!empty($onboardingPending)) {
+            $this->Session->write('Overmind.onboarding_pending', true);
         }
 
         if (Configure::read('Security.alert_on_suspicious_logins')) {
@@ -2760,6 +2777,58 @@ class UsersController extends AppController
     public function checkIfLoggedIn()
     {
         return new CakeResponse(array('body'=> 'OK','status' => 200));
+    }
+
+    /**
+     * Clear the one-shot onboarding marker.
+     *
+     * Called by the tour the moment it is displayed rather than when it is
+     * finished: a user who skips it straight away has still been offered it,
+     * and should not be interrupted again on their next login.
+     */
+    public function onboardingSeen()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        $this->User->UserSetting->setSettingInternal(
+            $this->Auth->user('id'), 'onboarding_pending', false
+        );
+        $this->Session->delete('Overmind.onboarding_pending');
+        return $this->RestResponse->saveSuccessResponse(
+            'Users', 'onboardingSeen', false, 'json',
+            __('Onboarding tour marked as seen.')
+        );
+    }
+
+    /**
+     * Step catalogue for the Overmind onboarding tour.
+     *
+     * Served on demand rather than embedded in every page: the catalogue is
+     * only needed once a tour actually starts. Steps are filtered against
+     * the requesting user's ACL so the tour never points at an action they
+     * are not allowed to perform.
+     */
+    public function onboarding()
+    {
+        App::uses('OnboardingTour', 'Tools');
+        $user = $this->Auth->user();
+        $acl = $this->ACL;
+        $canAccess = function ($controller, $action) use ($acl, $user) {
+            try {
+                return $acl->canUserAccess($user, $controller, $action);
+            } catch (Exception $e) {
+                // An action that no longer exists must not break the tour.
+                return false;
+            }
+        };
+        return $this->RestResponse->viewData(
+            array(
+                'sections' => OnboardingTour::sections($canAccess),
+                'strings' => OnboardingTour::uiStrings(),
+            ),
+            'json'
+        );
     }
 
     public function admin_monitor($id)

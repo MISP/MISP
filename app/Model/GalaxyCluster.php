@@ -1052,6 +1052,52 @@ class GalaxyCluster extends AppModel
     }
 
     /**
+     * Conditions matching a cluster name the way a search box is expected to,
+     * rather than the way a bare LIKE does.
+     *
+     * `galaxy_clusters` is a utf8mb3_bin table, so `value LIKE '%apt%'` is case
+     * sensitive and never reaches `APT 28` — every comparison here goes
+     * through LOWER() instead, the same way LogsController searches the
+     * (equally binary) `logs` table. The query is then cut into fragments on
+     * separators and on letter/digit boundaries, and each fragment has to
+     * appear in one of $fields, so "apt 28", "28 apt", "apt-28" and "apt28"
+     * all reach "APT 28".
+     * Cutting on everything that is not a letter or a digit also drops the LIKE
+     * wildcards % and _, keeping a typed one from matching the whole catalogue.
+     *
+     * @param  string $q      the raw user query
+     * @param  array  $fields columns to match, ORed together per fragment
+     * @return array  a list of condition branches to AND together, empty when
+     *                the query holds nothing searchable
+     */
+    public function valueSearchConditions(
+        $q,
+        array $fields = ['GalaxyCluster.value']
+    ) {
+        $fragments = preg_split(
+            '/[^\p{L}\p{N}]+|(?<=\p{L})(?=\p{N})|(?<=\p{N})(?=\p{L})/u',
+            mb_strtolower((string)$q),
+            -1,
+            PREG_SPLIT_NO_EMPTY
+        ) ?: [];
+        /* One LIKE per fragment — cap it so a pasted paragraph stays cheap */
+        $fragments = array_slice($fragments, 0, 8);
+
+        $branches = [];
+        foreach ($fragments as $fragment) {
+            $branch = [];
+            foreach ($fields as $field) {
+                $branch['LOWER(' . $field . ') LIKE'] = '%' . $fragment . '%';
+            }
+            if (empty($branch)) {
+                continue;
+            }
+            $branches[] = count($branch) > 1 ? ['OR' => $branch] : $branch;
+        }
+        return $branches;
+    }
+
+    /**
      * fetchGalaxyClusters Very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
      *
      * @param  mixed $user

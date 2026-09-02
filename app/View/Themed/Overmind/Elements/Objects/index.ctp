@@ -7,12 +7,15 @@ $page      = (int)($page  ?? 1);
 $limit     = (int)($limit ?? 60);
 $totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
 $window     = 2;
-$objectsUrl = '/events/viewObjects/' . $eventId;
+// The extended / extending mode rides along on every URL this list builds,
+// so a filter, a toggle or a page change never falls back to the atomic view.
+$objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
 
 $namedParams     = $this->request->params['named'] ?? [];
 $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
-$toggleDeleted   = $currentDeleted ? 0 : 1;
+// deleted:2 is "only what holds something soft-deleted"
+$toggleDeleted   = $currentDeleted ? 0 : 2;
 $toggleProposal  = $currentProposal ? 0 : 1;
 // Fallback hrefs (the JS rebuilds the real URL); each preserves the other toggle.
 $toggleUrl       = $baseurl . $objectsUrl
@@ -34,6 +37,11 @@ $canTagObj = isset($event)
 
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
+
+// Extended / extending event view: an object can belong to any event of the
+// merged set, so its card says which one and wears that event's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
 
 // Inline helper: render a small distribution badge. A named function has no
 // $this, so the lib is called statically rather than through the helper.
@@ -126,8 +134,26 @@ function _objDistBadge($dist) {
             $expandForProposal = $currentProposal && $hasProposal;
         ?>
 
-        <?php $isDeleted = !empty($object['deleted']); ?>
+        <?php
+            $isDeleted = !empty($object['deleted']);
+            $objOrigin = $inExtensionView
+                ? ($extensionEvents[(int)($object['event_id'] ?? 0)] ?? null)
+                : null;
+            $objForeign = $objOrigin !== null && $objOrigin['role'] !== 'self';
+            $objStyle = $objForeign ? sprintf(
+                'border-left:4px solid %s !important;background:%s;',
+                $objOrigin['palette']['badgeBorder'],
+                $objOrigin['palette']['sectionBg']
+            ) : '';
+            // A merged object belongs to another event, whose editing and
+            // tagging rights are not the same as the current event's.
+            $objCanEdit = $objOrigin === null
+                ? $canEdit : !empty($objOrigin['mayModify']);
+            $objCanTag = $objOrigin === null
+                ? $canTagObj : !empty($objOrigin['mayModifyTag']);
+        ?>
         <div class="accordion-item shadow-sm mb-2 rounded border<?= $isDeleted ? ' opacity-50' : '' ?>"
+             style="<?= h($objStyle) ?>"
              data-primary-id="<?= $objId ?>">
 
             <!-- Card header -->
@@ -208,7 +234,7 @@ function _objDistBadge($dist) {
                         || !empty($object['uuid'])
                         || !empty($object['first_seen'])
                         || !empty($object['last_seen'])
-                        || $canEdit
+                        || $objCanEdit
 
                     ): ?>
                     <div class="px-3 py-2 bg-light border-bottom
@@ -269,7 +295,7 @@ function _objDistBadge($dist) {
                             </span>
                         <?php endif; ?>
 
-                        <?php if ($canEdit): ?>
+                        <?php if ($objCanEdit): ?>
                             <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
                             onclick="event.preventDefault(); openModal('<?= $baseurl ?>/objects/edit/<?= $objId ?>');"
                             class="btn btn-sm btn-outline-secondary ms-auto">
@@ -282,7 +308,7 @@ function _objDistBadge($dist) {
                             ?>
                             <a href="<?= $delUrl ?>"
                             class="btn btn-sm btn-outline-danger"
-                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'sm');">
+                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'md');">
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
@@ -296,7 +322,7 @@ function _objDistBadge($dist) {
                             <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
-                            <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
+                            <div class="<?= $objCanEdit ? '' : 'ms-auto' ?>">
                                 <?= $this->element('AnalystData/add_controls', [
                                     'objectType' => 'Object',
                                     'objectUuid' => $object['uuid'] ?? '',
@@ -350,7 +376,7 @@ function _objDistBadge($dist) {
                                                 class="item-checkbox form-check-input
                                                        mass-select mt-0"
                                                 data-item-id="<?= $attrId ?>"
-                                                data-can-delete="<?= $canEdit ? '1' : '0' ?>"
+                                                data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
                                             >
                                         </div>
                                     </td>
@@ -409,7 +435,7 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'       => 'AttributeTag',
-                                                    'add_tag'         => $canTagObj,
+                                                    'add_tag'         => $objCanTag,
                                                     'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
                                                     'add_tag_id_path' => 'id',
                                                 ],
@@ -426,7 +452,7 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'          => 'Galaxy',
-                                                    'add_galaxy'         => $canTagObj,
+                                                    'add_galaxy'         => $objCanTag,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',
                                                 ],
@@ -528,7 +554,7 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
-                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
+                                                    <?php if ($objCanEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
                                                     <li>
                                                         <a class="dropdown-item justify-content-start"
                                                            href="#"
@@ -538,7 +564,7 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
-                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
+                                                    <?php if ($objCanEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
                                                     <li>
                                                         <a class="dropdown-item justify-content-start"
                                                            href="#"
@@ -548,7 +574,7 @@ function _objDistBadge($dist) {
                                                         </a>
                                                     </li>
                                                     <?php endif; ?>
-                                                    <?php if ($canEdit): ?>
+                                                    <?php if ($objCanEdit): ?>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
                                                         <a class="dropdown-item justify-content-start"
@@ -561,7 +587,7 @@ function _objDistBadge($dist) {
                                                     <li>
                                                         <a class="dropdown-item text-danger justify-content-start"
                                                            href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'sm');">
+                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'md');">
                                                             <i class="fas fa-trash me-2"></i>
                                                             <?= __('Delete') ?>
                                                         </a>
@@ -778,7 +804,7 @@ function _objDistBadge($dist) {
             loadObjects(buildObjectsUrl());
         });
     }
-    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 1; });
+    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
 
     // Pagination link clicks

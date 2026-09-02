@@ -7,7 +7,13 @@ $data = Hash::extract($row, $field['data_path']);
  * holds a URL template with a %id% placeholder, resolved from
  * $field['add_tag_id_path'] (falls back to $row['id']).
  */
-$allowAddTag = !empty($field['add_tag']);
+// A callable lets the caller decide per row — an extended event view
+// grants the button on the rows of the events you can actually tag.
+$allowAddTag = $field['add_tag'] ?? false;
+if (is_callable($allowAddTag)) {
+    $allowAddTag = $allowAddTag($row);
+}
+$allowAddTag = !empty($allowAddTag);
 $addUrl      = null;
 if ($allowAddTag) {
     $addId = Hash::get($row, $field['add_tag_id_path'] ?? 'id');

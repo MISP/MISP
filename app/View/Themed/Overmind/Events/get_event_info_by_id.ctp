@@ -15,7 +15,7 @@ if (empty($event)):
 ?>
 <div class="d-flex align-items-start gap-2 p-2 rounded border mt-1"
      style="border-color:#d8dde3; font-size:.8rem;">
-    <i class="fas fa-circle-exclamation text-warning mt-1"
+    <i class="fas fa-circle-exclamation text-warning mt-2"
        style="font-size:.75rem; flex-shrink:0;"></i>
     <span class="text-muted"><?= h($msg) ?></span>
 </div>
@@ -31,7 +31,7 @@ if (empty($event)):
     $analysisLabel = $analysisLevels[$eAnalysis] ?? '';
     $threatDot     = $threatColors[$eThreat] ?? '#adb5bd';
 ?>
-<div class="rounded border mt-1 overflow-hidden js-extends-event-card"
+<div class="rounded border mt-2 overflow-hidden js-extends-event-card"
      data-extends-uuid="<?= h($eUuid) ?>"
      title="<?= h(__('Click to use this event\'s UUID')) ?>"
      style="border-color:var(--primary); font-size:.8rem; cursor:pointer;">

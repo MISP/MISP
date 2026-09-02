@@ -891,13 +891,10 @@ class DashboardsController extends AppController
             'GalaxyCluster.type'    => $galaxyType,
             'GalaxyCluster.deleted' => 0,
         ];
-        if ($q !== '') {
-            // LIKE with %wrapped% substring match. CakePHP escapes
-            // the right-hand value, but `%` and `_` are LIKE wildcards
-            // — strip them from user input so the search behaves as
-            // a plain substring lookup, not a pattern match.
-            $cleanQ = str_replace(['%', '_'], '', $q);
-            $conditions['GalaxyCluster.value LIKE'] = '%' . $cleanQ . '%';
+        // More permissive matching when searching for a cluster name
+        $search = $this->GalaxyCluster->valueSearchConditions($q);
+        if (!empty($search)) {
+            $conditions['AND'] = $search;
         }
         // Scope to clusters the requesting user is allowed to see. Unlike
         // organisation names, cluster values are distribution-controlled

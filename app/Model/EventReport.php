@@ -478,7 +478,9 @@ class EventReport extends AppModel
      * Paginated ACL-aware fetch for an event's reports.
      *
      * Supports options: page, limit, sort, direction,
-     *   deleted (0=active, 1=all, 2=only deleted), searchFor
+     *   deleted (0=active, 1=all, 2=only deleted), searchFor,
+     *   eventIds (int[], extended / extending view: every event whose reports
+     *   belong in the list)
      *
      * Returns:
      *   ['EventReport' => [...], 'total' => int,
@@ -509,9 +511,16 @@ class EventReport extends AppModel
             $sort = 'timestamp';
         }
 
+        // In an extended / extending view the list spans every event merged into it.
+        $eventIds = empty($options['eventIds'])
+            ? [(int)$eventId]
+            : array_values(array_unique(array_map(
+                'intval', (array)$options['eventIds']
+            )));
+
         $conditions = $this->buildACLConditions($user);
         $conditions['AND'][] = [
-            'EventReport.event_id' => $eventId,
+            'EventReport.event_id' => $eventIds,
         ];
 
         $deleted = (int)($options['deleted'] ?? 0);

@@ -40,26 +40,13 @@ echo $this->Form->create('SharingGroupBlueprint', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Sharing Group Blueprints') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Blueprint') : __('Add Blueprint') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A rule over organisations, evaluated on demand to build and keep a sharing group up to date.') ?>
-        </p>
-    </div>
-    <i class="fas fa-sitemap text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Sharing Group Blueprints'),
+    'title' => $isEdit ? __('Edit Blueprint') : __('Add Blueprint'),
+    'description' => __('A rule over organisations, evaluated on demand to build and keep a sharing group up to date.'),
+    'icon' => 'fas fa-sitemap',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -84,11 +71,9 @@ echo $this->Form->create('SharingGroupBlueprint', [
                 'placeholder' => __('e.g. European financial institutions'),
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Also used as the name of the sharing group the blueprint creates.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Also used as the name of the sharing group the blueprint creates.'),
+            ]) ?>
         </div>
 
         <!-- ── RULES ───────────────────────────────────────────── -->
@@ -186,33 +171,12 @@ echo $this->Form->create('SharingGroupBlueprint', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Blueprint') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Nothing is created until the blueprint is executed from the index.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Blueprint')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('Blueprint'), 'id' => $id]] : [],
+        'hint' => __('Nothing is created until the blueprint is executed from the index.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Blueprint')],
+    ]) ?>
 
 </div>
 

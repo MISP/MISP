@@ -4,7 +4,7 @@ $entry = ($isEdit && !empty($blockEntry['EventBlocklist']))
     ? $blockEntry['EventBlocklist']
     : [];
 
-echo $this->element('genericElementsBS5/Forms/blocklist_form', [
+echo $this->element('genericElementsBS5/Modals/blocklist_form', [
     'model' => 'EventBlocklist',
     'isEdit' => $isEdit,
     'eyebrow' => __('Event Blocklist'),

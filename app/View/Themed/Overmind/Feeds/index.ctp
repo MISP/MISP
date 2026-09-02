@@ -48,7 +48,7 @@ if ($isSiteAdmin) {
                 'label' => __('Fetch and store all feed data'),
                 'icon' => 'circle-arrow-down',
                 'url' => $baseurl . '/feeds/fetchSelectedFeeds/all',
-                'size' => 'sm',
+                'size' => 'md',
             ],
         ],
     ];
@@ -368,7 +368,7 @@ $fields = [
                 'label' => __('Fetch all events'),
                 'icon' => 'circle-arrow-down',
                 'url' => $baseurl . '/feeds/fetchSelectedFeeds/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function (array $row) {
                     return !empty($row['Feed']['enabled']);
                 },

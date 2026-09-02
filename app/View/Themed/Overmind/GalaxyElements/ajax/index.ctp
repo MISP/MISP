@@ -71,7 +71,7 @@ if ($canModify) {
                 'icon' => 'trash',
                 'class' => 'text-danger',
                 'url' => $baseurl . '/galaxy_elements/deleteSelection/%id%',
-                'size' => 'sm',
+                'size' => 'md',
             ],
         ],
     ];
