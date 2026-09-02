@@ -40,6 +40,17 @@ App::uses('RedisTool', 'Tools');
  * boolean column is an error, so quoting is what keeps `'Alias.flag' => 0`
  * working in a join condition Cake cannot type.
  *
+ * **What an unqualified ORDER BY means.** MySQL resolves an ORDER BY name
+ * against the select list before the tables, so `'order' => 'date_created
+ * DESC'` on a find that joins User sorts by the primary model's column even
+ * though User has one too. PostgreSQL resolves it against the joined tables
+ * and rejects the ambiguity. Cake's order() only quotes such a key; order()
+ * here qualifies it with the model's alias when the model has that field,
+ * which is what MySQL's rule comes to for the statements Cake writes, since
+ * the primary model's fields lead the select list. A key the model does not
+ * own - an aggregate alias, a function, a joined model's column - is left
+ * alone.
+ *
  * **What the operator sees in the logs.** Every statement is prefixed with
  * the user, controller and action the way MysqlObserver's are, timed the
  * same way, and reported to the same slow-query log when benchmarking is on.
@@ -190,6 +201,81 @@ class PostgresObserverExtended extends Postgres
         }
         $this->_result->closeCursor();
         return false;
+    }
+
+    /**
+     * ORDER BY with MySQL's resolution of an unqualified name. See the class
+     * docblock.
+     *
+     * @param array|string $keys
+     * @param string $direction
+     * @param Model|null $Model
+     * @return string
+     */
+    public function order($keys, $direction = 'ASC', ?Model $Model = null)
+    {
+        if ($Model !== null) {
+            $keys = $this->qualifyOrderKeys($keys, $Model);
+        }
+        return parent::order($keys, $direction, $Model);
+    }
+
+    /**
+     * Walk the shapes Cake's order() accepts - a string, a comma-separated
+     * string, a list of 'field DIR' strings, a map of field => DIR, nested
+     * arrays of those - and qualify each bare field the model owns.
+     *
+     * @param mixed $keys
+     * @param Model $Model
+     * @return mixed The same shape, with qualified keys.
+     */
+    private function qualifyOrderKeys($keys, Model $Model)
+    {
+        if (is_string($keys)) {
+            // The same split Cake's order() makes, so each part is seen alone.
+            if (strpos($keys, ',') !== false && !preg_match('/\(.+\,.+\)/', $keys)) {
+                $parts = [];
+                foreach (explode(',', $keys) as $part) {
+                    $parts[] = $this->qualifyOrderKey(trim($part), $Model);
+                }
+                return $parts;
+            }
+            return $this->qualifyOrderKey($keys, $Model);
+        }
+        if (!is_array($keys)) {
+            return $keys; // an expression object
+        }
+        $qualified = [];
+        foreach ($keys as $key => $direction) {
+            if (is_numeric($key)) {
+                $qualified[$key] = $this->qualifyOrderKeys($direction, $Model);
+            } else {
+                $qualified[$this->qualifyOrderKey($key, $Model)] = $direction;
+            }
+        }
+        return $qualified;
+    }
+
+    /**
+     * One 'field' or 'field DIR': prefixed with the model's alias when it is
+     * a bare name of a column the model has. Anything else - already
+     * qualified, an expression, an alias from the select list, a virtual
+     * field - is returned untouched.
+     *
+     * @param string $key
+     * @param Model $Model
+     * @return string
+     */
+    private function qualifyOrderKey($key, Model $Model)
+    {
+        if (!preg_match('/^\s*([A-Za-z_][A-Za-z0-9_]*)(\s+(?:ASC|DESC))?\s*$/i', $key, $match)) {
+            return $key;
+        }
+        $field = $match[1];
+        if (!$Model->hasField($field) || $Model->isVirtualField($field)) {
+            return $key;
+        }
+        return $Model->alias . '.' . trim($key);
     }
 
     /**

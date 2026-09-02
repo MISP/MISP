@@ -41,6 +41,44 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
         }
     }
 
+    /**
+     * Just enough of Cake's Model for order() to ask what a model owns. Named
+     * Model because that is the type DboSource::order() declares; no test under
+     * app/Test/ loads the real one.
+     */
+    class Model
+    {
+        public $alias;
+
+        private $fields;
+
+        public function __construct($alias, array $fields)
+        {
+            $this->alias = $alias;
+            $this->fields = $fields;
+        }
+
+        public function hasField($name, $checkVirtual = false)
+        {
+            return in_array($name, $this->fields, true);
+        }
+
+        public function isVirtualField($field)
+        {
+            return false;
+        }
+
+        public function getVirtualField($field)
+        {
+            return null;
+        }
+
+        public function __get($name)
+        {
+            return null;
+        }
+    }
+
     class DatasourceTestResultSet
     {
         private $rows;
@@ -58,6 +96,22 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
         public function closeCursor()
         {
         }
+    }
+}
+
+if (!function_exists('pluginSplit')) {
+    // DboSource::order() calls this from Cake's basics.php, which the bare
+    // suite does not load. Same guard basics.php itself uses.
+    function pluginSplit($name, $dotAppend = false, $plugin = null)
+    {
+        if (strpos($name, '.') !== false) {
+            $parts = explode('.', $name, 2);
+            if ($dotAppend) {
+                $parts[0] .= '.';
+            }
+            return $parts;
+        }
+        return array($plugin, $name);
     }
 }
 
@@ -233,5 +287,46 @@ class DatasourceCapabilitiesTest extends TestCase
             $db->fetchResult()
         );
         $this->assertFalse($db->fetchResult());
+    }
+
+    /**
+     * MySQL resolves an unqualified ORDER BY name against the select list, so
+     * `'order' => 'date_created DESC'` on News, which joins User, sorts by
+     * News.date_created. PostgreSQL would call that ambiguous - the very error
+     * the first login on PostgreSQL produced - so the datasource qualifies a
+     * bare field the model owns, in every shape Cake's order() accepts.
+     */
+    public function testOrderQualifiesABareFieldTheModelOwnsTheWayMysqlResolvesIt()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $News = new Model('News', array('id', 'date_created', 'user_id'));
+
+        $expected = ' ORDER BY "News"."date_created" DESC';
+        $this->assertSame($expected, $db->order('date_created DESC', 'ASC', $News), 'a string');
+        $this->assertSame($expected, $db->order(array('date_created DESC'), 'ASC', $News), 'a list');
+        $this->assertSame($expected, $db->order(array('date_created' => 'DESC'), 'ASC', $News), 'a map');
+        $this->assertSame($expected, $db->order('date_created', 'DESC', $News), 'the direction argument');
+
+        $expected = ' ORDER BY "News"."date_created" DESC, "News"."id" ASC';
+        $this->assertSame($expected, $db->order('date_created DESC, id', 'ASC', $News), 'a comma-separated string');
+        $this->assertSame($expected, $db->order(array(array('date_created' => 'DESC'), 'id'), 'ASC', $News), 'nested');
+    }
+
+    /**
+     * Only a bare name of a column the model has is touched. An already
+     * qualified key, a joined model's column, an aggregate alias from the
+     * select list and a function are what they were - and with no model to
+     * ask, order() is Cake's.
+     */
+    public function testOrderLeavesEverythingTheModelDoesNotOwnAlone()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $News = new Model('News', array('id', 'date_created', 'user_id'));
+
+        $this->assertSame(' ORDER BY "User"."date_created" DESC', $db->order('User.date_created DESC', 'ASC', $News));
+        $this->assertSame(' ORDER BY "email" ASC', $db->order('email', 'ASC', $News));
+        $this->assertSame(' ORDER BY "attr_count" DESC', $db->order(array('attr_count DESC'), 'ASC', $News));
+        $this->assertSame(' ORDER BY RANDOM() ASC', $db->order('RANDOM()', 'ASC', $News));
+        $this->assertSame(' ORDER BY "date_created" DESC', $db->order('date_created DESC'));
     }
 }
