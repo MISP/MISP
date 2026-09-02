@@ -1322,7 +1322,7 @@ class Server extends AppModel
                 $sgIds = array(-1);
             }
             $tableName = $this->Event->EventReport->table;
-            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
@@ -3210,7 +3210,7 @@ class Server extends AppModel
                     $sgIds = [-1];
                 }
                 $tableName = $this->Event->EventReport->table;
-                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
                 $findParams = [
                     'conditions' => [
                         $eventid_conditions_key => $eventid_conditions_value,
