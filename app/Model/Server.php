@@ -7789,7 +7789,7 @@ class Server extends AppModel
                 ],
                 'enable_svg_logos' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('When enabled, organisations logos in svg format are allowed.'),
+                    'description' => __('When enabled, SVG images are accepted as organisation logos and as event report pictures. SVG files are served with a sandboxing Content-Security-Policy so any script they carry cannot run in the browser; they still remain XML documents rather than bitmaps, so leave this disabled unless you need it.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
