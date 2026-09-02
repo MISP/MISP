@@ -219,6 +219,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => 'Organisation.id',
             'row_dblclick_url' => $baseurl . '/organisations/view/%id%',
             'filter_bar' => $scaffoldFilterBar,

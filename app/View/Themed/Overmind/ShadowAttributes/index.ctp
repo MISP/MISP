@@ -36,7 +36,7 @@ $fields = [
         'name' => __('Proposed value'),
         'sort' => 'value',
         'data_path' => 'ShadowAttribute.value',
-        'card_section' => 'meta',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -44,7 +44,7 @@ $fields = [
         'sort' => 'category',
         'data_path' => 'ShadowAttribute.category',
         'element' => 'category',
-        'card_section' => 'meta',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -52,7 +52,7 @@ $fields = [
         'sort' => 'type',
         'data_path' => 'ShadowAttribute.type',
         'element' => 'type',
-        'card_section' => 'meta',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -66,10 +66,8 @@ $fields = [
         'name' => __('Change requested'),
         'sort' => 'old_id',
         'data_path' => 'ShadowAttribute.old_id',
-        'element' => 'boolean',
-        'colors' => true,
-        'class' => 'short',
-        'card_section' => 'meta',
+        'element' => 'flag',
+        'card_section' => 'top',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -86,7 +84,7 @@ $fields = [
         'name' => __('Created'),
         'sort' => 'timestamp',
         'data_path' => 'ShadowAttribute.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'created',
         'class' => 'short',
         'card_section' => 'meta',
@@ -127,6 +125,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $shadowAttributes,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

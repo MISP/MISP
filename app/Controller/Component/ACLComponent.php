@@ -605,6 +605,7 @@ class ACLComponent extends Component
             'add' => array('perm_add'),
             'addValueField' => array('perm_add'),
             'delete' => array('perm_add'),
+            'deleteSelection' => array('AND' => ['perm_add', 'theming_enabled']),
             'edit' => array('perm_add'),
             'get_row' => array('perm_add'),
             'orphanedObjectDiagnostics' => array(),

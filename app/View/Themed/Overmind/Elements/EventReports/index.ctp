@@ -53,7 +53,7 @@ $fields = [
     [
         'name' => __('Last Modified'),
         'data_path' => 'EventReport.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'card_section' => 'meta',
         'display_in' => ['card']
     ],
@@ -133,6 +133,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $reports,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

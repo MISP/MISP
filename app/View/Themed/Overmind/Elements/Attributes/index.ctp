@@ -386,25 +386,41 @@ $children = [
     [
         'type' => 'search',
         'button' => 'Search',
-        "placeholder" => "Filter by attribute value"
+        'placeholder' => __('Filter by attribute value'),
     ]
 ];
 
+// Inside an event the attribute tab reloads itself over ajax and drives its own
+// URLs (Events/view_attributes.ctp). The global index has no such wrapper: its
+// controls write the filters AttributesController::index() harvests, and they
+// write them into the query string rather than into named URL segments - an
+// attribute value is free text, and `https://host/path/` cannot survive as a
+// path segment (see the `transport` note in filter_bar.ctp). This is the same
+// reason the default theme's attributes/search POSTs its expression field.
+if (!$inEventView) {
+    $children[0]['mode'] = 'legacy';
+    $children[0]['name'] = 'value';
+    $children[0]['chip_label'] = __('Value');
+}
+
 if (!empty($show_filters)) {
+    $myOrg = !empty($me['Organisation']['name'])
+        ? $me['Organisation']['name']
+        : $me['org_id'];
     $children = array_merge($children, [
         [
             'type' => 'button',
             'label' => __('My attributes'),
             'icon' => 'misp-icon misp-icon-user1 misp-simple',
             'class' => 'btn btn-primary',
-            'url' => $baseurl . '/attributes/index/searchemail:' . urlencode($me['email'])
+            'url' => $baseurl . '/attributes/index?email=' . urlencode($me['email'])
         ],
         [
             'type' => 'button',
             'label' => __('Org attributes'),
             'icon' => 'misp-icon misp-icon-organisation misp-simple',
             'class' => 'btn btn-primary',
-            'url' => $baseurl . '/attributes/index/searchorg:' . urlencode($me['org_id'])
+            'url' => $baseurl . '/attributes/index?org=' . urlencode($myOrg)
         ]
     ]);
 }
@@ -458,7 +474,7 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
                 [
                     'type' => 'dropdown',
                     'label' => __('Tags'),
-                    'name' => 'tag',
+                    'name' => 'tags',
                     'options' => $tagOptions ?? []
                 ],
                 [
@@ -509,10 +525,26 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
 }
 
 
+$filterBar = [
+    'pull' => 'right',
+    'children' => $children,
+    'soft_delete' => '/deleteSelection',
+];
+
+if (!$inEventView) {
+    $filterBar['transport'] = 'query';
+    $queryFilters = array_diff_key(
+        $this->request->query ?? [],
+        array_flip(['page', 'limit', 'sort', 'direction'])
+    );
+    $this->Paginator->options(['url' => ['?' => $queryFilters]]);
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $attributes,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => $path('id'),
             'row_class_callable' => function($row) use ($inExtensionView, $extensionEvents) {
                 $classes = [];
@@ -543,10 +575,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     $origin['palette']['badgeBorder']
                 );
             },
-            'filter_bar' => [
-                'pull' => 'right',
-                'children' => $children,
-                'soft_delete' => '/deleteSelection',
+            'filter_bar' => $filterBar + [
                 // 'mass_edit' => 1,
                 // 'mass_tag' => 1,
                 // 'mass_local_tag' => 1,

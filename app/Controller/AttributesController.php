@@ -57,7 +57,7 @@ class AttributesController extends AppController
     {
         $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
         foreach ($multiLineFields as $field) {
-            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+            if (isset($filters[$field]) && is_string($filters[$field]) && strstr($filters[$field], "\n")) {
                 $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
             }
         }
@@ -101,7 +101,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation', 'email', 'galaxy'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -111,6 +111,23 @@ class AttributesController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
+        $filters = $this->__massageGalaxyFilter($filters);
+        // The index filter bar searches for a substring.
+        // Only a value that came in through the URL gets the implicit wildcards - 
+        // the search form (POST) and the API keep matching the value they were handed.
+        $urlValue = $this->request->params['named']['value']
+            ?? ($this->request->query['value'] ?? null);
+        if (
+            !$this->_isRest() &&
+            $urlValue !== null &&
+            isset($filters['value']) &&
+            is_string($filters['value']) &&
+            $filters['value'] !== '' &&
+            !str_contains($filters['value'], '%')
+        ) {
+            $filters['value'] = '%' . $filters['value'] . '%';
+        }
         if (!$this->_isRest()) {
             $search_filters = $this->request->data;
             if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
@@ -152,6 +169,9 @@ class AttributesController extends AppController
         }
         $this->set('params', $params);
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        if (!empty($filters['email'])) {
+            $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
+        }
         $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
         if (!empty($filters['direction'])) {
             $params['direction'] = $filters['direction'];
@@ -261,7 +281,92 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->__setIndexFilterOptions($orgTable);
         $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
+    }
+
+    /**
+     * A galaxy has no filter of its own: narrowing down to one means asking for
+     * the tags its clusters carry (`misp-galaxy:<type>="<uuid>"`).
+     *
+     * @param array $filters
+     * @return array
+     */
+    private function __massageGalaxyFilter(array $filters): array
+    {
+        if (empty($filters['galaxy'])) {
+            unset($filters['galaxy']);
+            return $filters;
+        }
+        $tags = [];
+        foreach ((array)$filters['galaxy'] as $galaxyType) {
+            $tags[] = 'misp-galaxy:' . $galaxyType . '="%"';
+        }
+        if (!empty($filters['tags'])) {
+            $tags = array_merge((array)$filters['tags'], $tags);
+        }
+        $filters['tags'] = $tags;
+        unset($filters['galaxy']);
+        return $filters;
+    }
+
+    /**
+     * Attributes have no creator of their own, so filtering on one lands on the
+     * event they belong to. Only a site admin may look up somebody else's.
+     *
+     * @param array $conditions
+     * @param string $email
+     * @return array
+     */
+    private function __addCreatorConditions(array $conditions, $email): array
+    {
+        $email = trim($email);
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = [
+                'Event.user_id' => strtolower($this->Auth->user('email')) === strtolower($email)
+                    ? $this->Auth->user('id')
+                    : -1
+            ];
+            return $conditions;
+        }
+        $userIds = $this->User->find('column', [
+            'fields' => ['User.id'],
+            'conditions' => ['User.email LIKE' => '%' . strtolower($email) . '%'],
+        ]);
+        $conditions['AND'][] = ['Event.user_id' => empty($userIds) ? [-1] : $userIds];
+        return $conditions;
+    }
+
+    /**
+     * Option lists for the index filter bar. Galaxy tags are left out of the
+     * tag list, the galaxy dropdown covers them and there are thousands.
+     *
+     * @param array $orgTable Orgc rows keyed by id, as fetched by index()
+     * @return void
+     */
+    private function __setIndexFilterOptions(array $orgTable)
+    {
+        $categoryKeys = array_keys($this->MispAttribute->categoryDefinitions);
+        $this->set('categoryOptions', ['' => ''] + array_combine($categoryKeys, $categoryKeys));
+        $typeKeys = array_keys($this->MispAttribute->typeDefinitions);
+        sort($typeKeys);
+        $this->set('typeOptions', ['' => ''] + array_combine($typeKeys, $typeKeys));
+
+        $orgNames = array_column($orgTable, 'name');
+        sort($orgNames);
+        $this->set('orgOptions', ['' => ''] + array_combine($orgNames, $orgNames));
+
+        $this->set('tagOptions', ['' => ''] + $this->MispAttribute->AttributeTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'conditions' => ['Tag.is_galaxy' => 0],
+            'order' => ['Tag.name' => 'ASC'],
+        ]));
+
+        $this->loadModel('Galaxy');
+        $this->set('galaxyOptions', ['' => ''] + $this->Galaxy->find('list', [
+            'fields' => ['Galaxy.type', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC'],
+        ]));
     }
 
     public function add($eventId = false)
@@ -417,7 +522,7 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $this->Flash->success($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     }
                 } else {
                     $this->Flash->error($message);
@@ -427,7 +532,7 @@ class AttributesController extends AppController
                 }
                 if ($successes > 0) {
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }

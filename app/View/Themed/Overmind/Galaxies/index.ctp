@@ -97,6 +97,15 @@ if ($isSiteAdmin && !empty($unknownClustersDetails)) {
  */
 $fields = [
     [
+        'name' => __('Creator Org'),
+        'sort' => 'Galaxy.orgc_id',
+        'data_path' => 'Orgc',
+        'element' => 'organisation',
+        'default_org' => __('Default galaxy'),
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
         'element' => 'checkbox',
         'data_path' => 'Galaxy.id',
         'enable_path' => 'Galaxy.enabled',
@@ -161,7 +170,7 @@ $fields = [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Galaxy.id',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'actions' => [
             [
                 'type' => 'navigate',
@@ -224,6 +233,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $galaxyList,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

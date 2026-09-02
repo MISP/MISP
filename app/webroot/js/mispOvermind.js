@@ -449,11 +449,20 @@ function isMobile() {
     return window.innerWidth < 1000;
 }
 
+function animateIndexView(el) {
+    if (!el) return;
+    el.classList.remove('idx-view-anim');
+    void el.offsetWidth;
+    el.classList.add('idx-view-anim');
+}
+
 function setView(view, save = true) {
     const tableView = document.getElementById('tableView');
     const cardView  = document.getElementById('cardView');
     const viewList  = document.getElementById('viewList');
     const viewCard  = document.getElementById('viewCard');
+    // Only a deliberate toggle launch the animation
+    if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');
@@ -821,7 +830,26 @@ function testSyncRule(id, method) {
 }
 
 
-function testConnection(id) {
+/*
+ * The two remote probes below are shared by the servers table view and the
+ * servers card view. The table renders `connection_test_<id>` /
+ * `sync_user_test_<id>` containers, the card view draws its own panels, and
+ * both views live in the DOM at once — so a caller can hand over its own
+ * container rather than fight over duplicate ids.
+ */
+function resolveServerTestContainer(target, fallbackId) {
+    if (target && target.nodeType === 1) return target;
+    if (typeof target === 'string' && target) return document.getElementById(target);
+    return document.getElementById(fallbackId);
+}
+
+// Both probes announce their outcome so a view can dress itself around the
+// result (the card view flips its header badge and tint on this).
+function announceServerTest(name, detail) {
+    document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+}
+
+function testConnection(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -831,15 +859,16 @@ function testConnection(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("connection_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "connection_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
 
     resultContainer.innerHTML = '<span class="text-muted">' +
         '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
         '</span>';
+    announceServerTest('misp:server-connection', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/testConnection/' + id)
+    return fetch(baseurl + '/servers/testConnection/' + id)
         .then(response => response.json())
         .then(function(result) {
 
@@ -984,14 +1013,20 @@ function testConnection(id) {
             }
 
             resultContainer.innerHTML = html;
+            announceServerTest('misp:server-connection', {
+                id: id,
+                state: result.status === 1 ? 'ok' : 'down',
+                status: result.status
+            });
         })
         .catch(function() {
             resultContainer.innerHTML = '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-connection', { id: id, state: 'down' });
         });
 }
 
 
-function getRemoteSyncUser(id) {
+function getRemoteSyncUser(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -1001,11 +1036,12 @@ function getRemoteSyncUser(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("sync_user_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "sync_user_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
+    announceServerTest('misp:server-sync-user', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/getRemoteUser/' + id)
+    return fetch(baseurl + '/servers/getRemoteUser/' + id)
         .then(function(response) {
             resultContainer.innerHTML = '<span class="text-muted">' +
                 '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
@@ -1018,11 +1054,14 @@ function getRemoteSyncUser(id) {
             if (typeof response !== 'object' || response === null) {
                 resultContainer.innerHTML =
                     '<span class="text-danger fw-semibold">Internal error</span>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else if ("error" in response) {
                 resultContainer.innerHTML =
                     '<div class="text-danger fw-semibold">Error: #' +
                     esc(response.error) + '</div>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else {
+                announceServerTest('misp:server-sync-user', { id: id, state: 'ok' });
                 var wrapper = document.createElement('div');
                 wrapper.className = 'border rounded p-2 bg-light';
                 Object.keys(response).forEach(function(key) {
@@ -1039,6 +1078,7 @@ function getRemoteSyncUser(id) {
         .catch(function() {
             resultContainer.innerHTML =
                 '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
         });
 }
 

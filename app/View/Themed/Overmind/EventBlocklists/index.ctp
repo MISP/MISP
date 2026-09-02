@@ -67,7 +67,7 @@ $fields = [
         'name' => __('Created'),
         'sort' => 'EventBlocklist.created',
         'data_path' => 'EventBlocklist.created',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'created',
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
@@ -116,6 +116,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $response,
+            'cards_per_row' => ['' => 1, 'xxxl' => 2],
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'EventBlocklist.id',
