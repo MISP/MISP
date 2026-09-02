@@ -78,6 +78,9 @@ class SharingGroup extends AppModel
 
     private $authorizedIds = [];
 
+    /** @var array|null Memoised result of `fetchAllSharingGroup()` */
+    private $__allSharingGroups = null;
+
     public function beforeValidate($options = array())
     {
         if (empty($this->data['SharingGroup']['uuid'])) {
@@ -1049,8 +1052,11 @@ class SharingGroup extends AppModel
      */
     public function fetchAllSharingGroup(): array
     {
-        return $this->find('all', [
-            'recursive' => -1,
-        ]);
+        if (is_null($this->__allSharingGroups)) {
+            $this->__allSharingGroups = $this->find('all', [
+                'recursive' => -1,
+            ]);
+        }
+        return $this->__allSharingGroups;
     }
 }
