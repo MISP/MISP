@@ -2347,6 +2347,23 @@ class MispAttribute extends AppModel
 
                 $this->attachTagsToAttributes($batch, $options);
         
+                if (!empty($options['includeDecayScore'])) {
+                    // Let the decaying models fetch the sightings of the whole batch at once
+                    if (!isset($this->Sighting)) {
+                        $this->Sighting = ClassRegistry::init('Sighting');
+                    }
+                    $attributeIdsForSightings = [];
+                    $eventOwnerOrgIdList = [];
+                    foreach ($batch as $attr) {
+                        if (isset($attr['Attribute']['deleted']) && !$attr['Attribute']['deleted'] && isset($attr['Event']['orgc_id'])) {
+                            $attributeIdsForSightings[] = $attr['Attribute']['id'];
+                            $eventOwnerOrgIdList[$attr['Event']['id']] = $attr['Event']['orgc_id'];
+                        }
+                    }
+                    $this->Sighting->setSightingsBatch($user, $attributeIdsForSightings, $eventOwnerOrgIdList);
+                    unset($attributeIdsForSightings, $eventOwnerOrgIdList);
+                }
+
                 // per-attribute pipeline
                 foreach ($batch as $attr) {
                     if (!empty($options['includeContext'])) {
@@ -2436,6 +2453,9 @@ class MispAttribute extends AppModel
                         continue;
                     }
                     $all[] = $attr;
+                }
+                if (!empty($options['includeDecayScore'])) {
+                    $this->Sighting->clearSightingsBatch();
                 }
                 // exit batching if done
                 if ($loop && count($batch) < $params['limit']) {
