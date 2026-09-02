@@ -7551,6 +7551,24 @@ class Event extends AppModel
                 }
             }
         }
+        // The pagination tool jumps to the page holding the focused element by matching
+        // top-level uuids only. An attribute inside an object is not a top-level entry, so
+        // translate the focus to its containing object's uuid to land on the right page.
+        // The client-side scroll still targets the original attribute uuid.
+        if (!empty($passedArgs['focus'])) {
+            $focus = $passedArgs['focus'];
+            foreach ($objects as $object) {
+                if ($object['objectType'] !== 'object' || empty($object['Attribute'])) {
+                    continue;
+                }
+                foreach ($object['Attribute'] as $objectAttribute) {
+                    if (!empty($objectAttribute['uuid']) && $objectAttribute['uuid'] === $focus) {
+                        $passedArgs['focus'] = $object['uuid'];
+                        break 2;
+                    }
+                }
+            }
+        }
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         if ($all) {
