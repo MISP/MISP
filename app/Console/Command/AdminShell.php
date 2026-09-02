@@ -240,6 +240,20 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('verifyInstallBaseline', [
+            'help' => __('Read a database an install baseline was loaded into back through its own driver, and diff it against the reference the baseline was generated from. For developers.'),
+            'parser' => [
+                'options' => [
+                    'connection' => [
+                        'help' => __('The app/Config/database.php connection the baseline was loaded into.'),
+                        'required' => true,
+                    ],
+                    'database' => [
+                        'help' => __('The reference database on the connected MySQL server. Default: the connected database.'),
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('migrateOldTemplates', [
             'help' => __('Convert legacy-style templates (templates / template_elements*) into modern event_templates rows. Org name is resolved by lookup with the first site-admin user\'s org as fallback; legacy MISP-shipped templates are skipped; rows whose name collides with an existing event_template are skipped. Original templates are left untouched.'),
             'parser' => [
@@ -1665,6 +1679,52 @@ class AdminShell extends AppShell
             return;
         }
         $this->out($rendered['sql'], 0);
+    }
+
+    /**
+     * The round trip that makes a generated baseline trustworthy: load it
+     * somewhere, read that back through the driver, diff against the
+     * reference. Exits non-zero on any finding.
+     *
+     * @return void
+     */
+    public function verifyInstallBaseline()
+    {
+        App::uses('BaselineGenerator', 'Migration');
+        App::uses('SchemaInspector', 'Migration');
+
+        $connection = isset($this->params['connection']) ? (string)$this->params['connection'] : '';
+        try {
+            $loaded = ConnectionManager::getDataSource($connection);
+        } catch (Exception $e) {
+            $this->error(__('No usable connection "%s" in app/Config/database.php.', $connection), $e->getMessage());
+        }
+        try {
+            $generator = new BaselineGenerator(
+                $this->Server->getDataSource(),
+                empty($this->params['database']) ? null : (string)$this->params['database']
+            );
+            $schema = $generator->readSchema();
+            $findings = $generator->compare(new SchemaInspector($loaded), $schema);
+        } catch (Exception $e) {
+            $this->error(__('The comparison could not be run.'), $e->getMessage());
+        }
+
+        foreach ($findings as $finding) {
+            $this->out('  ' . $finding);
+        }
+        $this->out(__n(
+            '%s table compared between "%s" and the reference "%s": %s finding.',
+            '%s tables compared between "%s" and the reference "%s": %s findings.',
+            count($schema),
+            count($schema),
+            $connection,
+            $generator->database(),
+            count($findings)
+        ));
+        if (!empty($findings)) {
+            $this->error(__('The loaded baseline does not match the reference.'));
+        }
     }
 
     public function dumpCurrentDatabaseSchema()

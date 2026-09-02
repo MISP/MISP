@@ -186,7 +186,23 @@ class SchemaInspector
             return array();
         }
         $indexes = $this->db->index($table);
-        return is_array($indexes) ? $indexes : array();
+        if (!is_array($indexes)) {
+            return array();
+        }
+        // Postgres::index() reads its column names out of pg_get_indexdef(),
+        // which quotes any identifier that needs it - MISP's 1_event_id family
+        // does - and the quotes come through. Strip them, so a column is
+        // spelled here the way the DSL and the MySQL driver spell it and
+        // hasIndex() can find it.
+        foreach ($indexes as $name => $index) {
+            if (!isset($index['column'])) {
+                continue;
+            }
+            $indexes[$name]['column'] = is_array($index['column'])
+                ? array_map(array($this, 'unquoteIdentifier'), $index['column'])
+                : $this->unquoteIdentifier($index['column']);
+        }
+        return $indexes;
     }
 
     /**
@@ -509,6 +525,15 @@ class SchemaInspector
     private function isMysql()
     {
         return $this->db instanceof Mysql;
+    }
+
+    /**
+     * @param mixed $identifier
+     * @return mixed The identifier without the quotes a driver left on it.
+     */
+    private function unquoteIdentifier($identifier)
+    {
+        return is_string($identifier) ? trim($identifier, '"`') : $identifier;
     }
 
     /**

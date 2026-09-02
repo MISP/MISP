@@ -50,6 +50,82 @@ class BaselineGeneratorTestStub extends BaselineGenerator
     }
 }
 
+/**
+ * A connectionless PostgreSQL datasource with a fixed schema, shaped the way
+ * Postgres::describe() and Postgres::index() shape theirs: boolean defaults
+ * as PHP booleans, index columns quoted when the identifier needs it.
+ */
+class BaselineGeneratorTestLoadedPostgres extends MigrationTestPostgres
+{
+    public $tables = array('correlations', 'admin_settings', 'roles', 'system_settings', 'leftover');
+
+    public $descriptions = array(
+        'correlations' => array(
+            'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11, 'key' => 'primary'),
+            '1_event_id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => null),
+            'value1' => array('type' => 'text', 'null' => false, 'default' => null, 'length' => null),
+            'deleted' => array('type' => 'boolean', 'null' => false, 'default' => false, 'length' => null),
+            'created' => array('type' => 'integer', 'null' => false, 'default' => 'floor(EXTRACT(epoch FROM now()))', 'length' => null),
+        ),
+        'admin_settings' => array(
+            'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11, 'key' => 'primary'),
+            'setting' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255),
+            'value' => array('type' => 'text', 'null' => false, 'default' => null, 'length' => null),
+            'surplus' => array('type' => 'text', 'null' => true, 'default' => null, 'length' => null),
+        ),
+        'roles' => array(
+            'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11, 'key' => 'primary'),
+            'name' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 191),
+            'created' => array('type' => 'datetime', 'null' => true, 'default' => null, 'length' => null),
+            'perm_add' => array('type' => 'boolean', 'null' => false, 'default' => null, 'length' => null),
+        ),
+        'system_settings' => array(
+            'setting' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255, 'key' => 'primary'),
+            'value' => array('type' => 'binary', 'null' => false, 'default' => null, 'length' => null),
+        ),
+        'leftover' => array(
+            'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11, 'key' => 'primary'),
+        ),
+    );
+
+    public $indexData = array(
+        'correlations' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+            'idx_correlations_1_event_id' => array('unique' => false, 'column' => '"1_event_id"'),
+            'idx_correlations_value1' => array('unique' => false, 'column' => 'value1'),
+        ),
+        'admin_settings' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+            'idx_admin_settings_setting' => array('unique' => false, 'column' => 'setting'),
+            'idx_admin_settings_stray' => array('unique' => false, 'column' => 'value'),
+        ),
+        'roles' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+        ),
+        'system_settings' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'setting'),
+        ),
+        'leftover' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+        ),
+    );
+
+    public function listSources($data = null)
+    {
+        return $this->tables;
+    }
+
+    public function describe($model)
+    {
+        return isset($this->descriptions[$model]) ? $this->descriptions[$model] : array();
+    }
+
+    public function index($model)
+    {
+        return isset($this->indexData[$model]) ? $this->indexData[$model] : array();
+    }
+}
+
 class BaselineGeneratorTest extends TestCase
 {
     /** @var MysqlGrammar */
@@ -564,5 +640,41 @@ class BaselineGeneratorTest extends TestCase
         $this->assertNull($generator->databaseVersion());
         $generator->answers = array('db_version' => array(array('value' => '159')));
         $this->assertSame(159, $generator->databaseVersion());
+    }
+
+    // ---------------------------------------------------------- verification
+
+    /**
+     * The fixture is the reference; the loaded datasource above deviates from
+     * it in exactly six ways, and the comparison names each one - and nothing
+     * else, which is the half that matters: the quoted "1_event_id", the
+     * boolean default reported as a PHP false, the expression default spelled
+     * PostgreSQL's way, the hash-rewritten index and the key column's dropped
+     * default are all the round trip being *right*.
+     */
+    public function testTheRoundTripComparisonNamesEveryDeviationAndNothingElse()
+    {
+        $inspector = new SchemaInspector(new BaselineGeneratorTestLoadedPostgres());
+        $findings = $this->generator()->compare($inspector, $this->fixtureSchema());
+        $this->assertSame(array(
+            'admin_settings.surplus: column not in the reference',
+            'admin_settings: index idx_admin_settings_setting is not unique, expected unique',
+            'admin_settings: index idx_admin_settings_stray not in the reference',
+            'roles.name: length 191, expected 100',
+            'roles.perm_add: not null, expected nullable',
+            'leftover: table not in the reference',
+        ), $findings);
+    }
+
+    public function testAnExactRoundTripHasNoFindings()
+    {
+        $db = new BaselineGeneratorTestLoadedPostgres();
+        $db->tables = array('correlations', 'roles', 'system_settings');
+        $db->descriptions['roles']['name']['length'] = 100;
+        $db->descriptions['roles']['perm_add']['null'] = true;
+        $inspector = new SchemaInspector($db);
+        $schema = $this->fixtureSchema();
+        unset($schema['admin_settings']);
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema));
     }
 }

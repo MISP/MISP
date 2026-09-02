@@ -2,6 +2,7 @@
 
 App::uses('AbstractGrammar', 'Migration/Grammar');
 App::uses('SchemaBuilder', 'Migration');
+App::uses('SchemaInspector', 'Migration');
 App::uses('SqlDialect', 'Migration');
 
 /**
@@ -858,6 +859,218 @@ class BaselineGenerator
             ));
         }
         return self::$expressionDefaults[$key][$flavour];
+    }
+
+    // ---------------------------------------------------------- verification
+
+    /**
+     * What each driver's describe() reports for a DSL type, once the baseline
+     * has been loaded and is read back. Mysql::describe() folds every text
+     * tier into text, reads tinyint(1) as boolean, and has no branch for
+     * varbinary at all, so that lands on its fall-through - text.
+     * Postgres::describe() has no tiers to fold and no widths to keep.
+     *
+     * @var array flavour => DSL type => reported type
+     */
+    private static $reportedTypes = array(
+        AbstractGrammar::FLAVOUR_MYSQL => array(
+            'integer' => 'integer', 'biginteger' => 'biginteger',
+            'smallinteger' => 'smallinteger', 'tinyinteger' => 'tinyinteger',
+            'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'varbinary' => 'text', 'datetime' => 'datetime', 'timestamp' => 'timestamp',
+            'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
+        ),
+        AbstractGrammar::FLAVOUR_PGSQL => array(
+            'integer' => 'integer', 'biginteger' => 'biginteger',
+            'smallinteger' => 'smallinteger', 'tinyinteger' => 'smallinteger',
+            'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'varbinary' => 'binary', 'datetime' => 'datetime', 'timestamp' => 'datetime',
+            'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
+        ),
+    );
+
+    /**
+     * Read a loaded baseline back and diff it against the reference's shape.
+     *
+     * The round trip that makes a generated baseline trustworthy: the schema
+     * the reference described, as the DSL saw it, against what the driver's
+     * own describe() and index() report from a database the baseline was
+     * loaded into. Every column's reported type, nullability, string length
+     * and default, every primary key, and every index's column list and
+     * uniqueness are compared, in both directions - a column or index the
+     * loaded database has that the reference did not is a finding too.
+     *
+     * What is normalised, and why: the DSL's boolean default is a MySQL 0/1
+     * where Postgres::describe() hands back a PHP boolean; a CURRENT_TIMESTAMP
+     * default is one Mysql::describe() reports as no default at all; an
+     * expression default is compared by presence, since the two engines spell
+     * it differently by design; and a default on a key column is dropped by
+     * the rendering, so none is expected back. Index names are compared
+     * through the grammar, which is what prefixes them on PostgreSQL.
+     *
+     * @param SchemaInspector $inspector Reading the database the baseline was loaded into.
+     * @param array $schema From readSchema(), off the reference.
+     * @return array Findings, one line each. Empty means the round trip is exact.
+     */
+    public function compare(SchemaInspector $inspector, array $schema)
+    {
+        $grammar = AbstractGrammar::forDataSource($inspector->getDataSource());
+        $flavour = $grammar->flavour();
+        $reported = self::$reportedTypes[$flavour];
+        $findings = array();
+
+        $loadedTables = $inspector->tables();
+        foreach ($schema as $table => $definition) {
+            if (!in_array($table, $loadedTables, true)) {
+                $findings[] = sprintf('%s: table missing', $table);
+                continue;
+            }
+
+            $columns = $inspector->columns($table);
+            foreach ($definition['columns'] as $name => $spec) {
+                if (!isset($columns[$name])) {
+                    $findings[] = sprintf('%s.%s: column missing', $table, $name);
+                    continue;
+                }
+                $actual = $columns[$name];
+                $isKey = !empty($spec['key']);
+
+                $wantType = isset($reported[$spec['type']]) ? $reported[$spec['type']] : $spec['type'];
+                if ($actual['type'] !== $wantType) {
+                    $findings[] = sprintf(
+                        '%s.%s: type %s, expected %s (DSL %s)',
+                        $table, $name, $actual['type'], $wantType, $spec['type']
+                    );
+                }
+
+                $wantNull = !$isKey && !empty($spec['null']);
+                if ((bool)$actual['null'] !== $wantNull) {
+                    $findings[] = sprintf(
+                        '%s.%s: %s, expected %s',
+                        $table, $name, $actual['null'] ? 'nullable' : 'not null', $wantNull ? 'nullable' : 'not null'
+                    );
+                }
+
+                if ($spec['type'] === 'string' && isset($spec['length'])
+                    && (int)$actual['length'] !== (int)$spec['length']
+                ) {
+                    $findings[] = sprintf(
+                        '%s.%s: length %s, expected %s',
+                        $table, $name, var_export($actual['length'], true), $spec['length']
+                    );
+                }
+
+                $finding = $this->compareDefault(
+                    $spec,
+                    $isKey,
+                    isset($definition['expressionDefaults'][$name]),
+                    isset($actual['default']) ? $actual['default'] : null
+                );
+                if ($finding !== null) {
+                    $findings[] = sprintf('%s.%s: %s', $table, $name, $finding);
+                }
+            }
+            foreach (array_keys($columns) as $name) {
+                if (!isset($definition['columns'][$name])) {
+                    $findings[] = sprintf('%s.%s: column not in the reference', $table, $name);
+                }
+            }
+
+            $indexes = $inspector->indexes($table);
+            $primary = isset($indexes['PRIMARY']) ? array_values((array)$indexes['PRIMARY']['column']) : null;
+            unset($indexes['PRIMARY']);
+            if ($definition['primary'] !== null) {
+                if ($primary !== array($definition['primary'])) {
+                    $findings[] = sprintf(
+                        '%s: primary key %s, expected (%s)',
+                        $table, $primary === null ? 'missing' : '(' . implode(', ', $primary) . ')', $definition['primary']
+                    );
+                }
+            } elseif ($primary !== null) {
+                $findings[] = sprintf('%s: primary key (%s) not in the reference', $table, implode(', ', $primary));
+            }
+
+            foreach ($definition['indexes'] as $name => $options) {
+                $physical = $grammar->indexName($table, $options['column'], $options);
+                if (!isset($indexes[$physical])) {
+                    $findings[] = sprintf('%s: index %s missing', $table, $physical);
+                    continue;
+                }
+                $got = $indexes[$physical];
+                $gotColumns = array_values((array)$got['column']);
+                if ($gotColumns !== array_values($options['column'])) {
+                    $findings[] = sprintf(
+                        '%s: index %s over (%s), expected (%s)',
+                        $table, $physical, implode(', ', $gotColumns), implode(', ', $options['column'])
+                    );
+                }
+                if ((bool)$got['unique'] !== (bool)$options['unique']) {
+                    $findings[] = sprintf(
+                        '%s: index %s is %s, expected %s',
+                        $table, $physical, $got['unique'] ? 'unique' : 'not unique', $options['unique'] ? 'unique' : 'not unique'
+                    );
+                }
+                unset($indexes[$physical]);
+            }
+            foreach (array_keys($indexes) as $extra) {
+                $findings[] = sprintf('%s: index %s not in the reference', $table, $extra);
+            }
+        }
+        foreach ($loadedTables as $table) {
+            if (!isset($schema[$table])) {
+                $findings[] = sprintf('%s: table not in the reference', $table);
+            }
+        }
+        return $findings;
+    }
+
+    /**
+     * @param array $spec The DSL column spec.
+     * @param bool $isKey
+     * @param bool $isExpression Whether the reference's default was an expression.
+     * @param mixed $actual What describe() reported.
+     * @return string|null A finding, or null when the defaults agree.
+     */
+    private function compareDefault(array $spec, $isKey, $isExpression, $actual)
+    {
+        $actualIsSet = $actual !== null && $actual !== '';
+        if ($isKey) {
+            // Dropped by the rendering, so nothing is expected back - but a
+            // serial's nextval() is reported by neither driver, so only an
+            // unexpected literal is worth a line.
+            return null;
+        }
+        if ($isExpression) {
+            return $actualIsSet ? null : 'expression default missing';
+        }
+        if (!array_key_exists('default', $spec)) {
+            return $actual === null || $actual === '' && $spec['type'] !== 'string'
+                ? null
+                : 'default ' . var_export($actual, true) . ', expected none';
+        }
+        $want = $spec['default'];
+        if (is_string($want) && strtoupper($want) === 'CURRENT_TIMESTAMP') {
+            // Mysql::describe() reports it as no default; Postgres::describe()
+            // hands the expression back.
+            if ($actual === null || preg_match('/^current_timestamp(\(\))?$/i', (string)$actual)) {
+                return null;
+            }
+            return 'default ' . var_export($actual, true) . ', expected CURRENT_TIMESTAMP';
+        }
+        if ($spec['type'] === 'boolean') {
+            $wantBool = (bool)(int)$want;
+            $actualBool = is_bool($actual) ? $actual : (bool)(int)$actual;
+            if ($actual === null || $wantBool !== $actualBool) {
+                return 'default ' . var_export($actual, true) . ', expected ' . var_export($wantBool, true);
+            }
+            return null;
+        }
+        if ($actual === null || (string)$actual !== (string)$want) {
+            return 'default ' . var_export($actual, true) . ', expected ' . var_export($want, true);
+        }
+        return null;
     }
 
     // --------------------------------------------------------------- helpers

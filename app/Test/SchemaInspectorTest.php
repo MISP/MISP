@@ -47,6 +47,9 @@ if (!class_exists('SchemaInspectorTestMysql', false)) {
                 'uuid' => array('column' => 'uuid', 'unique' => 1),
                 'info' => array('column' => 'info', 'unique' => 0, 'length' => array('info' => 16)),
                 'lookup' => array('column' => array('org_id', 'date'), 'unique' => 0),
+                // As Postgres::index() reports a digit-leading column: quoted.
+                '1_event_id' => array('column' => '"1_event_id"', 'unique' => 0),
+                'pair' => array('column' => array('"1_event_id"', 'event_id'), 'unique' => 0),
             ),
         );
 
@@ -518,5 +521,23 @@ class SchemaInspectorTest extends TestCase
         $reader = $this->postgresReader();
         $this->assertSame(array(), $reader->runningQueries());
         $this->assertSame(array(), $reader->queries);
+    }
+
+    /**
+     * Postgres::index() parses its column names out of pg_get_indexdef(),
+     * which quotes an identifier that needs it - and MISP's 1_event_id family
+     * needs it. Seen live: the quotes came through, so hasIndex() answered
+     * false for an index that was there. The inspector strips them.
+     */
+    public function testDriverQuotedIndexColumnsAreUnquoted()
+    {
+        $db = new SchemaInspectorTestMysql();
+        $inspector = new SchemaInspector($db);
+        $indexes = $inspector->indexes('events');
+        $this->assertSame('1_event_id', $indexes['1_event_id']['column']);
+        $this->assertSame(array('1_event_id', 'event_id'), $indexes['pair']['column']);
+        $this->assertTrue($inspector->hasIndex('events', '1_event_id'));
+        $this->assertTrue($inspector->hasIndex('events', array('1_event_id', 'event_id')));
+        $this->assertSame('1_event_id', $inspector->indexNameForColumn('events', '1_event_id'));
     }
 }
