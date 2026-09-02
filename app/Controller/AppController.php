@@ -295,7 +295,12 @@ class AppController extends Controller
                         throw new ForbiddenException('Authentication failed.');
                     }
 
-                    if ($loginByAuthKeyResult === null) {
+                    // Throttled like its siblings, and keyed on the source
+                    // address rather than on anything the caller supplied: this
+                    // branch is reached precisely because no key was presented,
+                    // and a key derived from attacker input would let a caller
+                    // mint an unbounded number of Redis entries.
+                    if ($loginByAuthKeyResult === null && $this->_shouldLog('noauthkey:' . $this->User->_remoteIp())) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
                     }
@@ -695,8 +700,12 @@ class AppController extends Controller
                     $this->Session->destroy();
                 }
             } else {
-                    $this->loadModel('Log');
-                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
+                    // Keyed on the source address for the same reason as above -
+                    // the malformed key itself is unbounded caller input.
+                    if ($this->_shouldLog('badauthkeylength:' . $this->User->_remoteIp())) {
+                        $this->loadModel('Log');
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
+                    }
             }
             return false;
         }
@@ -1947,23 +1956,41 @@ class AppController extends Controller
      */
     protected function _shouldLog($key)
     {
+        // At most one entry per key per request, whatever the hourly throttle
+        // decides. beforeFilter() runs a second time for any request that ends in
+        // an exception - CakeErrorController extends this class and
+        // ExceptionRenderer::_getController() calls startupProcess() on it - and
+        // that is a different instance, so the memo is request scoped rather than
+        // a property. Two passes over one request are not two failures, which
+        // holds even for an operator who has asked for every individual one.
+        $alreadyLogged = Configure::read('CurrentRequestAuthFailKeys') ?: [];
+        if (isset($alreadyLogged[$key])) {
+            return false;
+        }
+
+        $shouldLog = false;
         if (Configure::read('Security.log_each_individual_auth_fail')) {
-            return true;
+            $shouldLog = true;
+        } else {
+            $redis = $this->User->setupRedis();
+            if (!$redis) {
+                // setupRedis() answers false rather than throwing, and this is a
+                // throttle rather than a gate: when it cannot reach the state that
+                // tells it what has already been logged, it must degrade to logging
+                // everything, not to silence. A Redis outage is precisely when an
+                // administrator still wants failed authentications in the audit log.
+                $shouldLog = true;
+            } elseif (!$redis->exists('misp:auth_fail_throttling:' . $key)) {
+                $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+                $shouldLog = true;
+            }
         }
-        $redis = $this->User->setupRedis();
-        if (!$redis) {
-            // setupRedis() answers false rather than throwing, and this is a
-            // throttle rather than a gate: when it cannot reach the state that
-            // tells it what has already been logged, it must degrade to logging
-            // everything, not to silence. A Redis outage is precisely when an
-            // administrator still wants failed authentications in the audit log.
-            return true;
+
+        if ($shouldLog) {
+            $alreadyLogged[$key] = true;
+            Configure::write('CurrentRequestAuthFailKeys', $alreadyLogged);
         }
-        if (!$redis->exists('misp:auth_fail_throttling:' . $key)) {
-            $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
-            return true;
-        }
-        return false;
+        return $shouldLog;
     }
 
     /**
