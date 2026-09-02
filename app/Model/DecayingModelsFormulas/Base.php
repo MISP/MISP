@@ -130,6 +130,8 @@ abstract class DecayingModelBase
     }
 
     // Compute the current score for the provided attribute according to the last sighting with the provided model
+    // $last_sighting_timestamp can be provided by the caller to avoid the per-attribute sighting lookup: an integer
+    // timestamp for the last sighting, or null if it is known that the attribute has no sighting
     final public function computeCurrentScore($user, $model, $attribute, $base_score = false, $last_sighting_timestamp = false)
     {
         if ($base_score === false) {
@@ -138,9 +140,10 @@ abstract class DecayingModelBase
         $this->Sighting = ClassRegistry::init('Sighting');
         if ($last_sighting_timestamp === false) {
             $last_sighting = $this->Sighting->getLastSightingForAttribute($user, $attribute['id']);
-            if (!empty($last_sighting)) {
-                $last_sighting_timestamp = $last_sighting['Sighting']['date_sighting'];
-            } elseif (!is_null($attribute['last_seen'])) {
+            $last_sighting_timestamp = empty($last_sighting) ? null : $last_sighting['Sighting']['date_sighting'];
+        }
+        if (is_null($last_sighting_timestamp)) { // no sighting for this attribute
+            if (!is_null($attribute['last_seen'])) {
                 $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
             } else {
                 $last_sighting_timestamp = $attribute['timestamp']; // if no sighting nor valid last_seen, take the last update time
