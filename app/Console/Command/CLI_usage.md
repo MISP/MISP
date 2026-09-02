@@ -174,6 +174,16 @@ It is safe only because running `app/Console/cake` at all requires reading `app/
 
 Consequently, **do not expose the shell to anyone who must not have site-admin-equivalent access** — not through a `sudoers` rule that pins the user ID, not through a forced SSH command, and not through an automation bridge. Whoever can run the command can pass any ID, including a site admin's.
 
+### Audit trail
+
+Every write the shell performs is logged in the impersonated user's name, in whichever audit engine the instance runs, and marked as made from the CLI:
+
+- With `MISP.log_new_audit` on, `audit_logs` rows carry the user's id and organisation with `request_type = CLI` - the terminal icon in the audit log index - exactly as rows written by `cake Event`, `cake Server` and the background workers do.
+- With the default engine, `logs` rows carry the user's id, e-mail and organisation and the description ends `by User "<email>" (<id>) via CLI`, so a shell write never reads as that user's own web activity. The legacy `logs` table has no request-type column, so the sentence is the marker; it travels with the row to syslog and ECS.
+- User edits, disables and deletions write the same explicit row the web's user administration writes.
+
+The identity in these rows is the id given on the command line. Nothing verifies that the person at the keyboard is that user (see above), so an audit row saying a user made a change from the CLI means an operator with shell access did so in that user's name.
+
 ### General
 
 - All read and write operations are scoped to the impersonated user's ACL (see [Security model](#security-model)), through the same model accessors the web uses — `Event::fetchEvent`, `MispAttribute::fetchAttributes`, `MispObject::fetchObjects`, `SharingGroup::checkIfAuthorised`, `Organisation::canSee` — rather than any ACL logic of the shell's own.

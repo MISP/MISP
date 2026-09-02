@@ -14,41 +14,30 @@
 trait CLICommonTrait
 {
     /**
-     * Set the authenticated user context on all
-     * SysLogLogable behaviors so that audit logs
-     * attribute actions to the correct user.
+     * Publish the impersonated account to both
+     * audit engines, once, before any write.
      *
-     * @param array $user The authenticated user record
+     * `CurrentUserId` is what AuditLog (the new
+     * engine) and every other console shell use;
+     * it also feeds the non-audit readers - tag
+     * numerical-value overrides, workflow
+     * initiator, analyst-data author - so they
+     * see the impersonated user as the web would.
+     * SysLogLogable (the default engine) takes the
+     * same identity through its own static, which
+     * it resolves at write time; setting it on the
+     * loaded models' behaviour instances, as this
+     * once did, was undone by the first lazy model
+     * load, because the behaviour is a singleton
+     * whose setup() rewrote the shared identity.
+     *
+     * @param array $user The impersonated user record
      * @return void
      */
     private function __setUserContext(array $user)
     {
-        $logUser = [
-            'id' => $user['id'],
-            'email' => $user['email'],
-            'Organisation' => [
-                'name' => !empty(
-                    $user['Organisation']['name']
-                )
-                ? $user['Organisation']['name']
-                : '',
-            ],
-        ];
-        $models = [
-            'Event', 'MispAttribute', 'MispObject',
-            'Tag', 'EventTag', 'AttributeTag',
-        ];
-        foreach ($models as $modelName) {
-            if (
-                isset($this->{$modelName})
-                && $this->{$modelName}
-                    ->Behaviors->loaded('SysLogLogable')
-            ) {
-                $this->{$modelName}
-                    ->Behaviors->SysLogLogable
-                    ->user['User'] = $logUser;
-            }
-        }
+        Configure::write('CurrentUserId', $user['id']);
+        SysLogLogableBehavior::setShellUser($user);
     }
 
     /**

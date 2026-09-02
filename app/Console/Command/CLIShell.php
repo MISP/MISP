@@ -10,6 +10,11 @@ require_once __DIR__
     . '/CLIShell/cli_organisations.php';
 require_once __DIR__ . '/CLIShell/cli_roles.php';
 
+App::uses(
+    'SysLogLogableBehavior',
+    'SysLogLogable.Model/Behavior'
+);
+
 /**
  * MISP Interactive CLI Shell
  *
@@ -18,7 +23,9 @@ require_once __DIR__ . '/CLIShell/cli_roles.php';
  *
  * The shell runs as the MISP user whose id is given: that account's
  * ACL applies to every read and write, and audit rows are written in
- * its name. It impersonates the account - it does not authenticate
+ * its name, marked as made from the CLI (`request_type = CLI` in
+ * audit_logs, `via CLI` in the logs description). It impersonates the
+ * account - it does not authenticate
  * it. No password or auth key is checked, exactly as with every other
  * MISP console shell that takes a user id. Running `cake` at all
  * requires reading app/Config/database.php, so whoever launches the

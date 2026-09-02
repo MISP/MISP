@@ -401,6 +401,9 @@ trait CLIUsersTrait
             $editableFields
         );
         if ($result) {
+            $this->__logUserEdit(
+                $id, $existing['User'], $values
+            );
             $this->out(
                 'User #' . $id
                 . ' updated successfully.'
@@ -431,6 +434,58 @@ trait CLIUsersTrait
             }
         }
         return false;
+    }
+
+    /**
+     * Write the explicit log row the web writes for a
+     * user edit. SysLogLogable deliberately skips
+     * User edit and delete rows ("handle in model
+     * itself"), so without this a CLI user edit or
+     * disable leaves nothing in the default audit
+     * engine; the web's admin_edit calls extralog()
+     * with the changed fields, and so does this.
+     *
+     * @param int $id User ID.
+     * @param array $before The row before the save.
+     * @param array $values The fields written.
+     * @return void
+     */
+    private function __logUserEdit(
+        $id,
+        array $before,
+        array $values
+    ) {
+        $fieldsResult = [];
+        foreach ($values as $field => $new) {
+            $old = isset($before[$field])
+                ? $before[$field] : '';
+            // Cake types tinyint(1) columns as PHP
+            // booleans on read; the prompt hands
+            // back '0'/'1'. Compare like for like,
+            // or every unchanged flag shows as a
+            // change from ''.
+            if (is_bool($old)) {
+                $old = $old ? '1' : '0';
+            }
+            if ((string)$old !== (string)$new) {
+                $fieldsResult[$field] = [$old, $new];
+            }
+        }
+        $saved = $this->User->find('first', [
+            'conditions' => ['User.id' => $id],
+            'fields' => ['User.id', 'User.email'],
+            'recursive' => -1,
+        ]);
+        if (empty($saved)) {
+            return;
+        }
+        $this->User->extralog(
+            $this->__user,
+            'edit',
+            'user',
+            $fieldsResult,
+            $saved
+        );
     }
 
     /**
@@ -511,6 +566,10 @@ trait CLIUsersTrait
                 ['disabled']
             );
             if ($result) {
+                $this->__logUserEdit(
+                    $id, $user['User'],
+                    ['disabled' => 1]
+                );
                 $this->out(
                     'User #' . $id . ' disabled.'
                 );
@@ -533,6 +592,12 @@ trait CLIUsersTrait
             }
             $result = $this->User->delete($id);
             if ($result) {
+                $this->User->extralog(
+                    $this->__user,
+                    'delete',
+                    'User (' . $id . '): ' . $email,
+                    ''
+                );
                 $this->out(
                     'User #' . $id
                     . ' deleted permanently.'
