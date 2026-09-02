@@ -1909,6 +1909,21 @@ class AdminShell extends AppShell
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
+        // db_version is frozen, so the version pair no longer says whether
+        // schema work is outstanding - the ledger does.
+        $this->out('# Migrations');
+        $this->out(' Applied: ' . $dbSchemaDiagnostics['migrations_applied']);
+        $this->out(' Failed:  ' . $dbSchemaDiagnostics['migrations_failed']);
+        $this->out(' Pending: ' . $dbSchemaDiagnostics['migrations_pending']);
+        foreach ($dbSchemaDiagnostics['migrations_pending_ids'] as $id) {
+            $line = ' - ' . $id;
+            if (in_array($id, $dbSchemaDiagnostics['migrations_failed_ids'], true)) {
+                $line .= ' <error>' . __('(failed - retried before anything else on the next run)') . '</error>';
+            }
+            $this->out($line);
+        }
+        $this->out();
+
         if (!empty($dbSchemaDiagnostics['warnings'])) {
             $this->out('# Warnings');
             foreach ($dbSchemaDiagnostics['warnings'] as $warning) {

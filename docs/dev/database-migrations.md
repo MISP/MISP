@@ -382,7 +382,57 @@ corpus stops being tested at all.
   is a migration for PostgreSQL, and a migration is what carries both engines
   forward; the baseline is regenerated when it is worth regenerating.
 
-## 11. Where things are
+## 11. Monitoring: what to alert on
+
+Fleet monitoring has always watched one thing on the schema diagnostic: whether
+`actual_db_version` differs from `expected_db_version`. **That comparison is
+dead.** `db_version` is frozen at 159, so the two are the same number on every
+instance, up to date or not — an instance with five migrations unapplied and one
+failed reports exactly the version pair a healthy one does. Nothing breaks
+loudly; the alert simply stops meaning anything. Move it.
+
+The diagnostic is served as JSON over the API and carries the ledger's answer:
+
+```bash
+curl -s -H "Authorization: $AUTHKEY" -H "Accept: application/json" \
+     https://misp.example/servers/dbSchemaDiagnostic
+```
+
+| Field | Type | Alert on |
+|---|---|---|
+| `migrations_pending` | int | `> 0` — migrations on disk the ledger does not record as applied. **The replacement for the version mismatch.** |
+| `migrations_pending_ids` | list | The ids, in the order the next run applies them. Put them in the alert body: "which boxes are missing `M20260901_120000_x`" is answerable, "which boxes are below 159" no longer is. |
+| `migrations_failed` | int | `> 0` — the ledger records a failure. **New signal**: the old scheme could not express it, because a later success used to advance `db_version` past the failure and reset the counter. Escalate on it. |
+| `migrations_failed_ids` | list | The failed ids. A failed migration is still pending — it is retried first on the next run — so each one is in both lists. |
+| `migrations_applied` | int | Drift between peers on the same release: two instances on the same code should agree. |
+| `update_locked`, `remaining_lock_time`, `update_fail_number_reached` | as before | Unchanged, still meaningful. |
+
+The fields are present on every engine, and they are present whether or not the
+`schema_migrations` table exists yet — an instance that has never applied a
+migration reports `migrations_applied = 0` and, if there are migrations on disk,
+`migrations_pending` counting them.
+
+**What a stuck instance looks like.** Because a failure halts the run (§7), a
+blocked instance shows `migrations_failed = 1` alongside a `migrations_pending`
+that counts the failed one *and* everything queued behind it. `actual_db_version`
+and `expected_db_version` are both 159 while it does. That combination is the
+state to page on, and it is the state the version pair can no longer show.
+
+The same figures are on the diagnostics page in the UI — under *Schema status*
+in the classic theme, in the *Database status* card in Overmind, with the pending
+ids listed — and at the top of the CLI diagnostic:
+
+```bash
+Console/cake Admin schemaDiagnostics        # '# Migrations' block first: applied / failed / pending, with ids
+Console/cake Admin migrationStatus --json   # the full ledger view, with each failure's recorded error
+```
+
+**Rollout.** Change the monitoring rule when the code that carries the ledger is
+deployed, not after. Between the two, an instance behind on migrations is
+invisible to a monitor still keyed on the version pair. The old rule can stay in
+place alongside the new one — it will simply never fire again.
+
+## 12. Where things are
 
 | Path | What |
 |---|---|

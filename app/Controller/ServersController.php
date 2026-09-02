@@ -2624,6 +2624,11 @@ public function updateJSON()
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
+            $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
+            $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
+            $this->set('migrationsFailedIds', $dbSchemaDiagnostics['migrations_failed_ids']);
+            $this->set('migrationsApplied', $dbSchemaDiagnostics['migrations_applied']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
     }

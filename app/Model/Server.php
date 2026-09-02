@@ -3450,15 +3450,19 @@ class Server extends AppModel
         // db_version is frozen, so actual_db_version and expected_db_version are
         // now the same number on every healthy *and* every stalled instance -
         // the pair fleet monitoring has always alerted on can no longer differ.
-        // These four replace it: migrations_pending > 0 is the direct successor
-        // to the version mismatch, migrations_failed > 0 is new signal the old
+        // These replace it: migrations_pending > 0 is the direct successor to
+        // the version mismatch, migrations_failed > 0 is new signal the old
         // scheme could not express at all, and the IDs name exactly which change
-        // an instance is behind on rather than just how far.
+        // an instance is behind on rather than just how far. A failed migration
+        // is still pending - it is retried first on the next run - so its id is
+        // in both lists.
         $migrationManager = $this->getMigrationManager();
         $pendingMigrations = array_keys($migrationManager->pending());
+        $failedMigrations = $migrationManager->failed();
         $schemaDiagnostic['migrations_pending'] = count($pendingMigrations);
         $schemaDiagnostic['migrations_pending_ids'] = $pendingMigrations;
-        $schemaDiagnostic['migrations_failed'] = count($migrationManager->failed());
+        $schemaDiagnostic['migrations_failed'] = count($failedMigrations);
+        $schemaDiagnostic['migrations_failed_ids'] = $failedMigrations;
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
