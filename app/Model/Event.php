@@ -1894,20 +1894,7 @@ class Event extends AppModel
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (!$isSiteAdmin) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -2351,20 +2338,7 @@ class Event extends AppModel
         // Object distribution ACL for non-site-admins
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
-            $objectCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Object.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $objectCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Object"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Object.distribution >' => 0,
@@ -2467,20 +2441,7 @@ class Event extends AppModel
             'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $attrConditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -3017,15 +2978,9 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
-            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
-            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if (!$this->isMysql()) {
-                $schemaName = $this->getDataSource()->config['schema'];
-                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
-                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
-                $eventReportCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "EventReport"."event_id")', $schemaName, $schemaName, $schemaName);
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
+            $eventReportCondSelect = $this->eventOwnerSubquery('EventReport');
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -4425,6 +4380,38 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * A correlated subquery reading the owning event's org_id, spelled for this
+     * connection.
+     *
+     * Four call sites used to carry this twice - once bare for MySQL and once
+     * quoted and schema-qualified for PostgreSQL. name() spells the quoting on
+     * either engine, so the only thing left to decide is whether the connection
+     * names a schema at all, which is a configuration question rather than an
+     * engine one. The qualification is needed because the driver does not reach
+     * inside a hand-written condition string to add it.
+     *
+     * @param string $alias The model alias whose event_id is being joined on.
+     * @return string
+     */
+    private function eventOwnerSubquery($alias)
+    {
+        $db = $this->getDataSource();
+        $events = empty($db->config['schema'])
+            ? $db->name('events')
+            : $db->name($db->config['schema']) . '.' . $db->name('events');
+        return sprintf(
+            '(SELECT %s.%s FROM %s WHERE %s.%s = %s.%s)',
+            $events,
+            $db->name('org_id'),
+            $events,
+            $events,
+            $db->name('id'),
+            $db->name($alias),
+            $db->name('event_id')
+        );
     }
 
     public function set_filter_object_name(&$params, $conditions, $options) {
