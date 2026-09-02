@@ -1070,6 +1070,45 @@ class Sighting extends AppModel
     }
 
     /**
+     * Batched version of getLastSightingForAttribute. Returns a map of attribute id => date_sighting of the most
+     * recent sighting, containing only attributes that have at least one sighting.
+     * Returns null when the current sightings policy cannot be resolved with a single query, in which case the
+     * caller has to fall back to getLastSightingForAttribute.
+     *
+     * @param array $user
+     * @param array $attributeIds
+     * @return array|null
+     */
+    public function getLastSightingsForAttributes(array $user, array $attributeIds)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            return null; // this policy resolves sightings per attribute, it cannot be batched
+        }
+        if (empty($attributeIds)) {
+            return [];
+        }
+        $conditions = [
+            'Sighting.attribute_id' => $attributeIds,
+            'Sighting.type' => 0,
+        ];
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER || $sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+            $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+        }
+        $rows = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Sighting.attribute_id', 'MAX(Sighting.date_sighting) AS last_sighting'],
+            'group' => ['Sighting.attribute_id'],
+        ]);
+        $lastSightings = [];
+        foreach ($rows as $row) {
+            $lastSightings[$row['Sighting']['attribute_id']] = $row[0]['last_sighting'] ?? $row['Sighting']['last_sighting'];
+        }
+        return $lastSightings;
+    }
+
+    /**
      * @param array $user
      * @param string $returnFormat
      * @param array $filters

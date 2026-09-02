@@ -3414,6 +3414,17 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Attribute->attachAnalystDataBulk($event['Attribute']);
                 }
 
+                $lastSightings = false;
+                if (!empty($options['includeDecayScore'])) {
+                    // Fetch the last sighting of all attributes with a single query instead of one query per attribute
+                    $attributeIds = array();
+                    foreach ($event['Attribute'] as $attributeForSighting) {
+                        $attributeIds[] = $attributeForSighting['id'];
+                    }
+                    $lastSightings = $this->Sighting->getLastSightingsForAttributes($user, $attributeIds);
+                    unset($attributeIds);
+                }
+
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => &$attribute) {
@@ -3432,7 +3443,12 @@ class Event extends AppModel
                         if (isset($event['EventTag'])) { // include EventTags for score computation
                             $attribute['EventTag'] = $event['EventTag'];
                         }
-                        $attribute = $this->DecayingModel->attachScoresToAttribute($user, $attribute);
+                        if (is_array($lastSightings)) {
+                            $lastSighting = $lastSightings[$attribute['id']] ?? null;
+                        } else {
+                            $lastSighting = false; // sightings policy that has to be resolved per attribute
+                        }
+                        $attribute = $this->DecayingModel->attachScoresToAttribute($user, $attribute, false, array(), 0, $lastSighting);
                         if (isset($event['EventTag'])) { // remove included EventTags
                             unset($attribute['EventTag']);
                         }
