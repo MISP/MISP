@@ -1344,13 +1344,18 @@ class MispObject extends AppModel
         $this->Event->captureAnalystData($user, $object, 'Object', $object['uuid']);
         if (!empty($object['Attribute'])) {
             $attributes = [];
-            foreach ($object['Attribute'] as $attribute) {
-                if (!empty($object['deleted'])) {
-                    $attribute['deleted'] = 1;
-                }
-                $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
-                if (is_array($result)) {
-                    $attributes[] = $result;
+            $objectAttributes = is_array($object['Attribute']) ? $object['Attribute'] : [];
+            foreach (array_chunk($objectAttributes, 100) as $attributeChunk) {
+                $existingAttributes = $this->Attribute->fetchExistingAttributesByUuid($attributeChunk);
+                foreach ($attributeChunk as $attribute) {
+                    if (!empty($object['deleted'])) {
+                        $attribute['deleted'] = 1;
+                    }
+                    $attributeNothingToChange = false;
+                    $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force, $attributeNothingToChange, null, $existingAttributes);
+                    if (is_array($result)) {
+                        $attributes[] = $result;
+                    }
                 }
             }
             $this->Attribute->editAttributeBulk($attributes, $event, $user, $server);

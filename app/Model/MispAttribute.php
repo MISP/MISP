@@ -3225,7 +3225,44 @@ class MispAttribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null)
+    /**
+     * Fetch the existing attribute rows for a batch of incoming attributes, keyed by uuid.
+     *
+     * The returned rows are in the same shape as the per-attribute find('first') that
+     * editAttribute() performs, so that the map can be handed to editAttribute() to spare it
+     * one query per attribute. A uuid missing from the map is not proof that no such attribute
+     * exists (the lookup here is byte exact, while the SQL comparison is collation based), so
+     * editAttribute() falls back to its own find when a uuid is not in the map. Non string uuids
+     * are skipped here and by editAttribute(), so they keep taking the original find() path.
+     *
+     * @param array $attributes Incoming attributes
+     * @return array uuid => attribute row
+     */
+    public function fetchExistingAttributesByUuid(array $attributes)
+    {
+        $uuids = array();
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['uuid']) && is_string($attribute['uuid'])) {
+                $uuids[$attribute['uuid']] = true;
+            }
+        }
+        if (empty($uuids)) {
+            return array();
+        }
+        $existingAttributes = array();
+        foreach (array_chunk(array_keys($uuids), 100) as $chunk) {
+            $rows = $this->find('all', array(
+                'conditions' => array('Attribute.uuid' => $chunk),
+                'recursive' => -1,
+            ));
+            foreach ($rows as $row) {
+                $existingAttributes[$row['Attribute']['uuid']] = $row;
+            }
+        }
+        return $existingAttributes;
+    }
+
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null, $existingAttributes = null)
     {
         if ($this->fast_update) {
             $this->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -3239,10 +3276,14 @@ class MispAttribute extends AppModel
         $attribute['_materialChange'] = false;
         unset($attribute['id']);
         if (isset($attribute['uuid'])) {
-            $existingAttribute = $this->find('first', array(
-                'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'recursive' => -1,
-            ));
+            if ($existingAttributes !== null && is_string($attribute['uuid']) && isset($existingAttributes[$attribute['uuid']])) {
+                $existingAttribute = $existingAttributes[$attribute['uuid']];
+            } else {
+                $existingAttribute = $this->find('first', array(
+                    'conditions' => array('Attribute.uuid' => $attribute['uuid']),
+                    'recursive' => -1,
+                ));
+            }
             if (!empty($existingAttribute)) {
                 if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
                     $change = 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)';
