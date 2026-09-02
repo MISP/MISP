@@ -56,6 +56,13 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Published'),
+        'data_path' => 'GalaxyCluster.published',
+        'element' => 'published',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
+    [
         'name' => __('Synonyms'),
         'data_path' => 'GalaxyCluster.synonyms',
         'element' => 'synonyms',
@@ -195,6 +202,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $list,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 // Current-filter chips + "Clear all", shown even in the ajax fragment

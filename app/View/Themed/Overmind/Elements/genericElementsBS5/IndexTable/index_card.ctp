@@ -2,41 +2,43 @@
 /*
  * Card view of an index.
  *
- * Cards per row — `cards_per_row` in the scaffold's data array, so each
- * index.ctp decides how dense its own card view is:
+ * Cards per row: `cards_per_row` — either count (1..6) or array of breakpoint => count.
+ * Breakpoints: '' (base), sm, md, lg, xl, xxl, xxxl, xxxxl. Last two are custom.
+ * `row-cols-N` class does layout work, overriding width:100%.
  *
- *     'cards_per_row' => 3                    // a count, 1..6
- *     'cards_per_row' => ['' => 1, 'lg' => 4] // explicit breakpoints
+ * Bespoke cards: `card_element` names an element rendering custom card content.
+ * Scaffold keeps .card shell for layout; element gets `row`, `k`, `data`, `sections`.
  *
- * A plain count is spread over a responsive ladder (1 card until md, then 2,
- * then 3 …) so a narrow viewport never gets the full count; an array is taken
- * as written, keyed by Bootstrap breakpoint ('' for the base one). Default is
- * 1, which is what the view did before the option existed.
- *
- * `row-cols-N` on the row is what does the work: it overrides the width:100%
- * that `.row > *` hands every child, which is why cards used to stack one per
- * line whatever their content.
+ * `meta` section pinned bottom: card-body.d-flex.flex-column > .row.flex-grow-1 > .col
+ * gives full height; mt-auto on meta eats leftover space. All classes load-bearing.
  */
 $data = $scaffold_data['data'];
 
+$cardElement = $data['card_element'] ?? null;
+
+$cardTiers = ['', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl', 'xxxxl'];
+
 $perRow = $data['cards_per_row'] ?? 1;
 if (is_array($perRow)) {
-    $breakpoints = $perRow;
+    $breakpoints = array_intersect_key($perRow, array_flip($cardTiers));
 } else {
+    $ladder = ['' => 1, 'md' => 2, 'xl' => 3, 'xxl' => 4, 'xxxl' => 5, 'xxxxl' => 6];
     $perRow = max(1, min(6, (int)$perRow));
     $breakpoints = [];
-    foreach (['' => 1, 'md' => 2, 'xl' => 3, 'xxl' => 4] as $bp => $n) {
+    foreach ($ladder as $bp => $n) {
         $breakpoints[$bp] = min($n, $perRow);
-    }
-    if ($perRow > 4) {
-        $breakpoints['xxl'] = $perRow;
     }
 }
 
+// Emit in breakpoint order whatever order the index wrote them in, and only on
+// the tiers where the count actually changes.
 $rowColsClass = '';
 $previous = null;
-foreach ($breakpoints as $bp => $n) {
-    $n = max(1, min(6, (int)$n));
+foreach ($cardTiers as $bp) {
+    if (!isset($breakpoints[$bp])) {
+        continue;
+    }
+    $n = max(1, min(6, (int)$breakpoints[$bp]));
     if ($n === $previous) {
         continue;
     }
@@ -54,7 +56,7 @@ foreach ($breakpoints as $bp => $n) {
 
 <?php else: ?>
 
-<div class="table-scroll row g-3 bg-light<?= $rowColsClass ?>">
+<div class="table-scroll idx-card-grid row g-3 bg-light<?= $rowColsClass ?>">
 
 <?php foreach ($data['data'] as $k => $row): ?>
 
@@ -143,9 +145,20 @@ if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable
 <div class="idx-card-col px-2">
     <div class="card shadow-sm idx-card h-100 <?= h($cardClass) ?>"<?= $cardStyle === '' ? '' : ' style="' . h($cardStyle) . '"' ?>>
 
-        <div class="card-body">
+        <?php if ($cardElement): ?>
 
-            <div class="row align-items-start">
+        <?= $this->element($cardElement, [
+            'row' => $row,
+            'k' => $k,
+            'data' => $data,
+            'sections' => $sections,
+        ]) ?>
+
+        <?php else: ?>
+
+        <div class="card-body d-flex flex-column">
+
+            <div class="row align-items-start flex-grow-1">
 
                 <!-- COL 1 -->
                 <?php if (!empty($sections['selector'])): ?>
@@ -155,7 +168,7 @@ if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable
                 <?php endif; ?>
 
                 <!-- COL 2 -->
-                <div class="col d-flex flex-column gap-1">
+                <div class="col d-flex flex-column gap-1 align-self-stretch">
 
                     <!-- Line 1 : TOP -->
                     <?php if (!empty($sections['top'])): ?>
@@ -211,7 +224,7 @@ if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable
 
                     <!-- META DIVIDER + META -->
                     <?php if (!empty($sections['meta'])): ?>
-                        <hr class="my-1">
+                        <hr class="mt-auto mb-1">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                             <?php foreach ($sections['meta'] as $item): ?>
                                 <div><?= $item ?></div>
@@ -231,6 +244,8 @@ if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable
             </div>
 
         </div>
+
+        <?php endif; ?>
 
     </div>
 </div>

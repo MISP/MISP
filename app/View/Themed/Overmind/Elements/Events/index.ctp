@@ -100,7 +100,7 @@ $fields = [
     [
         'name' => __('Created'),
         'data_path' => 'Event.date',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'created',
         'card_section' => 'meta',
         'display_in' => ['card']
@@ -108,7 +108,7 @@ $fields = [
     [
         'name' => __('Last Modified'),
         'data_path' => 'Event.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'modified',
         'card_section' => 'meta',
         'display_in' => ['card']
@@ -264,6 +264,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $events,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,

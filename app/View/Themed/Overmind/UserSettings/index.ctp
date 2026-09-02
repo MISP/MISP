@@ -118,6 +118,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'paginatorOptions' => ['url' => $paginatorUrl],
             'filter_bar' => [
                 'pull' => 'right',

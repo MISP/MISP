@@ -233,6 +233,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $galaxyList,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
