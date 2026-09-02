@@ -3767,7 +3767,7 @@ class Server extends AppModel
     {
         $db = $this->getDataSource();
         $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
+            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING COUNT(*) > 1;',
                 $db->name($columnName), $db->name($tableName), $db->name($columnName))
         );
         return empty($duplicates);
@@ -4164,6 +4164,24 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
+    /**
+     * How many rows of the database-backed session store have expired.
+     *
+     * Only meaningful while Session.defaults is 'database' - the table is not
+     * queried otherwise. The login path and the diagnostics page used to carry
+     * this query verbatim, each reading the result its own way.
+     *
+     * @return int|null Null when the query answered nothing usable.
+     */
+    public function expiredSessionCount()
+    {
+        $result = $this->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
+        if (!isset($result[0][0]['session_count'])) {
+            return null;
+        }
+        return (int)$result[0][0]['session_count'];
+    }
+
     public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
         $sessionCount = null;
@@ -4188,14 +4206,8 @@ class Server extends AppModel
                 break;
             case 'database':
                 $sessionHandler = 'database';
-                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-                $sqlResult = $this->query($sql);
-                if (isset($sqlResult[0][0])) {
-                    $sessionCount = $sqlResult[0][0]['session_count'];
-                    $errorCode = 0;
-                } else {
-                    $errorCode = 9;
-                }
+                $sessionCount = $this->expiredSessionCount();
+                $errorCode = $sessionCount === null ? 9 : 0;
                 if ($sessionCount > 1000) {
                     $diagnostic_errors++;
                     $errorCode = 1;

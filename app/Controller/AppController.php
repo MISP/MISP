@@ -422,9 +422,7 @@ class AppController extends Controller
 
         if ($user && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') === 'database') {
-                $db = ConnectionManager::getDataSource('default');
-                $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
-                if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
+                if ($this->User->Server->expiredSessionCount() > 1000) {
                     $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
