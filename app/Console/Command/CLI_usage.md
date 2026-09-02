@@ -9,7 +9,9 @@ cd /var/www/MISP
 app/Console/cake CLI <user_id>
 ```
 
-All operations are ACL-scoped to the specified user. The prompt displays the current user, organisation, and navigation context:
+The shell runs as the MISP user whose ID you pass: that account's ACL applies to every read and write, and audit-log entries are written in its name. **This is impersonation, not authentication** — no password or auth key is checked. Read [Security model](#security-model) before exposing the command to anyone.
+
+The prompt displays the current user, organisation, and navigation context:
 
 ```
 MISP [admin@ORGNAME] >
@@ -164,9 +166,17 @@ Object detail views show their attributes inline under an `[Attributes]` section
 
 ## ACL and Permissions
 
+### Security model
+
+The shell does not authenticate the user it runs as. `cake CLI <user_id>` selects the account; nothing verifies that the person at the keyboard is that user. This is the convention every MISP console shell follows — `cake Event`, `cake Admin` and `cake Server` all take a user ID the same way.
+
+It is safe only because running `app/Console/cake` at all requires reading `app/Config/database.php`, so anyone who can launch the shell already holds the database credentials and could promote any account directly. The ACL checks inside the shell scope what a session sees and changes; they are **not a privilege boundary**.
+
+Consequently, **do not expose the shell to anyone who must not have site-admin-equivalent access** — not through a `sudoers` rule that pins the user ID, not through a forced SSH command, and not through an automation bridge. Whoever can run the command can pass any ID, including a site admin's.
+
 ### General
 
-- All operations respect the authenticated user's ACL
+- All operations are scoped to the impersonated user's ACL (see [Security model](#security-model))
 - `user`, `server`, and `role` entities require site admin access
 - Write operations (add/edit/delete) require event modify permissions:
   - Site admins can modify any event

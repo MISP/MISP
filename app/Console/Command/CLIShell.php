@@ -16,6 +16,18 @@ require_once __DIR__ . '/CLIShell/cli_roles.php';
  * Provides an interactive REPL for browsing and managing MISP data.
  * Launch: cake CLI <user_id>
  *
+ * The shell runs as the MISP user whose id is given: that account's
+ * ACL applies to every read and write, and audit rows are written in
+ * its name. It impersonates the account - it does not authenticate
+ * it. No password or auth key is checked, exactly as with every other
+ * MISP console shell that takes a user id. Running `cake` at all
+ * requires reading app/Config/database.php, so whoever launches the
+ * shell already holds the database credentials; the in-shell ACL
+ * checks are scoping, not a privilege boundary. Never expose this
+ * command to anyone who must not hold site-admin-equivalent access,
+ * whether through a sudoers rule pinning the id, a forced SSH command
+ * or an automation bridge - the caller chooses the id.
+ *
  * @property Event $Event
  * @property MispAttribute $MispAttribute
  * @property MispObject $MispObject
@@ -194,9 +206,16 @@ class CLIShell extends AppShell
             . 'manage MISP data from the command line.'
         );
         $parser->addArgument('user_id', [
-            'help' => 'User ID to authenticate as. '
-                . 'All operations are ACL-scoped '
-                . 'to this user.',
+            'help' => 'ID of the MISP user to run the '
+                . 'shell as. The shell impersonates '
+                . 'this account - its ACL and audit '
+                . 'identity apply to everything you '
+                . 'do - but does not authenticate it: '
+                . 'no password or auth key is checked. '
+                . 'Anyone able to run this command '
+                . 'already holds the database '
+                . 'credentials, so the id is not a '
+                . 'privilege boundary.',
             'required' => true,
         ]);
         return $parser;
@@ -344,8 +363,12 @@ class CLIShell extends AppShell
             . 'Shell v1.0'
         );
         $this->out(
-            'Logged in as: ' . $email
+            'Running as: ' . $email
             . ' (' . $orgName . ')' . $role
+        );
+        $this->out(
+            '  (impersonated by user id - no '
+            . 'credential was checked)'
         );
         $this->out(
             "Type 'help' for available commands."
