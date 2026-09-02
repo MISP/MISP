@@ -239,6 +239,11 @@ class SqlDialect
      * alias: the alias form is what the deprecation notice recommends, but
      * MariaDB does not have it, and MISP supports both.
      *
+     * One PostgreSQL parse trap for an `INSERT ... SELECT`: if the SELECT ends
+     * in a table reference, `FROM t ON CONFLICT` reads as the start of a join
+     * condition and fails to parse. A WHERE or GROUP BY clause between them,
+     * or a `WHERE true`, keeps the two apart.
+     *
      * @param string $insert A complete INSERT statement, with or without its
      *   trailing semicolon.
      * @param array $conflictColumns The columns whose uniqueness is being
