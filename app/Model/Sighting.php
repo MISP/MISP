@@ -28,6 +28,9 @@ class Sighting extends AppModel
 
     private $__blockedOrgs = null;
 
+    // Prefetched sightings for a set of already ACL-resolved attributes, see setSightingsBatch()
+    private $sightingsBatch = null;
+
     public $actsAs = array(
             'Containable',
     );
@@ -977,6 +980,24 @@ class Sighting extends AppModel
         if (empty($objectIds)) {
             throw new MethodNotAllowedException('Invalid object.');
         }
+        return $this->__fetchSightingsForObjects($user, $context, $objectIds, $eventOwnerOrgIdList, $orgId, $sightingsType, $orderDesc);
+    }
+
+    /**
+     * Fetch and ACL filter the sightings for objects that were already resolved and checked for access.
+     *
+     * @param array $user
+     * @param string $context 'attribute' or 'event'
+     * @param array $objectIds
+     * @param array $eventOwnerOrgIdList Event ID => Event owner (orgc) ID
+     * @param int|false $orgId
+     * @param int|false $sightingsType
+     * @param bool $orderDesc
+     * @return array
+     * @throws Exception
+     */
+    private function __fetchSightingsForObjects(array $user, $context, array $objectIds, array $eventOwnerOrgIdList, $orgId = false, $sightingsType = false, $orderDesc = true)
+    {
         $conditions = array(
             'Sighting.' . $context . '_id' => $objectIds
         );
@@ -1040,6 +1061,83 @@ class Sighting extends AppModel
             }
         }
         return $sightings;
+    }
+
+    /**
+     * Announce a set of attributes that were already fetched and ACL filtered by the caller, so that
+     * listSightingsForAttribute() can resolve all of them with a single query instead of one query set per attribute.
+     *
+     * Callers MUST pass attribute rows that were selected through MispAttribute::buildConditions() (as
+     * MispAttribute::fetchAttributes() does), because that is the very ACL that the listSightings() fallback
+     * applies through its own inner fetchAttributes(). Event::fetchEvent() must NOT be wired to this: its
+     * $conditionsAttributes carry no Object.distribution predicate and widen event visibility via
+     * MISP.delegation, so its attribute set is a strict superset and batching it would turn the
+     * MethodNotAllowedException('Invalid object.') that listSightings() raises for such an attribute into a
+     * successful decay score.
+     *
+     * @param array $user
+     * @param array $attributeIds Attribute IDs, all of them non deleted and visible for the given user
+     * @param array $eventOwnerOrgIdList Event ID => Event owner (orgc) ID, for every event of the given attributes
+     * @return void
+     */
+    public function setSightingsBatch(array $user, array $attributeIds, array $eventOwnerOrgIdList)
+    {
+        if (empty($attributeIds)) {
+            $this->sightingsBatch = null;
+            return;
+        }
+        $this->sightingsBatch = [
+            'user_id' => $user['id'] ?? null,
+            'attribute_ids' => array_flip($attributeIds),
+            'eventOwnerOrgIdList' => $eventOwnerOrgIdList,
+            'sightings' => null,
+        ];
+    }
+
+    /**
+     * @return void
+     */
+    public function clearSightingsBatch()
+    {
+        $this->sightingsBatch = null;
+    }
+
+    /**
+     * Sightings for a single attribute, in the same shape as listSightings($user, $id, 'attribute', false, false, false).
+     * If the attribute is part of the batch announced by setSightingsBatch(), all sightings of the batch are fetched at
+     * once with a single query, otherwise the generic (and much more expensive) listSightings is used.
+     *
+     * @param array $user
+     * @param int $attributeId
+     * @return array
+     * @throws Exception
+     */
+    public function listSightingsForAttribute(array $user, $attributeId)
+    {
+        if (
+            $this->sightingsBatch !== null &&
+            $this->sightingsBatch['user_id'] === ($user['id'] ?? null) &&
+            isset($this->sightingsBatch['attribute_ids'][$attributeId])
+        ) {
+            if ($this->sightingsBatch['sightings'] === null) {
+                $sightings = $this->__fetchSightingsForObjects(
+                    $user,
+                    'attribute',
+                    array_keys($this->sightingsBatch['attribute_ids']),
+                    $this->sightingsBatch['eventOwnerOrgIdList'],
+                    false,
+                    false,
+                    false
+                );
+                $grouped = [];
+                foreach ($sightings as $sighting) {
+                    $grouped[$sighting['Sighting']['attribute_id']][] = $sighting;
+                }
+                $this->sightingsBatch['sightings'] = $grouped;
+            }
+            return $this->sightingsBatch['sightings'][$attributeId] ?? [];
+        }
+        return $this->listSightings($user, [$attributeId], 'attribute', false, false, false);
     }
 
      /**
