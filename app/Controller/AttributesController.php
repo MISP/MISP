@@ -522,7 +522,7 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $this->Flash->success($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     }
                 } else {
                     $this->Flash->error($message);
@@ -532,7 +532,7 @@ class AttributesController extends AppController
                 }
                 if ($successes > 0) {
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }

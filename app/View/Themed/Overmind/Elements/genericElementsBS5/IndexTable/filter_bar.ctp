@@ -180,7 +180,13 @@ foreach ($filter_bar['children'] as $child) {
 
         <?php if ($child['type'] === 'button'): ?>
             <a href="<?= h($child['url']) ?>"
-               class="<?= h($child['class']) ?> flex-shrink-0">
+               class="<?= h($child['class']) ?> flex-shrink-0"<?php
+               if (!empty($child['title'])): ?>
+               title="<?= h($child['title']) ?>"<?php
+               endif; ?><?php
+               if (!empty($child['onclick'])): ?>
+               onclick="<?= h($child['onclick']) ?>"<?php
+               endif; ?>>
                 <?php if (!empty($child['icon'])): ?>
                     <i class="<?= h($child['icon']) ?>"></i>
                 <?php endif; ?>
