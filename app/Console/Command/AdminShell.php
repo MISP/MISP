@@ -222,6 +222,24 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('dumpInstallBaseline', [
+            'help' => __('Render an install baseline (the INSTALL/<ENGINE>.sql a fresh instance loads) from a reference MySQL database at the frozen db_version. For developers.'),
+            'parser' => [
+                'options' => [
+                    'engine' => [
+                        'help' => __('Which engine to render for: mysql or pgsql.'),
+                        'choices' => ['mysql', 'pgsql'],
+                        'required' => true,
+                    ],
+                    'database' => [
+                        'help' => __('The reference database on the connected MySQL server - a clean install brought to the frozen db_version. Default: the connected database.'),
+                    ],
+                    'output' => [
+                        'help' => __('Write the baseline here instead of printing it. The notes on what could not be rendered as-is always go to stderr.'),
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('migrateOldTemplates', [
             'help' => __('Convert legacy-style templates (templates / template_elements*) into modern event_templates rows. Org name is resolved by lookup with the first site-admin user\'s org as fallback; legacy MISP-shipped templates are skipped; rows whose name collides with an existing event_template are skipped. Original templates are left untouched.'),
             'parser' => [
@@ -1566,6 +1584,87 @@ class AdminShell extends AppShell
                 echo __("%s events purged.\n", $result);
             }
         }
+    }
+
+    /**
+     * Render an install baseline from a reference database.
+     *
+     * The reference is a MySQL database a fresh install plus the frozen legacy
+     * corpus produced - what CI builds from INSTALL/MYSQL.sql and runUpdates -
+     * and it may sit beside the working database on the same server. The
+     * connected datasource is only the reader; the engine rendered for is
+     * whatever --engine asks, through the offline grammar when the host
+     * cannot connect to it.
+     *
+     * @return void
+     */
+    public function dumpInstallBaseline()
+    {
+        App::uses('BaselineGenerator', 'Migration');
+        App::uses('AbstractGrammar', 'Migration/Grammar');
+
+        $engine = isset($this->params['engine']) ? (string)$this->params['engine'] : '';
+        if (!in_array($engine, AbstractGrammar::flavours(), true)) {
+            $this->error(
+                __('"%s" is not an engine this can render for.', $engine),
+                __('Use --engine %s.', implode(' or --engine ', AbstractGrammar::flavours()))
+            );
+        }
+
+        $db = $this->Server->getDataSource();
+        try {
+            $generator = new BaselineGenerator(
+                $db,
+                empty($this->params['database']) ? null : (string)$this->params['database']
+            );
+        } catch (InvalidArgumentException $e) {
+            $this->error(__('The reference cannot be read through this connection.'), $e->getMessage());
+        }
+
+        $version = $generator->databaseVersion();
+        if ($version === null) {
+            $this->error(
+                __('The reference database "%s" has no db_version.', $generator->database()),
+                __('Point --database at a clean MISP install, or check that the connected user can read it.')
+            );
+        }
+        if ($version !== AppModel::DB_CHANGES_FREEZE) {
+            $this->error(
+                __('The reference database "%s" is at db_version %s, not %s.', $generator->database(), $version, AppModel::DB_CHANGES_FREEZE),
+                __('A baseline is generated at the frozen version and nowhere else: below it the legacy corpus still has work to do, and above it cannot exist.')
+            );
+        }
+
+        $live = AbstractGrammar::forDataSource($db);
+        $grammar = $live->flavour() === $engine ? $live : AbstractGrammar::offline($engine);
+
+        try {
+            $schema = $generator->readSchema();
+            $seeds = $generator->readSeedRows($schema);
+            $rendered = $generator->render($grammar, $schema, $seeds, $version);
+        } catch (Exception $e) {
+            $this->error(__('The baseline could not be rendered.'), $e->getMessage());
+        }
+
+        foreach ($rendered['notes'] as $note) {
+            $this->err('-- ' . $note);
+        }
+        $this->err(__n(
+            '-- %s table rendered for %s from %s; %s note.',
+            '-- %s tables rendered for %s from %s; %s notes.',
+            count($schema),
+            count($schema),
+            $engine,
+            $generator->database(),
+            count($rendered['notes'])
+        ));
+
+        if (!empty($this->params['output'])) {
+            FileAccessTool::writeToFile((string)$this->params['output'], $rendered['sql']);
+            $this->err(__('-- Written to %s', $this->params['output']));
+            return;
+        }
+        $this->out($rendered['sql'], 0);
     }
 
     public function dumpCurrentDatabaseSchema()
