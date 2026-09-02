@@ -85,7 +85,7 @@ assert event_preview["Event"]["uuid"] == event.uuid
 
 # Test pull
 url = f'servers/pull/{remote_server["id"]}/disable_background_processing:1'
-pull_response = pymisp._check_response(pymisp._prepare_request('GET', url))
+pull_response = pymisp._check_response(pymisp._prepare_request('POST', url))
 check_response(pull_response)
 assert "Pull completed. 0 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled, 0 analyst data pulled, 0 collections pulled." == pull_response["message"], pull_response["message"]
 
@@ -94,7 +94,7 @@ check_response(pymisp.server_pull(remote_server))
 
 # Test push
 url = f'servers/push/{remote_server["id"]}/full/disable_background_processing:1'
-push_response = pymisp._check_response(pymisp._prepare_request('GET', url))
+push_response = pymisp._check_response(pymisp._prepare_request('POST', url))
 check_response(push_response)
 assert "Push complete. 0 events pushed, 0 events could not be pushed." == push_response["message"], push_response["message"]
 
@@ -103,7 +103,7 @@ check_response(pymisp.server_push(remote_server))
 
 # Test caching
 url = f'servers/cache/{remote_server["id"]}/disable_background_processing:1'
-cache_response = pymisp._check_response(pymisp._prepare_request('GET', url))
+cache_response = pymisp._check_response(pymisp._prepare_request('POST', url))
 check_response(cache_response)
 assert "Caching the servers has successfully completed." == cache_response["message"], cache_response["message"]
 

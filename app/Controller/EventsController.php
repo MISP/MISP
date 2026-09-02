@@ -71,6 +71,10 @@ class EventsController extends AppController
         parent::beforeFilter();
 
         $this->Security->unlockedActions[] = 'viewEventAttributes';
+        // Posted by hand-built AJAX (the UiBeta publish toggle, the collections
+        // panel), which sends the CSRF token as a header. None of the three take
+        // body fields a form hash would protect.
+        $this->_csrfTokenHeaderOnly(['publish', 'unpublish', 'restSearch']);
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
@@ -4957,6 +4961,17 @@ class EventsController extends AppController
             } else if (isset($this->request->data['Event']['distribution'])) {
                 // A non-sharing-group distribution must not carry a sharing group id.
                 $this->request->data['Event']['sharing_group_id'] = 0;
+            } else if (
+                !empty($this->request->data['Event']['sharing_group_id']) &&
+                $this->request->data['Event']['sharing_group_id'] != $event['Event']['sharing_group_id']
+            ) {
+                // No distribution submitted at all, so the event keeps its stored one - and
+                // an event already at distribution 4 will persist this id. Gating solely on
+                // the submitted distribution let a form omit that field and skip the check.
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
 
             // always force the org, but do not force it for admins
@@ -8648,6 +8663,12 @@ class EventsController extends AppController
 
     public function cullEmptyEvents()
     {
+        // Irreversible mass delete, and it runs with skipBlocklist set, so the
+        // deleted events leave no trace to re-sync against. Both shipped themes
+        // already reach it by postButton/postLink; without this guard a bodyless
+        // GET is never CSRF-validated (SecurityComponent::startup computes
+        // $hasData false for one), so an <img src> was enough to fire it.
+        $this->request->allowMethod(['post']);
         $eventIds = $this->Event->find('list', array(
             'conditions' => array('Event.published' => 1),
             'fields' => array('Event.id', 'Event.uuid'),

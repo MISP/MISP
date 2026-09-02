@@ -159,11 +159,41 @@ class UserSetting extends AppModel
         // If it's already an array, use it. Otherwise, decode the string.
         $path = is_string($value) ? json_decode($value, true) : $value;
 
-        if (empty($path['path'])) {
+        if (!is_array($path) || empty($path['path']) || !is_string($path['path'])) {
             return false;
         }
-        return str_starts_with($path['path'], '/');
+        // A leading '/' is not enough: '//attacker.example' also starts with
+        // one and is a protocol-relative, off-site URL once it reaches a
+        // Location header. Share the check with the other post-login
+        // navigation target (pre_login_requested_url) instead of keeping a
+        // second, weaker variant of it here.
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($path['path']) !== '';
     }
+
+    /**
+     * The user's homepage as a safe, same-origin path.
+     *
+     * Revalidated on read, not merely on write: the rows this reads may
+     * predate the store-time check above, and setSettingInternal() writes
+     * without running any validator at all. Every consumer of the homepage
+     * setting - the post-login redirect, the news page's "continue" link
+     * and the menu logo - goes through here, so one guard covers all of
+     * them and there is nothing left to sweep in the database.
+     *
+     * @param int $userId
+     * @return string The path to navigate to, or '' when unset or unsafe.
+     */
+    public function getHomepagePath($userId)
+    {
+        $homepage = $this->getValueForUser($userId, 'homepage');
+        if (!is_array($homepage) || empty($homepage['path']) || !is_string($homepage['path'])) {
+            return '';
+        }
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($homepage['path']);
+    }
+
     public static function validate_theme($value, $user)
     {
         if (empty($value)) {

@@ -612,6 +612,7 @@ class FeedsController extends AppController
 
     public function fetchFromFeed($feedId)
     {
+        $this->request->allowMethod(['post']);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -687,6 +688,7 @@ class FeedsController extends AppController
 
     public function fetchFromAllFeeds()
     {
+        $this->request->allowMethod(['post']);
         $feeds = $this->Feed->find('all', array(
             'recursive' => -1,
             'fields' => array('id')
@@ -1211,7 +1213,7 @@ class FeedsController extends AppController
         }
 
         $this->params->params['paging'] = array($this->modelClass => $params);
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id'], $this->Auth->user());
         // remove all duplicates
         $correlatingEvents = array();
         foreach ($resultArray as $k => $v) {
@@ -1248,11 +1250,13 @@ class FeedsController extends AppController
 
     private function __canViewFeed($feed)
     {
-        $host_org_id = (int)Configure::read('MISP.host_org_id');
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
-            return false;
+        // Single-sourced on Feed::visibleConditions() so this per-feed check
+        // and the feed listings that carry the same rule cannot drift apart.
+        // No restriction returned means site admin or host org.
+        if (empty($this->Feed->visibleConditions($this->Auth->user()))) {
+            return true;
         }
-        return true;
+        return !empty($feed['Feed']['lookup_visible']);
     }
 
     public function previewEvent($feedId, $eventUuid, $all = false)
@@ -1423,6 +1427,7 @@ class FeedsController extends AppController
 
     public function enable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, true);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1440,6 +1445,7 @@ class FeedsController extends AppController
 
     public function disable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, false);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1528,6 +1534,7 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
