@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('WorkflowBaseModule', 'Model/WorkflowModules');
 App::uses('WorkflowGraphTool', 'Tools');
 App::uses('Folder', 'Utility');
+App::uses('Cache', 'Cache');
 
 class WorkflowDuplicatedModuleIDException extends Exception {}
 class TriggerNotFoundException extends Exception {}
@@ -69,6 +70,7 @@ class Workflow extends AppModel
     private $error_while_loading = [];
 
     private $module_initialized = false;
+    private $module_file_index = null;
     private $modules_enabled_by_default = ['generic-if', 'distribution-if', 'published-if', 'organisation-if', 'tag-if', 'concurrent-task', 'stop-execution', 'webhook', 'push-zmq'];
 
     const CAPTURE_FIELDS_EDIT = ['name', 'description', 'timestamp', 'data', 'debug_enabled'];
@@ -81,6 +83,7 @@ class Workflow extends AppModel
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
     const REDIS_KEY_MODULES_ENABLED = 'workflow:modules_enabled';
     const REDIS_KEY_ADHOC_WORKFLOW_ENABLED = 'workflow:adhoc_workflow_enabled';
+    const CACHE_KEY_MODULE_FILE_INDEX = 'workflow_module_file_index';
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -549,7 +552,7 @@ class Workflow extends AppModel
      */
     public function executeWorkflowForTriggerRouter($trigger_id, array $data, array &$blockingErrors=[], array $logging=[]): bool
     {
-        $this->loadAllWorkflowModules();
+        $this->__loadWorkflowModule('trigger', $trigger_id);
 
         if (empty($this->loaded_modules['trigger'][$trigger_id])) {
             throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
@@ -905,7 +908,7 @@ class Workflow extends AppModel
 
     public function getModuleClass($node)
     {
-        $this->loadAllWorkflowModules();
+        $this->__loadWorkflowModule($node['data']['module_type'], $node['data']['id']);
         $moduleClass = $this->loaded_classes[$node['data']['module_type']][$node['data']['id']] ?? null;
         return $moduleClass;
     }
@@ -921,7 +924,7 @@ class Workflow extends AppModel
      */
     public function getModuleClassByType($module_type, $id, $throwException=false)
     {
-        $this->loadAllWorkflowModules();
+        $this->__loadWorkflowModule($module_type, $id);
         $moduleClass = $this->loaded_classes[$module_type][$id] ?? null;
         if (is_null($moduleClass) && !empty($throwException)) {
             if ($module_type == 'trigger') {
@@ -944,7 +947,7 @@ class Workflow extends AppModel
      */
     public function getModuleConfigByType($module_type, $id, $throwException=false): ?array
     {
-        $this->loadAllWorkflowModules();
+        $this->__loadWorkflowModule($module_type, $id);
         $moduleConfig = $this->loaded_modules[$module_type][$id] ?? null;
         if (is_null($moduleConfig) && !empty($throwException)) {
             throw new ModuleNotFoundException(__('Unknown module `%s` for module type `%s`', $id, $module_type));
@@ -1012,6 +1015,148 @@ class Workflow extends AppModel
             }
         }
         return $modules;
+    }
+
+    /**
+     * __loadWorkflowModule Make sure the requested module is available in `loaded_modules` and `loaded_classes`.
+     *
+     * Only the requested module gets included and instanced, based on a cached `id` -> file index.
+     * Any situation the index cannot answer (ad-hoc triggers, misp-module actions, unknown ids,
+     * stale index, loading error) falls back on the full `loadAllWorkflowModules()`.
+     *
+     * @param string $module_type
+     * @param string $id
+     * @return void
+     */
+    private function __loadWorkflowModule($module_type, $id)
+    {
+        if ($this->module_initialized) {
+            return;
+        }
+        if (isset($this->loaded_classes[$module_type][$id])) {
+            return;
+        }
+        if (empty($module_type) || empty($id) || !in_array($module_type, ['trigger', 'logic', 'action'])) {
+            $this->loadAllWorkflowModules();
+            return;
+        }
+        $index = $this->__getModuleFileIndex();
+        if (empty($index[$module_type][$id])) {
+            $this->loadAllWorkflowModules();
+            return;
+        }
+        $entry = $index[$module_type][$id];
+        $isCustom = !empty($entry['is_custom']);
+        $filepath = sprintf('%s%s/%s', (!empty($isCustom) ? Workflow::CUSTOM_MODULE_ROOT_PATH : Workflow::MODULE_ROOT_PATH), $module_type, $entry['filename']);
+        $instancedClass = $this->__getClassFromModuleFile($filepath);
+        if (empty($instancedClass) || is_string($instancedClass) || $instancedClass->id !== $id) {
+            // The index no longer reflects the module files, let the full loading routine rebuild everything
+            $this->__invalidateModuleFileIndex();
+            $this->loadAllWorkflowModules();
+            return;
+        }
+        $config = $instancedClass->getConfig();
+        $config['module_type'] = $module_type;
+        if (!empty($isCustom)) {
+            $config['is_custom'] = true;
+            $instancedClass->is_custom = true;
+        }
+        $this->loaded_modules[$module_type][$id] = $config;
+        $this->loaded_classes[$module_type][$id] = $instancedClass;
+        $this->__mergeGlobalConfigIntoLoadedModule($module_type, $id);
+    }
+
+    /**
+     * __getModuleFileIndex Get the `id` -> file index of all PHP modules, keyed on the module directories' mtime
+     *
+     * @return array
+     */
+    private function __getModuleFileIndex(): array
+    {
+        if (!is_null($this->module_file_index)) {
+            return $this->module_file_index;
+        }
+        $signature = Workflow::__getModuleDirectoriesSignature();
+        try {
+            $cached = Cache::read(Workflow::CACHE_KEY_MODULE_FILE_INDEX);
+        } catch (Exception $e) {
+            $cached = false;
+        }
+        if (!empty($cached['signature']) && $cached['signature'] === $signature && isset($cached['index'])) {
+            $this->module_file_index = $cached['index'];
+            return $this->module_file_index;
+        }
+        // Building the index performs the same full scan as `loadAllWorkflowModules()`, duplicated
+        // module ids therefore still throw before anything gets cached.
+        $index = $this->__buildModuleFileIndex();
+        try {
+            Cache::write(Workflow::CACHE_KEY_MODULE_FILE_INDEX, ['signature' => $signature, 'index' => $index]);
+        } catch (Exception $e) {
+            // Not being able to persist the index only costs performance
+        }
+        $this->module_file_index = $index;
+        return $this->module_file_index;
+    }
+
+    private function __invalidateModuleFileIndex()
+    {
+        $this->module_file_index = null;
+        try {
+            Cache::delete(Workflow::CACHE_KEY_MODULE_FILE_INDEX);
+        } catch (Exception $e) {
+            // Nothing to do, the index will be rebuilt on the next signature mismatch
+        }
+    }
+
+    private function __buildModuleFileIndex(): array
+    {
+        $index = ['trigger' => [], 'logic' => [], 'action' => []];
+        $phpModuleFiles = Workflow::__listPHPModuleFiles();
+        foreach ($phpModuleFiles as $type => $files) {
+            if ($type == 'custom') {
+                continue;
+            }
+            $index[$type] = $this->__indexModuleFiles($type, $files, false);
+        }
+        // Custom PHP modules from Lib take precedence over the core ones, as they do when fully loaded
+        foreach ($phpModuleFiles['custom'] as $type => $files) {
+            $index[$type] = array_merge($index[$type], $this->__indexModuleFiles($type, $files, true));
+        }
+        return $index;
+    }
+
+    private function __indexModuleFiles($type, $files, $isCustom=false): array
+    {
+        $entries = [];
+        $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files, $isCustom);
+        foreach ($classModuleFromFiles['instancedClasses'] as $id => $instancedClass) {
+            $entries[$id] = [
+                'filename' => sprintf('%s.php', get_class($instancedClass)),
+                'is_custom' => !empty($isCustom),
+            ];
+        }
+        return $entries;
+    }
+
+    /**
+     * __getModuleDirectoriesSignature Signature of the module directories, used to invalidate the file index
+     *
+     * @return string
+     */
+    private static function __getModuleDirectoriesSignature(): string
+    {
+        $dirs = [
+            Workflow::MODULE_ROOT_PATH . 'trigger',
+            Workflow::MODULE_ROOT_PATH . 'logic',
+            Workflow::MODULE_ROOT_PATH . 'action',
+            Workflow::CUSTOM_MODULE_ROOT_PATH . 'logic',
+            Workflow::CUSTOM_MODULE_ROOT_PATH . 'action',
+        ];
+        $signature = [];
+        foreach ($dirs as $dir) {
+            $signature[] = sprintf('%s:%s', $dir, is_dir($dir) ? @filemtime($dir) : '-');
+        }
+        return implode('|', $signature);
     }
 
     public function loadAllWorkflowModules()
@@ -1092,6 +1237,34 @@ class Workflow extends AppModel
             $action['disabled'] = $module_disabled;
             $this->loaded_classes['action'][$action['id']]->disabled = $module_disabled;
         });
+    }
+
+    /**
+     * __mergeGlobalConfigIntoLoadedModule Same as `__mergeGlobalConfigIntoLoadedModules()` but for a single module
+     *
+     * @param string $module_type
+     * @param string $id
+     * @return void
+     */
+    private function __mergeGlobalConfigIntoLoadedModule($module_type, $id)
+    {
+        if ($module_type == 'trigger') {
+            $trigger = &$this->loaded_modules['trigger'][$id];
+            if (!empty($trigger['is_adhoc'])) {
+                $module_disabled = !in_array($trigger['id'], $this->getEnabledAdHocWorkflows());
+            } else {
+                $module_disabled = empty(Configure::read(sprintf('Plugin.Workflow_triggers_%s', $trigger['id'])));
+            }
+            $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+            $trigger['disabled'] = $module_disabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->disabled = $module_disabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->html_template = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+            unset($trigger);
+        } else {
+            $module_disabled = !in_array($id, $this->getEnabledModules());
+            $this->loaded_modules[$module_type][$id]['disabled'] = $module_disabled;
+            $this->loaded_classes[$module_type][$id]->disabled = $module_disabled;
+        }
     }
 
     private function __getEnabledModulesFromModuleService()
