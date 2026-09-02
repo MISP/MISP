@@ -29,6 +29,16 @@ trait CLIUsersTrait
                     'autoalert', 'contactalert',
                 ],
                 'adminOnly' => true,
+                // Credential columns: never read.
+                'hiddenFields' => [
+                    'password', 'authkey', 'totp',
+                    'hotp_counter',
+                    'external_auth_key',
+                ],
+                'filters' => [
+                    'org_id', 'role_id', 'disabled',
+                    'searchall',
+                ],
             ],
         ];
     }
@@ -182,6 +192,7 @@ trait CLIUsersTrait
     {
         $user = $this->User->find('first', [
             'conditions' => ['User.id' => $id],
+            'fields' => $this->__detailFields('user'),
             'contain' => [
                 'Role' => [
                     'fields' => ['Role.name'],
@@ -193,11 +204,6 @@ trait CLIUsersTrait
                 ],
             ],
         ]);
-        if (!empty($user)) {
-            unset($user['User']['password']);
-            unset($user['User']['authkey']);
-            unset($user['User']['totp']);
-        }
         return !empty($user) ? $user : null;
     }
 
@@ -341,25 +347,32 @@ trait CLIUsersTrait
      * @param int $id User ID.
      * @return void
      */
-    private function __editUser($id)
+    private function __editUser($id, $fields = null)
     {
         $existing = $this->__fetchUserDetail($id);
         if (empty($existing)) {
             $this->err(
                 'User #' . $id . ' not found.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['user']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'user',
             $existing['User'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
 
         $this->out('');
@@ -374,7 +387,7 @@ trait CLIUsersTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
 
         $data = array_merge(
@@ -392,6 +405,7 @@ trait CLIUsersTrait
                 'User #' . $id
                 . ' updated successfully.'
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update user #'
@@ -416,6 +430,7 @@ trait CLIUsersTrait
                 }
             }
         }
+        return false;
     }
 
     /**

@@ -90,6 +90,9 @@ class CLIShell extends AppShell
     /** @var int Items per page */
     private $__perPage = 20;
 
+    /** @var int Hard ceiling on a page size */
+    private $__maxPerPage = 1000;
+
     /** @var string Sort direction: ASC or DESC */
     private $__sortOrder = 'DESC';
 
@@ -143,6 +146,9 @@ class CLIShell extends AppShell
             ],
             'editableFields' => [],
             'adminOnly' => true,
+            // The web never reads the sync key
+            // back (ServersController::index).
+            'hiddenFields' => ['authkey'],
         ],
         'feed' => [
             'model' => 'Feed',
@@ -152,6 +158,10 @@ class CLIShell extends AppShell
                 'url', 'enabled',
             ],
             'editableFields' => [],
+            // Feed.headers carries the feed's HTTP
+            // credentials: hidden from non-site-admins
+            // and masked for site admins, as the web.
+            'hiddenFields' => ['headers'],
         ],
         'sharing_group' => [
             'model' => 'SharingGroup',
@@ -248,6 +258,13 @@ class CLIShell extends AppShell
         $this->__user = $user;
         $this->__setUserContext($user);
 
+        // Data values are printed verbatim by the
+        // renderers; never let ConsoleOutput turn
+        // <tag> markup found inside a value into
+        // colour codes (or strip it, in PLAIN mode).
+        $this->stdout->outputAs(ConsoleOutput::RAW);
+        $this->stderr->outputAs(ConsoleOutput::RAW);
+
         $this->__entityConfig = array_merge(
             $this->__getEventEntityConfig(),
             $this->__getAttributeEntityConfig(),
@@ -308,6 +325,61 @@ class CLIShell extends AppShell
         }
 
         $this->__cleanup();
+    }
+
+    /**
+     * Print to stdout with terminal control
+     * sequences neutralised (see __term()).
+     *
+     * Every value the shell prints is database
+     * content, so this is the choke point; the
+     * few places that emit the shell's own cursor
+     * and highlight escapes use __outRaw().
+     *
+     * @param string|array|null $message Text
+     * @param int $newlines Newlines to append
+     * @param int $level Verbosity level
+     * @return int|bool
+     */
+    public function out(
+        $message = null,
+        $newlines = 1,
+        $level = Shell::NORMAL
+    ) {
+        return parent::out(
+            $this->__term($message), $newlines, $level
+        );
+    }
+
+    /**
+     * Print to stderr with terminal control
+     * sequences neutralised (see __term()).
+     *
+     * @param string|array|null $message Text
+     * @param int $newlines Newlines to append
+     * @return int|bool
+     */
+    public function err($message = null, $newlines = 1)
+    {
+        return parent::err(
+            $this->__term($message), $newlines
+        );
+    }
+
+    /**
+     * Print the shell's own screen-control output
+     * (clear, cursor home, reverse video,
+     * backspace) unsanitised. Any data mixed into
+     * such a line must already have been through
+     * __term() by the caller.
+     *
+     * @param string $message Text
+     * @param int $newlines Newlines to append
+     * @return int|bool
+     */
+    private function __outRaw($message, $newlines = 1)
+    {
+        return parent::out($message, $newlines);
     }
 
     /**
@@ -740,7 +812,15 @@ class CLIShell extends AppShell
                 . 'across fields'
             );
             $this->out(
-                '  value=%text%      LIKE match'
+                '  value=%text%      LIKE match '
+                . '(attributes)'
+            );
+            $this->out(
+                '  limit=N           Page size '
+                . '(1-' . $this->__maxPerPage . ')'
+            );
+            $this->out(
+                '  page=N            Page number'
             );
             return;
         }
@@ -812,9 +892,44 @@ class CLIShell extends AppShell
             );
             return;
         }
+        if (!is_numeric($id)) {
+            $this->err(
+                "Invalid ID: '" . $id . "'"
+            );
+            return;
+        }
+        $config = $this->__entityConfig[$entity];
+        if (
+            !empty($config['adminOnly'])
+            && empty(
+                $this->__user['Role']
+                    ['perm_site_admin']
+            )
+        ) {
+            $this->err(
+                'Permission denied: '
+                . $entity
+                . ' requires site admin access.'
+            );
+            return;
+        }
+        // The context scopes later listings, so it
+        // must be a record the user may see: resolve
+        // it through the same ACL'd path as `view`.
+        $record = $this->__fetchDetail(
+            $entity, (int)$id
+        );
+        if (empty($record)) {
+            $this->err(
+                ucfirst($entity)
+                . ' with ID ' . $id
+                . ' not found.'
+            );
+            return;
+        }
         $this->__context = [
             'entity' => $entity,
-            'id' => $id,
+            'id' => (int)$id,
         ];
         $this->out(
             'Context set to '
@@ -871,13 +986,12 @@ class CLIShell extends AppShell
         }
 
         $filters = $this->__parseFilters($args);
-
-        if (!isset($filters['limit'])) {
-            $filters['limit'] = $this->__perPage;
-        }
-        if (!isset($filters['page'])) {
-            $filters['page'] = 1;
-        }
+        $this->__warnUnsupportedFilters(
+            $entity, $filters
+        );
+        $filters = $this->__normalisePagination(
+            $filters
+        );
         $filters['sort_order'] =
             $this->__sortOrder;
         $this->__page = (int)$filters['page'];
@@ -1210,7 +1324,45 @@ class CLIShell extends AppShell
      */
     private function __fetchList($entity, $filters)
     {
+        // Sanitised once here, so every renderer
+        // sizes its columns on what it will print.
+        return $this->__termRows(
+            $this->__fetchListRaw($entity, $filters)
+        );
+    }
+
+    /**
+     * Fetch a list of records, unsanitised.
+     *
+     * @param string $entity Canonical entity name
+     * @param array $filters Filters
+     * @return array Results
+     */
+    private function __fetchListRaw($entity, $filters)
+    {
         switch ($entity) {
+            case 'feed':
+                // Mirror FeedsController::index():
+                // outside the host org, non-site-admins
+                // only see feeds flagged lookup_visible.
+                $conditions = [];
+                $hostOrgId = (int)Configure::read(
+                    'MISP.host_org_id'
+                );
+                if (
+                    empty(
+                        $this->__user['Role']
+                            ['perm_site_admin']
+                    )
+                    && (int)$this->__user['org_id']
+                        !== $hostOrgId
+                ) {
+                    $conditions['Feed.lookup_visible']
+                        = 1;
+                }
+                return $this->__fetchSimpleList(
+                    'Feed', $filters, $conditions
+                );
             case 'event':
                 return $this->__fetchEventList(
                     $filters
@@ -1261,7 +1413,8 @@ class CLIShell extends AppShell
      */
     private function __fetchSimpleList(
         $modelName,
-        $filters
+        $filters,
+        $conditions = []
     ) {
         $limit = isset($filters['limit'])
             ? (int)$filters['limit']
@@ -1289,6 +1442,7 @@ class CLIShell extends AppShell
         $records = $this->{$modelName}->find(
             'all',
             [
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'limit' => $limit,
                 'page' => $page,
@@ -1437,19 +1591,27 @@ class CLIShell extends AppShell
                         'conditions' => [
                             'Server.id' => $id,
                         ],
+                        'fields' =>
+                            $this->__detailFields(
+                                'server'
+                            ),
                         'recursive' => -1,
                     ]
                 );
 
             case 'feed':
-                return $this->Feed->find('first', [
-                    'conditions' => [
-                        'Feed.id' => $id,
-                    ],
-                    'recursive' => -1,
-                ]);
+                return $this->__fetchFeedDetail($id);
 
             case 'sharing_group':
+                // Mirror SharingGroupsController::view
+                if (
+                    !$this->SharingGroup
+                        ->checkIfAuthorised(
+                            $this->__user, $id
+                        )
+                ) {
+                    return null;
+                }
                 return $this->SharingGroup->find(
                     'first',
                     [
@@ -1496,6 +1658,48 @@ class CLIShell extends AppShell
             default:
                 return null;
         }
+    }
+
+    /**
+     * Fetch a feed for the detail view, mirroring
+     * FeedsController::view(): the ACL entry is
+     * host_org_user, and Feed.headers (the feed's
+     * HTTP credentials) is never fetched for
+     * non-site-admins and masked for site admins.
+     *
+     * @param int $id Feed ID
+     * @return array|null
+     */
+    private function __fetchFeedDetail($id)
+    {
+        $isSiteAdmin = !empty(
+            $this->__user['Role']['perm_site_admin']
+        );
+        $hostOrgId = (int)Configure::read(
+            'MISP.host_org_id'
+        );
+        if (
+            !$isSiteAdmin
+            && (int)$this->__user['org_id']
+                !== $hostOrgId
+        ) {
+            return null;
+        }
+        $fields = $isSiteAdmin
+            ? []
+            : $this->__detailFields('feed');
+        $feed = $this->Feed->find('first', [
+            'conditions' => ['Feed.id' => $id],
+            'fields' => $fields,
+            'recursive' => -1,
+        ]);
+        if (empty($feed)) {
+            return null;
+        }
+        if (!empty($feed['Feed']['headers'])) {
+            $feed['Feed']['headers'] = '****';
+        }
+        return $feed;
     }
 
     /**
@@ -1729,12 +1933,13 @@ class CLIShell extends AppShell
                             $this->__parseFilters(
                                 $allArgs
                             );
-                        if (
-                            !isset($filters['limit'])
-                        ) {
-                            $filters['limit'] =
-                                $this->__perPage;
-                        }
+                        $this->__warnUnsupportedFilters(
+                            $entity, $filters
+                        );
+                        $filters =
+                            $this->__normalisePagination(
+                                $filters
+                            );
                         $filters['page'] = 1;
                         $filters['sort_order'] =
                             $this->__sortOrder;
@@ -1852,7 +2057,7 @@ class CLIShell extends AppShell
             $results, $fields, $termWidth
         );
 
-        $this->out("\033[H\033[J", 0);
+        $this->__outRaw("\033[H\033[J", 0);
 
         $header = '';
         $separator = '';
@@ -1932,7 +2137,7 @@ class CLIShell extends AppShell
                     $line .= ' | ';
                 }
             }
-            $this->out(' ' . $line);
+            $this->__outRaw(' ' . $line);
         }
 
         $remaining = $viewportRows
@@ -2159,7 +2364,7 @@ class CLIShell extends AppShell
             ) {
                 $child =
                     $children[(int)$key - 1];
-                $this->out(
+                $this->__outRaw(
                     "\033[H\033[J Loading "
                     . $child['label'] . '...',
                     0
@@ -2333,14 +2538,22 @@ class CLIShell extends AppShell
         $editable = !empty($config['editableFields'])
             ? $config['editableFields'] : [];
 
-        $canWrite = true;
+        // Pencil marker: the entity-level write
+        // rule, and for event-scoped records the
+        // parent event's ownership as well.
+        $canWrite = $this->__canWriteEntity(
+            $entity, 'edit'
+        );
         if (
-            !empty($config['adminOnly'])
-            || !empty($config['writeAdminOnly'])
+            $canWrite
+            && in_array(
+                $entity,
+                ['event', 'attribute', 'object']
+            )
+            && isset($record['Event']['orgc_id'])
         ) {
-            $canWrite = !empty(
-                $this->__user['Role']
-                    ['perm_site_admin']
+            $canWrite = $this->__canModifyEvent(
+                $record
             );
         }
 
@@ -2381,8 +2594,8 @@ class CLIShell extends AppShell
             }
             $rows[] = [
                 'section' => null,
-                'field' => $key,
-                'value' => $display,
+                'field' => $this->__term($key),
+                'value' => $this->__term($display),
                 'editable' => $canWrite
                     && in_array($key, $editable),
             ];
@@ -2423,9 +2636,10 @@ class CLIShell extends AppShell
                         ? ' [IDS]' : '';
                     $rows[] = [
                         'section' => 'Attributes',
-                        'field' => $rel,
-                        'value' => $attr['value']
-                            . $ids,
+                        'field' => $this->__term($rel),
+                        'value' => $this->__term(
+                            $attr['value']
+                        ) . $ids,
                         'editable' => false,
                     ];
                 }
@@ -2447,8 +2661,8 @@ class CLIShell extends AppShell
                 }
                 $rows[] = [
                     'section' => $section,
-                    'field' => $k,
-                    'value' => (string)$v,
+                    'field' => $this->__term($k),
+                    'value' => $this->__term($v),
                     'editable' => false,
                 ];
             }
@@ -2516,7 +2730,7 @@ class CLIShell extends AppShell
         }
         $maxKeyLen = min($maxKeyLen, 30);
 
-        $this->out("\033[H\033[J", 0);
+        $this->__outRaw("\033[H\033[J", 0);
 
         $title = '=== ' . ucfirst($entity)
             . ' #' . $id . ' ===';
@@ -2544,7 +2758,7 @@ class CLIShell extends AppShell
                         )
                         . "\033[0m";
                 }
-                $this->out($line);
+                $this->__outRaw($line);
                 continue;
             }
 
@@ -2582,7 +2796,7 @@ class CLIShell extends AppShell
                     . $padded . "\033[0m";
             }
 
-            $this->out($line);
+            $this->__outRaw($line);
         }
 
         $remaining = $viewportRows
@@ -2622,19 +2836,24 @@ class CLIShell extends AppShell
     /**
      * Edit a single field from the detail view.
      *
+     * Delegates to the entity's `edit` handler,
+     * restricted to the one field, so the inline
+     * editor shares the write guard, the timestamp
+     * bump, the unpublish and the validation of
+     * the `edit` command instead of saving on its
+     * own - that second, unguarded save path let a
+     * user rewrite any record they could read.
+     *
      * @param string $entity Entity name
      * @param int    $id     Record ID
      * @param string $field  Field name
-     * @param string $current Current value
+     * @param string $current Current value (unused:
+     *                        the handler re-reads it)
      * @return bool Whether the save succeeded
      */
     private function __editDetailField(
         $entity, $id, $field, $current
     ) {
-        $config = $this->__entityConfig[$entity];
-        $modelName = $config['model'];
-        $alias = $this->__modelAlias($entity);
-
         if (
             !isset($this->__fieldMeta[$entity][$field])
         ) {
@@ -2644,70 +2863,45 @@ class CLIShell extends AppShell
             );
             return false;
         }
-
-        $meta = $this->__fieldMeta[$entity][$field];
-        $fType = isset($meta['type'])
-            ? $meta['type'] : 'string';
-        if ($fType === 'boolean') {
-            $current = !empty($current)
-                && $current !== '0'
-                ? '1' : '0';
-        }
-
-        $this->out('');
-        $newVal = $this->__promptForField(
-            $field, $meta, $current
-        );
-        if (
-            $newVal === null
-            || $newVal === $current
-        ) {
-            $this->out('  No change.');
+        if (!$this->__canWriteEntity($entity, 'edit')) {
+            $this->__denyWrite($entity, 'edit');
             return false;
         }
-
-        $this->{$modelName}->id = $id;
-        $result = $this->{$modelName}->save(
-            [
-                $alias => [
-                    'id' => $id,
-                    $field => $newVal,
-                ],
-            ],
-            true,
-            [$field]
-        );
-
-        if ($result) {
-            $this->out(
-                '  ' . ucfirst($entity)
-                . ' #' . $id . ' updated.'
-            );
-            return true;
-        }
-
-        $this->err(
-            '  Failed to update ' . $field . '.'
-        );
-        if (
-            !empty(
-                $this->{$modelName}
-                    ->validationErrors
-            )
-        ) {
-            foreach (
-                $this->{$modelName}
-                    ->validationErrors
-                as $f => $errs
-            ) {
-                $errMsg = is_array($errs)
-                    ? implode(', ', $errs)
-                    : $errs;
-                $this->err(
-                    '    ' . $f . ': ' . $errMsg
+        $this->out('');
+        switch ($entity) {
+            case 'event':
+                return $this->__editEvent(
+                    $id, [$field]
                 );
-            }
+            case 'attribute':
+                return $this->__editAttribute(
+                    $id, [$field]
+                );
+            case 'object':
+                return $this->__editObject(
+                    $id, [$field]
+                );
+            case 'tag':
+                return $this->__editTag(
+                    $id, [$field]
+                );
+            case 'user':
+                return $this->__editUser(
+                    $id, [$field]
+                );
+            case 'organisation':
+                return $this->__editOrganisation(
+                    $id, [$field]
+                );
+            case 'role':
+                return $this->__editRole(
+                    $id, [$field]
+                );
         }
+        $this->err(
+            '  Edit not supported for '
+            . $entity . '.'
+        );
         return false;
     }
 
@@ -2986,7 +3180,7 @@ class CLIShell extends AppShell
 
             if (ord($ch) === 21) {
                 $eraseLen = strlen($buf);
-                $this->out(
+                $this->__outRaw(
                     str_repeat("\x08", $eraseLen)
                     . str_repeat(' ', $eraseLen)
                     . str_repeat(
@@ -3003,7 +3197,7 @@ class CLIShell extends AppShell
             ) {
                 if (strlen($buf) > 0) {
                     $buf = substr($buf, 0, -1);
-                    $this->out("\x08 \x08", 0);
+                    $this->__outRaw("\x08 \x08", 0);
                 }
                 continue;
             }
@@ -3018,7 +3212,7 @@ class CLIShell extends AppShell
                     && $completion !== $buf
                 ) {
                     $eraseLen = strlen($buf);
-                    $this->out(
+                    $this->__outRaw(
                         str_repeat(
                             "\x08", $eraseLen
                         )
@@ -3173,7 +3367,10 @@ class CLIShell extends AppShell
         }
 
         if ($key === 'tag' || $key === 'tag+') {
+            // Same rule as the web tag picker
+            // (TagsController::selectTag).
             $tags = $this->Tag->find('list', [
+                'conditions' => ['Tag.hide_tag' => 0],
                 'fields' => ['Tag.name'],
                 'limit' => 200,
                 'order' => [
@@ -3184,9 +3381,14 @@ class CLIShell extends AppShell
         }
 
         if ($key === 'org') {
+            // Honour hide_organisation_index_from_users
             $orgs = $this->Organisation->find(
                 'list',
                 [
+                    'conditions' => $this->Organisation
+                        ->createConditions(
+                            $this->__user
+                        ),
                     'fields' => [
                         'Organisation.name',
                     ],
@@ -3238,22 +3440,8 @@ class CLIShell extends AppShell
             );
             return;
         }
-        $config = $this->__entityConfig[$entity];
-        if (
-            (
-                !empty($config['adminOnly'])
-                || !empty($config['writeAdminOnly'])
-            )
-            && empty(
-                $this->__user['Role']
-                    ['perm_site_admin']
-            )
-        ) {
-            $this->err(
-                'Permission denied: '
-                . $entity
-                . ' requires site admin access.'
-            );
+        if (!$this->__canWriteEntity($entity, 'add')) {
+            $this->__denyWrite($entity, 'add');
             return;
         }
 
@@ -3324,21 +3512,8 @@ class CLIShell extends AppShell
             return;
         }
         $config = $this->__entityConfig[$entity];
-        if (
-            (
-                !empty($config['adminOnly'])
-                || !empty($config['writeAdminOnly'])
-            )
-            && empty(
-                $this->__user['Role']
-                    ['perm_site_admin']
-            )
-        ) {
-            $this->err(
-                'Permission denied: '
-                . $entity
-                . ' requires site admin access.'
-            );
+        if (!$this->__canWriteEntity($entity, 'edit')) {
+            $this->__denyWrite($entity, 'edit');
             return;
         }
         if (empty($config['editableFields'])) {
@@ -3424,22 +3599,10 @@ class CLIShell extends AppShell
             );
             return;
         }
-        $config = $this->__entityConfig[$entity];
         if (
-            (
-                !empty($config['adminOnly'])
-                || !empty($config['writeAdminOnly'])
-            )
-            && empty(
-                $this->__user['Role']
-                    ['perm_site_admin']
-            )
+            !$this->__canWriteEntity($entity, 'delete')
         ) {
-            $this->err(
-                'Permission denied: '
-                . $entity
-                . ' requires site admin access.'
-            );
+            $this->__denyWrite($entity, 'delete');
             return;
         }
 
