@@ -385,31 +385,57 @@ class EventReport extends AppModel
      */
     public function attachReportCountsToEvents(array $user, $events)
     {
+        $ownEventIds = [];
+        $otherEventIds = [];
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
         }
-        foreach ($events as $k => $event) {
-            $conditions = [
-                'AND' => [
-                    [
-                        'Event.id' => $event['Event']['id']
-                    ]
-                ]
-            ];
+        foreach ($events as $event) {
             if (!$user['Role']['perm_site_admin'] && $event['Event']['org_id'] != $user['org_id']) {
-                $conditions['AND'][] = [
+                $otherEventIds[] = $event['Event']['id'];
+            } else {
+                $ownEventIds[] = $event['Event']['id'];
+            }
+        }
+        $counts = [];
+        if (!empty($ownEventIds)) {
+            $counts += $this->__fetchReportCounts($ownEventIds, []);
+        }
+        if (!empty($otherEventIds)) {
+            $counts += $this->__fetchReportCounts($otherEventIds, [
+                [
                     'EventReport.distribution' => [1, 2, 3, 5],
                     'AND' => [
                         'EventReport.distribution' => 4,
                         'EventReport.sharing_group_id' => $sgids,
                     ]
-                ];
-            }
-            $events[$k]['Event']['report_count'] = $this->find('count', [
-                'conditions' => $conditions
+                ]
             ]);
         }
+        foreach ($events as $k => $event) {
+            $eventId = $event['Event']['id'];
+            $events[$k]['Event']['report_count'] = isset($counts[$eventId]) ? (int)$counts[$eventId] : 0;
+        }
         return $events;
+    }
+
+    /**
+     * Fetch the number of reports per event for the given event IDs in a single grouped query.
+     *
+     * @param array $eventIds
+     * @param array $extraConditions Additional ACL conditions to apply
+     * @return array Event ID => report count
+     */
+    private function __fetchReportCounts(array $eventIds, array $extraConditions)
+    {
+        $conditions = ['AND' => array_merge([['EventReport.event_id' => $eventIds]], $extraConditions)];
+        $counts = $this->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['EventReport.event_id', 'COUNT(EventReport.id) as count'],
+            'recursive' => -1,
+            'group' => ['EventReport.event_id'],
+        ]);
+        return Hash::combine($counts, '{n}.EventReport.event_id', '{n}.0.count');
     }
 
     public function getSummaryForEvent(array $user, $eventId)
