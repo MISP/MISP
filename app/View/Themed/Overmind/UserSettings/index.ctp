@@ -10,6 +10,11 @@ $this->set('headerActions', [
         'url' => $baseurl . '/user_settings/setSetting',
     ],
 ]);
+xdebug_break();
+// Internal settings are refused by setSetting() and deleteSelection() outright, so they get no action menu at all.
+$settingIsManageable = function (array $row) {
+    return !empty($row['UserSetting']['_canDelete']);
+};
 
 $fields = [
     [
@@ -90,6 +95,7 @@ $fields = [
                     'user_id' => 'UserSetting.user_id',
                     'setting' => 'UserSetting.setting',
                 ],
+                'requirement' => $settingIsManageable,
             ],
             [
                 'type' => 'modal',
@@ -98,6 +104,7 @@ $fields = [
                 'size' => 'md',
                 'url' => $baseurl . '/user_settings/deleteSelection/%id%',
                 'class' => 'text-danger',
+                'requirement' => $settingIsManageable,
             ],
         ],
     ],
