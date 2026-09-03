@@ -91,7 +91,7 @@ class BackgroundJob implements JsonSerializable
 
         $this->pool($process, $pipes, $runningCallback);
 
-        if ($this->returnCode === 0 && empty($this->error)) {
+        if ($this->returnCode === 0) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             $this->setProgress(100);
         } else {
