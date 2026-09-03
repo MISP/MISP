@@ -889,6 +889,20 @@ class AppController extends Controller
             }
         }
 
+        // Check if the host organisation is still named "ADMIN" and force a name change
+        if (
+            $this->_isSiteAdmin() &&
+            $user['Organisation']['name'] === 'ADMIN' &&
+            !$this->_isControllerAction([
+                'organisations' => ['admin_edit'],
+                'users' => ['logout', 'login']
+            ])
+        ) {
+            $this->Flash->info(__('Please change the default organisation name ("ADMIN") before proceeding.'));
+            $this->redirect(['controller' => 'organisations', 'action' => 'edit', 'admin' => true, $user['org_id']]);
+            return false;
+        }
+
         return true;
     }
 
