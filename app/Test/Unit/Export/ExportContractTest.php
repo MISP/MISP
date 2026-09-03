@@ -84,7 +84,7 @@ class ExportContractTest extends TestCase
     }
 
     /** A single attribute in the shape MISP hands to an export. */
-    private static function attribute(string $type = 'ip-dst', string $value = '8.8.8.8'): array
+    private static function attributeFixture(string $type = 'ip-dst', string $value = '8.8.8.8'): array
     {
         return [
             'Attribute' => [
@@ -223,7 +223,7 @@ class ExportContractTest extends TestCase
         if (method_exists($export, 'header')) {
             $export->header($options);
         }
-        $out = $export->handler(self::attribute(), $options);
+        $out = $export->handler(self::attributeFixture(), $options);
         self::assertConsumable($out, sprintf('%s::handler()', $class));
     }
 
@@ -265,7 +265,7 @@ class ExportContractTest extends TestCase
             $export->header($options);
         }
         foreach ($types as $type => $value) {
-            $out = $export->handler(self::attribute($type, $value), $options);
+            $out = $export->handler(self::attributeFixture($type, $value), $options);
             self::assertConsumable($out, sprintf('%s::handler() for attribute type %s', $class, $type));
         }
     }
