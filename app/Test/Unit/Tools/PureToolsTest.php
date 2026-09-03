@@ -21,7 +21,7 @@ class PureToolsTest extends TestCase
 
         $this->assertCount(6, $palette);
         foreach ($palette as $colour) {
-            $this->assertMatchesRegularExpression(
+            $this->assertRegExp(
                 '/^#?[0-9a-fA-F]{6}$/',
                 $colour,
                 'every palette entry must be a 6-digit hex colour'
@@ -42,9 +42,9 @@ class PureToolsTest extends TestCase
         $tool = new ColourPaletteTool();
 
         // HSVtoRGB returns a hex string via convertToHex().
-        $this->assertMatchesRegularExpression('/^#?ff0000$/i', $tool->HSVtoRGB([0.0, 1.0, 1.0]), 'hue 0 at full saturation is red');
-        $this->assertMatchesRegularExpression('/^#?0{6}$/i', $tool->HSVtoRGB([0.0, 0.0, 0.0]), 'value 0 is black');
-        $this->assertMatchesRegularExpression('/^#?f{6}$/i', $tool->HSVtoRGB([0.0, 0.0, 1.0]), 'saturation 0 at full value is white');
+        $this->assertRegExp('/^#?ff0000$/i', $tool->HSVtoRGB([0.0, 1.0, 1.0]), 'hue 0 at full saturation is red');
+        $this->assertRegExp('/^#?0{6}$/i', $tool->HSVtoRGB([0.0, 0.0, 0.0]), 'value 0 is black');
+        $this->assertRegExp('/^#?f{6}$/i', $tool->HSVtoRGB([0.0, 0.0, 1.0]), 'saturation 0 at full value is white');
     }
 
     public function testGradientInterpolationHitsBothEndpoints(): void
