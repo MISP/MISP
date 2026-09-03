@@ -404,10 +404,12 @@ class EventReport extends AppModel
         if (!empty($otherEventIds)) {
             $counts += $this->__fetchReportCounts($otherEventIds, [
                 [
-                    'EventReport.distribution' => [1, 2, 3, 5],
-                    'AND' => [
-                        'EventReport.distribution' => 4,
-                        'EventReport.sharing_group_id' => $sgids,
+                    'OR' => [
+                        'EventReport.distribution' => [1, 2, 3, 5],
+                        'AND' => [
+                            'EventReport.distribution' => 4,
+                            'EventReport.sharing_group_id' => $sgids,
+                        ]
                     ]
                 ]
             ]);
