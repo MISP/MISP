@@ -38,11 +38,11 @@ class DecayingModelMappingController extends AppController
                 $this->request->data['DecayingModelMapping']['org_id'] = $this->Auth->user()['org_id'];
             }
             if (empty($this->request->data['DecayingModelMapping']['attributetypes'])) {
-                throw new MethodNotAllowedException(_("The model must link to at least one attribute type"));
+                throw new MethodNotAllowedException(__("The model must link to at least one attribute type"));
             } else {
                 $decoded = json_decode($this->request->data['DecayingModelMapping']['attributetypes'], true);
                 if ($decoded === null) {
-                    throw new MethodNotAllowedException(_("Invalid JSON: attribute type"));
+                    throw new MethodNotAllowedException(__("Invalid JSON: attribute type"));
                 }
                 $this->request->data['DecayingModelMapping']['attribute_types'] = $decoded;
                 unset($this->request->data['DecayingModelMapping']['attributetypes']);
