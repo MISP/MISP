@@ -784,6 +784,24 @@ jobs:
           popd
           deactivate
 
+      # tests/testlive_comprehensive_local.py::test_search_index_by_tag asserts
+      # that the tag "tlp:red" already exists. It never created it: it relied on
+      # PyMISP's suite, which used to run first in this job, having created the
+      # tag as a side effect. That is an invisible dependency between two
+      # unrelated suites, so make this job provide the tag itself. The lite
+      # fixture ingest does not enable any taxonomy, and enableTaxonomyTags
+      # takes a numeric id rather than a namespace, so look tlp's id up first.
+      - name: Enable the tlp taxonomy tags
+        run: |
+          app/Console/cake Admin updateTaxonomies
+          tlp_id=$(mysql -h 127.0.0.1 -u misp -pblah misp -N -B \
+            -e "SELECT id FROM taxonomies WHERE namespace = 'tlp' LIMIT 1")
+          if [ -z "$tlp_id" ]; then
+            echo "tlp taxonomy not present after updateTaxonomies" >&2
+            exit 1
+          fi
+          app/Console/cake Admin enableTaxonomyTags "$tlp_id"
+
       - name: Run live python suites
         run: |
           sudo chmod -R g+ws `pwd`/app/tmp/logs
