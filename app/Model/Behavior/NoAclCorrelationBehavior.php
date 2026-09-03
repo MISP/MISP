@@ -541,8 +541,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
             'recursive' => -1,
             'conditions' => [
                 'OR' => [
-                    'CorrelationValue.value LIKE' => '%' . $value,
-                    'CorrelationValue.value LIKE' => $value . '%'
+                    ['CorrelationValue.value LIKE' => '%' . $value],
+                    ['CorrelationValue.value LIKE' => $value . '%'],
                 ]
             ],
             'fields' => [
