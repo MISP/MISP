@@ -789,20 +789,19 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/tmp/logs
           . ./venv/bin/activate
 
-          # /!\ ORDER IS LOAD-BEARING -- DO NOT REORDER /!\
-          # PyMISP's testlive_comprehensive.py and tests/testlive_comprehensive_local.py
-          # both create an organisation literally named "Test Org". PyMISP's
-          # suite deletes its own in tearDownClass; the local one's teardown is
-          # silently refused whenever one of its events still points at the org
-          # (Organisation::beforeDelete returns false and PyMISP surfaces that
-          # only as an error dict that the teardown ignores), so "Test Org"
-          # survives the local suite in practice. Running the local suite first
-          # therefore makes every PyMISP test error in setUpClass -- in about
-          # seven seconds, while still looking like it "ran".
-          pushd PyMISP
-          cp tests/keys.py .
-          python -m pytest -v --durations=0 tests/testlive_comprehensive.py
-          popd
+          # PyMISP's own tests/testlive_comprehensive.py is deliberately NOT run
+          # here. It is already run by the `build` job, and this job is not a
+          # valid environment for it: background jobs are switched off above
+          # (MISP.background_jobs 0, SimpleBackgroundJobs.enabled 0) and the
+          # JSON corpora are the small updateJSONLite fixture set rather than
+          # the full submodules. Running it anyway failed four of its tests -
+          # test_feeds, test_freetext, test_roles_expanded and
+          # test_user_settings - purely because of those two differences; the
+          # same four pass in `build` on the same commit. It was only ever
+          # ordered before the local suite because both create an organisation
+          # named "Test Org" and the local suite's teardown leaves it behind,
+          # which would break PyMISP's setUpClass. With PyMISP's suite gone from
+          # this job that ordering constraint no longer applies here.
           python tests/testlive_comprehensive_local.py -v
 
           # Suites that live in tests/ and were never wired into CI. Each takes
