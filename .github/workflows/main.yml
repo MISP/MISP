@@ -758,6 +758,20 @@ jobs:
       # satisfied by requirements.txt are listed -- test_emailobject needs
       # extract_msg/RTFDE/oletools and test_neo4j needs a neo4j server, and an
       # unsatisfied import there is a collection error, not a skip.
+      # FileObject only emits its mimetype attribute when PyMISP's optional
+      # magic binding is importable; without it the attribute is simply absent
+      # and test_fileobject.py::test_mimeType fails with StopIteration from the
+      # next() that looks for it. requirements.txt does not pull the optional
+      # fileobject dependencies, so install the one this suite needs. pydeep2
+      # and lief (the rest of PyMISP's "fileobjects" extra) are deliberately
+      # left out: nothing in the listed tests requires them, and installing
+      # them would change which attributes the other tests see.
+      - name: Install PyMISP's magic binding for the fileobject tests
+        run: |
+          . ./venv/bin/activate
+          pip install pure-magic-rs
+          deactivate
+
       - name: Run PyMISP offline unit tests
         run: |
           . ./venv/bin/activate
