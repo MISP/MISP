@@ -2880,6 +2880,7 @@ class AppModel extends Model
                         }
                     } else {
                         $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
+                        $this->__setUpdateResMessages($i, __('The SQL query for `%s` was skipped, as the change is already applied.', $command));
                     }
                     $this->Log->saveOrFailSilently($logMessage);
                 }
