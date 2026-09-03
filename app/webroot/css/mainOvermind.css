@@ -1,7 +1,7 @@
 :root {
     --primary: #1892B1;
     --event: #1892B1;
-    --object: #524948;
+    --object: #524948; /* AB713A */
     --attribute: #97CC04;
     --tag: #DB6A47;
     --galaxy: #8B5CF6;
@@ -558,6 +558,11 @@ body[data-controller="users"][data-action="change_pw"] {
     .row-cols-xxxxl-4 > * { flex: 0 0 auto; width: 25%; }
     .row-cols-xxxxl-5 > * { flex: 0 0 auto; width: 20%; }
     .row-cols-xxxxl-6 > * { flex: 0 0 auto; width: 16.66666667%; }
+}
+
+/* Object index — mass-select gutter. */
+.accordion-header.obj-header:has(> .accordion-button:not(.collapsed)) {
+    background-color: var(--bs-accordion-active-bg);
 }
 
 /* Switching between the table and the card view swaps one block for the other
@@ -2722,4 +2727,348 @@ tr.evt-extension-row td:first-child {
 
 .erv-value.is-open .erv-more-icon {
     transform: rotate(180deg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHOICE CARDS  (Elements/genericElementsBS5/Forms/choice_cards)
+   A radio group drawn as tiles: distribution levels, analysis and
+   threat level. Two custom properties drive the whole look .════════════ */
+
+.ov-choice-group {
+    /* Overridden inline by the element; kept here so a stray group
+       still lands on the theme's accent rather than on nothing. */
+    --ov-choice-accent: var(--bs-primary);
+}
+
+.ov-choice {
+    --ov-choice-tone: var(--ov-choice-accent);
+    --ov-choice-tone-bg: color-mix(in srgb, var(--ov-choice-tone) 12%, transparent);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    padding: .55rem 1.5rem .6rem .65rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .15s ease, background-color .15s ease,
+                box-shadow .15s ease;
+}
+
+.ov-choice:hover {
+    border-color: color-mix(in srgb, var(--ov-choice-accent) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--ov-choice-accent) 4%, var(--bs-body-bg));
+}
+
+.ov-choice:focus-visible {
+    outline: none;
+    border-color: var(--ov-choice-accent);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-choice-accent) 25%, transparent);
+}
+
+.ov-choice.is-selected {
+    border-color: var(--ov-choice-accent);
+    background: color-mix(in srgb, var(--ov-choice-accent) 8%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px var(--ov-choice-accent);
+}
+
+.ov-choice.is-selected::after {
+    content: '\f00c';
+    font: 900 .6rem/1 'Font Awesome 7 Free', 'Font Awesome 5 Free';
+    position: absolute;
+    top: .45rem;
+    right: .45rem;
+    color: var(--ov-choice-accent);
+}
+
+.ov-choice-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin-bottom: .2rem;
+    border-radius: .4rem;
+    font-size: .72rem;
+    color: var(--ov-choice-tone);
+    background: var(--ov-choice-tone-bg);
+    border: 1px solid color-mix(in srgb, var(--ov-choice-tone) 20%, transparent);
+}
+
+.ov-choice-dot {
+    width: .55rem;
+    height: .55rem;
+    margin-bottom: .35rem;
+    border-radius: 50%;
+    background: var(--ov-choice-tone);
+}
+
+.ov-choice-title {
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.ov-choice-sub {
+    font-size: .68rem;
+    line-height: 1.25;
+    color: var(--bs-secondary-color);
+}
+
+[data-bs-theme="dark"] .ov-choice-icon {
+    color: color-mix(in srgb, var(--ov-choice-tone) 35%, #fff);
+    background: color-mix(in srgb, var(--ov-choice-tone) 30%, transparent);
+}
+
+/* ── The compact shape of the same choice ─────────────────── */
+.ov-choice-select {
+    --ov-choice-accent: var(--bs-primary);
+}
+
+.ov-choice-select .ts-control .badge {
+    line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FORM FIELDS — the chrome-less inputs the add/edit screens use
+   `.ov-form-line` is the underlined field (an event's name),
+   `.ov-form-box` the bordered box and `.ov-form-bare` the input
+   sitting inside it 
+   `.ov-form-group` marks the block a field and its error share.
+   ═══════════════════════════════════════════════════════════ */
+.ov-form-line,
+.ov-form-bare {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: var(--bs-body-color);
+}
+
+.ov-form-line {
+    padding: .25rem 0;
+    resize: none;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: border-color .15s ease;
+}
+
+.ov-form-line:focus {
+    border-bottom-color: var(--bs-primary);
+}
+
+.ov-form-bare {
+    padding: 0;
+    font-size: .925rem;
+}
+
+.ov-form-box {
+    padding: .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    transition: border-color .15s ease;
+}
+
+.ov-form-box:focus-within {
+    border-color: var(--bs-primary);
+}
+
+/* Invalid: the same red on whichever of the two shapes the field wears. */
+.ov-form-line.is-invalid-field,
+.ov-form-box.is-invalid-field {
+    border-color: var(--bs-danger);
+}
+
+.ov-field-error {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .35rem;
+    font-size: .75rem;
+    color: var(--bs-danger);
+}
+
+.ov-field-error i {
+    font-size: .7rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHOICE SLIDER  (Elements/genericElementsBS5/Forms/choice_slider)
+   The form's counterpart to the meter the event view draws for
+   analysis and threat level: same 4px track, same fill, same
+   coloured label. Three custom properties carry the state —
+   --ov-slider-accent (the modal's accent, the fallback tone),
+   --ov-slider-tone (the current stop's colour) and
+   --ov-slider-fill (how far along the scale it sits).
+   ═══════════════════════════════════════════════════════════ */
+.ov-slider {
+    --ov-slider-accent: var(--bs-primary);
+    --ov-slider-tone: var(--ov-slider-accent);
+    --ov-slider-fill: 0%;
+    --ov-slider-track: 4px;
+    --ov-slider-thumb: .85rem;
+    max-width: 32rem;
+}
+
+.ov-slider-head {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    margin-bottom: .1rem;
+    min-height: 1.15rem;
+}
+
+.ov-slider-value {
+    font-size: .875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ov-slider-tone);
+}
+
+.ov-slider-sub {
+    font-size: .7rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-slider-range {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: var(--ov-slider-thumb);
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.ov-slider-range:focus {
+    outline: none;
+}
+
+/* The filled part is a gradient stop rather than -moz-range-progress, so both
+   engines are painted by one declaration per track pseudo-element. */
+.ov-slider-range::-webkit-slider-runnable-track {
+    height: var(--ov-slider-track);
+    border-radius: calc(var(--ov-slider-track) / 2);
+    background: linear-gradient(
+        to right,
+        var(--ov-slider-tone) 0 var(--ov-slider-fill),
+        color-mix(in srgb, var(--ov-slider-tone) 16%, var(--bs-secondary-bg))
+            var(--ov-slider-fill) 100%
+    );
+}
+
+.ov-slider-range::-moz-range-track {
+    height: var(--ov-slider-track);
+    border-radius: calc(var(--ov-slider-track) / 2);
+    background: linear-gradient(
+        to right,
+        var(--ov-slider-tone) 0 var(--ov-slider-fill),
+        color-mix(in srgb, var(--ov-slider-tone) 16%, var(--bs-secondary-bg))
+            var(--ov-slider-fill) 100%
+    );
+}
+
+.ov-slider-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: var(--ov-slider-thumb);
+    height: var(--ov-slider-thumb);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    border: 2px solid var(--ov-slider-tone);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+    /* Centre the thumb on a track that is thinner than it is. */
+    margin-top: calc((var(--ov-slider-track) - var(--ov-slider-thumb)) / 2);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-slider-range::-moz-range-thumb {
+    width: var(--ov-slider-thumb);
+    height: var(--ov-slider-thumb);
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    border: 2px solid var(--ov-slider-tone);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-slider-range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-slider-tone) 30%, transparent);
+}
+
+.ov-slider-range:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-slider-tone) 30%, transparent);
+}
+
+.ov-slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .15rem;
+}
+
+.ov-slider-tick {
+    font-size: .68rem;
+    line-height: 1.2;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    transition: color .15s ease;
+}
+
+.ov-slider-tick:hover {
+    color: var(--bs-body-color);
+}
+
+.ov-slider-tick.is-current {
+    color: var(--ov-slider-tone);
+    font-weight: 700;
+}
+
+.ov-subfield {
+    margin-top: .6rem;
+    padding-left: .75rem;
+    border-left: 2px solid var(--bs-border-color);
+    transition: border-left-color .15s ease;
+}
+
+.ov-subfield:focus-within,
+.ov-subfield:has(:is(input, textarea)[placeholder]:not(:placeholder-shown)) {
+    border-left-color: var(--bs-primary);
+}
+
+.ov-subfield-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.ov-subfield-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    flex-shrink: 0;
+    margin: 0;
+    font-size: .72rem;
+    color: var(--primary);
+    cursor: help;
+}
+
+.ov-subfield-label i {
+    font-size: .65rem;
+    opacity: .7;
+}
+
+.ov-subfield-box {
+    flex: 1 1 auto;
+    max-width: 26rem;
+    padding: .25rem .5rem;
+}
+
+.ov-subfield-box .ov-form-bare {
+    font-size: .85rem;
 }

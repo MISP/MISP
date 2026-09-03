@@ -152,6 +152,7 @@ function openModal(url, size = 'xl') {
             });
 
             initTomSelect(container);
+            initChoiceFields(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
             initServerForm(container);
@@ -374,6 +375,9 @@ function renderMainModalContent(html) {
     });
     if (typeof initTomSelect === 'function') {
         initTomSelect(container);
+    }
+    if (typeof initChoiceFields === 'function') {
+        initChoiceFields(container);
     }
 }
 
@@ -1254,8 +1258,19 @@ async function submitEventTemplatesLibraryUpdate() {
     }
 }
 
+/**
+ * Turn every `.tom-select` in `container` into a TomSelect. Safe to call more
+ * than once on the same scope — which happens routinely (a modal body, an
+ * ajax fragment, and initChoiceCards' sharing-group reveal all call it).
+ *
+ * The selector is qualified by tag on purpose: TomSelect copies the source
+ * element's class list onto the `.ts-wrapper` div it builds, so a bare
+ * `.tom-select` query matches twice per control after the first pass — and the
+ * wrapper carries no `.tomselect` back-reference, so it slips past the guard
+ * below and `new TomSelect(div)` throws on `e.value.trim()`.
+ */
 function initTomSelect(container) {
-    container.querySelectorAll('.tom-select').forEach(el => {
+    container.querySelectorAll('select.tom-select').forEach(el => {
         if (el.tomselect) return;
 
         const config = {
@@ -3051,6 +3066,335 @@ function initGalaxyPickerSection(root, initClusters, options) {
     return { ids: ids };
 }
 
+/**
+ * The `d-none` toggle a choice field can drive on another block — the
+ * distribution field revealing its sharing group. Returns a function to call
+ * with the current value; a group that declares no reveal gets a no-op, so
+ * callers never branch.
+ */
+function choiceRevealBinder(group) {
+    var expected = group.dataset.choiceRevealValue;
+    var target = group.dataset.choiceRevealTarget
+        ? document.querySelector(group.dataset.choiceRevealTarget)
+        : null;
+    if (!target || expected === undefined) {
+        return function () {};
+    }
+    return function (current) {
+        target.classList.toggle('d-none', String(current) !== expected);
+    };
+}
+
+/*******************************
+ * initChoiceCards
+ * Wires every card-based radio group inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_cards.ctp, which the distribution
+ * field, the analysis level and the threat level are all built from.
+ *
+ * The hidden <select> stays the value: the cards only mirror it, and a click
+ * fires a real `change` on it so host forms (an object's review pane, a
+ * warning banner) keep listening to the select and to nothing else.
+ *
+ * Idempotent — a group is bound once, so calling this on a container that is
+ * already live costs nothing.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceCards(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-cards]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        var cards = Array.prototype.slice.call(
+            group.querySelectorAll('[data-choice-value]')
+        );
+        if (!select || !cards.length) { return; }
+
+        var reveal = choiceRevealBinder(group);
+        var revealTarget = group.dataset.choiceRevealTarget
+            ? document.querySelector(group.dataset.choiceRevealTarget)
+            : null;
+
+        function sync() {
+            var current = String(select.value);
+            var hit = false;
+            cards.forEach(function (card) {
+                var on = card.dataset.choiceValue === current;
+                if (on) { hit = true; }
+                card.classList.toggle('is-selected', on);
+                card.setAttribute('aria-checked', on ? 'true' : 'false');
+                /* Only the selected card is in the tab order, so the group is
+                   one tab stop and the arrow keys move within it. */
+                card.tabIndex = on ? 0 : -1;
+            });
+            /* A value with no card of its own (a level the form dropped) would
+               otherwise leave the group unreachable by keyboard. */
+            if (!hit) { cards[0].tabIndex = 0; }
+            reveal(current);
+        }
+
+        function pick(card) {
+            if (card.dataset.choiceValue === String(select.value)) { return; }
+            select.value = card.dataset.choiceValue;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        var steps = {
+            ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1
+        };
+
+        cards.forEach(function (card, index) {
+            card.addEventListener('click', function () { pick(card); });
+            card.addEventListener('keydown', function (e) {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    pick(card);
+                    return;
+                }
+                if (!(e.key in steps)) { return; }
+                e.preventDefault();
+                var next = cards[
+                    (index + steps[e.key] + cards.length) % cards.length
+                ];
+                pick(next);
+                next.focus();
+            });
+        });
+
+        select.addEventListener('change', sync);
+        sync();
+
+        /* The sharing-group select the distribution field reveals is a
+           .tom-select, and a full page has nothing else that would init it. */
+        if (revealTarget && typeof initTomSelect === 'function') {
+            initTomSelect(revealTarget);
+        }
+    });
+}
+window.initChoiceCards = initChoiceCards;
+
+/*******************************
+ * initChoiceSliders
+ * Wires every slider-based choice inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_slider.ctp.
+ *
+ * The slider's own number is a position in the scale, never the value: option
+ * `i` of the hidden <select> is what stop `i` posts, and the select stays the
+ * one thing host forms read and listen on.
+ *
+ * Idempotent, like initChoiceCards.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceSliders(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-slider]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        var range = group.querySelector('[data-choice-slider-input]');
+        var readout = group.querySelector('[data-slider-value]');
+        var subLine = group.querySelector('[data-slider-sub]');
+        var ticks = Array.prototype.slice.call(
+            group.querySelectorAll('[data-slider-index]')
+        );
+        if (!select || !range || !select.options.length) { return; }
+
+        var reveal = choiceRevealBinder(group);
+        var last = select.options.length - 1;
+
+        /* The stop's colour and gloss live on its tick, so repainting is a
+           read off the DOM rather than a table shipped in a data attribute. */
+        function paint(index) {
+            var option = select.options[index];
+            var tick = ticks[index];
+            if (!option) { return; }
+
+            group.style.setProperty(
+                '--ov-slider-fill', (last > 0 ? (index / last) * 100 : 0) + '%'
+            );
+            group.style.setProperty(
+                '--ov-slider-tone',
+                (tick && tick.style.getPropertyValue('--ov-slider-tone'))
+                    || 'var(--ov-slider-accent)'
+            );
+
+            if (readout) { readout.textContent = option.text; }
+            if (subLine) { subLine.textContent = tick ? tick.dataset.sub : ''; }
+            range.setAttribute('aria-valuetext', option.text);
+
+            ticks.forEach(function (t, i) {
+                t.classList.toggle('is-current', i === index);
+            });
+            reveal(option.value);
+        }
+
+        function pick(index) {
+            var bounded = Math.max(0, Math.min(last, index));
+            range.value = bounded;
+            paint(bounded);
+            if (select.selectedIndex === bounded) { return; }
+            select.selectedIndex = bounded;
+            /* Host forms listen on the select and on nothing else. */
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        /* `input` for the drag, so the readout follows the thumb. */
+        range.addEventListener('input', function () { pick(+range.value); });
+
+        /* The tick labels are a mouse shortcut, not a control: the range is
+           the focusable one, and it already reaches every stop by keyboard. */
+        ticks.forEach(function (tick) {
+            tick.addEventListener('click', function () {
+                pick(+tick.dataset.sliderIndex);
+                range.focus();
+            });
+        });
+
+        /* Something setting the select directly (a template prefill) must not
+           leave the slider behind. */
+        select.addEventListener('change', function () {
+            if (+range.value !== select.selectedIndex) {
+                range.value = select.selectedIndex;
+                paint(select.selectedIndex);
+            }
+        });
+
+        paint(+range.value);
+    });
+}
+window.initChoiceSliders = initChoiceSliders;
+
+/**
+ * The badge a choice_select draws beside an option — the same tile
+ * renderDistOption/renderDistSelected build for the distribution selects, but
+ * fed from the element's own glyph table instead of DIST_MAP, so a field that
+ * is not distribution gets one too.
+ *
+ * @param {Object} entry  {icon, tone, toneBg} for the option, or null
+ * @param {boolean} small the closed control's badge, tighter than a row's
+ * @returns {HTMLElement|null}
+ */
+function choiceBadge(entry, small) {
+    if (!entry || !entry.icon) { return null; }
+    var badge = document.createElement('span');
+    badge.className = 'badge d-inline-flex align-items-center '
+        + (small ? 'px-1' : 'px-2 py-1');
+    badge.style.background = entry.toneBg || 'transparent';
+    badge.style.color = entry.tone || 'inherit';
+    /* `33` is 20% alpha on the tone — the border every distribution badge in
+       the theme wears. */
+    badge.style.border = '1px solid ' + (entry.tone || 'transparent') + '33';
+    if (small) { badge.style.fontSize = '.65rem'; }
+
+    var icon = document.createElement('i');
+    icon.className = entry.icon;
+    badge.appendChild(icon);
+    return badge;
+}
+
+/**
+ * TomSelect render callback for a choice_select: the option's badge, then its
+ * wording. `small` picks the closed control's tighter shape.
+ */
+function choiceSelectRenderer(glyphs, small) {
+    return function (data) {
+        var row = document.createElement('div');
+        row.className = 'd-flex align-items-center '
+            + (small ? 'gap-1' : 'gap-2 py-1');
+
+        var badge = choiceBadge(glyphs[String(data.value)], small);
+        if (badge) { row.appendChild(badge); }
+
+        var label = document.createElement('span');
+        /* textContent, not the escape() helper: the wording never reaches the
+           DOM as markup, so nothing can be smuggled through an option title. */
+        label.textContent = data.text;
+        row.appendChild(label);
+        return row;
+    };
+}
+
+/*******************************
+ * initChoiceSelects
+ * Wires every compact choice inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_select.ctp, the one-line shape of
+ * the same field the cards draw as tiles.
+ *
+ * It builds the TomSelect itself rather than leaving it to initTomSelect():
+ * the badges are the whole point of this shape, and they live in the render
+ * callbacks. Here the <select> is the control, not a mirror of one, so there is
+ * no value to keep in sync — only the reveal the cards also drive.
+ *
+ * Idempotent, like initChoiceCards.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceSelects(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-select]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        if (!select) { return; }
+
+        var glyphs = {};
+        group.querySelectorAll('[data-choice-icon]').forEach(function (node) {
+            glyphs[node.dataset.choiceIcon] = {
+                icon: node.dataset.icon,
+                tone: node.dataset.tone,
+                toneBg: node.dataset.toneBg
+            };
+        });
+
+        var reveal = choiceRevealBinder(group);
+        var revealTarget = group.dataset.choiceRevealTarget
+            ? document.querySelector(group.dataset.choiceRevealTarget)
+            : null;
+
+        function sync() {
+            reveal(String(select.value));
+        }
+
+        if (typeof TomSelect === 'function' && !select.tomselect) {
+            new TomSelect(select, {
+                create: false,
+                persist: false,
+                render: {
+                    option: choiceSelectRenderer(glyphs, false),
+                    item: choiceSelectRenderer(glyphs, true)
+                },
+                onChange: sync
+            });
+        } else {
+            select.addEventListener('change', sync);
+        }
+        sync();
+
+        /* The sharing-group select this reveals is a .tom-select, and a full
+           page has nothing else that would init it — same as the cards. */
+        if (revealTarget && typeof initTomSelect === 'function') {
+            initTomSelect(revealTarget);
+        }
+    });
+}
+window.initChoiceSelects = initChoiceSelects;
+
+function initChoiceFields(container) {
+    initChoiceCards(container);
+    initChoiceSliders(container);
+    initChoiceSelects(container);
+}
+window.initChoiceFields = initChoiceFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initChoiceFields(document);
+});
+
 function initDistributionSelect(elId, onChange) {
     var el = document.getElementById(elId);
     if (!el || el.tomselect) { return; }
@@ -3492,153 +3836,265 @@ function initAttributeForm(currentDist, isEdit) {
 }
 
 /*******************************
- * initEventForm
- * Bootstraps all interactive behaviour for Events/add and Events/edit.
- * Call once the DOM is ready: initEventForm(baseurl)
- * @param {string} base  MISP base URL (no trailing slash)
+ * Events/add and Events/edit
+ *
+ * initEventForm(container) wires the event form inside `container` (default:
+ * the document) and binds nothing outside it, so it is safe on a modal body,
+ * on a full page, and twice on either.
+ *
+ * What it owns:
+ *   - the three choice_cards groups (distribution, analysis, threat level)
+ *   - the extends-event preview
+ *   - the DD/MM/YYYY date field over its ISO hidden twin
+ *   - required-field validation, and a submit that cannot fire twice
+ *
+ * The field look — the underline, the box, the invalid state — lives in
+ * mainOvermind.css under `.ov-form-*`; nothing here writes a style.
  *******************************/
-function initEventForm(base) {
+function initEventForm(container) {
+    /* Takes the form itself, any container holding it, or nothing at all. */
+    var scope = (container && container.querySelector) ? container : document;
+    var form = (scope.matches && scope.matches('#EventForm'))
+        ? scope
+        : scope.querySelector('#EventForm');
+    if (!form || form.dataset.eventFormBound) { return; }
+    form.dataset.eventFormBound = '1';
 
-    /* Fetch a live event summary when the user types a UUID/ID */
-    function setupUuidPreview() {
-        var input   = document.getElementById('EventExtendsUuid');
-        var preview = document.getElementById('event_preview');
-        if (!input || !preview) { return; }
+    var base = (typeof baseurl === 'string') ? baseurl : '';
 
-        var timer = null;
-        function fetchPreview(val) {
-            clearTimeout(timer);
-            if (!val || !val.trim()) {
-                preview.style.display = 'none';
-                return;
-            }
-            timer = setTimeout(function () {
-                fetch(base + '/events/getEventInfoById/'
-                        + encodeURIComponent(val.trim()),
-                    { credentials: 'same-origin' })
-                    .then(function (r) { return r.text(); })
-                    .then(function (html) {
-                        preview.innerHTML     = html;
-                        preview.style.display = '';
-                        bindCardClick();
-                    })
-                    .catch(function () { preview.style.display = 'none'; });
-            }, 100);
+    /* ── Invalid state ───────────────────────────────────────────
+     * One place decides what a rejected field looks like: the class on the
+     * field (or on the box around it) and one message under its group. */
+    function fieldGroup(el) {
+        return el.closest('.ov-form-group') || el.parentNode;
+    }
+
+    function markInvalid(el, message) {
+        (el.closest('.ov-form-box') || el).classList.add('is-invalid-field');
+        var group = fieldGroup(el);
+        var msg = group.querySelector('.ov-field-error');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'ov-field-error';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-circle-exclamation';
+            var text = document.createElement('span');
+            msg.appendChild(icon);
+            msg.appendChild(text);
+            group.appendChild(msg);
         }
-
-        /* Clicking the matched-event card copies its UUID into the input */
-        function bindCardClick() {
-            var card = preview.querySelector('.js-extends-event-card');
-            if (!card) { return; }
-            card.addEventListener('click', function () {
-                var uuid = card.dataset.extendsUuid;
-                if (uuid) { input.value = uuid; }
-            });
-        }
-
-        input.addEventListener('input', function () { fetchPreview(input.value); });
-        if (input.value) { fetchPreview(input.value); }
+        msg.querySelector('span').textContent = message;
     }
 
-    /* Card-based radio groups for Analysis and Threat Level */
-    function setupRadioCards() {
-        var selectIds = {
-            analysis: 'EventAnalysisInput',
-            threat:   'EventThreatLevelInput',
-        };
-        document.querySelectorAll('.event-card').forEach(function (card) {
-            card.addEventListener('click', function () {
-                var group  = card.dataset.group;
-                var select = document.getElementById(selectIds[group]);
-                if (select) { select.value = card.dataset.value; }
-
-                document.querySelectorAll(
-                    '.event-card[data-group="' + group + '"]'
-                ).forEach(function (c) {
-                    var inner = c.querySelector('.border');
-                    if (!inner) { return; }
-                    var selected = c === card;
-                    inner.style.borderColor = selected ? 'var(--primary)' : '#d8dde3';
-                    inner.style.background  = selected ? 'rgba(24,146,177,.08)' : '';
-                });
-            });
-        });
+    function markValid(el) {
+        (el.closest('.ov-form-box') || el).classList.remove('is-invalid-field');
+        var msg = fieldGroup(el).querySelector('.ov-field-error');
+        if (msg) { msg.remove(); }
     }
 
-    /* Convert DD/MM/YYYY display input → YYYY-MM-DD hidden field */
-    function setupDateInput() {
-        var display = document.getElementById('EventDateDisplay');
-        var hidden  = document.getElementById('EventDate');
-        if (!display || !hidden) { return; }
+    /* A validator returns the element to focus when the field is wrong, and
+     * null when it is fine; the submit handler collects them all. */
+    var validators = [];
 
-        display.addEventListener('input', function () {
-            var parts = display.value.split('/');
-            if (parts.length === 3
-                    && parts[0].length === 2
-                    && parts[1].length === 2
-                    && parts[2].length === 4) {
-                hidden.value = parts[2] + '-' + parts[1] + '-' + parts[0];
-            }
-        });
-    }
-
-    /* Require a non-empty Event Info (name) before submitting */
-    function setupInfoValidation() {
-        var info = document.getElementById('EventInfo');
+    /* ── Event info ──────────────────────────────────────────── */
+    function bindInfo() {
+        var info = form.querySelector('#EventInfo');
         if (!info) { return; }
-        var form = info.form || (info.closest && info.closest('form'));
-        if (!form) { return; }
-
-        var errorId = 'EventInfoError';
         var message = info.dataset.requiredMsg
             || 'Please provide a name for the event.';
 
-        function showError() {
-            info.style.setProperty('border', '1px solid #dc3545', 'important');
-            info.style.setProperty('border-radius', '4px', 'important');
-            if (!document.getElementById(errorId)) {
-                var msg = document.createElement('div');
-                msg.id        = errorId;
-                msg.className  = 'text-danger d-flex align-items-center gap-1';
-                msg.style.fontSize  = '.75rem';
-                msg.style.marginTop = '.35rem';
-                var icon = document.createElement('i');
-                icon.className = 'fas fa-circle-exclamation';
-                msg.appendChild(icon);
-                msg.appendChild(document.createTextNode(message));
-                info.parentNode.appendChild(msg);
+        function validate(quiet) {
+            if (info.value.trim()) {
+                markValid(info);
+                return null;
             }
+            if (!quiet) { markInvalid(info, message); }
+            return info;
         }
 
-        function clearError() {
-            info.style.removeProperty('border');
-            info.style.removeProperty('border-radius');
-            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
-            var msg = document.getElementById(errorId);
-            if (msg) { msg.remove(); }
+        /* Only ever clears while typing: nagging about an empty field the user
+         * has not finished with is what the submit check is for. */
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { markValid(info); }
+        });
+        validators.push(validate);
+    }
+
+    /* ── Extends-event preview ───────────────────────────────────
+     * The field takes an id or a UUID; the endpoint answers with a card for
+     * the matched event, or a note saying nothing matched. */
+    function bindExtendsPreview() {
+        var input = form.querySelector('#EventExtendsUuid');
+        var preview = form.querySelector('#event_preview');
+        if (!input || !preview) { return; }
+
+        var IS_ID = /^[0-9]+$/;
+        var IS_UUID =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        var timer = null;
+        var pending = null;
+
+        function hide() {
+            preview.classList.add('d-none');
+            preview.innerHTML = '';
         }
 
-        form.addEventListener('submit', function (e) {
-            if (!info.value.trim()) {
-                e.preventDefault();
-                e.stopPropagation();
-                showError();
-                info.focus();
+        function request(value) {
+            /* One lookup at a time: the answers are rendered HTML, so a slow
+             * early request must not land on top of a later one. */
+            if (pending) { pending.abort(); }
+            pending = new AbortController();
+            preview.setAttribute('aria-busy', 'true');
+            fetch(base + '/events/getEventInfoById/' + encodeURIComponent(value), {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: pending.signal
+            })
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .then(function (html) {
+                    preview.removeAttribute('aria-busy');
+                    if (!html.trim()) { hide(); return; }
+                    preview.innerHTML = html;
+                    preview.classList.remove('d-none');
+                })
+                .catch(function (err) {
+                    if (err.name === 'AbortError') { return; }
+                    preview.removeAttribute('aria-busy');
+                    hide();
+                });
+        }
+
+        function schedule() {
+            clearTimeout(timer);
+            var value = input.value.trim();
+            /* Nothing but a whole id or a whole UUID can match, and a UUID
+             * typed by hand would otherwise cost 36 lookups on its way in. */
+            if (!IS_ID.test(value) && !IS_UUID.test(value)) {
+                if (pending) { pending.abort(); pending = null; }
+                hide();
+                return;
+            }
+            timer = setTimeout(function () { request(value); }, 250);
+        }
+
+        input.addEventListener('input', schedule);
+
+        /* Delegated, so the card stays clickable through every re-render:
+         * clicking it swaps the id the user typed for the event's UUID. */
+        preview.addEventListener('click', function (e) {
+            var card = e.target.closest('.js-extends-event-card');
+            if (!card || !card.dataset.extendsUuid) { return; }
+            input.value = card.dataset.extendsUuid;
+        });
+
+        schedule();
+    }
+
+    /* ── Event date ──────────────────────────────────────────────
+     * DD/MM/YYYY in front of the user, YYYY-MM-DD in the hidden field MISP
+     * actually reads. */
+    function bindDate() {
+        var display = form.querySelector('#EventDateDisplay');
+        var hidden = form.querySelector('#EventDate');
+        if (!display || !hidden) { return; }
+
+        var message = display.dataset.invalidMsg
+            || 'Enter the event date as DD/MM/YYYY.';
+
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+        function build(y, m, d) {
+            var date = new Date(Date.UTC(y, m - 1, d));
+            /* Date() rolls 31/02 over into March, so compare the parts back:
+             * that is what rejects a day the month does not have. */
+            if (date.getUTCFullYear() !== y
+                    || date.getUTCMonth() !== m - 1
+                    || date.getUTCDate() !== d) {
+                return null;
+            }
+            return date;
+        }
+
+        function parse(text) {
+            var value = text.trim();
+            var human = value.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+            if (human) {
+                return build(+human[3], +human[2], +human[1]);
+            }
+            /* Also accept what the hidden field speaks, so pasting an ISO date
+             * out of MISP itself works. */
+            var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            return iso ? build(+iso[1], +iso[2], +iso[3]) : null;
+        }
+
+        function sync() {
+            var date = parse(display.value);
+            if (date) {
+                hidden.value = date.getUTCFullYear() + '-'
+                    + pad(date.getUTCMonth() + 1) + '-'
+                    + pad(date.getUTCDate());
+                markValid(display);
+            }
+            return date;
+        }
+
+        display.addEventListener('input', sync);
+
+        /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only
+         * here does a half-typed date get called wrong. */
+        display.addEventListener('blur', function () {
+            var date = sync();
+            if (date) {
+                display.value = pad(date.getUTCDate()) + '/'
+                    + pad(date.getUTCMonth() + 1) + '/'
+                    + date.getUTCFullYear();
+            } else if (display.value.trim()) {
+                markInvalid(display, message);
             }
         });
 
-        info.addEventListener('input', function () {
-            if (info.value.trim()) { clearError(); }
+        validators.push(function (quiet) {
+            var date = sync();
+            if (date) { return null; }
+            if (!quiet) { markInvalid(display, message); }
+            return display;
         });
     }
 
-    initDistributionSelect('distribution-select', null);
-    if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
-    setupUuidPreview();
-    setupRadioCards();
-    setupDateInput();
-    setupInfoValidation();
+    /* ── Submit ──────────────────────────────────────────────── */
+    function bindSubmit() {
+        var button = form.querySelector('#EventSubmitButton');
+
+        form.addEventListener('submit', function (e) {
+            var wrong = validators
+                .map(function (validate) { return validate(false); })
+                .filter(Boolean);
+
+            if (wrong.length) {
+                /* preventDefault alone: a listener elsewhere may still want to
+                 * know the form was submitted and turned down. */
+                e.preventDefault();
+                wrong[0].focus();
+                return;
+            }
+
+            /* The form navigates away on success, so the only thing a second
+             * click can do is create the event twice. */
+            if (button) {
+                button.disabled = true;
+                var icon = button.querySelector('i');
+                if (icon) { icon.className = 'fas fa-circle-notch fa-spin me-1'; }
+            }
+        });
+    }
+
+    initChoiceFields(form);
+    bindInfo();
+    bindExtendsPreview();
+    bindDate();
+    bindSubmit();
 }
+window.initEventForm = initEventForm;
 
 /*******************************
  * updateActiveFilterBadge
