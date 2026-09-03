@@ -311,7 +311,7 @@ class DecayingModelController extends AppController
                         throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
                     }
                     $response = array('data' => $saved, 'action' => 'edit');
-                    return $this->RestResponse->viewData($response, $this->response->type());
+                    return $this->RestResponse->viewData($response, 'application/json');
                 } else {
                     $this->Flash->success(__('The model has been saved.'));
                     $this->redirect(array('action' => 'index'));

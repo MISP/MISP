@@ -15,7 +15,7 @@ class DecayingModelMappingController extends AppController
 
     public function viewAssociatedTypes($model_id) {
         $associated_types = $this->DecayingModelMapping->getAssociatedTypes($this->Auth->user(), $model_id);
-        return $this->RestResponse->viewData($associated_types, $this->response->type());
+        return $this->RestResponse->viewData($associated_types, 'application/json');
     }
 
 
@@ -49,7 +49,7 @@ class DecayingModelMappingController extends AppController
             }
 
             $response = $this->DecayingModelMapping->resetMappingForModel($this->request->data['DecayingModelMapping'], $this->Auth->user());
-            return $this->RestResponse->viewData($response, $this->response->type());
+            return $this->RestResponse->viewData($response, 'application/json');
         } else {
             $this->set('model_id', $model_id);
             if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
