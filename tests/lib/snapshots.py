@@ -38,6 +38,27 @@ HASH40_RE = re.compile(r"\b[0-9a-zA-Z]{40}\b")
 # but it appears in any snapshot of a response that raised a warning.
 CAKEERR_RE = re.compile(r"cakeErr[0-9a-f]+")
 
+# A CakePHP debug block wraps the warning that matters in markup that is not
+# stable across environments: the code dump is syntax-highlighted differently
+# by different PHP versions (&lt;?php-prefixed <pre><code> on 8.1, &nbsp;-indented
+# <code> on 8.3), and the stack trace carries line numbers inside the vendored
+# CakePHP, which move whenever the submodule is bumped. Neither says anything
+# about MISP's API contract, so both are collapsed. The warning's own text -
+# including the MISP file and line that raised it - is kept, because that IS
+# the contract-relevant signal.
+# An RPZ zone carries an SOA serial that MISP derives from the current date
+# (YYYYMMDDnn), so it changes every day and is not matched by DATE_RE, which
+# only understands the hyphenated form. Alias it like any other volatile value.
+RPZ_SERIAL_RE = re.compile(r"(?<=SOA )(?P<pre>\S+\s+\S+\s+\()(?P<serial>[0-9]{10})(?=[\s)])")
+
+CAKE_BLOCK_RE = re.compile(
+    r'<pre class="cake-error">.*?'
+    r'<b>(?P<level>[A-Za-z ]+)</b>\s*\((?P<code>[0-9]+)\)</a>:\s*'
+    r'(?P<msg>.*?)\s*\[<b>(?P<file>[^<]+)</b>,\s*line\s*<b>(?P<line>[0-9]+)</b>\]'
+    r'.*?</div></pre>',
+    re.S,
+)
+
 # Keys whose values are database identities rather than content.
 ID_KEYS = {
     "id", "event_id", "org_id", "orgc_id", "attribute_id", "object_id",
@@ -127,6 +148,13 @@ def normalise_text(text: str, aliaser: Aliaser | None = None,
     text = DATE_RE.sub(lambda m: aliaser.token("date", m.group(0)), text)
     text = EPOCH_RE.sub(lambda m: aliaser.token("time", m.group(0)), text)
     text = HASH40_RE.sub(lambda m: aliaser.token("key", m.group(0)), text)
+    text = RPZ_SERIAL_RE.sub(
+        lambda m: m.group("pre") + aliaser.token("serial", m.group("serial")), text)
+    text = CAKE_BLOCK_RE.sub(
+        lambda m: "<cake-{}:{} {} [{}, line {}]>".format(
+            m.group("level").strip().lower(), m.group("code"),
+            m.group("msg").strip(), m.group("file"), m.group("line")),
+        text)
     text = CAKEERR_RE.sub("cakeErr<id>", text)
     return text
 
