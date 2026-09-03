@@ -1005,9 +1005,6 @@ class ObjectsController extends AppController
 
     public function orphanedObjectDiagnostics()
     {
-        $objectIds = $this->MispObject->find('list', array(
-            'fields' => array('id', 'event_id')
-        ));
         $template_uuids = $this->MispObject->ObjectTemplate->find('list', array(
             'recursive' => -1,
             'fields' => array('ObjectTemplate.version', 'ObjectTemplate.id', 'ObjectTemplate.uuid')
@@ -1039,15 +1036,35 @@ class ObjectsController extends AppController
         $count = 0;
         $capturedObjects = array();
         $unmappedAttributes = array();
-        foreach ($objectIds as $objectId => $event_id) {
-            $attributes = $this->MispObject->Attribute->find('all', array(
-                'conditions' => array(
-                    'Attribute.object_id' => $objectId,
-                    'Attribute.event_id !=' => $event_id,
-                    'Attribute.deleted' => 0
-                ),
-                'recursive' => -1
-            ));
+        // Fetch every attribute that points to an object belonging to a different event in a single join,
+        // instead of running one find() per object row on the instance.
+        $orphanedAttributes = $this->MispObject->Attribute->find('all', array(
+            'conditions' => array(
+                'Attribute.deleted' => 0
+            ),
+            'joins' => array(
+                array(
+                    'table' => $this->MispObject->table,
+                    'alias' => 'MispObject',
+                    'type' => 'inner',
+                    'conditions' => array(
+                        'MispObject.id = Attribute.object_id',
+                        'MispObject.event_id != Attribute.event_id'
+                    )
+                )
+            ),
+            // MispAttribute::$order (Attribute.event_id DESC) is what the per-object find() used to
+            // inherit from the model default; preserve it so that $original_event_id below still comes
+            // from the highest event_id when an object's orphaned attributes span multiple foreign events.
+            'order' => array('Attribute.object_id' => 'ASC', 'Attribute.event_id' => 'DESC', 'Attribute.id' => 'ASC'),
+            'recursive' => -1
+        ));
+        $attributesByObject = array();
+        foreach ($orphanedAttributes as $orphanedAttribute) {
+            $attributesByObject[$orphanedAttribute['Attribute']['object_id']][] = $orphanedAttribute;
+        }
+        unset($orphanedAttributes);
+        foreach ($attributesByObject as $objectId => $attributes) {
             $matched_template = false;
             if (!empty($attributes)) {
                 foreach ($templates as $template) {
