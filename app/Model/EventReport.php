@@ -430,7 +430,10 @@ class EventReport extends AppModel
      */
     private function __fetchReportCounts(array $eventIds, array $extraConditions)
     {
-        $conditions = ['AND' => array_merge([['EventReport.event_id' => $eventIds]], $extraConditions)];
+        $conditions = ['AND' => array_merge([[
+            'EventReport.event_id' => $eventIds,
+            'EventReport.deleted' => 0,
+        ]], $extraConditions)];
         $counts = $this->find('all', [
             'conditions' => $conditions,
             'fields' => ['EventReport.event_id', 'COUNT(EventReport.id) as count'],
