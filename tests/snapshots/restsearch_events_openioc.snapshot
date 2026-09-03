@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="<uuid:1>" last-modified="<date>" xmlns="http://schemas.mandiant.com/2010/ioc">
+  <short_description>Filtered indicator list</short_description>
+  <description>Filtered indicator list</description>
+  <keywords />
+  <authored_by>ORGNAME</authored_by>
+  <authored_date><date></authored_date>
+  <links />
+  <definition>
+    <Indicator operator="OR" id="<uuid:2>">
+    </Indicator>
+  </definition>
+</ioc>
