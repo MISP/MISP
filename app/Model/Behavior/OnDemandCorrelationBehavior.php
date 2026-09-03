@@ -68,6 +68,16 @@ class OnDemandCorrelationBehavior extends ModelBehavior
 
     private $_nonCorrelatingEvents = [];
 
+    /**
+     * Memoised output of __collectCorrelations(), keyed by event ID.
+     * A single request resolves correlations for the same event more
+     * than once (fetchEvent() asks for both the related events and the
+     * related attributes), and every miss costs four self-joins over
+     * the attributes table.
+     * @var array
+     */
+    private $correlationCache = [];
+
     public function onDemandEngine() {
         return true;
     }
@@ -169,16 +179,31 @@ class OnDemandCorrelationBehavior extends ModelBehavior
 
     /**
      * Fetch correlations for given event.
+     *
+     * The returned set is always reduced to the correlations $user is
+     * allowed to see - see __filterCorrelationsByAcl(). Every read path
+     * of this engine funnels through here, so the filter is applied at
+     * the single chokepoint rather than at each caller.
+     *
      * @param array $user
      * @param int|array $eventId
-     * @param array $sgids
-     * @param bool $primary
      * @return array
      */
-    private function __collectCorrelations($eventId)
+    private function __collectCorrelations(array $user, $eventId)
     {
+        // The cached set is ACL-filtered, so it belongs to one user. A
+        // single process does serve several: generatePeriodicSummary()
+        // walks every subscribed user with both correlation flags set.
+        // Without an id there is no safe key, so skip the cache rather
+        // than risk handing one user another's correlations.
+        $cacheKey = empty($user['id'])
+            ? null
+            : ((int)$eventId) . '-' . $user['id'];
+        if ($cacheKey !== null && isset($this->correlationCache[$cacheKey])) {
+            return $this->correlationCache[$cacheKey];
+        }
         if ($this->_checkEventCanCorrelate($eventId) === false) {
-            return [];
+            return $this->__cacheCorrelations($cacheKey, []);
         }
         $eventId = (int)$eventId;
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
@@ -340,8 +365,85 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 unset($flat[$k]);
             }
         }
-        $flat = array_values($flat);
-        return $flat;
+        $flat = $this->__filterCorrelationsByAcl($user, array_values($flat));
+        return $this->__cacheCorrelations($cacheKey, $flat);
+    }
+
+    /**
+     * Store a collected set under $cacheKey, or skip storing it when
+     * there is no key to store it safely under. Returns the set either
+     * way, so callers can return straight through it.
+     *
+     * @param string|null $cacheKey
+     * @param array $correlations
+     * @return array
+     */
+    private function __cacheCorrelations($cacheKey, array $correlations)
+    {
+        if ($cacheKey !== null) {
+            $this->correlationCache[$cacheKey] = $correlations;
+        }
+        return $correlations;
+    }
+
+    /**
+     * Reduce a set of collected correlations to the ones $user may see.
+     *
+     * The correlation queries above match on value alone - they carry no
+     * distribution, sharing group or ownership condition - so the target
+     * attributes have to be vetted before anything derived from them is
+     * handed back. Rather than reimplementing the distribution rules,
+     * the target IDs are run through MispAttribute::fetchAttributesSimple(),
+     * which applies buildConditions(): event, attribute and object level
+     * distribution plus sharing group membership, against live rows.
+     *
+     * @param array $user
+     * @param array $correlations
+     * @return array
+     */
+    private function __filterCorrelationsByAcl(array $user, array $correlations)
+    {
+        if (empty($correlations) || !empty($user['Role']['perm_site_admin'])) {
+            return $correlations;
+        }
+        $attributeIds = [];
+        foreach ($correlations as $correlation) {
+            $attributeIds[$correlation['id']] = true;
+        }
+        $visible = array_flip($this->__filterAttributeIdsByAcl(
+            $user,
+            array_keys($attributeIds)
+        ));
+        foreach ($correlations as $k => $correlation) {
+            if (!isset($visible[$correlation['id']])) {
+                unset($correlations[$k]);
+            }
+        }
+        return array_values($correlations);
+    }
+
+    /**
+     * Reduce a list of attribute IDs to the ones $user may see.
+     * Used by the read paths that resolve correlations from the stored
+     * table rather than through __collectCorrelations().
+     *
+     * @param array $user
+     * @param array $attributeIds
+     * @return array
+     */
+    private function __filterAttributeIdsByAcl(array $user, array $attributeIds)
+    {
+        if (empty($attributeIds) || !empty($user['Role']['perm_site_admin'])) {
+            return $attributeIds;
+        }
+        $visible = $this->Correlation->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.id' => $attributeIds,
+                'Attribute.deleted' => 0
+            ],
+            'fields' => ['Attribute.id']
+        ]);
+        return array_column(array_column($visible, 'Attribute'), 'id');
     }
 
     public function _checkEventCanCorrelate($eventId)
@@ -368,7 +470,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      */
     public function runGetAttributesRelatedToEvent(Model $Model, $user, $id, $sgids)
     {
-        $correlations = $this->__collectCorrelations($id);
+        $correlations = $this->__collectCorrelations($user, $id);
         if (empty($correlations)) {
             return [];
         }
@@ -376,7 +478,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         foreach ($correlations as $correlation) {
             $eventIds[$correlation['event_id']] = true;
         }
-        $conditions = ['Event.id' => array_keys($eventIds)];
+        $conditions = $Model->Event->createEventConditions($user);
+        $conditions['Event.id'] = array_keys($eventIds);
         $events = $Model->Event->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
@@ -450,15 +553,21 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             ]);
             if (!empty($temp_correlations)) {
                 foreach ($temp_correlations as $temp_correlation) {
-                    if (empty($user['Role']['perm_site_admin'])) {
-                        if (!$this->checkCorrelationACL($user, $temp_correlation, $sgids, $prefixes[$k])) {
-                            continue;
-                        }
-                    }
                     $correlatedAttributeIds[] = $temp_correlation['Correlation'][$prefixes[$k] . 'attribute_id'];
                 }
             }
         }
+
+        // Unlike the rest of this engine, this path resolves correlations
+        // from the stored table. Under OnDemand nothing writes, updates or
+        // purges that table, so its denormalised distribution columns are
+        // frozen at whatever the previously active engine last wrote. The
+        // access check therefore has to be made against the live attribute
+        // rows rather than against the stored copies.
+        $correlatedAttributeIds = $this->__filterAttributeIdsByAcl(
+            $user,
+            $correlatedAttributeIds
+        );
 
         if (empty($correlatedAttributeIds)) {
             return [];
@@ -524,7 +633,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         array $sgids,
         array $attributeIds
     ) {
-        $correlations = $this->__collectCorrelations($eventId);
+        $correlations = $this->__collectCorrelations($user, $eventId);
         if (empty($correlations)) {
             return [];
         }
@@ -583,7 +692,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
 
     /**
      * @param Correlation $Model
-     * @param array $user Not used
+     * @param array $user
      * @param int $eventId
      * @param array $sgids Not used
      * @return array
@@ -595,7 +704,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
 
     /**
      * @param Model $Model
-     * @param array $user Not used
+     * @param array $user
      * @param int $eventId
      * @param array $sgids Not used
      * @param bool $primary Not used
@@ -603,25 +712,13 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      */
     private function __filterRelatedEvents(Model $Model, array $user, int $eventId, array $sgids, bool $primary)
     {
-        $correlations = $this->__collectCorrelations($eventId);
+        $correlations = $this->__collectCorrelations($user, $eventId);
         $eventIds = [];
         foreach ($correlations as $correlation) {
             $eventIds[$correlation['event_id']] = true;
         }
         return array_keys($eventIds);
-        
-    }
 
-    /**
-     * @param array $user
-     * @param array $correlation
-     * @param array $sgids
-     * @param string $prefix
-     * @return bool
-     */
-    private function checkCorrelationACL(array $user, $correlation, $sgids, $prefix)
-    {
-        return true;
     }
 
     public function updateContainedCorrelations(

@@ -5,15 +5,44 @@ $currentDeleted  = (int)($namedParams['deleted']  ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
 $currentCategory = $namedParams['category'] ?? '';
 $currentType     = $namedParams['type']     ?? '';
+$currentWarninglist = $namedParams['warninglist'] ?? '';
 
-$this->Paginator->options([
-    'url' => [
-        'controller' => 'events',
-        'action'     => 'viewAttributes',
-        $attrEventId,
-    ]
-]);
+$paginatorUrl = [
+    'controller' => 'events',
+    'action'     => 'viewAttributes',
+    $attrEventId,
+];
+if (!empty($extended)) {
+    $paginatorUrl['extended'] = 1;
+}
+if (!empty($extending)) {
+    $paginatorUrl['extending'] = 1;
+}
+$this->Paginator->options(['url' => $paginatorUrl]);
 
+?>
+
+<?php if (!empty($warninglistFilter)): ?>
+<div class="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 mb-3"
+     id="attr-wl-filter">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span class="small">
+        <?= __('Only the attributes flagged by the warning list') ?>
+        <strong><?= h($warninglistFilter['name']) ?></strong>
+    </span>
+    <a href="<?= h($baseurl . '/warninglists/view/'
+        . (int)$warninglistFilter['id']) ?>"
+       class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="fas fa-external-link-alt me-1"></i><?= __('Open list') ?>
+    </a>
+    <button type="button" class="btn btn-sm btn-outline-danger"
+            id="attr-wl-filter-clear">
+        <i class="fas fa-times me-1"></i><?= __('Clear') ?>
+    </button>
+</div>
+<?php endif; ?>
+
+<?php
 echo $this->element('Attributes/index', [
     'attributes'    => $attributes,
     'show_event_id' => false,
@@ -30,10 +59,15 @@ echo $this->element('Attributes/index', [
     // Shared mutable state — updated every IIFE run so ALL closures see latest values
     window.mispView = window.mispView || {};
     window.mispView.attrs = Object.assign(window.mispView.attrs || {}, {
-        attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>,
+        attrBase:      baseurl + '/events/viewAttributes/' + <?= json_encode(h($attrEventId)) ?>
+                           + <?= json_encode($extensionSuffix ?? '') ?>,
         deletedState:  <?= (int)$currentDeleted ?>,
         proposalState: <?= (int)$currentProposal ?>,
-        activeFilters: <?= json_encode(array_filter(['category' => $currentCategory, 'type' => $currentType])) ?>,
+        activeFilters: <?= json_encode(array_filter([
+            'category'    => $currentCategory,
+            'type'        => $currentType,
+            'warninglist' => $currentWarninglist,
+        ])) ?>,
     });
 
     function getContainer() {
@@ -68,6 +102,9 @@ echo $this->element('Attributes/index', [
         }
         var container = getContainer();
         if (!container) return;
+        // Keep the container's own URL in sync: filter_bar rebuilds pagination
+        // and "Clear all" from it, and it must not resurrect a filter we just dropped
+        container.dataset.url = url;
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.text(); })
             .then(function (html) {
@@ -153,8 +190,7 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    // Toggle buttons (deleted / proposals)
-    function wireToggle(selector, stateKey) {
+    function wireToggle(selector, stateKey, onValue) {
         var btn = container ? container.querySelector(selector) : null;
         if (!btn) return;
         var fresh = btn.cloneNode(true);
@@ -162,12 +198,23 @@ echo $this->element('Attributes/index', [
         fresh.addEventListener('click', function (e) {
             e.preventDefault();
             var S = window.mispView.attrs;
-            S[stateKey] = S[stateKey] ? 0 : 1;
+            S[stateKey] = S[stateKey] ? 0 : onValue;
             loadAttributes(buildAttrsUrl());
         });
     }
-    wireToggle('.attr-deleted-toggle', 'deletedState');
-    wireToggle('.attr-proposal-toggle', 'proposalState');
+    wireToggle('.attr-deleted-toggle', 'deletedState', 2);
+    wireToggle('.attr-proposal-toggle', 'proposalState', 1);
+
+    // Warning-list banner: drop the filter and re-render the full list.
+    var wlClear = container
+        ? container.querySelector('#attr-wl-filter-clear')
+        : null;
+    if (wlClear) {
+        wlClear.addEventListener('click', function () {
+            delete window.mispView.attrs.activeFilters.warninglist;
+            loadAttributes(buildAttrsUrl());
+        });
+    }
 
     // TomSelect on More Filters dropdowns
     if (container) initMoreFilters(container);

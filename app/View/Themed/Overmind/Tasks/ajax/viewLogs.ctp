@@ -34,24 +34,16 @@ $detail = function ($label, $value, $icon) {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--bs-primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Scheduled Tasks') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-file-lines text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Task #%s — Job logs', h($task['Task']['id'])) ?>
-        </h4>
-    </div>
-    <button type="button" class="btn btn-sm btn-outline-secondary"
-            onclick="bootstrap.Modal.getInstance(document.getElementById('mainModal')).hide();">
-        <i class="fas fa-xmark"></i>
-    </button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Scheduled Tasks'),
+    'title' => __('Task #%s — Job logs', $task['Task']['id']),
+    'titleIcon' => 'fas fa-file-lines',
+    /* Not the usual data-bs-dismiss button: this fragment is opened through
+     * #mainModal, which it closes by hand. */
+    'aside' => '<button type="button" class="btn btn-sm btn-outline-secondary"'
+        . ' onclick="bootstrap.Modal.getInstance(document.getElementById(\'mainModal\')).hide();">'
+        . '<i class="fas fa-xmark"></i></button>',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -94,10 +86,10 @@ $detail = function ($label, $value, $icon) {
 
         <!-- ══ JOB DETAILS ═══════════════════════════════════════ -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Job details') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Job details'),
+            ]) ?>
             <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
                 <?= $detail(__('Job ID'), $job['id'] ?? '', 'fa-hashtag') ?>
                 <?= $detail(__('Type'), $job['job_type'] ?? '', 'fa-tag') ?>
@@ -114,10 +106,10 @@ $detail = function ($label, $value, $icon) {
         <!-- ══ ERROR ═════════════════════════════════════════════ -->
         <?php if (!empty($logs['error'])): ?>
             <div class="w-100 px-2">
-                <div class="text-danger fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Error log') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'danger',
+                    'label' => __('Error log'),
+                ]) ?>
                 <div class="alert alert-danger d-flex align-items-start gap-2 mb-0" role="alert">
                     <i class="fas fa-bug mt-1"></i>
                     <div class="text-break"><?= h($logs['error']) ?></div>
@@ -128,10 +120,10 @@ $detail = function ($label, $value, $icon) {
         <!-- ══ BACKTRACE ═════════════════════════════════════════ -->
         <?php if (!empty($logs['backtrace']) && $logs['backtrace'][0] !== ''): ?>
             <div class="w-100 px-2">
-                <div class="text-primary fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Backtrace') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Backtrace'),
+                ]) ?>
                 <pre class="bg-body-tertiary border rounded p-3 small mb-0 font-monospace"
                      style="max-height:280px; overflow:auto;"><?= h(implode("\n", $logs['backtrace'])) ?></pre>
             </div>

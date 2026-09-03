@@ -33,26 +33,13 @@ echo $this->Form->create('Collection', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Collections') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Collection') : __('Add Collection') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Organise shared data into buckets based on commonalities or as part of your research process. Collections follow the same sharing rules as events do.') ?>
-        </p>
-    </div>
-    <i class="fas fa-folder-open text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Collections'),
+    'title' => $isEdit ? __('Edit Collection') : __('Add Collection'),
+    'description' => __('Organise shared data into buckets based on commonalities or as part of your research process. Collections follow the same sharing rules as events do.'),
+    'icon' => 'fas fa-folder-open',
+    'isEdit' => $isEdit,
+]) ?>
 
 
 <div class="container-fluid px-4 py-4">
@@ -110,37 +97,33 @@ echo $this->Form->create('Collection', [
                 'placeholder' => __('e.g. APTX phishing campaign assets'),
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Keep it short but descriptive — 60 characters at most.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Keep it short but descriptive — 60 characters at most.'),
+            ]) ?>
         </div>
 
         <!-- ── TYPE ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Collection Type') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Collection Type'),
+            ]) ?>
             <?= $this->Form->select('type', $typeOptions, [
                 'id' => 'collection-type-select',
                 'class' => 'form-select',
                 'empty' => __('Select a type…'),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('What the collection groups together — a campaign, an intrusion set, a named threat, or your own research.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('What the collection groups together — a campaign, an intrusion set, a named threat, or your own research.'),
+            ]) ?>
         </div>
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Distribution / Sharing Group'),
+            ]) ?>
             <div class="d-flex gap-3">
 
                 <div class="flex-fill">
@@ -165,10 +148,10 @@ echo $this->Form->create('Collection', [
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 3,
@@ -179,37 +162,24 @@ echo $this->Form->create('Collection', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Collection') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php elseif (!empty($me['email'])): ?>
-                <?= __('Analyst') ?>:
-                <strong class="text-body"><?= h($me['email']) ?></strong>
-                <?php if (!empty($me['Organisation']['name'])): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($me['Organisation']['name']) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Create Collection')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    /* On add there is no id to show yet, so the bar carries who is about to own
+     * the collection instead. */
+    $footerMeta = [];
+    if ($isEdit && !empty($id)) {
+        $footerMeta[] = ['label' => __('Collection'), 'id' => $id];
+    } elseif (!empty($me['email'])) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $me['email']];
+        if (!empty($me['Organisation']['name'])) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $me['Organisation']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Create Collection')],
+    ]);
+    ?>
 
 </div>
 

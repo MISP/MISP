@@ -40,7 +40,8 @@ echo $this->element('genericElements/assetLoader', [
             <div id="sankey-stage" class="sankey-stage" style="display:none;">
 
                 <!-- Toolbar -->
-                <div class="d-flex align-items-center gap-2 flex-wrap mb-2" style="min-height:24px;">
+                <div id="sankey-toolbar" class="d-flex align-items-center gap-2 flex-wrap mb-2"
+                     style="min-height:24px;">
                     <span id="sankey-filter-badge" class="badge text-bg-danger d-none">
                         <i class="fas fa-filter me-1"></i>
                         <span id="sankey-filter-label"></span>
@@ -51,7 +52,12 @@ echo $this->element('genericElements/assetLoader', [
                         </a>
                     </span>
                     <span id="sankey-limit-msg" class="small text-muted"></span>
-                    <div class="ms-auto d-flex align-items-center gap-3 flex-wrap">
+                    <span id="sankey-wl-msg" class="small text-muted"></span>
+                    <div class="sankey-toggle-group ms-auto" role="group"
+                         aria-label="<?= h(__('Graph display options')) ?>">
+                        <span class="sankey-toggle-group-icon" aria-hidden="true">
+                            <i class="fa-solid fa-sliders"></i>
+                        </span>
                         <label for="sankey-date-align" class="sankey-toggle mb-0">
                             <span class="sankey-toggle-label"><?= h(__('Use timeline')) ?></span>
                             <input type="checkbox" id="sankey-date-align" checked>
@@ -67,29 +73,52 @@ echo $this->element('genericElements/assetLoader', [
                             <input type="checkbox" id="sankey-show-publisher" checked>
                             <span class="sankey-toggle-switch" aria-hidden="true"></span>
                         </label>
+                        <label for="sankey-hide-warninglist" class="sankey-toggle mb-0"
+                               id="sankey-hide-warninglist-toggle">
+                            <span class="sankey-toggle-label"><?= h(__('Hide warninglist hits')) ?></span>
+                            <input type="checkbox" id="sankey-hide-warninglist">
+                            <span class="sankey-toggle-switch" aria-hidden="true"></span>
+                        </label>
                     </div>
                 </div>
+
+                <!-- Correlated-event timeline: sets the period the graph draws -->
+                <div id="correlations-timeline" class="event-timeline" style="display:none;">
+                    <div class="event-timeline-header">
+                        <span class="event-timeline-title">
+                            <i class="fas fa-stream"></i>
+                            <?= h(__('Correlated event timeline')) ?>
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <span class="event-timeline-range" id="correlations-timeline-range"></span>
+                            <button type="button" id="correlations-timeline-reset"
+                                    class="event-timeline-reset d-none"
+                                    title="<?= h(__('Show the whole period')) ?>">
+                                <i class="fa-solid fa-arrows-left-right-to-line"></i>
+                                <?= h(__('Reset')) ?>
+                            </button>
+                        </span>
+                    </div>
+                    <div class="event-timeline-track">
+                        <div class="event-timeline-ticks" aria-hidden="true"></div>
+                        <div class="event-timeline-selection" aria-hidden="true"></div>
+                        <div class="event-timeline-markers"></div>
+                        <button type="button" class="event-timeline-handle" data-handle="start"
+                                aria-label="<?= h(__('Start of the displayed period')) ?>"></button>
+                        <button type="button" class="event-timeline-handle" data-handle="end"
+                                aria-label="<?= h(__('End of the displayed period')) ?>"></button>
+                    </div>
+                </div>
+
+                <!-- Empty state (no correlation, or everything filtered out) -->
+                <div id="sankey-empty"
+                     class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
 
                 <!-- Graph -->
                 <div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
                     <div id="sankey-shell" class="sankey-shell">
                         <div id="sankey" style="width:100%;height:400px;margin:0 auto;overflow-x:auto;"></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Correlated-event timeline (shown below the graph) -->
-            <div id="correlations-timeline" class="event-timeline" style="display:none;">
-                <div class="event-timeline-header">
-                    <span class="event-timeline-title">
-                        <i class="fas fa-stream"></i>
-                        <?= h(__('Correlated event timeline')) ?>
-                    </span>
-                    <span class="event-timeline-range" id="correlations-timeline-range"></span>
-                </div>
-                <div class="event-timeline-track">
-                    <div class="event-timeline-ticks" aria-hidden="true"></div>
-                    <div class="event-timeline-markers"></div>
                 </div>
             </div>
 
@@ -119,11 +148,21 @@ echo $this->element('genericElements/assetLoader', [
     var eventDate = <?= json_encode($eventDate) ?>;
 
     /* ── state ─────────────────────────────────────────────── */
-    var _correlationData         = null;
+    var _correlationData         = null;   // working set (warninglist filter applied)
+    var _rawCorrelationData      = null;   // untouched API payload
+    var _warninglistHits         = {};     // parent attribute id -> [warninglist name, ..]
+    var _warninglistHitCount     = 0;
     var _correlationEventDetails = null;
     var _correlationsLoading     = false;
     var _currentEventDateTs      = eventDate ? Date.parse(eventDate + 'T00:00:00Z') : NaN;
     var _sankeyListenersReady    = false;
+    var _dataMinTs = NaN, _dataMaxTs = NaN;    // first / last correlated event
+    var _domainMinTs = NaN, _domainMaxTs = NaN; // same, snapped to month or year
+    var _rangeMinTs  = NaN, _rangeMaxTs  = NaN; // period the graph draws
+    var _rangeIsFull = true;
+    var _timelineDragReady = false;
+    var _timelineHasData   = false;
+    var _dragScale = null;   // scale frozen while a handle is being dragged
     var updateTargetPositionsOnly = function () {};   // set inside renderSankey
 
     /* ── helpers ───────────────────────────────────────────── */
@@ -135,13 +174,283 @@ echo $this->element('genericElements/assetLoader', [
         return y + '-' + m + '-' + day;
     }
 
+    /* ── UTC date helpers, shared by the strip and the graph ─ */
+    function startOfUtcMonth(ts) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+    }
+    function addUtcMonths(ts, n) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1);
+    }
+    function startOfUtcYear(ts) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear(), 0, 1);
+    }
+    function addUtcYears(ts, n) {
+        var d = new Date(ts);
+        return Date.UTC(d.getUTCFullYear() + n, 0, 1);
+    }
+    function formatSankeyGridDate(ts, unit) {
+        var d = new Date(ts);
+        if (unit === 'year') return String(d.getUTCFullYear());
+        return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+    }
+
+    /* A single reference generator for both scales to ensure they remain aligned when zooming in or out. */
+    function buildSankeyGridTicks(minTs, maxTs, laneStart, laneEnd) {
+        var laneWidth = laneEnd - laneStart;
+        if (!isFinite(minTs) || !isFinite(maxTs) || laneWidth <= 0) return [];
+        var yr = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
+        if (maxTs <= minTs) return [{x: laneStart + laneWidth / 2, label: formatSankeyGridDate(minTs, yr ? 'year' : 'month'), isEdge: true}];
+        var ticks = [], cursor = minTs, idx = 0;
+        while (cursor <= maxTs) {
+            var ratio = (cursor - minTs) / Math.max(1, (maxTs - minTs));
+            ticks.push({x: laneStart + laneWidth * ratio, label: formatSankeyGridDate(cursor, yr ? 'year' : 'month'), isEdge: idx === 0});
+            cursor = yr ? addUtcYears(cursor, 1) : addUtcMonths(cursor, 1);
+            idx++;
+        }
+        if (ticks.length) ticks[ticks.length - 1].isEdge = true;
+        var maxT = yr ? 7 : 8;
+        if (ticks.length > maxT) {
+            var interval = Math.ceil((ticks.length - 1) / (maxT - 1));
+            var limited  = ticks.filter(function (t, i) { return i === 0 || i === ticks.length - 1 || (i % interval) === 0; });
+            if (limited[limited.length - 1].x !== ticks[ticks.length - 1].x) limited.push(ticks[ticks.length - 1]);
+            ticks = limited;
+            ticks[0].isEdge = true;
+            ticks[ticks.length - 1].isEdge = true;
+        }
+        return ticks;
+    }
+
+    /* ── shared date domain ────────────────────────────────── */
+    function _computeDateDomain(detailsMap) {
+        var minTs = Infinity, maxTs = -Infinity;
+        Object.keys(detailsMap || {}).forEach(function (eid) {
+            var date = (detailsMap[eid] || {}).date || '';
+            var ts   = date ? Date.parse(date + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return;
+            minTs = Math.min(minTs, ts);
+            maxTs = Math.max(maxTs, ts);
+        });
+        _dataMinTs = isFinite(minTs) ? minTs : NaN;
+        _dataMaxTs = isFinite(maxTs) ? maxTs : NaN;
+        if (isFinite(_currentEventDateTs)) {
+            minTs = Math.min(minTs, _currentEventDateTs);
+            maxTs = Math.max(maxTs, _currentEventDateTs);
+        }
+        if (!isFinite(minTs) || !isFinite(maxTs)) {
+            _domainMinTs = _domainMaxTs = NaN;
+            _rangeMinTs  = _rangeMaxTs  = NaN;
+            return;
+        }
+        var useYear = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
+        _domainMinTs = useYear ? startOfUtcYear(minTs) : startOfUtcMonth(minTs);
+        _domainMaxTs = useYear
+            ? addUtcYears(startOfUtcYear(maxTs), 1)
+            : addUtcMonths(startOfUtcMonth(maxTs), 1);
+        /* a selection the user made survives a re-render, clamped */
+        if (_rangeIsFull || !isFinite(_rangeMinTs) || !isFinite(_rangeMaxTs)) {
+            _rangeMinTs = _domainMinTs;
+            _rangeMaxTs = _domainMaxTs;
+            _rangeIsFull = true;
+        } else {
+            _rangeMinTs = Math.max(_domainMinTs, Math.min(_rangeMinTs, _domainMaxTs));
+            _rangeMaxTs = Math.max(_rangeMinTs, Math.min(_rangeMaxTs, _domainMaxTs));
+            _rangeIsFull = _rangeMinTs <= _domainMinTs && _rangeMaxTs >= _domainMaxTs;
+        }
+    }
+
+    /* Band superimposed on the graph: when the cursor is moved, 
+    it remains stationary, and the background is updated as soon as the cursor stops moving.*/
+    function _scaleMin() { return _dragScale ? _dragScale.min : _rangeMinTs; }
+    function _scaleMax() { return _dragScale ? _dragScale.max : _rangeMaxTs; }
+
+    function _tsToPct(ts) {
+        var lo = _scaleMin(), span = _scaleMax() - lo;
+        if (!isFinite(span) || span <= 0) return 0;
+        return Math.max(0, Math.min(100, ((ts - lo) / span) * 100));
+    }
+
+    function _pctToTs(pct) {
+        var lo = _scaleMin(), span = _scaleMax() - lo;
+        if (!isFinite(span) || span <= 0) return lo;
+        return lo + (span * (pct / 100));
+    }
+
+    function _syncTimelineVisibility() {
+        var timeline = document.getElementById('correlations-timeline');
+        var alignEl  = document.getElementById('sankey-date-align');
+        if (!timeline) return;
+        /* no date axis on the graph means no period to pick */
+        timeline.style.display =
+            (_timelineHasData && alignEl && alignEl.checked) ? '' : 'none';
+    }
+
+    /* ── range selection ───────────────────────────────────── */
+    function _paintRange() {
+        var timeline = document.getElementById('correlations-timeline');
+        if (!timeline || !isFinite(_domainMinTs)) return;
+        var sel   = timeline.querySelector('.event-timeline-selection');
+        var start = timeline.querySelector('.event-timeline-handle[data-handle="start"]');
+        var end   = timeline.querySelector('.event-timeline-handle[data-handle="end"]');
+        var label = document.getElementById('correlations-timeline-range');
+        var reset = document.getElementById('correlations-timeline-reset');
+        var p0 = _tsToPct(_rangeMinTs), p1 = _tsToPct(_rangeMaxTs);
+
+        if (sel) {
+            sel.style.left  = p0 + '%';
+            sel.style.width = Math.max(0, p1 - p0) + '%';
+        }
+        if (start) start.style.left = p0 + '%';
+        if (end)   end.style.left   = p1 + '%';
+        if (label) {
+            /* at full range show the real first/last event, not the snapped bound */
+            var from = _rangeIsFull && isFinite(_dataMinTs) ? _dataMinTs : _rangeMinTs;
+            var to   = _rangeIsFull && isFinite(_dataMaxTs) ? _dataMaxTs : _rangeMaxTs;
+            label.textContent = formatTimelineDateUtc(from) === formatTimelineDateUtc(to)
+                ? formatTimelineDateUtc(from)
+                : formatTimelineDateUtc(from) + ' → ' + formatTimelineDateUtc(to);
+        }
+        if (reset) reset.classList.toggle('d-none', _rangeIsFull);
+    }
+
+    function _moveHandle(which, pct) {
+        var span = _scaleMax() - _scaleMin();
+        if (!isFinite(span) || span <= 0) return;
+        var minGap = Math.max(86400000, span * 0.05);
+        var ts = _pctToTs(pct);
+        if (which === 'start') {
+            _rangeMinTs = Math.max(_domainMinTs, Math.min(ts, _rangeMaxTs - minGap));
+        } else {
+            _rangeMaxTs = Math.min(_domainMaxTs, Math.max(ts, _rangeMinTs + minGap));
+        }
+        _rangeIsFull = _rangeMinTs <= _domainMinTs && _rangeMaxTs >= _domainMaxTs;
+        _paintRange();
+    }
+
+    function _applyRangeToGraph() {
+        if (!_correlationData || !_correlationEventDetails) return;
+        /* re-rendering drops any node filter, so retire its badge too */
+        var badge = document.getElementById('sankey-filter-badge');
+        if (badge) badge.classList.add('d-none');
+        _resetCorrList();
+        renderSankey(_correlationData, _correlationEventDetails, null, {animateToggle: true});
+    }
+
+    /* Lay the strip's track exactly over the graph's date lane, so a date
+       sits at the same x in both. Cleared when the graph has no date axis. */
+    function _alignTimelineToLane(marginLeft, laneStart, laneEnd) {
+        var timeline = document.getElementById('correlations-timeline');
+        var track    = timeline && timeline.querySelector('.event-timeline-track');
+        if (!track) return;
+        function clear() {
+            track.style.marginLeft = '';
+            track.style.width      = '';
+        }
+        var svgEl   = document.querySelector('#sankey svg');
+        var alignEl = document.getElementById('sankey-date-align');
+        if (!svgEl || !alignEl || !alignEl.checked) { clear(); return; }
+
+        var svgRect = svgEl.getBoundingClientRect();
+        var tlRect  = timeline.getBoundingClientRect();
+        var style   = getComputedStyle(timeline);
+        /* getBoundingClientRect includes the card border, the content box does not */
+        var padLeft  = (parseFloat(style.paddingLeft)  || 0)
+                     + (parseFloat(style.borderLeftWidth)  || 0);
+        var padRight = (parseFloat(style.paddingRight) || 0)
+                     + (parseFloat(style.borderRightWidth) || 0);
+        var contentLeft  = tlRect.left + padLeft;
+        var contentWidth = tlRect.width - padLeft - padRight;
+        var laneWidth = laneEnd - laneStart;
+        var offset    = (svgRect.left + marginLeft + laneStart) - contentLeft;
+
+        /* bail out rather than push the track outside its own card */
+        if (!(laneWidth > 40) || offset < 0 || (offset + laneWidth) > contentWidth + 2) {
+            clear();
+            return;
+        }
+        track.style.marginLeft = offset + 'px';
+        track.style.width      = laneWidth + 'px';
+    }
+
+    function _setupTimelineHandles() {
+        if (_timelineDragReady) return;
+        var timeline = document.getElementById('correlations-timeline');
+        var track    = timeline && timeline.querySelector('.event-timeline-track');
+        if (!track) return;
+        _timelineDragReady = true;
+        var dragging = null;
+
+        function pctFromEvent(e) {
+            var rect = track.getBoundingClientRect();
+            if (rect.width <= 0) return 0;
+            return Math.max(0, Math.min(100,
+                ((e.clientX - rect.left) / rect.width) * 100));
+        }
+        function stopDrag() {
+            if (!dragging) return;
+            dragging = null;
+            _dragScale = null;
+            track.querySelectorAll('.event-timeline-handle').forEach(function (h) {
+                h.classList.remove('is-dragging');
+            });
+            /* the sankey is expensive, so it redraws on release, not per move */
+            renderCorrelationsTimeline(_correlationEventDetails);
+            _applyRangeToGraph();
+        }
+
+        track.addEventListener('pointerdown', function (e) {
+            var handle = e.target.closest('.event-timeline-handle');
+            if (!handle) return;
+            dragging = handle.getAttribute('data-handle');
+            _dragScale = {min: _rangeMinTs, max: _rangeMaxTs};
+            handle.classList.add('is-dragging');
+            handle.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+        track.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            _moveHandle(dragging, pctFromEvent(e));
+        });
+        track.addEventListener('pointerup', stopDrag);
+        track.addEventListener('pointercancel', stopDrag);
+        track.addEventListener('keydown', function (e) {
+            var handle = e.target.closest && e.target.closest('.event-timeline-handle');
+            if (!handle) return;
+            var which = handle.getAttribute('data-handle');
+            var step  = (_domainMaxTs - _domainMinTs) / 100;
+            var cur   = which === 'start' ? _rangeMinTs : _rangeMaxTs;
+            var next;
+            if (e.key === 'ArrowLeft')       next = cur - step;
+            else if (e.key === 'ArrowRight') next = cur + step;
+            else if (e.key === 'Home')       next = _domainMinTs;
+            else if (e.key === 'End')        next = _domainMaxTs;
+            else return;
+            e.preventDefault();
+            _moveHandle(which, _tsToPct(next));
+            renderCorrelationsTimeline(_correlationEventDetails);
+            _applyRangeToGraph();
+        });
+
+        var reset = document.getElementById('correlations-timeline-reset');
+        if (reset) {
+            reset.addEventListener('click', function () {
+                _rangeMinTs = _domainMinTs;
+                _rangeMaxTs = _domainMaxTs;
+                _rangeIsFull = true;
+                renderCorrelationsTimeline(_correlationEventDetails);
+                _applyRangeToGraph();
+            });
+        }
+    }
+
     /* ── timeline ──────────────────────────────────────────── */
     function renderCorrelationsTimeline(detailsMap) {
-        var timeline   = document.getElementById('correlations-timeline');
+        var timeline = document.getElementById('correlations-timeline');
         if (!timeline) return;
-        var markers    = timeline.querySelector('.event-timeline-markers');
-        var ticks      = timeline.querySelector('.event-timeline-ticks');
-        var rangeLabel = document.getElementById('correlations-timeline-range');
+        var markers  = timeline.querySelector('.event-timeline-markers');
+        var ticks    = timeline.querySelector('.event-timeline-ticks');
         if (!markers || !ticks) return;
 
         var items = Object.keys(detailsMap || {}).map(function (eid) {
@@ -152,68 +461,62 @@ echo $this->element('genericElements/assetLoader', [
             return { id: eid, title: det.info || '', date: date, ts: ts };
         }).filter(Boolean);
 
-        if (!items.length) { timeline.style.display = 'none'; return; }
-
-        items.sort(function (a, b) { return a.ts - b.ts; });
-        var itemMinTs = items[0].ts;
-        var itemMaxTs = items[items.length - 1].ts;
-        var minTs = itemMinTs, maxTs = itemMaxTs;
-        if (isFinite(_currentEventDateTs)) {
-            minTs = Math.min(minTs, _currentEventDateTs);
-            maxTs = Math.max(maxTs, _currentEventDateTs);
+        if (!items.length) {
+            _domainMinTs = _domainMaxTs = _rangeMinTs = _rangeMaxTs = NaN;
+            _timelineHasData = false;
+            _syncTimelineVisibility();
+            return;
         }
-        var rawRange = maxTs - minTs;
-        var range    = Math.max(rawRange, 1);
+
+        _computeDateDomain(detailsMap);
+        if (!isFinite(_domainMinTs) || !isFinite(_domainMaxTs)) {
+            _timelineHasData = false;
+            _syncTimelineVisibility();
+            return;
+        }
+        items.sort(function (a, b) { return a.ts - b.ts; });
 
         ticks.innerHTML = '';
-        var tickCount = rawRange === 0 ? 1 : Math.min(7, Math.max(3, items.length + 1));
-        for (var i = 0; i < tickCount; i++) {
-            var tick      = document.createElement('span');
-            var pctTick   = tickCount === 1 ? 50 : (i / (tickCount - 1)) * 100;
-            var isEdge    = i === 0 || i === tickCount - 1;
-            tick.className = 'event-timeline-tick' + (isEdge ? ' event-timeline-tick-edge' : '');
-            tick.style.left = pctTick + '%';
-            var tickTs    = rawRange === 0 ? minTs : minTs + ((range * i) / Math.max(1, tickCount - 1));
-            var label     = document.createElement('span');
+        var gridTicks = buildSankeyGridTicks(_rangeMinTs, _rangeMaxTs, 0, 100);
+        gridTicks.forEach(function (t, i) {
+            var tick = document.createElement('span');
+            tick.className = 'event-timeline-tick'
+                + (t.isEdge ? ' event-timeline-tick-edge' : '');
+            tick.style.left = t.x + '%';
+            var label = document.createElement('span');
             label.className = 'event-timeline-tick-label'
-                + (i === 0               ? ' event-timeline-tick-label-start' : '')
-                + (i === tickCount - 1   ? ' event-timeline-tick-label-end'   : '');
-            label.textContent = formatTimelineDateUtc(tickTs);
+                + (i === 0                   ? ' event-timeline-tick-label-start' : '')
+                + (i === gridTicks.length - 1 ? ' event-timeline-tick-label-end'  : '');
+            label.textContent = t.label;
             tick.appendChild(label);
             ticks.appendChild(tick);
-        }
+        });
 
+        /* event marks are light strokes now - blue is reserved for the handles */
         markers.innerHTML = '';
-        if (isFinite(_currentEventDateTs)) {
+        if (isFinite(_currentEventDateTs)
+            && _currentEventDateTs >= _rangeMinTs
+            && _currentEventDateTs <= _rangeMaxTs) {
             var cm = document.createElement('span');
             cm.className = 'event-timeline-current-marker';
-            cm.style.left = (range > 0 ? ((_currentEventDateTs - minTs) / range) * 100 : 50) + '%';
-            cm.setAttribute('aria-hidden', 'true');
+            cm.style.left = _tsToPct(_currentEventDateTs) + '%';
+            cm.title = <?= json_encode(__('This Event')) ?>
+                + ' — ' + formatTimelineDateUtc(_currentEventDateTs);
             markers.appendChild(cm);
-
-            var cl = document.createElement('span');
-            cl.className = 'event-timeline-current-label';
-            cl.style.left = cm.style.left;
-            cl.textContent = '★ ' + <?= json_encode(__('This Event')) ?>;
-            cl.setAttribute('aria-hidden', 'true');
-            markers.appendChild(cl);
         }
         items.forEach(function (item) {
-            var mk = document.createElement('button');
-            mk.type = 'button';
+            if (item.ts < _rangeMinTs || item.ts > _rangeMaxTs) return;
+            var mk = document.createElement('span');
             mk.className = 'event-timeline-marker';
-            mk.style.left = (range > 0 ? ((item.ts - minTs) / range) * 100 : 50) + '%';
-            mk.title = (item.title || 'Event #' + item.id) + ' — ' + item.date;
-            mk.setAttribute('data-event-id', item.id);
+            mk.style.left = _tsToPct(item.ts) + '%';
+            mk.title = (item.title || ('Event #' + item.id)) + ' — ' + item.date;
             markers.appendChild(mk);
         });
 
-        if (rangeLabel) {
-            var start = formatTimelineDateUtc(itemMinTs);
-            var end   = formatTimelineDateUtc(maxTs);
-            rangeLabel.textContent = start === end ? start : (start + ' → ' + end);
-        }
-        timeline.style.display = '';
+        _paintRange();
+        _setupTimelineHandles();
+        _timelineHasData = true;
+        _syncTimelineVisibility();
     }
 
     /* ── fetch ─────────────────────────────────────────────── */
@@ -223,7 +526,8 @@ echo $this->element('genericElements/assetLoader', [
         var loaderEl  = document.getElementById('correlations-loader');
         var contentEl = document.getElementById('correlations-content');
         var url = baseurl + '/correlations/eventCorrelations/' + eventId
-                + '.json?include_attributes=1&include_org_names=1';
+                + '.json?include_attributes=1&include_org_names=1'
+                + '&include_warninglist_hits=1';
 
         fetch(url)
             .then(function (r) {
@@ -244,9 +548,114 @@ echo $this->element('genericElements/assetLoader', [
             });
     }
 
+    /* ── warninglist filter ────────────────────────────────── */
+    var _wlLabel      = <?= json_encode(h(__('Warninglist'))) ?>;
+    var _wlHintOn     = <?= json_encode(h(__('Drop every correlating attribute that matches an enabled warninglist'))) ?>;
+    var _wlHintNone   = <?= json_encode(h(__('No correlating attribute matches an enabled warninglist'))) ?>;
+    var _wlHiddenOne  = <?= json_encode(__('%s warninglisted attribute hidden')) ?>;
+    var _wlHiddenMany = <?= json_encode(__('%s warninglisted attributes hidden')) ?>;
+    var _attrPillOne  = <?= json_encode(__('%s correlating attribute - click to expand')) ?>;
+    var _attrPillMany = <?= json_encode(__('%s correlating attributes - click to expand')) ?>;
+
+    function _isWarninglisted(parentId) {
+        return !!(_warninglistHits && _warninglistHits[parentId]);
+    }
+
+    function _warninglistNames(parentId) {
+        return (_warninglistHits[parentId] || []).join(', ');
+    }
+
+    function _hideWarninglisted() {
+        var input = document.getElementById('sankey-hide-warninglist');
+        return !!(input && input.checked && !input.disabled);
+    }
+
+    /* the toggle is dead weight when nothing in the graph is warninglisted */
+    function _syncWarninglistToggle() {
+        var input = document.getElementById('sankey-hide-warninglist');
+        var label = document.getElementById('sankey-hide-warninglist-toggle');
+        if (!input || !label) return;
+        var hasHits = _warninglistHitCount > 0;
+        input.disabled = !hasHits;
+        if (!hasHits) input.checked = false;
+        label.classList.toggle('sankey-toggle-disabled', !hasHits);
+        label.title = hasHits ? _wlHintOn : _wlHintNone;
+    }
+
+    /* ── empty states ──────────────────────────────────────── */
+    function _showEmptyState(filteredOut) {
+        var stageEl   = document.getElementById('sankey-stage');
+        var toolbarEl = document.getElementById('sankey-toolbar');
+        var emptyEl   = document.getElementById('sankey-empty');
+        var graphEl   = document.getElementById('sankey');
+        var timeline  = document.getElementById('correlations-timeline');
+        var listEl    = document.getElementById('correlations-list');
+
+        if (stageEl)  stageEl.style.display  = '';
+        _timelineHasData = false;
+        if (timeline) timeline.style.display = 'none';
+        if (listEl)   listEl.style.display   = 'none';
+        if (graphEl) {
+            graphEl.innerHTML     = '';
+            graphEl.style.height  = '0px';
+            graphEl.style.opacity = '1';
+        }
+        /* renderSankey() never ran, so its counter still describes the old set */
+        var limitMsgEl = document.getElementById('sankey-limit-msg');
+        if (limitMsgEl) limitMsgEl.textContent = '';
+        /* keep the toolbar reachable when the filter is what emptied the graph */
+        if (toolbarEl) toolbarEl.classList.toggle('d-none', !filteredOut);
+        if (emptyEl) {
+            emptyEl.classList.remove('d-none');
+            emptyEl.innerHTML =
+                '<i class="fas fa-' + (filteredOut ? 'filter' : 'link')
+                + ' fa-2x mb-2 d-block opacity-50"></i>'
+                + (filteredOut
+                    ? <?= json_encode(h(__('Every correlating attribute is warninglisted.'))) ?>
+                    : <?= json_encode(h(__('No correlated events found.'))) ?>);
+        }
+    }
+
+    /* d-none, not style.display - .d-flex is an !important utility */
+    function _hideEmptyState() {
+        var toolbarEl = document.getElementById('sankey-toolbar');
+        var emptyEl   = document.getElementById('sankey-empty');
+        if (emptyEl)   emptyEl.classList.add('d-none');
+        if (toolbarEl) toolbarEl.classList.remove('d-none');
+    }
+
     /* ── process API response ──────────────────────────────── */
-    function renderCorrelations(data) {
+    function renderCorrelations(payload) {
+        _rawCorrelationData = (payload && payload.correlations !== undefined)
+            ? (payload.correlations || {})
+            : (payload || {});
+        _warninglistHits     = (payload && payload.warninglist_hits) || {};
+        _warninglistHitCount = Object.keys(_warninglistHits).length;
+        _syncWarninglistToggle();
+        _registerToggleListeners();
+        applyCorrelations({});
+    }
+
+    /* ── build the working set, then (re)draw ──────────────── */
+    function applyCorrelations(options) {
+        options = options || {};
+        var hideWl = _hideWarninglisted();
+        var data   = {};
+        var hidden = 0;
+        for (var rawPid in _rawCorrelationData) {
+            if (!Object.prototype.hasOwnProperty.call(_rawCorrelationData, rawPid)) continue;
+            if (hideWl && _isWarninglisted(rawPid)) { hidden++; continue; }
+            data[rawPid] = _rawCorrelationData[rawPid];
+        }
         _correlationData = data;
+
+        var wlMsgEl = document.getElementById('sankey-wl-msg');
+        if (wlMsgEl) {
+            wlMsgEl.textContent = hidden > 0
+                ? (hidden === 1 ? _wlHiddenOne : _wlHiddenMany).replace('%s', hidden)
+                : '';
+        }
+
         var eventDetails  = {};
         var eventCounts   = {};
         var attributeMap  = {};
@@ -296,22 +705,15 @@ echo $this->element('genericElements/assetLoader', [
         }
 
         if (total === 0) {
-            var stageEl = document.getElementById('sankey-stage');
-            if (stageEl) {
-                stageEl.style.display = '';
-                stageEl.innerHTML =
-                    '<div class="d-flex flex-column align-items-center text-muted pt-2 small">'
-                    + '<i class="fas fa-link fa-2x mb-2 d-block opacity-50"></i>'
-                    + <?= json_encode(h(__('No correlated events found.'))) ?>
-                    + '</div>';
-            }
+            _showEmptyState(hidden > 0);
             return;
         }
+        _hideEmptyState();
 
         renderCorrelationsTimeline(eventDetails);
-        renderSankey(data, eventDetails, null, {});
+        renderSankey(data, eventDetails, null,
+            options.animateToggle ? {animateToggle: true} : {});
         renderCorrelationsList(eventDetails, eventCounts, attributeMap);
-        _registerToggleListeners();
     }
 
     /* ── events list with correlating attributes ──────────── */
@@ -334,7 +736,6 @@ echo $this->element('genericElements/assetLoader', [
 
         sortedEids.forEach(function (eid) {
             var det     = eventDetails[eid] || {};
-            var count   = eventCounts[eid]  || 0;
             var attrs   = attributeMap[eid] || [];
             var info    = det.info    || ('#' + eid);
             var date    = det.date    || '';
@@ -376,12 +777,16 @@ echo $this->element('genericElements/assetLoader', [
             distBadge.innerHTML = '<i class="' + dist.icon
                 + '" style="color:' + dist.color + ';font-size:.85rem;"></i>';
 
-            /* event link row */
+            /* header row - the link no longer spans it, the pill is a button */
+            var header = document.createElement('div');
+            header.className =
+                'd-flex align-items-start gap-3 px-3 py-2 corr-event-row';
+
             var link = document.createElement('a');
             link.href = baseurl + '/events/view2/' + eid;
             link.className =
-                'd-flex align-items-start gap-3 px-3 py-2'
-                + ' text-decoration-none text-dark corr-event-row';
+                'd-flex align-items-start gap-3 flex-fill overflow-hidden'
+                + ' text-decoration-none text-dark';
 
             var meta = document.createElement('div');
             meta.className = 'flex-fill overflow-hidden';
@@ -405,7 +810,9 @@ echo $this->element('genericElements/assetLoader', [
 
             /* attributes — index format: italic category > bordered type value */
             var attrsEl = document.createElement('div');
-            attrsEl.className = 'px-3 pb-2 pt-1 d-flex flex-column gap-1';
+            attrsEl.id = 'corr-attrs-' + eid;
+            attrsEl.className =
+                'corr-event-attrs d-none px-3 pb-2 pt-1 d-flex flex-column gap-1';
 
             uniqueAttrs.forEach(function (a) {
                 var row = document.createElement('div');
@@ -437,15 +844,73 @@ echo $this->element('genericElements/assetLoader', [
                 valEl.textContent = a.value;
                 row.appendChild(valEl);
 
+                if (_isWarninglisted(a.id)) {
+                    var wlIcon = document.createElement('i');
+                    wlIcon.className =
+                        'fa-solid fa-triangle-exclamation text-warning ms-1';
+                    wlIcon.style.fontSize = '.7rem';
+                    wlIcon.title = _wlLabel + ': ' + _warninglistNames(a.id);
+                    row.appendChild(wlIcon);
+                }
+
                 attrsEl.appendChild(row);
             });
 
-            card.appendChild(link);
+            var shown      = uniqueAttrs.length;
+            var anyWarned   = uniqueAttrs.some(function (a) {
+                return _isWarninglisted(a.id);
+            });
+            var toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'corr-attr-toggle flex-shrink-0 mt-1';
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-controls', attrsEl.id);
+            toggle.title = (shown === 1 ? _attrPillOne : _attrPillMany)
+                .replace('%s', shown);
+            toggle.innerHTML = (anyWarned
+                    ? '<i class="fa-solid fa-triangle-exclamation'
+                      + ' corr-attr-toggle-warning"></i>'
+                    : '')
+                + '<span>' + shown + '</span>'
+                + '<i class="fa-solid fa-chevron-down corr-attr-toggle-chevron"></i>';
+
+            header.appendChild(link);
+            header.appendChild(toggle);
+            card.appendChild(header);
             card.appendChild(attrsEl);
             bodyEl.appendChild(card);
         });
 
+        _delegateCorrListToggle(bodyEl);
         listEl.style.display = '';
+    }
+
+    /* ── expand / collapse a card's attribute list ──────────── */
+    var _corrListDelegated = false;
+
+    function _setCardExpanded(card, expanded) {
+        if (!card) return;
+        var btn   = card.querySelector('.corr-attr-toggle');
+        var attrs = card.querySelector('.corr-event-attrs');
+        if (!btn || !attrs) return;
+        attrs.classList.toggle('d-none', !expanded);
+        btn.classList.toggle('is-expanded', expanded);
+        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    /* one listener on the body, which survives every re-render */
+    function _delegateCorrListToggle(bodyEl) {
+        if (_corrListDelegated || !bodyEl) return;
+        _corrListDelegated = true;
+        bodyEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('.corr-attr-toggle');
+            if (!btn) return;
+            e.preventDefault();
+            _setCardExpanded(
+                btn.closest('.corr-event-card'),
+                btn.getAttribute('aria-expanded') !== 'true'
+            );
+        });
     }
 
     /* ── list filter helpers ───────────────────────────────── */
@@ -461,6 +926,8 @@ echo $this->element('genericElements/assetLoader', [
                     row.style.opacity =
                         row.getAttribute('data-parent-id') === attrStr ? '1' : '0.25';
                 });
+                /* the highlight is worthless while the list is collapsed */
+                _setCardExpanded(card, true);
             } else {
                 card.style.display = 'none';
             }
@@ -475,6 +942,7 @@ echo $this->element('genericElements/assetLoader', [
             card.querySelectorAll('.corr-attr-row').forEach(function (row) {
                 row.style.opacity = '';
             });
+            _setCardExpanded(card, false);
         });
     }
 
@@ -490,6 +958,13 @@ echo $this->element('genericElements/assetLoader', [
         _sankeyListenersReady = true;
 
         document.getElementById('sankey-date-align').addEventListener('change', function () {
+            _syncTimelineVisibility();
+            if (!_rangeIsFull && _correlationData && _correlationEventDetails) {
+                /* the period filter follows the axis, so the drawn set changes */
+                renderSankey(_correlationData, _correlationEventDetails, null,
+                    {animateToggle: true});
+                return;
+            }
             updateTargetPositionsOnly(true);
         });
         document.getElementById('sankey-latest-events').addEventListener('change', function () {
@@ -502,6 +977,16 @@ echo $this->element('genericElements/assetLoader', [
                 renderSankey(_correlationData, _correlationEventDetails, null, {animateToggle: true});
             }
         });
+        var wlInput = document.getElementById('sankey-hide-warninglist');
+        if (wlInput) {
+            wlInput.addEventListener('change', function () {
+                if (!_rawCorrelationData) return;
+                /* the working set changes under it, so drop any node filter */
+                var badge = document.getElementById('sankey-filter-badge');
+                if (badge) badge.classList.add('d-none');
+                applyCorrelations({animateToggle: true});
+            });
+        }
     }
 
     /* ── renderSankey ──────────────────────────────────────── */
@@ -545,6 +1030,18 @@ echo $this->element('genericElements/assetLoader', [
             parentIds = parentIds.slice(0, 100);
         }
 
+        /* the strip above restricts which period the graph draws */
+        var rangeActive = alignToDate && isFinite(_rangeMinTs)
+            && isFinite(_rangeMaxTs) && !_rangeIsFull;
+        function relInRange(rel) {
+            if (!rangeActive) return true;
+            var det = eventDetails && eventDetails[rel.id] ? eventDetails[rel.id] : null;
+            var evDate = rel.date || (det && det.date) || '';
+            var ts = evDate ? Date.parse(evDate + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return true;   // undated events stay visible
+            return ts >= _rangeMinTs && ts <= _rangeMaxTs;
+        }
+
         var allowedTargetEventIds = null;
         if (latestEventsOnly) {
             var latestTargetEvents = [];
@@ -552,6 +1049,7 @@ echo $this->element('genericElements/assetLoader', [
             parentIds.forEach(function (pid) {
                 (data[pid] || []).forEach(function (rel) {
                     if (seen[rel.id]) return;
+                    if (!relInRange(rel)) return;
                     seen[rel.id] = true;
                     var det = eventDetails && eventDetails[rel.id] ? eventDetails[rel.id] : null;
                     var evDate = rel.date || (det && det.date) || '';
@@ -576,6 +1074,7 @@ echo $this->element('genericElements/assetLoader', [
         parentIds.forEach(function (pid) {
             (data[pid] || []).forEach(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return;
+                if (!relInRange(rel)) return;
                 eventLinkCounts[rel.id] = (eventLinkCounts[rel.id] || 0) + 1;
             });
         });
@@ -584,6 +1083,7 @@ echo $this->element('genericElements/assetLoader', [
             var relations = data[pid] || [];
             var filtered  = relations.filter(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return false;
+                if (!relInRange(rel)) return false;
                 if (filterOrgId) {
                     var relOrgId = rel.org_id || (eventDetails && eventDetails[rel.id] && eventDetails[rel.id].org) || 'unknown';
                     return String(relOrgId) === String(filterOrgId);
@@ -593,7 +1093,13 @@ echo $this->element('genericElements/assetLoader', [
             if (!filtered.length) return;
 
             var attrValue = (relations[0] && relations[0].value) ? relations[0].value : ('Attr #' + pid);
-            var attrIdx   = addNode(attrValue, 'attribute', pid);
+            var attrLabel = attrValue;
+            var attrTitle = attrValue;
+            if (_isWarninglisted(pid)) {
+                attrLabel = '\u26a0 ' + attrValue;
+                attrTitle = attrValue + ' | ' + _wlLabel + ': ' + _warninglistNames(pid);
+            }
+            var attrIdx   = addNode(attrLabel, 'attribute', pid, attrTitle);
             links.push({source: sourceIdx, target: attrIdx, value: filtered.length});
 
             filtered.forEach(function (rel) {
@@ -650,27 +1156,6 @@ echo $this->element('genericElements/assetLoader', [
         if (sankeyStageEl) sankeyStageEl.style.display = '';
 
         /* ── layout helpers (hoisted) ─────────────────────── */
-        function startOfUtcMonth(ts) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-        }
-        function addUtcMonths(ts, n) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1);
-        }
-        function startOfUtcYear(ts) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear(), 0, 1);
-        }
-        function addUtcYears(ts, n) {
-            var d = new Date(ts);
-            return Date.UTC(d.getUTCFullYear() + n, 0, 1);
-        }
-        function formatSankeyGridDate(ts, unit) {
-            var d = new Date(ts);
-            if (unit === 'year') return String(d.getUTCFullYear());
-            return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
-        }
         function truncateSourceLabel(name) {
             return name.length > 30 ? name.substring(0, 30) + '...' : name;
         }
@@ -758,19 +1243,29 @@ echo $this->element('genericElements/assetLoader', [
             }
         });
 
-        var hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max) && targetDateExtents.max > targetDateExtents.min;
-        var sankeyDomainMinTs = targetDateExtents.min, sankeyDomainMaxTs = targetDateExtents.max;
-        if (isFinite(currentEventDateTs)) {
-            sankeyDomainMinTs = isFinite(sankeyDomainMinTs) ? Math.min(sankeyDomainMinTs, currentEventDateTs) : currentEventDateTs;
-            sankeyDomainMaxTs = isFinite(sankeyDomainMaxTs) ? Math.max(sankeyDomainMaxTs, currentEventDateTs) : currentEventDateTs;
+        var hasSpreadableDates, sankeyScaleMinTs, sankeyScaleMaxTs;
+        if (isFinite(_rangeMinTs) && isFinite(_rangeMaxTs) && _rangeMaxTs > _rangeMinTs) {
+            /* the strip above is the single source of truth for the scale */
+            sankeyScaleMinTs = _rangeMinTs;
+            sankeyScaleMaxTs = _rangeMaxTs;
+            hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max);
+        } else {
+            hasSpreadableDates = isFinite(targetDateExtents.min) && isFinite(targetDateExtents.max) && targetDateExtents.max > targetDateExtents.min;
+            var sankeyDomainMinTs = targetDateExtents.min, sankeyDomainMaxTs = targetDateExtents.max;
+            if (isFinite(currentEventDateTs)) {
+                sankeyDomainMinTs = isFinite(sankeyDomainMinTs) ? Math.min(sankeyDomainMinTs, currentEventDateTs) : currentEventDateTs;
+                sankeyDomainMaxTs = isFinite(sankeyDomainMaxTs) ? Math.max(sankeyDomainMaxTs, currentEventDateTs) : currentEventDateTs;
+            }
+            var useYearScale = isFinite(sankeyDomainMinTs) && isFinite(sankeyDomainMaxTs)
+                && new Date(sankeyDomainMinTs).getUTCFullYear() !== new Date(sankeyDomainMaxTs).getUTCFullYear();
+            sankeyScaleMinTs = isFinite(sankeyDomainMinTs) ? (useYearScale ? startOfUtcYear(sankeyDomainMinTs) : startOfUtcMonth(sankeyDomainMinTs)) : sankeyDomainMinTs;
+            sankeyScaleMaxTs = isFinite(sankeyDomainMaxTs) ? (useYearScale ? addUtcYears(startOfUtcYear(sankeyDomainMaxTs), 1) : addUtcMonths(startOfUtcMonth(sankeyDomainMaxTs), 1)) : sankeyDomainMaxTs;
         }
-        var useYearScale = isFinite(sankeyDomainMinTs) && isFinite(sankeyDomainMaxTs)
-            && new Date(sankeyDomainMinTs).getUTCFullYear() !== new Date(sankeyDomainMaxTs).getUTCFullYear();
-        var sankeyScaleMinTs = isFinite(sankeyDomainMinTs) ? (useYearScale ? startOfUtcYear(sankeyDomainMinTs) : startOfUtcMonth(sankeyDomainMinTs)) : sankeyDomainMinTs;
-        var sankeyScaleMaxTs = isFinite(sankeyDomainMaxTs) ? (useYearScale ? addUtcYears(startOfUtcYear(sankeyDomainMaxTs), 1) : addUtcMonths(startOfUtcMonth(sankeyDomainMaxTs), 1)) : sankeyDomainMaxTs;
 
         var rightLabelPadding = showPublisher ? 16 : 10;
-        var orgLabelReserve   = showPublisher ? 260 : 28;
+        var orgLabelReserve   = showPublisher
+            ? Math.max(96, Math.min(260, Math.round(longestOrgLen * 6.2) + 40))
+            : 28;
         var targetToOrgGap    = alignToDate ? (showPublisher ? 84 : 52) : (showPublisher ? 56 : 36);
         var targetLaneStartFloor = attributeMaxX1 + 90;
         var targetLaneStart      = targetLaneStartFloor;
@@ -785,6 +1280,10 @@ echo $this->element('genericElements/assetLoader', [
         }
         var orgColumnX0  = Math.max(attributeMaxX1 + targetToOrgGap + sankeyNodeWidth, width - sankeyNodeWidth - rightLabelPadding);
         var targetLaneEnd = alignToDate ? Math.min(alignedLaneEnd, orgColumnX0 - targetToOrgGap) : Math.max(alignedLaneEnd, orgColumnX0 - targetToOrgGap);
+        /* nodes span [alignedLaneStart, alignedLaneEnd - nodeWidth] by their left
+           edge, so their centres - and therefore the date axis - live here */
+        var dateLaneStart = alignedLaneStart + (sankeyNodeWidth / 2);
+        var dateLaneEnd   = alignedLaneEnd   - (sankeyNodeWidth / 2);
         var targetFixedX0 = Math.max(targetLaneStart, targetLaneEnd - Math.max(42, Math.floor(width * 0.035)));
         var orgLabelGap   = 18, targetLabelGap = 18, targetHoverPad = 14, orgLabelMaxLength = 34;
 
@@ -939,33 +1438,9 @@ echo $this->element('genericElements/assetLoader', [
 
         /* ── timeline grid ────────────────────────────────── */
         var gridGroup = null;
-        function buildSankeyGridTicks(minTs, maxTs, laneStart, laneEnd) {
-            var laneWidth = laneEnd - laneStart;
-            if (!isFinite(minTs) || !isFinite(maxTs) || laneWidth <= 0) return [];
-            var yr = new Date(minTs).getUTCFullYear() !== new Date(maxTs).getUTCFullYear();
-            if (maxTs <= minTs) return [{x: laneStart + laneWidth / 2, label: formatSankeyGridDate(minTs, yr ? 'year' : 'month'), isEdge: true}];
-            var ticks = [], cursor = minTs, idx = 0;
-            while (cursor <= maxTs) {
-                var ratio = (cursor - minTs) / Math.max(1, (maxTs - minTs));
-                ticks.push({x: laneStart + laneWidth * ratio, label: formatSankeyGridDate(cursor, yr ? 'year' : 'month'), isEdge: idx === 0});
-                cursor = yr ? addUtcYears(cursor, 1) : addUtcMonths(cursor, 1);
-                idx++;
-            }
-            if (ticks.length) ticks[ticks.length - 1].isEdge = true;
-            var maxT = yr ? 7 : 8;
-            if (ticks.length > maxT) {
-                var interval = Math.ceil((ticks.length - 1) / (maxT - 1));
-                var limited  = ticks.filter(function (t, i) { return i === 0 || i === ticks.length - 1 || (i % interval) === 0; });
-                if (limited[limited.length - 1].x !== ticks[ticks.length - 1].x) limited.push(ticks[ticks.length - 1]);
-                ticks = limited;
-                ticks[0].isEdge = true;
-                ticks[ticks.length - 1].isEdge = true;
-            }
-            return ticks;
-        }
 
-        if (targetNodes.length > 0 && targetLaneEnd > targetLaneStart && alignToDate) {
-            var gridTicks  = buildSankeyGridTicks(sankeyScaleMinTs, sankeyScaleMaxTs, targetLaneStart, targetLaneEnd);
+        if (targetNodes.length > 0 && dateLaneEnd > dateLaneStart && alignToDate) {
+            var gridTicks  = buildSankeyGridTicks(sankeyScaleMinTs, sankeyScaleMaxTs, dateLaneStart, dateLaneEnd);
             var laneTop    = Math.max(0, d3.min(targetNodes, function (d) { return d.y0; }) - 12);
             var laneBottom = Math.min(height, d3.max(targetNodes, function (d) { return d.y1; }) + 8);
             var laneHeight = Math.max(0, laneBottom - laneTop);
@@ -974,10 +1449,10 @@ echo $this->element('genericElements/assetLoader', [
                 gridGroup = svg.append('g').attr('class', 'sankey-target-grid');
                 var axisY  = laneTop - 28, tickTopY = axisY - 12;
 
-                gridGroup.append('rect').attr('x', targetLaneStart).attr('y', laneTop)
-                    .attr('width', targetLaneEnd - targetLaneStart).attr('height', laneHeight)
+                gridGroup.append('rect').attr('x', dateLaneStart).attr('y', laneTop)
+                    .attr('width', dateLaneEnd - dateLaneStart).attr('height', laneHeight)
                     .attr('fill', 'rgba(84,142,94,.035)').attr('stroke', 'rgba(71,109,79,.12)').attr('stroke-width', 1);
-                gridGroup.append('line').attr('x1', targetLaneStart).attr('x2', targetLaneEnd)
+                gridGroup.append('line').attr('x1', dateLaneStart).attr('x2', dateLaneEnd)
                     .attr('y1', axisY).attr('y2', axisY)
                     .attr('stroke', 'rgba(63,88,70,.34)').attr('stroke-width', 2).attr('shape-rendering', 'geometricPrecision');
 
@@ -1000,9 +1475,10 @@ echo $this->element('genericElements/assetLoader', [
 
                 if (isFinite(currentEventDateTs) && sankeyScaleMaxTs > sankeyScaleMinTs) {
                     var ceRatio = Math.max(0, Math.min(1, (currentEventDateTs - sankeyScaleMinTs) / Math.max(1, (sankeyScaleMaxTs - sankeyScaleMinTs))));
-                    var ceX     = targetLaneStart + ((targetLaneEnd - targetLaneStart) * ceRatio);
+                    var ceX     = dateLaneStart + ((dateLaneEnd - dateLaneStart) * ceRatio);
                     var ceNW    = sankeyNodeWidth;
-                    var ceNX    = Math.max(targetLaneStart, Math.min(targetLaneEnd - ceNW, ceX - ceNW / 2));
+                    var ceNX    = Math.max(dateLaneStart - (ceNW / 2),
+                                  Math.min(dateLaneEnd - (ceNW / 2), ceX - ceNW / 2));
                     var ceNY    = laneTop - 18, ceNH = 16;
                     var ceCY    = ceNY + ceNH / 2, ceLX = ceNX + ceNW + targetLabelGap;
                     var mg = gridGroup.append('g').attr('class', 'sankey-current-event-marker');
@@ -1174,6 +1650,8 @@ echo $this->element('genericElements/assetLoader', [
             if (gridGroup) {
                 gridGroup.transition().duration(dur).style('opacity', useDate ? 1 : 0);
             }
+
+            _alignTimelineToLane(margin.left, dateLaneStart, dateLaneEnd);
         };
 
         /* ── fade in after toggle re-render ───────────────── */
@@ -1181,6 +1659,8 @@ echo $this->element('genericElements/assetLoader', [
             d3.select('#sankey svg').transition().duration(260).style('opacity', 1);
             if (sankeyEl) sankeyEl.style.opacity = '1';
         }
+
+        _alignTimelineToLane(margin.left, dateLaneStart, dateLaneEnd);
     }
 
     /* ── public: filter ────────────────────────────────────── */

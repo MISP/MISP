@@ -49,6 +49,28 @@ function showToast(message, variant = 'success') {
 }
 
 /*******************************
+ * Size the shared #mainModal dialog.
+ *
+ * Bootstrap ships four widths but only three classes: 'md' IS the class-less
+ * default (500px), so a medium modal is obtained by removing every size class,
+ * never by adding one. `modal-md` is in the remove list because the theme used
+ * to add it — it never had any CSS, so it silently meant 500px, but it stuck to
+ * the dialog for every later open.
+ *
+ *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *******************************/
+function setModalSize(size, dialog) {
+    dialog = dialog || document.querySelector('#mainModal .modal-dialog');
+    if (!dialog) {
+        return;
+    }
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    if (size && size !== 'md') {
+        dialog.classList.add('modal-' + size);
+    }
+}
+
+/*******************************
  * Confirmation modal (inline — no AJAX)
  *
  * opts:
@@ -57,7 +79,7 @@ function showToast(message, variant = 'success') {
  *   confirmLabel  (string)   — confirm button text
  *   confirmClass  (string)   — Bootstrap btn class, default 'btn-primary'
  *   cancelLabel   (string)   — cancel button text, default 'Cancel'
- *   size          (string)   — modal size suffix: 'sm'|'lg'|'xl', default 'sm'
+ *   size          (string)   — see setModalSize: 'sm'|'md'|'lg'|'xl', default 'md'
  *   onConfirm     (function) — called after the user confirms
  *******************************/
 function showConfirmModal(opts) {
@@ -65,7 +87,7 @@ function showConfirmModal(opts) {
     const modalBody = document.getElementById('mainModalBody');
     if (!modalEl || !modalBody) return;
 
-    const size         = opts.size         || 'sm';
+    const size         = opts.size         || 'md';
     const confirmClass = opts.confirmClass || 'btn-primary';
     const confirmLabel = opts.confirmLabel || 'Confirm';
     const cancelLabel  = opts.cancelLabel  || 'Cancel';
@@ -86,9 +108,7 @@ function showConfirmModal(opts) {
             '</div>' +
         '</div>';
 
-    const dialog = modalEl.querySelector('.modal-dialog');
-    dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    dialog.classList.add('modal-' + size);
+    setModalSize(size, modalEl.querySelector('.modal-dialog'));
 
     const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
     bsModal.show();
@@ -111,11 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Index Filtering Bar
  *******************************/
 function openModal(url, size = 'xl') {
-    const modalDialog = document.querySelector('#mainModal .modal-dialog');
-    modalDialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    if (size) {
-        modalDialog.classList.add('modal-' + size);
-    }
+    setModalSize(size);
 
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
@@ -367,11 +383,7 @@ function openModalPostChained(url, body, size = 'xl') {
     const el = document.getElementById('mainModal');
     const inst = el ? bootstrap.Modal.getInstance(el) : null;
     const run = () => {
-        const dialog = el.querySelector('.modal-dialog');
-        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-        if (size) {
-            dialog.classList.add('modal-' + size);
-        }
+        setModalSize(size, el.querySelector('.modal-dialog'));
         fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(response => response.text())
             .then(html => {
@@ -391,7 +403,7 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe, size = 'sm') {
+function multiSelectItems(url, suffixe, size = 'md') {
     if (selectedItems.size === 0) {
         return;
     }
@@ -437,11 +449,20 @@ function isMobile() {
     return window.innerWidth < 1000;
 }
 
+function animateIndexView(el) {
+    if (!el) return;
+    el.classList.remove('idx-view-anim');
+    void el.offsetWidth;
+    el.classList.add('idx-view-anim');
+}
+
 function setView(view, save = true) {
     const tableView = document.getElementById('tableView');
     const cardView  = document.getElementById('cardView');
     const viewList  = document.getElementById('viewList');
     const viewCard  = document.getElementById('viewCard');
+    // Only a deliberate toggle launch the animation
+    if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');
@@ -608,7 +629,7 @@ function buildFilterUrl() {
         const name  = el.getAttribute('name');
         const value = el.value;
         if (!name) return;
-        if (value !== '') filters[name] = value;
+        if (value !== '') filters[name] = encodeURIComponent(value);
         else delete filters[name];
     });
 
@@ -647,7 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
-    document.querySelectorAll('.topbar-filter').forEach(el => {
+    // [data-manual] filters (free-text value_match inputs) are applied by their
+    // own button/Enter handler in filter_bar.ctp, never on change.
+    document.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
         el.addEventListener('change', () => {
             window.location.href = buildFilterUrl();
         });
@@ -807,7 +830,26 @@ function testSyncRule(id, method) {
 }
 
 
-function testConnection(id) {
+/*
+ * The two remote probes below are shared by the servers table view and the
+ * servers card view. The table renders `connection_test_<id>` /
+ * `sync_user_test_<id>` containers, the card view draws its own panels, and
+ * both views live in the DOM at once — so a caller can hand over its own
+ * container rather than fight over duplicate ids.
+ */
+function resolveServerTestContainer(target, fallbackId) {
+    if (target && target.nodeType === 1) return target;
+    if (typeof target === 'string' && target) return document.getElementById(target);
+    return document.getElementById(fallbackId);
+}
+
+// Both probes announce their outcome so a view can dress itself around the
+// result (the card view flips its header badge and tint on this).
+function announceServerTest(name, detail) {
+    document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+}
+
+function testConnection(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -817,15 +859,16 @@ function testConnection(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("connection_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "connection_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
 
     resultContainer.innerHTML = '<span class="text-muted">' +
         '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
         '</span>';
+    announceServerTest('misp:server-connection', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/testConnection/' + id)
+    return fetch(baseurl + '/servers/testConnection/' + id)
         .then(response => response.json())
         .then(function(result) {
 
@@ -970,14 +1013,20 @@ function testConnection(id) {
             }
 
             resultContainer.innerHTML = html;
+            announceServerTest('misp:server-connection', {
+                id: id,
+                state: result.status === 1 ? 'ok' : 'down',
+                status: result.status
+            });
         })
         .catch(function() {
             resultContainer.innerHTML = '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-connection', { id: id, state: 'down' });
         });
 }
 
 
-function getRemoteSyncUser(id) {
+function getRemoteSyncUser(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -987,11 +1036,12 @@ function getRemoteSyncUser(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("sync_user_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "sync_user_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
+    announceServerTest('misp:server-sync-user', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/getRemoteUser/' + id)
+    return fetch(baseurl + '/servers/getRemoteUser/' + id)
         .then(function(response) {
             resultContainer.innerHTML = '<span class="text-muted">' +
                 '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
@@ -1004,11 +1054,14 @@ function getRemoteSyncUser(id) {
             if (typeof response !== 'object' || response === null) {
                 resultContainer.innerHTML =
                     '<span class="text-danger fw-semibold">Internal error</span>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else if ("error" in response) {
                 resultContainer.innerHTML =
                     '<div class="text-danger fw-semibold">Error: #' +
                     esc(response.error) + '</div>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else {
+                announceServerTest('misp:server-sync-user', { id: id, state: 'ok' });
                 var wrapper = document.createElement('div');
                 wrapper.className = 'border rounded p-2 bg-light';
                 Object.keys(response).forEach(function(key) {
@@ -1025,6 +1078,7 @@ function getRemoteSyncUser(id) {
         .catch(function() {
             resultContainer.innerHTML =
                 '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
         });
 }
 
@@ -1173,7 +1227,7 @@ async function submitEventTemplatesLibraryUpdate() {
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
             method: 'POST',
-            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '')},
             cache: 'no-cache',
         });
         if (!response.ok) throw response;
@@ -2479,23 +2533,38 @@ function initSharingGroupForm(container) {
 }
 
 /*******************************
- * Sighting cells — popover lazy-init + add-sighting
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Lazy index-table popovers
+ * Index rows are re-rendered by AJAX pagination and filtering, so these
+ * popovers are built on the first hover/focus rather than initialised up
+ * front on every render. `container: 'body'` keeps them out of the table's
+ * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    /* Lazy popover */
-    document.addEventListener('mouseenter', function (e) {
-        var el = e.target.closest('.sighting-counts');
+    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter';
+
+    function lazyPopover(e) {
+        var el = e.target && e.target.closest ? e.target.closest(LAZY_POPOVERS) : null;
         if (!el || el._popoverReady) return;
         el._popoverReady = true;
         new bootstrap.Popover(el, {
             trigger:   'hover focus',
             html:      true,
             placement: 'top',
+            container: 'body',
         }).show();
-    }, true);
+    }
 
+    // The triggering event predates the instance, hence the .show() above.
+    document.addEventListener('mouseenter', lazyPopover, true);
+    document.addEventListener('focusin', lazyPopover);
+})();
+
+/*******************************
+ * Sighting cells — add-sighting buttons
+ * i18n strings are injected once per page via window._sightingI18n
+ * (set by the sightings.ctp field partial)
+ *******************************/
+(function () {
     document.addEventListener('click', async function (e) {
         var btn = e.target.closest('.add-sighting-btn');
         if (!btn) return;
@@ -2781,6 +2850,203 @@ function initTagPickerSection(root, catData, initTags, options) {
     render();
     var first = root.querySelector('.tag-cat-btn');
     setCategory(first ? first.getAttribute('data-cat') : 'all');
+
+    return { ids: ids };
+}
+
+/*******************************
+ * galaxyBadgeStyle
+ * The client-side mirror of GalaxyColour::palette()/badgeStyle() — a cluster
+ * badge drawn by JavaScript has to come out looking exactly like one drawn by
+ * PHP, so keep the numbers in sync with the lib.
+ * @param {number} hue  GalaxyColour::hue() of the cluster's galaxy
+ *******************************/
+function galaxyBadgeStyle(hue) {
+    hue = (hue == null) ? 270 : hue;
+    return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
+        + 'color:hsl(' + hue + ',65%,28%);'
+        + 'border:1px solid hsl(' + hue + ',55%,65%);'
+        + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
+        + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
+}
+
+/*******************************
+ * initGalaxyPickerSection
+ * The galaxy cluster picker used everywhere in the theme: galaxy category
+ * buttons, a TomSelect searching the cluster endpoint remotely (an empty query
+ * lists the scoped galaxy's clusters, "All Galaxies" needs 2 characters), and
+ * the picked clusters drawn below as galaxy badges with a remove cross. Drives
+ * both the standalone edit-clusters modal (Modals/galaxy_picker.ctp, one
+ * section per locality) and the in-form field (Forms/galaxy_picker_field.ctp).
+ *
+ * `root` must contain .galaxy-cat-btn buttons (the per-galaxy ones carrying
+ * data-galaxy-id), a select.galaxy-picker, .galaxy-selected and
+ * .galaxy-selected-empty.
+ *
+ * @param {Element} root          Section container
+ * @param {Array}   initClusters  Pre-selected [{id,name,galaxy,hue}]
+ * @param {object}  options       searchUrl: cluster search endpoint (required);
+ *                                localMarker: draw the local user glyph on badges;
+ *                                onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initGalaxyPickerSection(root, initClusters, options) {
+    options = options || {};
+    var selEl = root.querySelector('.galaxy-selected');
+    var emptyEl = root.querySelector('.galaxy-selected-empty');
+    var pickerEl = root.querySelector('.galaxy-picker');
+    var searchUrl = options.searchUrl;
+
+    var selected = {};          /* id(string) -> {id,name,galaxy,hue} */
+    var currentGalaxyId = null; /* null = "All" (search across galaxies) */
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addCluster(c) {
+        if (!c || c.id == null) { return; }
+        selected[String(c.id)] = {
+            id: c.id, name: c.name, galaxy: c.galaxy || '',
+            hue: (c.hue == null ? 270 : c.hue)
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var c = selected[id];
+
+            var badge = document.createElement('span');
+            badge.className = 'badge p-2 d-inline-flex align-items-center gap-2';
+            badge.style.cssText = galaxyBadgeStyle(c.hue);
+            if (c.galaxy) { badge.title = c.galaxy; }
+
+            var txt = document.createElement('span');
+            txt.style.cssText = 'overflow:hidden;text-overflow:ellipsis;'
+                + 'white-space:nowrap;min-width:0;';
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(c.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8; flex-shrink:0;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            selEl.appendChild(badge);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function renderOpt(item, escape) {
+        return '<div class="d-flex flex-column py-1">'
+            + '<span>' + escape(item.name) + '</span>'
+            + (item.galaxy
+                ? '<span class="text-muted" style="font-size:.72rem;">'
+                    + escape(item.galaxy) + '</span>'
+                : '')
+            + '</div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField:   'id',
+        labelField:   'name',
+        searchField:  ['name', 'galaxy'],
+        maxItems:     1,
+        options:      [],
+        loadThrottle: 300,
+        /* Use a different class name for the loading state to avoid a CSS collision. */
+        loadingClass: 'ts-loading',
+        /* When a galaxy is selected, even an empty query lists its clusters */
+        shouldLoad:   function (q) {
+            return currentGalaxyId ? true : q.length >= 2;
+        },
+        /* The endpoint handles matching, so TomSelect's filter is disabled to keep all server-sorted results. */
+        score:        function () {
+            return function () { return 1; };
+        },
+        load: function (query, callback) {
+            var self = this;
+            var url = searchUrl + '?q=' + encodeURIComponent(query);
+            if (currentGalaxyId) {
+                url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
+            }
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    /* clearOptions() clears stale results and forces the endpoint to reload when the query changes. */
+                    self.clearOptions();
+                    callback(json);
+                })
+                .catch(function () { callback(); });
+        },
+        render: {
+            option: renderOpt,
+            item: renderOpt,
+            option_create: false,
+            /* Use a custom loading spinner to avoid a CSS collision */
+            loading: function () {
+                return '<div class="text-center py-2">'
+                    + '<span class="spinner-border spinner-border-sm '
+                    + 'text-galaxy" role="status" aria-hidden="true">'
+                    + '</span></div>';
+            }
+        },
+        onItemAdd: function (value) {
+            var item = this.options[value];
+            if (item) { addCluster(item); render(); }
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    /* Clear stale results when the query is too short to offer any valid options. */
+    ts.on('type', function (q) {
+        if (currentGalaxyId || q.length >= 2) { return; }
+        if (Object.keys(ts.options).length === 0) { return; }
+        ts.clearOptions();
+        ts.refreshOptions();
+    });
+
+    /* Category buttons: "All" (remote search) or one galaxy (scoped) */
+    root.querySelectorAll('.galaxy-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            root.querySelectorAll('.galaxy-cat-btn').forEach(function (b) {
+                b.classList.toggle('active', b === btn);
+            });
+            var gid = btn.getAttribute('data-galaxy-id');
+            currentGalaxyId = gid ? gid : null;
+
+            /* reset cache + options so the new scope reloads cleanly */
+            ts.clearOptions();
+            ts.clearCache();
+
+            if (currentGalaxyId) {
+                /* preload this galaxy's clusters and show them */
+                ts.load('');
+                ts.focus();
+                ts.open();
+            }
+        });
+    });
+
+    (initClusters || []).forEach(addCluster);
+    render();
 
     return { ids: ids };
 }

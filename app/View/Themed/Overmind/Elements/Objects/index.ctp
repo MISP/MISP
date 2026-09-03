@@ -7,12 +7,15 @@ $page      = (int)($page  ?? 1);
 $limit     = (int)($limit ?? 60);
 $totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
 $window     = 2;
-$objectsUrl = '/events/viewObjects/' . $eventId;
+// The extended / extending mode rides along on every URL this list builds,
+// so a filter, a toggle or a page change never falls back to the atomic view.
+$objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
 
 $namedParams     = $this->request->params['named'] ?? [];
 $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
-$toggleDeleted   = $currentDeleted ? 0 : 1;
+// deleted:2 is "only what holds something soft-deleted"
+$toggleDeleted   = $currentDeleted ? 0 : 2;
 $toggleProposal  = $currentProposal ? 0 : 1;
 // Fallback hrefs (the JS rebuilds the real URL); each preserves the other toggle.
 $toggleUrl       = $baseurl . $objectsUrl
@@ -34,6 +37,50 @@ $canTagObj = isset($event)
 
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
+
+// Extended / extending event view: an object can belong to any event of the
+// merged set, so its card says which one and wears that event's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
+
+// Everything the two renderings of an object (the accordion list and the card
+// grid) need to derive from it. Computed once per object, by whichever loop is
+// rendering — the two must not drift on rights, origin or ordering.
+$objContext = function (array $object) use (
+    $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal
+) {
+    $attrs = $object['Attribute'] ?? [];
+    $origin = $inExtensionView
+        ? ($extensionEvents[(int)($object['event_id'] ?? 0)] ?? null)
+        : null;
+    $foreign = $origin !== null && $origin['role'] !== 'self';
+    $first = empty($attrs) ? null : reset($attrs);
+    $hasProposal = false;
+    foreach ($attrs as $_a) {
+        if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
+    }
+    return [
+        'id' => (int)$object['id'],
+        'attrs' => $attrs,
+        'count' => count($attrs),
+        'deleted' => !empty($object['deleted']),
+        'origin' => $origin,
+        // A merged object belongs to another event, whose editing and tagging
+        // rights are not the same as the current event's.
+        'canEdit' => $origin === null ? $canEdit : !empty($origin['mayModify']),
+        'canTag' => $origin === null ? $canTagObj : !empty($origin['mayModifyTag']),
+        'style' => $foreign ? sprintf(
+            'border-left:4px solid %s !important;background:%s;',
+            $origin['palette']['badgeBorder'],
+            $origin['palette']['sectionBg']
+        ) : '',
+        'firstValue' => $first === null ? '' : (string)($first['value'] ?? ''),
+        'firstRelation' => $first === null
+            ? '' : (string)($first['object_relation'] ?? ''),
+        // Auto-expand objects that carry a proposal while the Proposals toggle is on
+        'expand' => $currentProposal && $hasProposal,
+    ];
+};
 
 // Inline helper: render a small distribution badge. A named function has no
 // $this, so the lib is called statically rather than through the helper.
@@ -87,6 +134,27 @@ function _objDistBadge($dist) {
                 ]
             ) ?>
             <?php if ($canEdit): ?>
+            <div id="objMultiSelectToolbar" class="mt-2 d-none">
+                <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
+                    <strong>
+                        <?= __('Selected objects') ?>:
+                        <span id="objSelectedCount">0</span>
+                    </strong>
+                    <button id="obj-multi-delete-button"
+                            class="btn btn-danger btn-sm"
+                            type="button"
+                            title="<?= __('Delete selected objects') ?>"
+                            aria-label="<?= __('Delete selected objects') ?>">
+                        <i class="fas fa-trash text-white"></i>
+                        <span class="text-white"> <?= __('Delete') ?></span>
+                    </button>
+                    <button id="obj-clear-selection-button"
+                            class="btn btn-outline-secondary btn-sm"
+                            type="button">
+                        <?= __('Clear selection') ?>
+                    </button>
+                </div>
+            </div>
             <div id="multiSelectToolbar" class="mt-2 d-none">
                 <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
                     <strong>
@@ -107,32 +175,43 @@ function _objDistBadge($dist) {
         </div>
     </div>
 
-    <!-- ── Object cards ────────────────────────────────────── -->
+    <!-- ── Objects: list view (accordion) / card view ──────── -->
     <?php if (!empty($objects)): ?>
+        <div id="objTableView">
         <div class="accordion" id="objectAccordion">
         <?php foreach ($objects as $idx => $object): ?>
         <?php
-            $objId       = (int)$object['id'];
+            $ctx = $objContext($object);
+            $objId       = $ctx['id'];
             $collapseId  = 'obj_collapse_' . $objId;
             $headingId   = 'obj_heading_'  . $objId;
-            $attrCount   = count($object['Attribute'] ?? []);
-            // Auto-expand objects that carry a proposal while the Proposals
-            // toggle is on, so toggling it open/closes every object with a
-            // pending proposal.
-            $hasProposal = false;
-            foreach (($object['Attribute'] ?? []) as $_a) {
-                if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
-            }
-            $expandForProposal = $currentProposal && $hasProposal;
+            $attrCount   = $ctx['count'];
+            $firstValue  = $ctx['firstValue'];
+            $firstRelation = $ctx['firstRelation'];
+            $expandForProposal = $ctx['expand'];
+            $isDeleted   = $ctx['deleted'];
+            $objOrigin   = $ctx['origin'];
+            $objStyle    = $ctx['style'];
+            $objCanEdit  = $ctx['canEdit'];
+            $objCanTag   = $ctx['canTag'];
         ?>
-
-        <?php $isDeleted = !empty($object['deleted']); ?>
         <div class="accordion-item shadow-sm mb-2 rounded border<?= $isDeleted ? ' opacity-50' : '' ?>"
+             style="<?= h($objStyle) ?>"
              data-primary-id="<?= $objId ?>">
 
             <!-- Card header -->
-            <h2 class="accordion-header" id="<?= $headingId ?>">
-                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 px-3 rounded"
+            <h2 class="accordion-header obj-header d-flex align-items-center" id="<?= $headingId ?>">
+                <?php if ($objCanEdit): ?>
+                <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
+                    <input type="checkbox"
+                           class="obj-select form-check-input mt-0"
+                           data-object-id="<?= $objId ?>"
+                           aria-label="<?= h(__('Select this object')) ?>"
+                           title="<?= h(__('Select this object')) ?>">
+                </span>
+                <?php endif; ?>
+                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 <?= $objCanEdit ? 'ps-2 pe-3' : 'px-3' ?> rounded flex-grow-1"
+                        style="min-width:0;"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#<?= $collapseId ?>"
@@ -156,6 +235,17 @@ function _objDistBadge($dist) {
                             <span class="misp-icon misp-icon-object misp-hexagone me-1 text-secondary"></span>
                             <?= h($object['name']) ?>
                         </span>
+
+                        <!-- First attribute's value -->
+                        <?php if ($firstValue !== ''): ?>
+                            <span class="badge bg-white border text-body fw-normal
+                                         font-monospace text-truncate"
+                                  style="max-width:340px;"
+                                  title="<?= h(($firstRelation !== ''
+                                      ? $firstRelation . ': ' : '') . $firstValue) ?>">
+                                <?= h($firstValue) ?>
+                            </span>
+                        <?php endif; ?>
 
                         <!-- Meta-category -->
                         <?php if (!empty($object['meta-category'])): ?>
@@ -208,7 +298,7 @@ function _objDistBadge($dist) {
                         || !empty($object['uuid'])
                         || !empty($object['first_seen'])
                         || !empty($object['last_seen'])
-                        || $canEdit
+                        || $objCanEdit
 
                     ): ?>
                     <div class="px-3 py-2 bg-light border-bottom
@@ -269,7 +359,7 @@ function _objDistBadge($dist) {
                             </span>
                         <?php endif; ?>
 
-                        <?php if ($canEdit): ?>
+                        <?php if ($objCanEdit): ?>
                             <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
                             onclick="event.preventDefault(); openModal('<?= $baseurl ?>/objects/edit/<?= $objId ?>');"
                             class="btn btn-sm btn-outline-secondary ms-auto">
@@ -282,7 +372,7 @@ function _objDistBadge($dist) {
                             ?>
                             <a href="<?= $delUrl ?>"
                             class="btn btn-sm btn-outline-danger"
-                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'sm');">
+                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'md');">
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
@@ -296,7 +386,7 @@ function _objDistBadge($dist) {
                             <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
-                            <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
+                            <div class="<?= $objCanEdit ? '' : 'ms-auto' ?>">
                                 <?= $this->element('AnalystData/add_controls', [
                                     'objectType' => 'Object',
                                     'objectUuid' => $object['uuid'] ?? '',
@@ -350,7 +440,7 @@ function _objDistBadge($dist) {
                                                 class="item-checkbox form-check-input
                                                        mass-select mt-0"
                                                 data-item-id="<?= $attrId ?>"
-                                                data-can-delete="<?= $canEdit ? '1' : '0' ?>"
+                                                data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
                                             >
                                         </div>
                                     </td>
@@ -409,7 +499,7 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'       => 'AttributeTag',
-                                                    'add_tag'         => $canTagObj,
+                                                    'add_tag'         => $objCanTag,
                                                     'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
                                                     'add_tag_id_path' => 'id',
                                                 ],
@@ -426,7 +516,7 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'          => 'Galaxy',
-                                                    'add_galaxy'         => $canTagObj,
+                                                    'add_galaxy'         => $objCanTag,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',
                                                 ],
@@ -499,81 +589,12 @@ function _objDistBadge($dist) {
                                         <div class="d-inline-flex align-items-center
                                                     checkbox-actions-wrapper
                                                     checkbox-index">
-                                            <div class="dropdown">
-                                                <button
-                                                    class="btn btn-sm btn-light p-1"
-                                                    type="button"
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false">
-                                                    <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
-                                                </button>
-                                                <ul class="dropdown-menu
-                                                           dropdown-menu-end
-                                                           shadow-sm">
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); copyValueToClipboard('<?= h($attr['uuid'] ?? '') ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
-                                                            <i class="fas fa-copy me-2"></i>
-                                                            <?= __('Copy UUID') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php if (!empty($me['Role']['perm_add']) && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
-                                                            <i class="fas fa-comment-dots me-2"></i>
-                                                            <?= __('Propose change') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
-                                                            <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
-                                                            <?= __('Enrich') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
-                                                            <i class="fas fa-eye me-2"></i>
-                                                            <?= __('Enrich (Cortex)') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit): ?>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="<?= $baseurl ?>/attributes/edit/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/edit/<?= $attrId ?>');">
-                                                            <i class="fas fa-pen-to-square me-2"></i>
-                                                            <?= __('Edit') ?>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item text-danger justify-content-start"
-                                                           href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'sm');">
-                                                            <i class="fas fa-trash me-2"></i>
-                                                            <?= __('Delete') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?= $this->element('AnalystData/add_controls', [
-                                                        'objectType' => 'Attribute',
-                                                        'objectUuid' => $attr['uuid'] ?? '',
-                                                        'mode' => 'menu_items',
-                                                    ]) ?>
-                                                </ul>
-                                            </div>
+                                            <?= $this->element('Objects/attribute_actions', [
+                                                'attr' => $attr,
+                                                'canEdit' => $objCanEdit,
+                                                'enrichmentEnabled' => $_enrichmentEnabled,
+                                                'cortexEnabled' => $_cortexEnabled,
+                                            ]) ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -594,6 +615,20 @@ function _objDistBadge($dist) {
         </div><!-- /.accordion-item -->
         <?php endforeach; ?>
         </div><!-- /#objectAccordion -->
+        </div><!-- /#objTableView -->
+
+        <div id="objCardView" class="d-none">
+            <div class="idx-card-grid row g-0 row-cols-1 row-cols-xl-2 row-cols-xxxl-3">
+                <?php foreach ($objects as $object): ?>
+                    <?= $this->element('Objects/object_card', [
+                        'object' => $object,
+                        'ctx' => $objContext($object),
+                        'enrichmentEnabled' => $_enrichmentEnabled,
+                        'cortexEnabled' => $_cortexEnabled,
+                    ]) ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
     <?php else: ?>
         <div class="card shadow-sm">
@@ -778,8 +813,117 @@ function _objDistBadge($dist) {
             loadObjects(buildObjectsUrl());
         });
     }
-    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 1; });
+    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
+
+    // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
+    // the global selectedItems map, which the attribute toolbar deletes through
+    // /attributes/deleteSelection — and since an object id and an attribute id
+    // are both plain integers, the two selections would silently merge.
+    var objSelected = new Set();
+
+    function objScope() { return container || document; }
+
+    function updateObjToolbar() {
+        var bar = objScope().querySelector('#objMultiSelectToolbar');
+        if (!bar) return;
+        bar.classList.toggle('d-none', objSelected.size === 0);
+        var countEl = objScope().querySelector('#objSelectedCount');
+        if (countEl) countEl.textContent = objSelected.size;
+    }
+
+    // Both views render a checkbox per object and both are in the DOM at once,
+    // so a tick has to reach the other view's copy — otherwise switching views
+    // shows a selection that disagrees with the toolbar.
+    function setObjSelected(id, checked) {
+        if (checked) { objSelected.add(id); } else { objSelected.delete(id); }
+        objScope().querySelectorAll('.obj-select[data-object-id="' + id + '"]')
+            .forEach(function (box) { box.checked = checked; });
+        updateObjToolbar();
+    }
+
+    // Bound per checkbox rather than delegated: the container outlives an ajax
+    // reload, so a delegated listener would stack up and keep a stale Set.
+    objScope().querySelectorAll('.obj-select').forEach(function (box) {
+        box.addEventListener('change', function () {
+            setObjSelected(box.dataset.objectId, box.checked);
+        });
+    });
+
+    var objDelBtn = objScope().querySelector('#obj-multi-delete-button');
+    if (objDelBtn) {
+        objDelBtn.addEventListener('click', function () {
+            if (objSelected.size === 0) return;
+            openModal(
+                baseurl + '/objects/deleteSelection/'
+                    + JSON.stringify(Array.from(objSelected).map(Number)),
+                'md'
+            );
+        });
+    }
+
+    var objClearBtn = objScope().querySelector('#obj-clear-selection-button');
+    if (objClearBtn) {
+        objClearBtn.addEventListener('click', function () {
+            Array.from(objSelected).forEach(function (id) { setObjSelected(id, false); });
+        });
+    }
+
+    // The delete modal lives outside this fragment; this is how it tells the
+    // index which rows it managed to remove.
+    window.objIndexSelection = {
+        clear: function (ids) {
+            (ids || []).forEach(function (id) { objSelected.delete(String(id)); });
+            updateObjToolbar();
+        }
+    };
+
+    updateObjToolbar();
+
+    // View switch (list <-> cards). mispOvermind.js binds #viewList/#viewCard on
+    // DOMContentLoaded against #tableView/#cardView — neither the buttons nor
+    // those containers exist yet in a lazily loaded tab, which is why the
+    // toggle did nothing here. So this fragment owns its own, scoped to its
+    // container: the two button ids repeat in every tab's filter bar.
+    function applyObjView(mode, animate) {
+        var scope = container || document;
+        var list = scope.querySelector('#objTableView');
+        var cards = scope.querySelector('#objCardView');
+        if (!list || !cards) return;
+        var showCards = mode === 'card';
+        list.classList.toggle('d-none', showCards);
+        cards.classList.toggle('d-none', !showCards);
+        var btnList = scope.querySelector('#viewList');
+        var btnCard = scope.querySelector('#viewCard');
+        if (btnList) btnList.classList.toggle('active', !showCards);
+        if (btnCard) btnCard.classList.toggle('active', showCards);
+        if (animate && typeof animateIndexView === 'function') {
+            animateIndexView(showCards ? cards : list);
+        }
+    }
+
+    // Own storage key: 'indexViewMode' drives the scaffold indexes, and an
+    // object card is a different trade-off from an attribute card.
+    [['#viewList', 'table'], ['#viewCard', 'card']].forEach(function (pair) {
+        var btn = container ? container.querySelector(pair[0]) : null;
+        if (!btn) return;
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function () {
+            try { localStorage.setItem('objectsViewMode', pair[1]); } catch (e) {}
+            applyObjView(pair[1], true);
+        });
+    });
+
+    var _savedObjView = 'table';
+    try { _savedObjView = localStorage.getItem('objectsViewMode') || 'table'; } catch (e) {}
+    applyObjView(_savedObjView, false);
+
+    (container || document).querySelectorAll('.obj-attr-actions').forEach(function (toggle) {
+        bootstrap.Dropdown.getOrCreateInstance(toggle, {
+            popperConfig: { strategy: 'fixed' }
+        });
+    });
 
     // Pagination link clicks
     document.addEventListener('click', function (e) {

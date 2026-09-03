@@ -152,6 +152,7 @@ export function initMonitorChart(el, payload) {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': (window.csrfToken || ''),
         },
         body,
         credentials: 'same-origin',

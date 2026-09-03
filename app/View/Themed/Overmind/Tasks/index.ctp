@@ -208,7 +208,7 @@ $fields = [
                 'requirement' => function ($row) {
                     return empty($row['Task']['enabled']);
                 },
-                'size' => 'sm',
+                'size' => 'md',
             ],
             [
                 'type' => 'modal',
@@ -218,7 +218,7 @@ $fields = [
                 'requirement' => function ($row) {
                     return !empty($row['Task']['enabled']);
                 },
-                'size' => 'sm',
+                'size' => 'md',
             ],
             [
                 'type' => 'modal',
@@ -296,6 +296,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'data' => [
             'data' => $data,
             'primary_id_path' => 'Task.id',
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => $scaffoldFilterBar,
             'fields' => $fields,
         ],

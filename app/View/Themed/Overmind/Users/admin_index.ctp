@@ -164,7 +164,7 @@ $fields = [
                 'label' => __('Destroy sessions'),
                 'icon' => 'bomb',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/admin/users/destroy/%id%',
                 'requirement' => !empty($isSiteAdmin),
             ],
@@ -173,7 +173,7 @@ $fields = [
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/admin/users/delete/%id%',
                 'requirement' => !empty($isSiteAdmin),
             ],
@@ -185,6 +185,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $users,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => 'User.id',
             'row_dblclick_url' => $baseurl . '/admin/users/view/%id%',
             'filter_bar' => [

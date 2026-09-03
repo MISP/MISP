@@ -1817,6 +1817,94 @@ class Event extends AppModel
     }
 
     /**
+     * Resolve the events that make up an extended / extending view.
+     *
+     * `extended` pulls in the events that extend the one being viewed (its
+     * children), `extending` pulls in the event it extends (its parent). Both
+     * may be on at once. The viewed event is always part of the set and always
+     * comes first, so callers that colour-code the origin land on a stable
+     * mapping.
+     *
+     * Only direct relatives are resolved — MISP's extension chain is not walked
+     * recursively, mirroring fetchEvent()'s own extended handling.
+     *
+     * @param array $user
+     * @param array $event     event with at least Event.id, Event.uuid and
+     *                         Event.extends_uuid
+     * @param bool  $extended  merge the events extending this one
+     * @param bool  $extending merge the event this one extends
+     * @return array [
+     *   'ids'    => int[] every event id in the view, viewed event first,
+     *   'events' => [id => [
+     *       'id', 'uuid', 'info', 'org_id', 'orgc_id', 'user_id',
+     *       'Orgc' => ['id', 'name'],
+     *       'role' => 'self'|'extension'|'extended',
+     *   ]],
+     * ]
+     */
+    public function getExtensionEventSet(
+        array $user,
+        array $event,
+        $extended = false,
+        $extending = false
+    ) {
+        $primaryId = (int)$event['Event']['id'];
+        $set = [
+            $primaryId => [
+                'id' => $primaryId,
+                'uuid' => $event['Event']['uuid'] ?? null,
+                'info' => $event['Event']['info'] ?? null,
+                'org_id' => $event['Event']['org_id'] ?? null,
+                'orgc_id' => $event['Event']['orgc_id'] ?? null,
+                'user_id' => $event['Event']['user_id'] ?? null,
+                'Orgc' => $event['Orgc'] ?? [],
+                'role' => 'self',
+            ],
+        ];
+
+        $lookups = [];
+        if ($extended && !empty($event['Event']['uuid'])) {
+            $lookups['extension'] = [
+                'Event.extends_uuid' => $event['Event']['uuid'],
+            ];
+        }
+        if ($extending && !empty($event['Event']['extends_uuid'])) {
+            $lookups['extended'] = [
+                'Event.uuid' => $event['Event']['extends_uuid'],
+            ];
+        }
+
+        foreach ($lookups as $role => $conditions) {
+            $relatives = $this->fetchSimpleEvents(
+                $user,
+                ['conditions' => $conditions],
+                true
+            );
+            foreach ($relatives as $relative) {
+                $relativeId = (int)$relative['Event']['id'];
+                if (isset($set[$relativeId])) {
+                    continue;
+                }
+                $set[$relativeId] = [
+                    'id' => $relativeId,
+                    'uuid' => $relative['Event']['uuid'],
+                    'info' => $relative['Event']['info'],
+                    'org_id' => $relative['Event']['org_id'] ?? null,
+                    'orgc_id' => $relative['Event']['orgc_id'] ?? null,
+                    'user_id' => $relative['Event']['user_id'] ?? null,
+                    'Orgc' => $relative['Orgc'] ?? [],
+                    'role' => $role,
+                ];
+            }
+        }
+
+        return [
+            'ids' => array_keys($set),
+            'events' => $set,
+        ];
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -1832,6 +1920,8 @@ class Event extends AppModel
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
      *   - searchFor (string|null) value substring search
+     *   - eventIds (int[]|null) extended / extending view: every event whose
+     *     attributes belong in the list. $eventId stays the primary one.
      * @return array ['Attribute' => [...], 'total' => int]
      */
     public function fetchPaginatedAttributes(
@@ -1850,15 +1940,24 @@ class Event extends AppModel
         $allowedSortFields = [
             'id', 'uuid', 'type', 'category', 'value',
             'to_ids', 'timestamp', 'distribution', 'comment',
-            'first_seen', 'last_seen',
+            'first_seen', 'last_seen', 'event_id',
         ];
         if (!in_array($sort, $allowedSortFields, true)) {
             $sort = 'timestamp';
         }
 
+        // In an extended / extending view the list spans every event merged
+        // into it. $eventId stays the primary one: enrichment (correlations,
+        // feed hits) is still resolved against the event you are looking at.
+        $eventIds = empty($options['eventIds'])
+            ? [(int)$eventId]
+            : array_values(array_unique(array_map(
+                'intval', (array)$options['eventIds']
+            )));
+
         // Base conditions
         $conditions = [
-            'Attribute.event_id' => $eventId,
+            'Attribute.event_id' => $eventIds,
         ];
         if (empty($options['flatten'])) {
             $conditions['Attribute.object_id'] = 0;
@@ -1888,6 +1987,16 @@ class Event extends AppModel
         if (!empty($options['searchFor'])) {
             $conditions['Attribute.value LIKE'] =
                 '%' . $options['searchFor'] . '%';
+        }
+
+        // Proposals filter. The toggle narrows the list down to what carries
+        // a pending proposal instead of merely flagging it, so an attribute
+        // without one drops out. Standalone "new attribute" proposals have no
+        // attribute to match and are added as rows by __attachProposals().
+        if (!empty($options['proposal'])) {
+            $proposedIds = $this->proposedAttributeIds($eventIds);
+            $conditions['Attribute.id'] =
+                empty($proposedIds) ? [-1] : $proposedIds;
         }
 
         // Distribution-based ACL for non-site-admins
@@ -1954,6 +2063,18 @@ class Event extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
         ]);
+
+        // Standalone proposals are rows of their own, so they belong in the
+        // total: without them a page holding nothing else reports an empty
+        // list while __attachProposals() is about to render them.
+        if (!empty($options['proposal'])) {
+            $total += $this->ShadowAttribute->find('count', [
+                'conditions' => $this->__newProposalConditions(
+                    $eventIds, $options
+                ),
+                'recursive' => -1,
+            ]);
+        }
 
         // Fetch page
         $attributes = $this->Attribute->find('all', [
@@ -2069,7 +2190,7 @@ class Event extends AppModel
         }
 
         $enriched = $this->__enrichAttributes(
-            $flat, $user, $eventId
+            $flat, $user, $eventId, $eventIds
         );
         $attributesOut = $enriched['attributes'];
 
@@ -2080,7 +2201,7 @@ class Event extends AppModel
         // based correlations / sightings.
         if (!empty($options['proposal'])) {
             $attributesOut = $this->__attachProposals(
-                $attributesOut, $eventId, $page, $options
+                $attributesOut, $eventIds, $page, $options
             );
         }
 
@@ -2092,6 +2213,83 @@ class Event extends AppModel
             'sightings_csv' =>
                 $enriched['sightings_csv'],
         ];
+    }
+
+    /**
+     * Ids of the attributes of $eventIds that carry a pending proposal, i.e.
+     * a proposed edit or deletion (ShadowAttribute.old_id = attribute id).
+     *
+     * Standalone "new attribute" proposals (old_id = 0) target no attribute
+     * and are deliberately left out.
+     *
+     * @param array $eventIds
+     * @return array Attribute ids, empty when the events hold no proposal
+     */
+    public function proposedAttributeIds(array $eventIds)
+    {
+        return $this->ShadowAttribute->find('column', [
+            'fields' => ['ShadowAttribute.old_id'],
+            'conditions' => [
+                'ShadowAttribute.event_id' => $eventIds,
+                'ShadowAttribute.deleted' => 0,
+                'ShadowAttribute.old_id !=' => 0,
+            ],
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * Ids of the objects of $eventIds holding at least one attribute with a
+     * pending proposal — what the objects index shows while its Proposals
+     * filter is on.
+     *
+     * $attrDeleted is the deleted scope of the attributes the index is about
+     * to render. Passing it keeps the selection honest: a proposal on a
+     * soft-deleted attribute must not pull in an object whose card will then
+     * show no proposal at all, because that attribute is filtered out of it.
+     *
+     * @param array $eventIds
+     * @param int|array $attrDeleted 0, 1 or [0, 1]
+     * @return array Object ids, empty when there is none
+     */
+    public function objectIdsWithProposals(array $eventIds, $attrDeleted = 0)
+    {
+        $proposedIds = $this->proposedAttributeIds($eventIds);
+        if (empty($proposedIds)) {
+            return [];
+        }
+        return $this->Attribute->find('column', [
+            'fields' => ['Attribute.object_id'],
+            'conditions' => [
+                'Attribute.event_id' => $eventIds,
+                'Attribute.id' => $proposedIds,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => $attrDeleted,
+            ],
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * Ids of the objects of $eventIds holding at least one soft-deleted
+     * attribute. The objects index needs them on top of the soft-deleted
+     * objects themselves: a deleted attribute of a live object would
+     * otherwise have nowhere left to show while the Deleted filter is on.
+     *
+     * @param array $eventIds
+     * @return array Object ids, empty when there is none
+     */
+    public function objectIdsWithDeletedAttributes(array $eventIds)
+    {
+        return $this->Attribute->find('column', [
+            'fields' => ['Attribute.object_id'],
+            'conditions' => [
+                'Attribute.event_id' => $eventIds,
+                'Attribute.object_id !=' => 0,
+                'Attribute.deleted' => 1,
+            ],
+            'unique' => true,
+        ]);
     }
 
     /**
@@ -2153,6 +2351,44 @@ class Event extends AppModel
     }
 
     /**
+     * Conditions selecting the standalone "new attribute" proposals of an
+     * event view (ShadowAttribute.old_id = 0), narrowed by the same column
+     * filters as the attribute list itself.
+     *
+     * Shared by the pagination total and __attachProposals() so the rows that
+     * get rendered are exactly the rows that were counted.
+     *
+     * @param array $eventIds
+     * @param array $options viewAttributes filters (category/type/searchFor)
+     * @return array
+     */
+    private function __newProposalConditions(array $eventIds, array $options)
+    {
+        $conditions = [
+            'ShadowAttribute.event_id' => $eventIds,
+            'ShadowAttribute.old_id' => 0,
+            'ShadowAttribute.deleted' => 0,
+        ];
+        // A standalone proposal proposes a *new* attribute, so it is not part
+        // of what the deleted-only filter asks for. Selecting nothing here
+        // keeps the total and the rendered rows in step either way.
+        if ((int)($options['deleted'] ?? 0) === 2) {
+            $conditions['ShadowAttribute.id'] = -1;
+        }
+        if (!empty($options['category'])) {
+            $conditions['ShadowAttribute.category'] = $options['category'];
+        }
+        if (!empty($options['type'])) {
+            $conditions['ShadowAttribute.type'] = $options['type'];
+        }
+        if (!empty($options['searchFor'])) {
+            $conditions['ShadowAttribute.value1 LIKE'] =
+                '%' . $options['searchFor'] . '%';
+        }
+        return $conditions;
+    }
+
+    /**
      * Attach pending proposals to a page of attributes for the event view.
      *
      * - Proposed edits / deletions (ShadowAttribute.old_id = attribute id)
@@ -2168,7 +2404,14 @@ class Event extends AppModel
      * @param array $options viewAttributes filters (category/type/searchFor)
      * @return array
      */
-    private function __attachProposals(array $attributes, $eventId, $page, array $options)
+    /**
+     * @param array $attributes
+     * @param array $eventIds every event in the (possibly extended) view
+     * @param int   $page
+     * @param array $options
+     * @return array
+     */
+    private function __attachProposals(array $attributes, array $eventIds, $page, array $options)
     {
         // Pending proposed edits / deletions for attributes on this page.
         $attrIds = array_column($attributes, 'id');
@@ -2177,7 +2420,7 @@ class Event extends AppModel
             $edits = $this->ShadowAttribute->find('all', [
                 'conditions' => [
                     'ShadowAttribute.old_id' => $attrIds,
-                    'ShadowAttribute.event_id' => $eventId,
+                    'ShadowAttribute.event_id' => $eventIds,
                     'ShadowAttribute.deleted' => 0,
                 ],
                 'recursive' => -1,
@@ -2190,22 +2433,10 @@ class Event extends AppModel
         // Standalone proposed-new attributes (old_id = 0), first page only.
         $newProposals = [];
         if ((int)$page === 1) {
-            $conditions = [
-                'ShadowAttribute.event_id' => $eventId,
-                'ShadowAttribute.old_id' => 0,
-                'ShadowAttribute.deleted' => 0,
-            ];
-            if (!empty($options['category'])) {
-                $conditions['ShadowAttribute.category'] = $options['category'];
-            }
-            if (!empty($options['type'])) {
-                $conditions['ShadowAttribute.type'] = $options['type'];
-            }
-            if (!empty($options['searchFor'])) {
-                $conditions['ShadowAttribute.value1 LIKE'] = '%' . $options['searchFor'] . '%';
-            }
             $newProposals = $this->ShadowAttribute->find('all', [
-                'conditions' => $conditions,
+                'conditions' => $this->__newProposalConditions(
+                    $eventIds, $options
+                ),
                 'recursive' => -1,
                 'order' => ['ShadowAttribute.timestamp DESC'],
             ]);
@@ -2254,7 +2485,7 @@ class Event extends AppModel
             $sa = $decorate($p['ShadowAttribute']);
             $rows[] = [
                 'id' => $sa['id'],
-                'event_id' => $eventId,
+                'event_id' => $sa['event_id'],
                 'category' => $sa['category'],
                 'type' => $sa['type'],
                 'value' => $sa['value'],
@@ -2298,6 +2529,8 @@ class Event extends AppModel
      *   - name (string|null) object template name filter
      *   - meta-category (string|null)
      *   - searchFor (string|null) search in object attribute values
+     *   - eventIds (int[]|null) extended / extending view: every event whose
+     *     objects belong in the list
      * @return array ['Object' => [...], 'total' => int]
      */
     public function fetchPaginatedObjects(
@@ -2324,19 +2557,48 @@ class Event extends AppModel
 
         $isSiteAdmin = $user['Role']['perm_site_admin'];
 
+        // In an extended / extending view the list spans every event merged into it.
+        $eventIds = empty($options['eventIds'])
+            ? [(int)$eventId]
+            : array_values(array_unique(array_map(
+                'intval', (array)$options['eventIds']
+            )));
+
         // Object-level conditions
         $conditions = [
-            'Object.event_id' => $eventId,
+            'Object.event_id' => $eventIds,
         ];
 
-        // Deleted filter
+        // Deleted filter. 2 is the index's Deleted toggle: it keeps only the
+        // objects holding something soft-deleted — the object itself, or one
+        // of its attributes, which would otherwise have nowhere left to show.
+        //
+        // The objects that survive are rendered whole ($attrDeleted), deleted
+        // rows highlighted: a deleted object stripped of its live attributes,
+        // or a live object down to its single deleted row, reads as data loss.
         $deleted = (int)($options['deleted'] ?? 0);
+        $attrDeleted = $deleted === 0 ? 0 : [0, 1];
         if ($deleted === 1) {
             $conditions['Object.deleted'] = [0, 1];
         } elseif ($deleted === 2) {
-            $conditions['Object.deleted'] = 1;
+            $objectIdsWithDeletedAttrs =
+                $this->objectIdsWithDeletedAttributes($eventIds);
+            $conditions[] = ['OR' => [
+                'Object.deleted' => 1,
+                'Object.id' => empty($objectIdsWithDeletedAttrs)
+                    ? [-1] : $objectIdsWithDeletedAttrs,
+            ]];
         } else {
             $conditions['Object.deleted'] = 0;
+        }
+
+        // Proposals filter: keep only the objects holding an attribute with a
+        // pending proposal, rather than flagging them inside the whole list.
+        if (!empty($options['proposal'])) {
+            $objectIdsWithProposals =
+                $this->objectIdsWithProposals($eventIds, $attrDeleted);
+            $conditions['Object.id'] = empty($objectIdsWithProposals)
+                ? [-1] : $objectIdsWithProposals;
         }
 
         // Optional filters
@@ -2406,7 +2668,7 @@ class Event extends AppModel
                 'table' => 'attributes',
                 'alias' => 'Attribute',
                 'conditions' => [
-                    'Attribute.event_id' => $eventId,
+                    'Attribute.event_id' => $eventIds,
                     'Attribute.object_id !=' => 0,
                     'Attribute.value1 LIKE' =>
                         '%' . $options['searchFor'] . '%',
@@ -2451,18 +2713,10 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
-        // Fetch attributes for these objects with ACL.
-        // Mirror the object-level deleted filter so that attributes of
-        // soft-deleted objects are visible when deleted=1 or deleted=2.
-        if ($deleted === 1) {
-            $attrDeleted = [0, 1];
-        } elseif ($deleted === 2) {
-            $attrDeleted = 1;
-        } else {
-            $attrDeleted = 0;
-        }
+        // Fetch attributes for these objects with ACL, in the deleted scope
+        // settled above.
         $attrConditions = [
-            'Attribute.event_id' => $eventId,
+            'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,
             'Attribute.deleted' => $attrDeleted,
         ];
@@ -2768,8 +3022,12 @@ class Event extends AppModel
     private function __enrichAttributes(
         array $attributes,
         array $user,
-        $eventId
+        $eventId,
+        array $eventIds = []
     ) {
+        if (empty($eventIds)) {
+            $eventIds = [(int)$eventId];
+        }
         if (empty($attributes)) {
             return [
                 'attributes' => [],
@@ -2826,14 +3084,22 @@ class Event extends AppModel
         }
         unset($attribute);
 
-        // Sighting data
+        // Sighting data. In an extended view a row can belong to any event of
+        // the set, so the statistics are asked for all of them at once.
+        $orgIdByEvent = $this->find('list', [
+            'conditions' => ['Event.id' => $eventIds],
+            'fields' => ['Event.id', 'Event.org_id'],
+            'recursive' => -1,
+        ]);
+        $sightingEvents = [];
+        foreach ($eventIds as $sightingEventId) {
+            $sightingEvents[] = ['Event' => [
+                'id' => $sightingEventId,
+                'org_id' => $orgIdByEvent[$sightingEventId] ?? null,
+            ]];
+        }
         $sightingsData = $this->Sighting->eventsStatistic(
-            [['Event' => [
-                'id' => $eventId,
-                'org_id' => $this->field('org_id', [
-                    'Event.id' => $eventId,
-                ]),
-            ]]],
+            $sightingEvents,
             $user
         );
         foreach ($attributes as &$attribute) {
@@ -5706,6 +5972,20 @@ class Event extends AppModel
                             return array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.');
                         }
                     }
+                } elseif (!isset($data['Event']['distribution']) && !empty($data['Event']['sharing_group_id'])) {
+                    // A sharing group submitted with no distribution at all still reaches
+                    // the save: the recoverFields loop below restores distribution from the
+                    // stored event, so an event already at distribution 4 keeps that value
+                    // and this id is persisted. Authorise it rather than leaving the gate
+                    // keyed on a field the caller can simply omit.
+                    // Deliberately narrow. A payload that *states* a non-4 distribution is
+                    // left alone: beforeValidate() zeroes the id for it, so there is no hole
+                    // to close, and rejecting it instead would turn a silent normalisation
+                    // into a failed pull for any peer that sends a stale id alongside a
+                    // non-sharing-group distribution.
+                    if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+                        return array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.');
+                    }
                 }
                 // If the above is true, we have two more options:
                 // For users that are of the creating org of the event, always allow the edit
@@ -7281,6 +7561,24 @@ class Event extends AppModel
                             'object_type' => $objectType,
                             'relationship_type' => $reference['relationship_type']
                         );
+                    }
+                }
+            }
+        }
+        // The pagination tool jumps to the page holding the focused element by matching
+        // top-level uuids only. An attribute inside an object is not a top-level entry, so
+        // translate the focus to its containing object's uuid to land on the right page.
+        // The client-side scroll still targets the original attribute uuid.
+        if (!empty($passedArgs['focus'])) {
+            $focus = $passedArgs['focus'];
+            foreach ($objects as $object) {
+                if ($object['objectType'] !== 'object' || empty($object['Attribute'])) {
+                    continue;
+                }
+                foreach ($object['Attribute'] as $objectAttribute) {
+                    if (!empty($objectAttribute['uuid']) && $objectAttribute['uuid'] === $focus) {
+                        $passedArgs['focus'] = $object['uuid'];
+                        break 2;
                     }
                 }
             }

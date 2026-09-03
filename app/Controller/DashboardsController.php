@@ -16,13 +16,18 @@ class DashboardsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // POSTs carry widget data in their body — same CSRF posture
-        // as the v1 dashboards endpoints.
+        // These POST widget data in a hand-built body, with no rendered form
+        // behind them to produce the field hash _validatePost() compares
+        // against. They used to sit in unlockedActions, which also switched off
+        // CSRF validation - and unconditionally, so a plain cross-site form post
+        // needed no `.json` suffix and no JSON Accept header to flip a victim's
+        // theme or rewrite their layout. They now carry the page's CSRF token in
+        // the X-CSRF-Token header instead; only the field-hash check is dropped.
         $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings', 'updateTheme');
-        foreach ($bodyPostActions as $a) {
-            $this->Security->unlockedActions[] = $a;
-        }
+        $this->_csrfTokenHeaderOnly($bodyPostActions);
         if (in_array($this->request->action, $bodyPostActions, true)) {
+            // The page's token is validated but never consumed, so there is no
+            // reason to mint another one per AJAX call.
             $this->Security->doNotGenerateToken = true;
         }
     }
@@ -196,7 +201,57 @@ class DashboardsController extends AppController
             $widgets = is_array($decoded) ? $decoded : array();
         }
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
         $widgets = LayoutFixup::applyReadFixups($widgets);
+
+        // The whole-layout save carries widget configs too, so it takes
+        // the same schema validation updateWidgetSettings() applies —
+        // otherwise a value refused there is simply posted here instead.
+        // Scoped to configs that actually CHANGED against what is
+        // stored: a layout drag re-POSTs every widget verbatim, and a
+        // pre-existing value that no longer validates must not make the
+        // board unmovable. Values already in the wild stay neutralised
+        // where they always were, at render.
+        $user = $this->Auth->user();
+        $previous = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        $previousConfig = array();
+        if (is_array($previous)) {
+            foreach (LayoutFixup::applyReadFixups($previous) as $pw) {
+                if (!empty($pw['instance_id'])) {
+                    $previousConfig[$pw['instance_id']] =
+                        isset($pw['config']) && is_array($pw['config'])
+                            ? $pw['config']
+                            : array();
+                }
+            }
+        }
+        $validationErrors = array();
+        foreach ($widgets as $offset => $w) {
+            $config = isset($w['config']) && is_array($w['config'])
+                ? $w['config']
+                : array();
+            $instanceId = !empty($w['instance_id']) ? $w['instance_id'] : null;
+            if ($instanceId !== null
+                && array_key_exists($instanceId, $previousConfig)
+                && $previousConfig[$instanceId] === $config
+            ) {
+                continue;
+            }
+            $errs = $this->__validateWidgetConfig(
+                $user,
+                isset($w['widget']) ? $w['widget'] : null,
+                $config
+            );
+            if ($errs !== null) {
+                $validationErrors[$instanceId !== null ? $instanceId : $offset] = $errs;
+            }
+        }
+        if (!empty($validationErrors)) {
+            throw new BadRequestException(__(
+                'Canonical-type validation failed: %s',
+                json_encode($validationErrors, JSON_UNESCAPED_SLASHES)
+            ));
+        }
 
         // UserSetting's validate_json hook expects the value as a JSON
         // string (matches v1's wire form: Dashboard[value]=<encoded>);
@@ -233,11 +288,13 @@ class DashboardsController extends AppController
 
     /**
      * Persist the user's dashboard light/dark appearance preference
-     * (DD-51). POST-only, REST-style like updateSettings — the client
-     * posts with `Accept: application/json`, so AppController disables
-     * csrfCheck, and `updateTheme` is in beforeFilter's unlockedActions
-     * so the Security component's body-tampering check is skipped (the
-     * POST carries no `_Token` fields, mirroring updateSettings).
+     * (DD-51). POST-only, REST-style like updateSettings — the POST
+     * carries no `_Token` fields, so beforeFilter puts `updateTheme` on
+     * _csrfTokenHeaderOnly() and the client sends the page's CSRF token
+     * in the X-CSRF-Token header instead. `Accept: application/json` no
+     * longer buys any exemption of its own: a cross-origin page can set
+     * that header without a preflight, which is exactly what made this
+     * endpoint forgeable before.
      *
      * The toggle button only ever commits an explicit 'light' or 'dark';
      * 'auto' is the *absence* of an explicit choice (resolved client-side
@@ -412,6 +469,37 @@ class DashboardsController extends AppController
      * `updateSettings` so first-save users aren't stuck) or on an
      * unknown instance_id (likely concurrent removal in another tab).
      */
+    /**
+     * Validate one widget's config against its declared $schema.
+     *
+     * Split out of updateWidgetSettings() so updateSettings(), which
+     * writes a whole layout blob, can apply the same check — a
+     * persistence guard that lives on only one of two save paths is not
+     * a guard. An unknown or ACL-blocked widget class validates as
+     * clean: the render path surfaces the underlying error, and
+     * refusing the save would strand a layout the user cannot repair.
+     *
+     * @param array $user
+     * @param string|null $className
+     * @param array $config
+     * @return array|null Per-key errors, or null when the config is fine
+     */
+    private function __validateWidgetConfig(array $user, $className, array $config)
+    {
+        if (empty($className) || !is_string($className)) {
+            return null;
+        }
+        try {
+            $widget = $this->Dashboard->loadWidget($user, $className);
+        } catch (Exception $e) {
+            return null;
+        }
+        if (empty($widget)) {
+            return null;
+        }
+        return CanonicalTypeAdapter::validate($widget, $config);
+    }
+
     public function updateWidgetSettings()
     {
         if (!$this->request->is('post')) {
@@ -485,20 +573,13 @@ class DashboardsController extends AppController
             if (!isset($index[$p['instance_id']])) {
                 throw new NotFoundException(__('Widget instance not found in saved layout.'));
             }
-            $className = $widgets[$index[$p['instance_id']]]['widget'];
-            try {
-                $widget = $this->Dashboard->loadWidget($user, $className);
-            } catch (Exception $e) {
-                // Widget class missing or ACL-blocked — skip validation
-                // for this patch and let the save proceed. The render-
-                // time path will surface the underlying error.
-                $widget = null;
-            }
-            if ($widget !== null) {
-                $errs = CanonicalTypeAdapter::validate($widget, $p['config']);
-                if ($errs !== null) {
-                    $validationErrors[$p['instance_id']] = $errs;
-                }
+            $errs = $this->__validateWidgetConfig(
+                $user,
+                $widgets[$index[$p['instance_id']]]['widget'],
+                $p['config']
+            );
+            if ($errs !== null) {
+                $validationErrors[$p['instance_id']] = $errs;
             }
         }
         if (!empty($validationErrors)) {
@@ -634,18 +715,65 @@ class DashboardsController extends AppController
         if (is_string($firstKey)) {
             $rows = array();
             foreach ($toConvert as $k => $v) {
-                $rows[] = sprintf('%s,%s', $k, json_encode($v));
+                // Both halves are attacker-reachable: widgets key their
+                // payload on tag names (TrendingTagsWidget) and on raw
+                // Attribute.value1 (TrendingAttributesWidget), so a value
+                // carrying a comma, a quote or a newline used to split the
+                // row into extra columns. Quote only where the field needs
+                // it, so anything that parsed correctly before is still
+                // byte-identical.
+                // Strings carry their own text - CSV quoting replaces the
+                // JSON quoting v1 gave them, so a consumer parses the same
+                // value out. Everything else keeps its JSON encoding, so
+                // 1 / true / null / {..} are unchanged.
+                $encoded = is_string($v) ? $v : json_encode($v);
+                $rows[] = $this->_csvField($k, false) . ',' . $this->_csvField($encoded, false);
             }
             return implode(PHP_EOL, $rows) . PHP_EOL;
         }
         $headerKeys = array_keys(Hash::flatten($toConvert[0]));
-        $header = implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, array_map('strval', $headerKeys)));
+        // This branch already wrapped every field, but never doubled an
+        // embedded quote, so a tag name containing `"` broke out of its
+        // own field and desynced the header from the rows. Keep the
+        // always-quote convention and make it correct.
+        $header = implode(',', array_map(function ($s) { return $this->_csvField($s, true); }, $headerKeys));
         $rows = array_map(function ($row) {
             $flat = array_values(Hash::flatten($row));
-            $strs = array_map('strval', $flat);
-            return implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, $strs));
+            return implode(',', array_map(function ($s) { return $this->_csvField($s, true); }, $flat));
         }, $toConvert);
         return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
+    }
+
+    /**
+     * Render one RFC 4180 CSV field.
+     *
+     * `$alwaysQuote` preserves each caller's existing convention rather
+     * than imposing one: the associative branch never quoted, so it
+     * quotes only when the field would otherwise corrupt the row, and
+     * the tabular branch always quoted, so it still does. Output is
+     * therefore unchanged for every payload that was not already
+     * mis-parsing.
+     *
+     * Deliberately does NOT neutralise spreadsheet formula prefixes
+     * (`=`, `+`, `-`, `@`, CWE-1236). Widget CSV carries raw indicator
+     * values, and prefixing them with an apostrophe would corrupt the
+     * data for the tooling that ingests it - see the V15 entry in the
+     * tracker for the full rationale.
+     */
+    private function _csvField($value, $alwaysQuote)
+    {
+        if (is_array($value)) {
+            // Hash::flatten leaves empty arrays in place; strval() turned
+            // those into the literal string "Array" plus a PHP warning.
+            $value = json_encode($value);
+        }
+        // Otherwise cast exactly as strval() did, so booleans and nulls
+        // keep the bytes v1 emitted for them.
+        $value = (string)$value;
+        if (!$alwaysQuote && strpbrk($value, "\",\r\n") === false) {
+            return $value;
+        }
+        return '"' . str_replace('"', '""', $value) . '"';
     }
 
     /**
@@ -839,11 +967,14 @@ class DashboardsController extends AppController
      *      name: string }, ...]
      *
      * Read-only; same '*' ACL policy as the other dashboard picker
-     * endpoints. Organisation names + UUIDs are not sensitive (any
-     * MISP user can already see them via the org index page); per-
-     * org event/attribute ACL is enforced downstream by the
-     * consumer widget's query path against an already-ACL-filtered
-     * base set. Result order: name ASC for deterministic UX.
+     * endpoints, but the result set is scoped: organisation names are
+     * only non-sensitive while `Security.hide_organisation_index_from_users`
+     * is off. With it on, `/organisations/index` refuses outright and
+     * `Organisation::canSee()` gates the per-organisation view, so this
+     * picker honours the same control via `createConditions()`. Per-org
+     * event/attribute ACL is still enforced downstream by the consumer
+     * widget's query path against an already-ACL-filtered base set.
+     * Result order: name ASC for deterministic UX.
      */
     public function searchOrganisations()
     {
@@ -858,6 +989,21 @@ class DashboardsController extends AppController
             // Same LIKE-wildcard scrub as the galaxy cluster search.
             $cleanQ = str_replace(['%', '_'], '', $q);
             $conditions['Organisation.name LIKE'] = '%' . $cleanQ . '%';
+        }
+        // Scope to the organisations the caller is allowed to know about.
+        // `createConditions()` is the plural form of `Organisation::canSee()`,
+        // which `/organisations/view` already enforces: it returns [] (no
+        // restriction) when `Security.hide_organisation_index_from_users` is
+        // off or the caller holds `perm_sharing_group` - the same two
+        // conditions the ACL's `organisation_index` dynamic check reads - and
+        // otherwise narrows to the organisations whose events or proposals the
+        // caller can already see, plus their own. Narrowing rather than
+        // refusing keeps the picker usable for the users it is meant for,
+        // where the blunt ACL entry `/organisations/index` carries would empty
+        // it; the same choice `searchGalaxyClusters` below makes.
+        $acl = $this->Organisation->createConditions($this->Auth->user());
+        if (!empty($acl)) {
+            $conditions[] = $acl;
         }
         $rows = $this->Organisation->find('all', [
             'recursive'  => -1,
@@ -891,13 +1037,10 @@ class DashboardsController extends AppController
             'GalaxyCluster.type'    => $galaxyType,
             'GalaxyCluster.deleted' => 0,
         ];
-        if ($q !== '') {
-            // LIKE with %wrapped% substring match. CakePHP escapes
-            // the right-hand value, but `%` and `_` are LIKE wildcards
-            // — strip them from user input so the search behaves as
-            // a plain substring lookup, not a pattern match.
-            $cleanQ = str_replace(['%', '_'], '', $q);
-            $conditions['GalaxyCluster.value LIKE'] = '%' . $cleanQ . '%';
+        // More permissive matching when searching for a cluster name
+        $search = $this->GalaxyCluster->valueSearchConditions($q);
+        if (!empty($search)) {
+            $conditions['AND'] = $search;
         }
         // Scope to clusters the requesting user is allowed to see. Unlike
         // organisation names, cluster values are distribution-controlled
@@ -1242,9 +1385,18 @@ class DashboardsController extends AppController
                                 ['Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')],
                                 ['Dashboard.restrict_to_role_id' => 0]
                             ]],
+                            // 'unrestricted' has to be matched as a STRING.
+                            // restrict_to_permission_flag is a varchar, so
+                            // comparing it against the integer 0 makes MySQL
+                            // coerce the column: 'perm_site_admin' = 0 is TRUE,
+                            // and the whole clause becomes a no-op. The two
+                            // values that actually mean unrestricted are the
+                            // column default '' and the '0' the save form
+                            // posts - which is exactly what the !empty() test
+                            // in Dashboard::getDashboardTemplate() accepts.
                             ['OR' => [
                                 ['Dashboard.restrict_to_permission_flag' => $permission_flags],
-                                ['Dashboard.restrict_to_permission_flag' => 0]
+                                ['Dashboard.restrict_to_permission_flag' => ['', '0']]
                             ]]
                         ]
                     ]
@@ -1253,13 +1405,27 @@ class DashboardsController extends AppController
         }
 
         $currentUserId = $this->Auth->user('id');
+        // Template owners' e-mail addresses are a privilege decision, not a
+        // rendering one. The redaction used to sit inside the !_isRest()
+        // branch of afterFind() below, so the same session returned the
+        // addresses verbatim the moment it asked for JSON - and _isRest() is
+        // chosen by the caller (URL suffix / Accept header), so it never was
+        // a boundary. Decide it here instead, on the same rule the two
+        // e-mail-bearing dashboard widgets use, and simply do not fetch the
+        // column when it may not be shown - the shape ObjectTemplatesController
+        // ::view() already uses for exactly this field.
+        App::uses('User', 'Model');
+        $contain = ['User.id'];
+        if (User::canSeeEmails($this->Auth->user())) {
+            $contain[] = 'User.email';
+        }
         $params = [
             'filters' => ['name', 'description', 'uuid', 'value'],
             'quickFilters' => ['name', 'description', 'uuid'],
             'quickFilterParameter' => 'value',
             'conditions' => $conditions,
-            'contain' => ['User.id', 'User.email'],
-            'afterFind' => function ($data) use ($accessible_widgets, $currentUserId) {
+            'contain' => $contain,
+            'afterFind' => function ($data) use ($accessible_widgets) {
                 foreach ($data as &$element) {
                     $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
                     if (!$this->_isRest()) {
@@ -1278,9 +1444,6 @@ class DashboardsController extends AppController
                             }
                         }
                         $element['Dashboard']['widgets'] = $temp;
-                        if ($element['Dashboard']['user_id'] != $currentUserId) {
-                            $element['User']['email'] = '';
-                        }
                     }
                 }
                 return $data;

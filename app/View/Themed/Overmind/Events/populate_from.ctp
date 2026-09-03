@@ -58,23 +58,12 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event);">
-    <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Events') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-event" style="font-size:1.25rem;"></i>
-            <?= __('Populate from…') ?>
-        </h4>
-    </div>
-    <span class="fas fa-sign-in-alt text-event"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Events'),
+    'title' => __('Populate from…'),
+    'icon' => 'fas fa-sign-in-alt',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
@@ -202,20 +191,10 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>:
-            <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'meta' => [['label' => __('Event'), 'id' => $eventId]],
+        'submit' => false,
+    ]) ?>
 </div>
 
 <script>

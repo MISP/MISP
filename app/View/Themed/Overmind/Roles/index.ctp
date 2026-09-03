@@ -32,6 +32,8 @@ $fields[] = [
     'data_path' => 'Role.id',
     'element' => 'id',
     'url' => $baseurl . '/roles/view/%id%',
+    'card_section' => 'top',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -39,6 +41,8 @@ $fields[] = [
     'sort' => 'Role.default',
     'data_path' => 'Role.default',
     'element' => 'default',
+    'card_section' => 'top',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -46,15 +50,19 @@ $fields[] = [
     'sort' => 'Role.name',
     'data_path' => 'Role',
     'element' => 'role',
+    'card_section' => 'title',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
-    'name' => __('Permission'),
+    'name' => __('Access Level'),
     'sort' => 'Role.permission',
     'element' => 'custom',
     'function' => function (array $row) use ($options) {
         return h($options[$row['Role']['permission']] ?? $row['Role']['permission']);
     },
+    'card_section' => 'tag',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -62,7 +70,8 @@ $fields[] = [
     'data_path' => 'Role',
     'element' => 'role_permissions',
     'permFlags' => $permFlags,
-    'isAdmin' => $isAdmin,
+    'card_section' => 'galaxy',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -74,6 +83,8 @@ $fields[] = [
         $value = $row['Role']['memory_limit'];
         return empty($value) ? h($default_memory_limit) : h($value);
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -85,6 +96,8 @@ $fields[] = [
         $value = $row['Role']['max_execution_time'];
         return (empty($value) ? h($default_max_execution_time) : h($value)) . '&nbsp;s';
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -99,6 +112,8 @@ $fields[] = [
         }
         return h($value);
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -120,6 +135,8 @@ $fields[] = [
         }
         return (empty($value) ? __('Unlimited') : h($value));
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -152,7 +169,7 @@ $fields[] = [
             'type' => 'modal',
             'label' => __('Delete'),
             'icon' => 'trash',
-            'size' => 'sm',
+            'size' => 'md',
             'url' => $baseurl . '/admin/roles/deleteSelection/%id%',
             'class' => 'text-danger',
         ] : null,
@@ -181,6 +198,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => 'Role.id',
             'row_dblclick_url' => $baseurl . '/roles/view/%id%',
             'filter_bar' => $scaffoldFilterBar,

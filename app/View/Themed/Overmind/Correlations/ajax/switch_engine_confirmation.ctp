@@ -1,5 +1,5 @@
 <?php
-echo $this->element('genericElementsBS5/Forms/confirmationForm', array(
+echo $this->element('genericElementsBS5/Modals/confirmation_form', array(
     'title' => __('Switch correlation engine'),
     'model' => 'Correlation',
     'url' => $baseurl . '/correlations/switchEngine/' . urlencode($engine),

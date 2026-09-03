@@ -188,27 +188,14 @@
 </style>
 
 <?php if ($isModal): ?>
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event, var(--primary));">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-event"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Event Templates') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $builderMode === 'edit' ? 'pen-to-square' : 'circle-plus' ?> text-event"
-               style="font-size:1.25rem;"></i>
-            <?= h($pageTitle) ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= h($pageDescription) ?>
-        </p>
-    </div>
-    <span class="fas fa-wand-magic-sparkles text-event"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Event Templates'),
+    'title' => $pageTitle,
+    'titleIcon' => 'fas fa-' . ($builderMode === 'edit' ? 'pen-to-square' : 'circle-plus'),
+    'description' => $pageDescription,
+    'icon' => 'fas fa-wand-magic-sparkles',
+]) ?>
 <?php endif; ?>
 
 <div class="eventTemplates builder <?= $isModal ? 'p-4' : 'container-fluid mt-3' ?>"
@@ -258,10 +245,10 @@
 
         <!-- Description -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description (Markdown)') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description (Markdown)'),
+            ]) ?>
             <div class="border rounded px-2 py-2"
                  style="border-color:#d8dde3;">
                 <textarea id="et-envelope-description" rows="2"
@@ -277,10 +264,10 @@
             <div class="col-md-4">
                 <!-- ── DISTRIBUTION ───────────────────────────────────── -->
                 <div class="w-100">
-                    <div class="text-primary fw-bold text-uppercase mb-2"
-                         style="font-size:.65rem; letter-spacing:.1em;">
-                        <?= __('Distribution') ?>
-                    </div>
+                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        'accent' => 'primary',
+                        'label' => __('Distribution'),
+                    ]) ?>
                     <select id="et-envelope-distribution" class="form-select"
                             x-init="initEnvelopeDistributionSelect($el)"
                             x-model.number="envelope.distribution">
@@ -291,10 +278,10 @@
                 </div>
             </div>
             <div class="col-md-8">
-                <div class="text-primary fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Options') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Options'),
+                ]) ?>
                 <div class="border rounded px-3 py-2 d-flex flex-wrap gap-3"
                      style="border-color:#d8dde3;">
                     <div class="form-check form-switch mb-0">
@@ -462,53 +449,52 @@
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="et-save-bar d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="d-flex align-items-center gap-3 flex-wrap text-muted"
-             style="font-size:.75rem;">
-            <span id="et-validate-status"
-                  :class="{
-                      'text-success': validateStatusKind === 'success',
-                      'text-danger': validateStatusKind === 'error',
-                      'text-muted': !validateStatusKind
-                  }"
-                  x-text="validateStatus"></span>
-            <?php if ($existing): ?>
-                <a href="<?= h($baseurl . '/event_templates/preview/' . (int)$existing['id']) ?>"
-                   target="_blank" rel="noopener"
-                   class="text-decoration-none"
-                   title="<?= __('Open the user form in a new tab — reflects the last saved version. Save first to preview unsaved changes.') ?>">
-                    <i class="fas fa-eye me-1"></i><?= __('Preview the user form') ?>
-                </a>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <?php if ($isModal): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm"
-                        data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-                </button>
-            <?php else: ?>
-                <a class="btn btn-outline-secondary btn-sm"
-                   href="<?= h($existing
-                        ? $baseurl . '/event_templates/view/' . (int)$existing['id']
-                        : $baseurl . '/event_templates/index') ?>">
-                    <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-                </a>
-            <?php endif; ?>
-            <button type="button" id="et-validate-button"
-                    class="btn btn-outline-secondary btn-sm"
-                    @click="validate">
-                <i class="fas fa-circle-check me-1"></i><?= __('Validate') ?>
-            </button>
-            <button type="button" id="et-save-button" class="btn btn-primary btn-sm"
-                    :disabled="saving" @click="save">
-                <i class="fas fa-check me-1"></i>
-                <span x-text="saving ? '<?= __('Saving…') ?>' : '<?= __('Save') ?>'"></span>
-            </button>
-        </div>
-    </div>
+    <?php
+    /* Alpine drives the status text and the save button, so the left-hand side is
+     * handed over raw. */
+    $footerMeta = '<span id="et-validate-status"'
+        . ' :class="{'
+        . " 'text-success': validateStatusKind === 'success',"
+        . " 'text-danger': validateStatusKind === 'error',"
+        . " 'text-muted': !validateStatusKind"
+        . ' }" x-text="validateStatus"></span>';
+    if ($existing) {
+        $footerMeta .= sprintf(
+            '<a href="%s" target="_blank" rel="noopener" class="text-decoration-none ms-2" title="%s">'
+                . '<i class="fas fa-eye me-1"></i>%s</a>',
+            h($baseurl . '/event_templates/preview/' . (int)$existing['id']),
+            h(__('Open the user form in a new tab — reflects the last saved version. Save first to preview unsaved changes.')),
+            h(__('Preview the user form'))
+        );
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'metaHtml' => $footerMeta,
+        'cancel' => $isModal ? [] : [
+            'label' => __('Cancel'),
+            'href' => $existing
+                ? $baseurl . '/event_templates/view/' . (int)$existing['id']
+                : $baseurl . '/event_templates/index',
+            'attrs' => [],
+        ],
+        'secondary' => [[
+            'label' => __('Validate'),
+            'icon' => 'fas fa-circle-check',
+            'id' => 'et-validate-button',
+            'attrs' => ['@click' => 'validate'],
+        ]],
+        'submit' => [
+            'labelHtml' => sprintf(
+                '<span x-text="saving ? \'%s\' : \'%s\'"></span>',
+                h(__('Saving…')),
+                h(__('Save'))
+            ),
+            'icon' => 'fas fa-check',
+            'id' => 'et-save-button',
+            'type' => 'button',
+            'class' => 'btn-primary',
+            'attrs' => [':disabled' => 'saving', '@click' => 'save'],
+        ],
+    ]);
+    ?>
 
 </div>

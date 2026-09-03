@@ -144,22 +144,15 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 ?>
 
 <?php if ($showModalHeader): ?>
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-analystData bg-opacity-10"
-     style="border-bottom:2px solid var(--analystData);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-analystData"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Analyst Data') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-clipboard-list text-analystData" style="font-size:1.2rem;"></i>
-            <?= h($objectType) ?>
-        </h4>
-        <p class="text-muted mb-0 font-monospace" style="font-size:.72rem;"><?= h($objectUuid) ?></p>
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'analystData',
+    'eyebrow' => __('Analyst Data'),
+    'title' => $objectType,
+    'titleIcon' => 'fas fa-clipboard-list',
+    'description' => $objectUuid,
+    'descriptionClass' => 'font-monospace',
+    'close' => true,
+]) ?>
 <?php endif; ?>
 
 <div class="container-fluid px-4 py-4">

@@ -4,7 +4,8 @@ $params    = $Paginator->params();
 $pageCount = $params['pageCount'] ?? null;
 ?>
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3"
+     data-tour="index-pagination">
 
     <!-- COUNTER -->
     <div class="text-muted medium">

@@ -57,28 +57,14 @@ echo $this->Form->create('Warninglist', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:var(--warninglist-soft);
-            border-bottom:2px solid var(--warninglist);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;
-                    color:var(--warninglist);">
-            <?= __('Warning Lists') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?>"
-               style="font-size:1.25rem; color:var(--warninglist);"></i>
-            <?= $isEdit ? __('Edit Warninglist') : __('Add Warninglist') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A warninglist flags attributes whose value it recognises, without changing them.') ?>
-        </p>
-    </div>
-    <i class="fas fa-exclamation-triangle"
-       style="font-size:2rem; opacity:.45; color:var(--warninglist);"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'warninglist',
+    'eyebrow' => __('Warning Lists'),
+    'title' => $isEdit ? __('Edit Warninglist') : __('Add Warninglist'),
+    'description' => __('A warninglist flags attributes whose value it recognises, without changing them.'),
+    'icon' => 'fas fa-exclamation-triangle',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -109,11 +95,9 @@ echo $this->Form->create('Warninglist', [
                 'placeholder' => __('e.g. Known public DNS resolvers'),
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Keep it short but descriptive — 60 characters at most.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Keep it short but descriptive — 60 characters at most.'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
@@ -196,11 +180,9 @@ echo $this->Form->create('Warninglist', [
                     'value' => $currentType,
                     'empty' => false,
                 ]) ?>
-                <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                     style="font-size:.75rem;">
-                    <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                    <?= __('How an entry below is compared to an attribute value.') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('How an entry below is compared to an attribute value.'),
+                ]) ?>
             </div>
 
             <div class="col-md-7 px-2">
@@ -215,11 +197,9 @@ echo $this->Form->create('Warninglist', [
                     'class' => 'form-select tom-select',
                     'data-placeholder' => __('Every attribute type'),
                 ]) ?>
-                <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                     style="font-size:.75rem;">
-                    <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                    <?= __('Left empty, the list is checked against every attribute type.') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Left empty, the list is checked against every attribute type.'),
+                ]) ?>
             </div>
 
         </div>
@@ -250,46 +230,32 @@ echo $this->Form->create('Warninglist', [
                 'rows' => 8,
                 'placeholder' => "8.8.8.8\n1.1.1.1 # Cloudflare resolver",
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('One value per line. Anything after a # is kept as that entry\'s comment.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('One value per line. Anything after a # is kept as that entry\'s comment.'),
+            ]) ?>
         </div>
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($warninglist['id'])): ?>
-                <?= __('Warninglist') ?>:
-                <strong class="text-body">#<?= h($warninglist['id']) ?></strong>
-                <?php if (isset($warninglist['version'])): ?>
-                    &nbsp;|&nbsp; <?= __('Version') ?>:
-                    <strong class="text-body"><?= h($warninglist['version']) ?></strong>
-                    <?= __('(bumped on save)') ?>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Warninglist')),
-                [
-                    'class' => 'btn btn-sm text-white',
-                    'style' => 'background:var(--warninglist);'
-                        . ' border-color:var(--warninglist);',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if ($isEdit && !empty($warninglist['id'])) {
+        $footerMeta[] = ['label' => __('Warninglist'), 'id' => $warninglist['id']];
+        if (isset($warninglist['version'])) {
+            $footerMeta[] = [
+                'label' => __('Version'),
+                'value' => $warninglist['version'],
+                'note' => __('(bumped on save)'),
+            ];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'warninglist',
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Warninglist')],
+    ]);
+    ?>
 
 </div>
 

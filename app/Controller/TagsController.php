@@ -63,6 +63,10 @@ class TagsController extends AppController
                 $tagList = [];
                 $taxonomyTags = [];
                 $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(['full' => false, 'enabled' => true]);
+                $namespaceMap = [];
+                foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
+                    $namespaceMap[mb_strtolower($namespace)] = $taxonomy;
+                }
                 $userId = $this->Auth->user('id');
 
                 foreach ($tags as $k => $tag) {
@@ -81,15 +85,18 @@ class TagsController extends AppController
                     $tags[$k]['Tag']['favourite'] = $favourite;
                     unset($tags[$k]['FavouriteTag']);
 
-                    // Match taxonomy
-                    foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
-                        if (substr(strtoupper($tag['Tag']['name']), 0, strlen($namespace)) === strtoupper($namespace)) {
+                    // Attach the taxonomy only if the tag really is one of its entries.
+                    $colonPos = strpos($tag['Tag']['name'], ':');
+                    $namespace = $colonPos > 0 ? mb_strtolower(substr($tag['Tag']['name'], 0, $colonPos)) : null;
+                    if ($namespace !== null && isset($namespaceMap[$namespace])) {
+                        $taxonomy = $namespaceMap[$namespace];
+                        if (!isset($taxonomyTags[$namespace])) {
+                            $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
+                        }
+                        $upperName = strtoupper($tag['Tag']['name']);
+                        if (isset($taxonomyTags[$namespace][$upperName])) {
                             $tags[$k]['Tag']['Taxonomy'] = $taxonomy;
-                            if (!isset($taxonomyTags[$namespace])) {
-                                $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
-                            }
-                            $tags[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
-                            break;
+                            $tags[$k]['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$namespace][$upperName];
                         }
                     }
                 }
