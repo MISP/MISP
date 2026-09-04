@@ -261,9 +261,9 @@ class GalaxiesController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(__('Insufficient privileges'));
         }
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
-        if (empty($ids) || !is_array($ids)) {
+        $ids = $this->_massActionIdList($idList, 'Galaxy');
+
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Galaxies', 'massToggle', false, $message, $this->response->type());
@@ -309,7 +309,10 @@ class GalaxiesController extends AppController
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/galaxies/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Galaxy.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Galaxy']['id'] = json_encode($ids);
+        $this->set('url', '/galaxies/' . ($state ? 'massEnable' : 'massDisable'));
         $this->render('ajax/galaxyToggleConfirmationForm');
     }
 
