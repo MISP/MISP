@@ -47,6 +47,10 @@ class DecayingModelMapping extends AppModel
         $result = $this->saveMany($data, array(
             'atomic' => true
         ));
+        // deleteAll() runs without callbacks and saveMany() only reaches this
+        // model's hooks, so drop both read-through caches by hand here.
+        $this->modelCache = [];
+        $this->DecayingModel->flushModelCache();
         if ($result) {
             return $new_model['attribute_types'];
         } else {
@@ -78,7 +82,9 @@ class DecayingModelMapping extends AppModel
     }
 
     public function getAssociatedModels($user, $attribute_type = false) {
-        $cacheKey = sprintf('%s', $attribute_type);
+        // The conditions below are scoped to the requesting organisation, so
+        // the type alone is not a sufficient cache key.
+        $cacheKey = sprintf('%s_%s', $attribute_type, $user['org_id']);
         if (isset($this->modelCache[$cacheKey])) {
             return $this->modelCache[$cacheKey];
         }
