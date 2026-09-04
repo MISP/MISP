@@ -35,7 +35,7 @@
             $relevantId = !isset($relatedAttribute['attribute_id']) ? $relatedAttribute['Event']['id'] : $relatedAttribute['id'];
             $link = sprintf(
                 '<a href="%s" class="%s">%s</a>',
-                $baseurl . '/events/view/' . h($relevantId) . ($withPivot ? '/1/' . h($event['Event']['id']) : ''),
+                h($baseurl) . '/events/view/' . h($relevantId) . ($withPivot ? '/1/' . h($event['Event']['id']) : ''),
                 ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue',
                 h($relevantId)
             );
@@ -70,9 +70,10 @@
             __('Too many correlations.')
         );
     }
+    $searchTitle = __('Search for value');
     echo sprintf(
         '<a href="%s" class="fa fa-search black" title="%s" aria-label="%s"></a>',
-        $baseurl . '/attributes/search/value:' . h(rawurlencode($object['value'])),
-        h(__('Search for value')),
-        h(__('Search for value'))
+        h($baseurl) . '/attributes/search/value:' . rawurlencode($object['value']),
+        $searchTitle,
+        $searchTitle
     );
