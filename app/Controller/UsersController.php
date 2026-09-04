@@ -53,6 +53,22 @@ class UsersController extends AppController
         // hash _validatePost() compares against. It sends the page's CSRF token in
         // the X-CSRF-Token header instead.
         $this->_csrfTokenHeaderOnly(['request_API']);
+        // register, forgot and password_reset are the actions a REST client
+        // reaches holding no credential at all - PyMISP's register_user() posts
+        // JSON with neither an API key nor a session, so the credential-based
+        // exemption in AppController never applies to it. Form security guards a
+        // session against a request a cross-origin page made the browser send;
+        // a request with no session has nothing to guard, and routing one
+        // through a victim's browser gains an attacker nothing curl would not.
+        // A caller that does hold a session keeps both checks, as everywhere
+        // else, and none of the three actions reads that session anyway.
+        if (
+            $this->_isRest() &&
+            empty($this->Auth->user()) &&
+            in_array($this->request->params['action'], ['register', 'forgot', 'password_reset'], true)
+        ) {
+            $this->Security->unlockedActions[] = $this->request->params['action'];
+        }
     }
 
     public function view($id = null)
