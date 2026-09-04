@@ -21,6 +21,14 @@
             'icon' => 'plus',
             'url' => sprintf('%s/objects/add/%s', $baseurl, h($event['Event']['id'])),
         ];
+
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'reports',
+            'label' => __('Add report'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/event_reports/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
     }
 
     $this->set('headerTitle', $headerTitle);
