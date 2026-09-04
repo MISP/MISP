@@ -9,10 +9,6 @@ $currentDist = $this->request->data['Galaxy']['distribution']
     ?? ($galaxy['Galaxy']['distribution'] ?? $initialDistribution);
 $initDist = (int)$currentDist;
 
-// Only the levels $distributionLevels offers are rendered — the loop below
-// drives the cards and looks the presentation up here by level.
-$distIconMap = $this->DistributionLevel->all();
-
 echo $this->Form->create('Galaxy', [
     'id' => 'galaxyAddForm',
     'url' => $formUrl,
@@ -84,48 +80,13 @@ echo $this->Form->create('Galaxy', [
         </div>
     </div>
 
-    <!-- DISTRIBUTION CARDS -->
     <div class="mt-3">
-        <?= $this->element('genericElementsBS5/Forms/section_label', [
+        <?= $this->element('genericElementsBS5/Forms/distribution_field', [
             'accent' => 'galaxy',
-            'label' => __('Distribution'),
-        ]) ?>
-        <?= $this->Form->select('distribution', $distributionLevels, [
             'id' => 'GalaxyDistribution',
-            'class' => 'Galaxy_distribution_select',
             'value' => $initDist,
-            'style' => 'display:none;',
+            'selectAttrs' => ['class' => 'Galaxy_distribution_select'],
         ]) ?>
-        <div class="row g-2" id="galaxyDistCardRow">
-            <?php foreach ($distributionLevels as $level => $label):
-                $level = (int)$level;
-                $ic = $distIconMap[$level]
-                    ?? ['bg' => '#f1f1f1', 'color' => '#333', 'icon' => 'fas fa-question'];
-                $sel = ($level === $initDist);
-                $bdr = $sel
-                    ? 'border-color:var(--bs-galaxy) !important;background:rgba(139,92,246,.08);'
-                    : 'border-color:#d8dde3;';
-            ?>
-            <div class="col dist-card-col"
-                 style="cursor:pointer;"
-                 data-dist-value="<?= $level ?>">
-                <div class="border rounded p-2 d-flex flex-column align-items-center gap-1 h-100 text-center"
-                     style="transition:border-color .15s,background .15s; <?= $bdr ?>">
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-1"
-                          style="width:1.8rem;height:1.8rem;
-                                 background:<?= h($ic['bg']) ?>;
-                                 border:1px solid <?= h($ic['color']) ?>30;">
-                        <i class="<?= h($ic['icon']) ?>"
-                           style="color:<?= h($ic['color']) ?>;font-size:.7rem;"></i>
-                    </span>
-                    <span class="fw-bold lh-sm"
-                          style="font-size:.68rem;color:var(--bs-body-color);">
-                        <?= h($label) ?>
-                    </span>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
     </div>
 
     <!-- KILL CHAIN ORDER (advanced) -->
@@ -190,22 +151,4 @@ echo $this->Form->create('Galaxy', [
 
 <?= $this->Form->end(); ?>
 
-<script>
-(function () {
-    var distSel = document.getElementById('GalaxyDistribution');
-    document.querySelectorAll('#galaxyDistCardRow .dist-card-col').forEach(function (card) {
-        card.addEventListener('click', function () {
-            document.querySelectorAll('#galaxyDistCardRow .dist-card-col > div').forEach(function (d) {
-                d.style.borderColor = '#d8dde3';
-                d.style.background = '';
-            });
-            var inner = card.querySelector('div');
-            if (inner) {
-                inner.style.borderColor = 'var(--bs-galaxy)';
-                inner.style.background = 'rgba(139,92,246,.08)';
-            }
-            if (distSel) distSel.value = card.dataset.distValue;
-        });
-    });
-})();
-</script>
+

@@ -10,7 +10,6 @@ $entityFeed = $entity['Feed'] ?? [];
 
 $distSelected = $reqFeed['distribution'] ?? 3;
 $orgcSelected = $reqFeed['orgc_id'] ?? ($isEdit ? null : ($me['org_id'] ?? null));
-$sgSelected = $reqFeed['sharing_group_id'] ?? null;
 $tagSelected = $reqFeed['tag_id'] ?? '0';
 $tagCollSelected = $reqFeed['tag_collection_id'] ?? '0';
 $fixedSelected = $reqFeed['fixed_event'] ?? 0;
@@ -133,7 +132,7 @@ echo $this->Form->create('Feed', [
 
 <div class="container-fluid px-4 py-4">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-4 px-2">
 
         <?php if ($localFeedDisabled): ?>
             <div class="alert alert-warning d-flex align-items-start gap-2 mb-0"
@@ -146,7 +145,7 @@ echo $this->Form->create('Feed', [
         <?php endif; ?>
 
         <!-- ── NAME ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center gap-2 text-primary fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
@@ -167,7 +166,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── SOURCE ──────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center gap-2 text-primary fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
@@ -245,7 +244,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── HEADERS (network only) ──────────────────────────── -->
-        <div class="w-100 px-2" id="HeadersDiv">
+        <div class="w-100 " id="HeadersDiv">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Request Headers'),
@@ -297,7 +296,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Options'),
@@ -341,7 +340,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── PARSING TARGET (freetext / csv) ─────────────────── -->
-        <div class="w-100 px-2 optionalField" id="TargetSection" style="display:none;">
+        <div class="w-100  optionalField" id="TargetSection" style="display:none;">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Parsing Target'),
@@ -435,30 +434,22 @@ echo $this->Form->create('Feed', [
             </div>
         </div>
 
-        <!-- ── DISTRIBUTION ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+        <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                 'accent' => 'primary',
-                'label' => __('Distribution / Sharing Group'),
+                'levels' => $dropdownData['distributionLevels'] ?? [],
+                'sharingGroups' => $dropdownData['sharingGroups'] ?? [],
+                'value' => $distSelected,
+                'showSg' => true,
+                'id' => 'distribution-select',
+                'sgId' => 'sharing-group-select',
+                'sgEmpty' => __('Select a sharing group…'),
             ]) ?>
-            <div class="d-flex gap-3">
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $dropdownData['distributionLevels'], [
-                        'class' => 'form-select',
-                        'id' => 'FeedDistribution',
-                        'value' => $distSelected,
-                        'empty' => false,
-                    ]) ?>
-                </div>
-                <div class="flex-fill" id="SGContainer" style="display:none;">
-                    <?= $this->Form->select('sharing_group_id', $dropdownData['sharingGroups'], [
-                        'class' => 'form-select tom-select',
-                        'value' => $sgSelected,
-                        'empty' => true,
-                    ]) ?>
-                </div>
-            </div>
+        </div>
 
+        <!-- ── DEFAULT TAG / COLLECTION ───────────────────────── -->
+        <div class="w-100 ">
             <div class="row g-3 mt-1">
                 <div class="col-md-6">
                     <label class="form-label text-muted mb-1" style="font-size:.75rem;">
@@ -489,7 +480,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── PULL FILTER RULES ───────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <?= $this->element('genericElementsBS5/Forms/section_label', [
                     'accent' => 'primary',
