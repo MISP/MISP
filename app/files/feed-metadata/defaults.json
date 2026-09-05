@@ -2505,5 +2505,25 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "name": "phishunt.io active phishing URLs",
+      "provider": "phishunt.io",
+      "url": "https://phishunt.io/feed.txt",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
   }
 ]
