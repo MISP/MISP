@@ -119,6 +119,7 @@ class AuditLogsController extends AppController
         if (!Configure::read('MISP.log_new_audit')) {
             $this->Flash->warning(__("Audit log is not enabled. See 'MISP.log_new_audit' in the Server Settings. (Administration -> Server Settings -> MISP tab)"));
         }
+        $exception = null;
         $params = $this->IndexFilter->harvestParameters([
             'ip',
             'user',
@@ -132,9 +133,26 @@ class AuditLogsController extends AppController
             'org',
             'created',
             'request_type',
-        ]);
+        ], $exception, ['fromQuery' => true]);
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
+
+        // Free-text search box: one term, run against the whole index rather
+        // than against the rows of the current page. `change` is left out —
+        // it is brotli-compressed in the table, so LIKE cannot reach it.
+        $quickFilter = $this->IndexFilter->quickFilterTerm();
+        $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'AuditLog', [
+            'like' => ['model_title', 'model', 'action', 'request_id'],
+            'numeric' => ['model_id', 'event_id'],
+            'ip' => 'ip',
+            'user' => 'user_id',
+            'org' => 'org_id',
+        ]);
+        if (!empty($quickFilterConditions)) {
+            $this->paginate['conditions']['AND'][] = $quickFilterConditions;
+        }
+        $this->set('quickFilter', $quickFilter);
+
         $user = $this->Auth->user();
         $acl = $this->__applyAuditAcl($user);
         if ($acl) {
@@ -152,7 +170,7 @@ class AuditLogsController extends AppController
         }
 
         // Free-text fields use partial matching (LIKE) for the search
-        if (!empty($params)) {
+        if (!empty($params) || $quickFilter !== '') {
             $this->set('headerCount', (int)$this->AuditLog->find('count', [
                 'conditions' => $this->paginate['conditions'],
                 'recursive' => -1,

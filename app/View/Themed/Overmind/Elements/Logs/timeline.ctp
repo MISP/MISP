@@ -116,14 +116,10 @@ $fmtDay = function ($dayKey) {
                         <?php foreach ($dayEntries as $i => $e):
                             $m = $meta[$e['action'] ?? ''] ?? $fallback;
                             $label = $e['action_label'] ?? ($e['action'] ?? '');
-                            $searchBlob = strtolower(trim(implode(' ', [
-                                $e['title'] ?? '', $e['model'] ?? '', $e['action'] ?? '',
-                                $label, $e['user'] ?? '', $e['org'] ?? '',
-                            ])));
                             $collapseId = $uid . '-c-' . h($dayKey) . '-' . $i;
                             $collapseId = preg_replace('/[^A-Za-z0-9_-]/', '', $collapseId);
                         ?>
-                            <div class="tl-entry" data-search="<?= h($searchBlob) ?>">
+                            <div class="tl-entry">
                                 <div class="tl-dot" style="color:<?= h($m['color']) ?>;background:<?= h($m['bg']) ?>;"></div>
 
                                 <div class="d-flex align-items-start gap-2 flex-wrap">

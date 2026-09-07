@@ -4356,3 +4356,401 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.tab-pane.active .ajax-tab-content')
         .forEach(loadAjaxContainer);
 });
+
+/* ==========================================================================
+ * Log index filter bar
+ * ==========================================================================
+ *
+ * Drives Elements/Logs/filter_card.ctp on the three log indexes. Log tables
+ * hold millions of rows and a multi-column LIKE cannot use an index, so a
+ * filter that fired on every blur meant paying for a full scan per
+ * keystroke-and-tab. Instead the inputs build up a draft, the draft is shown
+ * back as chips, and one button applies the lot — through ajax, swapping the
+ * page's `#log-index-results` rather than reloading everything.
+ *
+ * The card's configuration (base URL, applied filters, field labels) is
+ * rendered next to it as a JSON <script>; see the element for its shape.
+ */
+
+/**
+ * @param {Element} root the [data-log-filter-card] element
+ */
+function initLogFilterCard(root) {
+    if (!root || root.dataset.logFilterReady) { return; }
+    root.dataset.logFilterReady = '1';
+
+    const configEl = root.querySelector('.log-filter-config');
+    if (!configEl) { return; }
+    const cfg = JSON.parse(configEl.textContent);
+    const S = cfg.strings;
+
+    const quickEl = root.querySelector('.log-quick-filter');
+    const summaryEl = root.querySelector('.log-filter-summary');
+    const countEl = root.querySelector('.log-filter-count');
+    const results = document.querySelector(cfg.results);
+
+    // What the page currently shows. Replaced on every successful apply, so
+    // the chips can tell an applied filter from one still being typed.
+    let applied = Object.assign({}, cfg.applied);
+    let appliedQuick = cfg.appliedQuick || '';
+    let inFlight = null;
+
+    /* ── draft state ─────────────────────────────────────────────────── */
+
+    function inputs() {
+        return Array.prototype.slice.call(root.querySelectorAll('[data-log-filter]'));
+    }
+
+    function draft() {
+        const out = {};
+        inputs().forEach(function (el) {
+            const value = (el.value || '').trim();
+            if (value !== '') { out[el.getAttribute('data-log-filter')] = value; }
+        });
+        return out;
+    }
+
+    function draftQuick() {
+        return quickEl ? (quickEl.value || '').trim() : '';
+    }
+
+    function labelFor(name) {
+        return (cfg.fields[name] && cfg.fields[name].label) || name;
+    }
+
+    // A select stores `remove_tag` but the user picked "Remove tag".
+    function displayFor(name, value) {
+        const options = cfg.fields[name] && cfg.fields[name].options;
+        return (options && options[value]) || value;
+    }
+
+    /* ── chips ───────────────────────────────────────────────────────── */
+
+    function chip(label, value, state) {
+        const el = document.createElement('span');
+        el.className = 'badge d-inline-flex align-items-center gap-1 '
+            + (state === 'removed'
+                ? 'text-bg-light border border-danger text-danger text-decoration-line-through'
+                : state === 'pending'
+                    ? 'text-bg-warning border border-warning-subtle'
+                    : 'text-bg-primary');
+        if (state === 'pending') {
+            el.title = S.notApplied;
+            el.insertAdjacentHTML('beforeend', '<i class="fas fa-clock"></i>');
+        } else if (state === 'removed') {
+            el.title = S.willBeRemoved;
+        }
+        el.insertAdjacentText('beforeend', label + ': ' + value);
+        return el;
+    }
+
+    function removeButton(chipEl, onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-close btn-close-sm ms-1';
+        btn.style.fontSize = '.5rem';
+        btn.title = S.remove;
+        btn.addEventListener('click', onClick);
+        chipEl.appendChild(btn);
+    }
+
+    function renderSummary() {
+        const current = draft();
+        const quick = draftQuick();
+        let pending = 0;
+
+        summaryEl.textContent = '';
+
+        const chips = document.createElement('div');
+        chips.className = 'd-flex align-items-center flex-wrap gap-2 flex-grow-1';
+
+        if (quick !== '') {
+            const state = quick === appliedQuick ? 'applied' : 'pending';
+            if (state === 'pending') { pending++; }
+            const c = chip(cfg.quickLabel, quick, state);
+            removeButton(c, function () { quickEl.value = ''; renderSummary(); });
+            chips.appendChild(c);
+        } else if (appliedQuick !== '') {
+            pending++;
+            chips.appendChild(chip(cfg.quickLabel, appliedQuick, 'removed'));
+        }
+
+        Object.keys(current).forEach(function (name) {
+            const state = current[name] === applied[name] ? 'applied' : 'pending';
+            if (state === 'pending') { pending++; }
+            const c = chip(labelFor(name), displayFor(name, current[name]), state);
+            removeButton(c, function () {
+                const el = root.querySelector('[data-log-filter="' + name + '"]');
+                if (el) { setValue(el, ''); }
+                renderSummary();
+            });
+            chips.appendChild(c);
+        });
+
+        Object.keys(applied).forEach(function (name) {
+            if (current[name] === undefined) {
+                pending++;
+                chips.appendChild(chip(labelFor(name), displayFor(name, applied[name]), 'removed'));
+            }
+        });
+
+        if (!chips.children.length) {
+            const empty = document.createElement('span');
+            empty.className = 'text-muted small log-filter-empty';
+            empty.textContent = S.noFilter;
+            chips.appendChild(empty);
+        }
+
+        summaryEl.appendChild(buildBar(chips, pending));
+
+        if (countEl) {
+            countEl.textContent = String(Object.keys(current).length);
+            countEl.classList.toggle('d-none', Object.keys(current).length === 0);
+        }
+    }
+
+    function buildBar(chips, pending) {
+        const bar = document.createElement('div');
+        bar.className = 'd-flex align-items-start flex-wrap gap-2';
+        bar.appendChild(chips);
+
+        const status = document.createElement('span');
+        status.className = 'small align-self-center log-filter-status '
+            + (pending ? 'text-warning-emphasis fw-semibold' : 'text-muted');
+        status.textContent = pending
+            ? (pending === 1 ? S.pendingOne : S.pendingMany.replace('%s', pending))
+            : S.applied;
+        bar.appendChild(status);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'btn btn-sm ' + (pending ? 'btn-primary' : 'btn-outline-primary');
+        applyBtn.innerHTML = '<i class="fas fa-filter me-1"></i>' + S.apply;
+        applyBtn.addEventListener('click', apply);
+        bar.appendChild(applyBtn);
+
+        if (Object.keys(applied).length || appliedQuick !== '') {
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'btn btn-sm btn-outline-danger';
+            clearBtn.innerHTML = '<i class="fas fa-times me-1"></i>' + S.clearAll;
+            clearBtn.addEventListener('click', function () {
+                if (quickEl) { quickEl.value = ''; }
+                inputs().forEach(function (el) { setValue(el, ''); });
+                apply();
+            });
+            bar.appendChild(clearBtn);
+        }
+        return bar;
+    }
+
+    // TomSelect keeps its own DOM, so the underlying <select> alone is not enough.
+    function setValue(el, value) {
+        if (el.tomselect) {
+            el.tomselect.setValue(value, true);
+        } else {
+            el.value = value;
+        }
+    }
+
+    /* ── applying ────────────────────────────────────────────────────── */
+
+    /*
+     * Filters go in the query string, paginator parameters stay named URL
+     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
+     * the access log controller with the value dropped — and the free-text
+     * search of a URL column is exactly where slashes turn up.
+     */
+    function buildUrl() {
+        const path = cfg.base + (cfg.preserved.length ? '/' + cfg.preserved.join('/') : '');
+        const query = new URLSearchParams();
+        const quick = draftQuick();
+        if (quick !== '') { query.set(cfg.quickName, quick); }
+        const current = draft();
+        Object.keys(current).forEach(function (name) { query.set(name, current[name]); });
+        const search = query.toString();
+        return path + (search ? '?' + search : '');
+    }
+
+    function apply() {
+        load(buildUrl(), true);
+    }
+
+    /**
+     * Read a URL back into the card. Applying round-trips to itself, but the
+     * back button and the pagination/sort links do not: they hand over a URL
+     * this card did not build, and its inputs, its chips and the paginator
+     * parameters it carries across all have to follow.
+     */
+    function syncFromUrl(url) {
+        const cut = url.indexOf('?');
+        const path = cut === -1 ? url : url.slice(0, cut);
+        const query = cut === -1 ? '' : url.slice(cut + 1);
+        const named = {};
+        if (path.indexOf(cfg.base) === 0) {
+            path.slice(cfg.base.length).split('/').forEach(function (segment) {
+                const colon = segment.indexOf(':');
+                if (colon > 0) {
+                    named[segment.slice(0, colon)] = decodeURIComponent(segment.slice(colon + 1));
+                }
+            });
+        }
+        // `page` is deliberately not carried across: a new filter starts over.
+        cfg.preserved = ['sort', 'direction', 'limit']
+            .filter(function (key) { return named[key] !== undefined; })
+            .map(function (key) { return key + ':' + encodeURIComponent(named[key]); });
+
+        // A filter may still arrive as a named segment, from an older link.
+        const params = new URLSearchParams(query);
+        inputs().forEach(function (el) {
+            const name = el.getAttribute('data-log-filter');
+            setValue(el, params.get(name) || named[name] || '');
+        });
+        if (quickEl) {
+            quickEl.value = params.get(cfg.quickName) || named[cfg.quickName] || '';
+        }
+    }
+
+    function setBusy(busy) {
+        root.classList.toggle('log-filter-busy', busy);
+        if (!results) { return; }
+        results.classList.toggle('log-results-busy', busy);
+        let overlay = results.querySelector(':scope > .log-results-overlay');
+        if (busy && !overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'log-results-overlay';
+            overlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+            results.appendChild(overlay);
+        } else if (!busy && overlay) {
+            overlay.remove();
+        }
+    }
+
+    /**
+     * Fetch a filtered/sorted/paged version of this index and swap in its
+     * results. The whole page is requested rather than a fragment — the
+     * layout is cheap next to the scans these filters cost, and it keeps the
+     * three views free of an ajax branch — but only the results, the pager
+     * and the header count are taken out of the response, so the live filter
+     * card (and its TomSelect instances) is never rebuilt.
+     */
+    function load(url, push) {
+        if (!results) { window.location.href = url; return; }
+        if (inFlight) { inFlight.abort(); }
+        const controller = new AbortController();
+        inFlight = controller;
+        setBusy(true);
+
+        fetch(url, { credentials: 'same-origin', signal: controller.signal })
+            .then(function (response) {
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                return response.text();
+            })
+            .then(function (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const fresh = doc.querySelector(cfg.results);
+                if (!fresh) { throw new Error('no results container in response'); }
+
+                results.innerHTML = fresh.innerHTML;
+                swap(doc, '#headerCountBadge');
+                swap(doc, '.log-filter-pager', root);
+
+                if (push) { history.pushState({ logFilter: true }, '', url); }
+                syncFromUrl(url);
+                applied = draft();
+                appliedQuick = draftQuick();
+                renderSummary();
+                bindNavLinks();
+                results.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') { return; }
+                showLoadError();
+            })
+            .finally(function () {
+                if (inFlight === controller) { inFlight = null; setBusy(false); }
+            });
+    }
+
+    function swap(doc, selector, scope) {
+        const target = (scope || document).querySelector(selector);
+        const fresh = doc.querySelector(selector);
+        if (target && fresh) { target.innerHTML = fresh.innerHTML; }
+    }
+
+    function showLoadError() {
+        // The summary lives inside the "More Filters" collapse, so an error
+        // raised from the search button alone would land out of sight.
+        const panel = summaryEl.closest('.collapse');
+        if (panel && !panel.classList.contains('show')
+            && window.bootstrap && bootstrap.Collapse) {
+            bootstrap.Collapse.getOrCreateInstance(panel).show();
+        }
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show mb-0 mt-3';
+        alert.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>'
+            + S.loadError
+            + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        summaryEl.appendChild(alert);
+    }
+
+    /* ── paging and sorting stay inside the ajax loop ─────────────────── */
+
+    function bindNavLinks() {
+        // The pager lives inside the card, next to the filters it pages through.
+        root.querySelectorAll('.log-filter-pager a[href]').forEach(bindLink);
+        if (!results) { return; }
+        results.querySelectorAll('.pagination a[href], thead a[href]')
+            .forEach(bindLink);
+    }
+
+    function bindLink(link) {
+        link.addEventListener('click', function (event) {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) { return; }
+            event.preventDefault();
+            load(link.getAttribute('href'), true);
+        });
+    }
+
+    /* ── wiring ──────────────────────────────────────────────────────── */
+
+    inputs().forEach(function (el) {
+        el.addEventListener('change', renderSummary);
+        el.addEventListener('input', renderSummary);
+        el.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') { event.preventDefault(); apply(); }
+        });
+    });
+
+    if (quickEl) {
+        quickEl.addEventListener('input', renderSummary);
+        quickEl.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') { event.preventDefault(); apply(); }
+        });
+    }
+
+    const quickBtn = root.querySelector('.log-quick-btn');
+    if (quickBtn) { quickBtn.addEventListener('click', apply); }
+
+    if (typeof initTomSelect === 'function') { initTomSelect(root); }
+
+    // TomSelect swallows the change event of the original <select> in some
+    // versions, so listen on the instance as well.
+    inputs().forEach(function (el) {
+        if (el.tomselect) { el.tomselect.on('change', renderSummary); }
+    });
+
+    window.addEventListener('popstate', function () {
+        // Another page's history entry is none of this card's business.
+        if (window.location.pathname.indexOf(cfg.base) !== 0) { return; }
+        load(window.location.pathname + window.location.search, false);
+    });
+
+    renderSummary();
+    bindNavLinks();
+}
+window.initLogFilterCard = initLogFilterCard;
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
+});

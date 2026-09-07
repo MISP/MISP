@@ -7,40 +7,58 @@
 $this->set('headerTitle', __('Application logs'));
 $this->set('headerDescription', __('System activity: authentication, imports, background tasks and more.'));
 
+// 'auth_fail' → 'Auth fail', 'attachTagToObject' → 'Attach tag to object'.
+// Used both for the dropdown labels and for the timeline's action badges.
+$prettyAction = function ($action) {
+    $words = preg_replace('/(?<!^)[A-Z]/', ' $0', str_replace('_', ' ', (string)$action));
+    return ucfirst(mb_strtolower($words));
+};
+
+// Action and model are closed sets on the application log too, so they get a
+// dropdown rather than a free-text box you have to spell right.
+$actionOptions = ['' => __('All actions')];
+foreach (($actions ?? []) as $a) {
+    $actionOptions[$a] = $prettyAction($a);
+}
+$modelOptions = ['' => __('All models')];
+foreach (($models ?? []) as $m) {
+    $modelOptions[$m] = $m;
+}
+
 $filterFields = [
     [
         'name' => 'title', 'label' => __('Title contains'), 'type' => 'text',
-        'placeholder' => __('Filter this page...'), 'col' => 6,
+        'placeholder' => __('e.g. a user or an event name'), 'col' => 6,
     ],
     [
-        'name' => 'action', 'label' => __('Action'), 'type' => 'text',
-        'placeholder' => __('e.g. login, add, edit'), 'col' => 3,
+        'name' => 'action', 'label' => __('Action'), 'type' => 'select',
+        'options' => $actionOptions, 'col' => 3,
     ],
     [
-        'name' => 'model', 'label' => __('Model'), 'type' => 'text',
-        'placeholder' => __('e.g. User, Event'), 'col' => 3,
+        'name' => 'model', 'label' => __('Model'), 'type' => 'select',
+        'options' => $modelOptions, 'col' => 3,
     ],
     [
-        'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number', 'col' => 3,
+        'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number',
+        'placeholder' => __('e.g. 42'), 'col' => 3,
     ],
     [
-        'name' => 'email', 'label' => __('E-mail'), 'type' => 'text', 'col' => 3,
+        'name' => 'email', 'label' => __('E-mail'), 'type' => 'text',
+        'placeholder' => __('e.g. alice@example.com'), 'col' => 3,
     ],
     [
-        'name' => 'org', 'label' => __('Organisation'), 'type' => 'text', 'col' => 3,
+        'name' => 'org', 'label' => __('Organisation'), 'type' => 'text',
+        'placeholder' => __('e.g. CIRCL'), 'col' => 3,
     ],
     [
-        'name' => 'ip', 'label' => __('IP'), 'type' => 'text', 'col' => 3,
+        'name' => 'ip', 'label' => __('IP'), 'type' => 'text',
+        'placeholder' => __('e.g. 10.0.0.1'), 'col' => 3,
         'requirement' => (bool)Configure::read('MISP.log_client_ip'),
     ],
     [
         'name' => 'created', 'label' => __('Created after'), 'type' => 'date', 'col' => 3,
     ],
 ];
-
-$prettyAction = function ($action) {
-    return ucfirst(str_replace('_', ' ', (string)$action));
-};
 
 // Only admins can reach /admin/users/view — avoid dangling links for others.
 $canLinkUser = !empty($isSiteAdmin) || !empty($me['Role']['perm_admin']);
@@ -84,21 +102,24 @@ foreach (($data ?? []) as $item) {
 
     <?= $this->element('Logs/filter_card', [
         'item_url'      => '/logs',
-        'search'        => ['placeholder' => __('Filter this page…')],
+        'search'        => ['placeholder' => __('Search title, description, change, model, action, user, org…')],
         'fields'        => $filterFields,
         'pager_element' => 'Logs/pager_prevnext',
     ]) ?>
 
-    <?= $this->element('Logs/timeline', [
-        'entries'    => $entries,
-        'title'      => __('Application activity'),
-        'icon'       => 'fas fa-clipboard-list',
-        'empty_text' => __('No application log entries match your filters.'),
-    ]) ?>
+    <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
+    <div id="log-index-results">
+        <?= $this->element('Logs/timeline', [
+            'entries'    => $entries,
+            'title'      => __('Application activity'),
+            'icon'       => 'fas fa-clipboard-list',
+            'empty_text' => __('No application log entries match your filters.'),
+        ]) ?>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
+            </div>
         </div>
     </div>
 

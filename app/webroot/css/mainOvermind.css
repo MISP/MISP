@@ -3073,3 +3073,44 @@ tr.evt-extension-row td:first-child {
 .ov-subfield-box .ov-form-bare {
     font-size: .85rem;
 }
+
+/* ==========================================================================
+   Log index — ajax reload of the results
+   ==========================================================================
+   The filter bar swaps `#log-index-results` in place instead of reloading the
+   page, so the old rows stay visible, dimmed and inert, while the new query
+   runs. Log queries can take seconds, and a table that vanishes on every
+   filter reads as a broken page.
+   ========================================================================== */
+
+#log-index-results {
+    position: relative;
+}
+
+#log-index-results.log-results-busy > *:not(.log-results-overlay) {
+    opacity: .35;
+    pointer-events: none;
+    transition: opacity .15s ease-in;
+}
+
+.log-results-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6rem;
+    z-index: 5;
+}
+
+/* Keep the spinner in view on a long, mostly-scrolled-past table. */
+.log-results-overlay > .spinner-border {
+    position: sticky;
+    top: 45vh;
+}
+
+.log-filter-busy .log-quick-btn,
+.log-filter-busy .log-filter-summary button {
+    pointer-events: none;
+    opacity: .6;
+}
