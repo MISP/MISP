@@ -223,7 +223,16 @@ class Server extends AppModel
         ),
     );
 
+    /** @var array Compiled push rules, keyed by server ID. See Server::compilePushRules(). */
+    private $compiledPushRules = array();
+
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
+
+    public function afterSave($created, $options = array())
+    {
+        $this->compiledPushRules = array();
+        return parent::afterSave($created, $options);
+    }
 
     public function beforeSave($options = array())
     {
@@ -4546,7 +4555,8 @@ class Server extends AppModel
             $eventTags[] = $tag['tag_id'];
         }
         foreach ($servers as $server) {
-            $push_rules = json_decode($server['Server']['push_rules'], true);
+            $compiled = $this->compilePushRules($server);
+            $push_rules = $compiled['rules'];
             if (!empty($push_rules['tags']['OR'])) {
                 $intersection = array_intersect($push_rules['tags']['OR'], $eventTags);
                 if (empty($intersection)) {
@@ -4560,13 +4570,13 @@ class Server extends AppModel
                 }
             }
             if (!empty($push_rules['orgs']['OR'])) {
-                $convertedRule = $this->convertUUIDsToIDs($push_rules['orgs']['OR']);
+                $convertedRule = $compiled['orgs']['OR'];
                 if (!in_array($event['Event']['orgc_id'], $convertedRule)) {
                     continue;
                 }
             }
             if (!empty($push_rules['orgs']['NOT'])) {
-                $convertedRule = $this->convertUUIDsToIDs($push_rules['orgs']['NOT']);
+                $convertedRule = $compiled['orgs']['NOT'];
                 if (in_array($event['Event']['orgc_id'], $convertedRule)) {
                     continue;
                 }
@@ -4574,6 +4584,35 @@ class Server extends AppModel
             $validServers[] = $server;
         }
         return $validServers;
+    }
+
+    /**
+     * Decode a server's push rules and resolve the org UUIDs contained in them to org IDs.
+     * The result is memoized per server ID, as it is invariant for the whole push run.
+     *
+     * @param array $server
+     * @return array
+     */
+    private function compilePushRules(array $server): array
+    {
+        $serverId = isset($server['Server']['id']) ? $server['Server']['id'] : null;
+        $raw = $server['Server']['push_rules'];
+        if ($serverId !== null && isset($this->compiledPushRules[$serverId]) && $this->compiledPushRules[$serverId]['raw'] === $raw) {
+            return $this->compiledPushRules[$serverId];
+        }
+        $push_rules = json_decode($raw, true);
+        $compiled = [
+            'raw' => $raw,
+            'rules' => $push_rules,
+            'orgs' => [
+                'OR' => !empty($push_rules['orgs']['OR']) ? $this->convertUUIDsToIDs($push_rules['orgs']['OR']) : [],
+                'NOT' => !empty($push_rules['orgs']['NOT']) ? $this->convertUUIDsToIDs($push_rules['orgs']['NOT']) : [],
+            ],
+        ];
+        if ($serverId !== null) {
+            $this->compiledPushRules[$serverId] = $compiled;
+        }
+        return $compiled;
     }
 
     private function convertUUIDsToIDs($orgs): array
