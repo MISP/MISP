@@ -403,6 +403,26 @@ class Sighting extends AppModel
             $attributesKeyed[$attribute['Attribute']['id']] = $attribute;
         }
         unset($attributes);
+        // Fetch reporter status for all relevant events at once instead of checking it for every sighting row
+        $reporterEvents = [];
+        if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            $eventIds = [];
+            foreach ($attributesKeyed as $attribute) {
+                if ($attribute['Event']['org_id'] != $userOrgId) {
+                    $eventIds[$attribute['Event']['id']] = true;
+                }
+            }
+            if (!empty($eventIds)) {
+                $reporterEvents = array_flip($this->find('column', [
+                    'conditions' => [
+                        'Sighting.event_id' => array_keys($eventIds),
+                        'Sighting.org_id' => $userOrgId,
+                    ],
+                    'fields' => ['Sighting.event_id'],
+                    'unique' => true,
+                ]));
+            }
+        }
         $sightings = $this->find('all', [
             'recursive' => -1,
             'conditions' => [
@@ -419,7 +439,7 @@ class Sighting extends AppModel
                         unset($sightings[$k]);
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isreporter($attribute['Event']['id'], $userOrgId)) {
+                    if (!isset($reporterEvents[$attribute['Event']['id']])) {
                         unset($sightings[$k]);
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
