@@ -1,0 +1,5 @@
+{
+    "result": {
+        "error": "Event could not be saved: Event in the request not newer than the local copy."
+    }
+}
