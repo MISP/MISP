@@ -5855,7 +5855,13 @@ class Server extends AppModel
                 ],
                 'enable_advanced_correlations' => [
                     'level' => 0,
-                    'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
+                    'description' => __(
+                        'Enable performance heavy correlations, including ' .
+                        'CIDR and fuzzy hash matching, plus host ' .
+                        'relationships between domains, hostnames, URLs ' .
+                        'and IP addresses. Advanced correlations are not ' .
+                        'available with the On Demand engine.'
+                    ),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
