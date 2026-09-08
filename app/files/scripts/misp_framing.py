@@ -59,3 +59,9 @@ if __name__ == "__main__":
         print(json.dumps(args.func(args)))
     except SystemExit:
         print(json.dumps({'error': 'Framing arguments error, please check requirements for each return format.'}))
+    except Exception as e:
+        # PHP JSON-decodes stdout; a bare traceback there reads as "could not
+        # get results from framing cmd" and loses the actual cause.
+        error = f'{type(e).__name__}: {e}'
+        print(json.dumps({'error': error}))
+        print(error, file=sys.stderr)
