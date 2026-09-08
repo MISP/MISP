@@ -4921,7 +4921,14 @@ window.initLogFilterCard = initLogFilterCard;
  */
 function initScaffoldFilterDraft(bar, cfg) {
     const scope = cfg.scope || document;
-    const panel = scope.querySelector('[data-filter-draft-panel]');
+    /*
+     * By id, never by a scoped query: a tab pane can hold two scaffolded
+     * indexes (the event view renders the attribute list twice), and only one
+     * of them may declare `more_filters`. Searching the pane hands the
+     * panel-less bar its neighbour's panel, and its config then builds the
+     * neighbour's URLs.
+     */
+    const panel = document.getElementById(cfg.advId);
     if (!panel) { return null; }
 
     // TomSelect copies the select's classes onto its wrapper, so
@@ -4930,7 +4937,8 @@ function initScaffoldFilterDraft(bar, cfg) {
         return Array.prototype.slice.call(panel.querySelectorAll('select.filter-draft-input'));
     };
     const controlFor = function (name) { return panel.querySelector('[name="' + name + '"]'); };
-    const searchEl = scope.querySelector('#filterField');
+    // `#filterField` is a repeated id across bars; scope it to this one.
+    const searchEl = bar.querySelector('#filterField');
 
     // In `event` mode every filter key is prefixed in the URL.
     const rawKey = function (name) {
@@ -5082,14 +5090,21 @@ function initScaffoldFilterDraft(bar, cfg) {
         }()),
         // The badge rides the toggle button, which lives in the bar's flex
         // row — outside the panel the controls are in.
-        countEl: scope.querySelector('.filter-draft-count'),
+        countEl: bar.querySelector('.filter-draft-count'),
         summaryEl: panel.querySelector('.filter-draft-summary'),
         extraChips: extraChips,
         results: cfg.results,
         swap: cfg.swap,
         rootLinks: ['.index-filter-pager a[href]'],
         resultLinks: ['.pagination a[href]', 'thead a[href]'],
-        buildUrl: buildUrl,
+        // A tab that drives its own URLs — the attribute list inside an event
+        // view builds `events/viewAttributes/<id>/category:x` — registers the
+        // two functions it owns on its container. Looked up per call, because
+        // it registers them after this bar has already wired itself.
+        buildUrl: function () {
+            const over = cfg.ajaxContainer && cfg.ajaxContainer.__indexFilterOverride;
+            return (over && over.buildUrl) ? over.buildUrl() : buildUrl();
+        },
         // Drops the bar's own filters and the search term. Outside an ajax
         // tab it drops the scope too, the way the old "Clear all" link to the
         // bare index did; inside one the scope is what the tab is about.
@@ -5103,6 +5118,8 @@ function initScaffoldFilterDraft(bar, cfg) {
         // An ajax tab reloads its own fragment, this bar included, and comes
         // back with the server's state — nothing to keep in sync here.
         reload: function (url) {
+            const over = cfg.ajaxContainer && cfg.ajaxContainer.__indexFilterOverride;
+            if (over && over.reload) { return over.reload(url); }
             if (cfg.ajaxContainer && typeof reloadAjaxTabIndex === 'function') {
                 reloadAjaxTabIndex(cfg.ajaxContainer, url);
                 return true;
