@@ -37,9 +37,14 @@ class BookmarksController extends AppController
                 $conditions = [
                     'OR' => [
                         'Bookmark.user_id' => $this->Auth->user()['id'],
-                        'AND' => [
-                            'Bookmark.org_id' => $this->Auth->user()['Organisation']['id'],
-                            'Bookmark.exposed_to_org' => true,
+                        [
+                            'AND' => [
+                                'Bookmark.org_id' => $this->Auth->user()['Organisation']['id'],
+                                'Bookmark.exposed_to_org' => true,
+                            ]
+                        ],
+                        [
+                            'Bookmark.exposed_to_all' => true,
                         ],
                     ],
                 ];
