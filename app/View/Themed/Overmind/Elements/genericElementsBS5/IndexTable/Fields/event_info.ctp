@@ -6,28 +6,39 @@ if (empty($event)) {
 }
 
 $isCard = isset($viewMode) && $viewMode === 'card';
+
+$distributionPath = array_key_exists('distribution_path', $field)
+    ? $field['distribution_path']
+    : 'Event.distribution';
+$publishedPath = array_key_exists('published_path', $field)
+    ? $field['published_path']
+    : 'Event.published';
 ?>
 
 <div class="d-flex flex-column">
     <div class="d-flex align-items-center gap-2 flex-wrap mb-0">
         <?php if (!$isCard):
-            echo $this->element(
-                '/genericElementsBS5/IndexTable/Fields/distribution',
-                [
-                    'row' => $row,
-                    'field' => [
-                        'data_path' => 'Event.distribution',
-                        'display' => 'short'
+            if (!empty($distributionPath)) {
+                echo $this->element(
+                    '/genericElementsBS5/IndexTable/Fields/distribution',
+                    [
+                        'row' => $row,
+                        'field' => [
+                            'data_path' => $distributionPath,
+                            'display' => 'short'
+                        ]
                     ]
-                ]
-            );
-            echo $this->element(
-                '/genericElementsBS5/IndexTable/Fields/published',
-                [
-                    'row' => $row,
-                    'field' => ['data_path' => 'Event.published']
-                ]
-            );
+                );
+            }
+            if (!empty($publishedPath)) {
+                echo $this->element(
+                    '/genericElementsBS5/IndexTable/Fields/published',
+                    [
+                        'row' => $row,
+                        'field' => ['data_path' => $publishedPath]
+                    ]
+                );
+            }
         endif; ?>
 
         <p class="mb-0 fw-semibold" style ="font-size: 1.2em;">

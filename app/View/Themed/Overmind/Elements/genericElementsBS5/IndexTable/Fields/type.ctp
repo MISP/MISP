@@ -8,7 +8,7 @@
 
 $type = Hash::extract($row, $field['data_path']);
 
-if (empty($type)) {
+if (empty($type) || $type[0] === "") {
     return;
 }
 

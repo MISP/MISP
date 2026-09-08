@@ -2,8 +2,13 @@
 $action = $this->request->params['action'];
 $isEdit = $action === 'edit';
 
+App::uses('EventTemplateDependencies', 'Tools');
+
 $offerTemplateAlternative = false;
-if (!$isEdit && $this->Acl->canAccess('eventTemplates', 'instantiate')) {
+if (!$isEdit
+    && !EventTemplateDependencies::missing()
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+) {
     App::uses('ClassRegistry', 'Utility');
     $__et = ClassRegistry::init('EventTemplate');
     $__conds = ['EventTemplate.active' => 1];
@@ -45,28 +50,14 @@ $orgName     = !empty($me['Organisation']['name'])
 echo $this->Form->create('Event', ['novalidate' => true]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-event"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Events') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-event"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Event') : __('Add Event') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= !$isEdit
-                ? __('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.')
-                : __('') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-event misp-simple text-event" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Events'),
+    'title' => $isEdit ? __('Edit Event') : __('Add Event'),
+    'description' => $isEdit ? '' : __('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'),
+    'icon' => 'misp-icon misp-icon-event misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -104,21 +95,23 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                 </span>
             </div>
             <?= $this->Form->textarea('info', [
-                'class'       => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style'       => 'border-bottom:1px solid #d8dde3 !important;'
+                'class'             => 'w-100 border-0 bg-transparent fs-5 py-1',
+                'style'             => 'border-bottom:1px solid #d8dde3 !important;'
                     . ' resize:none; outline:none;',
-                'rows'        => 2,
-                'placeholder' => __('Describe the threat event in precise terms…'),
+                'rows'              => 2,
+                'placeholder'       => __('Describe the threat event in precise terms…'),
+                'id'                => 'EventInfo',
+                'data-required-msg' => __('Please provide a name for the event.'),
             ]) ?>
         </div>
 
         <!-- ── EXTENDS UUID ────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Extends Event') ?>
-            </div>
-            <div class="border rounded px-3 pt-2 pb-2"
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Extends Event'),
+            ]) ?>
+            <div class="border rounded px-2 py-2"
                  style="border-color:#d8dde3;">
                 <?= $this->Form->control('extends_uuid', [
                     'class'       => 'w-100 border-0 bg-transparent p-0',
@@ -127,21 +120,19 @@ echo $this->Form->create('Event', ['novalidate' => true]);
                     'placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
                 ]) ?>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('If this event references another event, enter its ID or UUID here.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('If this event references another event, enter its ID or UUID here.'),
+            ]) ?>
             <div id="event_preview" class="mt-2" style="display:none;"></div>
         </div>
 
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
+        <div class="w-100 px-2" data-tour="event-distribution">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Distribution / Sharing Group'),
+            ]) ?>
             <div class="d-flex gap-3">
 
                 <div class="flex-fill">
@@ -165,11 +156,11 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
 
         <!-- ── ANALYSIS LEVEL ──────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Analysis Level') ?>
-            </div>
+        <div class="w-100 px-2" data-tour="event-analysis">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Analysis Level'),
+            ]) ?>
             <?= $this->Form->select('analysis', $analysisLevels, [
                 'id'    => 'EventAnalysisInput',
                 'value' => $currentAnalysis,
@@ -219,11 +210,11 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
 
         <!-- ── THREAT LEVEL ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Threat Level') ?>
-            </div>
+        <div class="w-100 px-2" data-tour="event-threat">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Threat Level'),
+            ]) ?>
             <?= $this->Form->select('threat_level_id', $threatLevels, [
                 'id'    => 'EventThreatLevelInput',
                 'value' => $currentThreatLevel,
@@ -271,12 +262,12 @@ echo $this->Form->create('Event', ['novalidate' => true]);
         </div>
 
         <!-- ── DATE ───────────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Event Date (UTC)') ?>
-            </div>
-            <div class="border rounded px-3 pt-2 pb-2"
+        <div class="w-100 px-2" data-tour="event-date">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Event Date (UTC)'),
+            ]) ?>
+            <div class="border rounded px-2 py-2"
                  style="border-color:#d8dde3;">
                 <input type="text"
                        id="EventDateDisplay"
@@ -293,33 +284,25 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($analystName): ?>
-                <?= __('Analyst') ?>: <strong class="text-body"><?= h($analystName) ?></strong>
-                <?php if ($orgName): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($orgName) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-circle-plus me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Create Event Entry')),
-                [
-                    'class'       => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if ($analystName) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $analystName];
+        if ($orgName) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $orgName];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => [
+            'label' => $isEdit ? __('Save Changes') : __('Create Event Entry'),
+            'icon' => 'fas fa-circle-plus',
+            'id' => 'EventSubmitButton',
+            'class' => 'btn-primary',
+        ],
+    ]);
+    ?>
 
 </div>
 

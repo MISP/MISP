@@ -52,6 +52,9 @@ class DecayingModelMappingController extends AppController
             return $this->RestResponse->viewData($response, $this->response->type());
         } else {
             $this->set('model_id', $model_id);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                $this->layout = false;
+            }
         }
     }
 

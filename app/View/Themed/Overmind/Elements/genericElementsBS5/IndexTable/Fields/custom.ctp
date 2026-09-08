@@ -1,1 +1,1 @@
-<?= $field['function']($row);
+<?= $field['function']($row, $viewMode ?? 'table');

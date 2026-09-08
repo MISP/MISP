@@ -532,7 +532,8 @@
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': (window.csrfToken || '')
             },
             body: JSON.stringify(body)
         }).then(function (r) {
@@ -1156,7 +1157,8 @@
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     credentials: 'same-origin',
                     cache: 'no-cache'

@@ -8,6 +8,8 @@
         ? $element['restrict_taxonomies']
         : [];
 ?>
+
+
 <div class="et-field et-tag-field mb-3"
      data-et-element-id="<?= h($id) ?>"
      data-et-element-type="tag_field"
@@ -25,9 +27,13 @@
             <?= $this->EventTemplateMarkdown->render($help) ?>
         </div>
     <?php endif; ?>
-    <select class="et-tag-select form-select bg-light"
-            <?php if ($multiple): ?>multiple<?php endif; ?>>
+    <select class="et-tag-select"
+            placeholder="<?= h($multiple ? __('Search tags to add…') : __('Search a tag…')) ?>">
     </select>
+    <div class="mt-2 d-flex flex-wrap et-tag-selected"></div>
+    <div class="text-muted small fst-italic et-tag-selected-empty">
+        <?= __('No tag selected.') ?>
+    </div>
     <input type="hidden" class="et-value"
            data-et-path="<?= h($id) ?>"
            data-et-csv="1">

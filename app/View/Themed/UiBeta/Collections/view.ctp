@@ -31,13 +31,26 @@ $eventUuids = array_values(array_unique(array_map(function ($el) {
     return $el['element_uuid'];
 }, $eventElements)));
 
-// Theme-local enrichment for creator org + tags + galaxies
+// Theme-local enrichment for creator org + tags + galaxies.
+//
+// The element UUIDs are attacker-supplied: CollectionElementsController::add()
+// stores whatever UUID the collection's owner posts without authorising it
+// against the referenced event, so this lookup must carry the caller's own
+// event ACL. CollectionsController::view() already resolves the same UUIDs
+// through Event::fetchSimpleEvents($user, ...); re-querying them here without
+// createEventConditions() handed back exactly the events the controller had
+// filtered out - event id, info, date, timestamp, creator org, every event tag
+// and, via attachClustersToEventIndex()'s cluster-scoped (not event-scoped)
+// ACL, the galaxy clusters attributing an event the caller cannot read.
 $eventDetailsByUuid = [];
-if (!empty($eventUuids)) {
+$_me = $this->get('me');
+if (!empty($eventUuids) && !empty($_me)) {
     $_eventModel = ClassRegistry::init('Event');
+    $_conditions = $_eventModel->createEventConditions($_me);
+    $_conditions['AND'][] = ['Event.uuid' => $eventUuids];
     $_events = $_eventModel->find('all', [
         'recursive' => -1,
-        'conditions' => ['Event.uuid' => $eventUuids],
+        'conditions' => $_conditions,
         'contain' => [
             'Orgc' => ['fields' => ['id', 'name', 'uuid']],
             'EventTag' => ['fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type']]
@@ -46,7 +59,7 @@ if (!empty($eventUuids)) {
     if (!empty($_events)) {
         $_events = $_eventModel->attachTagsToEvents($_events);
         $_galaxyClusterModel = ClassRegistry::init('GalaxyCluster');
-        $_events = $_galaxyClusterModel->attachClustersToEventIndex($this->Session->read('Auth.User'), $_events, true);
+        $_events = $_galaxyClusterModel->attachClustersToEventIndex($_me, $_events, true);
         foreach ($_events as $_event) {
             if (!empty($_event['Event']['uuid'])) {
                 $eventDetailsByUuid[$_event['Event']['uuid']] = $_event;
@@ -1101,6 +1114,7 @@ $partitionVisibleItems = function (array $items, $visibleLimit) {
             url: baseurl + '/events/restSearch.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             dataType: 'json',
             data: JSON.stringify({
                 uuid: eventUuids,

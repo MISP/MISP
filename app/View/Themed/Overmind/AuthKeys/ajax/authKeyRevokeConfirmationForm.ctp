@@ -2,32 +2,34 @@
     <div class="card shadow-sm d-inline-block w-auto">
         <div class="card-header">
             <h4 class="card-title mb-2 mt-2">
-                <?= h($title); ?>
+                <?= __('Revoke auth key'); ?>
             </h4>
         </div>
 
         <div class="card-body">
             <?php
-                echo $this->Form->create($model, [
+                echo $this->Form->create('AuthKey', [
                     'id' => 'PromptForm',
-                    'url' => $url,
+                    'url' => $baseurl . '/auth_keys/revoke/' . $id,
                     'class' => 'm-0'
                 ]);
-                echo $this->Form->hidden('id');
             ?>
 
-            <p class="mb-4"><?= h($message); ?></p>
+            <p class="mb-2"><?= __('Are you sure you want to revoke auth key #%s?', h($id)); ?></p>
+            <p class="text-body-secondary small mb-4" style="max-width: 32rem;">
+                <?= __('The key expires immediately and stops authenticating. It can be brought back later by setting a new expiration date from the edit form.'); ?>
+            </p>
 
             <div class="d-flex justify-content-between align-items-center">
-                <button type="submit" class="btn btn-primary">
-                    <?= __('Yes'); ?>
+                <button type="submit" class="btn btn-warning">
+                    <?= __('Revoke'); ?>
                 </button>
 
-                <button 
+                <button
                     type="button"
                     class="btn btn-outline-secondary"
                     onclick="bootstrap.Modal.getInstance(document.getElementById('mainModal')).hide();">
-                    <?= __('No'); ?>
+                    <?= __('Cancel'); ?>
                 </button>
             </div>
 

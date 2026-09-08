@@ -809,7 +809,7 @@ $buildRecencyMeta = function ($timestamp, $scaleLabel, $ageType = 'date') {
         </td>
         <?php endif; ?>
         <td class="short dblclickElement col-date">
-            <time><?= $event['Event']['date'] ?></time>
+            <time><?= h($event['Event']['date']) ?></time>
         </td>
         <?php if (in_array('timestamp', $columns, true)): ?>
         <td class="short dblclickElement col-timestamp beta-relative-timestamp" data-beta-column="timestamp"

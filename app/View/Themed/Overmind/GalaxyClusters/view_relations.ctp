@@ -78,21 +78,24 @@ $fields = [
         'element' => 'row_actions',
         'data_path' => 'id',
         'actions' => [
-            // [
-            //     'type' => 'modal',
-            //     'label' => __('Edit'),
-            //     'icon' => 'pen-to-square',
-            //     'url' => $baseurl . '/galaxy_cluster_relations/edit/%id%',
-            //     'requirement' => $canEdit,
-            // ],
-            // [
-            //     'type' => 'modal',
-            //     'label' => __('Delete'),
-            //     'icon' => 'trash',
-            //     'class' => 'text-danger',
-            //     'url' => $baseurl . '/galaxy_cluster_relations/delete/%id%',
-            //     'requirement' => $canEdit,
-            // ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/galaxy_cluster_relations/edit/%id%',
+                // Default relations cannot be edited (the controller rejects them).
+                'requirement' => function ($row) use ($canEdit) {
+                    return $canEdit && empty($row['default']);
+                },
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'class' => 'text-danger',
+                'url' => $baseurl . '/galaxy_cluster_relations/delete/%id%',
+                'requirement' => $canEdit,
+            ],
         ],
     ],
 ];

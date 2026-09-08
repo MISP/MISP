@@ -13,7 +13,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 
 <div class="d-flex flex-column gap-1">
     <div class="d-flex align-items-baseline gap-2 mb-0">
-        <p class="mb-0">
+        <p class="mb-0 fw-semibold">
             <?= h($name); ?>
         </p>
     </div>

@@ -56,6 +56,13 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Published'),
+        'data_path' => 'GalaxyCluster.published',
+        'element' => 'published',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
+    [
         'name' => __('Synonyms'),
         'data_path' => 'GalaxyCluster.synonyms',
         'element' => 'synonyms',
@@ -150,9 +157,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Publish'),
-                'icon' => 'upload text-success',
+                'icon' => 'upload',
                 'url' => $baseurl . '/galaxy_clusters/publish/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($me) {
                     return empty($row['GalaxyCluster']['published'])
                         && (!empty($me['Role']['perm_site_admin'])
@@ -164,7 +171,7 @@ $fields = [
                 'label' => __('Restore'),
                 'icon' => 'trash-arrow-up text-success',
                 'url' => $baseurl . '/galaxy_clusters/restore/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($me) {
                     return !empty($row['GalaxyCluster']['deleted'])
                         && (!empty($me['Role']['perm_site_admin']) || $me['org_id'] == $row['GalaxyCluster']['orgc_id']);
@@ -195,6 +202,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $list,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 // Current-filter chips + "Clear all", shown even in the ajax fragment

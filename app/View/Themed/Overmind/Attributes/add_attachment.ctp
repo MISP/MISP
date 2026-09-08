@@ -1,8 +1,11 @@
 <?php
 
-$amber      = '#F59E0B';
-$amberSoft  = 'rgba(245, 158, 11, .08)';
-$amberLine  = 'rgba(245, 158, 11, .85)';
+/* The amber this form is dressed in — the accent table owns the values, so the
+ * strip, the section labels and the dropzone below cannot drift apart. */
+$attachmentAccent = $this->ModalAccent->get('attachment');
+$amber      = $attachmentAccent['colour'];
+$amberSoft  = $attachmentAccent['tint'];
+$amberLine  = $attachmentAccent['line'];
 
 $eventId      = h($event['Event']['id'] ?? '');
 $currentDist  = (int)$initialDistribution;
@@ -28,25 +31,13 @@ echo $this->Form->create('Attribute', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:<?= $amberSoft ?>;
-            border-bottom:2px solid <?= $amberLine ?>;">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;
-                    color:<?= $amber ?>;">
-            <?= __('Attachments') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-paperclip"
-               style="font-size:1.25rem; color:<?= $amber ?>;"></i>
-            <?= __('Add Attachment(s)') ?>
-        </h4>
-    </div>
-    <i class="fas fa-paperclip"
-       style="font-size:2rem; opacity:.45; color:<?= $amber ?>;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'attachment',
+    'eyebrow' => __('Attachments'),
+    'title' => __('Add Attachment(s)'),
+    'titleIcon' => 'fas fa-paperclip',
+    'icon' => 'fas fa-paperclip',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
     <div class="d-flex flex-column gap-4">
@@ -92,11 +83,10 @@ echo $this->Form->create('Attribute', [
                     'id'       => 'AttributeValues',
                     'class'    => 'form-control',
                 ]) ?>
-                <div class="d-flex align-items-center gap-1 mt-2 text-muted"
-                     style="font-size:.75rem;">
-                    <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                    <?= __('Select one or more files to upload to this event.') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Select one or more files to upload to this event.'),
+                    'class' => 'mt-2',
+                ]) ?>
             </div>
         </div>
 
@@ -254,28 +244,14 @@ echo $this->Form->create('Attribute', [
     </div>
 
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>:
-            <strong class="text-body">#<?= $eventId ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="<?= h($baseurl . '/events/view/' . $eventId) ?>"
-               class="btn btn-outline-secondary btn-sm"
-               data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </a>
-            <?= $this->Form->button(
-                '<i class="fas fa-upload me-1"></i> ' . __('Upload'),
-                [
-                    'class'       => 'btn btn-sm text-white',
-                    'style'       => 'background:' . $amber . '; border-color:' . $amber . ';',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'attachment',
+        'meta' => [['label' => __('Event'), 'id' => $eventId]],
+        /* Leaves for the event rather than merely closing: an upload that was
+         * started and abandoned should land back on the event. */
+        'cancel' => ['href' => $baseurl . '/events/view/' . $eventId],
+        'submit' => ['label' => __('Upload'), 'icon' => 'fas fa-upload'],
+    ]) ?>
 
 </div>
 

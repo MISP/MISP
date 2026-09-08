@@ -17,46 +17,62 @@ $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);
 
-$fields = [
-    [
-        'name' => __('ID'),
-        'sort' => 'Role.id',
-        'data_path' => 'Role.id',
-        'element' => 'id',
-        'url' => '#',
-    ],
-    [
-        'name' => __('Default'),
-        'sort' => 'Role.default',
-        'data_path' => 'Role.default',
-        'element' => 'flag',
-    ],
-    [
-        'name' => __('Name'),
-        'sort' => 'Role.name',
-        'data_path' => 'Role.name',
-    ],
-    [
-        'name' => __('Permission'),
-        'sort' => 'Role.permission',
-        'element' => 'custom',
-        'function' => function (array $row) use ($options) {
-            return h($options[$row['Role']['permission']] ?? $row['Role']['permission']);
-        },
-    ],
+$fields = [];
+
+
+$fields[] = [
+    'element' => 'checkbox',
+    'data_path' => 'Role.id',
+    'card_section' => 'selector',
 ];
 
-// One boolean column per permission flag, mirroring the legacy index.
-foreach ($permFlags as $k => $permFlag) {
-    $fields[] = [
-        'name' => $isAdmin ? $permFlag['text'] : Inflector::humanize(substr($k, 5)),
-        'header_title' => $permFlag['title'],
-        'sort' => 'Role.' . $k,
-        'data_path' => 'Role.' . $k,
-        'element' => 'flag',
-        'rotate_header' => $isAdmin,
-    ];
-}
+$fields[] = [
+    'name' => __('ID'),
+    'sort' => 'Role.id',
+    'data_path' => 'Role.id',
+    'element' => 'id',
+    'url' => $baseurl . '/roles/view/%id%',
+    'card_section' => 'top',
+    'display_in' => ['table', 'card']
+];
+
+$fields[] = [
+    'name' => __('Default'),
+    'sort' => 'Role.default',
+    'data_path' => 'Role.default',
+    'element' => 'default',
+    'card_section' => 'top',
+    'display_in' => ['table', 'card']
+];
+
+$fields[] = [
+    'name' => __('Name'),
+    'sort' => 'Role.name',
+    'data_path' => 'Role',
+    'element' => 'role',
+    'card_section' => 'title',
+    'display_in' => ['table', 'card']
+];
+
+$fields[] = [
+    'name' => __('Access Level'),
+    'sort' => 'Role.permission',
+    'element' => 'custom',
+    'function' => function (array $row) use ($options) {
+        return h($options[$row['Role']['permission']] ?? $row['Role']['permission']);
+    },
+    'card_section' => 'tag',
+    'display_in' => ['table', 'card']
+];
+
+$fields[] = [
+    'name' => __('Permissions'),
+    'data_path' => 'Role',
+    'element' => 'role_permissions',
+    'permFlags' => $permFlags,
+    'card_section' => 'galaxy',
+    'display_in' => ['table', 'card']
+];
 
 $fields[] = [
     'name' => __('Memory Limit'),
@@ -67,6 +83,8 @@ $fields[] = [
         $value = $row['Role']['memory_limit'];
         return empty($value) ? h($default_memory_limit) : h($value);
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -78,6 +96,8 @@ $fields[] = [
         $value = $row['Role']['max_execution_time'];
         return (empty($value) ? h($default_max_execution_time) : h($value)) . '&nbsp;s';
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -92,6 +112,8 @@ $fields[] = [
         }
         return h($value);
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -113,6 +135,8 @@ $fields[] = [
         }
         return (empty($value) ? __('Unlimited') : h($value));
     },
+    'card_section' => 'meta',
+    'display_in' => ['table', 'card']
 ];
 
 $fields[] = [
@@ -142,32 +166,42 @@ $fields[] = [
             },
         ] : null,
         $isSiteAdmin ? [
-            'type' => 'postLink',
+            'type' => 'modal',
             'label' => __('Delete'),
             'icon' => 'trash',
-            'url' => $baseurl . '/admin/roles/delete/%id%',
+            'size' => 'md',
+            'url' => $baseurl . '/admin/roles/deleteSelection/%id%',
             'class' => 'text-danger',
-            'confirm' => __('Are you sure you want to delete this role?'),
         ] : null,
     ])),
 ];
+
+$scaffoldFilterBar = [
+    'pull' => 'right',
+    'children' => [
+        [
+            'type' => 'search',
+            'button' => __('Filter'),
+            'placeholder' => __('Enter value to search'),
+            'name'        => 'name',
+            'mode'        => 'quickFilter',
+        ],
+    ],
+];
+
+if ($isSiteAdmin) {
+    $scaffoldFilterBar['delete'] = '/deleteSelection';
+    $scaffoldFilterBar['delete_url'] = '/admin/roles/deleteSelection';
+}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
-            'filter_bar' => [
-                'pull' => 'right',
-                'children' => [
-                    [
-                        'type' => 'search',
-                        'button' => __('Filter'),
-                        'placeholder' => __('Enter value to search'),
-                        'name'        => 'name',
-                        'mode'        => 'quickFilter',
-                    ],
-                ],
-            ],
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
+            'primary_id_path' => 'Role.id',
+            'row_dblclick_url' => $baseurl . '/roles/view/%id%',
+            'filter_bar' => $scaffoldFilterBar,
             'fields' => $fields,
         ]
     ],

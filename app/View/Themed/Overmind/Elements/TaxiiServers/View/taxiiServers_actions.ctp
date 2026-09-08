@@ -14,14 +14,14 @@ if ($isSiteAdmin) {
     if ($taxiiServerEnabled) {
         $actions[] = [
             'url' => "$baseurl/taxiiServers/push/$taxiiServerId",
-            'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/push/$taxiiServerId', 'sm');",
+            'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/push/$taxiiServerId', 'md');",
             'icon' => 'fas fa-arrow-circle-up',
             'label' => __('Push data to TAXII server')
         ];
     }
     $actions[] = [
         'url' => "$baseurl/taxiiServers/delete/$taxiiServerId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/deleteSelection/$taxiiServerId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/taxiiServers/deleteSelection/$taxiiServerId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Server'),
         'danger' => true

@@ -4,6 +4,8 @@ App::uses('EventTemplateValidator', 'Tools');
 App::uses('EventTemplateInfoRenderer', 'Tools');
 App::uses('EventTemplateInstantiationException', 'Tools');
 App::uses('ClassRegistry', 'Utility');
+App::uses('ComponentCollection', 'Controller');
+App::uses('ACLComponent', 'Controller/Component');
 
 /**
  * Takes an event-template definition + user-submitted field values and
@@ -87,6 +89,7 @@ class EventTemplateInstantiator
         }
 
         $eventData = $this->buildEventArray($definition, $userInput, $user);
+        $this->assertCanUseSharingGroup($eventData['Event'], $user);
 
         $eventModel = ClassRegistry::init('Event');
         $db = $eventModel->getDataSource();
@@ -145,37 +148,49 @@ class EventTemplateInstantiator
                 );
             }
 
+            $eventRow = $eventModel->find('first', array(
+                'conditions' => array('Event.id' => $newId),
+                'recursive' => -1,
+                'fields' => array(
+                    'Event.id', 'Event.uuid', 'Event.org_id',
+                    'Event.orgc_id', 'Event.user_id',
+                ),
+            ));
+            $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
+
             // Attach event-level tags (defaults + synthesised galaxy tags +
             // user-picked tag/galaxy fields) via the canonical helper. Doing
             // this here rather than via a nested array in $eventData is
             // deliberate — _add()'s handling of nested tag arrays is
             // inconsistent, and the helper is the same path the event UI
             // uses. Still inside our transaction.
+            //
+            // attachTagsToEventAndTouch() takes the acting user but tests no
+            // tagging permission of its own, and its second caller (the
+            // tag_operation workflow module) passes whichever user happened to
+            // fire the trigger — so the check cannot live in the helper
+            // without silently breaking admin-authored workflows. It lives
+            // here, on the same ACLComponent predicate EventsController::addTag
+            // uses, and a refusal rolls the whole instantiation back rather
+            // than committing an event that is missing the markings its
+            // template mandates.
             $tagNames = $this->collectEventTagNames($definition, $userInput);
             if (!empty($tagNames)) {
-                $tagAttached = array();
-                $eventModel->attachTagsToEventAndTouch(
-                    $newId,
-                    array(
-                        'tags' => $tagNames,
-                        'local' => 0,
-                        'relationship_type' => null,
-                    ),
-                    $user,
-                    $tagAttached
-                );
+                $errs = $this->attachEventTags($eventModel, $eventRow, $tagNames, $user);
+                if (!empty($errs)) {
+                    if ($transactionBegun) {
+                        $db->rollback();
+                    }
+                    throw new EventTemplateInstantiationException(
+                        'You are not allowed to attach the tags this template applies.',
+                        $errs
+                    );
+                }
             }
 
             if ($transactionBegun) {
                 $db->commit();
             }
-
-            $eventRow = $eventModel->find('first', array(
-                'conditions' => array('Event.id' => $newId),
-                'recursive' => -1,
-                'fields' => array('Event.id', 'Event.uuid'),
-            ));
-            $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
             $autoLinkMap = $this->buildAutoLinkMap($definition, $userInput, $newId);
             $this->saveEventReports($definition, $userInput, $user, $newId, $autoLinkMap);
@@ -198,6 +213,152 @@ class EventTemplateInstantiator
             }
             throw $e;
         }
+    }
+
+    // --- Authorisation ------------------------------------------------------
+
+    /**
+     * The template author picks `event_defaults.sharing_group_id`; the person
+     * instantiating is a different account, possibly in a different
+     * organisation, since a `distribution = 1` template is readable community
+     * wide. `Event::_add()` only reaches its own sharing-group check under
+     * `$fromXml`, which this caller is not, so the id would otherwise be
+     * written verbatim.
+     *
+     * Same rule the web and REST event-creation form applies at
+     * `EventsController::add()`: a sharing-group distribution requires that the
+     * *acting* user may place data in that group. `SharingGroup::canUse()` is
+     * the single authority for that question and refuses an empty id rather
+     * than reading it as "no filter", so a definition that somehow reaches here
+     * without one is refused too. A non-existent id fails the same way, which
+     * also closes the dangling-foreign-key case.
+     *
+     * Distributions other than 4 need no check: `Event::beforeValidate()`
+     * zeroes `sharing_group_id` for them before the row is written.
+     *
+     * @param array $event the built Event array (not yet saved)
+     * @param array $user
+     * @throws EventTemplateInstantiationException
+     */
+    private function assertCanUseSharingGroup(array $event, array $user)
+    {
+        if (!isset($event['distribution']) || (int)$event['distribution'] !== 4) {
+            return;
+        }
+        $sharingGroupId = isset($event['sharing_group_id'])
+            ? $event['sharing_group_id']
+            : null;
+        $sharingGroup = ClassRegistry::init('SharingGroup');
+        if (!$sharingGroup->canUse($user, $sharingGroupId)) {
+            throw new EventTemplateInstantiationException(
+                'You are not allowed to use the sharing group this template distributes to.',
+                array(sprintf(
+                    'event_defaults.sharing_group_id: invalid sharing '
+                    . 'group or not authorised (%s)',
+                    $sharingGroupId === null ? 'none supplied' : $sharingGroupId
+                ))
+            );
+        }
+    }
+
+    /**
+     * Attaches $tagNames to the freshly-created event with the locality each
+     * tag is actually entitled to, refusing outright when the acting user may
+     * not tag at all.
+     *
+     * Two rules, both mirroring EventsController::addTag():
+     *
+     *  - `Tag.local_only` tags attach **locally**. The instantiator used to
+     *    hardcode `local => 0` for every tag, which attached them globally and
+     *    let them propagate on sync and export — the one thing the flag exists
+     *    to prevent, and something no role including site admin can do through
+     *    the tagging UI. The template schema has no way to express locality, so
+     *    honouring the flag is the only reading that attaches the tag at all.
+     *  - Everything else needs `ACLComponent::canModifyTag()` for the locality
+     *    it is being attached with. The component is instantiated directly
+     *    rather than reimplemented: a second copy of a permission check is how
+     *    the two copies come to disagree.
+     *
+     * @return array list of human-readable refusals; empty means attached
+     */
+    private function attachEventTags(
+        $eventModel, array $eventRow, array $tagNames, array $user
+    ) {
+        $localOnly = $this->localOnlyTagNames($eventModel, $tagNames);
+        $buckets = array(1 => array(), 0 => array());
+        foreach ($tagNames as $name) {
+            $buckets[isset($localOnly[mb_strtolower((string)$name)]) ? 1 : 0][] = $name;
+        }
+
+        $acl = new ACLComponent(new ComponentCollection());
+
+        $errors = array();
+        foreach ($buckets as $local => $names) {
+            if (empty($names)) {
+                continue;
+            }
+            if (!$acl->canModifyTag($user, $eventRow, (bool)$local)) {
+                $errors[] = sprintf(
+                    'Your role is not allowed to attach %s tag(s): %s',
+                    $local ? 'local' : 'global',
+                    implode(', ', $names)
+                );
+            }
+        }
+        if (!empty($errors)) {
+            return $errors;
+        }
+
+        foreach ($buckets as $local => $names) {
+            if (empty($names)) {
+                continue;
+            }
+            $tagAttached = array();
+            $eventModel->attachTagsToEventAndTouch(
+                (int)$eventRow['Event']['id'],
+                array(
+                    'tags' => $names,
+                    'local' => $local,
+                    'relationship_type' => null,
+                ),
+                $user,
+                $tagAttached
+            );
+        }
+        return array();
+    }
+
+    /**
+     * Lowercased set of the names in $tagNames whose tag row carries
+     * `local_only`. Matched case-insensitively because `Tag::captureTag()`,
+     * which resolves these same names moments later, matches that way too — a
+     * lookup that disagreed with it would classify a tag under one name and
+     * attach it under another.
+     *
+     * @return array<string,true>
+     */
+    private function localOnlyTagNames($eventModel, array $tagNames)
+    {
+        $lowered = array();
+        foreach ($tagNames as $name) {
+            $lowered[] = mb_strtolower((string)$name);
+        }
+        if (empty($lowered)) {
+            return array();
+        }
+        $rows = $eventModel->EventTag->Tag->find('all', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'LOWER(Tag.name)' => array_values(array_unique($lowered)),
+                'Tag.local_only' => 1,
+            ),
+            'fields' => array('Tag.name'),
+        ));
+        $out = array();
+        foreach ($rows as $row) {
+            $out[mb_strtolower($row['Tag']['name'])] = true;
+        }
+        return $out;
     }
 
     // --- Event reports ------------------------------------------------------

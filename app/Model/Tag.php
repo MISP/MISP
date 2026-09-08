@@ -952,4 +952,70 @@ class Tag extends AppModel
 
         return Hash::combine($tags, '{n}.Tag.id', '{n}.Tag.name');
     }
+
+    /**
+     * The "All Tags" category of the BS5 tag picker: the same universe as
+     * getAllTagsForSelect(), but shaped as a list carrying the colour, which
+     * the picker needs to draw a tag exactly like Badges/tag.ctp does.
+     *
+     * @param array $user
+     * @return array [['id' => int, 'name' => string, 'colour' => string], ...]
+     */
+    public function getAllTagsForPicker($user)
+    {
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.is_galaxy'] = 0;
+        $conditions['Tag.hide_tag'] = 0;
+        $conditions['Tag.local_only'] = 0;
+
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'order' => ['Tag.name ASC'],
+            'fields' => ['Tag.id', 'Tag.name', 'Tag.colour']
+        ]);
+
+        return array_map(function (array $tag) {
+            return $this->pickerTagEntry($tag['Tag']);
+        }, $tags);
+    }
+
+    /**
+     * The "Custom Tags" category of the BS5 tag picker: the tags that belong
+     * to no taxonomy.
+     *
+     * @param array $user
+     * @return array [['id' => int, 'name' => string, 'colour' => string], ...]
+     */
+    public function getCustomTagsForPicker($user)
+    {
+        $taxonomy = ClassRegistry::init('Taxonomy');
+        $customRaw = $taxonomy->getAllTaxonomyTags(true, $user, true, true, false);
+
+        $tags = [];
+        foreach ($customRaw as $entry) {
+            $tag = $entry['Tag'];
+            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
+                continue;
+            }
+            $tags[] = $this->pickerTagEntry($tag);
+        }
+        return $tags;
+    }
+
+    /**
+     * One picker entry, with the colour fallback the picker and
+     * Badges/tag.ctp both use for a tag whose colour was never set.
+     *
+     * @param array $tag a Tag row (unwrapped)
+     * @return array
+     */
+    public function pickerTagEntry(array $tag)
+    {
+        return [
+            'id' => (int)$tag['id'],
+            'name' => $tag['name'],
+            'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+        ];
+    }
 }

@@ -11,6 +11,7 @@ $cardId    = 'er-preview-card-'    . ($reportId ?: 'main');
 $bodyId    = 'er-preview-body-'    . ($reportId ?: 'main');
 $overlayId = 'er-preview-overlay-' . ($reportId ?: 'main');
 $maxH      = '300px';
+$canAddReport = $this->Acl->canModifyEvent($data);
 
 /* Reusable overlay markup (gradient fade + expand/collapse toggle) */
 $overlayHtml = '
@@ -73,15 +74,17 @@ $overlayHtml = '
             <div class="card-body d-flex flex-column align-items-center
                         justify-content-center text-muted py-5">
                 <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
-                <p class="mb-1 fw-semibold">
+                <p class="mb-1 fw-semibold small">
                     <?= __("This event doesn't have a report for the moment") ?>
                 </p>
-                <p class="small mb-0">
-                    <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>" 
-                        onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
-                        <?= __('Create the first report') ?>
-                    </a>
-                </p>
+                <?php if ($canAddReport): ?>
+                    <p class="small mb-0">
+                        <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
+                            onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
+                                <?= __('Create the first report') ?>
+                        </a>
+                    </p>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>

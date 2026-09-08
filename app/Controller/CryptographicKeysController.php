@@ -58,11 +58,30 @@ class CryptographicKeysController extends AppController
         $instanceKey = file_exists(APP . 'webroot/gpg.asc') ? FileAccessTool::readFromFile(APP . 'webroot/gpg.asc') : '';
         $this->set('instanceKey', $instanceKey);
         $this->set('menuData', array('menuList' => 'cryptographic_keys', 'menuItem' => 'add_cryptographic_key'));
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+            $this->render('add');
+        }
     }
 
     public function delete($id)
     {
         $user = $this->Auth->user();
+        if (
+            $this->theme === 'Overmind' &&
+            !$this->IndexFilter->isRest() &&
+            !$this->request->is('post') &&
+            !$this->request->is('delete')
+        ) {
+            // Overmind: render the BS5 confirmation fragment for the delete
+            // modal. The actual deletion (POST) still flows through
+            // CRUD->delete below, so the ownership gate in beforeDelete is
+            // unchanged - this branch only themes the confirm dialog.
+            $this->layout = false;
+            $this->set('id', $id);
+            $this->render('ajax/cryptographicKeyDeleteConfirmationForm');
+            return;
+        }
         $this->CRUD->delete($id, [
             'beforeDelete' => function ($data) use($user) {
                 $parent_type = $data['CryptographicKey']['parent_type'];
@@ -93,11 +112,35 @@ class CryptographicKeysController extends AppController
 
     public function view($id)
     {
+        $user = $this->Auth->user();
         $key = $this->CryptographicKey->find('first', [
             'recursive' => -1,
-            'fields' => ['id', 'type', 'key_data', 'fingerprint'],
+            'fields' => ['id', 'type', 'key_data', 'fingerprint', 'parent_id', 'parent_type'],
             'conditions' => ['CryptographicKey.id' => $id]
         ]);
+        if (empty($key)) {
+            throw new NotFoundException(__('Invalid key.'));
+        }
+        // Authorise through the parent event. Unlike add()/delete(), which
+        // require ownership of the event, this is the plain read ACL: the
+        // "Inspect key" link is rendered for every user who can see a
+        // protected event, not only for its creator org.
+        $parent_type = $key['CryptographicKey']['parent_type'];
+        if ($parent_type !== 'Event') {
+            // Same fallback as delete(): inert rows with no ownership model
+            // are site-admin only rather than open to everyone.
+            if (empty($user['Role']['perm_site_admin'])) {
+                throw new NotFoundException(__('Invalid key.'));
+            }
+        } else {
+            $event = $this->CryptographicKey->Event->fetchSimpleEvent(
+                $user,
+                $key['CryptographicKey']['parent_id']
+            );
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid key.'));
+            }
+        }
         $this->set('id', $id);
         $this->set('title', __('Viewing %s key #%s', h($key['CryptographicKey']['type']), h($key['CryptographicKey']['id'])));
         $this->set(
@@ -108,7 +151,11 @@ class CryptographicKeysController extends AppController
             )
         );
         $this->layout = false;
-        $this->render('/genericTemplates/display');
+        if ($this->theme === 'Overmind') {
+            $this->render('view');
+        } else {
+            $this->render('/genericTemplates/display');
+        }
     }
 
     public function serverSign()

@@ -48,7 +48,23 @@ class GalaxyColour
      */
     public static function palette($name)
     {
-        $hue = self::hue($name);
+        return self::paletteFromHue(self::hue($name));
+    }
+
+    /**
+     * Same palette, but for a caller that picks the hue itself.
+     *
+     * Hashing a name gives no guarantee that a small, fixed set of values lands
+     * on distinguishable hues — with a dozen inputs they can all cluster in one
+     * band. Callers in that situation spread their own hues and come in here, 
+     * so every hsl() string still lives in a single place.
+     *
+     * @param int $hue 0-359
+     * @return array see palette()
+     */
+    public static function paletteFromHue($hue)
+    {
+        $hue = ((int)$hue % 360 + 360) % 360;
         return array(
             'hue'           => $hue,
             'badgeBg'       => "hsla($hue,65%,55%,var(--galaxy-alpha,0.12))",

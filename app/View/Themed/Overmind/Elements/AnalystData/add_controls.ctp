@@ -65,7 +65,7 @@ $viewLabel = __('View analyst data') . ($viewCount !== null ? ' (' . (int)$viewC
 
 <?php elseif ($mode === 'dropdown'): ?>
     <div class="dropdown d-inline-block">
-        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
+        <button class="btn btn-sm btn-outline-analystData dropdown-toggle" type="button"
                 data-bs-toggle="dropdown" aria-expanded="false">
             <i class="fas fa-comment-dots me-1"></i><?= __('Analyst data') ?>
         </button>
@@ -99,8 +99,8 @@ $viewLabel = __('View analyst data') . ($viewCount !== null ? ' (' . (int)$viewC
         <div class="p-3 border-bottom">
             <div class="d-flex align-items-center gap-2">
                 <div class="rounded-2 d-flex align-items-center justify-content-center"
-                     style="width:36px;height:36px;background:rgba(var(--bs-primary-rgb),.12);">
-                    <i class="fas fa-comment-dots text-primary" style="font-size:1rem;"></i>
+                     style="width:36px;height:36px;background:rgba(143,45,86,.12);">
+                    <i class="fas fa-comment-dots text-analystData" style="font-size:1rem;"></i>
                 </div>
                 <div class="fw-bold lh-1"><?= __('Analyst data') ?></div>
             </div>

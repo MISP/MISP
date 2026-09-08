@@ -35,7 +35,7 @@ if ($isSiteAdmin) {
 
     $actions[] = [
         'url' => "$baseurl/objectTemplates/delete/$objectTemplateId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/objectTemplates/deleteSelection/$objectTemplateId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/objectTemplates/deleteSelection/$objectTemplateId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Object Template'),
         'danger' => true

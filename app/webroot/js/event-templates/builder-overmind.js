@@ -553,6 +553,37 @@
             },
 
             // ---------- Tom Select pickers ----------
+            initEnvelopeDistributionSelect($el) {
+                if (!$el) { return; }
+
+                const attach = () => {
+                    if (typeof window.initDistributionSelect !== 'function') {
+                        return;
+                    }
+                    window.initDistributionSelect($el.id, (value) => {
+                        const level = parseInt(value, 10);
+                        if (!isNaN(level) && level !== this.envelope.distribution) {
+                            this.envelope.distribution = level;
+                        }
+                    });
+                    const ts = $el.tomselect;
+                    if (!ts) { return; }
+                    this._distributionTomSelect = ts;
+
+                    ts.setValue(String(this.envelope.distribution), true);
+                    this.$watch('envelope.distribution', (value) => {
+                        if (ts.getValue() !== String(value)) {
+                            ts.setValue(String(value), true);
+                        }
+                    });
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', attach, {once: true});
+                } else {
+                    attach();
+                }
+            },
 
             initObjectTemplateSelect($el) {
                 if (typeof window.TomSelect === 'undefined') { return; }
@@ -711,7 +742,8 @@
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     body: JSON.stringify(body)
                 }).then((r) => r.json().then((data) => ({status: r.status, data})))
@@ -742,7 +774,8 @@
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     body: JSON.stringify(probe)
                 }).then((r) => r.json().then((data) => ({status: r.status, data})))

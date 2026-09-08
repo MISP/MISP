@@ -357,6 +357,9 @@ class SharingGroupsController extends AppController
 
     public function index($passive = false)
     {
+        if ($this->request->is('ajax') && $this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $passive = $passive === 'true';
         $authorizedSgIds = $this->SharingGroup->authorizedIds($this->Auth->user());
         $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);
@@ -564,9 +567,9 @@ class SharingGroupsController extends AppController
 
     private function __initialiseSGQuickEdit($id, $request)
     {
-        if (!$this->request->is('post') || !$this->_isRest()) {
-            //throw new MethodNotAllowedException('This action only accepts POST requests coming from the API.');
-        }
+        // Guarded here rather than in each of the four callers - addOrg,
+        // removeOrg, addServer and removeServer all funnel through this helper.
+        $this->request->allowMethod(['post']);
         // allow passing the sg_id via a JSON object
         if (!$id) {
             $validParams = array('sg_id', 'sg_uuid', 'id', 'uuid');

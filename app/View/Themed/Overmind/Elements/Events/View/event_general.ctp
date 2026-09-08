@@ -51,7 +51,7 @@ $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
 $this->set('headerDescription', $headerDescription);
 ?>
 
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-general">
     <div class="card-body">
 
         <!-- ── EVENT REPORT PREVIEW ──────────────────────────── -->
@@ -63,6 +63,7 @@ $this->set('headerDescription', $headerDescription);
         $erBodyId      = 'er-general-body';
         $erOverlayId   = 'er-general-overlay';
         $erMaxH        = '300px';
+        $erCanAddReport = $this->Acl->canModifyEvent($data);
         ?>
         <div class="mb-4">
 
@@ -97,12 +98,14 @@ $this->set('headerDescription', $headerDescription);
                     <p class="mb-1 fw-semibold small">
                         <?= __("This event doesn't have a report for the moment") ?>
                     </p>
-                    <p class="small mb-0">
-                        <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
-                           onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
-                            <?= __('Create the first report') ?>
-                        </a>
-                    </p>
+                    <?php if ($erCanAddReport): ?>
+                        <p class="small mb-0">
+                            <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
+                               onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
+                                   <?= __('Create the first report') ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
 
@@ -150,14 +153,17 @@ $this->set('headerDescription', $headerDescription);
                         <span class="misp-icon misp-icon-user1 misp-hexagone"></span>
                         <?= __('Created by') ?>
                     </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <?= $this->OrgImg->getOrgLogoV2($orgc, 20, false) ?>
-                            <span class="fw-medium"><?= h($orgc['name'] ?? '') ?></span>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 py-1">
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <?php $logo = $this->OrgImg->getOrgLogoV2($orgc, 24); ?>
+                            <?= $logo !== '' ? $logo : '<i class="misp-icon misp-icon-organisation misp-simple text-muted"></i>' ?>
+                            <a href="<?= h($baseurl . '/organisations/view/' . $orgc['id']) ?>" 
+                               class="text-decoration-none fw-semibold text-primary"><?= h($orgc['name'] ?? '') ?>
+                            </a>
                         </div>
                         <div class="d-flex align-items-center gap-2 text-muted small">
-                            <span class="misp-icon misp-icon-user1 misp-simple"></span>
-                            <?= h($user['email'] ?? '') ?>
+                            <?php $email = h($user['email'] ?? '') ?>
+                            <?= $email !== '' ? '<span><i class="misp-icon misp-icon-user1 misp-simple"></i>' . $email . '</span>'  : '' ?>
                         </div>
                     </div>
                 </div>
@@ -310,19 +316,10 @@ $this->set('headerDescription', $headerDescription);
                 </div>
             </div>
 
-            <!-- EXTENDS UUID -->
-            <?php if (!empty($event['extends_uuid'])): ?>
-            <div class="col-12">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Extends Event') ?>
-                </div>
-                <a href="<?= h($baseurl . '/events/view/' . $event['extends_uuid']) ?>"
-                   class="font-monospace small text-decoration-none">
-                    <i class="fas fa-code-branch me-1 text-muted"></i>
-                    <?= h($event['extends_uuid']) ?>
-                </a>
-            </div>
-            <?php endif; ?>
+            <!-- EXTENSIONS: what this event extends, what extends it -->
+            <?= $this->element('Events/View/event_extensions', [
+                'data' => $data,
+            ]) ?>
 
         </div>
 
@@ -331,14 +328,23 @@ $this->set('headerDescription', $headerDescription);
         $eventId = h($event['id'] ?? '');
         $statsUid = 'evtstats-' . $eventId;
 
-        /* Counts available immediately from already-loaded data */
-        $tagCount = count(array_filter(
-            $eventTags, fn($et) => empty($et['Tag']['is_galaxy'])
-        ));
         $clusterCount = 0;
+        $galaxyTagNames = [];
         foreach ($data['Galaxy'] ?? [] as $gal) {
             $clusterCount += count($gal['GalaxyCluster'] ?? []);
+            foreach ($gal['GalaxyCluster'] ?? [] as $cluster) {
+                if (!empty($cluster['tag_name'])) {
+                    $galaxyTagNames[strtolower($cluster['tag_name'])] = true;
+                }
+            }
         }
+        $tagCount = count(array_filter(
+            $eventTags,
+            fn($et) => empty($et['Tag']['is_galaxy'])
+                || !isset(
+                    $galaxyTagNames[strtolower($et['Tag']['name'] ?? '')]
+                )
+        ));
         ?>
 
         <hr class="my-4">

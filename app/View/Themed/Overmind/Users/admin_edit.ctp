@@ -10,6 +10,12 @@ $customAuth = (bool)Configure::read('Plugin.CustomAuth_enable');
 $customAuthName = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
 $syncRoleIds = array_values(array_map('strval', array_keys($syncRoles)));
 
+// Strip PCRE delimiters from the complexity regex so it can feed a JS RegExp.
+$pwRegexBody = (string)$complexity;
+if (strlen($pwRegexBody) >= 2 && $pwRegexBody[0] === '/') {
+    $pwRegexBody = substr($pwRegexBody, 1, strrpos($pwRegexBody, '/') - 1);
+}
+
 // BS5 switch (checkbox) helper.
 $switch = function ($field, $label, $disabled = false) {
     $sid = 'sw_' . $field;
@@ -31,23 +37,20 @@ echo $this->Form->create('User', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Administration') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-pen-to-square text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Edit user') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= h($u['email'] ?? '') ?>
-        </p>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Administration'),
+    'title' => __('Edit user'),
+    'description' => $u['email'] ?? '',
+    'icon' => 'fas fa-user-pen',
+    'isEdit' => true,
+]) ?>
+
+<!-- Server-side errors returned by the AJAX submit (kept in the modal). -->
+<div class="px-4 pt-3 d-none" id="editUserAlertWrapper">
+    <div class="alert alert-danger d-flex align-items-start gap-2 mb-0">
+        <i class="fas fa-circle-exclamation mt-1"></i>
+        <div id="editUserAlert"></div>
     </div>
-    <i class="fas fa-user-pen text-primary" style="font-size:2rem; opacity:.5;"></i>
 </div>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
@@ -56,9 +59,10 @@ echo $this->Form->create('User', [
 
         <!-- ACCOUNT -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Account') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Account'),
+            ]) ?>
             <div class="row g-3">
                 <div class="col-md-8">
                     <?= $this->Form->label('email', __('Email'), ['class' => 'form-label fw-semibold']) ?>
@@ -121,9 +125,10 @@ echo $this->Form->create('User', [
         <?php if ($customAuth): ?>
             <!-- EXTERNAL AUTH -->
             <div class="w-100 px-2">
-                <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= h($customAuthName) ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => h($customAuthName),
+                ]) ?>
                 <div class="form-check form-switch mb-2">
                     <?= $this->Form->checkbox('external_auth_required', [
                         'class' => 'form-check-input',
@@ -141,9 +146,10 @@ echo $this->Form->create('User', [
 
         <!-- PASSWORD -->
         <div class="w-100 px-2" id="adminPasswordSection">
-            <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Password') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Password'),
+            ]) ?>
             <div class="form-check form-switch mb-2">
                 <?= $this->Form->checkbox('enable_password', [
                     'class' => 'form-check-input',
@@ -159,18 +165,24 @@ echo $this->Form->create('User', [
                         <?= $this->Form->label('password', __('Password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('password', [
                             'class' => 'form-control bg-light',
+                            'id' => 'editPassword',
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
-                        <div class="form-text"><?= __('Min length %s — complexity: %s', h($length), h($complexity)) ?></div>
+                        <div class="form-text">
+                            <?= __('Min %s characters — upper & lower case and a number or symbol.', h($length)) ?>
+                        </div>
+                        <div id="editPasswordFeedback" class="small mt-1"></div>
                     </div>
                     <div class="col-md-6">
                         <?= $this->Form->label('confirm_password', __('Confirm password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('confirm_password', [
                             'class' => 'form-control bg-light',
+                            'id' => 'editConfirm',
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
+                        <div id="editConfirmFeedback" class="small mt-1"></div>
                     </div>
                 </div>
             </div>
@@ -186,9 +198,10 @@ echo $this->Form->create('User', [
 
         <!-- CRYPTO KEYS -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Cryptographic keys') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Cryptographic keys'),
+            ]) ?>
             <?= $this->Form->label('gpgkey', __('PGP key'), ['class' => 'form-label fw-semibold']) ?>
             <?= $this->Form->textarea('gpgkey', [
                 'class' => 'form-control bg-light font-monospace',
@@ -208,9 +221,10 @@ echo $this->Form->create('User', [
 
         <!-- FLAGS -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Account flags') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Account flags'),
+            ]) ?>
             <div class="row g-2">
                 <?= $switch('termsaccepted', __('Terms accepted')) ?>
                 <?= $switch('change_pw', __('User must change password'), !$canChangePassword) ?>
@@ -221,9 +235,10 @@ echo $this->Form->create('User', [
 
         <!-- NOTIFICATIONS -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Notifications') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Notifications'),
+            ]) ?>
             <div class="row g-2">
                 <?= $switch('autoalert', __('Event published notification')) ?>
                 <?= $switch('notification_weekly', __('Weekly notifications')) ?>
@@ -235,31 +250,29 @@ echo $this->Form->create('User', [
         <?php if (Configure::read('Security.require_password_confirmation')): ?>
             <!-- CONFIRM -->
             <div class="w-100 px-2">
-                <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Confirm changes') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Confirm changes'),
+                ]) ?>
                 <?= $this->Form->label('current_password', __('Enter your current password to save'), ['class' => 'form-label fw-semibold']) ?>
                 <?= $this->Form->password('current_password', [
                     'class' => 'form-control bg-light',
+                    'id' => 'editCurrentPassword',
                     'autocomplete' => 'current-password',
                     'value' => '',
                 ]) ?>
+                <div id="editCurrentPasswordFeedback" class="small mt-1"></div>
             </div>
         <?php endif; ?>
 
     </div>
 </div>
 
-<!-- ── FOOTER ───────────────────────────────────────────────── -->
-<div class="px-4 py-3 d-flex align-items-center justify-content-end gap-2 border-top">
-    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-        <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-    </button>
-    <?= $this->Form->button(
-        '<i class="fas fa-check me-1"></i>' . __('Save changes'),
-        ['class' => 'btn btn-primary btn-sm', 'escapeTitle' => false]
-    ) ?>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_footer', [
+    'align' => 'end',
+    'bleed' => true,
+    'submit' => ['label' => __('Save changes'), 'icon' => 'fas fa-check'],
+]) ?>
 
 <?= $this->Form->end() ?>
 
@@ -309,5 +322,136 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
         if (pwSection) pwSection.style.display = on ? 'none' : '';
     }
     if (extReq) { extReq.addEventListener('change', toggleExt); toggleExt(); }
+
+    // ── Real-time password validation ─────────────────────────────
+    var pw = document.getElementById('editPassword');
+    var cf = document.getElementById('editConfirm');
+    var pwFb = document.getElementById('editPasswordFeedback');
+    var cfFb = document.getElementById('editConfirmFeedback');
+    var PW_MIN = <?= (int)$length ?>;
+    var PW_RE = null;
+    try { PW_RE = new RegExp(<?= json_encode($pwRegexBody) ?>); } catch (e) { PW_RE = null; }
+    var MSG_SHORT = <?= json_encode(__('Too short — at least %s characters', '%N%')) ?>.replace('%N%', PW_MIN);
+    var MSG_WEAK  = <?= json_encode(__('Does not meet the complexity requirements')) ?>;
+    var MSG_OK    = <?= json_encode(__('Strong password')) ?>;
+    var MSG_NOMATCH = <?= json_encode(__('Passwords do not match')) ?>;
+    var MSG_MATCH   = <?= json_encode(__('Passwords match')) ?>;
+
+    function setState(input, fb, ok, msg) {
+        if (!input) return;
+        input.classList.remove('is-valid', 'is-invalid');
+        if (msg === '') { if (fb) { fb.textContent = ''; } return; }
+        input.classList.add(ok ? 'is-valid' : 'is-invalid');
+        if (fb) {
+            fb.textContent = msg;
+            fb.className = 'small mt-1 ' + (ok ? 'text-success' : 'text-danger');
+        }
+    }
+    function checkPw() {
+        if (!pw) return;
+        var v = pw.value;
+        if (v === '') { setState(pw, pwFb, false, ''); checkCf(); return; }
+        if (v.length < PW_MIN) { setState(pw, pwFb, false, MSG_SHORT); }
+        else if (PW_RE && !PW_RE.test(v)) { setState(pw, pwFb, false, MSG_WEAK); }
+        else { setState(pw, pwFb, true, MSG_OK); }
+        checkCf();
+    }
+    function checkCf() {
+        if (!cf) return;
+        if (cf.value === '') { setState(cf, cfFb, false, ''); return; }
+        var ok = !!pw && cf.value === pw.value;
+        setState(cf, cfFb, ok, ok ? MSG_MATCH : MSG_NOMATCH);
+    }
+    if (pw) { pw.addEventListener('input', checkPw); }
+    if (cf) { cf.addEventListener('input', checkCf); }
+
+    // ── AJAX submit: stay in the modal on a rejected save ─────────
+    if (!form.closest('#mainModal')) { return; }
+
+    var curPw = document.getElementById('editCurrentPassword');
+    var curFb = document.getElementById('editCurrentPasswordFeedback');
+    var alertWrapper = document.getElementById('editUserAlertWrapper');
+    var alertBox = document.getElementById('editUserAlert');
+
+    // Clear the "incorrect password" state as soon as the admin retypes.
+    if (curPw) { curPw.addEventListener('input', function () { setState(curPw, curFb, false, ''); }); }
+
+    function fieldFor(name) {
+        if (name === 'current_password') return curPw;
+        if (name === 'password') return pw;
+        if (name === 'confirm_password') return cf;
+        return form.querySelector('[name="data[User][' + name + ']"]');
+    }
+    function feedbackFor(name) {
+        if (name === 'current_password') return curFb;
+        if (name === 'password') return pwFb;
+        if (name === 'confirm_password') return cfFb;
+        return null;
+    }
+    function flatten(err) {
+        if (Array.isArray(err)) { return err.join(' '); }
+        if (err && typeof err === 'object') {
+            return Object.keys(err).map(function (k) { return flatten(err[k]); }).join(' ');
+        }
+        return String(err);
+    }
+    function showErrors(data) {
+        var errors = (data && data.errors) || {};
+        var leftovers = [];
+        var firstInput = null;
+        Object.keys(errors).forEach(function (name) {
+            var msg = flatten(errors[name]);
+            var input = fieldFor(name);
+            if (!input) { leftovers.push(msg); return; }
+            var fb = feedbackFor(name);
+            if (fb) {
+                setState(input, fb, false, msg);
+            } else {
+                input.classList.remove('is-valid');
+                input.classList.add('is-invalid');
+                leftovers.push(msg);
+            }
+            if (!firstInput) { firstInput = input; }
+        });
+        if (data && data.message && !Object.keys(errors).length) { leftovers.push(data.message); }
+        if (alertWrapper && alertBox) {
+            alertBox.textContent = leftovers.join(' ');
+            alertWrapper.classList.toggle('d-none', leftovers.length === 0);
+        }
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (alertWrapper) { alertWrapper.classList.add('d-none'); }
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) {
+            var ct = r.headers.get('Content-Type') || '';
+            return r.text().then(function (t) { return { ct: ct, text: t }; });
+        })
+        .then(function (res) {
+            if (res.ct.indexOf('application/json') !== -1) {
+                var d = null;
+                try { d = JSON.parse(res.text); } catch (err) { d = null; }
+                if (d && d.success) {
+                    window.location.href = '<?= $baseurl ?>/admin/users/index';
+                    return;
+                }
+                if (d) { showErrors(d); return; }
+            }
+            // Unexpected HTML (session expiry, exception page) → re-render in place.
+            if (typeof renderMainModalContent === 'function') {
+                renderMainModalContent(res.text);
+            }
+        })
+        .catch(function () { /* network error: leave the form as-is */ });
+    });
 })();
 </script>

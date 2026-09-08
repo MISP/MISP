@@ -16,38 +16,23 @@
 
 $eventId = (int)$event['Event']['id'];
 $scope = !empty($proposals) ? __('proposals') : __('attributes');
+$backUrl = !empty($backPath) ? ($baseurl . $backPath) : ($baseurl . '/events/populateFrom/' . $eventId);
 
-// Distribution visuals (icon + colours), same map as the "Add Object" cards.
-$distMeta = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-    4 => ['bg' => '#dce8ff', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-    5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork'],
-];
-$distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#333'];
+// Distribution visuals (icon + colours), canonical for the whole theme.
+$distMeta = $this->DistributionLevel->all();
+$distFallback = $this->DistributionLevel->fallback();
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event);">
-    <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Freetext Import') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-list-check text-event" style="font-size:1.25rem;"></i>
-            <?= __('Review detected %s', $scope) ?>
-            <?php if (!empty($resultArray)): ?>
-                <span class="badge rounded-pill text-bg-light border"><?= count($resultArray) ?></span>
-            <?php endif; ?>
-        </h4>
-    </div>
-    <span class="fas fa-paragraph text-event" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Freetext Import'),
+    'title' => __('Review detected %s', $scope),
+    'titleBadge' => empty($resultArray)
+        ? ''
+        : '<span class="badge rounded-pill text-bg-light border">' . count($resultArray) . '</span>',
+    'titleIcon' => 'fas fa-list-check',
+    'icon' => 'fas fa-paragraph',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4" style="background:var(--bs-tertiary-bg, #f8f9fa);">
@@ -59,12 +44,24 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
         </div>
     <?php endif; ?>
 
-    <p class="text-muted">
-        <?= __('Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.') ?>
-    </p>
+    <?php if (!empty($resultArray)): ?>
+        <p class="text-muted">
+            <?= __('Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.') ?>
+        </p>
+    <?php endif; ?>
 
     <?php if (empty($resultArray)): ?>
-        <div class="alert alert-light border mb-0"><?= __('No indicators were detected in the provided text.') ?></div>
+        <?php
+            // The module's own explanation is surfaced here
+            $emptyMsg = !empty($moduleError)
+                ? $moduleError
+                : __('No indicators were detected in the provided text.');
+        ?>
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-circle-info mb-3" style="font-size:2rem; opacity:.35;"></i>
+            <p class="mb-1 fw-semibold text-body"><?= __('Nothing to import') ?></p>
+            <p class="mb-0" style="max-width:32rem; margin-inline:auto;"><?= h($emptyMsg) ?></p>
+        </div>
     <?php else: ?>
 
     <?php
@@ -304,27 +301,20 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
     </div>
     <?php endif; ?>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-2 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>: <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="openModalChained('<?= $baseurl ?>/events/populateFrom/<?= $eventId ?>');">
-                <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?php if (!empty($resultArray)): ?>
-                <button type="button" class="btn btn-event btn-sm text-white" id="ftSubmit">
-                    <i class="fas fa-circle-plus me-1"></i><?= __('Create %s', $scope) ?>
-                </button>
-            <?php endif; ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'event',
+        'meta' => [['label' => __('Event'), 'id' => $eventId]],
+        'buttons' => [[
+            'label' => __('Back'),
+            'icon' => 'fas fa-arrow-left',
+            'attrs' => ['onclick' => sprintf("openModalChained('%s');", $backUrl)],
+        ]],
+        'submit' => empty($resultArray) ? false : [
+            'label' => __('Create %s', $scope),
+            'id' => 'ftSubmit',
+            'type' => 'button',
+        ],
+    ]) ?>
 </div>
 
 <script>
@@ -335,7 +325,8 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
         idsOn:  <?= json_encode(__('IDS')) ?>,
         idsOff: <?= json_encode(__('No IDS')) ?>,
         corrOn: <?= json_encode(__('Correlation On')) ?>,
-        corrOff:<?= json_encode(__('Correlation Off')) ?>
+        corrOff:<?= json_encode(__('Correlation Off')) ?>,
+        saveFailed: <?= json_encode(__('Could not create the %s. Please reopen the freetext import and try again.', $scope)) ?>
     };
     var optionsRearranged = <?= json_encode($optionsRearranged ?? new stdClass()) ?>;
 
@@ -493,9 +484,17 @@ $distFallback = ['icon' => 'fas fa-question', 'bg' => '#f1f1f1', 'color' => '#33
                 body: new FormData(form),
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
-            .then(function (r) { return r.text(); })
-            .then(function () { window.location = baseurl + '/events/view2/' + EVENT_ID; })
-            .catch(function () { submitBtn.disabled = false; });
+            // Reload only on success
+            .then(function (r) {
+                if (!r.ok) { throw new Error(r.status); }
+                window.location = baseurl + '/events/view2/' + EVENT_ID;
+            })
+            .catch(function () {
+                submitBtn.disabled = false;
+                if (typeof showToast === 'function') {
+                    showToast(L.saveFailed, 'danger');
+                }
+            });
         });
     }
 })();

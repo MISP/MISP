@@ -22,7 +22,9 @@ class WarninglistsController extends AppController
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(['value', 'category', 'type', 'enabled']);
+        $filters = $this->IndexFilter->harvestParameters(
+            ['value', 'category', 'type', 'enabled', 'id', 'matchValue']
+        );
         if (!empty($filters['value'])) {
             $this->paginate['conditions'] = [
                 'OR' => [
@@ -30,6 +32,12 @@ class WarninglistsController extends AppController
                     'LOWER(Warninglist.description) LIKE' => '%' . strtolower($filters['value']) . '%',
                     'LOWER(Warninglist.type)' => strtolower($filters['value']),
                 ]
+            ];
+        }
+        if (!empty($filters['id'])) {
+            // `id:3||7||12` — for Warning Lists card links
+            $this->paginate['conditions'][] = [
+                'Warninglist.id' => array_map('intval', (array)$filters['id']),
             ];
         }
         if (isset($filters['category'])) {
@@ -40,6 +48,37 @@ class WarninglistsController extends AppController
         }
         if (isset($filters['enabled'])) {
             $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
+        }
+        // `matchValue:8.8.8.8` (or `a||b`) — keep only the lists that actually
+        // match the value, using the same lookup as checkValue(). Only enabled
+        // warninglists carry the entry caches needed for matching.
+        $matchValues = [];
+        $matchesByListId = [];
+        if (!empty($filters['matchValue'])) {
+            $matchValues = array_values(array_filter(
+                array_map('trim', (array)$filters['matchValue']),
+                function ($value) {
+                    return $value !== '';
+                }
+            ));
+        }
+        $matchCounts = [];
+        if (!empty($matchValues)) {
+            $matchCounts = array_fill_keys($matchValues, 0);
+            foreach ($this->Warninglist->checkValues($matchValues) as $searched => $lists) {
+                $matchCounts[$searched] = count($lists);
+                foreach ($lists as $list) {
+                    $matchesByListId[$list['id']][] = [
+                        'value' => $searched,
+                        'matched' => $list['matched'],
+                    ];
+                }
+            }
+            $this->paginate['conditions'][] = [
+                'Warninglist.id' => empty($matchesByListId)
+                    ? [-1]
+                    : array_keys($matchesByListId),
+            ];
         }
         $this->Warninglist->addCountField(
             'warninglist_entry_count',
@@ -56,7 +95,12 @@ class WarninglistsController extends AppController
             $validAttributes = array_column($warninglist['WarninglistType'], 'type');
             $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);
             unset($warninglist['WarninglistType']);
+            if (!empty($matchValues)) {
+                $id = $warninglist['Warninglist']['id'];
+                $warninglist['Warninglist']['value_matches'] = $matchesByListId[$id] ?? [];
+            }
         }
+        unset($warninglist);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
         }
@@ -74,6 +118,8 @@ class WarninglistsController extends AppController
         $this->set('typeOptions', ['' => ''] + $types);
 
         $this->set('warninglists', $warninglists);
+        $this->set('matchValues', $matchValues);
+        $this->set('matchCounts', $matchCounts);
         $this->set('passedArgsArray', $filters);
         $this->set('possibleCategories', $this->Warninglist->categories());
     }
@@ -182,7 +228,7 @@ class WarninglistsController extends AppController
                         $entries = $this->Warninglist->parseArray($warninglist['Warninglist']['entries']);
                     } else {
                         $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
-                        
+
                     }
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
@@ -244,6 +290,13 @@ class WarninglistsController extends AppController
                 }
                 if (empty($warninglist['WarninglistEntry'])) {
                     $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
+                }
+                // When the field is empty, be sure to select "all types" as the value
+                // instead of keaping the types that have already been saved.
+                if (array_key_exists('matching_attributes', $warninglist['Warninglist'])
+                    && empty($warninglist['Warninglist']['matching_attributes'])
+                ) {
+                    $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
                 }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];
@@ -369,6 +422,7 @@ class WarninglistsController extends AppController
 
     public function enableWarninglist($id, $enable = false)
     {
+        $this->request->allowMethod(['post']);
         $this->Warninglist->id = $id;
         if (!$this->Warninglist->exists()) {
             throw new NotFoundException(__('Invalid Warninglist.'));
@@ -500,22 +554,7 @@ class WarninglistsController extends AppController
                 $data = $data['[]'];
             }
 
-            $hits = array();
-            $warninglists = $this->Warninglist->getEnabled();
-            foreach ($data as $dataPoint) {
-                $dataPoint = trim($dataPoint);
-                foreach ($warninglists as $warninglist) {
-                    $values = $this->Warninglist->getFilteredEntries($warninglist);
-                    $result = $this->Warninglist->checkValue($values, $dataPoint, '', $warninglist['Warninglist']['type']);
-                    if ($result !== false) {
-                        $hits[$dataPoint][] = [
-                            'id' => $warninglist['Warninglist']['id'],
-                            'name' => $warninglist['Warninglist']['name'],
-                            'matched' => $result[0],
-                        ];
-                    }
-                }
-            }
+            $hits = $this->Warninglist->checkValues($data);
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData($hits, $this->response->type());
             }
@@ -567,10 +606,9 @@ class WarninglistsController extends AppController
 
     private function _massToggleState($idList = null, $state = 1)
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'Warninglist');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Warninglists', 'massToggle', false, $message, $this->response->type());
@@ -610,7 +648,10 @@ class WarninglistsController extends AppController
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/warninglists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Warninglist.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Warninglist']['id'] = json_encode($ids);
+        $this->set('url', '/warninglists/' . ($state ? 'massEnable' : 'massDisable'));
         $this->render('ajax/warninglistToggleConfirmationForm');
     }
 }

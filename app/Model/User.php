@@ -20,6 +20,8 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 class User extends AppModel
 {
     private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
+    private const GPG_PUBLIC_KEY_CACHE_KEY = 'misp:instance_gpg_public_key';
+    private const GPG_PUBLIC_KEY_CACHE_TTL = 180;
     public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
 
     public $displayField = 'email';
@@ -249,6 +251,29 @@ class User extends AppModel
 
     /** @var CryptGpgExtended|null|false */
     private $gpg;
+
+    /**
+     * Whether $user may be shown other users' e-mail addresses.
+     *
+     * Site admins always may; everyone else only on an instance that has
+     * opted in with `Security.disclose_user_emails` (default off, and
+     * described as "allow for the user e-mail addresses to be shown to
+     * non site-admin users"). Static so the dashboard widgets, which hold
+     * an auth-user array rather than a model instance, can share it -
+     * NewUsersWidget and UserContributionToplistWidget each carried their
+     * own copy of this expression, and DashboardsController::listTemplates
+     * carried a fourth, different rule that was gated on the render mode.
+     *
+     * @param array $user An auth user array.
+     * @return bool
+     */
+    public static function canSeeEmails(array $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return !empty(Configure::read('Security.disclose_user_emails'));
+    }
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -1012,6 +1037,13 @@ class User extends AppModel
                 'fields' => array('User.id', 'User.email', 'User.org_id')
             ));
         }
+        // With neither an org admin nor a site admin on the instance both finds
+        // come back empty, and the caller tests isset($admin['email']) - so
+        // return the shape it expects rather than reading a key off an empty
+        // array.
+        if (empty($admin['User'])) {
+            return array();
+        }
 
         return $admin['User'];
     }
@@ -1396,11 +1428,33 @@ class User extends AppModel
     }
 
     /**
+     * Instance public key, cached in redis to avoid a gnupg export on every
+     * request - the endpoint serving it is reachable unauthenticated.
+     *
      * @return array|null
      * @throws Exception
      */
     public function getGpgPublicKey()
     {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            $redis = false;
+        }
+        if ($redis) {
+            try {
+                $cached = $redis->get(self::GPG_PUBLIC_KEY_CACHE_KEY);
+                if (!empty($cached)) {
+                    $cached = RedisTool::deserialize($cached);
+                    if (is_array($cached) && count($cached) === 2) {
+                        return $cached;
+                    }
+                }
+            } catch (Exception $e) {
+                // Cached value could not be fetched or read, generate it again
+            }
+        }
+
         $cryptGpg = $this->initializeGpg();
         $this->CryptoGraphicKey = ClassRegistry::init('CryptographicKey');
         $fingerprint = $this->CryptoGraphicKey->ingestInstanceKey();
@@ -1409,7 +1463,19 @@ class User extends AppModel
         }
 
         $publicKey = $cryptGpg->exportPublicKey($fingerprint);
-        return array($fingerprint, $publicKey);
+        $key = array($fingerprint, $publicKey);
+        if ($redis) {
+            try {
+                $redis->setex(
+                    self::GPG_PUBLIC_KEY_CACHE_KEY,
+                    self::GPG_PUBLIC_KEY_CACHE_TTL,
+                    RedisTool::serialize($key)
+                );
+            } catch (Exception $e) {
+                // Caching the key is best effort only
+            }
+        }
+        return $key;
     }
 
     public function getOrgActivity($orgId, $params=array())

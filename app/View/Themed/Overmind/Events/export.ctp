@@ -1,339 +1,579 @@
 <?php
-    // Title of the index displayed in the header section, leaving it empty will fallback to controller name
-    $headerTitle = __('Exports');
+/*
+ * events/export — cached exports & text signature downloads.
+ *
+ * Two independent blocks:
+ *   1. Cached exports  — one row per export format, generated in the
+ *      background per organisation. Only populated when
+ *      MISP.background_jobs is on and MISP.disable_cached_exports is off,
+ *      otherwise $export_types comes back empty from the controller.
+ *   2. Text signatures — one chip per attribute type (~200 of them), hence
+ *      the live filter. The target URL differs between the cached and the
+ *      on-the-fly (restSearch) mode.
+ *
+ * Row state is carried to the client through $exportJobs rather than a
+ * per-row inline <script>, so a single boot block owns the polling.
+ */
 
-    // Description displayed under the title in the header section, leave empty if not needed
-    $headerDescription = __('');
+$background = !empty(Configure::read('MISP.background_jobs'))
+    && empty(Configure::read('MISP.disable_cached_exports'));
 
-    // Actions displayed as buttons in the header section, leave empty if not needed
-    $headerActions = [];
+/* Accent + glyph per export format. --h feeds the hsl() ramp in .ex-icon. */
+$formatStyles = [
+    'json'      => ['icon' => 'file-code',     'hue' => 205],
+    'xml'       => ['icon' => 'file-code',     'hue' => 265],
+    'csv_sig'   => ['icon' => 'file-csv',      'hue' => 145],
+    'csv_all'   => ['icon' => 'file-csv',      'hue' => 165],
+    'suricata'  => ['icon' => 'shield-halved', 'hue' => 15],
+    'snort'     => ['icon' => 'shield-halved', 'hue' => 35],
+    'bro'       => ['icon' => 'network-wired', 'hue' => 55],
+    'stix'      => ['icon' => 'share-nodes',   'hue' => 300],
+    'stix2'     => ['icon' => 'share-nodes',   'hue' => 320],
+    'rpz'       => ['icon' => 'globe',         'hue' => 190],
+    'text'      => ['icon' => 'file-lines',    'hue' => 225],
+    'yara'      => ['icon' => 'bug',           'hue' => 85],
+    'yara-json' => ['icon' => 'bug',           'hue' => 105],
+];
 
-    $this->set('headerTitle', $headerTitle);
-    $this->set('headerDescription', $headerDescription);
-    $this->set('headerActions', $headerActions);
+/*
+ * Cache freshness of one export type. `filesize` is only set by the
+ * controller when the cached file is readable, `recommendation` is its
+ * "should be regenerated" flag.
+ */
+$cacheState = function (array $type) {
+    if (($type['lastModified'] ?? '') === 'No valid events') {
+        return [
+            'key' => 'empty',
+            'label' => __('No valid events'),
+            'class' => 'text-bg-secondary',
+            'icon' => 'circle-minus',
+        ];
+    }
+    if (!isset($type['filesize'])) {
+        return [
+            'key' => 'missing',
+            'label' => __('Not cached'),
+            'class' => 'text-bg-warning',
+            'icon' => 'hourglass-half',
+        ];
+    }
+    if (!empty($type['recommendation'])) {
+        return [
+            'key' => 'stale',
+            'label' => __('Outdated'),
+            'class' => 'text-bg-danger',
+            'icon' => 'triangle-exclamation',
+        ];
+    }
+    return [
+        'key' => 'fresh',
+        'label' => __('Up to date'),
+        'class' => 'text-bg-success',
+        'icon' => 'circle-check',
+    ];
+};
+
+$stateCounts = ['fresh' => 0, 'stale' => 0, 'missing' => 0, 'empty' => 0];
+foreach ($export_types as $type) {
+    $stateCounts[$cacheState($type)['key']]++;
+}
+
+$headerTitle = __('Exports');
+$headerDescription = __(
+    'Download the data you have access to in the format your tooling '
+    . 'expects — NIDS rules, STIX documents, raw JSON/XML or plain '
+    . 'signature lists.'
+);
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+
+// events/automation is gated on perm_auth, don't advertise a 403.
+$this->set('headerActions', empty($me['Role']['perm_auth']) ? [] : [
+    [
+        'type' => 'navigate',
+        'label' => __('Automation API'),
+        'icon' => 'gears',
+        'url' => $baseurl . '/events/automation',
+        'title' => __('Query the same data programmatically'),
+    ],
+]);
 ?>
 
-<div class="container-fluid">
-
-    <div class="mb-4">
-        <div class="alert alert-info shadow-sm" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            <?php echo __('Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
-            Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.');?>
-        </div>
-
-        <?php if (Configure::read('MISP.disable_cached_exports', true)): ?>
-            <div class="alert alert-danger shadow-sm border-start border-danger border-4 mt-3" role="alert">
-                <strong><i class="fas fa-exclamation-triangle"></i> <?php echo __('Warning');?>:</strong> <?= __('This feature is disabled') ?>
-            </div>
-            <?php return ?>
-        <?php endif; ?>
-
-        <p class="lead text-dark mt-3"><?php echo __('Simply click on any of the following buttons to download the appropriate data.');?></p>
-    </div>
-
-    <?php $i = 0;?>
-
-    <script type="text/javascript">
-        var jobsArray = [];
-        var intervalArray = [];
-
-        function queueInterval(i, k, id, progress, modified) {
-            jobsArray[i] = id;
-            intervalArray[i] = setInterval(function(){
-                if (id !== -1 && progress < 100 && modified !== "N/A") {
-                    queryTask(k, i);
-                }
-            }, 3000);
-        }
-
-        function editMessage(id, text) {
-            var msgEl = document.getElementById("message" + id);
-            if (msgEl) {
-                msgEl.innerHTML = text;
-            }
-        }
-    </script>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-body p-0 table-responsive">
-            <table class="table table-striped table-hover table-bordered table-sm align-middle mb-0">
-                <thead class="table-dark">
-                    <?php
-                        $background = (!empty(Configure::read('MISP.background_jobs')) && empty(Configure::read('MISP.disable_cached_exports')));
-                        $fields = array(__('Type'), __('Last Update'), __('Description'), __('Outdated'), __('Filesize'), __('Progress'), __('Actions'));
-                        if (!$background) {
-                            unset($fields[1]);
-                            unset($fields[3]);
-                            unset($fields[4]);
-                            unset($fields[5]);
-                        }
-                        $headers = array();
-                        foreach ($fields as $field) {
-                            $headers[] = sprintf(
-                                '<th class="text-center py-2">%s</th>',
-                                $field
-                            );
-                        }
-                        echo sprintf(
-                            '<tr>%s</tr>',
-                            implode('', $headers)
-                        );
-                    ?>
-                </thead>
-                <tbody>
-                    <?php
-                        foreach ($export_types as $k => $type) {
-                            $cells = array();
-                            // Type column
-                            $cells[] = sprintf(
-                                '<td class="text-center fw-bold"><span class="badge bg-secondary">%s</span></td>',
-                                h($type['type'])
-                            );
-
-                            // Last Update column (Background mode)
-                            if ($background) {
-                                $cells[] = sprintf(
-                                    '<td id="update%s" class="text-danger fw-bold text-nowrap text-center">%s</td>',
-                                    h($i),
-                                    h($type['lastModified'])
-                                );
-                            }
-
-                            // Description column
-                            $cells[] = sprintf(
-                                '<td>%s%s</td>',
-                                h($type['description']),
-                                empty($type['params']['includeAttachments']) ? '' : sprintf(
-                                    ' <span class="fw-bold %s">%s.</span>',
-                                    Configure::read('MISP.cached_attachments') ? 'text-success' : 'text-danger',
-                                    Configure::read('MISP.cached_attachments') ? __('Attachments are enabled on this instance') : __('Attachments are disabled on this instance')
-                                )
-                            );
-
-                            // Progress & Status columns (Background mode)
-                            if ($background) {
-                                $cells[] = sprintf(
-                                    '<td id="outdated%s" class="text-center">%s</td>',
-                                    h($i),
-                                    $type['recommendation'] ? '<span class="text-danger fw-bold">' . __('Yes') . '</span>' : '<span class="text-success">' . __('No') . '</span>'
-                                );
-                                $cells[] = sprintf(
-                                    '<td class="text-end text-nowrap">%s</td>',
-                                    isset($type['filesize']) ? h($type['filesize']) : sprintf('<span class="text-danger fw-bold">%s</span>', __('N/A'))
-                                );
-
-                                $status = __('Loading…');
-                                if ($type['progress'] == 0 && $type['lastModified'] != "N/A") {
-                                    $status = __('Queued');
-                                } else if ($type['progress'] == 0 && $type['lastModified'] == "N/A") {
-                                    $status = '<span class="text-danger fw-bold">' . __('N/A') . '</span>';
-                                } else if ($type['progress'] == 100) {
-                                    if (isset($type['filesize'])) {
-                                        $status = __('Completed');
-                                    } else {
-                                        $status = '<span class="text-danger fw-bold">' . __('N/A') . '</span>';
-                                    }
-                                } else {
-                                    $status = h($type['progress']) . '%';
-                                }
-
-                                $cells[] = sprintf(
-                                    '<td style="width:150px; vertical-align: middle;">
-                                        <div id="barFrame%s" class="progress mb-1 shadow-sm" style="height: 1.25rem; display:none;">
-                                            %s
-                                        </div>
-                                        <div id="message%s" class="text-center small fw-bold text-muted mt-1" style="display:block;">%s</div>
-                                        <script type="text/javascript">%s</script>
-                                    </td>',
-                                    h($i),
-                                    sprintf(
-                                        '<div id="bar%s" class="progress-bar progress-bar-striped progress-bar-animated bg-info text-dark fw-bold" role="progressbar" style="width: %s%%;">%s</div>',
-                                        h($i),
-                                        h($type['progress']),
-                                        $status
-                                    ),
-                                    h($i),
-                                    $status,
-                                    sprintf(
-                                        'queueInterval("%s", "%s", "%s", "%s", "%s");',
-                                        h($i),
-                                        h($k),
-                                        h($type['job_id']),
-                                        h($type['progress']),
-                                        h($type['lastModified'])
-                                    )
-                                );
-                            }
-
-                            // Actions column
-                            if ($background) {
-                                $cells[] = sprintf(
-                                    '<td class="text-center"><div class="btn-group shadow-sm">%s%s</div></td>',
-                                    ($k === 'text') ? '' : str_replace('btn-inverse btn-small', 'btn-dark btn-sm', $this->Html->link('<i class="fas fa-download"></i> ' . __('Download'), array('action' => 'downloadExport', $k), array('class' => 'btn btn-dark btn-sm', 'escape' => false))),
-                                    sprintf(
-                                        '<button class="btn btn-outline-dark btn-sm" id=button%s onClick="generate(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\')" %s><i class="fas fa-sync-alt"></i> %s</button><div class="d-none">%s</div>',
-                                        $i,
-                                        h($i),
-                                        h($k),
-                                        h($type['job_id']),
-                                        h($type['progress']),
-                                        h($type['lastModified']),
-                                        (!$type['recommendation']) ? 'disabled' : '',
-                                        __('Generate'),
-                                        $this->Form->postLink(__('Download'), array('controller' => 'jobs', 'action' => 'cache', h($k)), array('class' => 'btn btn-dark btn-sm')),
-                                    )
-                                );
-                            } else {
-                                $params = array();
-                                foreach ($type['params'] as $param => $param_value) {
-                                    if ($param == 'includeAttachments') {
-                                        if ($param_value == 1 && Configure::read('MISP.cached_attachments')) {
-                                            $param_value = '1';
-                                        } else {
-                                            $param_value = '0';
-                                        }
-                                    }
-                                    $params[] = h($param) . ':' . strval(h($param_value));
-                                }
-                                $download_url = $baseurl . '/' . strtolower($type['scope']) . 's/restSearch/' . implode('/', $params) . '.json';
-                                $cells[] = sprintf(
-                                    '<td class="text-center"><a href="%s" class="btn btn-dark btn-sm shadow-sm"><i class="fas fa-download"></i> %s</a></td>',
-                                    $download_url,
-                                    __('Download')
-                                );
-                            }
-                            echo sprintf(
-                                '<tr>%s</tr>',
-                                implode('', $cells)
-                            );
-                            $i++;
-                        }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <h5 class="fw-bold mb-3 text-primary"><?php echo __('Available Text Signature Types'); ?></h5>
-        <div class="d-flex flex-wrap gap-2">
-            <?php
-                foreach ($sigTypes as $sigType) {
-                    echo $background ?
-                        str_replace('btn-inverse btn-small btn.active qet', 'btn-outline-dark btn-sm shadow-sm', $this->Html->link($sigType, array('action' => 'downloadExport', 'text', $sigType), array('class' => 'btn btn-outline-dark btn-sm shadow-sm'))) :
-                        sprintf(
-                            '<a href="%s" class="btn btn-outline-dark btn-sm shadow-sm">%s</a>',
-                            $baseurl . '/attributes/restSearch/returnFormat:text/type:' . $sigType . '.json',
-                            h($sigType)
-                        );
-                }
-            ?>
+<?php if (Configure::read('MISP.disable_cached_exports', true)): ?>
+<div class="ex-scope container-fluid pb-4">
+    <div class="alert alert-danger d-flex align-items-start gap-3 shadow-sm mb-0"
+            role="alert">
+        <i class="fa-solid fa-triangle-exclamation fa-lg mt-1"></i>
+        <div>
+            <div class="fw-semibold"><?= __('Cached exports are disabled') ?></div>
+            <p class="mb-0 small">
+                <?= __('This instance has MISP.disable_cached_exports turned on. '
+                    . 'Ask a site administrator to enable it, or query the data '
+                    . 'through the restSearch API instead.') ?>
+            </p>
         </div>
     </div>
 </div>
+<?php return; endif; ?>
 
-<script type="text/javascript">
-    function generate(i, type, id, progress, modified) {
-        var clickedBtn = document.getElementById('button' + i);
-        var formContainer = clickedBtn.nextElementSibling;
-        var form = formContainer.querySelector('form');
-        var originalHtml = clickedBtn.innerHTML;
-        clickedBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+<div class="ex-scope container-fluid pb-4">
 
-        var actionUrl = form.getAttribute('action');
-        var formData = new FormData(form);
-        var urlEncodedData = new URLSearchParams(formData).toString();
+    <!-- ── what this page does ──────────────────────────────────────────── -->
+    <div class="alert alert-light border d-flex align-items-start gap-3 shadow-sm mb-4">
+        <i class="fa-solid fa-circle-info fa-lg mt-1 text-primary"></i>
+        <div class="small mb-0">
+            <?= __('Exports automatically generate signatures for intrusion detection '
+                . 'systems. An attribute is only picked up when its <strong>IDS</strong> '
+                . 'flag is set to yes.') ?>
+            <br>
+            <span class="text-secondary">
+                <?= __('Signature generation is currently supported for network '
+                    . 'indicators (IP addresses, domains, hostnames, user agents…) '
+                    . 'and for hash lists built from the MD5/SHA1 values of file '
+                    . 'artifacts. More attribute types are planned.') ?>
+            </span>
+        </div>
+    </div>
 
-        fetch(actionUrl, {
-            method: 'POST',
-            body: urlEncodedData,
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    <!-- ══ CACHED EXPORTS ═══════════════════════════════════════════════ -->
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-body-tertiary d-flex flex-wrap align-items-center gap-2 py-2">
+            <i class="fa-solid fa-database text-secondary"></i>
+            <span class="fw-semibold"><?= __('Cached exports') ?></span>
+            <?php if (!empty($export_types)): ?>
+                <span class="badge rounded-pill text-bg-secondary">
+                    <?= count($export_types) ?>
+                </span>
+            <?php endif; ?>
+            <span class="ms-auto small text-secondary d-none d-lg-inline">
+                <?= __('Regenerated in the background, scoped to what your organisation can see.') ?>
+            </span>
+        </div>
+
+        <?php if (empty($export_types)): ?>
+
+            <div class="card-body">
+                <div class="d-flex flex-column align-items-center text-secondary py-5">
+                    <i class="fa-solid fa-inbox fa-2x mb-3 opacity-50"></i>
+                    <div class="fw-semibold mb-1"><?= __('No cached export available') ?></div>
+                    <p class="small text-center mb-0" style="max-width: 34rem;">
+                        <?= __('Cached exports need the background workers to be enabled '
+                            . '(MISP.background_jobs). Until then, use the signature lists '
+                            . 'below or the restSearch API to pull data on demand.') ?>
+                    </p>
+                </div>
+            </div>
+
+        <?php else: ?>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 ex-table">
+                        <thead>
+                            <tr>
+                                <th class="text-uppercase small text-secondary fw-semibold"
+                                    style="min-width: 11rem;"><?= __('Format') ?></th>
+                                <th class="text-uppercase small text-secondary fw-semibold">
+                                    <?= __('Description') ?></th>
+                                <th class="text-uppercase small text-secondary fw-semibold"
+                                    style="min-width: 12rem;"><?= __('Cache') ?></th>
+                                <th class="text-uppercase small text-secondary fw-semibold text-end"
+                                    style="min-width: 13rem;"><?= __('Actions') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        $i = 0;
+                        $exportJobs = [];
+                        foreach ($export_types as $k => $type):
+                            $state = $cacheState($type);
+                            $style = $formatStyles[$k]
+                                ?? ['icon' => 'file-arrow-down', 'hue' => 210];
+                            $exportJobs[] = [
+                                'i' => $i,
+                                'key' => $k,
+                                'jobId' => (int)$type['job_id'],
+                                'progress' => (int)$type['progress'],
+                                'modified' => (string)$type['lastModified'],
+                            ];
+                            // Only swap the badge for a bar when the boot block
+                            // below will actually poll this row.
+                            $running = (int)$type['job_id'] !== -1
+                                && (int)$type['progress'] > 0
+                                && (int)$type['progress'] < 100
+                                && $type['lastModified'] !== 'N/A';
+                        ?>
+                            <tr>
+
+                                <!-- Format -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="ex-icon" style="--h: <?= (int)$style['hue'] ?>;">
+                                            <i class="fa-solid fa-<?= h($style['icon']) ?>"></i>
+                                        </span>
+                                        <span class="lh-sm">
+                                            <span class="d-block fw-semibold"><?= h($type['type']) ?></span>
+                                            <code class="small text-secondary"><?= h($type['extension']) ?></code>
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Description -->
+                                <td>
+                                    <div class="small mb-1 ex-desc"><?= h($type['description']) ?></div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="ex-meta-chip">
+                                            <i class="fa-solid fa-layer-group"></i>
+                                            <?= h($type['scope']) ?>
+                                        </span>
+                                        <?php if (!empty($type['requiresPublished'])): ?>
+                                            <span class="ex-meta-chip">
+                                                <i class="fa-solid fa-tower-broadcast"></i>
+                                                <?= __('Published only') ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($type['params']['includeAttachments'])): ?>
+                                            <?php $attachmentsOn = (bool)Configure::read('MISP.cached_attachments'); ?>
+                                            <span class="ex-meta-chip <?= $attachmentsOn ? 'ex-meta-chip-on' : 'ex-meta-chip-off' ?>"
+                                                    title="<?= h($attachmentsOn
+                                                        ? __('Attachments are enabled on this instance')
+                                                        : __('Attachments are disabled on this instance')) ?>">
+                                                <i class="fa-solid fa-paperclip"></i>
+                                                <?= $attachmentsOn
+                                                    ? __('Attachments included')
+                                                    : __('Attachments disabled') ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <!-- Cache status + live progress -->
+                                <td>
+                                    <span id="exportBadge<?= $i ?>"
+                                            class="badge rounded-pill <?= h($state['class']) ?><?= $running ? ' d-none' : '' ?>">
+                                        <i class="fa-solid fa-<?= h($state['icon']) ?> me-1"></i>
+                                        <?= h($state['label']) ?>
+                                    </span>
+
+                                    <div id="exportBarFrame<?= $i ?>"
+                                            class="progress ex-progress<?= $running ? '' : ' d-none' ?>"
+                                            role="progressbar"
+                                            aria-valuemin="0" aria-valuemax="100"
+                                            aria-valuenow="<?= (int)$type['progress'] ?>">
+                                        <div id="exportBar<?= $i ?>"
+                                                class="progress-bar progress-bar-striped progress-bar-animated"
+                                                style="width: <?= (int)$type['progress'] ?>%;">
+                                            <?= (int)$type['progress'] ?>%
+                                        </div>
+                                    </div>
+
+                                    <?php
+                                    // The badge already says "not cached" / "no
+                                    // valid events", so don't echo the sentinel
+                                    // twice. The span stays for the JS to fill.
+                                    $metaText = in_array(
+                                        $type['lastModified'],
+                                        ['N/A', 'No valid events'],
+                                        true
+                                    ) ? '' : $type['lastModified'];
+                                    ?>
+                                    <div class="small text-secondary mt-1">
+                                        <span id="exportMeta<?= $i ?>"><?= h($metaText) ?></span>
+                                        <?php if (isset($type['filesize'])): ?>
+                                            <span class="ex-dot">·</span>
+                                            <span class="font-monospace"><?= h($type['filesize']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <?php if ($k === 'text'): ?>
+                                            <a href="#exSignatures" class="btn btn-outline-secondary">
+                                                <i class="fa-solid fa-list-check me-1"></i>
+                                                <?= __('Pick a type') ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <?php $downloadable = isset($type['filesize']); ?>
+                                            <a href="<?= h($baseurl . '/events/downloadExport/' . $k) ?>"
+                                                    class="btn btn-outline-secondary<?= $downloadable ? '' : ' disabled' ?>"
+                                                    <?= $downloadable ? '' : 'aria-disabled="true" tabindex="-1"' ?>
+                                                    title="<?= h($downloadable
+                                                        ? __('Download the cached file')
+                                                        : __('Nothing cached yet, generate it first')) ?>">
+                                                <i class="fa-solid fa-download me-1"></i>
+                                                <?= __('Download') ?>
+                                            </a>
+                                        <?php endif; ?>
+                                        <button type="button"
+                                                id="exportGenerateBtn<?= $i ?>"
+                                                class="btn btn-outline-primary"
+                                                onclick="mispExportGenerate(<?= $i ?>, '<?= h($k) ?>')"
+                                                <?= empty($type['recommendation']) ? 'disabled' : '' ?>
+                                                title="<?= h(empty($type['recommendation'])
+                                                    ? __('This cache is already up to date')
+                                                    : __('Queue a background job to rebuild this cache')) ?>">
+                                            <i class="fa-solid fa-rotate me-1"></i>
+                                            <?= __('Generate') ?>
+                                        </button>
+                                    </div>
+                                    <?php // CSRF-signed POST form for jobs/cache, submitted by fetch() ?>
+                                    <div class="d-none" id="exportForm<?= $i ?>">
+                                        <?= $this->Form->postLink(
+                                            __('Generate'),
+                                            ['controller' => 'jobs', 'action' => 'cache', $k]
+                                        ) ?>
+                                    </div>
+                                </td>
+
+                            </tr>
+                        <?php
+                            $i++;
+                        endforeach;
+                        ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        <?php endif; ?>
+
+    </div>
+
+    <!-- ══ TEXT SIGNATURE TYPES ═════════════════════════════════════════ -->
+    <div class="card shadow-sm mb-0" id="exSignatures">
+
+        <div class="card-header bg-body-tertiary d-flex flex-wrap align-items-center gap-2 py-2">
+            <i class="fa-solid fa-file-lines text-secondary"></i>
+            <span class="fw-semibold"><?= __('Text signature types') ?></span>
+            <span class="badge rounded-pill text-bg-secondary"><?= count($sigTypes) ?></span>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span id="exSigCounter" class="small text-secondary d-none d-md-inline"></span>
+                <div class="input-group input-group-sm" style="max-width: 18rem;">
+                    <span class="input-group-text bg-body">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="search" id="exSigSearch" class="form-control"
+                            placeholder="<?= h(__('Filter types…')) ?>"
+                            autocomplete="off" spellcheck="false"
+                            aria-label="<?= h(__('Filter signature types')) ?>">
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <p class="small text-secondary">
+                <?= __('One plain-text list per attribute type, built from published '
+                    . 'events whose attributes are flagged for IDS. Useful to feed '
+                    . 'forensic tooling looking for a specific artifact.') ?>
+            </p>
+
+            <div class="d-flex flex-wrap gap-1 ex-siglist" id="exSigList">
+                <?php foreach ($sigTypes as $sigType): ?>
+                    <?php
+                    $sigUrl = $background
+                        ? $baseurl . '/events/downloadExport/text/' . $sigType
+                        : $baseurl . '/attributes/restSearch/returnFormat:text/type:'
+                            . $sigType . '.json';
+                    ?>
+                    <a href="<?= h($sigUrl) ?>" class="ex-chip"
+                            data-search="<?= h(strtolower($sigType)) ?>"><?= h($sigType) ?></a>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="text-center text-secondary py-4 d-none" id="exSigEmpty">
+                <i class="fa-solid fa-magnifying-glass fa-2x mb-2 d-block opacity-50"></i>
+                <?= __('No signature type matches your filter.') ?>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── signature type live filter ──────────────────────────────────── */
+    var search = document.getElementById('exSigSearch');
+    var list = document.getElementById('exSigList');
+    if (search && list) {
+        var chips = Array.prototype.slice.call(list.querySelectorAll('.ex-chip'));
+        var empty = document.getElementById('exSigEmpty');
+        var counter = document.getElementById('exSigCounter');
+
+        var applyFilter = function () {
+            var needle = search.value.trim().toLowerCase();
+            var shown = 0;
+            chips.forEach(function (chip) {
+                var hit = needle === '' || chip.dataset.search.indexOf(needle) !== -1;
+                chip.classList.toggle('d-none', !hit);
+                if (hit) {
+                    shown++;
+                }
+            });
+            list.classList.toggle('d-none', shown === 0);
+            if (empty) {
+                empty.classList.toggle('d-none', shown !== 0);
             }
-        })
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            if (counter) {
+                counter.textContent = needle === ''
+                    ? ''
+                    : shown + ' / ' + chips.length;
             }
-            return response.text();
-        })
-        .then(function(data) {
-            jobsArray[i] = data;
-            editMessage(i, "Adding...");
-            queueInterval(i, type, data, 1, "Just now");
-            disableButton(i);
-            clickedBtn.innerHTML = originalHtml;
-        })
-        .catch(function(error) {
-            console.error('There has been a problem with your fetch operation:', error);
-            clickedBtn.innerHTML = originalHtml;
-        });
+        };
+
+        search.addEventListener('input', applyFilter);
+        applyFilter();
     }
 
-    function queryTask(type, i) {
-        fetch('<?php echo $baseurl; ?>/jobs/getProgress/cache_' + type, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
+    /* ── cached export jobs ──────────────────────────────────────────── */
+    var jobs = <?= json_encode($exportJobs ?? [], JSON_UNESCAPED_SLASHES) ?>;
+    if (!jobs.length) {
+        return;
+    }
+
+    var POLL_MS = 3000;
+    var timers = {};
+    var labels = {
+        fresh: <?= json_encode(__('Up to date')) ?>,
+        justNow: <?= json_encode(__('0 seconds ago')) ?>,
+        workerDown: <?= json_encode(__('Warning, the background worker is not responding!')) ?>
+    };
+
+    var el = function (id) { return document.getElementById(id); };
+
+    var showProgress = function (i, percent) {
+        var frame = el('exportBarFrame' + i);
+        var bar = el('exportBar' + i);
+        var badge = el('exportBadge' + i);
+        if (!frame || !bar) {
+            return;
+        }
+        if (badge) {
+            badge.classList.add('d-none');
+        }
+        frame.classList.remove('d-none');
+        frame.setAttribute('aria-valuenow', percent);
+        bar.style.width = percent + '%';
+        bar.textContent = percent + '%';
+    };
+
+    var stop = function (i) {
+        if (timers[i]) {
+            clearInterval(timers[i]);
+            delete timers[i];
+        }
+    };
+
+    var complete = function (i) {
+        stop(i);
+        var frame = el('exportBarFrame' + i);
+        if (frame) {
+            frame.classList.add('d-none');
+        }
+        var badge = el('exportBadge' + i);
+        if (badge) {
+            badge.className = 'badge rounded-pill text-bg-success';
+            badge.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>'
+                + labels.fresh;
+        }
+        var meta = el('exportMeta' + i);
+        if (meta) {
+            meta.textContent = labels.justNow;
+        }
+        var button = el('exportGenerateBtn' + i);
+        if (button) {
+            button.disabled = true;
+        }
+    };
+
+    var poll = function (i, key) {
+        fetch(baseurl + '/jobs/getProgress/cache_' + encodeURIComponent(key), {
+            headers: {'Accept': 'application/json'}
         })
-        .then(function(response) {
+        .then(function (response) {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('HTTP ' + response.status);
             }
             return response.json();
         })
-        .then(function(data) {
-            var x = document.getElementById("bar" + i);
-            if (!x) return;
-
-            x.style.width = data + "%";
-
-            if (data > -1 && data < 100) {
-                x.innerHTML = data + "%";
-                showDiv("barFrame" + i);
-                hideDiv("message" + i);
+        .then(function (percent) {
+            percent = parseInt(percent, 10);
+            if (percent === -1) {
+                stop(i);
+                console.warn(labels.workerDown);
+                return;
             }
-            if (data == 100) {
-                clearInterval(intervalArray[i]);
-                hideDiv("barFrame" + i);
-                showDiv("message" + i);
-                updateTime(i);
-                editMessage(i, "<span class='text-success'><i class='fas fa-check-circle'></i> Completed.</span>");
-                updateOutdated(i);
+            if (percent >= 100) {
+                complete(i);
+                return;
             }
-            if (data == -1) {
-                alert("<?php echo __('Warning, the background worker is not responding!');?>");
-            }
+            showProgress(i, Math.max(percent, 0));
         })
-        .catch(function(error) {
-            console.error('Fetch error:', error);
+        .catch(function (error) {
+            console.error('export progress:', error);
         });
-    }
+    };
 
-    function showDiv(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.display = 'block';
-    }
+    var start = function (i, key) {
+        if (timers[i]) {
+            return;
+        }
+        timers[i] = setInterval(function () { poll(i, key); }, POLL_MS);
+    };
 
-    function hideDiv(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    }
+    /*
+     * The visible button is a plain <button>; the CSRF-signed form Cake
+     * generated for jobs/cache lives hidden in the same cell and is what we
+     * actually POST.
+     */
+    window.mispExportGenerate = function (i, key) {
+        var button = el('exportGenerateBtn' + i);
+        var holder = el('exportForm' + i);
+        var form = holder ? holder.querySelector('form') : null;
+        if (!button || !form) {
+            return;
+        }
+        var original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"'
+            + ' role="status" aria-hidden="true"></span>' + original.replace(/<[^>]*>/g, '').trim();
 
-    function updateTime(id) {
-        var el = document.getElementById("update" + id);
-        if (el) el.innerHTML = "<?php echo __('0 seconds ago');?>";
-    }
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.text();
+        })
+        .then(function () {
+            button.innerHTML = original;
+            showProgress(i, 1);
+            start(i, key);
+        })
+        .catch(function (error) {
+            console.error('export generate:', error);
+            button.disabled = false;
+            button.innerHTML = original;
+        });
+    };
 
-    function updateOutdated(id) {
-        var el = document.getElementById("outdated" + id);
-        if (el) el.innerHTML = "<span class='text-success'><?php echo __('No');?></span>";
-    }
-
-    function disableButton(id) {
-        var btn = document.getElementById('button' + id);
-        if (btn) btn.disabled = true;
-    }
+    jobs.forEach(function (job) {
+        if (job.jobId !== -1 && job.progress < 100 && job.modified !== 'N/A') {
+            start(job.i, job.key);
+        }
+    });
+}());
 </script>

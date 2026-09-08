@@ -14,6 +14,8 @@ class Job extends AppModel
         WORKER_CACHE = 'cache',
         WORKER_UPDATE = 'update';
 
+    public $actsAs = array('Containable');
+
     public $belongsTo = array(
         'Org' => array(
             'className' => 'Organisation',

@@ -122,9 +122,21 @@ Example: `fix: [api] Correct attribute validation (#3120)`
 
 ## Git Workflow
 
-- **Main branch**: `2.5` (current stable)
-- **Development**: `develop`
-- **Feature branches**: Branch from `2.5`, prefix with `fix-*` or `feature-*`
+- **`develop`** — the default target for ordinary work. Smaller changes (bug
+  fixes, cleanups, small improvements) are committed here directly.
+- **`2.5`** — current stable. Receives `develop` through a merge at release
+  time. Take direct commits on `2.5` **only** for an urgent hotfix outside the
+  release cycle.
+- **Feature branches** — for larger changes such as full-fledged new features.
+  Branch from `develop`, prefix with `fix-*` or `feature-*`, and fold back into
+  `develop` once ready to ship. External contributions often branch from
+  somewhere else; expect that on incoming PRs.
+
+A release is cut by merging `develop` into `2.5`, and **`develop`'s CI/CD is
+the go/no-go** for that merge. Right after a release `develop` and `2.5` are
+identical — that is expected, not a sign of drift.
+
+When in doubt about where a change belongs, it belongs on `develop`.
 
 ## Requirements
 

@@ -79,10 +79,18 @@
 
 <script>
     function purgeUnusedPictures(on, cache) {
-        $.get(baseurl + "/eventReports/purgeUnusedPictures", function() {
-            showMessage('success', '<?= __('Purged unused images') ?>')
-            window.location.reload()
-        }).fail(xhrFailCallback);
+        // POST with the page's CSRF token in the header - the action has no
+        // rendered form, so it rides the _csrfTokenHeaderOnly() idiom.
+        $.ajax({
+            url: baseurl + "/eventReports/purgeUnusedPictures",
+            type: "post",
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
+            success: function() {
+                showMessage('success', '<?= __('Purged unused images') ?>')
+                window.location.reload()
+            },
+            error: xhrFailCallback
+        });
     }
 
     function saveAlias(clicked) {

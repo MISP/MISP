@@ -67,7 +67,19 @@ class SharingGroupBlueprintsController extends AppController
         if ($this->theme === 'Overmind') {
             $this->layout = false;
         }
+        $this->__setRuleVocabulary();
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'addMG'));
+    }
+
+    /**
+     * The rule editor builds its filter palette and validates the keys the user
+     * types against the model, so the form cannot drift from what
+     * SharingGroupBlueprint::__evaluateLeaf() actually understands.
+     */
+    private function __setRuleVocabulary()
+    {
+        $this->set('validFilters', $this->SharingGroupBlueprint->validFilters);
+        $this->set('operands', $this->SharingGroupBlueprint->operands);
     }
 
     public function edit($id)
@@ -89,6 +101,7 @@ class SharingGroupBlueprintsController extends AppController
         if ($this->theme === 'Overmind') {
             $this->layout = false;
         }
+        $this->__setRuleVocabulary();
         $this->render('add');
     }
 

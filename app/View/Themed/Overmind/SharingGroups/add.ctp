@@ -12,22 +12,15 @@ echo $this->Form->create('SharingGroup', [
 ]);
 ?>
 
-<div class="container" id="sg-wizard">
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Sharing Groups'),
+    'title' => $edit ? __('Edit Sharing Group') : __('Add Sharing Group'),
+    'description' => __('Complete each section below — use the accordions to navigate, or "Next" to proceed step by step.'),
+    'icon' => 'misp-icon misp-icon-sharing-group misp-simple',
+    'isEdit' => $edit,
+]) ?>
 
-    <div class="row justify-content-center">
-
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?=  $edit ? __('Edit current SharingGroup') : __('Create New SharingGroup')  ?>
-                </h3>
-
-                <p class="text-muted mb-4">
-                    <?= __('Define a new sharing group by completing each section below. Use the accordions to navigate, or click "Next" to proceed step by step.') ?>
-                </p>
-
+<div class="container-fluid px-4 py-4" id="sg-wizard">
 
                 <div class="accordion" id="sgAccordion">
                     <!-- ===================== STEP 1 : GENERAL ===================== -->
@@ -330,18 +323,38 @@ echo $this->Form->create('SharingGroup', [
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<?= $this->Form->input('json', [
-    'style'  => 'display:none;',
-    'label'  => false,
-    'div'    => false,
-    'id'     => 'SharingGroupJson',
-    'value'  => '',
-]) ?>
+    <?php
+    $footerMeta = [];
+    if ($edit && !empty($sharingGroup['SharingGroup']['id'])) {
+        $footerMeta[] = ['label' => __('Sharing group'), 'id' => $sharingGroup['SharingGroup']['id']];
+        if (!empty($sharingGroup['SharingGroup']['name'])) {
+            $footerMeta[] = ['value' => $sharingGroup['SharingGroup']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'meta' => $footerMeta,
+        'hint' => __('Your own organisation and this instance are included by default.'),
+        /* Delegates to the wizard's own Submit (step 4), which is what
+         * initSharingGroupForm() binds the payload build and submit to. */
+        'submit' => [
+            'label' => $edit ? __('Save Changes') : __('Add Sharing Group'),
+            'type' => 'button',
+            'attrs' => ['onclick' => "var b = document.getElementById('sg-submit-btn'); if (b) { b.click(); }"],
+        ],
+    ]);
+    ?>
+
+    <?= $this->Form->input('json', [
+        'style'  => 'display:none;',
+        'label'  => false,
+        'div'    => false,
+        'id'     => 'SharingGroupJson',
+        'value'  => '',
+    ]) ?>
+
+</div>
 
 <?php echo $this->Form->end(); ?>
 

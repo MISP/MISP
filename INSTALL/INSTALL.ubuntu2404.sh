@@ -464,8 +464,8 @@ error_check "Ensure redis is running"
 
 print_status "Running MISP updates"
 
-sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" setSetting "MISP.osuser" "${APACHE_USER}" &>>$logfile
-sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" runUpdates &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin setSetting "MISP.osuser" "${APACHE_USER}" &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin runUpdates &>>$logfile
 MISP_USER_KEY_FILE="$(mktemp)"
 sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" User init >"${MISP_USER_KEY_FILE}"
 MISP_USER_KEY="$(tr -d '\n' <"${MISP_USER_KEY_FILE}")"

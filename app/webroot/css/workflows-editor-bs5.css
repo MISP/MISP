@@ -1,0 +1,169 @@
+/*
+ * Bootstrap 2 class shims for the Overmind workflow editor.
+ *
+ * workflows-editor.js is left untouched by the migration, and it renders node
+ * markup carrying Bootstrap 2 class names that Bootstrap 5 dropped. Rather than
+ * rewrite 2700 lines of editor logic, give those class names a Bootstrap 5
+ * appearance — scoped to the editor so nothing leaks into the rest of the theme.
+ *
+ * Only the classes the editor JS actually emits are covered:
+ *   .label / .label-*  .btn-mini  .text-error  .muted  .pull-right
+ *   .input-prepend / .input-append / .add-on   (blueprint sidebar cards)
+ */
+
+.root-container .label,
+.drawflow .label,
+.popover .label {
+    display: inline-block;
+    padding: .25em .5em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .375rem;
+    background-color: var(--bs-secondary);
+}
+
+.root-container .label-important,
+.drawflow .label-important { background-color: var(--bs-danger); }
+.root-container .label-success,
+.drawflow .label-success   { background-color: var(--bs-success); }
+.root-container .label-warning,
+.drawflow .label-warning   { background-color: var(--bs-warning); color: var(--bs-dark); }
+.root-container .label-info,
+.drawflow .label-info      { background-color: var(--bs-info); color: var(--bs-dark); }
+.root-container .label-inverse,
+.drawflow .label-inverse   { background-color: var(--bs-dark); }
+
+/* Bootstrap 2's extra-small button size. */
+.root-container .btn-mini,
+.drawflow .btn-mini,
+.popover .btn-mini {
+    --bs-btn-padding-y: .1rem;
+    --bs-btn-padding-x: .35rem;
+    --bs-btn-font-size: .75rem;
+    --bs-btn-border-radius: .25rem;
+}
+/* A .btn with no variant used to be grey in Bootstrap 2; in Bootstrap 5 it is
+   transparent, which makes the node "..." buttons disappear. */
+.root-container .btn-mini:not([class*="btn-"]):not(.btn-primary),
+.drawflow .btn-mini:not([class*="btn-"]):not(.btn-primary) {
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.root-container .text-error,
+.drawflow .text-error { color: var(--bs-danger) !important; }
+
+.root-container .muted,
+.drawflow .muted,
+.popover .muted { color: var(--bs-secondary-color) !important; }
+
+.root-container .pull-right, .drawflow .pull-right { float: right; }
+.root-container .pull-left,  .drawflow .pull-left  { float: left; }
+
+/* Bootstrap 2 input add-ons, used by the blueprint sidebar cards to show the
+   per-icon node counts. */
+.root-container .input-prepend,
+.root-container .input-append {
+    display: inline-flex;
+    align-items: stretch;
+    vertical-align: middle;
+}
+.root-container .input-prepend .add-on,
+.root-container .input-append .add-on {
+    display: inline-flex;
+    align-items: center;
+    padding: .1rem .35rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+}
+.root-container .input-prepend .add-on:first-child {
+    border-top-left-radius: .25rem;
+    border-bottom-left-radius: .25rem;
+}
+.root-container .input-append .add-on:last-child {
+    border-left: 0;
+    border-top-right-radius: .25rem;
+    border-bottom-right-radius: .25rem;
+}
+
+/*
+ * Bootstrap 5 pads .nav-link more generously than Bootstrap 2 padded its tab
+ * anchors, which pushed the third sidebar tab onto a second row inside the
+ * fixed-width side panel. Bring it back to a single row.
+ */
+.root-container .side-panel #block-tabs { flex-wrap: nowrap; }
+.root-container .side-panel #block-tabs .nav-link {
+    padding: .35rem .6rem;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+/*
+ * workflows-editor.css targets `.side-panel .tab-pane.active` to lay the block
+ * list out; Bootstrap 5 keeps `.active` on tab panes, so that still matches. It
+ * also styles `.dropdown-menu li.disabled a`, which Bootstrap 5 no longer greys
+ * out on its own.
+ */
+.root-container .dropdown-menu li.disabled > a,
+.root-container .dropdown-item.disabled {
+    color: var(--bs-secondary-color) !important;
+    pointer-events: none;
+    opacity: .55;
+}
+
+/*
+ * Bootstrap 2 nested dropdowns. Bootstrap 5 has no submenu support and the
+ * editor's Blueprints menu relies on it.
+ */
+.root-container .dropdown-submenu { position: relative; }
+.root-container .dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: auto;
+    right: 100%;
+    margin-top: -.35rem;
+    margin-right: .1rem;
+    border-radius: .375rem;
+}
+.root-container .dropdown-submenu:hover > .dropdown-menu { display: block; }
+.root-container .dropdown-submenu > a::after {
+    content: "";
+    display: block;
+    float: left;
+    width: 0;
+    height: 0;
+    margin: .5rem .35rem 0 -.25rem;
+    border-top: .3rem solid transparent;
+    border-bottom: .3rem solid transparent;
+    border-right: .3rem solid currentColor;
+}
+
+/*
+ * The editor owns the viewport: it has its own topbar and a canvas that must
+ * fill whatever is left. The stock rule is `height: calc(100vh - 2*42px)`,
+ * sized for the Bootstrap 2 navbar and footer. Rather than hardcode the
+ * Overmind heights, make the wrapper chain a flex column and let the editor
+ * grow into the remaining space — so it stays correct if the navbar or footer
+ * ever change height.
+ */
+body[data-controller="workflows"][data-action="editor"] .main-wrapper,
+body[data-controller="workflows"][data-action="editor"] main.content,
+body[data-controller="workflows"][data-action="editor"] main.content > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+body[data-controller="workflows"][data-action="editor"] .root-container {
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0;
+}

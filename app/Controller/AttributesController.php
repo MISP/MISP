@@ -44,6 +44,7 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
         $this->Security->unlockedActions[] = 'editField';
+        $this->Security->unlockedActions[] = 'validateValue';
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -56,7 +57,7 @@ class AttributesController extends AppController
     {
         $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
         foreach ($multiLineFields as $field) {
-            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+            if (isset($filters[$field]) && is_string($filters[$field]) && strstr($filters[$field], "\n")) {
                 $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
             }
         }
@@ -100,7 +101,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation', 'email', 'galaxy'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -110,6 +111,23 @@ class AttributesController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
+        $filters = $this->__massageGalaxyFilter($filters);
+        // The index filter bar searches for a substring.
+        // Only a value that came in through the URL gets the implicit wildcards - 
+        // the search form (POST) and the API keep matching the value they were handed.
+        $urlValue = $this->request->params['named']['value']
+            ?? ($this->request->query['value'] ?? null);
+        if (
+            !$this->_isRest() &&
+            $urlValue !== null &&
+            isset($filters['value']) &&
+            is_string($filters['value']) &&
+            $filters['value'] !== '' &&
+            !str_contains($filters['value'], '%')
+        ) {
+            $filters['value'] = '%' . $filters['value'] . '%';
+        }
         if (!$this->_isRest()) {
             $search_filters = $this->request->data;
             if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
@@ -151,6 +169,9 @@ class AttributesController extends AppController
         }
         $this->set('params', $params);
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        if (!empty($filters['email'])) {
+            $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
+        }
         $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
         if (!empty($filters['direction'])) {
             $params['direction'] = $filters['direction'];
@@ -179,8 +200,7 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             $this->paginate['conditions'] = $conditions;
-            $attributeCount = 0;
-            $attributes = $this->MispAttribute->fetchAttributes($user, $params, $attributeCount, true);
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
             App::uses('CustomPaginationTool', 'Tools');
             $customPagination = new CustomPaginationTool();
             $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
@@ -257,12 +277,96 @@ class AttributesController extends AppController
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
-        $this->set('headerCount', $attributeCount);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->__setIndexFilterOptions($orgTable);
         $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
+    }
+
+    /**
+     * A galaxy has no filter of its own: narrowing down to one means asking for
+     * the tags its clusters carry (`misp-galaxy:<type>="<uuid>"`).
+     *
+     * @param array $filters
+     * @return array
+     */
+    private function __massageGalaxyFilter(array $filters): array
+    {
+        if (empty($filters['galaxy'])) {
+            unset($filters['galaxy']);
+            return $filters;
+        }
+        $tags = [];
+        foreach ((array)$filters['galaxy'] as $galaxyType) {
+            $tags[] = 'misp-galaxy:' . $galaxyType . '="%"';
+        }
+        if (!empty($filters['tags'])) {
+            $tags = array_merge((array)$filters['tags'], $tags);
+        }
+        $filters['tags'] = $tags;
+        unset($filters['galaxy']);
+        return $filters;
+    }
+
+    /**
+     * Attributes have no creator of their own, so filtering on one lands on the
+     * event they belong to. Only a site admin may look up somebody else's.
+     *
+     * @param array $conditions
+     * @param string $email
+     * @return array
+     */
+    private function __addCreatorConditions(array $conditions, $email): array
+    {
+        $email = trim($email);
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = [
+                'Event.user_id' => strtolower($this->Auth->user('email')) === strtolower($email)
+                    ? $this->Auth->user('id')
+                    : -1
+            ];
+            return $conditions;
+        }
+        $userIds = $this->User->find('column', [
+            'fields' => ['User.id'],
+            'conditions' => ['User.email LIKE' => '%' . strtolower($email) . '%'],
+        ]);
+        $conditions['AND'][] = ['Event.user_id' => empty($userIds) ? [-1] : $userIds];
+        return $conditions;
+    }
+
+    /**
+     * Option lists for the index filter bar. Galaxy tags are left out of the
+     * tag list, the galaxy dropdown covers them and there are thousands.
+     *
+     * @param array $orgTable Orgc rows keyed by id, as fetched by index()
+     * @return void
+     */
+    private function __setIndexFilterOptions(array $orgTable)
+    {
+        $categoryKeys = array_keys($this->MispAttribute->categoryDefinitions);
+        $this->set('categoryOptions', ['' => ''] + array_combine($categoryKeys, $categoryKeys));
+        $typeKeys = array_keys($this->MispAttribute->typeDefinitions);
+        sort($typeKeys);
+        $this->set('typeOptions', ['' => ''] + array_combine($typeKeys, $typeKeys));
+
+        $orgNames = array_column($orgTable, 'name');
+        sort($orgNames);
+        $this->set('orgOptions', ['' => ''] + array_combine($orgNames, $orgNames));
+
+        $this->set('tagOptions', ['' => ''] + $this->MispAttribute->AttributeTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'conditions' => ['Tag.is_galaxy' => 0],
+            'order' => ['Tag.name' => 'ASC'],
+        ]));
+
+        $this->loadModel('Galaxy');
+        $this->set('galaxyOptions', ['' => ''] + $this->Galaxy->find('list', [
+            'fields' => ['Galaxy.type', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC'],
+        ]));
     }
 
     public function add($eventId = false)
@@ -418,7 +522,7 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $this->Flash->success($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     }
                 } else {
                     $this->Flash->error($message);
@@ -428,7 +532,7 @@ class AttributesController extends AppController
                 }
                 if ($successes > 0) {
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }
@@ -496,7 +600,7 @@ class AttributesController extends AppController
         }
 
         if ($this->request->is('post')) {
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -921,7 +1025,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1242,6 +1346,7 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
         }
+        $this->__assertCanModifyEvents([$attribute['Attribute']['event_id']]);
         $this->set('id', $attribute['Attribute']['id']);
         if ($this->request->is('ajax') || $this->theme === 'Overmind') {
             if ($this->request->is('post')) {
@@ -1300,6 +1405,13 @@ class AttributesController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('No matching attributes found.'));
             }
+            // Unlike deleteSelected() this takes a bare id list with no event scope,
+            // so the events it spans have to be resolved before they can be checked.
+            $this->__assertCanModifyEvents($this->MispAttribute->find('column', [
+                'conditions' => ['Attribute.id' => $idList],
+                'fields' => ['Attribute.event_id'],
+                'unique' => true,
+            ]));
             $user      = $this->_closeSession();
             $successes = [];
             $fails     = [];
@@ -1432,19 +1544,7 @@ class AttributesController extends AppController
         if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            $event = $this->MispAttribute->Event->find('first', [
-                'conditions' => ['id' => $eventId],
-                'recursive' => -1,
-                'fields' => ['id', 'orgc_id', 'user_id'],
-            ]);
-            if (!$event) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            if (!$this->__canModifyEvent($event)) {
-                throw new ForbiddenException(__('You do not have permission to do that.'));
-            }
-        }
+        $this->__assertCanModifyEvents([$eventId]);
         $conditions = ['id' => $ids, 'event_id' => $eventId];
         if ($ids === 'all') {
             unset($conditions['id']);
@@ -1645,9 +1745,9 @@ class AttributesController extends AppController
         $clusters_ids_remove = json_decode($requestData['clusters_ids_remove']);
         $clusters_ids_add = json_decode($requestData['clusters_ids_add']);
         $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
-            || ($tags_ids_add === null || count($tags_ids_add) > 0)
-            || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
-            || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+            || ($tags_ids_add !== null && count($tags_ids_add) > 0)
+            || ($clusters_ids_remove !== null && count($clusters_ids_remove) > 0)
+            || ($clusters_ids_add !== null && count($clusters_ids_add) > 0);
 
         $changeInAttribute = ($requestData['to_ids'] != 2) || ($requestData['distribution'] != 6) || ($requestData['comment'] != null) || ($requestData['disable_correlation'] != 2);
 
@@ -1667,7 +1767,7 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['distribution'] = $requestData['distribution'];
             }
             if ($requestData['distribution'] == 4) {
-                $sharingGroupId = $requestData['sharing_group_id'];
+                $sharingGroupId = isset($requestData['sharing_group_id']) ? $requestData['sharing_group_id'] : null;
                 if (!$this->__canUseSharingGroup($sharingGroupId)) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1923,6 +2023,83 @@ class AttributesController extends AppController
             throw new NotFoundException();
         }
         $this->set('fails', $this->MispAttribute->checkComposites());
+    }
+
+    /**
+     * Lightweight AJAX endpoint used by the add/edit attribute form to give the
+     * user immediate feedback on whether the entered value matches the format
+     * expected for the selected type. Reuses AttributeValidationTool so the
+     * client stays in sync with the server-side validation rules.
+     * Expects a POST with `type`, `value` and optional `batch` (one value per
+     * line). Returns JSON: {valid: bool, message: string}.
+     */
+    public function validateValue()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint expects a POST request.'));
+        }
+        $data = $this->request->data;
+        if (isset($data['Attribute'])) {
+            $data = $data['Attribute'];
+        }
+        $type = $data['type'] ?? '';
+        $value = $data['value'] ?? '';
+        $batch = !empty($data['batch']);
+
+        $response = ['valid' => true, 'message' => ''];
+
+        // Without a known type we cannot validate the format, so don't block.
+        if ($type === '' || !isset($this->MispAttribute->typeDefinitions[$type])) {
+            return $this->__jsonResponse($response);
+        }
+
+        $compositeTypes = $this->MispAttribute->getCompositeTypes();
+        $lines = $batch ? preg_split('/\r\n|\r|\n/', $value) : [$value];
+
+        foreach ($lines as $index => $line) {
+            if (trim($line) === '') {
+                continue; // ignore blank lines
+            }
+            $error = $this->__validateAttributeValue($type, $line, $compositeTypes);
+            if ($error !== true) {
+                $response['valid'] = false;
+                $response['message'] = $batch
+                    ? __('Line %s: %s', $index + 1, $error)
+                    : $error;
+                break;
+            }
+        }
+
+        return $this->__jsonResponse($response);
+    }
+
+    /**
+     * Validate a single value against a type, mirroring validTypesForValue().
+     * @return true|string True when valid, otherwise a human readable message.
+     */
+    private function __validateAttributeValue($type, $value, array $compositeTypes)
+    {
+        if (in_array($type, $compositeTypes, true) && substr_count($value, '|') !== 1) {
+            return __('This type expects a composite value in the format part1|part2.');
+        }
+        $modifiedValue = AttributeValidationTool::modifyBeforeValidation($type, $value);
+        $result = AttributeValidationTool::validate($type, $modifiedValue);
+        if ($result === true) {
+            return true;
+        }
+        if (is_string($result)) {
+            return $result;
+        }
+        return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst(str_replace('-', ' ', $type)));
+    }
+
+    private function __jsonResponse(array $body)
+    {
+        return new CakeResponse([
+            'body' => json_encode($body),
+            'status' => 200,
+            'type' => 'json',
+        ]);
     }
 
     public function downloadAttachment($key='download', $id)
@@ -3580,8 +3757,45 @@ class AttributesController extends AppController
      */
     private function __canUseSharingGroup($sharingGroupId)
     {
-        $sg = $this->MispAttribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
-        return !empty($sg);
+        return $this->MispAttribute->Event->SharingGroup->canUse($this->Auth->user(), $sharingGroupId);
+    }
+
+    /**
+     * Assert that the current user may modify the events the given attributes belong to.
+     *
+     * Every delete path ends in MispAttribute::deleteAttribute(), whose only check
+     * for a non-site-admin on an unlocked event is an organisation comparison - it
+     * never looks at perm_modify or perm_modify_org. Those live in
+     * ACL::canModifyEvent(), which edit() already calls, so without this the delete
+     * actions disagreed with edit() about the very same attribute.
+     *
+     * @param array $eventIds
+     * @return void
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
+    private function __assertCanModifyEvents(array $eventIds)
+    {
+        if ($this->_isSiteAdmin()) {
+            return;
+        }
+        $eventIds = array_unique($eventIds);
+        if (empty($eventIds)) {
+            return;
+        }
+        $events = $this->MispAttribute->Event->find('all', [
+            'conditions' => ['id' => $eventIds],
+            'recursive' => -1,
+            'fields' => ['id', 'orgc_id', 'user_id'],
+        ]);
+        if (count($events) !== count($eventIds)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        foreach ($events as $event) {
+            if (!$this->__canModifyEvent($event)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+        }
     }
 
     private function __setIndexFilterConditions($filters = [])
@@ -3648,6 +3862,18 @@ class AttributesController extends AppController
         $attribute = $attributes[0];
         if (!$this->request->is('post') || !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
+        }
+        // Enrichment persists module-derived attributes into the parent event, so it is a
+        // write on that event, not on the attribute alone. Being able to *view* the attribute
+        // (fetchAttributes uses read scope) is not sufficient; require modify rights on the
+        // event, mirroring EventsController::enrichEvent(). Otherwise any user who can merely
+        // see a cross-org/"all communities" event could inject attributes into it.
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($this->Auth->user(), $attribute['Attribute']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $modules = [];
         foreach ($this->request->data as $module => $enabled) {

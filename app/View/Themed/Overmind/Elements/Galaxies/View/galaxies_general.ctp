@@ -9,20 +9,23 @@ if (isset($data['kill_chain_order']) && !empty($data['kill_chain_order'])) {
     $killChain = json_encode($data['kill_chain_order'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
+$formatDate = function ($value) {
+    $digits = preg_replace('/\D/', '', (string)$value);
+    if ($digits === '' || (int)$digits === 0) {
+        return '<span class="text-muted">' . __('N/A') . '</span>';
+    }
+    return $this->Time->time($value);
+};
 
 $descParts = [];
-if (!empty($data['created'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-clock me-1 opacity-50"></i>'
-        . $this->Time->time($data['created'])
-        . '</span>';
-}
-if (!empty($data['modified'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($data['modified'])
-        . '</span>';
-}
+$descParts[] = '<span>'
+    . '<i class="fas fa-clock me-1 opacity-50"></i>'
+    . $formatDate($data['created'] ?? null)
+    . '</span>';
+$descParts[] = '<span>'
+    . '<i class="fas fa-edit me-1 opacity-50"></i>'
+    . $formatDate($data['modified'] ?? null)
+    . '</span>';
 $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
     . implode('', $descParts)
     . '</span>';

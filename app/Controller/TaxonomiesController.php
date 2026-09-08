@@ -775,10 +775,9 @@ class TaxonomiesController extends AppController
 
     private function _massToggleState($idList = null, $state = null, $field = '')
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'Taxonomy');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Taxonomies', 'massToggle', false, $message, $this->response->type());
@@ -874,7 +873,10 @@ class TaxonomiesController extends AppController
         $this->set('actionText', __($actionTextMap[$field]));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/taxonomies/' . $urlMap[$field] . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Taxonomy.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Taxonomy']['id'] = json_encode($ids);
+        $this->set('url', '/taxonomies/' . $urlMap[$field]);
 
         $this->render('ajax/taxonomyToggleConfirmationForm');
     }

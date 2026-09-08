@@ -132,6 +132,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

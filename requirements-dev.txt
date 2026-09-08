@@ -7,3 +7,6 @@ pytest
 # release time via `cake Admin preRelease` / `cake Admin updateAsnCountryMap`
 # to regenerate app/files/geo-open/asn-country.json from the GeoOpen mmdb.
 maxminddb
+# Used by tests/ldapauth to drive the directory the LdapAuth plugin
+# authenticates against.
+ldap3

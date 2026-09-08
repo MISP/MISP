@@ -55,7 +55,7 @@ $fields = [
     [
         'name' => __('Event'),
         'data_path' => 'EventDelegation.Event.id, EventDelegation.Event.info',
-        'element' => 'id_name',
+        'element' => 'event',
         'url' => $baseurl . '/events/view2/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
@@ -93,6 +93,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $delegation_requests,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

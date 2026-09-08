@@ -6,7 +6,6 @@ $u       = $data['User'];
 $role    = $data['Role'] ?? [];
 $server  = $data['Server'] ?? [];
 $adminView = !empty($admin_view);
-xdebug_break();
 
 // Small helper to render a "label + value" cell in the meta grid.
 $field = function ($label, $valueHtml, $cols = 4) {
@@ -162,7 +161,7 @@ $boolBadge = function ($bool) {
                         <?php endif; ?>
                         <?php if (!empty($isAdmin) && $isTotp): ?>
                             <a href="#" class="small text-danger"
-                               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/users/totp_delete/<?= h($u['id']) ?>', 'sm');">
+                               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/users/totp_delete/<?= h($u['id']) ?>', 'md');">
                                 <?= __('Delete') ?>
                             </a>
                         <?php endif; ?>

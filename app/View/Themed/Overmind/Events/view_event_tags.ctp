@@ -18,7 +18,13 @@
             $local = !empty($et['local']);
         ?>
             <div data-tag-item
+                 class="d-inline-flex flex-column align-items-start gap-1"
                  data-tag-name="<?= h(strtolower($tag['name'])) ?>">
+                <?= $this->element('Events/View/extension_origin', [
+                    'event_id'     => $et['event_id'] ?? null,
+                    'compact'      => true,
+                    'only_foreign' => true,
+                ]); ?>
                 <?= $this->element('genericElementsBS5/Badges/tag', [
                     'tag'           => $tag,
                     'local'         => $local,
