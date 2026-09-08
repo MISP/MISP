@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+App::uses('Worker', 'Tools/BackgroundJobs');
+
 /**
  * @property Job $Job
  */
@@ -31,7 +33,91 @@ class WorkerShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('status', [
+            'help' => __('Show the state of Redis, Supervisor and every background worker'),
+        ]);
+        $parser->addSubcommand('restart', [
+            'help' => __('Restart all workers, or a single one'),
+            'parser' => [
+                'arguments' => [
+                    'worker' => [
+                        'help' => __('Worker name (e.g. scheduler_00) or PID. All workers are restarted when omitted.'),
+                        'required' => false,
+                    ],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('restartDead', [
+            'help' => __('Start every worker of the group that is not running'),
+        ]);
         return $parser;
+    }
+
+    /**
+     * Report Redis / Supervisor reachability and list the workers Supervisor knows about.
+     */
+    public function status()
+    {
+        $tool = $this->getBackgroundJobsTool();
+
+        $this->out(__('Background jobs: %s', $this->backgroundJobsStatusToString($tool->getStatus())));
+
+        $workers = $tool->getWorkers();
+        if (empty($workers)) {
+            $this->out(__('No worker registered in the "%s" Supervisor group.', BackgroundJobsTool::MISP_WORKERS_PROCESS_GROUP));
+            return;
+        }
+
+        $this->out('');
+        $this->out(sprintf('%-10s %-8s %-12s %-8s %s', 'QUEUE', 'PID', 'USER', 'STATUS', 'STARTED'));
+        foreach ($workers as $worker) {
+            $this->out(sprintf(
+                '%-10s %-8d %-12s %-8s %s',
+                $worker->queue(),
+                $worker->pid(),
+                $worker->user(),
+                $this->workerStatusToString($worker->status()),
+                date('c', $worker->createdAt())
+            ));
+        }
+    }
+
+    public function restart()
+    {
+        $tool = $this->getBackgroundJobsTool();
+        $worker = $this->args[0] ?? null;
+
+        try {
+            if ($worker === null) {
+                $tool->restartWorkers(true);
+                $this->out(__('All workers restarted.'));
+                return;
+            }
+
+            $tool->stopWorker($worker, true);
+            if (is_numeric($worker)) {
+                // A PID no longer identifies a Supervisor program once stopped.
+                $tool->restartDeadWorkers(true);
+            } else {
+                $tool->startWorker($worker, true);
+            }
+            $this->out(__('Worker %s restarted.', $worker));
+        } catch (Throwable $e) {
+            $this->error(__('Could not restart the worker'), $e->getMessage());
+        }
+    }
+
+    /**
+     * Starts anything in the group that is not running, FATAL programs included.
+     */
+    public function restartDead()
+    {
+        try {
+            $this->getBackgroundJobsTool()->restartDeadWorkers(true);
+            $this->out(__('Dead workers restarted.'));
+        } catch (Throwable $e) {
+            $this->error(__('Could not restart the dead workers'), $e->getMessage());
+        }
     }
 
     /**
@@ -100,6 +186,36 @@ class WorkerShell extends AppShell
         }
 
         $this->out($this->json($jobStatus));
+    }
+
+    private function backgroundJobsStatusToString(int $status)
+    {
+        switch ($status) {
+            case BackgroundJobsTool::STATUS_RUNNING:
+                return __('OK');
+            case BackgroundJobsTool::STATUS_NOT_ENABLED:
+                return __('SimpleBackgroundJobs not enabled');
+            case BackgroundJobsTool::STATUS_REDIS_NOT_OK:
+                return __('Redis not reachable');
+            case BackgroundJobsTool::STATUS_SUPERVISOR_NOT_OK:
+                return __('Supervisor not reachable');
+            case BackgroundJobsTool::STATUS_REDIS_AND_SUPERVISOR_NOT_OK:
+                return __('Redis and Supervisor not reachable');
+        }
+        return __('unknown (%s)', $status);
+    }
+
+    private function workerStatusToString(int $status)
+    {
+        switch ($status) {
+            case Worker::STATUS_RUNNING:
+                return 'running';
+            case Worker::STATUS_FAILED:
+                return 'failed';
+            case Worker::STATUS_UNKNOWN:
+                return 'unknown';
+        }
+        return "unknown ($status)";
     }
 
     private function jobStatusToString(int $jobStatus)

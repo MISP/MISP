@@ -102,6 +102,25 @@ class AccessLog extends AppModel
     }
 
     /**
+     * Whether this request has already registered its deferred writer.
+     *
+     * AppController::beforeFilter() runs twice for any request that ends in an
+     * exception: CakeErrorController extends AppController, and
+     * ExceptionRenderer::_getController() calls startupProcess() on it to render
+     * the error page. __accessMonitor() therefore reaches logRequest() twice for
+     * one HTTP request, and the second pass measured the error controller rather
+     * than the request - overwriting the real duration, query count, memory usage
+     * and query log on the row the first pass had already written.
+     *
+     * ClassRegistry hands back the same model instance to both passes, so an
+     * instance flag is enough to keep one row per request carrying the numbers
+     * the request actually produced.
+     *
+     * @var bool
+     */
+    private $deferredWriterRegistered = false;
+
+    /**
      * @param array $user
      * @param string $remoteIp
      * @param CakeRequest $request
@@ -111,6 +130,9 @@ class AccessLog extends AppModel
      */
     public function logRequest(array $user, $remoteIp, CakeRequest $request, $includeRequestBody = true)
     {
+        if ($this->deferredWriterRegistered) {
+            return true;
+        }
         $requestTime = $this->requestTime();
         $logClientIp = Configure::read('MISP.log_client_ip');
         $includeSqlQueries = Configure::read('MISP.log_paranoid_include_sql_queries');
@@ -138,6 +160,7 @@ class AccessLog extends AppModel
         }
 
         // Save data on shutdown
+        $this->deferredWriterRegistered = true;
         register_shutdown_function(function () use ($dataToSave, $requestTime, $includeSqlQueries) {
             session_write_close(); // close session to allow concurrent requests
             $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
@@ -215,6 +238,12 @@ class AccessLog extends AppModel
         }
 
         try {
+            // Each call writes a new row. Without this the model carries the id
+            // of the previous save and Model::save() issues an UPDATE instead,
+            // which is how the double beforeFilter() above went unnoticed - it
+            // produced one row holding the wrong pass's measurements rather than
+            // an obvious duplicate.
+            $this->create();
             return $this->save($data, ['atomic' => false]);
         } catch (Exception $e) {
             $this->logException("Could not insert access log to database", $e, LOG_WARNING);

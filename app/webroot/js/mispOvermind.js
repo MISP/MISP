@@ -49,6 +49,28 @@ function showToast(message, variant = 'success') {
 }
 
 /*******************************
+ * Size the shared #mainModal dialog.
+ *
+ * Bootstrap ships four widths but only three classes: 'md' IS the class-less
+ * default (500px), so a medium modal is obtained by removing every size class,
+ * never by adding one. `modal-md` is in the remove list because the theme used
+ * to add it — it never had any CSS, so it silently meant 500px, but it stuck to
+ * the dialog for every later open.
+ *
+ *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *******************************/
+function setModalSize(size, dialog) {
+    dialog = dialog || document.querySelector('#mainModal .modal-dialog');
+    if (!dialog) {
+        return;
+    }
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    if (size && size !== 'md') {
+        dialog.classList.add('modal-' + size);
+    }
+}
+
+/*******************************
  * Confirmation modal (inline — no AJAX)
  *
  * opts:
@@ -57,7 +79,7 @@ function showToast(message, variant = 'success') {
  *   confirmLabel  (string)   — confirm button text
  *   confirmClass  (string)   — Bootstrap btn class, default 'btn-primary'
  *   cancelLabel   (string)   — cancel button text, default 'Cancel'
- *   size          (string)   — modal size suffix: 'sm'|'lg'|'xl', default 'sm'
+ *   size          (string)   — see setModalSize: 'sm'|'md'|'lg'|'xl', default 'md'
  *   onConfirm     (function) — called after the user confirms
  *******************************/
 function showConfirmModal(opts) {
@@ -65,7 +87,7 @@ function showConfirmModal(opts) {
     const modalBody = document.getElementById('mainModalBody');
     if (!modalEl || !modalBody) return;
 
-    const size         = opts.size         || 'sm';
+    const size         = opts.size         || 'md';
     const confirmClass = opts.confirmClass || 'btn-primary';
     const confirmLabel = opts.confirmLabel || 'Confirm';
     const cancelLabel  = opts.cancelLabel  || 'Cancel';
@@ -86,9 +108,7 @@ function showConfirmModal(opts) {
             '</div>' +
         '</div>';
 
-    const dialog = modalEl.querySelector('.modal-dialog');
-    dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    dialog.classList.add('modal-' + size);
+    setModalSize(size, modalEl.querySelector('.modal-dialog'));
 
     const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
     bsModal.show();
@@ -111,11 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Index Filtering Bar
  *******************************/
 function openModal(url, size = 'xl') {
-    const modalDialog = document.querySelector('#mainModal .modal-dialog');
-    modalDialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    if (size) {
-        modalDialog.classList.add('modal-' + size);
-    }
+    setModalSize(size);
 
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
@@ -148,10 +164,35 @@ function openModal(url, size = 'xl') {
         });
 }
 
-// Defensive backdrop reaper: once #mainModal is fully closed, guarantee that no
-// orphaned `.modal-backdrop` and no leftover scroll-lock survive. A stray
-// backdrop (e.g. from an older cached build, or any double-show) would otherwise
-// leave a grey veil that blocks the whole app. Bound once.
+/**
+ * Announce that page entity attributes may have changed so derived cards can update.
+ *
+ * Listeners use document.addEventListener('misp:attributes-changed').
+ */
+function notifyAttributesChanged() {
+    document.dispatchEvent(new CustomEvent('misp:attributes-changed'));
+}
+window.notifyAttributesChanged = notifyAttributesChanged;
+
+// Attribute mutations in the event view all go through #mainModal, so closing it
+// is the point where derived cards can re-read the event.
+(function () {
+    const modalEl = document.getElementById('mainModal');
+    if (!modalEl || modalEl._attrChangeBound) {
+        return;
+    }
+    modalEl._attrChangeBound = true;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        // A chained open only swaps content and does not mutate data.
+        if (modalEl._chaining) {
+            modalEl._chaining = false;
+            return;
+        }
+        notifyAttributesChanged();
+    });
+})();
+
+// Once #mainModal is fully closed, remove any leftover backdrops and restore body scrolling.
 (function () {
     const modalEl = document.getElementById('mainModal');
     if (!modalEl || modalEl._backdropReaperBound) {
@@ -310,6 +351,7 @@ function openModalChained(url, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             openModal(url, size);
         });
+        el._chaining = true;
         inst.hide();
     } else {
         openModal(url, size);
@@ -341,11 +383,7 @@ function openModalPostChained(url, body, size = 'xl') {
     const el = document.getElementById('mainModal');
     const inst = el ? bootstrap.Modal.getInstance(el) : null;
     const run = () => {
-        const dialog = el.querySelector('.modal-dialog');
-        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-        if (size) {
-            dialog.classList.add('modal-' + size);
-        }
+        setModalSize(size, el.querySelector('.modal-dialog'));
         fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(response => response.text())
             .then(html => {
@@ -358,13 +396,14 @@ function openModalPostChained(url, body, size = 'xl') {
             el.removeEventListener('hidden.bs.modal', handler);
             run();
         });
+        el._chaining = true;
         inst.hide();
     } else {
         run();
     }
 }
 
-function multiSelectItems(url, suffixe, size = 'sm') {
+function multiSelectItems(url, suffixe, size = 'md') {
     if (selectedItems.size === 0) {
         return;
     }
@@ -410,11 +449,20 @@ function isMobile() {
     return window.innerWidth < 1000;
 }
 
+function animateIndexView(el) {
+    if (!el) return;
+    el.classList.remove('idx-view-anim');
+    void el.offsetWidth;
+    el.classList.add('idx-view-anim');
+}
+
 function setView(view, save = true) {
     const tableView = document.getElementById('tableView');
     const cardView  = document.getElementById('cardView');
     const viewList  = document.getElementById('viewList');
     const viewCard  = document.getElementById('viewCard');
+    // Only a deliberate toggle launch the animation
+    if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');
@@ -581,7 +629,7 @@ function buildFilterUrl() {
         const name  = el.getAttribute('name');
         const value = el.value;
         if (!name) return;
-        if (value !== '') filters[name] = value;
+        if (value !== '') filters[name] = encodeURIComponent(value);
         else delete filters[name];
     });
 
@@ -620,7 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
-    document.querySelectorAll('.topbar-filter').forEach(el => {
+    // [data-manual] filters (free-text value_match inputs) are applied by their
+    // own button/Enter handler in filter_bar.ctp, never on change.
+    document.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
         el.addEventListener('change', () => {
             window.location.href = buildFilterUrl();
         });
@@ -780,7 +830,26 @@ function testSyncRule(id, method) {
 }
 
 
-function testConnection(id) {
+/*
+ * The two remote probes below are shared by the servers table view and the
+ * servers card view. The table renders `connection_test_<id>` /
+ * `sync_user_test_<id>` containers, the card view draws its own panels, and
+ * both views live in the DOM at once — so a caller can hand over its own
+ * container rather than fight over duplicate ids.
+ */
+function resolveServerTestContainer(target, fallbackId) {
+    if (target && target.nodeType === 1) return target;
+    if (typeof target === 'string' && target) return document.getElementById(target);
+    return document.getElementById(fallbackId);
+}
+
+// Both probes announce their outcome so a view can dress itself around the
+// result (the card view flips its header badge and tint on this).
+function announceServerTest(name, detail) {
+    document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+}
+
+function testConnection(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -790,15 +859,16 @@ function testConnection(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("connection_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "connection_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
 
     resultContainer.innerHTML = '<span class="text-muted">' +
         '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
         '</span>';
+    announceServerTest('misp:server-connection', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/testConnection/' + id)
+    return fetch(baseurl + '/servers/testConnection/' + id)
         .then(response => response.json())
         .then(function(result) {
 
@@ -943,14 +1013,20 @@ function testConnection(id) {
             }
 
             resultContainer.innerHTML = html;
+            announceServerTest('misp:server-connection', {
+                id: id,
+                state: result.status === 1 ? 'ok' : 'down',
+                status: result.status
+            });
         })
         .catch(function() {
             resultContainer.innerHTML = '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-connection', { id: id, state: 'down' });
         });
 }
 
 
-function getRemoteSyncUser(id) {
+function getRemoteSyncUser(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -960,11 +1036,12 @@ function getRemoteSyncUser(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("sync_user_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "sync_user_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
+    announceServerTest('misp:server-sync-user', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/getRemoteUser/' + id)
+    return fetch(baseurl + '/servers/getRemoteUser/' + id)
         .then(function(response) {
             resultContainer.innerHTML = '<span class="text-muted">' +
                 '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
@@ -977,11 +1054,14 @@ function getRemoteSyncUser(id) {
             if (typeof response !== 'object' || response === null) {
                 resultContainer.innerHTML =
                     '<span class="text-danger fw-semibold">Internal error</span>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else if ("error" in response) {
                 resultContainer.innerHTML =
                     '<div class="text-danger fw-semibold">Error: #' +
                     esc(response.error) + '</div>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else {
+                announceServerTest('misp:server-sync-user', { id: id, state: 'ok' });
                 var wrapper = document.createElement('div');
                 wrapper.className = 'border rounded p-2 bg-light';
                 Object.keys(response).forEach(function(key) {
@@ -998,6 +1078,7 @@ function getRemoteSyncUser(id) {
         .catch(function() {
             resultContainer.innerHTML =
                 '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
         });
 }
 
@@ -1146,7 +1227,7 @@ async function submitEventTemplatesLibraryUpdate() {
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
             method: 'POST',
-            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '')},
             cache: 'no-cache',
         });
         if (!response.ok) throw response;
@@ -2452,23 +2533,38 @@ function initSharingGroupForm(container) {
 }
 
 /*******************************
- * Sighting cells — popover lazy-init + add-sighting
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Lazy index-table popovers
+ * Index rows are re-rendered by AJAX pagination and filtering, so these
+ * popovers are built on the first hover/focus rather than initialised up
+ * front on every render. `container: 'body'` keeps them out of the table's
+ * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    /* Lazy popover */
-    document.addEventListener('mouseenter', function (e) {
-        var el = e.target.closest('.sighting-counts');
+    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter';
+
+    function lazyPopover(e) {
+        var el = e.target && e.target.closest ? e.target.closest(LAZY_POPOVERS) : null;
         if (!el || el._popoverReady) return;
         el._popoverReady = true;
         new bootstrap.Popover(el, {
             trigger:   'hover focus',
             html:      true,
             placement: 'top',
+            container: 'body',
         }).show();
-    }, true);
+    }
 
+    // The triggering event predates the instance, hence the .show() above.
+    document.addEventListener('mouseenter', lazyPopover, true);
+    document.addEventListener('focusin', lazyPopover);
+})();
+
+/*******************************
+ * Sighting cells — add-sighting buttons
+ * i18n strings are injected once per page via window._sightingI18n
+ * (set by the sightings.ctp field partial)
+ *******************************/
+(function () {
     document.addEventListener('click', async function (e) {
         var btn = e.target.closest('.add-sighting-btn');
         if (!btn) return;
@@ -2572,6 +2668,387 @@ function distBadgeHtml(level, withLabel, labels) {
         + '<i class="' + d.icon + '"></i>'
         + (lbl ? '<span class="ms-1" style="font-size:.7rem;">' + escapeHtml(lbl) + '</span>' : '')
         + '</span>';
+}
+
+/*******************************
+ * tagTextColour / tagBadgeStyle
+ * The client-side mirror of TextColourHelper::getTextColour() and of the
+ * badge styling in Elements/genericElementsBS5/Badges/tag.ctp — a tag drawn
+ * by JavaScript has to come out looking exactly like one drawn by PHP.
+ * @param {string} hex  Tag colour, '#rrggbb'
+ *******************************/
+function tagTextColour(hex) {
+    hex = hex || '#0088cc';
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return ((2 * r) + b + (3 * g)) / 6 < 127 ? 'white' : 'black';
+}
+
+function tagBadgeStyle(colour) {
+    colour = colour || '#0088cc';
+    return 'background-color:' + colour + '; color:' + tagTextColour(colour) + ';'
+        + ' filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5));'
+        + ' background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%,'
+        + ' rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%);'
+        + ' text-align:left; white-space:normal; word-wrap:break-word;';
+}
+
+/*******************************
+ * initTagPickerSection
+ * The tag picker used everywhere in the theme: category buttons, a TomSelect
+ * search over the current category, and the picked tags drawn below as real
+ * MISP badges with a remove cross. Drives both the standalone edit-tags modal
+ * (Modals/tag_picker.ctp, one section per locality) and the in-form field
+ * (Forms/tag_picker_field.ctp).
+ *
+ * `root` must contain .tag-cat-btn buttons (each with data-cat), a
+ * select.tag-picker, .tag-selected and .tag-selected-empty.
+ *
+ * @param {Element}  root      Section container
+ * @param {object}   catData   {<cat>: [{id,name,colour}], collections: [{id,name,tags:[…]}]}
+ * @param {Array}    initTags  Pre-selected [{id,name,colour}]
+ * @param {object}   [options] localMarker: draw the local user glyph on badges;
+ *                             onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initTagPickerSection(root, catData, initTags, options) {
+    options = options || {};
+    var selEl = root.querySelector('.tag-selected');
+    var emptyEl = root.querySelector('.tag-selected-empty');
+    var pickerEl = root.querySelector('.tag-picker');
+
+    var selected = {};               /* id(string) -> {id,name,colour} */
+    var currentCat = 'all';
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addTag(tag) {
+        if (!tag || tag.id == null) { return; }
+        selected[String(tag.id)] = {
+            id: tag.id, name: tag.name, colour: tag.colour || '#0088cc'
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var t = selected[id];
+
+            var wrap = document.createElement('div');
+            wrap.className = 'd-inline-flex align-items-center';
+
+            var badge = document.createElement('span');
+            badge.className = 'badge me-1 mb-1 d-inline-flex align-items-center gap-1';
+            badge.style.cssText = tagBadgeStyle(t.colour);
+
+            var txt = document.createElement('span');
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(t.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            wrap.appendChild(badge);
+            selEl.appendChild(wrap);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function buildOptions(cat) {
+        if (cat === 'collections') {
+            return (catData.collections || []).map(function (c) {
+                return {
+                    value: String(c.id), name: c.name,
+                    count: (c.tags || []).length, isCollection: true
+                };
+            });
+        }
+        return (catData[cat] || []).map(function (t) {
+            return { value: String(t.id), name: t.name, colour: t.colour };
+        });
+    }
+
+    function renderOpt(item, escape) {
+        if (item.isCollection) {
+            return '<div class="d-flex align-items-center gap-2 py-1">'
+                + '<i class="fas fa-layer-group text-tag"></i>'
+                + '<span class="text-truncate">'
+                + escape(item.name) + '</span>'
+                + '<span class="badge bg-light text-muted ms-auto">'
+                + (item.count || 0) + '</span></div>';
+        }
+        var col = item.colour || '#0088cc';
+        return '<div class="d-flex align-items-center gap-2 py-1">'
+            + '<span style="display:inline-block;width:10px;height:10px;'
+            + 'border-radius:2px;flex-shrink:0;background:' + escape(col) + ';"></span>'
+            + '<span class="text-truncate">'
+            + escape(item.name) + '</span></div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField: 'value',
+        labelField: 'name',
+        searchField: ['name'],
+        maxItems: 1,
+        options: [],
+        render: { option: renderOpt, item: renderOpt, option_create: false },
+        onItemAdd: function (value) {
+            if (currentCat === 'collections') {
+                var coll = (catData.collections || []).find(function (c) {
+                    return String(c.id) === String(value);
+                });
+                if (coll) { (coll.tags || []).forEach(addTag); }
+            } else {
+                var tag = (catData[currentCat] || []).find(function (t) {
+                    return String(t.id) === String(value);
+                });
+                if (tag) { addTag(tag); }
+            }
+            render();
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    function setCategory(cat) {
+        currentCat = cat;
+        root.querySelectorAll('.tag-cat-btn').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-cat') === cat);
+        });
+        ts.clear(true);
+        ts.clearOptions();
+        ts.addOptions(buildOptions(cat));
+        ts.refreshOptions(false);
+    }
+
+    root.querySelectorAll('.tag-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setCategory(btn.getAttribute('data-cat'));
+        });
+    });
+
+    (initTags || []).forEach(addTag);
+    render();
+    var first = root.querySelector('.tag-cat-btn');
+    setCategory(first ? first.getAttribute('data-cat') : 'all');
+
+    return { ids: ids };
+}
+
+/*******************************
+ * galaxyBadgeStyle
+ * The client-side mirror of GalaxyColour::palette()/badgeStyle() — a cluster
+ * badge drawn by JavaScript has to come out looking exactly like one drawn by
+ * PHP, so keep the numbers in sync with the lib.
+ * @param {number} hue  GalaxyColour::hue() of the cluster's galaxy
+ *******************************/
+function galaxyBadgeStyle(hue) {
+    hue = (hue == null) ? 270 : hue;
+    return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
+        + 'color:hsl(' + hue + ',65%,28%);'
+        + 'border:1px solid hsl(' + hue + ',55%,65%);'
+        + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
+        + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
+}
+
+/*******************************
+ * initGalaxyPickerSection
+ * The galaxy cluster picker used everywhere in the theme: galaxy category
+ * buttons, a TomSelect searching the cluster endpoint remotely (an empty query
+ * lists the scoped galaxy's clusters, "All Galaxies" needs 2 characters), and
+ * the picked clusters drawn below as galaxy badges with a remove cross. Drives
+ * both the standalone edit-clusters modal (Modals/galaxy_picker.ctp, one
+ * section per locality) and the in-form field (Forms/galaxy_picker_field.ctp).
+ *
+ * `root` must contain .galaxy-cat-btn buttons (the per-galaxy ones carrying
+ * data-galaxy-id), a select.galaxy-picker, .galaxy-selected and
+ * .galaxy-selected-empty.
+ *
+ * @param {Element} root          Section container
+ * @param {Array}   initClusters  Pre-selected [{id,name,galaxy,hue}]
+ * @param {object}  options       searchUrl: cluster search endpoint (required);
+ *                                localMarker: draw the local user glyph on badges;
+ *                                onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initGalaxyPickerSection(root, initClusters, options) {
+    options = options || {};
+    var selEl = root.querySelector('.galaxy-selected');
+    var emptyEl = root.querySelector('.galaxy-selected-empty');
+    var pickerEl = root.querySelector('.galaxy-picker');
+    var searchUrl = options.searchUrl;
+
+    var selected = {};          /* id(string) -> {id,name,galaxy,hue} */
+    var currentGalaxyId = null; /* null = "All" (search across galaxies) */
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addCluster(c) {
+        if (!c || c.id == null) { return; }
+        selected[String(c.id)] = {
+            id: c.id, name: c.name, galaxy: c.galaxy || '',
+            hue: (c.hue == null ? 270 : c.hue)
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var c = selected[id];
+
+            var badge = document.createElement('span');
+            badge.className = 'badge p-2 d-inline-flex align-items-center gap-2';
+            badge.style.cssText = galaxyBadgeStyle(c.hue);
+            if (c.galaxy) { badge.title = c.galaxy; }
+
+            var txt = document.createElement('span');
+            txt.style.cssText = 'overflow:hidden;text-overflow:ellipsis;'
+                + 'white-space:nowrap;min-width:0;';
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(c.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8; flex-shrink:0;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            selEl.appendChild(badge);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function renderOpt(item, escape) {
+        return '<div class="d-flex flex-column py-1">'
+            + '<span>' + escape(item.name) + '</span>'
+            + (item.galaxy
+                ? '<span class="text-muted" style="font-size:.72rem;">'
+                    + escape(item.galaxy) + '</span>'
+                : '')
+            + '</div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField:   'id',
+        labelField:   'name',
+        searchField:  ['name', 'galaxy'],
+        maxItems:     1,
+        options:      [],
+        loadThrottle: 300,
+        /* Use a different class name for the loading state to avoid a CSS collision. */
+        loadingClass: 'ts-loading',
+        /* When a galaxy is selected, even an empty query lists its clusters */
+        shouldLoad:   function (q) {
+            return currentGalaxyId ? true : q.length >= 2;
+        },
+        /* The endpoint handles matching, so TomSelect's filter is disabled to keep all server-sorted results. */
+        score:        function () {
+            return function () { return 1; };
+        },
+        load: function (query, callback) {
+            var self = this;
+            var url = searchUrl + '?q=' + encodeURIComponent(query);
+            if (currentGalaxyId) {
+                url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
+            }
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    /* clearOptions() clears stale results and forces the endpoint to reload when the query changes. */
+                    self.clearOptions();
+                    callback(json);
+                })
+                .catch(function () { callback(); });
+        },
+        render: {
+            option: renderOpt,
+            item: renderOpt,
+            option_create: false,
+            /* Use a custom loading spinner to avoid a CSS collision */
+            loading: function () {
+                return '<div class="text-center py-2">'
+                    + '<span class="spinner-border spinner-border-sm '
+                    + 'text-galaxy" role="status" aria-hidden="true">'
+                    + '</span></div>';
+            }
+        },
+        onItemAdd: function (value) {
+            var item = this.options[value];
+            if (item) { addCluster(item); render(); }
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    /* Clear stale results when the query is too short to offer any valid options. */
+    ts.on('type', function (q) {
+        if (currentGalaxyId || q.length >= 2) { return; }
+        if (Object.keys(ts.options).length === 0) { return; }
+        ts.clearOptions();
+        ts.refreshOptions();
+    });
+
+    /* Category buttons: "All" (remote search) or one galaxy (scoped) */
+    root.querySelectorAll('.galaxy-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            root.querySelectorAll('.galaxy-cat-btn').forEach(function (b) {
+                b.classList.toggle('active', b === btn);
+            });
+            var gid = btn.getAttribute('data-galaxy-id');
+            currentGalaxyId = gid ? gid : null;
+
+            /* reset cache + options so the new scope reloads cleanly */
+            ts.clearOptions();
+            ts.clearCache();
+
+            if (currentGalaxyId) {
+                /* preload this galaxy's clusters and show them */
+                ts.load('');
+                ts.focus();
+                ts.open();
+            }
+        });
+    });
+
+    (initClusters || []).forEach(addCluster);
+    render();
+
+    return { ids: ids };
 }
 
 function initDistributionSelect(elId, onChange) {
@@ -3205,3 +3682,221 @@ function updateActiveFilterBadge(container, searchTerm, clearCb, labelActive, la
     wrap.appendChild(clearBtn);
     filterBar.insertAdjacentElement('afterend', wrap);
 }
+
+
+/**
+ * Auto-dismiss the flash messages after 5s.
+ *
+ */
+function initFlashAutoDismiss() {
+    const flash = document.getElementById('flashContainer');
+    if (!flash || flash.children.length === 0) return;
+
+    setTimeout(function () {
+        flash.classList.add('fade-out');
+        setTimeout(function () {
+            flash.innerHTML = '';
+            flash.classList.remove('fade-out');
+        }, 600);
+    }, 5000);
+}
+
+/**
+ * Move Cake's debug output into the collapsible debug strip and badge the
+ * error count. No-op unless the layout emitted the strip (debug > 0).
+ */
+function initDebugStrip() {
+    const container = document.getElementById('debugAccordionContent');
+    if (!container) return;
+
+    const cakeErrors = document.querySelectorAll('.cake-error');
+    const count = cakeErrors.length;
+    const badge = document.getElementById('debugErrorBadge');
+
+    if (badge) {
+        badge.textContent = count + ' error' + (count > 1 ? 's' : '');
+        badge.classList.remove(count > 0 ? 'bg-success' : 'bg-danger');
+        badge.classList.add(count > 0 ? 'bg-danger' : 'bg-success');
+    }
+
+    cakeErrors.forEach(error => container.appendChild(error));
+}
+
+/**
+ * Turn the filter-bar selects into TomSelect widgets.
+ *
+ * Scoped so that fragments injected after page load (an .ajax-tab-content
+ * index, a modal body) can initialise their own selects, and idempotent so a
+ * second pass over the same scope is a no-op.
+ *
+ * Both guards are needed. TomSelect copies the original element's classes
+ * onto the .ts-wrapper <div> it builds, so a bare `.topbar-filter` query
+ * matches that wrapper too on a second pass — and the wrapper carries no
+ * `.tomselect` back-reference, so it would be handed to TomSelect as if it
+ * were a fresh control (which throws). Hence: select elements only, and skip
+ * the ones TomSelect already owns.
+ *
+ * @param {ParentNode} scope defaults to the whole document
+ */
+function initTopbarFilterSelects(scope) {
+    if (typeof TomSelect === 'undefined') return;
+
+    const selects = (scope || document).querySelectorAll('select.topbar-filter');
+    selects.forEach(function (el) {
+        if (el.tomselect) return;
+        new TomSelect(el, {
+            create: false,
+            sortField: { field: 'text', direction: 'asc' }
+        });
+    });
+}
+
+/**
+ * Fetch an ajax container's URL into it, once, and run the scripts it brings.
+ *
+ * @param {Element} container carries data-url, gains data-loaded
+ */
+function loadAjaxContainer(container) {
+    if (!container || container.dataset.loaded) return;
+
+    const url = container.dataset.url;
+    if (!url) return;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(html => {
+            container.innerHTML = html;
+            container.dataset.loaded = '1';
+
+            // innerHTML does not execute <script>, so re-create each one.
+            container.querySelectorAll('script').forEach(function (oldScript) {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                document.head.appendChild(newScript);
+                document.head.removeChild(newScript);
+            });
+
+            initTopbarFilterSelects(container);
+        })
+        .catch(() => {
+            container.innerHTML =
+                '<div class="text-danger">Error loading content</div>';
+        });
+}
+
+/**
+ * Reload an already-loaded ajax index container against a new (filtered,
+ * sorted or paginated) URL, keeping the user inside the current tab instead
+ * of navigating the whole page. Called by IndexTable/filter_bar.
+ *
+ * @param {Element} container
+ * @param {string} url
+ */
+window.reloadAjaxTabIndex = function (container, url) {
+    if (!container || !url) return;
+    container.dataset.url = url;
+    delete container.dataset.loaded;
+    container.innerHTML =
+        '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+    loadAjaxContainer(container);
+};
+
+// Lazy-load a tab's ajax content the first time it is shown, and drop the
+// selection state of the tab being left so its checkboxes don't bleed into
+// the newly active tab's mass-select toolbar.
+document.addEventListener('shown.bs.tab', function (event) {
+    const target = event.target.getAttribute('data-bs-target')
+        || event.target.getAttribute('href');
+    const tabPane = target ? document.querySelector(target) : null;
+    if (!tabPane) return;
+
+    const prevTarget = event.relatedTarget
+        ? (event.relatedTarget.getAttribute('data-bs-target')
+            || event.relatedTarget.getAttribute('href'))
+        : null;
+    const prevPane = prevTarget ? document.querySelector(prevTarget) : null;
+    if (prevPane) {
+        prevPane.querySelectorAll('.item-checkbox:checked').forEach(function (cb) {
+            cb.checked = false;
+        });
+    }
+    if (typeof selectedItems !== 'undefined') {
+        selectedItems.clear();
+    }
+    if (typeof updateMultiSelectToolbar === 'function') {
+        updateMultiSelectToolbar();
+    }
+
+    tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
+});
+
+/**
+ * Session watchdog — send the user to the login page once their session is
+ * gone, instead of leaving them on a page whose every action will bounce.
+ *
+ * Enabled by the layout (window.mispAutoLogout) when MISP.disable_auto_logout
+ * is off and someone is logged in.
+ *
+ */
+function initSessionWatchdog() {
+    if (!window.mispAutoLogout || typeof baseurl === 'undefined') return;
+
+    const MIN_INTERVAL = 10000; // don't re-check on every focus flicker
+    let lastCheck = 0;
+    let inFlight = false;
+
+    function check() {
+        if (document.hidden || inFlight) return;
+
+        const now = Date.now();
+        if (now - lastCheck < MIN_INTERVAL) return;
+        lastCheck = now;
+        inFlight = true;
+
+        // Measured against the endpoint (session cookie, X-Requested-With):
+        //   authenticated -> 200
+        //   session gone  -> 401 (the ajax pre-auth branch)
+        // The `.json` form answers 200/403 instead, but routes through
+        // AppController's REST branch, which authenticates by Authorization
+        // header rather than by session — so the plain URL is the narrower
+        // question to ask. 403 and a follow-through to /users/login are
+        // accepted too, since both mean the same thing.
+        fetch(baseurl + '/users/checkIfLoggedIn', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store'
+        })
+            .then(res => {
+                const loggedOut = res.status === 401
+                    || res.status === 403
+                    || (res.redirected && /\/users\/login/.test(res.url));
+                if (loggedOut) {
+                    window.location.replace(baseurl + '/users/login');
+                }
+            })
+            // A network blip must not throw the user out.
+            .catch(() => {})
+            .finally(() => { inFlight = false; });
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) check();
+    });
+    window.addEventListener('focus', check);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initFlashAutoDismiss();
+    initDebugStrip();
+    initTopbarFilterSelects();
+    initSessionWatchdog();
+    // The tab that is already active gets no shown.bs.tab event.
+    document.querySelectorAll('.tab-pane.active .ajax-tab-content')
+        .forEach(loadAjaxContainer);
+});

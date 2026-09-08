@@ -1,5 +1,15 @@
 <?php
 
+// Extended / extending event view: a report can belong to any event of the
+// merged set, so a foreign one wears its origin event's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
+$reportOrigin = function ($row) use ($extensionEvents) {
+    $originId = (int)Hash::get($row, 'EventReport.event_id');
+    $origin = $extensionEvents[$originId] ?? null;
+    return ($origin === null || $origin['role'] === 'self') ? null : $origin;
+};
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -43,7 +53,7 @@ $fields = [
     [
         'name' => __('Last Modified'),
         'data_path' => 'EventReport.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'card_section' => 'meta',
         'display_in' => ['card']
     ],
@@ -123,6 +133,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $reports,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
@@ -138,6 +149,22 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             ],
             'fields' => $fields,
             'primary_id_path' => 'EventReport.id',
+            'row_class_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
+                return ($inExtensionView && $reportOrigin($row) !== null)
+                    ? 'evt-extension-row'
+                    : '';
+            },
+            'row_style_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
+                $origin = $inExtensionView ? $reportOrigin($row) : null;
+                if ($origin === null) {
+                    return '';
+                }
+                return sprintf(
+                    '--extension-tint:%s;--extension-accent:%s;',
+                    $origin['palette']['sectionBg'],
+                    $origin['palette']['badgeBorder']
+                );
+            },
             'row_dblclick_url' => $baseurl . '/event_reports/view/%id%',
         ]
     ],

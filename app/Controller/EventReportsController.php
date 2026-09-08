@@ -32,6 +32,16 @@ class EventReportsController extends AppController
         )
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // purgeUnusedPictures is only ever reached by the picture management
+        // page's hand-built AJAX, which has no rendered form behind it to
+        // produce the field hash _validatePost() compares against. It sends
+        // the page's CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['purgeUnusedPictures']);
+    }
+
     public function add($eventId = false)
     {
         if ($this->request->is('get') && $this->_isRest()) {
@@ -557,16 +567,28 @@ class EventReportsController extends AppController
                 throw new InvalidArgumentException('Invalid URL: must start with http:// or https://');
             }
             $format = 'html';
-            
+
+            // Match against the path only. Testing the whole URL let a query
+            // string supply the suffix, so `http://host/anything?x=.pdf`
+            // selected pdf and picked which host performed the fetch.
+            $path = parse_url($url, PHP_URL_PATH);
             $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
             foreach ($parsed_formats as $parsed_format) {
-                if (substr($url, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
+                if (!empty($path) && substr($path, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
                     $format = $parsed_format;
                 }
             }
             $content = null;
             if (empty($errors)) {
-                $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                try {
+                    $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                } catch (Exception $e) {
+                    // A refused target, an oversized document or a failed
+                    // fetch all report through the normal error path rather
+                    // than surfacing as an unhandled exception.
+                    $content = null;
+                    $errors[] = $e->getMessage();
+                }
                 if (!empty($content)) {
                     $report = [
                         'name' => __('Report from - %s (%s)', $url, time()),
@@ -581,7 +603,10 @@ class EventReportsController extends AppController
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
             if (!empty($errors)) {
                 $event_report_id = empty($this->EventReport->id) ? 0 : $this->EventReport->id;
-                return $this->__getFailResponseBasedOnContext($errors, array(), 'addFromURL', $event_report_id, $redirectTarget);
+                // null, not array(): __getFailResponseBasedOnContext returns
+                // viewData($data) whenever $data is not null, which discarded
+                // the message and answered REST callers with a bare [].
+                return $this->__getFailResponseBasedOnContext($errors, null, 'addFromURL', $event_report_id, $redirectTarget);
             } else {
                 $successMessage = __('Report downloaded and created');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
@@ -695,7 +720,20 @@ class EventReportsController extends AppController
     }
 
     /**
-     * No real ACL. If someone know the UUID, he can get the picture
+     * Serve a picture from the instance's asset folder.
+     *
+     * These files are instance-wide assets rather than event-scoped
+     * content, and are deliberately readable by any authenticated user.
+     * Only site admins can store one (see uploadPicture(), which forces
+     * every other role down the attachment path), the folder is curated
+     * globally from managedImportedPictures(), and a picture may be given
+     * an alias and reused across reports of different events.
+     *
+     * There is therefore no owning report to authorise against: the only
+     * reference that exists is the picture's mention in report content,
+     * and that is writable by anyone holding perm_add. Imagery that has to
+     * follow an event's distribution must be stored as an attachment,
+     * which inherits the event's ACL.
      */
     public function viewPicture($filename)
     {
@@ -724,6 +762,7 @@ class EventReportsController extends AppController
 
     public function purgeUnusedPictures()
     {
+        $this->request->allowMethod(['post']);
         $this->EventReport->purgeUnusedPictures();
         $message = __('Purged all unused pictures');
         return $this->__getSuccessResponseBasedOnContext($message, null, 'purgeUnusedPictures');

@@ -1,0 +1,602 @@
+/**
+ * Overmind onboarding — interactive product tour.
+ *
+ * The dimming is produced by a single spotlight element carrying a very
+ * large box-shadow spread, so the highlighted region is a genuine hole:
+ * the anchor underneath stays clickable and keeps its own styling. The
+ * overlay itself never intercepts pointer events for that reason.
+ */
+
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+.onboarding-spotlight {
+    position: fixed;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(17, 12, 13, 0.62),
+                0 0 0 3px var(--onb-accent);
+    transition: top 0.18s ease, left 0.18s ease,
+                width 0.18s ease, height 0.18s ease;
+    pointer-events: none;
+}
+
+[data-bs-theme="dark"] .onboarding-spotlight {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72),
+                0 0 0 3px var(--onb-accent);
+}
+
+/* The tour walks into modals, whose own backdrop would otherwise dim the
+   spotlight hole back in. */
+body.onboarding-active .modal-backdrop {
+    opacity: 0.15;
+}
+
+/* ------------------------------------------------------------------ */
+/* Popover                                                             */
+/* ------------------------------------------------------------------ */
+
+.onboarding-popover {
+    position: fixed;
+    width: 380px;
+    max-width: calc(100vw - 24px);
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-body-color, #212529);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(17, 12, 13, 0.28);
+    padding: 1rem 1.1rem 0.9rem;
+    outline: none;
+}
+
+.onboarding-popover.is-centred {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 440px;
+}
+
+.onboarding-arrow {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    transform: rotate(45deg);
+    display: none;
+}
+
+.onboarding-arrow.arrow-bottom {
+    top: -7px;
+    margin-left: -6px;
+    border-right: 0;
+    border-bottom: 0;
+}
+
+.onboarding-arrow.arrow-top {
+    bottom: -7px;
+    margin-left: -6px;
+    border-left: 0;
+    border-top: 0;
+}
+
+.onboarding-arrow.arrow-right {
+    left: -7px;
+    margin-top: -6px;
+    border-right: 0;
+    border-top: 0;
+}
+
+.onboarding-arrow.arrow-left {
+    right: -7px;
+    margin-top: -6px;
+    border-left: 0;
+    border-bottom: 0;
+}
+
+.onboarding-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.onboarding-eyebrow {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--onb-accent);
+}
+
+.onboarding-close {
+    background: none;
+    border: 0;
+    line-height: 1;
+    padding: 0;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.onboarding-close:hover {
+    color: var(--bs-body-color, #212529);
+}
+
+.onboarding-title {
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin-bottom: 0.35rem;
+}
+
+.onboarding-body {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.onboarding-body p:last-child {
+    margin-bottom: 0;
+}
+
+.onboarding-body code,
+.onboarding-body kbd {
+    font-size: 0.8em;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    background: var(--bs-secondary-bg, #e9ecef);
+    color: var(--bs-body-color, #212529);
+}
+
+.onboarding-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bs-secondary-bg, #e9ecef);
+    margin: 0.85rem 0 0.6rem;
+    overflow: hidden;
+}
+
+.onboarding-progress > span {
+    display: block;
+    height: 100%;
+    background: var(--onb-accent);
+    transition: width 0.25s ease;
+}
+
+.onboarding-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.onboarding-foot-left,
+.onboarding-foot-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.onboarding-foot-left .btn-link {
+    padding: 0 0.3rem;
+    font-size: 0.72rem;
+    color: var(--bs-secondary-color, #6c757d);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+/* Up to three skip levels (part / section / tutorial) share this row, so
+   they are separated by hairlines rather than gaps to stay compact. */
+.onboarding-foot-left .btn-link + .btn-link {
+    border-left: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.onboarding-foot-left .btn-link:hover {
+    color: var(--bs-body-color, #212529);
+    text-decoration: underline;
+}
+
+.onboarding-next.is-waiting {
+    opacity: 0.75;
+    font-style: italic;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dock — the tour waiting for the user to reach the right page         */
+/* ------------------------------------------------------------------ */
+
+.onboarding-dock {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: 320px;
+    max-width: calc(100vw - 24px);
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-body-color, #212529);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-left: 4px solid var(--onb-accent);
+    border-radius: 10px;
+    box-shadow: 0 10px 26px rgba(17, 12, 13, 0.22);
+    padding: 0.85rem 0.95rem;
+}
+
+.onboarding-dock-title {
+    font-weight: 700;
+    font-size: 0.86rem;
+    margin-bottom: 0.2rem;
+}
+
+.onboarding-dock-text {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.onboarding-dock-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+.onboarding-dock-actions .btn-link {
+    color: var(--bs-secondary-color, #6c757d);
+    text-decoration: none;
+    font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Launcher chrome — matched to the Add/Edit Event dialog              */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Deliberately not Bootstrap's .modal-header / .modal-footer: the event
+ * dialog builds its own tinted band and puts the action row inside the body,
+ * and the launcher has to sit next to it without looking like a different
+ * product. Tints come from --primary via color-mix, with a plain fallback
+ * first for engines without it.
+ */
+
+.onboarding-launcher-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--bs-secondary-bg, #e9ecef);
+    background: color-mix(in srgb, var(--primary, #1892B1) 6%, transparent);
+    border-bottom: 2px solid var(--primary, #1892B1);
+}
+
+.onboarding-launcher-eyebrow {
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-bottom: 0.25rem;
+    color: var(--primary, #1892B1);
+}
+
+.onboarding-launcher-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.onboarding-launcher-title i {
+    font-size: 1.25rem;
+    color: var(--primary, #1892B1);
+}
+
+.onboarding-launcher-lead {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.onboarding-launcher-glyph {
+    flex: 0 0 auto;
+    font-size: 2rem;
+    opacity: 0.5;
+    color: var(--primary, #1892B1);
+}
+
+/* Action row, inside the body like the event dialog's own footer. */
+.onboarding-launcher-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+}
+
+.onboarding-launcher-meta {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+@media (max-width: 575.98px) {
+    .onboarding-launcher-glyph {
+        display: none;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Launcher — one accordion card per section                           */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Each card carries its section's colour through --onb-accent, set inline
+ * from the catalogue as a reference to an Overmind palette token. Tints are
+ * derived with color-mix so there is still only one colour per section;
+ * the plain declaration before each color-mix is the fallback for engines
+ * that do not support it.
+ */
+
+.onboarding-acc {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.onboarding-acc-item {
+    --onb-accent: var(--primary, #1892B1);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-left: 4px solid var(--onb-accent);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bs-body-bg, #fff);
+    transition: box-shadow 0.15s ease;
+}
+
+.onboarding-acc-item:hover {
+    box-shadow: 0 4px 14px rgba(17, 12, 13, 0.1);
+}
+
+.onboarding-acc-item.is-open {
+    box-shadow: 0 6px 18px rgba(17, 12, 13, 0.12);
+}
+
+/* --- header --- */
+
+.onboarding-acc-head {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    padding: 0.85rem 1rem;
+    background: var(--bs-body-bg, #fff);
+    background: color-mix(in srgb, var(--onb-accent) 6%, transparent);
+    color: var(--bs-body-color, #212529);
+}
+
+.onboarding-acc-head:hover {
+    background: color-mix(in srgb, var(--onb-accent) 11%, transparent);
+}
+
+.onboarding-acc-icon {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bs-secondary-bg, #e9ecef);
+    background: color-mix(in srgb, var(--onb-accent) 16%, transparent);
+    color: var(--onb-accent);
+    font-size: 1.1rem;
+}
+
+.onboarding-acc-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.onboarding-acc-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+
+.onboarding-acc-summary {
+    font-size: 0.79rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.onboarding-acc-meta {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    color: var(--onb-accent);
+}
+
+.onboarding-acc-chevron {
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color, #6c757d);
+    transition: transform 0.2s ease;
+}
+
+.onboarding-acc-item.is-open .onboarding-acc-chevron {
+    transform: rotate(180deg);
+}
+
+/* --- body --- */
+
+.onboarding-acc-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+
+.onboarding-acc-item.is-open .onboarding-acc-body {
+    /* Generous ceiling: the tallest section has three parts plus the run
+       row, well under this. */
+    max-height: 30rem;
+}
+
+.onboarding-acc-inner {
+    padding: 0.85rem 1rem 1rem;
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.onboarding-run-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--onb-accent);
+    background: transparent;
+    color: var(--onb-accent);
+    margin-bottom: 0.7rem;
+}
+
+.onboarding-run-section:hover {
+    background: color-mix(in srgb, var(--onb-accent) 12%, transparent);
+}
+
+.onboarding-run-section i {
+    font-size: 0.62rem;
+}
+
+/* --- sub-sections --- */
+
+.onboarding-part-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+}
+
+.onboarding-part {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-body-color, #212529);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.onboarding-part:hover {
+    border-color: var(--onb-accent);
+    background: color-mix(in srgb, var(--onb-accent) 7%, transparent);
+}
+
+.onboarding-part-index {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: var(--bs-secondary-bg, #e9ecef);
+    background: color-mix(in srgb, var(--onb-accent) 16%, transparent);
+    color: var(--onb-accent);
+}
+
+.onboarding-part-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.83rem;
+    font-weight: 600;
+}
+
+.onboarding-part-count {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    color: var(--bs-secondary-color, #6c757d);
+    white-space: nowrap;
+}
+
+.onboarding-part i {
+    flex: 0 0 auto;
+    font-size: 0.6rem;
+    color: var(--onb-accent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.onboarding-part:hover i {
+    opacity: 1;
+}
+
+@media (max-width: 575.98px) {
+    .onboarding-popover,
+    .onboarding-popover.is-centred {
+        width: calc(100vw - 24px);
+    }
+
+    .onboarding-acc-meta {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-spotlight,
+    .onboarding-progress > span,
+    .onboarding-acc-body,
+    .onboarding-acc-chevron {
+        transition: none;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Section accents                                                     */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The catalogue names an Overmind palette token and this is where it
+ * resolves, fallback included: an undefined custom property makes the whole
+ * declaration invalid, which would silently drop the accent to the inherited
+ * text colour rather than showing anything obviously wrong.
+ *
+ * ORDER MATTERS. The default below and the token map share a specificity of
+ * one class, so the map has to come second — with it first, the default won
+ * and every surface came out primary.
+ */
+.onboarding-popover,
+.onboarding-overlay,
+.onboarding-dock,
+.onboarding-acc-item {
+    --onb-accent: var(--primary, #1892B1);
+}
+
+.onb-accent-primary  { --onb-accent: var(--primary, #1892B1); }
+.onb-accent-tag      { --onb-accent: var(--tag, #DB6A47); }
+.onb-accent-galaxy   { --onb-accent: var(--galaxy, #8B5CF6); }
+.onb-accent-report   { --onb-accent: var(--report, #4DA167); }
+
+/* --enrichment (#48435C) was tried for Administration first and failed: a
+   dark slate is legible on white but sinks into a dark background. Section
+   accents have to carry on both themes, so this one is a mid-tone. */
+.onb-accent-category { --onb-accent: var(--category, #EF476F); }

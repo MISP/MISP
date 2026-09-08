@@ -16,13 +16,7 @@ $formUrl = $isEdit
     ? $baseurl . '/galaxy_clusters/edit/' . h($clusterId ?? $id ?? '')
     : $baseurl . '/galaxy_clusters/add/' . h($galaxy_id);
 
-$distIconMap = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-    4 => ['bg' => '#dce8ff', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-];
+$distIconMap = $this->DistributionLevel->all();
 
 echo $this->Form->create('GalaxyCluster', [
     'id' => 'galaxyClusterAddForm',
@@ -32,21 +26,15 @@ echo $this->Form->create('GalaxyCluster', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06); border-bottom:2px solid var(--bs-galaxy);">
-    <div>
-        <div class="text-galaxy text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Galaxy Clusters') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : ($isFork ? 'code-branch' : 'circle-plus') ?> text-galaxy" style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Galaxy Cluster') : ($isFork ? __('Fork Galaxy Cluster') : __('Add Galaxy Cluster')) ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => __('Galaxy Clusters'),
+    'title' => $isEdit
+        ? __('Edit Galaxy Cluster')
+        : ($isFork ? __('Fork Galaxy Cluster') : __('Add Galaxy Cluster')),
+    'titleIcon' => 'fas fa-' . ($isEdit ? 'pen-to-square' : ($isFork ? 'code-branch' : 'circle-plus')),
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
@@ -112,9 +100,10 @@ echo $this->Form->create('GalaxyCluster', [
 
     <!-- DISTRIBUTION CARDS -->
     <div class="mt-3">
-        <div class="text-galaxy fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-            <?= __('Distribution') ?>
-        </div>
+        <?= $this->element('genericElementsBS5/Forms/section_label', [
+            'accent' => 'galaxy',
+            'label' => __('Distribution'),
+        ]) ?>
         <?= $this->Form->select('distribution', $distributionLevels, [
             'id' => 'ClusterDistribution',
             'value' => $initDist,

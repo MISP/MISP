@@ -41,6 +41,11 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
+        // updateJSON is only ever reached by the diagnostics page's hand-built
+        // AJAX, which has no rendered form behind it to produce the field hash
+        // _validatePost() compares against. It sends the page's CSRF token in
+        // the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['updateJSON']);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -1007,6 +1012,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
+        $this->request->allowMethod(['post']);
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -1090,6 +1096,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
+        $this->request->allowMethod(['post']);
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -1260,6 +1267,9 @@ class ServersController extends AppController
             $settingObject = $settingObject[$key];
         }
         $result = $this->Server->serverSettingReadSingle($settingObject, $setting, $key);
+        if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
+            $result['options'] = $result['optionsSource']();
+        }
         $this->set('setting', $result);
         $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
         $this->set('priorityErrorColours', $priorityErrorColours);
@@ -1274,7 +1284,12 @@ class ServersController extends AppController
         }
         $this->set('subGroup', $subGroup);
 
-        $this->render('/Elements/healthElements/settings_row');
+        // Overmind swaps the edited row in place with its own BS5 markup.
+        if ($this->theme === 'Overmind') {
+            return $this->render('/Elements/healthElementsBS5/setting_row');
+        }
+
+        return $this->render('/Elements/healthElements/settings_row');
     }
 
     public function serverSettings($tab=false)
@@ -1282,6 +1297,15 @@ class ServersController extends AppController
         if (!$this->request->is('get')) {
             throw new MethodNotAllowedException('Just GET method is allowed.');
         }
+
+        App::uses('ServerSettingGroups', 'Tools');
+        if ($this->theme === 'Overmind' && $tab !== 'download') {
+            $tabRequired = $tab !== false || $this->request->is('ajax');
+            if ($tabRequired && !ServerSettingGroups::isKnownTab($tab)) {
+                throw new NotFoundException(__('Unknown server settings section.'));
+            }
+        }
+
         $tabs = array(
             'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
@@ -1545,6 +1569,16 @@ class ServersController extends AppController
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
         $this->set('title_for_layout', __('Diagnostics'));
+
+        /*
+         * Overmind renders the page as a shell (health cards + tab bar) and
+         * pulls the content of each tab over ajax from this very action, so an
+         * XHR gets the bare fragment for $tab instead of the whole page.
+         */
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+            $this->layout = false;
+            return $this->render('/Servers/ajax/server_settings_tab');
+        }
     }
 
     public function startWorker($type)
@@ -1788,7 +1822,9 @@ class ServersController extends AppController
             } else {
                 $this->set('subGroup', $subGroup);
                 $this->set('setting', $setting);
-                $this->render('ajax/server_settings_edit');
+                $this->render($this->theme === 'Overmind'
+                    ? '/Servers/ajax/server_settings_edit_bs5'
+                    : 'ajax/server_settings_edit');
             }
         } else if ($this->request->is('post')) {
             if (!isset($this->request->data['Server'])) {
@@ -1907,6 +1943,15 @@ class ServersController extends AppController
                 throw new NotFoundException(__('Invalid type.'));
             }
             App::uses('File', 'Utility');
+            // $filename is a raw route parameter. Strip any path component
+            // before joining, exactly as uploadFile() below already does, so
+            // the target cannot leave the type's own directory. basename()
+            // leaves '.' and '..' as-is and both resolve to a directory, so
+            // reject them rather than handing a directory to File::delete().
+            $filename = basename($filename);
+            if ($filename === '' || $filename === '.' || $filename === '..') {
+                throw new NotFoundException(__('Invalid filename.'));
+            }
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
                 $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
@@ -2333,6 +2378,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2376,6 +2422,7 @@ class ServersController extends AppController
 
 public function updateJSON()
     {
+        $this->request->allowMethod(['post']);
         $results = [];
 
         $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
@@ -2652,6 +2699,7 @@ public function updateJSON()
 
     public function removeOrphanedCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

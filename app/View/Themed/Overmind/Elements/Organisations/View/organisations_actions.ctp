@@ -24,7 +24,7 @@ $actions[] = [
 if ($isSiteAdmin && $orgId !== null) {
     $actions[] = [
         'url'     => "$baseurl/admin/organisations/deleteSelection/$orgId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/organisations/deleteSelection/$orgId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/organisations/deleteSelection/$orgId', 'md');",
         'icon'    => 'fas fa-trash',
         'label'   => __('Delete organisation'),
         'danger'  => true,

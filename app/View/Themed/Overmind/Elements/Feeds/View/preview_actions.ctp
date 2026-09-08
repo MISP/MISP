@@ -14,7 +14,7 @@ echo $this->element('genericElementsBS5/Cards/card_actions', [
             'label' => __('Fetch this event'),
             'success' => true,
             'onclick' => sprintf(
-                "event.preventDefault(); openModal('%s', 'sm');",
+                "event.preventDefault(); openModal('%s', 'md');",
                 h($fetchUrl)
             ),
         ],

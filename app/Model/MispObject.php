@@ -325,7 +325,15 @@ class MispObject extends AppModel
                 $attribute_to_delete['Attribute']['deleted'] = 1;
                 unset($attribute_to_delete['Attribute']['timestamp']);
             }
-            $this->Attribute->saveMany($attributes_to_delete);
+            if (!$this->Attribute->saveMany($attributes_to_delete) && !empty($attributes_to_delete)) {
+                $this->log(
+                    sprintf(
+                        'Could not cascade delete to all Attributes of Object %s: some attributes may remain visible (not deleted).',
+                        $this->id
+                    ),
+                    LOG_WARNING
+                );
+            }
         }
         $workflowErrors = [];
         $logging = [
@@ -398,10 +406,14 @@ class MispObject extends AppModel
      * @param int $eventId
      * @param int $duplicatedObjectId
      * @param string $duplicateObjectUuid
+     * @param int|null $newCacheKey Key of the intra-batch cache entry created for this object, so
+     *                              that the caller can backfill the id/uuid assigned on save. Stays
+     *                              null when the object was itself found to be a duplicate.
      * @return bool
      */
-    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid)
+    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid, &$newCacheKey = null)
     {
+        $newCacheKey = null;
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
             $attributeArray = $object['Object']['Attribute'];
@@ -415,16 +427,23 @@ class MispObject extends AppModel
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
-                if ($newObjectAttributeCount === count($previousNewObject)) {
-                    if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectId = $previousNewObject['Object']['id'];
-                        $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
+                if ($newObjectAttributeCount === count($previousNewObject['attributes'])) {
+                    if (empty(array_diff($previousNewObject['attributes'], $newObjectAttributes))) {
+                        $duplicatedObjectId = $previousNewObject['id'];
+                        $duplicateObjectUuid = $previousNewObject['uuid'];
                         return true;
                     }
                 }
             }
         }
-        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = $newObjectAttributes;
+        // In-batch objects have no database id yet, and may not carry a uuid either - both are
+        // backfilled by captureObject() once the object has actually been stored.
+        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = array(
+            'attributes' => $newObjectAttributes,
+            'id' => isset($object['Object']['id']) ? $object['Object']['id'] : null,
+            'uuid' => isset($object['Object']['uuid']) ? $object['Object']['uuid'] : null,
+        );
+        $newCacheKey = array_key_last($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']]);
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
@@ -1143,13 +1162,13 @@ class MispObject extends AppModel
             // Set seen of object at attribute level
             if (
                 (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
+                (array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
             ) {
                 $newAttribute['first_seen'] = $object['Object']['first_seen'];
             }
             if (
                 (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
+                (array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
             }
@@ -1175,10 +1194,11 @@ class MispObject extends AppModel
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
         }
+        $duplicationCheckCacheKey = null;
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid, $duplicationCheckCacheKey);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
                     __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
@@ -1190,6 +1210,10 @@ class MispObject extends AppModel
         unset($object['Object']['id']);
         $object['Object']['event_id'] = $eventId;
         if (!$this->save($object)) {
+            // The object never made it into the database, so it must not stand in as the original
+            // for later duplicates in the same batch - they would be dropped in favour of an object
+            // that does not exist, and logged against an empty ID/UUID.
+            $this->forgetDuplicationCheckCacheEntry($object, $duplicationCheckCacheKey);
             $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
                 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
@@ -1216,8 +1240,29 @@ class MispObject extends AppModel
             ]);
             $object['Object']['uuid'] = $t['Object']['uuid'];
         }
+        if ($duplicationCheckCacheKey !== null) {
+            $templateUuid = $object['Object']['template_uuid'];
+            $this->__objectDuplicationCheckCache['new'][$templateUuid][$duplicationCheckCacheKey]['id'] = $objectId;
+            $this->__objectDuplicationCheckCache['new'][$templateUuid][$duplicationCheckCacheKey]['uuid'] = $object['Object']['uuid'];
+        }
         $this->Event->captureAnalystData($user, $object['Object'], 'Object', $object['Object']['uuid']);
         return true;
+    }
+
+    /**
+     * Drop an intra-batch duplication check cache entry that was registered by
+     * checkForDuplicateObjects() for an object that subsequently failed to save.
+     *
+     * @param array $object
+     * @param int|null $cacheKey
+     * @return void
+     */
+    private function forgetDuplicationCheckCacheEntry($object, $cacheKey)
+    {
+        if ($cacheKey === null || !isset($object['Object']['template_uuid'])) {
+            return;
+        }
+        unset($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][$cacheKey]);
     }
 
     public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false, $server = null)

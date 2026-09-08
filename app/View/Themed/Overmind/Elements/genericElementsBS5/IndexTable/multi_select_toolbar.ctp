@@ -40,6 +40,24 @@ $filter_bar = $filter_bar ?? [];
             </button>
         <?php endif; ?>
 
+        <?php
+            /*
+             * Only for specific indexes that need a custom action button in the mass-action toolbar.
+             */
+            foreach (($filter_bar['custom_actions'] ?? []) as $customAction):
+        ?>
+            <button id="<?= h($customAction['id']) ?>"
+                    class="btn btn-sm ms-2 <?= h($customAction['class'] ?? 'btn-primary') ?>"
+                    title="<?= h($customAction['label']) ?>"
+                    aria-label="<?= h($customAction['label']) ?>"
+                    onclick="<?= h($customAction['onclick']) ?>">
+                <?php if (!empty($customAction['icon'])): ?>
+                    <i class="fas fa-<?= h($customAction['icon']) ?>"></i>
+                <?php endif; ?>
+                <?= h($customAction['label']) ?>
+            </button>
+        <?php endforeach; ?>
+
         <?php if (!empty($filter_bar['mass_edit'])): ?>
             <button id="mass-edit-button"
                     class="btn btn-secondary btn-sm d-none"

@@ -8,21 +8,13 @@ $type = $cluster['GalaxyCluster']['type'] ?? '';
 $json = json_encode($convertedCluster, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06); border-bottom:2px solid var(--bs-galaxy);">
-    <div>
-        <div class="text-galaxy text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Galaxy Clusters') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-handshake text-galaxy" style="font-size:1.25rem;"></i>
-            <?= __('Export to misp-galaxy format') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => __('Galaxy Clusters'),
+    'title' => __('Export to misp-galaxy format'),
+    'titleIcon' => 'fas fa-handshake',
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">

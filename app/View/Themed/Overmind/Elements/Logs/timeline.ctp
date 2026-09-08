@@ -129,7 +129,7 @@ $fmtDay = function ($dayKey) {
                                 <div class="d-flex align-items-start gap-2 flex-wrap">
                                     <span class="text-muted flex-shrink-0 mt-1"
                                           style="font-size:.72rem;min-width:2.8rem;"><?= h($fmtTime($e['created'] ?? '')) ?></span>
-                                    <div style = "width:5.5rem;">
+                                    <div style = "width:8.5rem;">
                                         <span class="badge flex-shrink-0 mt-1"
                                             style="display:inline-block;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:<?= h($m['bg']) ?>;color:<?= h($m['color']) ?>;font-size:.68rem;border:1px solid <?= h($m['color']) ?>33;"
                                             title="<?= h($label) ?>">

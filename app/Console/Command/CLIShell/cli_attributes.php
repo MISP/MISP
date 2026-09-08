@@ -31,6 +31,10 @@ trait CLIAttributesTrait
                     'disable_correlation',
                     'first_seen', 'last_seen',
                 ],
+                'filters' => [
+                    'eventid', 'type', 'category',
+                    'to_ids', 'searchall', 'value',
+                ],
             ],
         ];
     }
@@ -121,9 +125,7 @@ trait CLIAttributesTrait
      */
     private function __fetchAttributeList($filters)
     {
-        $conditions = [
-            'Attribute.deleted' => 0,
-        ];
+        $conditions = [];
         $limit = isset($filters['limit'])
             ? (int)$filters['limit']
             : $this->__perPage;
@@ -164,77 +166,40 @@ trait CLIAttributesTrait
             $conditions['Attribute.value LIKE'] =
                 '%' . $filters['searchall'] . '%';
         }
-
-        if (
-            empty(
-                $this->__user['Role']
-                    ['perm_site_admin']
-            )
-        ) {
-            $conditions[] =
-                $this->__attributeAclConditions();
+        if (isset($filters['value'])) {
+            // Documented as a LIKE match: the
+            // caller supplies the wildcards.
+            $conditions['Attribute.value LIKE'] =
+                $filters['value'];
         }
 
-        $isSiteAdmin = !empty(
-            $this->__user['Role']
-                ['perm_site_admin']
-        );
-        $findParams = [
-            'conditions' => $conditions,
-            'fields' => [
-                'Attribute.id',
-                'Attribute.event_id',
-                'Attribute.type',
-                'Attribute.category',
-                'Attribute.value',
-                'Attribute.to_ids',
-                'Attribute.comment',
-            ],
-            'recursive' => -1,
-            'limit' => $limit,
-            'page' => $page,
-            'order' => [
-                'Attribute.id' => isset(
-                    $filters['sort_order']
-                )
-                ? $filters['sort_order']
-                : 'DESC',
-            ],
-        ];
-
-        if (!$isSiteAdmin) {
-            $findParams['joins'] = [
-                [
-                    'table' => 'events',
-                    'alias' => 'Event',
-                    'type' => 'INNER',
-                    'conditions' => [
-                        'Event.id = '
-                        . 'Attribute.event_id',
-                    ],
-                ],
-            ];
-        }
-
+        // fetchAttributes() applies the same
+        // event + object + attribute visibility
+        // rule as the web, joins the parent event
+        // and excludes soft-deleted rows itself.
         $attributes =
-            $this->MispAttribute->find(
-                'all', $findParams
+            $this->MispAttribute->fetchAttributes(
+                $this->__user,
+                [
+                    'conditions' => $conditions,
+                    'flatten' => 1,
+                    'limit' => $limit,
+                    'page' => $page,
+                    'order' => 'Attribute.id '
+                        . (isset($filters['sort_order'])
+                            ? $filters['sort_order']
+                            : 'DESC'),
+                ]
             );
 
         $results = [];
-        $eventIds = array_column(
-            array_column($attributes, 'Attribute'),
-            'event_id'
-        );
-        $this->__prefetchFK('event', $eventIds);
-
         foreach ($attributes as $attr) {
             $a = $attr['Attribute'];
             $results[] = [
                 'id' => $a['id'],
-                'event_id' => $this->__resolveFK(
-                    'event', $a['event_id']
-                ),
+                'event_id' => '[' . $a['event_id']
+                    . '] '
+                    . ($attr['Event']['info'] ?? ''),
                 'type' => $a['type'],
                 'category' => $a['category'],
                 'value' => $a['value'],
@@ -246,44 +211,6 @@ trait CLIAttributesTrait
         }
 
         return $results;
-    }
-
-    /**
-     * Build ACL conditions for attribute queries.
-     *
-     * Non-admin users may not see attributes with
-     * distribution 0 on events they don't own, or
-     * distribution 4 with unauthorised sharing groups.
-     *
-     * @return array CakePHP conditions array
-     */
-    private function __attributeAclConditions()
-    {
-        $userOrgId = $this->__user['org_id'];
-        $sgIds = $this->SharingGroup->authorizedIds(
-            $this->__user
-        );
-
-        return [
-            'OR' => [
-                // User's org owns the event
-                'Event.org_id' => $userOrgId,
-                // Distribution > 0 and not SG
-                [
-                    'Attribute.distribution >'
-                        => 0,
-                    'Attribute.distribution !='
-                        => 4,
-                ],
-                // Distribution 4 with valid SG
-                [
-                    'Attribute.distribution'
-                        => 4,
-                    'Attribute.sharing_group_id'
-                        => $sgIds,
-                ],
-            ],
-        ];
     }
 
     /**
@@ -408,7 +335,7 @@ trait CLIAttributesTrait
      * @param int $id Attribute ID.
      * @return void
      */
-    private function __editAttribute($id)
+    private function __editAttribute($id, $fields = null)
     {
         $existing = $this->__fetchDetail(
             'attribute', $id
@@ -418,7 +345,7 @@ trait CLIAttributesTrait
                 'Attribute #' . $id
                 . ' not found.'
             );
-            return;
+            return false;
         }
         $eventId =
             $existing['Attribute']['event_id'];
@@ -430,25 +357,32 @@ trait CLIAttributesTrait
                 'Parent event #' . $eventId
                 . ' not found.'
             );
-            return;
+            return false;
         }
         if (!$this->__canModifyEvent($event)) {
             $this->err(
                 'Permission denied: cannot modify '
                 . 'the parent event.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['attribute']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'attribute',
             $existing['Attribute'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -457,7 +391,7 @@ trait CLIAttributesTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
         $data = [
             'Attribute' => array_merge(
@@ -499,6 +433,7 @@ trait CLIAttributesTrait
             $this->Event->unpublishEvent(
                 $eventId
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update attribute #'
@@ -525,6 +460,7 @@ trait CLIAttributesTrait
                 }
             }
         }
+        return false;
     }
 
     /**
@@ -538,15 +474,11 @@ trait CLIAttributesTrait
      */
     private function __deleteAttribute($id)
     {
-        $attribute = $this->MispAttribute->find(
-            'first',
-            [
-                'conditions' => [
-                    'Attribute.id' => $id,
-                ],
-                'contain' => ['Event'],
-                'recursive' => 0,
-            ]
+        // Resolve through the ACL'd accessor so a
+        // record the user cannot see reads exactly
+        // like one that does not exist.
+        $attribute = $this->__fetchAttributeDetail(
+            $id
         );
         if (empty($attribute)) {
             $this->err(

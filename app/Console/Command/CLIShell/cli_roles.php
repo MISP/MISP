@@ -43,6 +43,7 @@ trait CLIRolesTrait
                     'memory_limit',
                 ],
                 'adminOnly' => true,
+                'filters' => ['searchall'],
             ],
         ];
     }
@@ -341,25 +342,32 @@ trait CLIRolesTrait
      * @param int $id Role ID.
      * @return void
      */
-    private function __editRole($id)
+    private function __editRole($id, $fields = null)
     {
         $existing = $this->__fetchRoleDetail($id);
         if (empty($existing)) {
             $this->err(
                 'Role #' . $id . ' not found.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['role']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'role',
             $existing['Role'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -368,7 +376,7 @@ trait CLIRolesTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
         $data = [
             'Role' => array_merge(
@@ -383,6 +391,7 @@ trait CLIRolesTrait
                 'Role #' . $id
                 . ' updated successfully.'
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update role #'
@@ -407,6 +416,7 @@ trait CLIRolesTrait
                 }
             }
         }
+        return false;
     }
 
     /**

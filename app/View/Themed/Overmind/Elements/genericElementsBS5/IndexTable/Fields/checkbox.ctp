@@ -255,6 +255,17 @@ if ($field['data_path'] === 'Template.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'EventTemplate.id') {
+    if (!isset($mayModify)) {
+        $mayModify = !empty($isSiteAdmin) || (
+            !empty($me['Role']['perm_template'])
+            && (int)($row['EventTemplate']['org_id'] ?? 0) === (int)$me['org_id']
+        );
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'ObjectTemplate.id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;

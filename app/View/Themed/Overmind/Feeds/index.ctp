@@ -48,7 +48,7 @@ if ($isSiteAdmin) {
                 'label' => __('Fetch and store all feed data'),
                 'icon' => 'circle-arrow-down',
                 'url' => $baseurl . '/feeds/fetchSelectedFeeds/all',
-                'size' => 'sm',
+                'size' => 'md',
             ],
         ],
     ];
@@ -368,7 +368,7 @@ $fields = [
                 'label' => __('Fetch all events'),
                 'icon' => 'circle-arrow-down',
                 'url' => $baseurl . '/feeds/fetchSelectedFeeds/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function (array $row) {
                     return !empty($row['Feed']['enabled']);
                 },
@@ -398,6 +398,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $filterChildren,

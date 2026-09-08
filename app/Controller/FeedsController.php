@@ -273,6 +273,11 @@ class FeedsController extends AppController
         }
         if ($this->theme === 'Overmind') {
             $this->layout = false;
+            // Feed::importFeeds() skips an entry whose url is already known, so the
+            // form can tell beforehand which of the pasted feeds are actually new.
+            $this->set('existingFeedUrls', $this->Feed->find('column', [
+                'fields' => ['Feed.url']
+            ]));
         }
     }
 
@@ -607,6 +612,7 @@ class FeedsController extends AppController
 
     public function fetchFromFeed($feedId)
     {
+        $this->request->allowMethod(['post']);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -682,6 +688,7 @@ class FeedsController extends AppController
 
     public function fetchFromAllFeeds()
     {
+        $this->request->allowMethod(['post']);
         $feeds = $this->Feed->find('all', array(
             'recursive' => -1,
             'fields' => array('id')
@@ -1182,6 +1189,18 @@ class FeedsController extends AppController
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
 
+        if (!empty($this->params['named']['searchall'])) {
+            $searchAll = trim(mb_strtolower($this->params['named']['searchall']));
+            $resultArray = array_values(array_filter($resultArray, function (array $item) use ($searchAll) {
+                foreach (array('value', 'default_type', 'category', 'comment') as $field) {
+                    if (!empty($item[$field]) && strpos(mb_strtolower($item[$field]), $searchAll) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
+
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($resultArray, array('page' => $currentPage, 'limit' => 60), 'Feed', $sort = false);
@@ -1194,7 +1213,7 @@ class FeedsController extends AppController
         }
 
         $this->params->params['paging'] = array($this->modelClass => $params);
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id'], $this->Auth->user());
         // remove all duplicates
         $correlatingEvents = array();
         foreach ($resultArray as $k => $v) {
@@ -1212,6 +1231,13 @@ class FeedsController extends AppController
             'fields' => array('Event.id', 'Event.info'),
             'conditions' => array('Event.id' => $correlatingEvents)
         ));
+        if ((int)$feed['Feed']['distribution'] === 4 && !empty($feed['Feed']['sharing_group_id'])) {
+            $feed['SharingGroup'] = $this->Feed->SharingGroup->find('first', array(
+                'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id']),
+                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+                'recursive' => -1,
+            ))['SharingGroup'] ?? array('name' => __('Unknown sharing group'));
+        }
         $this->set('correlatingEventInfos', $correlatingEventInfos);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
         $this->set('feed', $feed);
@@ -1219,17 +1245,18 @@ class FeedsController extends AppController
             return $this->RestResponse->viewData($resultArray, $this->response->type());
         }
         $this->set('attributes', $resultArray);
-        $this->set('forceLegacyLayout', true);
         $this->render('freetext_index');
     }
 
     private function __canViewFeed($feed)
     {
-        $host_org_id = (int)Configure::read('MISP.host_org_id');
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
-            return false;
+        // Single-sourced on Feed::visibleConditions() so this per-feed check
+        // and the feed listings that carry the same rule cannot drift apart.
+        // No restriction returned means site admin or host org.
+        if (empty($this->Feed->visibleConditions($this->Auth->user()))) {
+            return true;
         }
-        return true;
+        return !empty($feed['Feed']['lookup_visible']);
     }
 
     public function previewEvent($feedId, $eventUuid, $all = false)
@@ -1400,6 +1427,7 @@ class FeedsController extends AppController
 
     public function enable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, true);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1417,6 +1445,7 @@ class FeedsController extends AppController
 
     public function disable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, false);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1495,11 +1524,17 @@ class FeedsController extends AppController
         } catch (Exception $e) {
             $this->Flash->error(__('Could not pull the selected data. Reason: %s', $e->getMessage()));
         }
+        if ($this->theme === 'Overmind') {
+            // Back to the preview the selection was made in, where the pulled
+            // values now show up as correlations.
+            $this->redirect(array('controller' => 'feeds', 'action' => 'previewIndex', $id));
+        }
         $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }
 
     public function cacheFeeds($scope = 'freetext')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */

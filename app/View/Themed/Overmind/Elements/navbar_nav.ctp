@@ -1,6 +1,13 @@
 <?php $menuEndClass = !empty($alignEnd) ? ' dropdown-menu-end' : ''; ?>
+<?php
+    // Stable hook for the onboarding tour, which spotlights the top-level
+    // menus by name (nav-datapoints, nav-account, …).
+    $tourAttr = empty($item['id'])
+        ? ''
+        : ' data-tour="nav-' . h($item['id']) . '"';
+?>
 <?php if (!empty($item['children'])): ?>
-    <li class="nav-item dropdown">
+    <li class="nav-item dropdown"<?= $tourAttr ?>>
         <a class="nav-link dropdown-toggle <?= !empty($item['active']) ? 'active' : '' ?>" href="#" data-bs-toggle="dropdown">
             <?= $this->element('navbar_item', ['item' => $item]) ?>
             <i class="menu-arrow fas"></i>
@@ -69,6 +76,12 @@
                                 </div>
                                 <span class="badge bg-secondary dark-mode-badge ms-2">OFF</span>
                             </div>
+                        </a>
+                    </li>
+                <?php elseif (!empty($child['type']) && $child['type'] === 'tutorial'): ?>
+                    <li>
+                        <a class="dropdown-item onboarding-launch" href="#">
+                            <?= $this->element('navbar_item', ['item' => $child]) ?>
                         </a>
                     </li>
                 <?php elseif (!empty($child['type']) && $child['type'] === 'setHomepage'): ?>

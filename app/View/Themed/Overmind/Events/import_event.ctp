@@ -67,26 +67,13 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event, var(--primary));">
-    <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Events') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-event" style="font-size:1.25rem;"></i>
-            <?= __('Import Event') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Create one or more events by importing an existing MISP export or STIX document.') ?>
-        </p>
-    </div>
-    <span class="fas fa-file-import text-event"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Events'),
+    'title' => __('Import Event'),
+    'description' => __('Create one or more events by importing an existing MISP export or STIX document.'),
+    'icon' => 'fas fa-file-import',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
@@ -327,14 +314,10 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'align' => 'end',
+        'submit' => false,
+    ]) ?>
     </div><!-- /#importEventInteractive -->
 
     <!-- ── IMPORT SPINNER (shown while a section is submitting) ──── -->

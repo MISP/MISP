@@ -20,6 +20,10 @@
     ?>
     <script>
         var baseurl = '<?= $baseurl ?>';
+        // CSRF token for hand-built same-origin AJAX, which has no rendered form
+        // to carry _Token fields. Sent as the X-CSRF-Token header - see
+        // BetterSecurityComponent::_validateCsrf().
+        var csrfToken = <?= json_encode(isset($this->request->params['_Token']['key']) ? $this->request->params['_Token']['key'] : '') ?>;
         function getTextColour(hex) {
             if (hex.indexOf('#') === 0) {
                 hex = hex.slice(1);

@@ -118,7 +118,7 @@ async function loadForm(body) {
   );
   try {
     const resp = await fetch(formUrl, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html', 'X-CSRF-Token': (window.csrfToken || '') },
       credentials: 'same-origin',
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -162,6 +162,7 @@ async function submitForm(form, body) {
       headers: {
         'Accept': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': (window.csrfToken || ''),
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams(fd),

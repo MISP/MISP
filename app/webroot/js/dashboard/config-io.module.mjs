@@ -140,6 +140,7 @@ export async function openExportConfig() {
       headers: {
         'Accept': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': (window.csrfToken || ''),
       },
       credentials: 'same-origin',
     });
@@ -268,6 +269,7 @@ function renderImportBody(body) {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': (window.csrfToken || ''),
         },
         body: reqBody,
         credentials: 'same-origin',

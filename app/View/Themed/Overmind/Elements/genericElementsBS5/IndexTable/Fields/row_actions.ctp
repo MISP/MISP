@@ -148,7 +148,7 @@ if ($field['data_path'] === 'Event.id') {
                             $url = str_replace(['%action%', '%id%'], [$toggleAction, $id], $url);
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
-                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','md');">
                                 <div>
                                     <?= $renderIcon($iconClass) ?>
                                     <?= h($label) ?>
@@ -171,7 +171,8 @@ if ($field['data_path'] === 'Event.id') {
                         if (!empty($action['size'])) {
                             $onclick = "event.preventDefault(); openModal('$url', '" . $action['size'] . "');";
                         } elseif ($action['label'] === __('Delete') || $action['label'] === __('Soft Delete') || $action['label'] === __('Restore')) {
-                            $onclick = "event.preventDefault(); openModal('$url', 'sm');";
+                            // A confirmation: the class-less 500px medium, see setModalSize().
+                            $onclick = "event.preventDefault(); openModal('$url', 'md');";
                         } else {
                             $onclick = "event.preventDefault(); openModal('$url');";
                         }
@@ -179,6 +180,19 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="<?= trim($classes) ?>"
                            href="<?= h($url) ?>"
                            onclick="<?= h($onclick) ?>">
+                            <div>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
+                    <?php elseif ($action['type'] === 'js'): ?>
+                        <?php
+                            $onclick = str_replace('%id%', $id, $action['onclick']);
+                        ?>
+                        <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
+                           href="#"
+                           onclick="event.preventDefault(); <?= h($onclick) ?>">
                             <div>
                                 <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>

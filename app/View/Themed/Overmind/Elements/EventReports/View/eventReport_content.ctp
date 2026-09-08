@@ -261,7 +261,7 @@ $menuItems = [
      tabindex="-1"
      aria-labelledby="er-llm-modal-label"
      aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
 
             <div class="modal-header">

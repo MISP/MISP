@@ -18,15 +18,8 @@ if (!empty($event['Object'])) {
     }
 }
 
-// Distribution colour map
-$distMeta = [
-    0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'fas fa-building',      'label' => __('Your organisation only')],
-    1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users',         'label' => __('This community only')],
-    2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired', 'label' => __('Connected communities')],
-    3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe',         'label' => __('All communities')],
-    4 => ['bg' => '#6a96ee', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple', 'label' => __('Sharing group')],
-    5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork',     'label' => __('Inherited')],
-];
+// Distribution colour map, also handed to JS further down via json_encode.
+$distMeta = $this->DistributionLevel->all();
 
 $distPicker = function ($scope, $selected) use ($distributions, $sgs) {
     $selected = ($selected === null || $selected === '') ? array_key_first($distributions) : (int)$selected;
@@ -134,25 +127,14 @@ $attrTableHead = function () use ($idsToggle) {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(72,67,92,.06);
-            border-bottom:2px solid var(--enrichment);">
-    <div>
-        <div class="text-enrichment text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($type === 'Cortex' ? __('Cortex') : __('Enrichment')) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-enrichment" style="font-size:1.2rem;"></i>
-            <?= __('Enrichment results') ?>
-        </h4>
-        <div class="text-muted small mt-1">
-            <?= __('Event') ?>: <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'enrichment',
+    'eyebrow' => $type === 'Cortex' ? __('Cortex') : __('Enrichment'),
+    'title' => __('Enrichment results'),
+    'description' => __('Event') . ': #' . h($eventId),
+    'titleIcon' => 'fas fa-wand-magic-sparkles',
+    'close' => true,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4 pb-3" id="omResolveRoot" style="background:var(--bs-tertiary-bg, #f8f9fa);">
@@ -358,6 +340,7 @@ $attrTableHead = function () use ($idsToggle) {
                             data-encrypt="<?= h($attribute['encrypt'] ?? '') ?>"
                         <?php endif; ?>>
                         <td class="ps-3"><button type="button" class="btn btn-sm btn-light text-danger p-1 om-remove" title="<?= __('Remove from import') ?>"><i class="fas fa-trash"></i></button></td>
+                        <td class="pe-3"><?= $distPicker('om-attr', $attribute['distribution'] ?? null) ?></td>
                         <td>
                             <?php if ($catIsArray): ?>
                                 <select class="form-select form-select-sm om-attr-cat-select">
@@ -380,7 +363,6 @@ $attrTableHead = function () use ($idsToggle) {
                         <td class="text-center"><?= $idsToggle(!empty($attribute['to_ids'])) ?></td>
                         <td class="text-center"><?= $corrToggle(!empty($attribute['disable_correlation'])) ?></td>
                         <td><input type="text" class="form-control form-control-sm om-attr-comment" placeholder="<?= h($importComment) ?>" value="<?= !empty($attribute['comment']) ? h($attribute['comment']) : '' ?>"></td>
-                        <td class="pe-3"><?= $distPicker('om-attr', $attribute['distribution'] ?? null) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -392,25 +374,24 @@ $attrTableHead = function () use ($idsToggle) {
 
     </div>
 
-    <!-- ── FOOTER ───────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Review and remove anything you don\'t want, then import into event') ?> #<?= h($eventId) ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="openModal('<?= $baseurl ?>/events/queryEnrichment/<?= h($sourceId) ?>/0/<?= h($backType) ?>/<?= h($backModel) ?>');">
-                <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <button type="button" class="btn btn-event btn-sm text-white" id="omResolveSubmit">
-                <i class="fas fa-circle-plus me-1"></i><?= __('Import') ?>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'enrichment',
+        'hint' => __('Review and remove anything you don\'t want, then import into event #%s', $eventId),
+        'buttons' => [[
+            'label' => __('Back'),
+            'icon' => 'fas fa-arrow-left',
+            'attrs' => ['onclick' => sprintf(
+                "openModal('%s/events/queryEnrichment/%s/0/%s/%s');",
+                $baseurl, h($sourceId), h($backType), h($backModel)
+            )],
+        ]],
+        'submit' => [
+            'label' => __('Import'),
+            'id' => 'omResolveSubmit',
+            'type' => 'button',
+            'class' => 'btn-event text-white',
+        ],
+    ]) ?>
 <?php endif; ?>
 </div>
 
@@ -423,7 +404,9 @@ $attrTableHead = function () use ($idsToggle) {
 
     form.addEventListener('submit', function (e) { e.preventDefault(); });
 
-    var distMeta = <?= json_encode($distMeta) ?>;
+    // JSON_FORCE_OBJECT keeps this a keyed object: the levels are contiguous
+    // from 0, so json_encode would otherwise emit an array.
+    var distMeta = <?= json_encode($distMeta, JSON_FORCE_OBJECT) ?>;
     var distFallback = { bg: '#f1f1f1', color: '#333', icon: 'fas fa-question', label: '?' };
 
     // Rebuild the coloured index badge

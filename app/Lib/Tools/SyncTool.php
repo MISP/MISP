@@ -24,7 +24,11 @@ class SyncTool
             if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;
                 $params['ssl_verify_peer_name'] = false;
-                if (!isset($server[$model]['cert_file'])) {
+                // Must mirror the `!empty()` test above that decides whether a CA
+                // is pinned at all: `cert_file` is '' (not null) after a cert is
+                // removed, so `isset()` would leave verification enabled with no
+                // CA to verify against and break the connection.
+                if (empty($server[$model]['cert_file'])) {
                     $params['ssl_verify_peer'] = false;
                 }
             }

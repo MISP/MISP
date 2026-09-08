@@ -141,7 +141,14 @@ class WorkflowsController extends AppController
 
     public function rebuildRedis()
     {
+        $this->request->allowMethod(['post']);
         $this->Workflow->rebuildRedis();
+        $message = __('Workflow Redis cache rebuilt.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Workflow', 'rebuildRedis', false, $this->response->type(), $message);
+        }
+        $this->Flash->success($message);
+        $this->redirect(['controller' => 'workflows', 'action' => 'index']);
     }
 
     public function add()

@@ -17,15 +17,8 @@ $uid = 'preview-objects-' . h($data['Event']['id'] ?? '0');
 
 
 $distBadge = function ($dist) {
-    $map = [
-        0 => ['bg' => '#f8d7da', 'color' => '#842029', 'icon' => 'misp-icon misp-icon-organisation misp-simple'],
-        1 => ['bg' => '#ffe5b4', 'color' => '#b45309', 'icon' => 'fas fa-users'],
-        2 => ['bg' => '#e7d3c3', 'color' => '#5a3e2b', 'icon' => 'fas fa-network-wired'],
-        3 => ['bg' => '#d1f7e0', 'color' => '#0f5132', 'icon' => 'fas fa-globe'],
-        4 => ['bg' => '#6a96ee', 'color' => '#0e146d', 'icon' => 'misp-icon misp-icon-sharing-group misp-simple'],
-        5 => ['bg' => '#e6b7df', 'color' => '#380f33', 'icon' => 'fas fa-code-fork'],
-    ];
-    $c = $map[(int)$dist] ?? ['bg' => '#f1f1f1', 'color' => '#333', 'icon' => 'fas fa-question'];
+    // Remote data, so an out-of-range level is expected — get() falls back.
+    $c = $this->DistributionLevel->get($dist);
     return sprintf(
         '<span class="badge d-inline-flex align-items-center px-2 py-1"'
         . ' style="background:%s;color:%s;border:1px solid %s20;font-weight:500;">'

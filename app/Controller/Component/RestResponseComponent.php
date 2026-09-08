@@ -900,10 +900,44 @@ class RestResponseComponent extends Component
         $cakeResponse->type('application/octet-stream');
         $cakeResponse->type($type);
         $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
+        if (!$download) {
+            $this->sandboxInlineFile($cakeResponse, $type);
+        }
         if (Configure::read('Security.disable_browser_cache')) {
             $cakeResponse->disableCache();
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Neutralise script in a file that is served inline and would run it
+     * when opened as a document.
+     *
+     * SVG is an XML document format: rendered through <img> it can never
+     * execute anything, but navigated to directly (or embedded through
+     * <object> or <iframe>) its <script> elements, event handlers and
+     * javascript: links run on this origin with the viewer's session.
+     * The upload gates only decide what gets stored; a file planted while
+     * SVG uploads were allowed keeps being served after they are turned
+     * off again, so the serve path has to be safe on its own. A CSP
+     * `sandbox` gives the document an opaque origin and disables script,
+     * plugins and form submission, while still letting it render; the
+     * other directives keep an inline stylesheet, an embedded raster and
+     * a data: font working, which is what a logo exported from a design
+     * tool tends to contain. Raster images and downloads are left alone.
+     *
+     * @param CakeResponse $response The response carrying the file
+     * @param string|null $type Extension or MIME type the file is served as
+     * @return void
+     */
+    public function sandboxInlineFile(CakeResponse $response, $type)
+    {
+        $type = strtolower((string)$type);
+        if (!in_array($type, ['svg', 'svgz', 'image/svg+xml'], true)) {
+            return;
+        }
+        $response->header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src data:; frame-ancestors 'self'; sandbox");
+        $response->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function sendStringAsFile($content, $type = null, $filename = 'download')

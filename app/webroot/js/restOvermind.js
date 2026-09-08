@@ -21,6 +21,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     populateRestHistory('bookmark');
     populateRestHistory('history');
+
+    // Keep the tooltip open while the pointer is inside it, so the user can
+    // read (and select) a long API description without it slipping away.
+    const tooltip = document.getElementById('api-tooltip');
+    if (tooltip) {
+        tooltip.addEventListener('mouseenter', () => {
+            isHoveringTooltip = true;
+            clearTimeout(hoverTimeout);
+        });
+        tooltip.addEventListener('mouseleave', () => {
+            isHoveringTooltip = false;
+            scheduleHideTooltip();
+        });
+    }
 });
 
 

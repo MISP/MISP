@@ -4,7 +4,7 @@ $message = $count > 1
     ? __('Fetch and save %s events from this feed on your instance?', $count)
     : __('Fetch and save event %s from this feed on your instance?', h($uuids[0]));
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Fetch events from feed'),
     'model' => 'Feed',
     'hiddenField' => 'uuids',

@@ -281,7 +281,7 @@ $children = [
     var selects = Array.prototype.map.call(root.querySelectorAll('.topbar-filter'), strip);
 
     var rows  = root.querySelectorAll('#tableView tbody tr[data-row-id]');
-    var cards = root.querySelectorAll('#cardView .ps-2.pe-2');
+    var cards = root.querySelectorAll('#cardView .idx-card-col');
 
     function selByName(name) {
         for (var i = 0; i < selects.length; i++) {

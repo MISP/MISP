@@ -112,7 +112,7 @@ $fields = [
                 'label' => __('Fetch this event'),
                 'icon' => 'circle-arrow-down',
                 'url' => $eventFetchURL,
-                'size' => 'sm'
+                'size' => 'md'
             ] : null,
         ]))
     ],
@@ -186,7 +186,10 @@ $fields = [
                 'fields' => $fields,
                 'primary_id_path' => 'Event.uuid',
                 'row_dblclick_url' => $eventViewURL,
-                'paginatorOptions' => ['url' => $feedId],
+                // Positional feed id plus the named filter, so paging keeps both.
+                'paginatorOptions' => [
+                    'url' => array_merge([$feedId], $this->request->params['named'])
+                ],
             ]
         ],
         'item_url' => '/feeds'

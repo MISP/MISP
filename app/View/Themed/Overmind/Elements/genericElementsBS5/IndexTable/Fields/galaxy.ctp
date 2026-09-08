@@ -7,7 +7,13 @@ $data = Hash::extract($row, $field['data_path']);
  * $field['add_galaxy_url'] holds a URL template with a %id% placeholder,
  * resolved from $field['add_galaxy_id_path'] (falls back to $row['id']).
  */
-$allowAddGalaxy = !empty($field['add_galaxy']);
+// A callable lets the caller decide per row — an extended event view
+// grants the button on the rows of the events you can actually tag.
+$allowAddGalaxy = $field['add_galaxy'] ?? false;
+if (is_callable($allowAddGalaxy)) {
+    $allowAddGalaxy = $allowAddGalaxy($row);
+}
+$allowAddGalaxy = !empty($allowAddGalaxy);
 $addUrl         = null;
 if ($allowAddGalaxy) {
     $addId = Hash::get($row, $field['add_galaxy_id_path'] ?? 'id');

@@ -120,10 +120,7 @@ class NewUsersWidget
         // query e-mail addresses; everyone else has the column redacted
         // AND is barred from filtering on it - otherwise the filter still
         // works as an address-existence oracle even with the column hidden.
-        $redactEmails = (
-            empty($user['Role']['perm_site_admin']) &&
-            !Configure::read('Security.disclose_user_emails')
-        );
+        $redactEmails = !User::canSeeEmails($user);
         $field_options = [
             'id' => [
                 'name' => '#',

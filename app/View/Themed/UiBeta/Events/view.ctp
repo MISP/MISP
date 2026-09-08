@@ -5256,6 +5256,7 @@
                 url: url,
                 type: 'POST',
                 dataType: 'json',
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 success: function(response) {
                     $toggle.prop('disabled', false);
                     if (response.saved || (response.response && response.response.saved)) {
@@ -5776,6 +5777,7 @@
             url: baseurl + '/collections/getCollectionsForElements/Event.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             data: JSON.stringify({ uuids: [eventUuid] }),
             dataType: 'json',
             success: function(data) {

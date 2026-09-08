@@ -144,10 +144,21 @@ class EventTemplate extends AppModel
         $row['modified'] = $now;
 
         // Definition handling happens before CakePHP's $validate rules fire.
-        // If the caller passed an array we run semantic validation and encode
+        // We run semantic validation on the array the caller passed and encode
         // to JSON so `notBlank` (and any downstream rule) sees a string.
-        // Pre-encoded strings pass through unchanged.
-        if (isset($row['definition']) && is_array($row['definition'])) {
+        //
+        // Anything that is not an array is refused outright. This used to fall
+        // through: the check was `is_array()`, so a pre-encoded string skipped
+        // validateDefinition() entirely and only had to satisfy `notBlank`,
+        // which accepts any non-empty scalar. No caller in the tree passes
+        // anything but an array - both builders POST a nested JSON object and
+        // EventTemplateImporter rejects a non-object definition itself - so
+        // there is nothing legitimate to preserve here.
+        if (isset($row['definition'])) {
+            if (!is_array($row['definition'])) {
+                $this->validationErrors['definition'][] = 'definition must be an object';
+                return false;
+            }
             $errors = $this->validateDefinition($row['definition']);
             if (!empty($errors)) {
                 foreach ($errors as $err) {
@@ -212,10 +223,29 @@ class EventTemplate extends AppModel
         }
         foreach ($results as &$row) {
             if (isset($row[$this->alias]['definition']) && is_string($row[$this->alias]['definition'])) {
-                $decoded = JsonTool::decode($row[$this->alias]['definition']);
-                if (is_array($decoded)) {
-                    $row[$this->alias]['definition'] = $decoded;
+                // A row stored before the beforeValidate guard can hold something
+                // that is not JSON at all, and JsonTool::decode() throws on it.
+                // Unguarded, that threw out of every find() on this model - which
+                // 500s eventTemplates/index, an ACL ['*'] action, for every user
+                // on the instance until an administrator repairs the row by hand.
+                // Degrade to an empty definition instead: one template renders as
+                // unusable and repairable, rather than the whole index being
+                // unreachable. Valid JSON that decodes to a non-array is the same
+                // kind of poison - consumers index into it - so it lands here too.
+                try {
+                    $decoded = JsonTool::decode($row[$this->alias]['definition']);
+                } catch (Throwable $e) {
+                    $decoded = null;
                 }
+                if (!is_array($decoded)) {
+                    $this->log(sprintf(
+                        'Event template %s holds a definition that is not a JSON object; ' .
+                        'treating it as empty. The row needs repairing.',
+                        isset($row[$this->alias]['id']) ? '#' . $row[$this->alias]['id'] : '(unknown id)'
+                    ), LOG_ERR);
+                    $decoded = array();
+                }
+                $row[$this->alias]['definition'] = $decoded;
             }
         }
         return $results;
