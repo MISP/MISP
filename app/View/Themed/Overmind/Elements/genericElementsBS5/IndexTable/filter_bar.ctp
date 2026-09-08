@@ -13,15 +13,40 @@ $filterAction = $filter_bar['action'] ?? 'index';
 $currentPath = $this->request->here(false);
 $currentFilters = [];
 
+/*
+ * `mode => 'event'` is the convention where every filter key is prefixed in
+ * the URL (`searchemail:`, `searchpublished:`). The prefix is stripped ONLY
+ * there: elsewhere a key that happens to start with "search" is just its own
+ * name
+ */
+$searchChild = null;
+foreach ($filter_bar['children'] as $child) {
+    if ($child['type'] === 'search') {
+        $searchChild = $child;
+        break;
+    }
+}
+$stripSearchPrefix = (($searchChild['mode'] ?? 'quickFilter') === 'event');
+$cleanFilterKey = function ($key) use ($stripSearchPrefix) {
+    return $stripSearchPrefix ? preg_replace('/^search/', '', $key) : $key;
+};
+
 if (preg_match('~/' . preg_quote($filterAction, '~') . '/(.+)~', $currentPath, $matches)) {
     $segments = explode('/', $matches[1]);
     foreach ($segments as $segment) {
         if (strpos($segment, ':') !== false) {
             list($key, $value) = explode(':', $segment, 2);
-            $cleanKey = preg_replace('/^search/', '', $key);
-            $currentFilters[$cleanKey] = $value;
+            $currentFilters[$cleanFilterKey($key)] = $value;
         }
     }
+}
+
+
+foreach (($this->request->params['named'] ?? []) as $key => $value) {
+    if (is_array($value)) {
+        $value = implode('||', $value);
+    }
+    $currentFilters[$cleanFilterKey($key)] = $value;
 }
 
 $transport = $filter_bar['transport'] ?? 'path';
@@ -37,14 +62,6 @@ if ($transport === 'query') {
 $hasActiveFilters = !empty($currentFilters);
 
 $filterId = 'filter-bar-' . uniqid();
-
-$searchChild = null;
-foreach ($filter_bar['children'] as $child) {
-    if ($child['type'] === 'search') {
-        $searchChild = $child;
-        break;
-    }
-}
 
 /*
  * The advanced filters are pulled out of the bar's flex row: the button stays
@@ -484,6 +501,9 @@ var filterBarConfig = <?= json_encode([
         if (typeof initScaffoldFilterDraft !== 'function') { return; }
         draft = initScaffoldFilterDraft(filterBarEl, {
             scope: scope,
+            // By id: a tab pane can hold two scaffolded indexes, and a
+            // scoped query would hand this bar its neighbour's panel.
+            advId: <?= json_encode($advId) ?>,
             ajaxContainer: ajaxContainer,
             base: base,
             itemPath: itemIndexPath,
