@@ -1678,6 +1678,12 @@ tr.evt-extension-row td:first-child {
 }
 
 
+.ov-ad-nested {
+    --ov-ad-accent: var(--bs-border-color);
+    border-left: 3px solid var(--ov-ad-accent) !important;
+}
+
+
 #preview-related-card .related-event-row:hover { 
     background: #f8fafc;
 }
