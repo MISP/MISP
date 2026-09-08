@@ -3075,25 +3075,25 @@ tr.evt-extension-row td:first-child {
 }
 
 /* ==========================================================================
-   Log index — ajax reload of the results
+   Index results — ajax reload
    ==========================================================================
-   The filter bar swaps `#log-index-results` in place instead of reloading the
-   page, so the old rows stay visible, dimmed and inert, while the new query
-   runs. Log queries can take seconds, and a table that vanishes on every
-   filter reads as a broken page.
+   A filter bar with deferred apply swaps `.index-results` in place instead of
+   reloading the page, so the old rows stay visible, dimmed and inert, while
+   the new query runs. These queries can take seconds, and a table that
+   vanishes on every filter reads as a broken page.
    ========================================================================== */
 
-#log-index-results {
+.index-results {
     position: relative;
 }
 
-#log-index-results.log-results-busy > *:not(.log-results-overlay) {
+.index-results.is-busy > *:not(.index-results-overlay) {
     opacity: .35;
     pointer-events: none;
     transition: opacity .15s ease-in;
 }
 
-.log-results-overlay {
+.index-results-overlay {
     position: absolute;
     inset: 0;
     display: flex;
@@ -3104,13 +3104,13 @@ tr.evt-extension-row td:first-child {
 }
 
 /* Keep the spinner in view on a long, mostly-scrolled-past table. */
-.log-results-overlay > .spinner-border {
+.index-results-overlay > .spinner-border {
     position: sticky;
     top: 45vh;
 }
 
-.log-filter-busy .log-quick-btn,
-.log-filter-busy .log-filter-summary button {
+.filter-draft-busy .log-quick-btn,
+.filter-draft-busy .filter-draft-summary button {
     pointer-events: none;
     opacity: .6;
 }

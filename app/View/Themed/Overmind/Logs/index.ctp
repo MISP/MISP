@@ -108,7 +108,7 @@ foreach (($data ?? []) as $item) {
     ]) ?>
 
     <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
-    <div id="log-index-results">
+    <div id="log-index-results" class="index-results">
         <?= $this->element('Logs/timeline', [
             'entries'    => $entries,
             'title'      => __('Application activity'),

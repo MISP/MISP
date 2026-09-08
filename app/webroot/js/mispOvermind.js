@@ -460,12 +460,19 @@ function animateIndexView(el) {
     el.classList.add('idx-view-anim');
 }
 
-function setView(view, save = true) {
-    const tableView = document.getElementById('tableView');
-    const cardView  = document.getElementById('cardView');
-    const viewList  = document.getElementById('viewList');
-    const viewCard  = document.getElementById('viewCard');
-    // Only a deliberate toggle launch the animation
+/**
+ * Switch an index between its table and card views.
+ *
+ * `scope` exists because an index can be rendered inside an ajax tab, where
+ * several #tableView/#cardView pairs share the document and getElementById
+ * would always answer with the first one.
+ */
+function setView(view, save = true, scope = document) {
+    const tableView = scope.querySelector('#tableView');
+    const cardView  = scope.querySelector('#cardView');
+    const viewList  = scope.querySelector('#viewList');
+    const viewCard  = scope.querySelector('#viewCard');
+    // Only a deliberate toggle launches the animation
     if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
@@ -4357,71 +4364,158 @@ document.addEventListener('DOMContentLoaded', function () {
         .forEach(loadAjaxContainer);
 });
 
+
+
 /* ==========================================================================
- * Log index filter bar
+ * Index URLs
  * ==========================================================================
  *
- * Drives Elements/Logs/filter_card.ctp on the three log indexes. Log tables
- * hold millions of rows and a multi-column LIKE cannot use an index, so a
- * filter that fired on every blur meant paying for a full scan per
- * keystroke-and-tab. Instead the inputs build up a draft, the draft is shown
- * back as chips, and one button applies the lot — through ajax, swapping the
- * page's `#log-index-results` rather than reloading everything.
- *
- * The card's configuration (base URL, applied filters, field labels) is
- * rendered next to it as a JSON <script>; see the element for its shape.
+ * MISP indexes carry their state in CakePHP named URL segments
+ * (`/events/index/sort:date/searchpublished:1`), sometimes next to positional
+ * scope arguments (`/authKeys/index/<userId>`) and sometimes in the query
+ * string instead (a value holding a '/' cannot survive a named segment).
+ * Five places used to split that apart by hand with the same
+ * `split('/')` / `indexOf(':')` dance; this is that dance, once.
  */
 
 /**
- * @param {Element} root the [data-log-filter-card] element
+ * @param {string} url       absolute or root-relative, query string included
+ * @param {string} itemPath  the index path the segments follow, e.g. '/events/index'
+ * @returns {{positional: string[], named: Object, query: URLSearchParams, path: string}}
  */
-function initLogFilterCard(root) {
-    if (!root || root.dataset.logFilterReady) { return; }
-    root.dataset.logFilterReady = '1';
+function parseIndexUrl(url, itemPath) {
+    // One side is often absolute (a config's baseurl) and the other not (what
+    // popstate hands over), so compare paths, never whole URLs.
+    const stripOrigin = function (u) { return (u || '').replace(/^[a-z]+:\/\/[^/]+/i, ''); };
+    url = stripOrigin(url);
+    itemPath = stripOrigin(itemPath);
 
-    const configEl = root.querySelector('.log-filter-config');
-    if (!configEl) { return; }
-    const cfg = JSON.parse(configEl.textContent);
-    const S = cfg.strings;
+    const cut = url.indexOf('?');
+    const path = cut === -1 ? url : url.slice(0, cut);
+    const query = new URLSearchParams(cut === -1 ? '' : url.slice(cut + 1));
+    const positional = [];
+    const named = {};
 
-    const quickEl = root.querySelector('.log-quick-filter');
-    const summaryEl = root.querySelector('.log-filter-summary');
-    const countEl = root.querySelector('.log-filter-count');
-    const results = document.querySelector(cfg.results);
+    const at = itemPath ? path.indexOf(itemPath) : -1;
+    const after = at !== -1 ? path.slice(at + itemPath.length) : '';
+    after.split('/').filter(Boolean).forEach(function (segment) {
+        const colon = segment.indexOf(':');
+        if (colon < 0) {
+            positional.push(segment);
+        } else {
+            named[segment.slice(0, colon)] = decodeURIComponent(segment.slice(colon + 1));
+        }
+    });
+    return { positional: positional, named: named, query: query, path: path };
+}
+
+/**
+ * The inverse. Named values are encoded here, so callers hand over raw ones.
+ *
+ * @param {string} base                 index URL with no state on it
+ * @param {Object} parts                { positional, named, query }
+ * @returns {string}
+ */
+function formatIndexUrl(base, parts) {
+    let url = base;
+    (parts.positional || []).forEach(function (segment) { url += '/' + segment; });
+    const named = parts.named || {};
+    Object.keys(named).forEach(function (key) {
+        url += '/' + key + ':' + encodeURIComponent(named[key]);
+    });
+    const query = parts.query ? parts.query.toString() : '';
+    return url + (query ? '?' + query : '');
+}
+
+/* ==========================================================================
+ * Index filter bars — deferred apply
+ * ==========================================================================
+ *
+ * The code snippets provided here create a *draft* using pills: \
+ * his will be executed via a single button using Ajax, refreshing the container 
+ *
+ * Two bars share this engine — Elements/Logs/filter_card.ctp (the log
+ * indexes) and genericElementsBS5/IndexTable/filter_bar.ctp (a scaffolded
+ * index that declares a `more_filters` control). They agree on the
+ * interaction and disagree on everything around it: where a filter lives in
+ * the URL, what counts as a scope worth keeping, whether an ajax tab wraps
+ * the whole thing. So every URL decision is the caller's, handed in as
+ * `buildUrl` / `clearAll` / `reload`.
+ */
+
+/**
+ * @param {Element} root  element owning the controls; marked as wired
+ * @param {Object}  opts
+ *   Required:
+ *     inputs()       -> Element[]     the controls the draft is read from
+ *     nameOf(el)     -> string        that control's filter name
+ *     buildUrl()     -> string        URL for the current draft
+ *     summaryEl      Element          where the chips and buttons are drawn
+ *   Optional:
+ *     labelOf(name)          -> string   chip label      (default: the name)
+ *     displayOf(name, value) -> string   chip value      (default: the value)
+ *     quickEl                Element     free-text box outside the draft grid
+ *     quickLabel             string      its chip label
+ *     applied / appliedQuick             what the page currently shows
+ *     countEl                Element     badge showing how many filters are set
+ *     results                string      selector of the container to swap
+ *     swap                   string[]    other nodes to refresh from the response
+ *     rootLinks / resultLinks string[]   links to keep inside the ajax loop
+ *     syncFromUrl(url)                   read a URL back into the controls
+ *     clearAll()                         reset the controls ("Clear all")
+ *     reload(url)            -> bool     take over the reload (ajax tabs)
+ *     onApplied()                        after a successful swap
+ *     strings                object      see S below
+ * @returns {Object|null} { refresh } so a caller can redraw the chips
+ */
+function initIndexFilterDraft(root, opts) {
+    if (!root || root.dataset.filterDraftReady || !opts || !opts.summaryEl) { return null; }
+    root.dataset.filterDraftReady = '1';
+
+    const S = opts.strings || {};
+    const summaryEl = opts.summaryEl;
+    const results = opts.results ? document.querySelector(opts.results) : null;
 
     // What the page currently shows. Replaced on every successful apply, so
     // the chips can tell an applied filter from one still being typed.
-    let applied = Object.assign({}, cfg.applied);
-    let appliedQuick = cfg.appliedQuick || '';
+    let applied = Object.assign({}, opts.applied || {});
+    let appliedQuick = opts.appliedQuick || '';
     let inFlight = null;
 
     /* ── draft state ─────────────────────────────────────────────────── */
 
-    function inputs() {
-        return Array.prototype.slice.call(root.querySelectorAll('[data-log-filter]'));
-    }
+    function inputs() { return opts.inputs(); }
 
     function draft() {
         const out = {};
         inputs().forEach(function (el) {
+            const name = opts.nameOf(el);
             const value = (el.value || '').trim();
-            if (value !== '') { out[el.getAttribute('data-log-filter')] = value; }
+            if (name && value !== '') { out[name] = value; }
         });
         return out;
     }
 
     function draftQuick() {
-        return quickEl ? (quickEl.value || '').trim() : '';
+        return opts.quickEl ? (opts.quickEl.value || '').trim() : '';
     }
 
     function labelFor(name) {
-        return (cfg.fields[name] && cfg.fields[name].label) || name;
+        return opts.labelOf ? opts.labelOf(name) : name;
     }
 
     // A select stores `remove_tag` but the user picked "Remove tag".
     function displayFor(name, value) {
-        const options = cfg.fields[name] && cfg.fields[name].options;
-        return (options && options[value]) || value;
+        return opts.displayOf ? opts.displayOf(name, value) : value;
+    }
+
+    // TomSelect keeps its own DOM, so the underlying <select> alone is not enough.
+    function setValue(el, value) {
+        if (el.tomselect) {
+            el.tomselect.setValue(value, true);
+        } else {
+            el.value = value;
+        }
     }
 
     /* ── chips ───────────────────────────────────────────────────────── */
@@ -4433,12 +4527,12 @@ function initLogFilterCard(root) {
                 ? 'text-bg-light border border-danger text-danger text-decoration-line-through'
                 : state === 'pending'
                     ? 'text-bg-warning border border-warning-subtle'
-                    : 'text-bg-primary');
+                    : 'bg-primary');
         if (state === 'pending') {
-            el.title = S.notApplied;
+            el.title = S.notApplied || '';
             el.insertAdjacentHTML('beforeend', '<i class="fas fa-clock"></i>');
         } else if (state === 'removed') {
-            el.title = S.willBeRemoved;
+            el.title = S.willBeRemoved || '';
         }
         el.insertAdjacentText('beforeend', label + ': ' + value);
         return el;
@@ -4449,7 +4543,7 @@ function initLogFilterCard(root) {
         btn.type = 'button';
         btn.className = 'btn-close btn-close-sm ms-1';
         btn.style.fontSize = '.5rem';
-        btn.title = S.remove;
+        btn.title = S.remove || '';
         btn.addEventListener('click', onClick);
         chipEl.appendChild(btn);
     }
@@ -4464,15 +4558,17 @@ function initLogFilterCard(root) {
         const chips = document.createElement('div');
         chips.className = 'd-flex align-items-center flex-wrap gap-2 flex-grow-1';
 
-        if (quick !== '') {
-            const state = quick === appliedQuick ? 'applied' : 'pending';
-            if (state === 'pending') { pending++; }
-            const c = chip(cfg.quickLabel, quick, state);
-            removeButton(c, function () { quickEl.value = ''; renderSummary(); });
-            chips.appendChild(c);
-        } else if (appliedQuick !== '') {
-            pending++;
-            chips.appendChild(chip(cfg.quickLabel, appliedQuick, 'removed'));
+        if (opts.quickEl) {
+            if (quick !== '') {
+                const state = quick === appliedQuick ? 'applied' : 'pending';
+                if (state === 'pending') { pending++; }
+                const c = chip(opts.quickLabel || '', quick, state);
+                removeButton(c, function () { opts.quickEl.value = ''; renderSummary(); });
+                chips.appendChild(c);
+            } else if (appliedQuick !== '') {
+                pending++;
+                chips.appendChild(chip(opts.quickLabel || '', appliedQuick, 'removed'));
+            }
         }
 
         Object.keys(current).forEach(function (name) {
@@ -4480,8 +4576,9 @@ function initLogFilterCard(root) {
             if (state === 'pending') { pending++; }
             const c = chip(labelFor(name), displayFor(name, current[name]), state);
             removeButton(c, function () {
-                const el = root.querySelector('[data-log-filter="' + name + '"]');
-                if (el) { setValue(el, ''); }
+                inputs().forEach(function (el) {
+                    if (opts.nameOf(el) === name) { setValue(el, ''); }
+                });
                 renderSummary();
             });
             chips.appendChild(c);
@@ -4494,31 +4591,43 @@ function initLogFilterCard(root) {
             }
         });
 
+        // Filters that are applied but have no control here — the scope a
+        // button like "My events" puts in the URL. Read-only, but visible:
+        // without a chip the only sign they are on is the row count.
+        const extras = opts.extraChips ? opts.extraChips() : [];
+        extras.forEach(function (extra) {
+            chips.appendChild(chip(extra.label, extra.value, 'applied'));
+        });
+
         if (!chips.children.length) {
             const empty = document.createElement('span');
-            empty.className = 'text-muted small log-filter-empty';
-            empty.textContent = S.noFilter;
+            empty.className = 'text-muted small filter-draft-empty';
+            empty.textContent = S.noFilter || '';
             chips.appendChild(empty);
         }
 
-        summaryEl.appendChild(buildBar(chips, pending));
+        summaryEl.appendChild(buildBar(chips, pending, extras.length));
 
-        if (countEl) {
-            countEl.textContent = String(Object.keys(current).length);
-            countEl.classList.toggle('d-none', Object.keys(current).length === 0);
+        if (opts.countEl) {
+            // Everything that filters counts, not just the controls in the
+            // panel: with the panel folded away the badge is the only thing
+            // saying a search or a scope is still on.
+            const n = Object.keys(current).length + (quick !== '' ? 1 : 0) + extras.length;
+            opts.countEl.textContent = String(n);
+            opts.countEl.classList.toggle('d-none', n === 0);
         }
     }
 
-    function buildBar(chips, pending) {
+    function buildBar(chips, pending, extraCount) {
         const bar = document.createElement('div');
         bar.className = 'd-flex align-items-start flex-wrap gap-2';
         bar.appendChild(chips);
 
         const status = document.createElement('span');
-        status.className = 'small align-self-center log-filter-status '
+        status.className = 'small align-self-center filter-draft-status '
             + (pending ? 'text-warning-emphasis fw-semibold' : 'text-muted');
         status.textContent = pending
-            ? (pending === 1 ? S.pendingOne : S.pendingMany.replace('%s', pending))
+            ? (pending === 1 ? S.pendingOne : (S.pendingMany || '').replace('%s', pending))
             : S.applied;
         bar.appendChild(status);
 
@@ -4529,14 +4638,20 @@ function initLogFilterCard(root) {
         applyBtn.addEventListener('click', apply);
         bar.appendChild(applyBtn);
 
-        if (Object.keys(applied).length || appliedQuick !== '') {
+        // Extras count too: a scope set from a button outside this panel is
+        // still a filter the user has to be able to drop.
+        if (Object.keys(applied).length || appliedQuick !== '' || extraCount) {
             const clearBtn = document.createElement('button');
             clearBtn.type = 'button';
             clearBtn.className = 'btn btn-sm btn-outline-danger';
             clearBtn.innerHTML = '<i class="fas fa-times me-1"></i>' + S.clearAll;
             clearBtn.addEventListener('click', function () {
-                if (quickEl) { quickEl.value = ''; }
-                inputs().forEach(function (el) { setValue(el, ''); });
+                if (opts.clearAll) {
+                    opts.clearAll();
+                } else {
+                    if (opts.quickEl) { opts.quickEl.value = ''; }
+                    inputs().forEach(function (el) { setValue(el, ''); });
+                }
                 apply();
             });
             bar.appendChild(clearBtn);
@@ -4544,81 +4659,20 @@ function initLogFilterCard(root) {
         return bar;
     }
 
-    // TomSelect keeps its own DOM, so the underlying <select> alone is not enough.
-    function setValue(el, value) {
-        if (el.tomselect) {
-            el.tomselect.setValue(value, true);
-        } else {
-            el.value = value;
-        }
-    }
-
     /* ── applying ────────────────────────────────────────────────────── */
 
-    /*
-     * Filters go in the query string, paginator parameters stay named URL
-     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
-     * the access log controller with the value dropped — and the free-text
-     * search of a URL column is exactly where slashes turn up.
-     */
-    function buildUrl() {
-        const path = cfg.base + (cfg.preserved.length ? '/' + cfg.preserved.join('/') : '');
-        const query = new URLSearchParams();
-        const quick = draftQuick();
-        if (quick !== '') { query.set(cfg.quickName, quick); }
-        const current = draft();
-        Object.keys(current).forEach(function (name) { query.set(name, current[name]); });
-        const search = query.toString();
-        return path + (search ? '?' + search : '');
-    }
-
     function apply() {
-        load(buildUrl(), true);
-    }
-
-    /**
-     * Read a URL back into the card. Applying round-trips to itself, but the
-     * back button and the pagination/sort links do not: they hand over a URL
-     * this card did not build, and its inputs, its chips and the paginator
-     * parameters it carries across all have to follow.
-     */
-    function syncFromUrl(url) {
-        const cut = url.indexOf('?');
-        const path = cut === -1 ? url : url.slice(0, cut);
-        const query = cut === -1 ? '' : url.slice(cut + 1);
-        const named = {};
-        if (path.indexOf(cfg.base) === 0) {
-            path.slice(cfg.base.length).split('/').forEach(function (segment) {
-                const colon = segment.indexOf(':');
-                if (colon > 0) {
-                    named[segment.slice(0, colon)] = decodeURIComponent(segment.slice(colon + 1));
-                }
-            });
-        }
-        // `page` is deliberately not carried across: a new filter starts over.
-        cfg.preserved = ['sort', 'direction', 'limit']
-            .filter(function (key) { return named[key] !== undefined; })
-            .map(function (key) { return key + ':' + encodeURIComponent(named[key]); });
-
-        // A filter may still arrive as a named segment, from an older link.
-        const params = new URLSearchParams(query);
-        inputs().forEach(function (el) {
-            const name = el.getAttribute('data-log-filter');
-            setValue(el, params.get(name) || named[name] || '');
-        });
-        if (quickEl) {
-            quickEl.value = params.get(cfg.quickName) || named[cfg.quickName] || '';
-        }
+        load(opts.buildUrl(), true);
     }
 
     function setBusy(busy) {
-        root.classList.toggle('log-filter-busy', busy);
+        root.classList.toggle('filter-draft-busy', busy);
         if (!results) { return; }
-        results.classList.toggle('log-results-busy', busy);
-        let overlay = results.querySelector(':scope > .log-results-overlay');
+        results.classList.toggle('is-busy', busy);
+        let overlay = results.querySelector(':scope > .index-results-overlay');
         if (busy && !overlay) {
             overlay = document.createElement('div');
-            overlay.className = 'log-results-overlay';
+            overlay.className = 'index-results-overlay';
             overlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
             results.appendChild(overlay);
         } else if (!busy && overlay) {
@@ -4629,12 +4683,15 @@ function initLogFilterCard(root) {
     /**
      * Fetch a filtered/sorted/paged version of this index and swap in its
      * results. The whole page is requested rather than a fragment — the
-     * layout is cheap next to the scans these filters cost, and it keeps the
-     * three views free of an ajax branch — but only the results, the pager
-     * and the header count are taken out of the response, so the live filter
-     * card (and its TomSelect instances) is never rebuilt.
+     * layout is cheap next to the queries these filters cost, and it keeps
+     * the views free of an ajax branch — but only the results and the nodes
+     * named in `swap` are taken out of the response, so the live filter bar
+     * (and its TomSelect instances) is never rebuilt.
      */
     function load(url, push) {
+        // An ajax tab reloads its own fragment, bar included, and comes back
+        // with the server's state — nothing to keep in sync here.
+        if (opts.reload && opts.reload(url)) { return; }
         if (!results) { window.location.href = url; return; }
         if (inFlight) { inFlight.abort(); }
         const controller = new AbortController();
@@ -4648,19 +4705,25 @@ function initLogFilterCard(root) {
             })
             .then(function (html) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                const fresh = doc.querySelector(cfg.results);
+                const fresh = doc.querySelector(opts.results);
                 if (!fresh) { throw new Error('no results container in response'); }
 
                 results.innerHTML = fresh.innerHTML;
-                swap(doc, '#headerCountBadge');
-                swap(doc, '.log-filter-pager', root);
+                (opts.swap || []).forEach(function (selector) { swap(doc, selector); });
 
-                if (push) { history.pushState({ logFilter: true }, '', url); }
-                syncFromUrl(url);
+                if (push) { history.pushState({ indexFilter: true }, '', url); }
+                if (opts.syncFromUrl) { opts.syncFromUrl(url); }
                 applied = draft();
                 appliedQuick = draftQuick();
                 renderSummary();
                 bindNavLinks();
+                // Rows the selection pointed at are gone.
+                if (window.selectedItems && typeof selectedItems.clear === 'function') {
+                    selectedItems.clear();
+                    if (typeof updateMultiSelectToolbar === 'function') { updateMultiSelectToolbar(); }
+                }
+                if (typeof initTomSelect === 'function') { initTomSelect(results); }
+                if (opts.onApplied) { opts.onApplied(); }
                 results.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             })
             .catch(function (error) {
@@ -4672,15 +4735,15 @@ function initLogFilterCard(root) {
             });
     }
 
-    function swap(doc, selector, scope) {
-        const target = (scope || document).querySelector(selector);
+    function swap(doc, selector) {
+        const target = document.querySelector(selector);
         const fresh = doc.querySelector(selector);
         if (target && fresh) { target.innerHTML = fresh.innerHTML; }
     }
 
     function showLoadError() {
-        // The summary lives inside the "More Filters" collapse, so an error
-        // raised from the search button alone would land out of sight.
+        // The summary can live inside a collapse or a dropdown, so an error
+        // raised from a button outside it would land out of sight.
         const panel = summaryEl.closest('.collapse');
         if (panel && !panel.classList.contains('show')
             && window.bootstrap && bootstrap.Collapse) {
@@ -4697,14 +4760,18 @@ function initLogFilterCard(root) {
     /* ── paging and sorting stay inside the ajax loop ─────────────────── */
 
     function bindNavLinks() {
-        // The pager lives inside the card, next to the filters it pages through.
-        root.querySelectorAll('.log-filter-pager a[href]').forEach(bindLink);
+        (opts.rootLinks || []).forEach(function (selector) {
+            root.querySelectorAll(selector).forEach(bindLink);
+        });
         if (!results) { return; }
-        results.querySelectorAll('.pagination a[href], thead a[href]')
-            .forEach(bindLink);
+        (opts.resultLinks || []).forEach(function (selector) {
+            results.querySelectorAll(selector).forEach(bindLink);
+        });
     }
 
     function bindLink(link) {
+        if (link.dataset.filterDraftBound) { return; }
+        link.dataset.filterDraftBound = '1';
         link.addEventListener('click', function (event) {
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) { return; }
             event.preventDefault();
@@ -4714,42 +4781,338 @@ function initLogFilterCard(root) {
 
     /* ── wiring ──────────────────────────────────────────────────────── */
 
-    inputs().forEach(function (el) {
+    function watch(el) {
         el.addEventListener('change', renderSummary);
         el.addEventListener('input', renderSummary);
         el.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') { event.preventDefault(); apply(); }
         });
-    });
-
-    if (quickEl) {
-        quickEl.addEventListener('input', renderSummary);
-        quickEl.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') { event.preventDefault(); apply(); }
-        });
+        // TomSelect swallows the original <select>'s change event in some
+        // versions, so listen on the instance as well.
+        if (el.tomselect) { el.tomselect.on('change', renderSummary); }
     }
 
-    const quickBtn = root.querySelector('.log-quick-btn');
-    if (quickBtn) { quickBtn.addEventListener('click', apply); }
+    inputs().forEach(watch);
+    if (opts.quickEl) { watch(opts.quickEl); }
 
-    if (typeof initTomSelect === 'function') { initTomSelect(root); }
-
-    // TomSelect swallows the change event of the original <select> in some
-    // versions, so listen on the instance as well.
-    inputs().forEach(function (el) {
-        if (el.tomselect) { el.tomselect.on('change', renderSummary); }
-    });
-
+    // `base` is an absolute URL, `location.pathname` is not — compare paths.
+    const basePath = opts.base ? opts.base.replace(/^[a-z]+:\/\/[^/]+/i, '') : null;
     window.addEventListener('popstate', function () {
-        // Another page's history entry is none of this card's business.
-        if (window.location.pathname.indexOf(cfg.base) !== 0) { return; }
+        // Another page's history entry is none of this bar's business.
+        if (basePath && window.location.pathname.indexOf(basePath) !== 0) { return; }
         load(window.location.pathname + window.location.search, false);
     });
 
     renderSummary();
     bindNavLinks();
+
+    return { refresh: renderSummary, apply: apply };
+}
+window.initIndexFilterDraft = initIndexFilterDraft;
+
+/* --------------------------------------------------------------------------
+ * Adapter: the log indexes' filter card
+ * --------------------------------------------------------------------------
+ * Its configuration (base URL, applied filters, field labels) is rendered
+ * next to it as a JSON <script>; see Elements/Logs/filter_card.ctp.
+ */
+function initLogFilterCard(root) {
+    if (!root) { return; }
+    const configEl = root.querySelector('.log-filter-config');
+    if (!configEl) { return; }
+    const cfg = JSON.parse(configEl.textContent);
+    const quickEl = root.querySelector('.log-quick-filter');
+
+    // TomSelect copies the select's classes onto its wrapper, so
+    // `.filter-draft-input` alone matches two nodes per control.
+    function inputs() {
+        return Array.prototype.slice.call(
+            root.querySelectorAll('select.filter-draft-input, input.filter-draft-input'));
+    }
+
+    /*
+     * Filters go in the query string, paginator parameters stay named URL
+     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
+     * the access log controller with the value dropped — and the free-text
+     * search of a URL column is exactly where slashes turn up.
+     */
+    function buildUrl() {
+        const query = new URLSearchParams();
+        const quick = quickEl ? (quickEl.value || '').trim() : '';
+        if (quick !== '') { query.set(cfg.quickName, quick); }
+        inputs().forEach(function (el) {
+            const value = (el.value || '').trim();
+            if (value !== '') { query.set(el.getAttribute('name'), value); }
+        });
+        return formatIndexUrl(cfg.base, { named: cfg.preserved, query: query });
+    }
+
+    /**
+     * Read a URL back into the card. Applying round-trips to itself, but the
+     * back button and the pagination/sort links do not: they hand over a URL
+     * this card did not build, and its inputs, its chips and the paginator
+     * parameters it carries across all have to follow.
+     */
+    function syncFromUrl(url) {
+        const parts = parseIndexUrl(url, cfg.base);
+        // `page` is deliberately not carried across: a new filter starts over.
+        cfg.preserved = {};
+        ['sort', 'direction', 'limit'].forEach(function (key) {
+            if (parts.named[key] !== undefined) { cfg.preserved[key] = parts.named[key]; }
+        });
+
+        // A filter may still arrive as a named segment, from an older link.
+        inputs().forEach(function (el) {
+            const name = el.getAttribute('name');
+            const value = parts.query.get(name) || parts.named[name] || '';
+            if (el.tomselect) { el.tomselect.setValue(value, true); } else { el.value = value; }
+        });
+        if (quickEl) {
+            quickEl.value = parts.query.get(cfg.quickName) || parts.named[cfg.quickName] || '';
+        }
+    }
+
+    if (typeof initTomSelect === 'function') { initTomSelect(root); }
+
+    const draft = initIndexFilterDraft(root, {
+        base: cfg.base,
+        inputs: inputs,
+        nameOf: function (el) { return el.getAttribute('name'); },
+        labelOf: function (name) {
+            return (cfg.fields[name] && cfg.fields[name].label) || name;
+        },
+        displayOf: function (name, value) {
+            const options = cfg.fields[name] && cfg.fields[name].options;
+            return (options && options[value]) || value;
+        },
+        quickEl: quickEl,
+        quickLabel: cfg.strings.searchLabel,
+        applied: cfg.applied,
+        appliedQuick: cfg.appliedQuick,
+        countEl: root.querySelector('.filter-draft-count'),
+        summaryEl: root.querySelector('.filter-draft-summary'),
+        results: cfg.results,
+        swap: ['#headerCountBadge', '.log-filter-pager'],
+        rootLinks: ['.log-filter-pager a[href]'],
+        resultLinks: ['.pagination a[href]', 'thead a[href]'],
+        buildUrl: buildUrl,
+        syncFromUrl: syncFromUrl,
+        strings: cfg.strings,
+    });
+
+    // The magnifier next to the search box applies too — it is the only
+    // control left in reach when the advanced panel is folded away.
+    const quickBtn = root.querySelector('.log-quick-btn');
+    if (quickBtn && draft) { quickBtn.addEventListener('click', draft.apply); }
 }
 window.initLogFilterCard = initLogFilterCard;
+
+/* --------------------------------------------------------------------------
+ * Adapter: the scaffold's index filter bar
+ * --------------------------------------------------------------------------
+ * genericElementsBS5/IndexTable/filter_bar.ctp calls this whenever it renders
+ * a `more_filters` control. Everything here is URL work.
+ *
+ * @param {Element} bar   the filter bar element
+ * @param {Object}  cfg   scope, ajaxContainer, base, itemPath, mode,
+ *                        transport, searchField, idField, ownedKeys,
+ *                        results, swap, strings
+ * @returns {Object|null} the draft handle, so the bar's own buttons can apply
+ */
+function initScaffoldFilterDraft(bar, cfg) {
+    const scope = cfg.scope || document;
+    const panel = scope.querySelector('[data-filter-draft-panel]');
+    if (!panel) { return null; }
+
+    // TomSelect copies the select's classes onto its wrapper, so
+    // `.filter-draft-input` alone matches two nodes per control.
+    const inputs = function () {
+        return Array.prototype.slice.call(panel.querySelectorAll('select.filter-draft-input'));
+    };
+    const controlFor = function (name) { return panel.querySelector('[name="' + name + '"]'); };
+    const searchEl = scope.querySelector('#filterField');
+
+    // In `event` mode every filter key is prefixed in the URL.
+    const rawKey = function (name) {
+        return (cfg.mode === 'event' ? 'search' : '') + name;
+    };
+    // The URL this bar is currently showing: an ajax tab tracks its own.
+    const source = function () {
+        return (cfg.ajaxContainer && cfg.ajaxContainer.dataset.url)
+            ? cfg.ajaxContainer.dataset.url
+            : (window.location.pathname + window.location.search);
+    };
+
+    // "Clear all" on a full page used to be a plain link to the bare index,
+    // scope included; inside an ajax tab it kept the scope. One flag, read
+    // and reset by the next build, preserves both.
+    let clearScope = false;
+
+    function controlValues() {
+        const out = {};
+        const term = searchEl ? searchEl.value.trim() : '';
+        if (term !== '') {
+            // A number or a UUID means the user is after one record, not a phrase.
+            const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const key = (cfg.idField && (uuidRe.test(term) || /^[0-9]+$/.test(term)))
+                ? cfg.idField : cfg.searchField;
+            out[key] = term;
+        }
+        scope.querySelectorAll('.topbar-filter').forEach(function (el) {
+            const name = el.getAttribute('name');
+            if (!name) { return; }
+            const value = (el.value || '').trim();
+            if (value !== '') { out[name] = value; }
+        });
+        return out;
+    }
+
+    /*
+     * Filters as a query string, for an index that declares
+     * `transport => 'query'` (the global attribute index) because a named
+     * segment cannot hold a '/'. The path is left exactly as it is — it
+     * carries whatever scope the bar does not own.
+     */
+    function buildQueryDraftUrl() {
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const query = parts.query;
+        query.delete('page');
+        if (clearScope) {
+            clearScope = false;
+            Array.prototype.slice.call(query.keys()).forEach(function (key) {
+                if (['sort', 'direction', 'limit'].indexOf(key) === -1) { query.delete(key); }
+            });
+        }
+        [cfg.searchField, cfg.idField].forEach(function (k) { if (k) { query.delete(k); } });
+        cfg.ownedKeys.forEach(function (key) {
+            if (['sort', 'direction', 'page', 'limit'].indexOf(key) === -1) { query.delete(key); }
+        });
+        const values = controlValues();
+        Object.keys(values).forEach(function (name) { query.set(name, values[name]); });
+        const qs = query.toString();
+        return parts.path + (qs ? '?' + qs : '');
+    }
+
+    /*
+     * Filters as named segments. Everything the bar does not own is kept —
+     * the positional scope arguments, the unowned named keys, and the
+     * paginator's sort/direction, because dropping those would silently reset
+     * the column the table is sorted on. Only `page` resets: a new filter
+     * starts over.
+     */
+    function buildUrl() {
+        if (cfg.transport === 'query') { return buildQueryDraftUrl(); }
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const named = parts.named;
+        delete named['page'];
+        if (clearScope) {
+            clearScope = false;
+            parts.positional.length = 0;
+            Object.keys(named).forEach(function (key) {
+                if (['sort', 'direction', 'limit'].indexOf(key) === -1) { delete named[key]; }
+            });
+        }
+        [cfg.searchField, cfg.idField].forEach(function (k) { if (k) { delete named[rawKey(k)]; } });
+        cfg.ownedKeys.forEach(function (key) {
+            if (['sort', 'direction', 'page', 'limit'].indexOf(key) === -1) { delete named[rawKey(key)]; }
+        });
+        const values = controlValues();
+        Object.keys(values).forEach(function (name) { named[rawKey(name)] = values[name]; });
+        return formatIndexUrl(cfg.base, { positional: parts.positional, named: named });
+    }
+
+    /*
+     * Applied filters with no control in this bar — the `searchemail:` that
+     * the "My events" button puts in the URL. They used to show in the
+     * server-rendered "Active filters" row; now that the summary owns the
+     * chips, they have to be read back out of the URL or clicking "My events"
+     * leaves no trace at all.
+     */
+    function extraChips() {
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const out = [];
+        const seen = {};
+        const add = function (key, value) {
+            if (cfg.mode === 'event' && key.indexOf('search') === 0) { key = key.slice(6); }
+            if (!key || value === '' || cfg.ownedKeys.indexOf(key) !== -1 || seen[key]) { return; }
+            seen[key] = true;
+            out.push({
+                label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+                value: value,
+            });
+        };
+        Object.keys(parts.named).forEach(function (key) { add(key, parts.named[key]); });
+        parts.query.forEach(function (value, key) { add(key, value); });
+        return out;
+    }
+
+    return initIndexFilterDraft(bar, {
+        base: cfg.base,
+        inputs: inputs,
+        nameOf: function (el) { return el.getAttribute('name'); },
+        labelOf: function (name) {
+            const field = controlFor(name) && controlFor(name).closest('.filter-draft-field');
+            const label = field && field.querySelector('label');
+            return label ? label.textContent.trim() : name;
+        },
+        displayOf: function (name, value) {
+            const el = controlFor(name);
+            if (el && el.tagName === 'SELECT') {
+                const option = Array.prototype.find.call(el.options, function (o) {
+                    return o.value === value;
+                });
+                if (option && option.text.trim() !== '') { return option.text.trim(); }
+            }
+            return value;
+        },
+        // The search term is part of the draft too, exactly as on the log
+        // indexes: one summary says everything the next run will apply.
+        quickEl: searchEl,
+        quickLabel: cfg.strings.searchLabel,
+        appliedQuick: searchEl ? searchEl.value.trim() : '',
+        // The server rendered the controls already selected, so what they
+        // hold at init is exactly what the page is showing.
+        applied: (function () {
+            const out = {};
+            inputs().forEach(function (el) {
+                const value = (el.value || '').trim();
+                if (value !== '') { out[el.getAttribute('name')] = value; }
+            });
+            return out;
+        }()),
+        // The badge rides the toggle button, which lives in the bar's flex
+        // row — outside the panel the controls are in.
+        countEl: scope.querySelector('.filter-draft-count'),
+        summaryEl: panel.querySelector('.filter-draft-summary'),
+        extraChips: extraChips,
+        results: cfg.results,
+        swap: cfg.swap,
+        rootLinks: ['.index-filter-pager a[href]'],
+        resultLinks: ['.pagination a[href]', 'thead a[href]'],
+        buildUrl: buildUrl,
+        // Drops the bar's own filters and the search term. Outside an ajax
+        // tab it drops the scope too, the way the old "Clear all" link to the
+        // bare index did; inside one the scope is what the tab is about.
+        clearAll: function () {
+            clearScope = !cfg.ajaxContainer;
+            if (searchEl) { searchEl.value = ''; }
+            inputs().forEach(function (el) {
+                if (el.tomselect) { el.tomselect.setValue('', true); } else { el.value = ''; }
+            });
+        },
+        // An ajax tab reloads its own fragment, this bar included, and comes
+        // back with the server's state — nothing to keep in sync here.
+        reload: function (url) {
+            if (cfg.ajaxContainer && typeof reloadAjaxTabIndex === 'function') {
+                reloadAjaxTabIndex(cfg.ajaxContainer, url);
+                return true;
+            }
+            return false;
+        },
+        strings: cfg.strings,
+    });
+}
+window.initScaffoldFilterDraft = initScaffoldFilterDraft;
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);

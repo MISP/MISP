@@ -33,6 +33,8 @@
  *
  */
 
+App::uses('IndexFilterDraft', 'Tools');
+
 $named = $this->request->params['named'] ?? [];
 $uid = 'logfilter-' . dechex(mt_rand());
 $clearHref = $baseurl . $item_url . '/index';
@@ -77,10 +79,11 @@ foreach ($fields as $i => $f) {
 }
 
 // Named parameters this bar does not own but must not drop when it reloads.
+// Raw values: formatIndexUrl() in mispOvermind.js does the encoding.
 $preserved = [];
 foreach (['sort', 'direction', 'limit'] as $key) {
     if (isset($named[$key]) && $named[$key] !== '') {
-        $preserved[] = $key . ':' . rawurlencode((string)$named[$key]);
+        $preserved[$key] = (string)$named[$key];
     }
 }
 
@@ -108,23 +111,11 @@ $config = [
     'base' => $clearHref,
     'preserved' => $preserved,
     'quickName' => 'quickFilter',
-    'quickLabel' => __('Search'),
     'applied' => $applied,
     'appliedQuick' => $quickValue,
     'fields' => $fieldMeta,
     'results' => '#log-index-results',
-    'strings' => [
-        'apply' => __('Apply filters'),
-        'applied' => __('Filters applied'),
-        'pendingOne' => __('1 change not applied yet'),
-        'pendingMany' => __('%s changes not applied yet'),
-        'noFilter' => __('No filter — showing every entry.'),
-        'clearAll' => __('Clear all'),
-        'remove' => __('Remove this filter'),
-        'willBeRemoved' => __('Will be removed'),
-        'notApplied' => __('Not applied yet'),
-        'loadError' => __('Could not load the filtered results. Please try again.'),
-    ],
+    'strings' => IndexFilterDraft::strings(),
 ];
 ?>
 
@@ -150,14 +141,11 @@ $config = [
             </div>
 
             <?php if (!empty($fields)): ?>
-                <button type="button"
-                        class="btn btn-outline-primary dropdown-toggle flex-shrink-0"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#<?= h($uid) ?>-adv"
-                        aria-expanded="<?= $activeCount ? 'true' : 'false' ?>">
-                    <i class="fas fa-sliders-h me-1"></i><?= __('More Filters') ?>
-                    <span class="badge bg-primary ms-1 log-filter-count <?= $activeCount ? '' : 'd-none' ?>"><?= (int)$activeCount ?></span>
-                </button>
+                <?= $this->element('genericElementsBS5/IndexTable/filter_toggle', [
+                    'target' => $uid . '-adv',
+                    'count' => $activeCount + ($quickValue !== '' ? 1 : 0),
+                    'open' => (bool)$activeCount,
+                ]) ?>
             <?php endif; ?>
 
             <?php if (!empty($pager_element)): ?>
@@ -168,61 +156,22 @@ $config = [
         </div>
 
         <?php if (!empty($fields)): ?>
-            <div class="collapse <?= $activeCount ? 'show' : '' ?>" id="<?= h($uid) ?>-adv">
-                <hr>
-                <div class="row g-3">
-                    <?php foreach ($fields as $f):
-                        $name = $f['name'];
-                        $type = $f['type'] ?? 'text';
-                        $col  = (int)($f['col'] ?? 4);
-                        $val  = $currentValue($name);
-                    ?>
-                        <div class="col-md-<?= $col ?>">
-                            <label class="form-label small fw-semibold mb-1"><?= h($f['label']) ?></label>
-
-                            <?php if ($type === 'select'): ?>
-                                <select class="form-select form-select-sm tom-select" data-log-filter="<?= h($name) ?>"
-                                        data-placeholder="<?= h($f['options'][''] ?? __('Any')) ?>">
-                                    <?php foreach (($f['options'] ?? []) as $optVal => $optLabel): ?>
-                                        <option value="<?= h($optVal) ?>" <?= ((string)$optVal === $val) ? 'selected' : '' ?>>
-                                            <?= h($optLabel) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-
-                            <?php elseif ($type === 'date'): ?>
-                                <input type="date" class="form-control form-control-sm"
-                                       data-log-filter="<?= h($name) ?>" value="<?= h($val) ?>">
-
-                            <?php elseif ($type === 'number'): ?>
-                                <input type="number" class="form-control form-control-sm"
-                                       data-log-filter="<?= h($name) ?>"
-                                       <?= isset($f['step']) ? 'step="' . h($f['step']) . '"' : '' ?>
-                                       placeholder="<?= h($f['placeholder'] ?? '') ?>" value="<?= h($val) ?>">
-
-                            <?php else: ?>
-                                <input type="text" class="form-control form-control-sm"
-                                       data-log-filter="<?= h($name) ?>"
-                                       placeholder="<?= h($f['placeholder'] ?? '') ?>"
-                                       value="<?= h($val) ?>" autocomplete="off">
-                            <?php endif; ?>
-
-                            <?php if (!empty($f['help'])): ?>
-                                <div class="form-text small"><?= h($f['help']) ?></div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Draft summary + apply, rendered by initLogFilterCard().
-                     It sits inside the collapse so that folding the advanced
-                     filters away folds their chips and buttons with them; the
-                     "More Filters" badge is what stays behind to say that
-                     filters are on. -->
-                <div class="log-filter-summary border-top mt-3 pt-3"></div>
-            </div>
+            <?php
+            // The grid and the summary come from the shared panel, so this
+            // bar and the scaffold's `more_filters` cannot drift apart.
+            $draftFields = [];
+            foreach ($fields as $f) {
+                $draftFields[] = $f + ['value' => $currentValue($f['name']), 'col' => 4];
+            }
+            ?>
+            <?= $this->element('genericElementsBS5/IndexTable/filter_panel', [
+                'id' => $uid . '-adv',
+                'open' => (bool)$activeCount,
+                'fields' => $draftFields,
+                'input_class' => 'tom-select',
+            ]) ?>
         <?php else: ?>
-            <div class="log-filter-summary border-top mt-3 pt-3"></div>
+            <div class="filter-draft-summary border-top mt-3 pt-3"></div>
         <?php endif; ?>
 
     </div>

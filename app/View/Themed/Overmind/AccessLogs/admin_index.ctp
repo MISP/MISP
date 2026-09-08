@@ -61,7 +61,7 @@ $P = $this->Paginator;
     ]) ?>
 
     <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
-    <div id="log-index-results">
+    <div id="log-index-results" class="index-results">
         <div class="card shadow-sm mb-4">
             <div class="card-body p-0">
                 <div class="table-responsive table-scroll">
