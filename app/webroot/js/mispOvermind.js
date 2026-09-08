@@ -723,55 +723,83 @@ function toggleTags(badge) {
     badge.textContent = isHidden ? '−' : '+' + hiddenTags.length;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.body.addEventListener('click', async function(e) {
+/**
+ * Favourite toggle on a tag badge's star.
+ *
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.addEventListener('click', async function (e) {
         const starIcon = e.target.closest('.tag-star');
+        if (!starIcon) { return; }
 
-        if (starIcon) {
-            e.preventDefault();
-            e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
 
-            const tagId = starIcon.getAttribute('data-id');
-            const wasFavourite = starIcon.classList.contains('fas');
-            starIcon.classList.toggle('fas');
-            starIcon.classList.toggle('far');
+        // A second click while the first is in flight would post a stale form
+        // and race the two responses onto the same icon.
+        if (starIcon.dataset.busy === '1') { return; }
+        starIcon.dataset.busy = '1';
 
-            const formData = new URLSearchParams();
-            formData.append('data[FavouriteTag][data]', tagId);
+        const root = (typeof baseurl !== 'undefined' ? baseurl : '');
+        const tagId = starIcon.getAttribute('data-id');
+        const label = tagLabel(starIcon);
+        const wasFavourite = starIcon.classList.contains('fas');
+        setStar(starIcon, !wasFavourite);
 
-            try {
-                const url = (typeof baseurl !== 'undefined' ? baseurl : '') + '/favourite_tags/toggle';
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json'
-                    },
-                    body: formData
-                });
+        try {
+            const formResponse = await fetch(root + '/favourite_tags/getToggleField', {
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            if (!formResponse.ok) { throw new Error('HTTP ' + formResponse.status); }
 
-                const result = await response.json();
+            const form = new DOMParser()
+                .parseFromString(await formResponse.text(), 'text/html')
+                .querySelector('form');
+            if (!form) { throw new Error('no toggle form in the response'); }
 
-                if (!result.saved) {
-                    revertStar(starIcon, wasFavourite);
-                    console.error('Erreur lors du changement de favori:', result.fails);
-                }
-            } catch (error) {
-                revertStar(starIcon, wasFavourite);
-                console.error('Erreur réseau lors de la mise à jour du favori:', error);
+            const formData = new FormData(form);
+            formData.set('data[FavouriteTag][data]', tagId);
+
+            const response = await fetch(form.getAttribute('action') || root + '/favourite_tags/toggle', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams(formData)
+            });
+
+            const result = await response.json().catch(function () { return {}; });
+            if (!result.saved) {
+                throw new Error(result.fails || result.message || 'HTTP ' + response.status);
             }
+            showToast(wasFavourite
+                ? label + ' removed from your favourites.'
+                : label + ' added to your favourites.', 'success');
+        } catch (error) {
+            setStar(starIcon, wasFavourite);
+            showToast(wasFavourite
+                ? 'Could not remove ' + label + ' from your favourites.'
+                : 'Could not add ' + label + ' to your favourites.', 'danger');
+            console.error('Favourite tag toggle failed:', error);
+        } finally {
+            delete starIcon.dataset.busy;
         }
     });
 
-    function revertStar(element, shouldBeFavourite) {
-        if (shouldBeFavourite) {
-            element.classList.add('fas text-warning');
-            element.classList.remove('far text-muted');
-        } else {
-            element.classList.add('far text-muted');
-            element.classList.remove('fas text-warning');
-        }
+    function tagLabel(starIcon) {
+        const badge = starIcon.parentElement
+            ? starIcon.parentElement.querySelector('.badge')
+            : null;
+        const name = badge ? badge.textContent.trim() : '';
+        return name === '' ? 'Tag' : escapeHtml(name);
+    }
+
+    function setStar(element, isFavourite) {
+        element.classList.toggle('fas', isFavourite);
+        element.classList.toggle('far', !isFavourite);
     }
 });
 
