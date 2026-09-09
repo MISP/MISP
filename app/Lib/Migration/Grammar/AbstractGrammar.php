@@ -243,6 +243,16 @@ abstract class AbstractGrammar
     }
 
     /**
+     * Drop a table's primary key constraint. The columns stay; only the
+     * constraint goes, so that another can take its place - the way a table
+     * keyed on a natural column gets an id.
+     *
+     * @param string $table
+     * @return array Statements.
+     */
+    abstract public function dropPrimaryKey($table);
+
+    /**
      * @param string $table
      * @param string|array $columns
      * @param array $options 'unique', 'name', 'length', 'fulltext'.
@@ -333,6 +343,23 @@ abstract class AbstractGrammar
             ));
         }
         return $sql;
+    }
+
+    /**
+     * " PRIMARY KEY" when a column added on its own is the table's key, else "".
+     *
+     * createTable() states the key as a table constraint after the columns;
+     * an ADD of a single column has no such place, and MySQL refuses an
+     * AUTO_INCREMENT column that is not made a key in the same statement, so
+     * the constraint rides on the column. Both engines accept it there.
+     *
+     * @param array $spec
+     * @return string
+     */
+    protected function primaryKeyClause(array $spec)
+    {
+        $spec = $this->normaliseColumn($spec);
+        return (isset($spec['key']) && $spec['key'] === 'primary') ? ' PRIMARY KEY' : '';
     }
 
     /**

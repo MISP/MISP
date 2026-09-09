@@ -1,6 +1,7 @@
 <?php
 
 App::uses('SchemaBuilder', 'Migration');
+App::uses('SchemaInspector', 'Migration');
 
 /**
  * The base class every migration under app/Lib/Migration/Migrations/ extends.
@@ -81,6 +82,12 @@ abstract class AbstractMigration
     public $requiresLogout = false;
 
     /**
+     * @var SchemaInspector|null The live schema, handed over by the manager
+     *   before up() runs.
+     */
+    private $schemaInspector;
+
+    /**
      * Declare the schema changes. Default no-op: a data-only migration
      * implements afterUp() alone.
      *
@@ -89,6 +96,43 @@ abstract class AbstractMigration
      */
     public function up(SchemaBuilder $schema)
     {
+    }
+
+    /**
+     * @param SchemaInspector $inspector
+     * @return void
+     */
+    public function setSchemaInspector(SchemaInspector $inspector)
+    {
+        $this->schemaInspector = $inspector;
+    }
+
+    /**
+     * The live schema, for check-then-act in up().
+     *
+     * A migration's statements are not a transaction on MySQL, so one that
+     * stops halfway leaves the first statements applied and the ledger row
+     * failed - and the retry runs the whole declaration again. Ask
+     * hasColumn(), hasIndex() or primaryKey() and declare only what is still
+     * missing, and the retry is a no-op for the part that already landed.
+     * A single-statement migration needs none of this.
+     *
+     * The manager sets it before up() runs, for an apply and for a dry run
+     * alike; called with nothing set - a unit test driving up() directly -
+     * this is an error, not a guess.
+     *
+     * @return SchemaInspector
+     * @throws LogicException
+     */
+    protected function inspector()
+    {
+        if ($this->schemaInspector === null) {
+            throw new LogicException(sprintf(
+                '%s asked for the schema inspector before the migration manager provided one.',
+                get_class($this)
+            ));
+        }
+        return $this->schemaInspector;
     }
 
     /**

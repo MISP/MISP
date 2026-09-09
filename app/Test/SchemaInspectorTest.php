@@ -217,6 +217,28 @@ class SchemaInspectorTest extends TestCase
         $this->assertTrue($this->inspector->hasIndex('events', 'info'));
     }
 
+    /**
+     * The key is read off the index list, where both drivers report it under
+     * the name PRIMARY, because Postgres::describe() does not flag a varchar
+     * key as one when the table is described by name.
+     */
+    public function testPrimaryKeyIsReadOffTheIndexList()
+    {
+        $this->assertSame(array('id'), $this->inspector->primaryKey('events'));
+        $this->assertSame(array(), $this->inspector->primaryKey('nope'));
+    }
+
+    /**
+     * The key is an index too, so hasIndex() finds it - unless asked not to,
+     * which is the question to ask before dropping the key: is the column
+     * covered by anything else?
+     */
+    public function testHasIndexCanLeaveThePrimaryKeyOut()
+    {
+        $this->assertTrue($this->inspector->hasIndex('events', 'id', true));
+        $this->assertFalse($this->inspector->hasIndex('events', 'id', true, false));
+    }
+
     public function testHasNamedIndexTakesTheNameLiterally()
     {
         $this->assertTrue($this->inspector->hasNamedIndex('events', 'lookup'));

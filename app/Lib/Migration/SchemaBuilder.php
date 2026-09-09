@@ -66,6 +66,7 @@ class SchemaBuilder
         'dropColumn',
         'addIndex',
         'dropIndex',
+        'dropPrimaryKey',
         'rawSql',
     );
 

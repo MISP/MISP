@@ -81,11 +81,17 @@ class MysqlGrammar extends AbstractGrammar
     {
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
         return array(sprintf(
-            'ALTER TABLE %s ADD %s%s;',
+            'ALTER TABLE %s ADD %s%s%s;',
             $this->name($table),
             $this->buildColumn($spec),
+            $this->primaryKeyClause($spec),
             $this->positionClause($options)
         ));
+    }
+
+    public function dropPrimaryKey($table)
+    {
+        return array(sprintf('ALTER TABLE %s DROP PRIMARY KEY;', $this->name($table)));
     }
 
     protected function renderChangeColumn($table, $column, $type, array $options)
@@ -203,6 +209,9 @@ class MysqlGrammar extends AbstractGrammar
      */
     private function positionClause(array $options)
     {
+        if (!empty($options['first'])) {
+            return ' FIRST';
+        }
         if (empty($options['after'])) {
             return '';
         }

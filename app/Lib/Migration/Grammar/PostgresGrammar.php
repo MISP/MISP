@@ -120,9 +120,27 @@ class PostgresGrammar extends AbstractGrammar
         $this->notePositionDropped($column, $options);
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
         return array(sprintf(
-            'ALTER TABLE %s ADD %s;',
+            'ALTER TABLE %s ADD %s%s;',
             $this->name($table),
-            $this->buildColumn($spec)
+            $this->buildColumn($spec),
+            $this->primaryKeyClause($spec)
+        ));
+    }
+
+    /**
+     * The constraint is dropped by name, and the name is PostgreSQL's own
+     * default for a primary key - "<table>_pkey" - which is what every table
+     * the install baseline creates carries, and what ADD PRIMARY KEY gives a
+     * table migrated in from elsewhere. A key someone named by hand is not
+     * found, and the migration fails there with that name in the error
+     * rather than guessing.
+     */
+    public function dropPrimaryKey($table)
+    {
+        return array(sprintf(
+            'ALTER TABLE %s DROP CONSTRAINT %s;',
+            $this->name($table),
+            $this->name($table . '_pkey')
         ));
     }
 
@@ -322,6 +340,13 @@ class PostgresGrammar extends AbstractGrammar
      */
     private function notePositionDropped($column, array $options)
     {
+        if (!empty($options['first'])) {
+            $this->noteDroppedHint(sprintf(
+                'Column position dropped for "%s" (FIRST): PostgreSQL appends columns. Cosmetic only.',
+                $column
+            ));
+            return;
+        }
         if (empty($options['after'])) {
             return;
         }

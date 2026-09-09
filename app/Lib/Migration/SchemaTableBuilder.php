@@ -30,9 +30,11 @@ class SchemaTableBuilder
 
     /**
      * @param string $column
-     * @param string $type One of the DSL's column types.
+     * @param string $type One of the DSL's column types. 'primary_key' adds an
+     *   auto-increment integer that is the table's key - the table must not
+     *   have one already; see dropPrimaryKey().
      * @param array $options 'null', 'default', 'length', 'unsigned', 'charset',
-     *   'collate', 'comment', 'after'.
+     *   'collate', 'comment', 'after', 'first'.
      * @return $this
      */
     public function addColumn($column, $type, array $options = array())
@@ -101,6 +103,18 @@ class SchemaTableBuilder
     public function dropIndex($columnsOrName)
     {
         return $this->push('dropIndex', array($this->table, $columnsOrName));
+    }
+
+    /**
+     * Drop the table's primary key constraint, keeping its columns. The usual
+     * reason is that an id is about to take its place: add a unique index over
+     * the old key column first, so nothing is unconstrained in between.
+     *
+     * @return $this
+     */
+    public function dropPrimaryKey()
+    {
+        return $this->push('dropPrimaryKey', array($this->table));
     }
 
     /**

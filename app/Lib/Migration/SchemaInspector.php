@@ -217,13 +217,19 @@ class SchemaInspector
      * @param string $table
      * @param string|array $columns One column, or an ordered list.
      * @param bool|null $unique Constrain to unique/non-unique indexes; null matches either.
+     * @param bool $includePrimary The primary key is an index too, and answers
+     *   by default. Pass false when the question is whether the columns are
+     *   covered by something *other* than the key - before dropping it.
      * @return bool
      */
-    public function hasIndex($table, $columns, $unique = null)
+    public function hasIndex($table, $columns, $unique = null, $includePrimary = true)
     {
         $wanted = array_values((array)$columns);
-        foreach ($this->indexes($table) as $index) {
+        foreach ($this->indexes($table) as $name => $index) {
             if (!isset($index['column'])) {
+                continue;
+            }
+            if (!$includePrimary && $name === 'PRIMARY') {
                 continue;
             }
             if (array_values((array)$index['column']) !== $wanted) {
@@ -235,6 +241,27 @@ class SchemaInspector
             return true;
         }
         return false;
+    }
+
+    /**
+     * The primary key's columns, in order.
+     *
+     * Read off the index list rather than describe(): both drivers report the
+     * key as an index named PRIMARY (Cake's Postgres driver renames the pkey
+     * index to that), whereas Postgres::describe() only flags a column as
+     * primary when it is serial or is the primary key of the *model* it was
+     * handed - a table keyed on a varchar, described by name, shows no key.
+     *
+     * @param string $table
+     * @return array Empty when the table has no primary key, or does not exist.
+     */
+    public function primaryKey($table)
+    {
+        $indexes = $this->indexes($table);
+        if (!isset($indexes['PRIMARY']['column'])) {
+            return array();
+        }
+        return array_values((array)$indexes['PRIMARY']['column']);
     }
 
     /**

@@ -105,12 +105,13 @@ $schema->table('event_templates')
 
 | Method | Notes |
 |---|---|
-| `addColumn($name, $type, $options)` | |
+| `addColumn($name, $type, $options)` | `after`, `first` place it on MySQL; type `primary_key` adds an auto-increment id that is the table's key |
 | `changeColumn($name, $type, $options)` | `null` and `default` are **required** |
 | `renameColumn($from, $to, $type, $options)` | type restated; same requirement |
 | `dropColumn($name)` | |
 | `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext` |
 | `dropIndex($columnsOrName)` | The column set, or the index's own name |
+| `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
 
 Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
 
@@ -229,8 +230,23 @@ will lock the instance out after four attempts through the existing backstop.
 
 **A migration is not transactional.** MySQL DDL commits implicitly, so a
 migration whose third statement fails leaves the first two applied and the ledger
-row marked failed. Write migrations that can be re-run: the schema builder is
-declarative, but `afterUp()` is yours to guard.
+row marked failed. Write migrations that can be re-run. For DDL, `up()` can ask
+the live schema through `$this->inspector()` — `hasTable()`, `hasColumn()`,
+`hasIndex()`, `primaryKey()` — and declare only what is still missing, so the
+retry skips what already landed:
+
+```php
+public function up(SchemaBuilder $schema)
+{
+    if ($this->inspector()->hasColumn('bruteforces', 'id')) {
+        return;
+    }
+    $schema->table('bruteforces')->addColumn('id', 'primary_key', ['first' => true]);
+}
+```
+
+A one-statement migration needs none of that. `afterUp()` is yours to guard the
+same way, through the models it writes with.
 
 `migrationApply --id` on a migration already recorded as applied does nothing and
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,

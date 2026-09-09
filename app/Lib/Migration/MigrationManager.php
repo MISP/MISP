@@ -356,7 +356,11 @@ class MigrationManager
     public function toSql($id, AbstractGrammar $grammar = null)
     {
         $schema = SchemaBuilder::forDataSource($this->dataSource());
-        $this->migration($id)->up($schema);
+        $migration = $this->migration($id);
+        // The same live schema an apply would consult, so a guarded
+        // declaration renders what would actually run now.
+        $migration->setSchemaInspector($this->inspector());
+        $migration->up($schema);
         return $schema->toSql($grammar);
     }
 
@@ -449,6 +453,7 @@ class MigrationManager
     protected function execute($id, AbstractMigration $migration)
     {
         $schema = SchemaBuilder::forDataSource($this->dataSource());
+        $migration->setSchemaInspector($this->inspector());
         $migration->up($schema);
         $statements = $schema->toSql();
         $this->reportDroppedHints($id, $schema->getGrammar()->takeDroppedHints());

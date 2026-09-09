@@ -194,6 +194,49 @@ class MigrationGrammarTest extends TestCase
     }
 
     /**
+     * A key column added on its own carries its constraint: MySQL refuses an
+     * AUTO_INCREMENT column that is not made a key in the same statement, and
+     * PostgreSQL accepts the same spelling. FIRST is MySQL's, and dropped with
+     * a note on PostgreSQL like AFTER is.
+     */
+    public function testAddAPrimaryKeyColumnToAnExistingTable()
+    {
+        $this->assertSame(
+            array('ALTER TABLE `bruteforces` ADD `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;'),
+            $this->mysql->addColumn('bruteforces', 'id', 'primary_key', array('first' => true))
+        );
+        $this->assertSame(
+            array('ALTER TABLE "bruteforces" ADD "id" serial NOT NULL PRIMARY KEY;'),
+            $this->pgsql->addColumn('bruteforces', 'id', 'primary_key', array('first' => true))
+        );
+        $hints = $this->pgsql->takeDroppedHints();
+        $this->assertCount(1, $hints);
+        $this->assertStringContainsString('FIRST', $hints[0]);
+
+        $this->assertSame(
+            array('ALTER TABLE `t` ADD `x` int(11) DEFAULT 0 NOT NULL;'),
+            $this->mysql->addColumn('t', 'x', 'integer', array('null' => false, 'default' => 0)),
+            'an ordinary column carries no key clause'
+        );
+    }
+
+    /**
+     * Dropping the key leaves the columns. PostgreSQL drops it by its default
+     * constraint name, which is the one every baseline-created table has.
+     */
+    public function testDropPrimaryKey()
+    {
+        $this->assertSame(
+            array('ALTER TABLE `system_settings` DROP PRIMARY KEY;'),
+            $this->mysql->dropPrimaryKey('system_settings')
+        );
+        $this->assertSame(
+            array('ALTER TABLE "system_settings" DROP CONSTRAINT "system_settings_pkey";'),
+            $this->pgsql->dropPrimaryKey('system_settings')
+        );
+    }
+
+    /**
      * charset, collate and unsigned are declared in Mysql::$fieldParameters and
      * nowhere in Postgres, so one engine emits them and the other drops them
      * with no branching in the grammars at all.
