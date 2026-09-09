@@ -6,6 +6,9 @@
     <?php
         echo $this->element('healthElements/tabs', array('active_tab' => $tab));
         if (in_array($tab, ['MISP', 'Security', 'Encryption', 'Proxy', 'Plugin', 'AI', 'SimpleBackgroundJobs'], true)) {
+            if ($tab === 'AI') {
+                echo $this->element('healthElements/ai_status', array('status' => $aiModuleStatus));
+            }
             echo $this->element('healthElements/settings_tab');
         } else if ($tab === 'diagnostics') {
             echo $this->element('healthElements/diagnostics');
