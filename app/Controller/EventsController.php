@@ -8424,6 +8424,90 @@ class EventsController extends AppController
         $this->render('ajax/aiSummarizeConfirmationForm');
     }
 
+    /**
+     * Recommend tags for an event with the AI module (A3, inline). GET asks
+     * the module synchronously and answers the classified suggestions; POST
+     * attaches the accepted names. Edit rights attach global tags; a host-org
+     * tagger without them may still accept suggestions, as local tags.
+     *
+     * @param int|string $id
+     */
+    public function aiRecommendTags($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $local = !$this->__canModifyEvent($event);
+        if (!$this->__canModifyTag($event, $local)) {
+            throw new ForbiddenException(__('You do not have permission to tag this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $eventId = (int)$event['Event']['id'];
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        if ($this->request->is('post')) {
+            $names = $this->request->data['tags'] ?? ($this->request->data['Event']['tags'] ?? []);
+            if (is_string($names)) {
+                $decoded = json_decode($names, true);
+                $names = is_array($decoded) ? $decoded : [$names];
+            }
+            $names = is_array($names) ? array_values(array_filter($names, 'is_string')) : [];
+            if (empty($names)) {
+                $error = __('No tags were selected.');
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $error, $this->response->type());
+                }
+                $this->Flash->error($error);
+                return $this->redirect(['action' => $viewAction, $eventId]);
+            }
+            try {
+                $result = $this->Event->aiAttachTags($this->Auth->user(), $event, $names, $local);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $this->response->type());
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect(['action' => $viewAction, $eventId]);
+            }
+            $message = Event::aiTagResultMessage($result);
+            $saved = $result['attached'] > 0 || $result['failed'] === 0;
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge([
+                        'saved' => $saved,
+                        'success' => $message,
+                        'message' => $message,
+                        'check_publish' => !$local && $result['attached'] > 0,
+                    ], $result),
+                    $this->response->type()
+                );
+            }
+            if ($saved) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error($message);
+            }
+            return $this->redirect(['action' => $viewAction, $eventId]);
+        }
+        // The tag-suggest backend is retrieval, not generation, but the call
+        // is still bound by the module timeout.
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        try {
+            $rows = $this->Event->aiRecommendTags($this->Auth->user(), $eventId, $local);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $this->response->type());
+        }
+        return $this->RestResponse->viewData([
+            'event_id' => $eventId,
+            'local' => $local,
+            'Tag' => $rows,
+        ], $this->response->type());
+    }
+
     public function enrichEvent($id)
     {
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);

@@ -3322,6 +3322,402 @@ class Event extends AppModel
         return ['report_id' => (int)$this->EventReport->id, 'name' => $name];
     }
 
+    /**
+     * Status of one AI tag suggestion (aiRecommendTags): why a row can or
+     * cannot be accepted. Only AI_TAG_OK rows are attachable.
+     */
+    const AI_TAG_OK = 'ok',
+        AI_TAG_PRESENT = 'present',
+        AI_TAG_NEEDS_TAG_EDITOR = 'needs_tag_editor',
+        AI_TAG_UNKNOWN_CLUSTER = 'unknown_cluster',
+        AI_TAG_RESTRICTED = 'restricted',
+        AI_TAG_LOCAL_ONLY = 'local_only',
+        AI_TAG_EXCLUSIVE = 'exclusive';
+
+    /**
+     * User-facing reason for a suggestion status.
+     *
+     * @param string $status one of the AI_TAG_* constants
+     * @return string
+     */
+    public static function aiTagStatusText($status)
+    {
+        switch ($status) {
+            case self::AI_TAG_OK:
+                return '';
+            case self::AI_TAG_PRESENT:
+                return __('already on the event');
+            case self::AI_TAG_NEEDS_TAG_EDITOR:
+                return __('unknown tag, creating it needs the tag editor permission');
+            case self::AI_TAG_UNKNOWN_CLUSTER:
+                return __('no galaxy cluster with this name');
+            case self::AI_TAG_RESTRICTED:
+                return __('tag reserved for another organisation or user');
+            case self::AI_TAG_LOCAL_ONLY:
+                return __('tag can only be attached as a local tag');
+            case self::AI_TAG_EXCLUSIVE:
+                return __('not allowed by taxonomy exclusivity');
+        }
+        return (string)$status;
+    }
+
+    /**
+     * Pure classification of the AI module's tag suggestions against what the
+     * instance holds: one row per distinct name (case-insensitive, first
+     * spelling kept), in the module's order. No lookups happen here; the
+     * caller supplies what it found.
+     *
+     * A galaxy-cluster name (`misp-galaxy:…`) is bound through its cluster:
+     * with a cluster it is attachable even without a tag row (the attach
+     * creates the tag from the cluster), without a cluster and without a tag
+     * row it is refused rather than created as a bare galaxy-looking tag.
+     *
+     * @param array $names the suggested names, in order
+     * @param array $tags existing tags keyed by lower-cased name:
+     *        [id, name, colour, is_galaxy, local_only, usable]
+     * @param array $clusters visible galaxy clusters keyed by lower-cased
+     *        tag_name: [id, local_only]
+     * @param array $eventTagNames names of the tags already on the event
+     * @param bool $canCreate whether unknown tags may be created (perm_tag_editor)
+     * @param bool $local whether the attach will be local
+     * @param callable|null $exclusive fn(string $name, array $eventTagNames): bool,
+     *        the taxonomy exclusivity check; null skips it
+     * @return array rows: name, colour (null when unknown), exists, is_galaxy,
+     *         cluster_id, tag_id, status, selectable, reason
+     */
+    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, callable $exclusive = null)
+    {
+        App::uses('Tag', 'Model');
+        $present = [];
+        foreach ($eventTagNames as $eventTagName) {
+            $present[mb_strtolower($eventTagName)] = true;
+        }
+        $rows = [];
+        $seen = [];
+        foreach ($names as $name) {
+            if (!is_string($name)) {
+                continue;
+            }
+            $name = trim($name);
+            if ($name === '') {
+                continue;
+            }
+            $key = mb_strtolower($name);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $tag = $tags[$key] ?? null;
+            $cluster = $clusters[$key] ?? null;
+            $row = [
+                'name' => $tag ? $tag['name'] : $name,
+                'colour' => $tag ? $tag['colour'] : null,
+                'exists' => (bool)$tag,
+                'is_galaxy' => $tag ? !empty($tag['is_galaxy']) : (bool)preg_match(Tag::RE_GALAXY, $name),
+                'cluster_id' => $cluster ? (int)$cluster['id'] : null,
+                'tag_id' => $tag ? (int)$tag['id'] : null,
+                'status' => self::AI_TAG_OK,
+            ];
+            if (isset($present[$key])) {
+                $row['status'] = self::AI_TAG_PRESENT;
+            } elseif ($tag) {
+                if (empty($tag['usable'])) {
+                    $row['status'] = self::AI_TAG_RESTRICTED;
+                } elseif (!empty($tag['local_only']) && !$local) {
+                    $row['status'] = self::AI_TAG_LOCAL_ONLY;
+                }
+            } elseif ($cluster) {
+                if (!empty($cluster['local_only']) && !$local) {
+                    $row['status'] = self::AI_TAG_LOCAL_ONLY;
+                }
+            } elseif ($row['is_galaxy']) {
+                $row['status'] = self::AI_TAG_UNKNOWN_CLUSTER;
+            } elseif (!$canCreate) {
+                $row['status'] = self::AI_TAG_NEEDS_TAG_EDITOR;
+            }
+            if ($row['status'] === self::AI_TAG_OK && $exclusive !== null && !$exclusive($row['name'], $eventTagNames)) {
+                $row['status'] = self::AI_TAG_EXCLUSIVE;
+            }
+            $row['selectable'] = $row['status'] === self::AI_TAG_OK;
+            $row['reason'] = self::aiTagStatusText($row['status']);
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
+    /**
+     * The counts of an aiAttachTags() run as one sentence.
+     *
+     * @param array $result what aiAttachTags() returned
+     * @return string
+     */
+    public static function aiTagResultMessage(array $result)
+    {
+        $attached = (int)($result['attached'] ?? 0);
+        $created = (int)($result['created'] ?? 0);
+        $skipped = (int)($result['skipped'] ?? 0);
+        $failed = (int)($result['failed'] ?? 0);
+        $parts = [];
+        $first = __n('%s tag attached', '%s tags attached', $attached, $attached);
+        if ($created) {
+            $first .= ' (' . __n('%s created', '%s created', $created, $created) . ')';
+        }
+        $parts[] = $first;
+        if ($skipped) {
+            $parts[] = __n('%s skipped (already present)', '%s skipped (already present)', $skipped, $skipped);
+        }
+        if ($failed) {
+            $parts[] = __n('%s failed', '%s failed', $failed, $failed);
+        }
+        $message = implode(', ', $parts) . '.';
+        if (!empty($result['local']) && $attached) {
+            $message .= ' ' . __('Attached as local tags: you cannot modify this event.');
+        }
+        return $message;
+    }
+
+    /**
+     * Classify tag names for an event as the given user: looks up the tag
+     * rows, the galaxy clusters the user can see, the tags already on the
+     * event and the taxonomy exclusivity, then hands over to
+     * classifyAiTagSuggestions(). Colours of unknown tags are the ones a
+     * quickAdd() would give them.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding the id
+     * @param array $names
+     * @param bool $local whether the attach will be local
+     * @return array see classifyAiTagSuggestions()
+     */
+    public function aiClassifyTagNames(array $user, array $event, array $names, $local)
+    {
+        $eventId = (int)$event['Event']['id'];
+        $Tag = $this->EventTag->Tag; // loads the Tag class for the regex below
+        $keys = [];
+        $galaxyKeys = [];
+        foreach ($names as $name) {
+            if (!is_string($name) || trim($name) === '') {
+                continue;
+            }
+            $key = mb_strtolower(trim($name));
+            $keys[$key] = true;
+            if (preg_match(Tag::RE_GALAXY, $name)) {
+                $galaxyKeys[$key] = true;
+            }
+        }
+        $tags = [];
+        if (!empty($keys)) {
+            $found = $Tag->find('all', [
+                'conditions' => ['LOWER(Tag.name)' => array_keys($keys)],
+                'recursive' => -1,
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy', 'Tag.local_only', 'Tag.org_id', 'Tag.user_id'],
+            ]);
+            foreach ($found as $tag) {
+                $tag = $tag['Tag'];
+                $tag['usable'] = !empty($user['Role']['perm_site_admin']) || (
+                    in_array((int)$tag['org_id'], [0, (int)$user['org_id']], true) &&
+                    in_array((int)$tag['user_id'], [0, (int)$user['id']], true)
+                );
+                $tags[mb_strtolower($tag['name'])] = $tag;
+            }
+        }
+        $clusters = [];
+        if (!empty($galaxyKeys)) {
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $found = $GalaxyCluster->fetchGalaxyClusters($user, [
+                'conditions' => ['LOWER(GalaxyCluster.tag_name)' => array_keys($galaxyKeys)],
+                'fields' => ['GalaxyCluster.id', 'GalaxyCluster.tag_name', 'Galaxy.local_only'],
+                'contain' => ['Galaxy'],
+            ]);
+            foreach ($found as $cluster) {
+                $clusters[mb_strtolower($cluster['GalaxyCluster']['tag_name'])] = [
+                    'id' => (int)$cluster['GalaxyCluster']['id'],
+                    'local_only' => !empty($cluster['Galaxy']['local_only']),
+                ];
+            }
+        }
+        $eventTagNames = $this->EventTag->find('column', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => 'Tag',
+            'fields' => ['Tag.name'],
+            'recursive' => -1,
+        ]);
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $exclusive = function ($name, array $tagNames) use ($Taxonomy) {
+            return $Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $tagNames);
+        };
+        $rows = self::classifyAiTagSuggestions(
+            $names,
+            $tags,
+            $clusters,
+            $eventTagNames,
+            !empty($user['Role']['perm_tag_editor']),
+            (bool)$local,
+            $exclusive
+        );
+        foreach ($rows as $k => $row) {
+            if ($row['colour'] === null) {
+                $rows[$k]['colour'] = $Tag->tagColor($row['name']);
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * Ask the AI module for tags for an event and classify its answer
+     * (A3, synchronous: the suggestions are previewed, nothing is saved).
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param bool $local whether an accept would attach local tags
+     * @return array see classifyAiTagSuggestions()
+     * @throws NotFoundException|Exception with a user-facing message
+     */
+    public function aiRecommendTags(array $user, $eventId, $local)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $results = $this->Module->queryAI('tag_suggest', $data);
+        $names = [];
+        foreach ($results['Tag'] ?? [] as $tag) {
+            if (is_array($tag) && isset($tag['name']) && is_string($tag['name'])) {
+                $names[] = $tag['name'];
+            } elseif (is_string($tag)) {
+                $names[] = $tag;
+            }
+        }
+        return $this->aiClassifyTagNames($user, $event, $names, $local);
+    }
+
+    /**
+     * Attach accepted AI tag suggestions to an event as the given user. The
+     * names are classified again here, so what the client sends is bound by
+     * the same rules as what it was shown: tags already on the event are
+     * skipped, unknown tags are created (perm_tag_editor), galaxy-cluster
+     * names are attached through their cluster, and a global attach
+     * unpublishes the event once. The caller decides the local flag and the
+     * tagging permission.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding the id
+     * @param array $names accepted tag names
+     * @param bool $local attach as local tags
+     * @return array attached, created, skipped, failed, errors (name => reason), local
+     * @throws Exception
+     */
+    public function aiAttachTags(array $user, array $event, array $names, $local)
+    {
+        $eventId = (int)$event['Event']['id'];
+        $local = (bool)$local;
+        $result = ['attached' => 0, 'created' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => [], 'local' => $local];
+        $rows = $this->aiClassifyTagNames($user, $event, $names, $local);
+        if (empty($rows)) {
+            return $result;
+        }
+        $Tag = $this->EventTag->Tag;
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $Galaxy = null;
+        $log = $this->loadLog();
+        $eventTagNames = $this->EventTag->find('column', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => 'Tag',
+            'fields' => ['Tag.name'],
+            'recursive' => -1,
+        ]);
+        $unpublish = false;
+        foreach ($rows as $row) {
+            $name = $row['name'];
+            if ($row['status'] === self::AI_TAG_PRESENT) {
+                $result['skipped']++;
+                continue;
+            }
+            if ($row['status'] !== self::AI_TAG_OK) {
+                $result['failed']++;
+                $result['errors'][$name] = $row['reason'];
+                continue;
+            }
+            // Tags accepted together are bound by exclusivity too.
+            if (!$Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $eventTagNames)) {
+                $result['failed']++;
+                $result['errors'][$name] = self::aiTagStatusText(self::AI_TAG_EXCLUSIVE);
+                continue;
+            }
+            if ($row['cluster_id'] !== null) {
+                if ($Galaxy === null) {
+                    $Galaxy = ClassRegistry::init('Galaxy');
+                }
+                try {
+                    $outcome = $Galaxy->attachCluster($user, 'event', $event, $row['cluster_id'], $local);
+                } catch (Exception $e) {
+                    $result['failed']++;
+                    $result['errors'][$name] = $e->getMessage();
+                    continue;
+                }
+                if ($outcome === 'Cluster attached.') {
+                    $result['attached']++;
+                    if (!$row['exists']) {
+                        $result['created']++;
+                    }
+                    $eventTagNames[] = $name;
+                } elseif ($outcome === 'Cluster already attached.') {
+                    $result['skipped']++;
+                } else {
+                    $result['failed']++;
+                    $result['errors'][$name] = $outcome;
+                }
+                continue;
+            }
+            $tagId = $row['tag_id'];
+            $created = false;
+            if ($tagId === null) {
+                $tagId = $Tag->quickAdd($name);
+                if (!$tagId) {
+                    $result['failed']++;
+                    $result['errors'][$name] = __('the tag could not be created: %s', json_encode($Tag->validationErrors));
+                    continue;
+                }
+                $created = true;
+            }
+            $nothingToChange = false;
+            if (!$this->EventTag->attachTagToEvent($eventId, ['id' => $tagId, 'local' => $local], $nothingToChange)) {
+                $result['failed']++;
+                $result['errors'][$name] = __('the tag could not be attached');
+                continue;
+            }
+            if ($nothingToChange) {
+                $result['skipped']++;
+                continue;
+            }
+            $result['attached']++;
+            if ($created) {
+                $result['created']++;
+            }
+            $eventTagNames[] = $name;
+            if (!$local) {
+                $unpublish = true;
+            }
+            $log->createLogEntry(
+                $user,
+                'tag',
+                'Event',
+                $eventId,
+                sprintf('Attached%s tag (%s) "%s" to event (%s)', $local ? ' local' : '', $tagId, $name, $eventId),
+                sprintf('Event (%s) tagged as Tag (%s)%s', $eventId, $tagId, $local ? ' locally' : '')
+            );
+        }
+        if ($unpublish) {
+            $this->unpublishEvent($event);
+        }
+        return $result;
+    }
+
     //Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
     // Possible options:
     // eventid: single event ID
