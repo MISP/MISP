@@ -153,6 +153,7 @@ function openModal(url, size = 'xl') {
 
             initTomSelect(container);
             initChoiceFields(container);
+            initPgpKeyLookup(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
             initServerForm(container);
@@ -378,6 +379,9 @@ function renderMainModalContent(html) {
     }
     if (typeof initChoiceFields === 'function') {
         initChoiceFields(container);
+    }
+    if (typeof initPgpKeyLookup === 'function') {
+        initPgpKeyLookup(container);
     }
 }
 
@@ -1353,6 +1357,121 @@ function toggleSecret(fieldId, btn) {
         icon.classList.replace('fa-eye-slash', 'fa-eye');
         btn.classList.remove('text-primary');
     }
+}
+
+/*******************************
+ * PGP key lookup on the CIRCL key server, for the user forms.
+ *
+ * The form only describes where the pieces are:
+ *   [data-pgp-lookup]   the button
+ *   [data-pgp-email]    the email input the search runs on
+ *   [data-pgp-target]   the textarea the chosen key lands in
+ *   [data-pgp-results]  the panel the result list is dropped into
+ *
+ * `users/searchGpgKey` answers with Users/ajax/fetchpgpkey (the themed
+ * fragment), so the rows arrive ready to display and are only read back for
+ * their `data-pgp-fingerprint`; `users/fetchGpgKey` then answers with the
+ * armoured key itself. Both are gated server-side on
+ * GnuPG.key_fetching_disabled, and a 403 is reported as such rather than
+ * swallowed.
+ *******************************/
+function initPgpKeyLookup(container) {
+    const root = container || document;
+    const button = root.querySelector('[data-pgp-lookup]');
+    if (!button || button.dataset.pgpBound) return;
+    button.dataset.pgpBound = '1';
+
+    const email = root.querySelector('[data-pgp-email]');
+    const target = root.querySelector('[data-pgp-target]');
+    const panel = root.querySelector('[data-pgp-results]');
+    if (!email || !target || !panel) return;
+
+    const label = button.innerHTML;
+    const base = (typeof baseurl === 'string') ? baseurl : '';
+
+    function busy(on) {
+        button.disabled = on || email.value.trim() === '';
+        button.innerHTML = on
+            ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + button.dataset.pgpBusyLabel
+            : label;
+    }
+
+    function notice(variant, icon, message) {
+        panel.innerHTML = '<div class="alert alert-' + variant + ' d-flex align-items-start gap-2 mb-0 py-2"'
+            + ' style="font-size:.8rem;"><i class="fas ' + icon + ' mt-1"></i><div>' + escapeHtml(message) + '</div></div>';
+        panel.classList.remove('d-none');
+    }
+
+    function clear() {
+        panel.innerHTML = '';
+        panel.classList.add('d-none');
+    }
+
+    // The button is only ever as usable as the email field it searches on.
+    email.addEventListener('input', function () { busy(false); });
+    busy(false);
+
+    button.addEventListener('click', function () {
+        const address = email.value.trim();
+        if (address === '') return;
+        clear();
+        busy(true);
+        fetch(base + '/users/searchGpgKey/' + encodeURIComponent(address), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (response) {
+            return response.text().then(function (body) {
+                return { status: response.status, body: body };
+            });
+        })
+        .then(function (result) {
+            if (result.status === 403) {
+                notice('secondary', 'fa-ban', button.dataset.pgpDisabledMessage);
+            } else if (result.status === 404) {
+                notice('warning', 'fa-circle-question', button.dataset.pgpEmptyMessage);
+            } else if (result.status >= 400) {
+                notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+            } else {
+                panel.innerHTML = result.body;
+                panel.classList.remove('d-none');
+            }
+        })
+        .catch(function () {
+            notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+        })
+        .finally(function () { busy(false); });
+    });
+
+    // One delegated handler for the injected list: dismiss, or take a key.
+    panel.addEventListener('click', function (event) {
+        if (event.target.closest('[data-pgp-dismiss]')) {
+            clear();
+            return;
+        }
+        const row = event.target.closest('[data-pgp-fingerprint]');
+        if (!row) return;
+
+        row.classList.add('disabled');
+        fetch(base + '/users/fetchGpgKey/' + encodeURIComponent(row.dataset.pgpFingerprint), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (response) {
+            if (!response.ok) { throw new Error(response.status); }
+            return response.text();
+        })
+        .then(function (key) {
+            target.value = key.trim();
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            clear();
+            if (typeof showToast === 'function') {
+                showToast(button.dataset.pgpFoundMessage);
+            }
+        })
+        .catch(function () {
+            row.classList.remove('disabled');
+            notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+        });
+    });
 }
 
 
