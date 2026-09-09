@@ -42,4 +42,10 @@ if ($tab === 'workers') {
         'tab' => $tab,
         'sections' => ServerSettingGroups::split($tab, $flatSettings),
     ));
+
+    if ($tab === 'AI') {
+        echo $this->element('healthElementsBS5/ai_dry_run', array(
+            'status' => $aiModuleStatus,
+        ));
+    }
 }

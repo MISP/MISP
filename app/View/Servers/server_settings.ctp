@@ -10,6 +10,9 @@
                 echo $this->element('healthElements/ai_status', array('status' => $aiModuleStatus));
             }
             echo $this->element('healthElements/settings_tab');
+            if ($tab === 'AI') {
+                echo $this->element('healthElements/ai_dry_run', array('status' => $aiModuleStatus));
+            }
         } else if ($tab === 'diagnostics') {
             echo $this->element('healthElements/diagnostics');
         } else if ($tab === 'workers') {

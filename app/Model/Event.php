@@ -3196,6 +3196,30 @@ class Event extends AppModel
         return $event;
     }
 
+    /**
+     * An event as the AI module receives it: the REST representation of
+     * /events/view, as the given user sees it.
+     *
+     * @param array $user
+     * @param int $id
+     * @return array|null ['Event' => ...], or null when the event does not
+     *         exist or is not visible to the user
+     */
+    public function fetchEventForAi(array $user, $id)
+    {
+        // Correlations are noise for a language model and can be large.
+        $events = $this->fetchEvent($user, [
+            'eventid' => (int)$id,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => false,
+        ]);
+        if (empty($events[0])) {
+            return null;
+        }
+        App::uses('JSONConverterTool', 'Tools');
+        return JSONConverterTool::convert($events[0], !empty($user['Role']['perm_site_admin']), true);
+    }
+
     //Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
     // Possible options:
     // eventid: single event ID

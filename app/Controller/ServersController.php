@@ -41,11 +41,11 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
-        // updateJSON is only ever reached by the diagnostics page's hand-built
-        // AJAX, which has no rendered form behind it to produce the field hash
-        // _validatePost() compares against. It sends the page's CSRF token in
-        // the X-CSRF-Token header instead.
-        $this->_csrfTokenHeaderOnly(['updateJSON']);
+        // updateJSON and aiDryRun are only ever reached by the settings page's
+        // hand-built AJAX, which has no rendered form behind it to produce the
+        // field hash _validatePost() compares against. They send the page's
+        // CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['updateJSON', 'aiDryRun']);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -1583,6 +1583,82 @@ class ServersController extends AppController
             $this->layout = false;
             return $this->render('/Servers/ajax/server_settings_tab');
         }
+    }
+
+    /**
+     * Dry run of the AI module on one event, from the AI settings tab: run a
+     * use-case and hand the module's answer back. The event is only read,
+     * never modified.
+     *
+     * POST {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}
+     * Answer: {"success": true, "event_id", "event_info", "use_case",
+     *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour}]}}
+     */
+    public function aiDryRun()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+        }
+        $data = isset($this->request->data['Server']) ? $this->request->data['Server'] : $this->request->data;
+        $eventId = isset($data['event_id']) ? (int)$data['event_id'] : 0;
+        $useCase = isset($data['use_case']) ? (string)$data['use_case'] : '';
+        $useCases = ['summarization_on_event', 'tag_suggest'];
+        if ($eventId < 1 || !in_array($useCase, $useCases, true)) {
+            return $this->RestResponse->saveFailResponse(
+                'Servers',
+                'aiDryRun',
+                false,
+                __('Expected {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}.'),
+                $this->response->type()
+            );
+        }
+        $this->loadModel('Event');
+        $event = $this->Event->fetchEventForAi($this->Auth->user(), $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        try {
+            $results = $this->Module->queryAI($useCase, $event, $timeout);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+        }
+        $answer = [];
+        if ($useCase === 'tag_suggest') {
+            $names = [];
+            foreach ($results['Tag'] ?? [] as $tag) {
+                if (!empty($tag['name']) && is_string($tag['name'])) {
+                    $names[] = $tag['name'];
+                }
+            }
+            $existing = empty($names) ? [] : $this->Event->EventTag->Tag->find('list', [
+                'conditions' => ['Tag.name' => $names],
+                'fields' => ['Tag.name', 'Tag.colour'],
+            ]);
+            $answer['Tag'] = [];
+            foreach ($names as $name) {
+                $answer['Tag'][] = [
+                    'name' => $name,
+                    'exists' => isset($existing[$name]),
+                    'colour' => $existing[$name] ?? null,
+                ];
+            }
+        } else {
+            $report = $results['EventReport'] ?? [];
+            $answer['EventReport'] = [
+                'name' => (string)($report['name'] ?? ''),
+                'content' => (string)($report['content'] ?? ''),
+            ];
+        }
+        return $this->RestResponse->viewData([
+            'success' => true,
+            'event_id' => $eventId,
+            'event_info' => (string)($event['Event']['info'] ?? ''),
+            'use_case' => $useCase,
+            'result' => $answer,
+        ], $this->response->type());
     }
 
     public function startWorker($type)
