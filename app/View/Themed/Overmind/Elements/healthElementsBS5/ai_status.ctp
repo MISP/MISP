@@ -70,6 +70,13 @@ if (!$status['enabled']) {
                     . '<span class="text-muted small">' . ($status['error'] ? h($status['error']) : __('The server answers, but does not offer the ai_connector module.')) . '</span>');
             }
         }
+        // Placeholder until the module offers a ping / list-models use-case
+        // to exercise the LLM endpoint with (PRD §5.5 card 2).
+        $row(__('LLM endpoint'), sprintf(
+            '<button type="button" class="btn btn-sm btn-outline-secondary" disabled aria-disabled="true"><i class="fas fa-plug-circle-check me-1"></i>%s</button><span class="text-muted small">%s</span>',
+            __('Test LLM'),
+            __('Not available yet: the ai_connector module does not offer a ping use-case.')
+        ));
         ?>
     </div>
 </div>

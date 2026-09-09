@@ -51,4 +51,7 @@ if (!$status['enabled']) {
             ai_connector…<?= $span('orange', __('Not listed')) ?> <?= $span('grey', $status['error'] ?: __('The server answers, but does not offer the ai_connector module.')) ?><br>
         <?php endif; ?>
     <?php endif; ?>
+    <?php // Placeholder until the module offers a ping / list-models use-case to exercise the LLM endpoint with. ?>
+    <?= __('LLM endpoint') ?>…<button type="button" class="btn btn-small" disabled><i class="fas fa-plug"></i> <?= __('Test LLM') ?></button>
+    <?= $span('grey', __('Not available yet: the ai_connector module does not offer a ping use-case.')) ?><br>
 </div>
