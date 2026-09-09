@@ -98,7 +98,8 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false, 154 => false, 157 => false, 158 => false, 159 => false
+        153 => false, 154 => false, 157 => false, 158 => false, 159 => false,
+        160 => true
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2725,6 +2726,11 @@ class AppModel extends Model
                 // Collection sync per-server toggles (T1.2).
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
+                break;
+            case 160:
+                // AI tools role permission, granted to site-admin roles.
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_ai_tools` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_ai_tools`=1 WHERE `perm_site_admin` = 1;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
