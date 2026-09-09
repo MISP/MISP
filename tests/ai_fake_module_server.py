@@ -50,9 +50,12 @@ PARAM_NAMES = (
     "openai_api_base", "api_key", "model_id", "temperature",
     "request_timeout", "suggest_limit", "suggest_min_score",
 )
-MARKER_START = "<!-- ai-summary:start -->"
-MARKER_END = "<!-- ai-summary:end -->"
-MARKER_RE = re.compile(re.escape(MARKER_START) + r".*?" + re.escape(MARKER_END), re.S)
+# The AI summary block (PRD §3.3): heading on top, summary, blank line, a
+# visible delineator line of equals signs, then the report. MISP keys its
+# strip on the heading-at-top + delineator pair.
+SUMMARY_HEADING = "# AI summary"
+SUMMARY_DELINEATOR = "=================="
+SUMMARY_RE = re.compile(r"\A\s*#[ \t]*AI summary[ \t]*(?:\r?\n|\Z)(?:.*?\r?\n)?[ \t]*={10,}[ \t]*(?:\r?\n|\Z)", re.S | re.I)
 
 # Fixed tag candidates with a confidence, so suggest_limit / suggest_min_score
 # can be asserted: 0.9 and 0.8 exist on most instances, the rest are unknown.
@@ -86,7 +89,7 @@ def listing():
 
 def summary_block(lines):
     body = "\n".join("- " + line for line in lines)
-    return f"{MARKER_START}\n# AI summary\n{body}\n{MARKER_END}"
+    return f"{SUMMARY_HEADING}\n{body}\n\n{SUMMARY_DELINEATOR}"
 
 
 def event_facts(event, params):
@@ -127,8 +130,8 @@ def answer(envelope):
         if not isinstance(report, dict):
             return {"error": "summarization_on_eventReport needs data.EventReport."}
         content = report.get("content") or ""
-        if MARKER_RE.search(content):
-            return {"error": "The report already carries an ai-summary block; MISP must strip it before sending."}
+        if SUMMARY_RE.search(content):
+            return {"error": "The report already carries an AI summary block on top; MISP must strip it before sending."}
         words = len(content.split())
         block = summary_block([
             f"report {report.get('id', '?')} `{report.get('name', '')}` has {words} words",
