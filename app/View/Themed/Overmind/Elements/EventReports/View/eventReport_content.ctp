@@ -126,15 +126,6 @@ $menuItems = [
         'icon'    => 'fas fa-screwdriver',
         'label'   => __('Configure Template variables'),
     ],
-    // ── LLM ─────────────────────────────────────────────
-    ['type' => 'divider'],
-    ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('LLM')],
-    [
-        'type'    => 'item',
-        'onclick' => "erSendToLLM(event)",
-        'icon'    => 'fas fa-robot',
-        'label'   => __('Send report to LLM'),
-    ],
 ];
 
 ?>
@@ -253,57 +244,6 @@ $menuItems = [
 
     </div>
 
-</div>
-
-<!-- ─── LLM CONFIRMATION MODAL ───────────────────────────────── -->
-<div class="modal fade"
-     id="er-llm-modal"
-     tabindex="-1"
-     aria-labelledby="er-llm-modal-label"
-     aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title d-flex align-items-center gap-2"
-                    id="er-llm-modal-label">
-                    <i class="fas fa-robot text-primary"></i>
-                    <?= __('Send to LLM') ?>
-                </h5>
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="<?= __('Close') ?>">
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <p class="mb-0">
-                    <?= __('Send this report to the LLM for processing?') ?>
-                </p>
-                <p class="text-muted small mt-1 mb-0">
-                    <i class="fas fa-clock me-1"></i>
-                    <?= __('This may take a moment.') ?>
-                </p>
-            </div>
-
-            <div class="modal-footer gap-2">
-                <button type="button"
-                        class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
-                <button type="button"
-                        id="er-llm-confirm-btn"
-                        class="btn btn-primary"
-                        onclick="erConfirmLLM()">
-                    <i class="fas fa-robot me-1"></i>
-                    <?= __('Confirm') ?>
-                </button>
-            </div>
-
-        </div>
-    </div>
 </div>
 
 <style>
@@ -550,72 +490,6 @@ $menuItems = [
         } finally {
             btn.disabled  = false;
             btn.innerHTML = '<i class="fas fa-save me-1"></i><?= __('Save') ?>';
-        }
-    };
-
-    /* ── Send to LLM ─────────────────────────────────────────── */
-
-    /* Step 1 — open the BS5 confirmation modal */
-    window.erSendToLLM = function (e) {
-        if (e) { e.preventDefault(); }
-        var modal = new bootstrap.Modal(document.getElementById('er-llm-modal'));
-        modal.show();
-    };
-
-    /* Step 2 — user clicked "Confirm" inside the modal */
-    window.erConfirmLLM = async function () {
-        /* Close the confirmation modal */
-        var modalEl = document.getElementById('er-llm-modal');
-        var modal   = bootstrap.Modal.getInstance(modalEl);
-        if (modal) { modal.hide(); }
-
-        var confirmBtn = document.getElementById('er-llm-confirm-btn');
-        if (confirmBtn) {
-            confirmBtn.disabled  = true;
-            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span><?= __('Sending…') ?>';
-        }
-
-        showToast('<?= __('Sending to LLM… please wait.') ?>', 'primary');
-
-        var url = baseurl + '/eventReports/sendToLLM/' + erReportId;
-
-        try {
-            /* GET the Overmind sendToLLM view to obtain the CSRF token */
-            var formResp = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!formResp.ok) { throw new Error('HTTP ' + formResp.status); }
-
-            var formHtml = await formResp.text();
-            var parser   = new DOMParser();
-            var doc      = parser.parseFromString(formHtml, 'text/html');
-            var form     = doc.querySelector('form');
-            if (!form) { throw new Error('<?= __('CSRF form not found in response') ?>'); }
-
-            /* POST back with CSRF tokens */
-            var postResp = await fetch(form.action || url, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new URLSearchParams(new FormData(form))
-            });
-
-            var result = await postResp.json();
-
-            if (result.saved !== false) {
-                showToast(result.message || '<?= __('Report sent to LLM successfully') ?>', 'success');
-                setTimeout(function () { window.location.reload(); }, 1500);
-            } else {
-                var errDetail = result.errors || result.message || '<?= __('Failed to send to LLM') ?>';
-                showToast(errDetail, 'danger');
-            }
-
-        } catch (err) {
-            showToast('<?= __('Failed to send to LLM') ?>: ' + err.message, 'danger');
-        } finally {
-            if (confirmBtn) {
-                confirmBtn.disabled  = false;
-                confirmBtn.innerHTML = '<i class="fas fa-robot me-1"></i><?= __('Confirm') ?>';
-            }
         }
     };
 

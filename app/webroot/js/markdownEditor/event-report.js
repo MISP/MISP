@@ -1152,13 +1152,6 @@ function injectCustomRulesMenu() {
             { name: 'Configure Template variables', icon: 'fas fa-pen', clickHandler: configureTemplateVariable},
         ]
     })
-    createSubMenu({
-        name: 'LLM ',
-        icon: 'fas fa-robot',
-        items: [
-            { name: 'Send report to LLM', icon: 'fas fa-robot', clickHandler: sendToLLM},
-        ]
-    })
     reloadRenderingRuleEnabledUI()
 }
 
@@ -1554,11 +1547,6 @@ function submitExtractionSuggestion() {
             url: formUrl
         })
     })
-}
-
-function sendToLLM() {
-    var url = baseurl + '/eventReports/sendToLLM/' + reportid
-    openGenericModal(url)
 }
 
 function configureTemplateVariable() {
