@@ -1401,6 +1401,9 @@ class ServersController extends AppController
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
+        } else if ($tab === 'AI') {
+            $this->loadModel('Module');
+            $this->set('aiModuleStatus', $this->Module->aiStatus());
         }
 
         // Only run this check on the diagnostics tab

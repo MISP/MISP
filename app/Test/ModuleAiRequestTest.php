@@ -51,6 +51,8 @@ class TestableAiModule extends Module
     public $settings = [];
     public $response = ['results' => []];
     public $sent = null;
+    /** What getModules('AI') answers: a listing, or an Exception to throw. */
+    public $listing = [];
 
     public function aiSetting($name)
     {
@@ -61,6 +63,15 @@ class TestableAiModule extends Module
     {
         $this->sent = compact('uri', 'timeout', 'postData', 'moduleFamily');
         return $this->response;
+    }
+
+    public function getModules($moduleFamily = 'Enrichment', $throwException = false)
+    {
+        $this->sent = compact('moduleFamily', 'throwException');
+        if ($this->listing instanceof Exception) {
+            throw $this->listing;
+        }
+        return $this->listing;
     }
 }
 
@@ -233,5 +244,66 @@ class ModuleAiRequestTest extends TestCase
         } catch (InvalidArgumentException $e) {
             $this->assertNull($module->sent);
         }
+    }
+
+    // ---- aiStatus --------------------------------------------------------
+
+    private function connector($version = '1.0')
+    {
+        return ['name' => 'ai_connector', 'meta' => ['module-type' => ['ai'], 'version' => $version, 'description' => 'd']];
+    }
+
+    public function testStatusWhenDisabledDoesNotTouchTheServer()
+    {
+        $module = $this->module(['services_enable' => false, 'services_url' => 'http://127.0.0.1/', 'services_port' => 6667], []);
+        $status = $module->aiStatus();
+        $this->assertFalse($status['enabled']);
+        $this->assertSame('http://127.0.0.1:6667', $status['server']);
+        $this->assertFalse($status['reachable']);
+        $this->assertFalse($status['listed']);
+        $this->assertNull($module->sent);
+    }
+
+    public function testStatusUnreachableCarriesTheError()
+    {
+        $module = $this->module(['services_enable' => true, 'services_url' => 'http://h', 'services_port' => 1], []);
+        $module->listing = new Exception('curl error 7');
+        $status = $module->aiStatus();
+        $this->assertTrue($status['enabled']);
+        $this->assertFalse($status['reachable']);
+        $this->assertSame('curl error 7', $status['error']);
+        $this->assertFalse($status['listed']);
+        $this->assertSame(['moduleFamily' => 'AI', 'throwException' => true], $module->sent);
+    }
+
+    public function testStatusReachableButModuleMissing()
+    {
+        $module = $this->module(['services_enable' => 1, 'services_url' => 'http://h', 'services_port' => 1], []);
+        $module->listing = [['name' => 'other', 'meta' => ['module-type' => ['expansion']]]];
+        $status = $module->aiStatus();
+        $this->assertTrue($status['reachable']);
+        $this->assertFalse($status['listed']);
+        $this->assertNull($status['module']);
+        $this->assertNull($status['error']);
+    }
+
+    public function testStatusReady()
+    {
+        $module = $this->module(['services_enable' => true, 'services_url' => 'http://h', 'services_port' => 1], []);
+        $module->listing = [['name' => 'other', 'meta' => []], $this->connector('0.0-fake')];
+        $status = $module->aiStatus();
+        $this->assertTrue($status['reachable']);
+        $this->assertTrue($status['listed']);
+        $this->assertSame(['version' => '0.0-fake', 'description' => 'd', 'types' => ['ai']], $status['module']);
+    }
+
+    public function testStatusWithAnUnreadableListing()
+    {
+        $module = $this->module(['services_enable' => true, 'services_url' => 'http://h', 'services_port' => 1], []);
+        $module->listing = 'Module service not reachable.';
+        $status = $module->aiStatus();
+        $this->assertTrue($status['reachable']);
+        $this->assertFalse($status['listed']);
+        $this->assertNotNull($status['error']);
     }
 }

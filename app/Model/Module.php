@@ -577,4 +577,50 @@ class Module extends AppModel
         }
         return isset($response['results']) && is_array($response['results']) ? $response['results'] : [];
     }
+
+    /**
+     * Health of the AI family as the settings page shows it: whether the
+     * family is enabled, which server it points at, whether that server
+     * answers /modules, and whether the ai_connector module is listed there.
+     *
+     * @return array {enabled: bool, server: string, reachable: bool,
+     *         error: string|null, listed: bool, module: array|null}
+     */
+    public function aiStatus()
+    {
+        $status = [
+            'enabled' => (bool)$this->aiSetting('services_enable'),
+            'server' => rtrim((string)$this->aiSetting('services_url'), '/') . ':' . $this->aiSetting('services_port'),
+            'reachable' => false,
+            'error' => null,
+            'listed' => false,
+            'module' => null,
+        ];
+        if (!$status['enabled']) {
+            return $status;
+        }
+        try {
+            $modules = $this->getModules('AI', true);
+        } catch (Exception $e) {
+            $status['error'] = $e->getMessage();
+            return $status;
+        }
+        $status['reachable'] = true;
+        if (!is_array($modules)) {
+            $status['error'] = __('The module server did not return a module list.');
+            return $status;
+        }
+        foreach ($modules as $module) {
+            if (isset($module['name']) && $module['name'] === self::AI_MODULE_NAME) {
+                $status['listed'] = true;
+                $status['module'] = [
+                    'version' => $module['meta']['version'] ?? null,
+                    'description' => $module['meta']['description'] ?? null,
+                    'types' => $module['meta']['module-type'] ?? [],
+                ];
+                break;
+            }
+        }
+        return $status;
+    }
 }

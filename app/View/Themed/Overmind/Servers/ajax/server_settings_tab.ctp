@@ -32,6 +32,12 @@ if ($tab === 'workers') {
         }
     }
 
+    if ($tab === 'AI') {
+        echo $this->element('healthElementsBS5/ai_status', array(
+            'status' => $aiModuleStatus,
+        ));
+    }
+
     echo $this->element('healthElementsBS5/settings_sections', array(
         'tab' => $tab,
         'sections' => ServerSettingGroups::split($tab, $flatSettings),
