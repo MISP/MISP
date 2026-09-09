@@ -1152,7 +1152,23 @@ function injectCustomRulesMenu() {
             { name: 'Configure Template variables', icon: 'fas fa-pen', clickHandler: configureTemplateVariable},
         ]
     })
+    if (typeof aiSummarizeReportUrl !== 'undefined' && aiSummarizeReportUrl) {
+        createSubMenu({
+            name: 'AI',
+            icon: 'fas fa-robot',
+            items: [
+                { name: 'Summarise report', icon: 'fas fa-file-lines', clickHandler: aiSummarizeReport},
+            ]
+        })
+    }
     reloadRenderingRuleEnabledUI()
+}
+
+// A1: the AI module puts its summary on top of the report (a previous AI
+// summary is replaced). Opens the confirmation; the view sets the URL only
+// while the action is available to the user.
+function aiSummarizeReport() {
+    openGenericModal(aiSummarizeReportUrl)
 }
 
 function markdownItToggleCustomRule(rulename, event) {

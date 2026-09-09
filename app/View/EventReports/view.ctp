@@ -45,6 +45,14 @@
             'value_class' => 'red',
         );
     }
+    // A1 from the report page: the editor's "AI" menu is offered while the
+    // AI services are on and the user may edit the report and run the tools.
+    $aiSummarizeReportUrl = ($canEdit
+        && !$report['EventReport']['deleted']
+        && Configure::read('Plugin.AI_services_enable')
+        && $this->Acl->canAccess('eventReports', 'aiSummarize'))
+        ? $baseurl . '/eventReports/aiSummarize/' . (int)$report['EventReport']['id']
+        : null;
 ?>
 
 <div class='<?= !isset($ajax) || !$ajax ? 'view' : '' ?>'>
@@ -67,6 +75,7 @@
                             'variables' => [
                                 'reportid' => $report['EventReport']['id'],
                                 'eventid' => $report['EventReport']['event_id'],
+                                'aiSummarizeReportUrl' => $aiSummarizeReportUrl,
                             ]
                         ],
                         'additionalMarkdownHelpModalElements' => [[

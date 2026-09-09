@@ -6,6 +6,11 @@
         <div class="alert alert-info"><?= __('Viewing reports in extending mode event view') ?></div>
     <?php endif; ?>
     <?php
+        // A1 per report row: the AI module writes its summary on top of the
+        // report. Only while the AI services are on and the user may run them.
+        $aiSummarizeReport = $canModify
+            && Configure::read('Plugin.AI_services_enable')
+            && $this->Acl->canAccess('eventReports', 'aiSummarize');
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'containerId' => 'eventreport',
             'data' => array(
@@ -144,6 +149,15 @@
                         ),
                         'icon' => 'eye',
                         'dbclickAction' => true
+                    ),
+                    array(
+                        'title' => __('Summarise with AI'),
+                        'icon' => 'robot',
+                        'onclick' => 'openGenericModal(\'' . $baseurl . '/eventReports/aiSummarize/[onclick_params_data_path]\');',
+                        'onclick_params_data_path' => 'EventReport.id',
+                        'complex_requirement' => function (array $row) use ($aiSummarizeReport) {
+                            return $aiSummarizeReport && !$row['EventReport']['deleted'];
+                        },
                     ),
                     array(
                         'title' => __('Delete'),

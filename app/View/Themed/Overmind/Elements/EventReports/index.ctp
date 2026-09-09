@@ -10,6 +10,12 @@ $reportOrigin = function ($row) use ($extensionEvents) {
     return ($origin === null || $origin['role'] === 'self') ? null : $origin;
 };
 
+// A1 per report row: the AI module writes its summary on top of the report.
+// Offered while the AI services are on and the user may run them; the
+// action itself checks the report's edit rights.
+$aiSummarizeReport = Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiSummarize');
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -88,6 +94,15 @@ $fields = [
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/event_reports/edit/%id%',
                 'requirement' => $me['Role']['perm_add']
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Summarise with AI'),
+                'icon' => 'robot',
+                'url' => $baseurl . '/event_reports/aiSummarize/%id%',
+                'requirement' => function (array $row) use ($aiSummarizeReport) {
+                    return $aiSummarizeReport && empty($row['EventReport']['deleted']);
+                },
             ],
             [
                 'type' => 'modal',

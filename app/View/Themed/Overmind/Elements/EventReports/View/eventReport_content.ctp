@@ -128,6 +128,29 @@ $menuItems = [
     ],
 ];
 
+// ── AI ─────────────────────────────────────────────────────────
+// A1 from the report page: the AI module puts its summary on top of the
+// report (a previous AI summary is replaced). Offered while the AI services
+// are on and the user may edit the report and run the tools.
+$aiSummarizeUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiSummarize'))
+    ? $baseurl . '/eventReports/aiSummarize/' . $reportId
+    : null;
+if ($aiSummarizeUrl !== null) {
+    $menuItems[] = ['type' => 'divider'];
+    $menuItems[] = ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('AI')];
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiSummarizeUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiSummarizeUrl . "', 'md');",
+        'icon'    => 'fas fa-file-lines',
+        'label'   => __('Summarise report'),
+        'title'   => __('The AI module puts its summary on top of the report; a previous AI summary is replaced'),
+    ];
+}
+
 ?>
 
 <div class="card shadow-sm mb-3" id="er-content-card">
