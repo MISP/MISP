@@ -12,7 +12,8 @@ class Module extends AppModel
         'Import' => array('import'),
         'Export' => array('export'),
         'Action' => array('action'),
-        'Cortex' => array('cortex')
+        'Cortex' => array('cortex'),
+        'AI' => array('ai')
     );
 
     // private
@@ -22,8 +23,15 @@ class Module extends AppModel
         'Action' => 'Action',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
-        'Cortex' => 'Cortex'
+        'Cortex' => 'Cortex',
+        'AI' => 'AI'
     );
+
+    /**
+     * The single hard-wired module of the AI family. It is never discovered
+     * through /modules for gating: Plugin.AI_services_enable is the switch.
+     */
+    const AI_MODULE_NAME = 'ai_connector';
 
     const CONFIG_TYPES = array(
         'IP' => array(
@@ -135,6 +143,8 @@ class Module extends AppModel
                 $output['Export'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
                 $output['Action'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('ai', $temp['meta']['module-type'])) {
+                $output['AI'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
