@@ -51,6 +51,17 @@ App::uses('RedisTool', 'Tools');
  * own - an aggregate alias, a function, a joined model's column - is left
  * alone.
  *
+ * **What the inserted id is when there is none.** After an INSERT Cake asks
+ * the driver for the new row's id. Cake's Postgres driver asks currval() of
+ * the sequence it saw in a nextval() default during describe(), and when
+ * the schema came out of the model cache it saw none and names one by
+ * convention - "{table}_{field}_seq" - on faith. That name exists for every
+ * serial column and for nothing else: bruteforces has no id column at all,
+ * system_settings is keyed on a varchar, and PostgreSQL answers both with
+ * "relation does not exist". MySQL returns 0 for a table without
+ * AUTO_INCREMENT, so lastInsertId() here asks the catalogue which sequence
+ * the column owns, once per table, and answers "0" when it owns none.
+ *
  * **What the operator sees in the logs.** Every statement is prefixed with
  * the user, controller and action the way MysqlObserver's are, timed the
  * same way, and reported to the same slow-query log when benchmarking is on.
@@ -77,6 +88,14 @@ class PostgresObserverExtended extends Postgres
     public static $totalSqlTimeMs = 0;
 
     protected $Redis;
+
+    /**
+     * @var array table => field => the sequence the catalogue says the column
+     *   owns, as schema.sequence, or false when it owns none. Kept apart
+     *   from Cake's $_sequenceMap, which describe() resets per table and
+     *   truncate() iterates as a list of real sequences.
+     */
+    private $ownedSequences = [];
 
     /**
      * Same shape as MysqlObserverExtended::execute(): prefix the statement
@@ -276,6 +295,60 @@ class PostgresObserverExtended extends Postgres
             return $key;
         }
         return $Model->alias . '.' . trim($key);
+    }
+
+    /**
+     * The id PostgreSQL just assigned, or "0" - MySQL's answer - for a key
+     * column with no sequence behind it. See the class docblock.
+     *
+     * @param string|Model|null $source Table name, with prefix, or the model.
+     * @param string $field The key column.
+     * @return string
+     */
+    public function lastInsertId($source = null, $field = 'id')
+    {
+        $table = is_object($source) ? $this->fullTableName($source, false, false) : (string)$source;
+        if (isset($this->_sequenceMap[$table][$field])) {
+            // describe() read the nextval() default itself this process.
+            return $this->_connection->lastInsertId($this->_sequenceMap[$table][$field]);
+        }
+        if (!isset($this->ownedSequences[$table][$field])) {
+            $this->ownedSequences[$table][$field] = $this->ownedSequence($table, $field);
+        }
+        $sequence = $this->ownedSequences[$table][$field];
+        return $sequence === false ? '0' : $this->_connection->lastInsertId($sequence);
+    }
+
+    /**
+     * What pg_get_serial_sequence() answers, asked in a way that tolerates a
+     * column that does not exist: the sequence a serial or identity column
+     * owns, as schema.sequence, or false when there is none.
+     *
+     * @param string $table
+     * @param string $field
+     * @return string|false
+     */
+    protected function ownedSequence($table, $field)
+    {
+        $statement = $this->_execute(
+            "SELECT sn.nspname || '.' || s.relname
+            FROM pg_catalog.pg_class t
+            JOIN pg_catalog.pg_namespace tn ON tn.oid = t.relnamespace
+            JOIN pg_catalog.pg_attribute a ON a.attrelid = t.oid AND a.attname = ? AND NOT a.attisdropped
+            JOIN pg_catalog.pg_depend d ON d.refclassid = 'pg_catalog.pg_class'::regclass
+                AND d.refobjid = t.oid AND d.refobjsubid = a.attnum
+                AND d.classid = 'pg_catalog.pg_class'::regclass AND d.deptype IN ('a', 'i')
+            JOIN pg_catalog.pg_class s ON s.oid = d.objid AND s.relkind = 'S'
+            JOIN pg_catalog.pg_namespace sn ON sn.oid = s.relnamespace
+            WHERE tn.nspname = ? AND t.relname = ?",
+            [$field, isset($this->config['schema']) ? $this->config['schema'] : 'public', $table]
+        );
+        if (!is_object($statement)) {
+            return false;
+        }
+        $sequence = $statement->fetchColumn();
+        $statement->closeCursor();
+        return is_string($sequence) && $sequence !== '' ? $sequence : false;
     }
 
     /**

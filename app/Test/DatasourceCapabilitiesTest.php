@@ -27,11 +27,28 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
      */
     class DatasourceTestPostgresObserverExtended extends PostgresObserverExtended
     {
+        /** @var array table => field => sequence or false: what the catalogue would say */
+        public $catalogue = array();
+
+        /** @var array The (table, field) pairs ownedSequence() was asked about */
+        public $catalogueAsked = array();
+
         public function __construct()
         {
-            $this->_connection = new MigrationTestPdo();
+            $this->_connection = new DatasourceTestPdo();
             $this->cacheMethods = false;
             $this->config = array('prefix' => '', 'database' => 'misp', 'schema' => 'public');
+        }
+
+        protected function ownedSequence($table, $field)
+        {
+            $this->catalogueAsked[] = "$table.$field";
+            return isset($this->catalogue[$table][$field]) ? $this->catalogue[$table][$field] : false;
+        }
+
+        public function primeSequenceMap($table, $field, $sequence)
+        {
+            $this->_sequenceMap[$table][$field] = $sequence;
         }
 
         public function primeResult(array $map, array $rows)
@@ -76,6 +93,18 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
         public function __get($name)
         {
             return null;
+        }
+    }
+
+    /**
+     * The offline PDO stand-in, plus what a real one answers to lastInsertId():
+     * currval() of the sequence it was given.
+     */
+    class DatasourceTestPdo extends MigrationTestPdo
+    {
+        public function lastInsertId($name = null)
+        {
+            return 'currval(' . $name . ')';
         }
     }
 
@@ -328,5 +357,48 @@ class DatasourceCapabilitiesTest extends TestCase
         $this->assertSame(' ORDER BY "attr_count" DESC', $db->order(array('attr_count DESC'), 'ASC', $News));
         $this->assertSame(' ORDER BY RANDOM() ASC', $db->order('RANDOM()', 'ASC', $News));
         $this->assertSame(' ORDER BY "date_created" DESC', $db->order('date_created DESC'));
+    }
+
+    /**
+     * After an INSERT, Cake asks the driver for the new id. The Postgres
+     * driver names the sequence by convention when describe() has not seen
+     * a nextval() default this process, and "bruteforces_id_seq" does not
+     * exist - bruteforces has no id column - which is the error the first
+     * failed login on PostgreSQL produced. The datasource asks the catalogue
+     * instead, once per table, and answers "0" for a key with no sequence,
+     * as MySQL does for a table without AUTO_INCREMENT.
+     */
+    public function testLastInsertIdAsksTheCatalogueOnceAndAnswersZeroForAKeyWithNoSequence()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $db->catalogue = array(
+            'events' => array('id' => 'public.events_id_seq'),
+            'bruteforces' => array('id' => false),
+        );
+
+        $this->assertSame('currval(public.events_id_seq)', $db->lastInsertId('events', 'id'));
+        $this->assertSame('0', $db->lastInsertId('bruteforces', 'id'));
+        $this->assertSame('0', $db->lastInsertId('system_settings', 'setting'), 'a table the catalogue does not list at all');
+
+        $db->lastInsertId('events', 'id');
+        $db->lastInsertId('bruteforces', 'id');
+        $this->assertSame(
+            array('events.id', 'bruteforces.id', 'system_settings.setting'),
+            $db->catalogueAsked,
+            'each pair is looked up once, the answer is remembered - false included'
+        );
+    }
+
+    /**
+     * When describe() did read the nextval() default this process, Cake's own
+     * sequence map is the answer and the catalogue is not consulted.
+     */
+    public function testLastInsertIdTrustsWhatDescribeAlreadyLearned()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $db->primeSequenceMap('attributes', 'id', 'public.attributes_id_seq');
+
+        $this->assertSame('currval(public.attributes_id_seq)', $db->lastInsertId('attributes', 'id'));
+        $this->assertSame(array(), $db->catalogueAsked);
     }
 }
