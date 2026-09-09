@@ -15,6 +15,12 @@
  *   $required     bool     REQUIRED badge, and a submit the field can refuse
  *   $shape        string   'any' | 'object' | 'array' — what the endpoint
  *                          accepts at the top level (default 'any')
+ *   $xml          bool     the endpoint takes an XML document here too, and
+ *                          tells the two apart by the first character the way
+ *                          EventsController::add_misp_export() does. A value
+ *                          opening with '<' is then accepted as it is rather
+ *                          than parsed, so the box does not call a legitimate
+ *                          XML export invalid. (default false)
  *   $id           string   textarea id (default: the one FormHelper derives)
  *   $value        mixed    prefill; an array is encoded, a string is
  *                          pretty-printed when it parses and left untouched
@@ -48,16 +54,19 @@ $shape = in_array($shape ?? 'any', ['any', 'object', 'array'], true)
     ? ($shape ?? 'any')
     : 'any';
 $gutter = $gutter ?? true;
+$allowXml = !empty($xml);
 
 /* Stored minified, edited pretty-printed. An unparseable value is shown as it
  * is: reformatting it would need parsing it, and it is precisely what has to
- * be read by hand to be fixed. */
+ * be read by hand to be fixed. An XML one is never touched. */
 $prefill = isset($value)
     ? $value
     : ($field === false ? null : $this->Form->value($field));
 if (is_array($prefill) || is_object($prefill)) {
     $prefill = json_encode($prefill, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-} elseif (is_string($prefill) && trim($prefill) !== '') {
+} elseif (is_string($prefill) && trim($prefill) !== ''
+    && !($allowXml && substr(ltrim($prefill), 0, 1) === '<')
+) {
     $decoded = json_decode($prefill);
     if (json_last_error() === JSON_ERROR_NONE) {
         $prefill = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -146,12 +155,14 @@ $wordings = [
     /* The badge for a host's setProblem(): the document parsed, something in
      * it is still wrong. */
     'problem' => __('Check the content'),
+    'xml' => __('XML document'),
 ];
 ?>
 <div class="ov-json <?= h($class ?? 'w-100') ?>"
      data-json-field="1"
      data-json-shape="<?= h($shape) ?>"
      data-json-required="<?= empty($required) ? '0' : '1' ?>"
+     <?php if ($allowXml): ?>data-json-xml="1"<?php endif; ?>
      <?php foreach ($wordings as $key => $text): ?>
      data-l-<?= h($key) ?>="<?= h($text) ?>"
      <?php endforeach; ?>

@@ -22,7 +22,10 @@
  *   $label         string  section label (default 'Distribution'; '' drops it)
  *   $required      bool    REQUIRED badge on the section label
  *   $hint          string  muted line under the cards
- *   $id            string  id of the hidden select; Cake's own when omitted
+ *   $id            string  id of the hidden select; Cake's own when omitted.
+ *                          Required when a page renders the field twice for
+ *                          the same field name — it is what keeps the two
+ *                          sharing-group reveals apart
  *   $selectAttrs   array   extra attributes for that select — the class or the
  *                          data-* hook a host form's JS listens on
  *   $columns       int     cards per row from lg up (default: one per level)
@@ -97,9 +100,13 @@ if (!isset($sgField)) {
 }
 
 /* The reveal needs a selector, and the wrapper is what gets hidden — so it
- * carries an id of its own, derived from the field to stay unique in a form
- * that asks for distribution more than once. */
-$sgWrapperId = 'dist-sg-' . preg_replace('/[^A-Za-z0-9]+/', '-', $field);
+ * carries an id of its own. Derived from $id first and only then from the
+ * field: a page holding two forms that both post `distribution` (the STIX 1.x
+ * and 2.x halves of the event import) would otherwise give both wrappers the
+ * same id, and each reveal would open the first one. Those callers already
+ * pass a distinct $id, because the hidden select needs one just as much. */
+$sgWrapperId = 'dist-sg-'
+    . preg_replace('/[^A-Za-z0-9]+/', '-', empty($id) ? $field : $id);
 ?>
 
 
