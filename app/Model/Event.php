@@ -8086,6 +8086,12 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
+            if ($distribution == 4) {
+                // The legacy STIX 1 script takes no sharing group;
+                // set it here so _add() and _edit() both see it.
+                // The STIX 2 script already carries the same value.
+                $data['Event']['sharing_group_id'] = $sharingGroupId;
+            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -8200,7 +8206,7 @@ class Event extends AppModel
                 ProcessTool::pythonBin(),
                 $scriptFile,
                 $file,
-                Configure::read('MISP.default_event_distribution'),
+                $distribution,
                 Configure::read('MISP.default_attribute_distribution'),
                 $this->__getTagNamesFromSynonyms($scriptDir)
             ];
