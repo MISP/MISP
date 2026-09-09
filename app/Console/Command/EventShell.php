@@ -301,6 +301,47 @@ class EventShell extends AppShell
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
 
+    /**
+     * Summarise an event (scope `event`) or an event report (scope `report`)
+     * with the AI module, as the requesting user. Queued by
+     * Event::aiSummarizeRouter(); the job row is updated here, and the exit
+     * code tells the worker whether the run succeeded.
+     *
+     * cake Event aiSummarize <user_id> <event|report> <id> [job_id]
+     */
+    public function aiSummarize()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: cake Event aiSummarize <user_id> <event|report> <id> [job_id]' . PHP_EOL);
+        }
+        $user = $this->getUser($this->args[0]);
+        // Rows the default audit engine writes from here carry the requesting
+        // user, not SYSTEM: the report is added on that user's behalf.
+        App::uses('SysLogLogableBehavior', 'SysLogLogable.Model/Behavior');
+        SysLogLogableBehavior::setShellUser($user);
+        $scope = $this->args[1];
+        $id = (int)$this->args[2];
+        $jobId = !empty($this->args[3]) ? (int)$this->args[3] : null;
+
+        $this->Job->saveProgress($jobId, __('Querying the AI module.'), 10);
+        try {
+            if ($scope === 'event') {
+                $result = $this->Event->aiSummarize($user, $id);
+                $message = __('AI summary added as report "%s" (#%s).', $result['name'], $result['report_id']);
+            } elseif ($scope === 'report') {
+                throw new Exception(__('AI summaries of event reports are not available yet.'));
+            } else {
+                throw new InvalidArgumentException("Unknown scope `$scope`, expected `event` or `report`.");
+            }
+        } catch (Exception $e) {
+            $message = __('AI summary failed: %s', $e->getMessage());
+            $this->Job->saveStatus($jobId, false, $message);
+            $this->error($message);
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
+    }
+
     public function contactemail()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
