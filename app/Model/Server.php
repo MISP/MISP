@@ -1738,6 +1738,10 @@ class Server extends AppModel
                         }
                         if (strpos($branchKey, 'Secur') === 0) {
                             $leafValue['tab'] = 'Security';
+                        } elseif ($branchKey === 'Plugin' && $leafValue['subGroup'] === 'AI') {
+                            // The AI family has a settings tab of its own; the names keep
+                            // the Plugin. prefix the module-family plumbing reads.
+                            $leafValue['tab'] = 'AI';
                         } else {
                             $leafValue['tab'] = $branchKey;
                         }

@@ -1312,6 +1312,7 @@ class ServersController extends AppController
             'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'AI' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
         );
 

@@ -588,6 +588,50 @@ class ServerSettingGroups
                 ),
             ),
         ),
+        'AI' => array(
+            array(
+                'id' => 'ai-connection',
+                'title' => 'Connection',
+                'description' => 'The misp-modules server running the ai_connector module, and how MISP reaches it',
+                'icon' => 'plug',
+                'accent' => '#0d6efd',
+                'settings' => array(
+                    'Plugin.AI_services_enable',
+                    'Plugin.AI_services_url',
+                    'Plugin.AI_services_port',
+                    'Plugin.AI_timeout',
+                    'Plugin.AI_ssl_verify_peer',
+                    'Plugin.AI_ssl_verify_host',
+                    'Plugin.AI_ssl_allow_self_signed',
+                    'Plugin.AI_ssl_cafile',
+                ),
+            ),
+            array(
+                'id' => 'ai-model',
+                'title' => 'Model',
+                'description' => 'The LLM endpoint and model the module queries, passed with every request',
+                'icon' => 'brain',
+                'accent' => '#6f42c1',
+                'settings' => array(
+                    'Plugin.AI_openai_api_base',
+                    'Plugin.AI_api_key',
+                    'Plugin.AI_model_id',
+                    'Plugin.AI_temperature',
+                    'Plugin.AI_request_timeout',
+                ),
+            ),
+            array(
+                'id' => 'ai-tags',
+                'title' => 'Tag recommendation',
+                'description' => 'How many tags the module may recommend for an event, and the confidence it needs',
+                'icon' => 'tags',
+                'accent' => '#fd7e14',
+                'settings' => array(
+                    'Plugin.AI_suggest_limit',
+                    'Plugin.AI_suggest_min_score',
+                ),
+            ),
+        ),
     );
 
     /**
@@ -736,6 +780,7 @@ class ServerSettingGroups
             array('tab' => 'Proxy', 'title' => __('Proxy'), 'icon' => 'fas fa-network-wired'),
             array('tab' => 'Security', 'title' => __('Security'), 'icon' => 'fas fa-shield-halved'),
             array('tab' => 'Plugin', 'title' => __('Plugins'), 'icon' => 'fas fa-puzzle-piece'),
+            array('tab' => 'AI', 'title' => __('AI'), 'icon' => 'fas fa-robot'),
             array('tab' => 'SimpleBackgroundJobs', 'title' => __('Background jobs'), 'icon' => 'fas fa-gears'),
             array('tab' => 'correlations', 'title' => __('Correlations'), 'icon' => 'fas fa-diagram-project'),
             array('tab' => 'diagnostics', 'title' => __('Diagnostics'), 'icon' => 'fas fa-stethoscope'),
