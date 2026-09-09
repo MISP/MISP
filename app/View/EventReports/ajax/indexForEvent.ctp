@@ -41,6 +41,15 @@
                                     'class' => 'modal-open',
                                     'requirement' => $canModify,
                                 ),
+                                array(
+                                    'url' => $baseurl . '/events/aiSummarize/' . h($event_id),
+                                    'active' => true,
+                                    'text' => __('Summarise with AI'),
+                                    'title' => __('The AI module writes a summary of the event into a new report'),
+                                    'fa-icon' => 'robot',
+                                    'class' => 'modal-open',
+                                    'requirement' => $canModify && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiSummarize'),
+                                ),
                             )
                         ),
                         array(

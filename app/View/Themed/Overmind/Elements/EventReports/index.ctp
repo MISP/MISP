@@ -136,7 +136,22 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
-                'children' => [
+                'children' => array_values(array_filter([
+                    // A2 from the reports tab of an event: the AI module writes its
+                    // summary into a new report. Only on an event's reports, only
+                    // while the AI services are on and the user may run them.
+                    (!empty($event['Event']['id'])
+                        && Configure::read('Plugin.AI_services_enable')
+                        && $this->Acl->canAccess('events', 'aiSummarize')
+                        && $this->Acl->canModifyEvent($event)) ? [
+                        'type' => 'button',
+                        'url' => $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'],
+                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'] . "', 'md');",
+                        'class' => 'btn btn-outline-primary',
+                        'icon' => 'fas fa-robot me-1',
+                        'label' => __('Summarise with AI'),
+                        'title' => __('The AI module writes a summary of the event into a new report'),
+                    ] : null,
                     [
                         'type' => 'search',
                         'button' => 'Search',
@@ -144,7 +159,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],
-                ],
+                ])),
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
