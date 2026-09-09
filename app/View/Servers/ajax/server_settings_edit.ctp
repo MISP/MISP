@@ -33,10 +33,10 @@ if (isset($setting['options'])) {
     if (isset($setting['bigField'])) {
         $type = 'textarea';
     }
-    if ($setting['type'] === 'numeric') {
+    if ($setting['type'] === 'numeric' || $setting['type'] === 'float') {
         $type = 'number';
     }
-    echo $this->Form->input('value', array(
+    $fieldOptions = array(
         'type' => $type,
         'label' => false,
         'value' => $setting['value'],
@@ -44,7 +44,11 @@ if (isset($setting['options'])) {
         'class' => 'inline-input',
         'id' => 'setting_' . $subGroup . '_' . $id . '_field',
         'div' => false
-    ));
+    );
+    if ($setting['type'] === 'float') {
+        $fieldOptions['step'] = 'any';
+    }
+    echo $this->Form->input('value', $fieldOptions);
 }
 ?>
     </div>

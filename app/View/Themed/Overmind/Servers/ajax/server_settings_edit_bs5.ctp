@@ -30,6 +30,9 @@ if (isset($setting['options'])) {
     $fieldOptions['rows'] = 4;
 } elseif ($setting['type'] === 'numeric') {
     $fieldOptions['type'] = 'number';
+} elseif ($setting['type'] === 'float') {
+    $fieldOptions['type'] = 'number';
+    $fieldOptions['step'] = 'any';
 } else {
     $fieldOptions['type'] = 'text';
     $fieldOptions['error'] = array('escape' => false);

@@ -1939,6 +1939,62 @@ class Server extends AppModel
         return true;
     }
 
+    /**
+     * Validator for a `float` setting with optional bounds (either may be
+     * null). Returns a closure usable as a setting's `test`.
+     *
+     * @param float|null $min
+     * @param float|null $max
+     * @return Closure
+     */
+    public function floatInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value)) {
+                return __('This setting has to be a number.');
+            }
+            $value = (float)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a number lower or equal %s.', $max);
+            }
+            return true;
+        };
+    }
+
+    /**
+     * Validator for a whole-number setting with optional bounds (either may
+     * be null). Returns a closure usable as a setting's `test`.
+     *
+     * @param int|null $min
+     * @param int|null $max
+     * @return Closure
+     */
+    public function integerInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value) || (float)$value != (int)$value) {
+                return __('The value has to be a whole number.');
+            }
+            $value = (int)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a whole number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a whole number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a whole number lower or equal %s.', $max);
+            }
+            return true;
+        };
+    }
+
     public function testTheme($value)
     {
         $themes = $this->loadAvailableThemes();
@@ -2745,13 +2801,25 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value)
+    /**
+     * Cast a raw setting value to the PHP type its definition declares. Every
+     * save path (web, REST, CLI) goes through here. A non-numeric value for a
+     * `float` setting is left untouched so that the setting's test rejects it
+     * instead of it silently becoming 0.
+     *
+     * @param array $setting Setting definition, only `type` is read
+     * @param mixed $value
+     * @return mixed
+     */
+    public static function normaliseSettingValue(array $setting, $value)
     {
-        if (!empty($data['type'])) {
-            if ($data['type'] === 'boolean') {
+        if (!empty($setting['type'])) {
+            if ($setting['type'] === 'boolean') {
                 $value = (bool)$value;
-            } elseif ($data['type'] === 'numeric') {
+            } elseif ($setting['type'] === 'numeric') {
                 $value = (int)$value;
+            } elseif ($setting['type'] === 'float' && is_numeric($value)) {
+                $value = (float)$value;
             }
         }
         return $value;
@@ -2811,12 +2879,7 @@ class Server extends AppModel
             }
         }
         if ($value !== null) {
-            $value = trim($value);
-            if ($setting['type'] === 'boolean') {
-                $value = (bool)$value;
-            } else if ($setting['type'] === 'numeric') {
-                $value = (int)$value;
-            }
+            $value = self::normaliseSettingValue($setting, trim($value));
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
                     $testResult = $setting['test']($value);
@@ -2915,7 +2978,7 @@ class Server extends AppModel
 
         $settingObject = $this->getSettingData($setting, false);
         if ($settingObject) {
-            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
+            $value = self::normaliseSettingValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -8866,12 +8929,7 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Maximum number of tags the AI module may recommend for an event, between 1 and 10.'),
                     'value' => 5,
-                    'test' => function ($value) {
-                        if (ctype_digit((string)$value) && (int)$value >= 1 && (int)$value <= 10) {
-                            return true;
-                        }
-                        return __('The value has to be a whole number between 1 and 10.');
-                    },
+                    'test' => $this->integerInRange(1, 10),
                     'type' => 'numeric',
                     'null' => true
                 ),
@@ -8879,7 +8937,7 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Recommended tags whose confidence score is below this value (0 to 1) are dropped.'),
                     'value' => 0,
-                    'test' => 'testForNumeric',
+                    'test' => $this->floatInRange(0, 1),
                     'type' => 'float',
                     'null' => true
                 ),
