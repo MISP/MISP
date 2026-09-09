@@ -170,7 +170,7 @@ if (!class_exists('TestMigrationManager', false)) {
         protected function persistLedgerRow(array $row)
         {
             $this->ledgerWrites++;
-            $this->rows[$row['id']] = $row;
+            $this->rows[$row[MigrationManager::LEDGER_KEY]] = $row;
         }
 
         protected function execute($id, AbstractMigration $migration)
@@ -194,7 +194,7 @@ if (!class_exists('TestMigrationManager', false)) {
         public static function row($id, $status)
         {
             return array(
-                'id' => $id,
+                MigrationManager::LEDGER_KEY => $id,
                 'applied_at' => '2026-08-01 12:00:00',
                 'duration_ms' => 12,
                 'status' => $status,

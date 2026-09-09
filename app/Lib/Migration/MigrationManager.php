@@ -54,6 +54,13 @@ class MigrationManager
 {
     const LEDGER_TABLE = 'schema_migrations';
 
+    /**
+     * The ledger column that holds a migration's id. The table's own `id` is
+     * an auto-increment integer like every other table's, and nothing keys on
+     * it.
+     */
+    const LEDGER_KEY = 'migration_id';
+
     const STATUS_APPLIED = 'applied';
     const STATUS_FAILED = 'failed';
 
@@ -67,14 +74,18 @@ class MigrationManager
      * like any other DDL rather than written out as SQL, so the table arrives on
      * PostgreSQL without a second hand-maintained definition.
      *
-     * varchar(191) because 767 bytes of index prefix divided by utf8mb4's four
-     * bytes per character is 191 - the same reason the existing schema already
-     * has 33 columns of exactly that width.
+     * `id` is the auto-increment integer every MISP table keys on; the
+     * migration's own id lives in `migration_id`, varchar(191) because 767
+     * bytes of index prefix divided by utf8mb4's four bytes per character is
+     * 191 - the same reason the existing schema already has 33 columns of
+     * exactly that width - and unique, since it is what every read and write
+     * of the ledger goes by.
      *
      * @var array
      */
     private static $ledgerColumns = array(
-        'id' => array('type' => 'string', 'length' => 191, 'null' => false, 'key' => 'primary'),
+        'id' => array('type' => 'primary_key'),
+        self::LEDGER_KEY => array('type' => 'string', 'length' => 191, 'null' => false),
         'applied_at' => array('type' => 'datetime', 'null' => false),
         'duration_ms' => array('type' => 'integer', 'null' => false, 'default' => 0),
         'status' => array('type' => 'string', 'length' => 16, 'null' => false, 'default' => self::STATUS_APPLIED),
@@ -82,9 +93,11 @@ class MigrationManager
     );
 
     /**
-     * @var array Table parameters MySQL understands and PostgreSQL drops.
+     * @var array The unique index over the migration id, plus table
+     *   parameters MySQL understands and PostgreSQL drops.
      */
     private static $ledgerOptions = array(
+        'indexes' => array(self::LEDGER_KEY => array('unique' => true)),
         'engine' => 'InnoDB',
         'charset' => 'utf8mb4',
     );
@@ -217,17 +230,55 @@ class MigrationManager
         if ($this->ledgerReady) {
             return;
         }
-        if (!$this->inspector()->hasTable(self::LEDGER_TABLE)) {
-            $schema = SchemaBuilder::forDataSource($this->dataSource());
-            $schema->createTable(self::LEDGER_TABLE, self::$ledgerColumns, self::$ledgerOptions);
-            foreach ($schema->toSql() as $statement) {
+        $statements = $this->ledgerSchema()->toSql();
+        if (!empty($statements)) {
+            foreach ($statements as $statement) {
                 $this->model->query($statement);
             }
-            // The table did not exist a moment ago, and something is about to
-            // read it back in this same call.
+            // The table did not exist, or did not have this shape, a moment
+            // ago, and something is about to read it back in this same call.
             $this->inspector()->disableSchemaCache();
         }
         $this->ledgerReady = true;
+    }
+
+    /**
+     * What the ledger table needs to become what $ledgerColumns says, as a
+     * declaration: a CREATE when it is missing, a reshape when it is the
+     * earlier form, nothing when it is current.
+     *
+     * The earlier form keyed the table on the migration id itself, a
+     * varchar(191) named `id`. Every other table keys on an auto-increment
+     * integer, and the ledger now does too: the old key column is renamed to
+     * `migration_id`, made unique, and the integer `id` takes the primary key.
+     * The rows survive - a rename keeps the data - so nothing is re-applied.
+     * This is the ledger's own check-then-act, the same as any migration's,
+     * because a migration cannot alter the table that records migrations.
+     *
+     * @return SchemaBuilder
+     */
+    protected function ledgerSchema()
+    {
+        $schema = SchemaBuilder::forDataSource($this->dataSource());
+        $inspector = $this->inspector();
+        if (!$inspector->hasTable(self::LEDGER_TABLE)) {
+            $schema->createTable(self::LEDGER_TABLE, self::$ledgerColumns, self::$ledgerOptions);
+            return $schema;
+        }
+        if ($inspector->hasColumn(self::LEDGER_TABLE, self::LEDGER_KEY)) {
+            return $schema;
+        }
+        $key = self::$ledgerColumns[self::LEDGER_KEY];
+        $table = $schema->table(self::LEDGER_TABLE);
+        $table->renameColumn('id', self::LEDGER_KEY, $key['type'], array(
+            'length' => $key['length'],
+            'null' => false,
+            'default' => null,
+        ));
+        $table->addIndex(self::LEDGER_KEY, array('unique' => true));
+        $table->dropPrimaryKey();
+        $table->addColumn('id', 'primary_key', array('first' => true));
+        return $schema;
     }
 
     /**
@@ -246,7 +297,8 @@ class MigrationManager
      * out of the tree leaves its row. pending() ignores those; migrationStatus
      * reports them.
      *
-     * @return array id => array('id', 'applied_at', 'duration_ms', 'status', 'error')
+     * @return array migration id => array('migration_id', 'applied_at',
+     *   'duration_ms', 'status', 'error', and the row's own integer 'id')
      */
     public function ledger()
     {
@@ -496,17 +548,21 @@ class MigrationManager
         if (!$this->inspector()->hasTable(self::LEDGER_TABLE)) {
             return array();
         }
+        // SELECT * rather than the column list, so that a ledger still in its
+        // earlier shape - the migration id in a varchar column named `id`,
+        // before ensureLedger() has had a write to reshape it on - reads back
+        // without an error and without a second query to ask which shape it
+        // is. The migration id is whichever of the two columns is there.
         $db = $this->dataSource();
-        $sql = sprintf(
-            'SELECT %s FROM %s;',
-            implode(', ', array_map(array($db, 'name'), array_keys(self::$ledgerColumns))),
-            $db->name(self::LEDGER_TABLE)
-        );
+        $sql = sprintf('SELECT * FROM %s;', $db->name(self::LEDGER_TABLE));
         $ledger = array();
         foreach ((array)$this->model->query($sql) as $row) {
             $fields = $this->unwrapRow($row);
-            if (isset($fields['id'])) {
-                $ledger[$fields['id']] = $fields;
+            if (!isset($fields[self::LEDGER_KEY]) && isset($fields['id'])) {
+                $fields[self::LEDGER_KEY] = $fields['id'];
+            }
+            if (isset($fields[self::LEDGER_KEY])) {
+                $ledger[$fields[self::LEDGER_KEY]] = $fields;
             }
         }
         return $ledger;
@@ -525,7 +581,7 @@ class MigrationManager
     {
         $this->ensureLedger();
         $this->persistLedgerRow(array(
-            'id' => $id,
+            self::LEDGER_KEY => $id,
             'applied_at' => date('Y-m-d H:i:s'),
             'duration_ms' => (int)$durationMs,
             'status' => $status,
@@ -534,10 +590,12 @@ class MigrationManager
     }
 
     /**
-     * Put one row in the ledger table, replacing any row already under that id.
+     * Put one row in the ledger table, replacing any row already under that
+     * migration id.
      *
      * Delete-then-insert rather than an upsert: ON DUPLICATE KEY UPDATE is
-     * MySQL's spelling alone, and this has to work on both engines.
+     * MySQL's spelling alone, and this has to work on both engines. The
+     * table's own integer id is the engine's to assign.
      *
      * @param array $row Keyed by the ledger's column names.
      * @return void
@@ -550,19 +608,24 @@ class MigrationManager
         $this->model->query(sprintf(
             'DELETE FROM %s WHERE %s = %s;',
             $table,
-            $db->name('id'),
-            $db->value($row['id'], 'string')
+            $db->name(self::LEDGER_KEY),
+            $db->value($row[self::LEDGER_KEY], 'string')
         ));
 
+        $columns = array();
         $values = array();
         foreach (self::$ledgerColumns as $column => $spec) {
+            if ($column === 'id') {
+                continue;
+            }
             $value = isset($row[$column]) ? $row[$column] : null;
+            $columns[] = $db->name($column);
             $values[] = $value === null ? 'NULL' : $db->value($value, $spec['type']);
         }
         $this->model->query(sprintf(
             'INSERT INTO %s (%s) VALUES (%s);',
             $table,
-            implode(', ', array_map(array($db, 'name'), array_keys(self::$ledgerColumns))),
+            implode(', ', $columns),
             implode(', ', $values)
         ));
     }
@@ -646,7 +709,7 @@ class MigrationManager
         if (isset($row[self::LEDGER_TABLE]) && is_array($row[self::LEDGER_TABLE])) {
             return $row[self::LEDGER_TABLE];
         }
-        if (isset($row['id'])) {
+        if (isset($row['id']) || isset($row[self::LEDGER_KEY])) {
             return $row;
         }
         $first = reset($row);

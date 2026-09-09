@@ -224,6 +224,63 @@ class MigrationManagerTest extends TestCase
 
         $this->assertSame(array(), $manager->toSql('20260102_000000_backfill_column'));
     }
+
+    /**
+     * The ledger keys on an auto-increment integer like every other table,
+     * with the migration's own id in a unique varchar column. A ledger in its
+     * earlier shape - the migration id as a varchar `id` - is reshaped in
+     * place on the next write, keeping its rows; one already in shape gets
+     * nothing. The ledger cannot be a migration, so this is its own
+     * check-then-act.
+     */
+    public function testTheLedgerIsCreatedOrReshapedToKeyOnAnIntegerId()
+    {
+        $manager = new LedgerShapeMigrationManager();
+
+        $manager->inspector->tables = array();
+        $sql = $manager->ledgerSchema()->toSql();
+        $this->assertCount(1, $sql);
+        $this->assertStringStartsWith('CREATE TABLE `schema_migrations` (', $sql[0]);
+        $this->assertStringContainsString('`id` int(11) NOT NULL AUTO_INCREMENT', $sql[0]);
+        $this->assertStringContainsString('`migration_id` varchar(191) NOT NULL', $sql[0]);
+        $this->assertStringContainsString('PRIMARY KEY (`id`)', $sql[0]);
+        $this->assertStringContainsString('UNIQUE INDEX `migration_id` (`migration_id`)', $sql[0]);
+
+        $manager->inspector->tables = array('schema_migrations' => array('id', 'applied_at', 'duration_ms', 'status', 'error'));
+        $this->assertSame(
+            array(
+                'ALTER TABLE `schema_migrations` CHANGE `id` `migration_id` varchar(191) NOT NULL;',
+                'ALTER TABLE `schema_migrations` ADD UNIQUE INDEX `migration_id` (`migration_id`);',
+                'ALTER TABLE `schema_migrations` DROP PRIMARY KEY;',
+                'ALTER TABLE `schema_migrations` ADD `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;',
+            ),
+            $manager->ledgerSchema()->toSql(),
+            'the earlier shape is reshaped in place, rows kept'
+        );
+
+        $manager->inspector->tables = array('schema_migrations' => array('id', 'migration_id', 'applied_at', 'duration_ms', 'status', 'error'));
+        $this->assertSame(array(), $manager->ledgerSchema()->toSql(), 'already in shape');
+    }
+
+    /**
+     * Reads take whichever shape is there: a row from the earlier ledger
+     * reports its varchar `id` as the migration id, so an instance between
+     * pulling this code and its next write still knows what it applied.
+     */
+    public function testTheLedgerReadsBothShapes()
+    {
+        $manager = new LedgerReadingMigrationManager(array(
+            array('schema_migrations' => array('id' => '20260101_000000_add_column', 'status' => 'applied')),
+            array('schema_migrations' => array('id' => '7', 'migration_id' => '20260102_000000_backfill_column', 'status' => 'failed')),
+        ));
+        $ledger = $manager->ledger();
+        $this->assertSame(
+            array('20260101_000000_add_column', '20260102_000000_backfill_column'),
+            array_keys($ledger)
+        );
+        $this->assertSame('20260101_000000_add_column', $ledger['20260101_000000_add_column']['migration_id']);
+        $this->assertSame('7', $ledger['20260102_000000_backfill_column']['id']);
+    }
 }
 
 if (!class_exists('ThrowingMigrationManager', false)) {
@@ -238,6 +295,95 @@ if (!class_exists('ThrowingMigrationManager', false)) {
         {
             $this->executed[] = $id;
             throw new RuntimeException('the table was not there');
+        }
+    }
+}
+
+if (!class_exists('LedgerShapeTestInspector', false)) {
+    /**
+     * A schema inspector with a scripted answer: table => its columns.
+     */
+    class LedgerShapeTestInspector extends SchemaInspector
+    {
+        public $tables = array();
+
+        public function __construct()
+        {
+        }
+
+        public function hasTable($table)
+        {
+            return isset($this->tables[$table]);
+        }
+
+        public function hasColumn($table, $column)
+        {
+            return isset($this->tables[$table]) && in_array($column, $this->tables[$table], true);
+        }
+    }
+
+    class LedgerShapeMigrationManager extends SchemaRenderingMigrationManager
+    {
+        public $inspector;
+
+        public function __construct()
+        {
+            parent::__construct();
+            $this->inspector = new LedgerShapeTestInspector();
+        }
+
+        public function inspector()
+        {
+            return $this->inspector;
+        }
+
+        public function ledgerSchema()
+        {
+            return parent::ledgerSchema();
+        }
+    }
+
+    class LedgerReadingTestModel
+    {
+        private $rows;
+
+        public function __construct(array $rows)
+        {
+            $this->rows = $rows;
+        }
+
+        public function query($sql)
+        {
+            return $this->rows;
+        }
+    }
+
+    /**
+     * The real readLedger() over a scripted query result, so the shape
+     * tolerance is exercised rather than stubbed away.
+     */
+    class LedgerReadingMigrationManager extends SchemaRenderingMigrationManager
+    {
+        private $inspector;
+
+        public function __construct(array $queryResult)
+        {
+            parent::__construct();
+            $this->inspector = new LedgerShapeTestInspector();
+            $this->inspector->tables = array('schema_migrations' => array('id'));
+            $property = new ReflectionProperty('MigrationManager', 'model');
+            $property->setAccessible(true);
+            $property->setValue($this, new LedgerReadingTestModel($queryResult));
+        }
+
+        public function inspector()
+        {
+            return $this->inspector;
+        }
+
+        protected function readLedger()
+        {
+            return MigrationManager::readLedger();
         }
     }
 }

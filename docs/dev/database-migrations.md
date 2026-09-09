@@ -296,12 +296,17 @@ regenerated, §10 applies.
 
 ## 9. The ledger
 
-`schema_migrations`, one row per migration: `id`, `applied_at`, `duration_ms`,
-`status` (`applied` / `failed`), `error`.
+`schema_migrations`, one row per migration: `id` (the auto-increment integer
+every table keys on), `migration_id` (the migration's id, unique — what every
+read and write goes by), `applied_at`, `duration_ms`, `status` (`applied` /
+`failed`), `error`.
 
 It is created on first write, not by a migration — a migration system whose
-ledger is a migration has nowhere to record that it ran. It is read fresh on
-every call and never cached, because the interesting callers are polling it while
+ledger is a migration has nowhere to record that it ran. For the same reason it
+reshapes itself: a ledger from before it had an integer `id` (the migration id
+sat in a varchar column named `id`) is altered in place on the next write, rows
+kept, and reads take either shape in the meantime. It is read fresh on every
+call and never cached, because the interesting callers are polling it while
 another process applies migrations. Asking what is pending never creates it.
 
 It may hold ids with no file behind them, if a migration was reverted out of the
@@ -372,7 +377,8 @@ moving it:
    ```
 3. Add a `CREATE TABLE schema_migrations` block to the dump, and one
    `INSERT IGNORE` per applied id, in the `Default values for initial
-   installation` block beside the existing seed rows. `status` is `applied`,
+   installation` block beside the existing seed rows. The id goes in
+   `migration_id`; leave `id` to the engine. `status` is `applied`,
    `duration_ms` may be `0`, and `applied_at` is the dump's own date — the value
    is informational, only the row's existence matters.
 4. **Leave `db_version` alone.**

@@ -117,11 +117,13 @@ CREATE INDEX "idx_attribute_tags_event_id" ON "attribute_tags" ("event_id");
 CREATE INDEX "idx_attribute_tags_tag_id" ON "attribute_tags" ("tag_id");
 
 CREATE TABLE "attr_value_counts" (
+    "id" serial NOT NULL,
     "value" varchar(64) NOT NULL,
     "cnt_v1" bigint DEFAULT 0 NOT NULL,
     "cnt_v2" bigint DEFAULT 0 NOT NULL,
-    PRIMARY KEY ("value")
+    PRIMARY KEY ("id")
 );
+CREATE UNIQUE INDEX "idx_attr_value_counts_value" ON "attr_value_counts" ("value");
 
 CREATE TABLE "audit_logs" (
     "id" serial NOT NULL,
@@ -179,9 +181,11 @@ CREATE INDEX "idx_bookmarks_org_id" ON "bookmarks" ("org_id");
 CREATE INDEX "idx_bookmarks_user_id" ON "bookmarks" ("user_id");
 
 CREATE TABLE "bruteforces" (
+    "id" serial NOT NULL,
     "ip" varchar(255) NOT NULL,
     "username" varchar(255) NOT NULL,
-    "expire" timestamp NOT NULL
+    "expire" timestamp NOT NULL,
+    PRIMARY KEY ("id")
 );
 
 CREATE TABLE "cake_sessions" (
@@ -1168,13 +1172,15 @@ CREATE TABLE "scheduled_tasks" (
 );
 
 CREATE TABLE "schema_migrations" (
-    "id" varchar(191) NOT NULL,
+    "id" serial NOT NULL,
+    "migration_id" varchar(191) NOT NULL,
     "applied_at" timestamp NOT NULL,
     "duration_ms" integer DEFAULT 0 NOT NULL,
     "status" varchar(16) DEFAULT 'applied' NOT NULL,
     "error" text DEFAULT NULL,
     PRIMARY KEY ("id")
 );
+CREATE UNIQUE INDEX "idx_schema_migrations_migration_id" ON "schema_migrations" ("migration_id");
 
 CREATE TABLE "servers" (
     "id" serial NOT NULL,
@@ -1387,10 +1393,12 @@ CREATE INDEX "idx_sighting_blocklists_org_name" ON "sighting_blocklists" ("org_n
 CREATE INDEX "idx_sighting_blocklists_org_uuid" ON "sighting_blocklists" ("org_uuid");
 
 CREATE TABLE "system_settings" (
+    "id" serial NOT NULL,
     "setting" varchar(255) NOT NULL,
     "value" bytea NOT NULL,
-    PRIMARY KEY ("setting")
+    PRIMARY KEY ("id")
 );
+CREATE UNIQUE INDEX "idx_system_settings_setting" ON "system_settings" ("setting");
 
 CREATE TABLE "tags" (
     "id" serial NOT NULL,
@@ -1908,8 +1916,9 @@ INSERT INTO "dashboards" ("id", "uuid", "name", "description", "default", "selec
 (3, '2b50c003-c475-4c9c-ac90-0a177b44e565', 'Community', 'A sharing-community overview: where the member organisations are, who contributes most (orgs and users), how the community has grown, overall usage, and the sharing relationships between organisations.', 'FALSE', 'TRUE', 0, 0, 0, '', '[{"instance_id":"w_1","widget":"OrganisationMapWidget","config":{"alias":"Organisations by country"},"position":{"x":0,"y":0,"w":8,"h":5}},{"instance_id":"w_2","widget":"UsageDataWidget","config":{"alias":"Usage"},"position":{"x":8,"y":0,"w":4,"h":5}},{"instance_id":"w_3","widget":"OrgContributionToplistWidget","config":{"alias":"Top contributing organisations"},"position":{"x":0,"y":5,"w":6,"h":4}},{"instance_id":"w_4","widget":"UserContributionToplistWidget","config":{"alias":"Top contributing users"},"position":{"x":6,"y":5,"w":6,"h":4}},{"instance_id":"w_5","widget":"OrgsEvolutionWidget","config":{"alias":"Organisation growth"},"position":{"x":0,"y":9,"w":6,"h":6}},{"instance_id":"w_6","widget":"SharingGraphWidget","config":{"alias":"Sharing relationships"},"position":{"x":6,"y":9,"w":6,"h":6}}]', 1788349538)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "schema_migrations" ("id", "applied_at", "duration_ms", "status", "error") VALUES
-('20260901_082657_taxii_servers_auth_type_width', NOW(), 161, 'applied', NULL)
+INSERT INTO "schema_migrations" ("id", "migration_id", "applied_at", "duration_ms", "status", "error") VALUES
+(1, '20260901_082657_taxii_servers_auth_type_width', NOW(), 161, 'applied', NULL),
+(2, '20260909_175232_add_id_to_keyless_tables', NOW(), 646, 'applied', NULL)
 ON CONFLICT DO NOTHING;
 
 -- The rows above carry explicit ids; bring each sequence past them.
@@ -1925,5 +1934,6 @@ SELECT setval(pg_get_serial_sequence('template_element_files', 'id'), COALESCE(M
 SELECT setval(pg_get_serial_sequence('template_element_texts', 'id'), COALESCE(MAX("id"), 1), MAX("id") IS NOT NULL) FROM "template_element_texts";
 SELECT setval(pg_get_serial_sequence('org_blocklists', 'id'), COALESCE(MAX("id"), 1), MAX("id") IS NOT NULL) FROM "org_blocklists";
 SELECT setval(pg_get_serial_sequence('dashboards', 'id'), COALESCE(MAX("id"), 1), MAX("id") IS NOT NULL) FROM "dashboards";
+SELECT setval(pg_get_serial_sequence('schema_migrations', 'id'), COALESCE(MAX("id"), 1), MAX("id") IS NOT NULL) FROM "schema_migrations";
 
 COMMIT;
