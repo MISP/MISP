@@ -8342,6 +8342,55 @@ class EventsController extends AppController
         $this->set('event', $event);
     }
 
+    /**
+     * Summarise an event with the AI module into a new event report.
+     * GET renders the confirmation; POST queues the job, or runs it at once
+     * when background jobs are off. REST answers with the job id.
+     *
+     * @param int|string $id
+     */
+    public function aiSummarize($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        if ($this->request->is('post')) {
+            try {
+                $result = $this->Event->aiSummarizeRouter($this->Auth->user(), $event['Event']['id']);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiSummarize', $event['Event']['id'], $e->getMessage(), $this->response->type());
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI summary job #%s queued — refresh the event when it completes.', $result['job_id']);
+            } else {
+                $message = __('AI summary added to the event as the report "%s".', $result['name']);
+            }
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                    $this->response->type()
+                );
+            }
+            $this->Flash->success($message);
+            return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+        }
+        $this->set('event', $event);
+        $this->layout = false;
+        $this->render('ajax/aiSummarizeConfirmationForm');
+    }
+
     public function enrichEvent($id)
     {
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);

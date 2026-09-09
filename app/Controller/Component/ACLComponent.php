@@ -349,6 +349,7 @@ class ACLComponent extends Component
             'addIOC' => array('perm_add'),
             'addTag' => array('perm_tagger'),
             'add_misp_export' => array('perm_modify'),
+            'aiSummarize' => array('perm_ai_tools'),
             'alert' => array('perm_publish'),
             'automation' => array('perm_auth'),
             'checkLocks' => array('perm_add'),

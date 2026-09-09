@@ -3220,6 +3220,108 @@ class Event extends AppModel
         return JSONConverterTool::convert($events[0], !empty($user['Role']['perm_site_admin']), true);
     }
 
+    /**
+     * Whether the user may modify the event. Mirror of
+     * ACLComponent::canModifyEvent() for model and worker code, where the
+     * component is not available.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding orgc_id and user_id
+     * @return bool
+     */
+    public function userCanModifyEvent(array $user, array $event)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        if (!empty($user['Role']['perm_modify_org']) && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!empty($user['Role']['perm_modify']) && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Summarise an event with the AI module: queued as a background job, or
+     * run at once when background jobs are off.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array ['job_id' => int] when queued, else what aiSummarize() returns
+     * @throws Exception see aiSummarize()
+     */
+    public function aiSummarizeRouter(array $user, $eventId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_summarize_event',
+                'Event: ' . (int)$eventId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'event', (int)$eventId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->aiSummarize($user, $eventId);
+    }
+
+    /**
+     * Summarise an event with the AI module and attach the answer as a new
+     * event report, as the given user: the read and edit checks are applied
+     * here again so that a worker writes with the requesting user's rights,
+     * and the report is added the way the UI adds one (the event is
+     * unpublished).
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array ['report_id' => int, 'name' => string]
+     * @throws NotFoundException|ForbiddenException|Exception with a user-facing message
+     */
+    public function aiSummarize(array $user, $eventId)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->userCanModifyEvent($user, $event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $results = $this->Module->queryAI('summarization_on_event', $data);
+        $answer = isset($results['EventReport']) && is_array($results['EventReport']) ? $results['EventReport'] : [];
+        if (empty($answer['content']) || !is_string($answer['content'])) {
+            throw new Exception(__('The AI module returned no report.'));
+        }
+        $name = isset($answer['name']) && is_string($answer['name']) ? trim($answer['name']) : '';
+        if ($name === '') {
+            $name = __('AI summary of event %s', $eventId);
+        }
+        $name = mb_substr($name, 0, 255);
+        $errors = $this->EventReport->addReport($user, [
+            'name' => $name,
+            'content' => $answer['content'],
+            'distribution' => 5,
+        ], $eventId);
+        if (!empty($errors)) {
+            throw new Exception(__('The AI summary could not be saved as a report: %s', json_encode($errors)));
+        }
+        return ['report_id' => (int)$this->EventReport->id, 'name' => $name];
+    }
+
     //Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
     // Possible options:
     // eventid: single event ID
