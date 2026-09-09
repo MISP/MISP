@@ -91,15 +91,16 @@ echo $this->Form->create('Galaxy', [
 
     <!-- KILL CHAIN ORDER (advanced) -->
     <div class="mt-3">
-        <?= $this->Form->label('kill_chain_order', __('Kill Chain order (for the Galaxy Matrix)'), ['class' => 'form-label fw-semibold']) ?>
-        <?= $this->Form->textarea('kill_chain_order', [
-            'class' => 'form-control font-monospace bg-light',
+        <?= $this->element('genericElementsBS5/Forms/json_field', [
+            'field' => 'kill_chain_order',
+            'accent' => 'galaxy',
+            'label' => __('Kill Chain order (for the Galaxy Matrix)'),
+            'shape' => 'object',
             'rows' => 3,
-            'placeholder' => '{ "fraud-tactics": [ "Initiation", "Target Compromise", … ] }',
+            'minHeight' => '90px',
+            'placeholder' => '{"fraud-tactics": ["Initiation", "Target Compromise"]}',
+            'hint' => __('Optional — the kill-chain ordering a matrix galaxy is drawn in.'),
         ]) ?>
-        <div class="form-text">
-            <?= __('Optional JSON describing the kill-chain ordering for matrix galaxies.') ?>
-        </div>
     </div>
 
     <!-- ENABLED -->

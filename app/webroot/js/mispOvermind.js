@@ -153,6 +153,7 @@ function openModal(url, size = 'xl') {
 
             initTomSelect(container);
             initChoiceFields(container);
+            initJsonFields(container);
             initPgpKeyLookup(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
@@ -379,6 +380,9 @@ function renderMainModalContent(html) {
     }
     if (typeof initChoiceFields === 'function') {
         initChoiceFields(container);
+    }
+    if (typeof initJsonFields === 'function') {
+        initJsonFields(container);
     }
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
@@ -3549,6 +3553,367 @@ document.addEventListener('DOMContentLoaded', function () {
     initChoiceFields(document);
 });
 
+/*******************************
+ * initJsonFields
+ * Wires every JSON box inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/json_field.ctp.
+ *
+ * What a bound field does on its own:
+ *   - parses as it is typed, and says so in the badge beside its label
+ *   - reports the parser's complaint, with the line it points at, under the
+ *     box, and reddens that number in the gutter
+ *   - re-indents on Format, and restores a default on Reset
+ *   - indents with Tab instead of leaving the field
+ *   - refuses a submit that would send a broken document, or an empty one for
+ *     a required field
+ *
+ * What a host adds, from a `misp:json-change` listener on the textarea:
+ *   a reading of the value it just parsed (`setPreview`), a complaint of its
+ *   own about a document that parses but says something the endpoint will not
+ *   understand (`setProblem`), or its own wording in the badge (`setStatus`).
+ *   `event.detail` carries {field, valid, empty, parsed, raw}, and `field` is
+ *   the same API, also reachable as `textarea.jsonField`.
+ *
+ * Idempotent: binding the same container twice binds nothing twice.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initJsonFields(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-json-field]').forEach(function (wrap) {
+        if (wrap.dataset.jsonBound) { return; }
+        wrap.dataset.jsonBound = '1';
+
+        var input = wrap.querySelector('[data-json-input]');
+        if (!input) { return; }
+
+        var box = wrap.querySelector('[data-json-box]');
+        var statusEl = wrap.querySelector('[data-json-status]');
+        var errorEl = wrap.querySelector('[data-json-error]');
+        var gutter = wrap.querySelector('[data-json-gutter] .ov-json-gutter-inner');
+        var previewEl = wrap.querySelector('[data-json-preview]');
+        var previewWrap = wrap.querySelector('[data-json-preview-wrap]');
+
+        var shape = wrap.dataset.jsonShape || 'any';
+        var required = wrap.dataset.jsonRequired === '1';
+
+        /* CakePHP 2 counts spellcheck among its minimized attributes, so a
+           template cannot write spellcheck="false" through FormHelper at all —
+           and a spellchecked JSON document is underlined on every key. */
+        input.spellcheck = false;
+
+        /* The element hands its wordings over as data attributes so they stay
+           translatable; a field rendered without them still works. */
+        var d = wrap.dataset;
+        var L = {
+            empty: d.lEmpty || 'Waiting for input',
+            valid: d.lValid || 'Valid',
+            invalid: d.lInvalid || 'Invalid JSON',
+            object: d.lObject || 'The value has to be a JSON object.',
+            array: d.lArray || 'The value has to be a JSON array.',
+            required: d.lRequired || 'Please fill this field in.',
+            keys: d.lKeys || '%s key(s)',
+            items: d.lItems || '%s item(s)',
+            line: d.lLine || 'line %s',
+            problem: d.lProblem || 'Check the content'
+        };
+
+        var lineCount = -1;
+        var errorLine = 0;
+        var state = { valid: false, empty: true, parsed: undefined, raw: '' };
+
+        /* ── Badge, error line, gutter ── */
+
+        function setStatus(kind, text) {
+            if (!statusEl) { return; }
+            statusEl.className = 'badge ov-json-status bg-' + kind;
+            statusEl.textContent = text;
+        }
+
+        /* `soft` writes the message without reddening the box: the value is
+           not what the parser refused, so the field is not in an error state. */
+        function setError(message, soft) {
+            if (box) { box.classList.toggle('is-invalid-field', !!message && !soft); }
+            if (!errorEl) { return; }
+            errorEl.classList.toggle('d-none', !message);
+            errorEl.querySelector('span').textContent = message || '';
+        }
+
+        /* A host's complaint about a document that parses but says something
+           the endpoint will not understand. It reads as a warning rather than
+           a rejection, and it does not stop the submit — a host that wants to
+           refuse one says so from its own submit handler. */
+        function setProblem(message) {
+            if (!message) { return; }
+            /* Not L.invalid: the document parsed, so calling it invalid JSON
+               would send the reader looking for a syntax error there is
+               none of. */
+            setStatus('warning', L.problem);
+            setError(message, true);
+        }
+
+        function paintGutter() {
+            if (!gutter) { return; }
+            var count = state.raw.length ? state.raw.split('\n').length : 1;
+            if (count !== lineCount) {
+                lineCount = count;
+                var rows = '';
+                for (var i = 1; i <= count; i++) {
+                    rows += '<div>' + i + '</div>';
+                }
+                gutter.innerHTML = rows;
+            }
+            gutter.querySelectorAll('.is-error').forEach(function (node) {
+                node.classList.remove('is-error');
+            });
+            if (errorLine > 0 && errorLine <= count) {
+                gutter.children[errorLine - 1].classList.add('is-error');
+            }
+            gutter.style.transform = 'translateY(' + (-input.scrollTop) + 'px)';
+        }
+
+        /* Where the parser stopped, as a line number, or 0 when it cannot be
+           had. Firefox and Safari name the line; V8 names a character offset
+           and, in recent versions, the line beside it — except for its
+           "Unexpected token" messages, which carry neither and quote a window
+           of the document instead. There the token's place inside that window
+           is the position, but only when the window holds one candidate for
+           it: a number pointing at the wrong line is worse than none, so
+           anything ambiguous highlights nothing and leaves the message, which
+           quotes the text itself, to say where to look. */
+        function locate(message, raw) {
+            var m = /line (\d+)/.exec(message);
+            if (m) { return +m[1]; }
+            m = /position (\d+)/.exec(message);
+            if (m) {
+                return raw.slice(0, Math.min(+m[1], raw.length)).split('\n').length;
+            }
+            m = /^Unexpected token '(.)', (?:\.\.\.)?"([\s\S]*)"(?:\.\.\.)? is not valid JSON$/
+                .exec(message);
+            if (!m) { return 0; }
+
+            var token = m[1];
+            var window_ = m[2];
+            var at = raw.indexOf(window_);
+            if (at === -1) { return 0; }
+            /* A bare word V8 choked on opens a value or a key, so it follows a
+               separator; that is what tells it from the same letter inside a
+               string next to it. */
+            var pattern = '(?:^|[:,\\[{\\s])'
+                + token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var hits = window_.match(new RegExp(pattern, 'g'));
+            if (!hits || hits.length !== 1) { return 0; }
+
+            var idx = window_.search(new RegExp(pattern));
+            /* The match may start on the separator before the token. */
+            while (window_.charAt(idx) !== token) { idx++; }
+            return raw.slice(0, at + idx).split('\n').length;
+        }
+
+        /* ── Reading the value ── */
+
+        function summary(parsed) {
+            if (Array.isArray(parsed)) {
+                return L.items.replace('%s', parsed.length);
+            }
+            if (parsed && typeof parsed === 'object') {
+                return L.keys.replace('%s', Object.keys(parsed).length);
+            }
+            return L.valid;
+        }
+
+        function shapeProblem(parsed) {
+            if (shape === 'object') {
+                var isObject = parsed && typeof parsed === 'object'
+                    && !Array.isArray(parsed);
+                return isObject ? null : L.object;
+            }
+            if (shape === 'array') {
+                return Array.isArray(parsed) ? null : L.array;
+            }
+            return null;
+        }
+
+        function refresh() {
+            var raw = input.value.trim();
+            state = { valid: false, empty: raw === '', parsed: undefined, raw: input.value };
+            errorLine = 0;
+
+            if (state.empty) {
+                setStatus('secondary', L.empty);
+                setError(null);
+                setPreview(null);
+            } else {
+                var parsed;
+                var failure = null;
+                try {
+                    parsed = JSON.parse(raw);
+                } catch (e) {
+                    failure = e.message;
+                }
+
+                if (failure !== null) {
+                    errorLine = locate(failure, raw);
+                    setStatus('danger', L.invalid);
+                    setError(errorLine && !/line \d+/.test(failure)
+                        ? failure + ' — ' + L.line.replace('%s', errorLine)
+                        : failure);
+                    setPreview(null);
+                } else {
+                    var problem = shapeProblem(parsed);
+                    if (problem) {
+                        setStatus('danger', L.invalid);
+                        setError(problem);
+                        setPreview(null);
+                    } else {
+                        state.valid = true;
+                        state.parsed = parsed;
+                        setStatus('success', summary(parsed));
+                        setError(null);
+                    }
+                }
+            }
+
+            paintGutter();
+
+            /* Last word to the host: it knows what the endpoint accepts. */
+            input.dispatchEvent(new CustomEvent('misp:json-change', {
+                bubbles: true,
+                detail: {
+                    field: api,
+                    valid: state.valid,
+                    empty: state.empty,
+                    parsed: state.parsed,
+                    raw: state.raw
+                }
+            }));
+        }
+
+        /* ── The box a host fills from the parsed value ── */
+
+        function setPreview(node) {
+            if (!previewEl) { return; }
+            previewEl.innerHTML = '';
+            if (node) { previewEl.appendChild(node); }
+            if (previewWrap) { previewWrap.classList.toggle('d-none', !node); }
+        }
+
+        /* ── Editing ── */
+
+        input.addEventListener('input', refresh);
+        input.addEventListener('scroll', function () {
+            if (gutter) {
+                gutter.style.transform = 'translateY(' + (-input.scrollTop) + 'px)';
+            }
+        });
+
+        /* Tab indents rather than leaving the field — in a box where the
+           indentation is the readability, losing it to focus traversal is the
+           surprising behaviour. Shift+Tab still leaves, so nothing is trapped:
+           it takes back one level only when there is one to take back. */
+        input.addEventListener('keydown', function (e) {
+            if (e.key !== 'Tab' || e.ctrlKey || e.altKey || e.metaKey) { return; }
+            var start = input.selectionStart;
+            var value = input.value;
+            var lineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+            if (e.shiftKey) {
+                var indent = /^ {1,4}/.exec(value.slice(lineStart, start));
+                if (!indent) { return; }
+                e.preventDefault();
+                input.value = value.slice(0, lineStart)
+                    + value.slice(lineStart + indent[0].length);
+                input.setSelectionRange(start - indent[0].length, start - indent[0].length);
+            } else {
+                e.preventDefault();
+                var end = input.selectionEnd;
+                input.value = value.slice(0, start) + '    ' + value.slice(end);
+                input.setSelectionRange(start + 4, start + 4);
+            }
+            refresh();
+        });
+
+        var formatBtn = wrap.querySelector('[data-json-format]');
+        if (formatBtn) {
+            /* Only when it parses: re-indenting a broken document would mean
+               guessing at it, and it is what has to be read to be fixed. */
+            formatBtn.addEventListener('click', function () {
+                try {
+                    input.value = JSON.stringify(JSON.parse(input.value), null, 4);
+                } catch (e) { /* refresh() reports it */ }
+                refresh();
+                input.focus();
+            });
+        }
+
+        var resetBtn = wrap.querySelector('[data-json-reset]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                input.value = resetBtn.dataset.jsonReset || '';
+                refresh();
+            });
+        }
+
+        /* ── The submit the field can refuse ── */
+
+        var form = input.form;
+        if (form && !form.dataset.jsonGuardBound) {
+            form.dataset.jsonGuardBound = '1';
+            form.addEventListener('submit', function (e) {
+                var offender = null;
+                form.querySelectorAll('[data-json-field] [data-json-input]')
+                    .forEach(function (node) {
+                        var field = node.jsonField;
+                        if (!field || offender) { return; }
+                        /* A hidden field is one the form swapped out (the user
+                           setting whose value became a select): refusing the
+                           submit over a box nobody can see would be a dead
+                           end. */
+                        if (node.offsetParent === null) { return; }
+                        if (!field.check()) { offender = node; }
+                    });
+                if (offender) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    offender.focus();
+                }
+            });
+        }
+
+        var api = {
+            input: input,
+            refresh: refresh,
+            isValid: function () { return state.valid; },
+            isEmpty: function () { return state.empty; },
+            get: function () { return state.parsed; },
+            setStatus: setStatus,
+            setError: setError,
+            setProblem: setProblem,
+            setPreview: setPreview,
+            /* True when the value may go out: a filled field has to parse, and
+               a required one has to be filled. */
+            check: function () {
+                if (state.empty) {
+                    if (!required) { return true; }
+                    setStatus('danger', L.invalid);
+                    setError(L.required);
+                    return false;
+                }
+                return state.valid;
+            }
+        };
+        input.jsonField = api;
+        wrap.jsonField = api;
+
+        refresh();
+    });
+}
+window.initJsonFields = initJsonFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initJsonFields(document);
+});
+
 function initDistributionSelect(elId, onChange) {
     var el = document.getElementById(elId);
     if (!el || el.tomselect) { return; }
@@ -4394,6 +4759,9 @@ function loadAjaxContainer(container) {
             });
 
             initTopbarFilterSelects(container);
+            if (typeof initJsonFields === 'function') {
+                initJsonFields(container);
+            }
         })
         .catch(() => {
             container.innerHTML =

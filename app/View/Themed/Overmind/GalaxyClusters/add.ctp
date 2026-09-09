@@ -161,20 +161,17 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
 
         <!-- ── ELEMENTS ────────────────────────────────────────── -->
         <div class="w-100">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'elements',
                 'accent' => 'galaxy',
                 'label' => __('Cluster Elements'),
-            ]) ?>
-            <?= $this->Form->textarea('elements', [
+                'shape' => 'array',
                 'id' => 'GalaxyClusterElements',
-                'class' => 'form-control font-monospace',
-                'style' => 'border-color:#d8dde3;',
                 'rows' => 5,
+                'minHeight' => '130px',
                 'placeholder' => '[{"key": "synonyms", "value": "Fancy Bear"}]',
+                'hint' => __('Optional — a list of key/value pairs describing the cluster.'),
             ]) ?>
-            <div class="invalid-feedback" id="GalaxyClusterElementsError">
-                <?= __('This is not valid JSON.') ?>
-            </div>
         </div>
 
     </div>
@@ -219,11 +216,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
         return;
     }
 
-    var elementsEl = document.getElementById('GalaxyClusterElements');
-    var elementsError = document.getElementById('GalaxyClusterElementsError');
     var authorsEl = document.getElementById('GalaxyClusterAuthors');
-    var NOT_ARRAY = <?= json_encode(__('Valid JSON, but not an array of objects.')) ?>;
-    var NOT_JSON = <?= json_encode(__('This is not valid JSON.')) ?>;
 
     var required = Array.prototype.slice.call(
         form.querySelectorAll('[data-om-required]')
@@ -241,36 +234,10 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
         });
     });
 
-    /* Elements and authors both reach the controller as JSON — a typo there
-       comes back as a full-page "Invalid JSON" flash, so it is caught here.
-       Authors also accept a comma separated list, so only a value that looks
-       like JSON is parsed. */
-    var checkElements = function () {
-        if (!elementsEl) {
-            return true;
-        }
-        var raw = String(elementsEl.value || '').trim();
-        if (raw === '') {
-            flag(elementsEl, false);
-            return true;
-        }
-        var parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch (e) {
-            elementsError.textContent = NOT_JSON;
-            flag(elementsEl, true);
-            return false;
-        }
-        if (!Array.isArray(parsed)) {
-            elementsError.textContent = NOT_ARRAY;
-            flag(elementsEl, true);
-            return false;
-        }
-        flag(elementsEl, false);
-        return true;
-    };
-
+    /* The elements are a json_field, which reports and refuses a broken
+       document on its own. Authors reach the controller as JSON too, but they
+       also accept a comma separated list, so only a value that looks like JSON
+       is parsed — which is not the json_field contract. */
     var checkAuthors = function () {
         if (!authorsEl) {
             return true;
@@ -290,13 +257,6 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
         return true;
     };
 
-    if (elementsEl) {
-        elementsEl.addEventListener('input', function () {
-            if (elementsEl.classList.contains('is-invalid')) {
-                checkElements();
-            }
-        });
-    }
     if (authorsEl) {
         authorsEl.addEventListener('input', function () {
             if (authorsEl.classList.contains('is-invalid')) {
@@ -314,9 +274,6 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                 firstInvalid = el;
             }
         });
-        if (!checkElements() && !firstInvalid) {
-            firstInvalid = elementsEl;
-        }
         if (!checkAuthors() && !firstInvalid) {
             firstInvalid = authorsEl;
         }

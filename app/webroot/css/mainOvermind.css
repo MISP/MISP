@@ -3120,3 +3120,148 @@ tr.evt-extension-row td:first-child {
     pointer-events: none;
     opacity: .6;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   JSON FIELD  (Elements/genericElementsBS5/Forms/json_field)
+   Every box in the theme that takes a JSON document is this
+   shape: a toolbar carrying the validity badge and the Format
+   button, a bordered box holding a line-number gutter beside a
+   monospace textarea, and one error line under it.
+   ═══════════════════════════════════════════════════════════ */
+.ov-json {
+    --ov-json-accent: var(--bs-primary);
+    --ov-json-min: 220px;
+    --ov-json-size: .85rem;
+    --ov-json-leading: 1.55;
+    --ov-json-pad: .6rem;
+}
+
+.ov-json-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .35rem;
+}
+
+.ov-json-tools {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex-shrink: 0;
+}
+
+.ov-json-status {
+    font-size: .65rem;
+}
+
+.ov-json-btn {
+    font-size: .7rem;
+    padding: .15rem .5rem;
+    line-height: 1.4;
+}
+
+/* The box owns the border and the ground; the textarea inside it is
+   chrome-less, exactly like `.ov-form-box` and `.ov-form-bare`. */
+.ov-json-box {
+    display: flex;
+    align-items: stretch;
+    padding: var(--ov-json-pad) 0;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    transition: border-color .15s ease;
+    overflow: hidden;
+}
+
+.ov-json-box:focus-within {
+    border-color: var(--ov-json-accent);
+}
+
+.ov-json-box.is-invalid-field {
+    border-color: var(--bs-danger);
+}
+
+/* Numbers scroll with the text: the inner block is translated by the
+   textarea's scrollTop rather than scrolled, so it never gains a bar of its
+   own. */
+.ov-json-gutter {
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+    min-width: 2.4rem;
+    padding: 0 .5rem 0 .4rem;
+    border-right: 1px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace);
+    font-size: var(--ov-json-size);
+    line-height: var(--ov-json-leading);
+    text-align: right;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ov-json-gutter-inner {
+    position: absolute;
+    top: 0;
+    right: .5rem;
+    left: .4rem;
+    will-change: transform;
+}
+
+/* The line JSON.parse pointed at, so a position in the message is a place on
+   the screen. */
+.ov-json-gutter-inner > .is-error {
+    color: var(--bs-danger);
+    font-weight: 700;
+}
+
+.ov-json-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: var(--ov-json-min);
+    padding: 0 .75rem;
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: var(--bs-body-color);
+    font-family: var(--bs-font-monospace);
+    font-size: var(--ov-json-size);
+    line-height: var(--ov-json-leading);
+    /* No soft wrap: a wrapped line would put the gutter one number behind for
+       the rest of the document. */
+    white-space: pre;
+    overflow: auto;
+    resize: vertical;
+    tab-size: 4;
+}
+
+.ov-json-input::placeholder {
+    color: var(--bs-secondary-color);
+    opacity: .65;
+}
+
+.ov-json-error {
+    display: flex;
+    align-items: flex-start;
+    gap: .35rem;
+    margin-top: .35rem;
+    font-size: .75rem;
+    color: var(--bs-danger);
+}
+
+.ov-json-error > i {
+    margin-top: .15rem;
+    font-size: .7rem;
+}
+
+/* What a host renders under the field from the parsed value — the feed list of
+   an import, the reading of a rule. Hidden until there is something in it. */
+.ov-json-preview {
+    max-height: 260px;
+    margin-top: .5rem;
+    overflow-y: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: .78rem;
+}

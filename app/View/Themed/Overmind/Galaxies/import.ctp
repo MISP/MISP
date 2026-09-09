@@ -39,12 +39,15 @@
 
     <!-- JSON -->
     <div class="mb-3">
-        <label class="form-label fw-semibold" for="GalaxyJson"><?= __('JSON') ?></label>
-        <?= $this->Form->textarea('json', [
-            'class' => 'form-control font-monospace bg-light',
+        <?= $this->element('genericElementsBS5/Forms/json_field', [
+            'field' => 'json',
+            'accent' => 'galaxy',
+            'label' => __('Galaxy Clusters JSON'),
             'id' => 'GalaxyJson',
             'rows' => 14,
-            'placeholder' => __('Paste the galaxy clusters JSON here…'),
+            'minHeight' => '280px',
+            'placeholder' => "{\n    \"Galaxy\": {\n        \"name\": \"…\"\n    },\n    \"GalaxyCluster\": []\n}",
+            'hint' => __('An export of this or another MISP instance — leave it empty to upload the file instead.'),
         ]) ?>
     </div>
 
