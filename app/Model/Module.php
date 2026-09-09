@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('JsonTool', 'Tools');
+App::uses('EncryptedValue', 'Tools');
 
 class Module extends AppModel
 {
@@ -32,6 +33,15 @@ class Module extends AppModel
      * through /modules for gating: Plugin.AI_services_enable is the switch.
      */
     const AI_MODULE_NAME = 'ai_connector';
+
+    /** The use-cases the AI module accepts (`use_case` of a request). */
+    const AI_USE_CASES = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest'];
+
+    /**
+     * The Plugin.AI_* settings sent to the module as `params`, listed by the
+     * module's own config names (the setting name without the `AI_` prefix).
+     */
+    const AI_PARAM_SETTINGS = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score'];
 
     const CONFIG_TYPES = array(
         'IP' => array(
@@ -467,5 +477,104 @@ class Module extends AppModel
         }
 
         return $this->httpSocket[$unique] = $httpSocket;
+    }
+
+    /**
+     * The `params` block of an AI request: the settings of AI_PARAM_SETTINGS,
+     * un-prefixed. A setting without a value (null or the empty string) is
+     * left out so the module's own configuration applies to it.
+     *
+     * @param callable $read function (string $name): mixed — the effective
+     *        value of `Plugin.AI_<name>`, or null; injected to keep the
+     *        builder free of Configure
+     * @return array
+     */
+    public static function buildAiParams(callable $read)
+    {
+        $params = [];
+        foreach (self::AI_PARAM_SETTINGS as $name) {
+            $value = $read($name);
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        return $params;
+    }
+
+    /**
+     * The request envelope the AI module expects on POST /query.
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}
+     * @param array $params see buildAiParams()
+     * @param int $timeout seconds, the module's time budget for the request
+     * @return array
+     * @throws InvalidArgumentException on an unknown use-case
+     */
+    public static function buildAiRequest($useCase, array $data, array $params, $timeout)
+    {
+        if (!in_array($useCase, self::AI_USE_CASES, true)) {
+            throw new InvalidArgumentException("Unknown AI use-case `$useCase`.");
+        }
+        return [
+            'module' => self::AI_MODULE_NAME,
+            'data' => $data,
+            'use_case' => $useCase,
+            'params' => $params,
+            'timeout' => (int)$timeout,
+        ];
+    }
+
+    /**
+     * Effective value of a Plugin.AI_* setting: what is configured, else the
+     * default of its definition, so that a request carries exactly what the
+     * settings page shows. A value stored encrypted is decrypted.
+     *
+     * @param string $name setting name without the `AI_` prefix
+     * @return mixed|null
+     */
+    public function aiSetting($name)
+    {
+        $value = Configure::read('Plugin.AI_' . $name);
+        if ($value instanceof EncryptedValue) {
+            $value = $value->decrypt();
+        }
+        if ($value !== null) {
+            return $value;
+        }
+        $this->Server = ClassRegistry::init('Server');
+        return $this->Server->serverSettings['Plugin']['AI_' . $name]['value'] ?? null;
+    }
+
+    /**
+     * Query the AI module: POST /query on the AI family server with the
+     * envelope of buildAiRequest(), and return the `results` block of its
+     * answer. Access control is the caller's job (perm_ai_tools + event ACL).
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}
+     * @param int|null $timeout seconds, default Plugin.AI_timeout
+     * @return array the module's `results`, e.g. ['EventReport' => [...]] or ['Tag' => [...]]
+     * @throws InvalidArgumentException on an unknown use-case
+     * @throws Exception when the AI services are disabled or unreachable, the
+     *         answer is not JSON, or the module answered with `error`
+     */
+    public function queryAI($useCase, array $data, $timeout = null)
+    {
+        if ($timeout === null) {
+            $timeout = (int)$this->aiSetting('timeout') ?: 300;
+        }
+        $params = self::buildAiParams([$this, 'aiSetting']);
+        $request = self::buildAiRequest($useCase, $data, $params, $timeout);
+        $response = $this->sendRequest('/query', $timeout, $request, 'AI');
+        if (!is_array($response)) {
+            throw new Exception(__('The AI module returned an unreadable answer.'));
+        }
+        if (!empty($response['error'])) {
+            $error = is_string($response['error']) ? $response['error'] : JsonTool::encode($response['error']);
+            throw new Exception(__('The AI module reported an error: %s', $error));
+        }
+        return isset($response['results']) && is_array($response['results']) ? $response['results'] : [];
     }
 }
