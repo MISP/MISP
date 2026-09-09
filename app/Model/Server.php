@@ -8795,29 +8795,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ],
-                'CTIInfoExtractor_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
-                'CTIInfoExtractor_url' => [
-                    'level' => 1,
-                    'description' => __('The url of the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ],
-                'CTIInfoExtractor_authentication' => [
-                    'level' => 1,
-                    'description' => __('The authentication key for the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ]
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,

@@ -601,7 +601,7 @@ class ServerSettingGroups
         'Plugin' => array(
             'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Workflow',
             'ZeroMQ', 'Kafka', 'ElasticSearch', 'S3', 'RPZ', 'Sightings',
-            'CustomAuth', 'Geolocation', 'CyCat', 'CTIInfoExtractor', 'Benchmarking',
+            'CustomAuth', 'Geolocation', 'CyCat', 'Benchmarking',
         ),
     );
 
@@ -701,12 +701,6 @@ class ServerSettingGroups
             'description' => 'Lookups against the CyCat cybersecurity catalogue',
             'icon' => 'diagram-predecessor',
             'accent' => '#fd7e14',
-        ),
-        'CTIInfoExtractor' => array(
-            'title' => 'CTI info extractor',
-            'description' => 'Extraction of indicators out of free text',
-            'icon' => 'highlighter',
-            'accent' => '#20c997',
         ),
         'Benchmarking' => array(
             'title' => 'Benchmarking',
