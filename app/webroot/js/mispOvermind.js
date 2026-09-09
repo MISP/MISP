@@ -3553,6 +3553,48 @@ document.addEventListener('DOMContentLoaded', function () {
     initChoiceFields(document);
 });
 
+/**
+ * The submit a JSON box can refuse, installed once for the whole page rather
+ * than once per form.
+ *
+ * It listens on the document in the capture phase, so it decides before any
+ * submit handler the form itself carries and those can read its decision off
+ * `event.defaultPrevented` — a form that swaps itself for a progress spinner
+ * on submit (the event import) would otherwise hide itself behind a spinner
+ * for an import the field then refused. For the same reason it does not
+ * stopPropagation: a host handler still has to see the event to know it was
+ * turned down.
+ */
+var jsonSubmitGuardInstalled = false;
+function installJsonSubmitGuard() {
+    if (jsonSubmitGuardInstalled) { return; }
+    jsonSubmitGuardInstalled = true;
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.querySelectorAll) { return; }
+
+        var offender = null;
+        form.querySelectorAll('[data-json-field] [data-json-input]')
+            .forEach(function (node) {
+                if (offender) { return; }
+                var field = node.jsonField;
+                if (!field) { return; }
+                /* A hidden box is one the form swapped out (the user setting
+                   whose value became a select, a collapsed accordion section):
+                   refusing the submit over a box nobody can see would be a
+                   dead end. */
+                if (node.offsetParent === null) { return; }
+                if (!field.check()) { offender = node; }
+            });
+
+        if (offender) {
+            e.preventDefault();
+            offender.focus();
+        }
+    }, true);
+}
+
 /*******************************
  * initJsonFields
  * Wires every JSON box inside `container` — the markup of
@@ -3565,7 +3607,7 @@ document.addEventListener('DOMContentLoaded', function () {
  *   - re-indents on Format, and restores a default on Reset
  *   - indents with Tab instead of leaving the field
  *   - refuses a submit that would send a broken document, or an empty one for
- *     a required field
+ *     a required field (see installJsonSubmitGuard)
  *
  * What a host adds, from a `misp:json-change` listener on the textarea:
  *   a reading of the value it just parsed (`setPreview`), a complaint of its
@@ -3596,6 +3638,7 @@ function initJsonFields(container) {
 
         var shape = wrap.dataset.jsonShape || 'any';
         var required = wrap.dataset.jsonRequired === '1';
+        var allowXml = wrap.dataset.jsonXml === '1';
 
         /* CakePHP 2 counts spellcheck among its minimized attributes, so a
            template cannot write spellcheck="false" through FormHelper at all —
@@ -3615,12 +3658,15 @@ function initJsonFields(container) {
             keys: d.lKeys || '%s key(s)',
             items: d.lItems || '%s item(s)',
             line: d.lLine || 'line %s',
-            problem: d.lProblem || 'Check the content'
+            problem: d.lProblem || 'Check the content',
+            xml: d.lXml || 'XML document'
         };
 
         var lineCount = -1;
         var errorLine = 0;
-        var state = { valid: false, empty: true, parsed: undefined, raw: '' };
+        var state = {
+            valid: false, empty: true, xml: false, parsed: undefined, raw: ''
+        };
 
         /* ── Badge, error line, gutter ── */
 
@@ -3736,11 +3782,21 @@ function initJsonFields(container) {
 
         function refresh() {
             var raw = input.value.trim();
-            state = { valid: false, empty: raw === '', parsed: undefined, raw: input.value };
+            state = {
+                valid: false,
+                empty: raw === '',
+                xml: allowXml && raw.charAt(0) === '<',
+                parsed: undefined,
+                raw: input.value
+            };
             errorLine = 0;
 
             if (state.empty) {
                 setStatus('secondary', L.empty);
+                setError(null);
+                setPreview(null);
+            } else if (state.xml) {
+                setStatus('success', L.xml);
                 setError(null);
                 setPreview(null);
             } else {
@@ -3783,6 +3839,7 @@ function initJsonFields(container) {
                     field: api,
                     valid: state.valid,
                     empty: state.empty,
+                    xml: state.xml,
                     parsed: state.parsed,
                     raw: state.raw
                 }
@@ -3854,37 +3911,14 @@ function initJsonFields(container) {
             });
         }
 
-        /* ── The submit the field can refuse ── */
-
-        var form = input.form;
-        if (form && !form.dataset.jsonGuardBound) {
-            form.dataset.jsonGuardBound = '1';
-            form.addEventListener('submit', function (e) {
-                var offender = null;
-                form.querySelectorAll('[data-json-field] [data-json-input]')
-                    .forEach(function (node) {
-                        var field = node.jsonField;
-                        if (!field || offender) { return; }
-                        /* A hidden field is one the form swapped out (the user
-                           setting whose value became a select): refusing the
-                           submit over a box nobody can see would be a dead
-                           end. */
-                        if (node.offsetParent === null) { return; }
-                        if (!field.check()) { offender = node; }
-                    });
-                if (offender) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    offender.focus();
-                }
-            });
-        }
+        installJsonSubmitGuard();
 
         var api = {
             input: input,
             refresh: refresh,
             isValid: function () { return state.valid; },
             isEmpty: function () { return state.empty; },
+            isXml: function () { return state.xml; },
             get: function () { return state.parsed; },
             setStatus: setStatus,
             setError: setError,
@@ -3899,7 +3933,7 @@ function initJsonFields(container) {
                     setError(L.required);
                     return false;
                 }
-                return state.valid;
+                return state.valid || state.xml;
             }
         };
         input.jsonField = api;

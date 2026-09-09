@@ -2263,7 +2263,7 @@ tr.evt-extension-row td:first-child {
 
 /* Format glyph tile. --h is set per row, the ramp keeps every accent at the
    same perceived weight instead of hard-coding a colour per format. */
-.ex-scope .ex-icon {
+.ex-icon {
     width: 2rem;
     height: 2rem;
     flex-shrink: 0;
@@ -2275,7 +2275,7 @@ tr.evt-extension-row td:first-child {
     color: hsl(var(--h) 55% 40%);
     background: hsl(var(--h) 60% 50% / .12);
 }
-[data-bs-theme="dark"] .ex-scope .ex-icon {
+[data-bs-theme="dark"] .ex-icon {
     color: hsl(var(--h) 70% 70%);
     background: hsl(var(--h) 60% 60% / .16);
 }
