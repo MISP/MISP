@@ -12,8 +12,10 @@ $initDist = (int)$currentDist;
 echo $this->Form->create('Galaxy', [
     'id' => 'galaxyAddForm',
     'url' => $formUrl,
-    'class' => 'needs-validation',
     'novalidate' => true,
+    // installRequiredFieldGuard() refuses a submit that leaves a `required`
+    // field empty - the form is novalidate, so nothing else would.
+    'data-required-guard' => '1',
 ]);
 ?>
 
@@ -42,6 +44,7 @@ echo $this->Form->create('Galaxy', [
                 'class' => 'form-control bg-light',
                 'placeholder' => __('e.g. My custom threat actors'),
                 'required' => true,
+                'data-required-msg' => __('Please provide a name for the galaxy.'),
             ]) ?>
         </div>
 
@@ -138,15 +141,16 @@ echo $this->Form->create('Galaxy', [
     </label>
 
     <!-- ACTIONS -->
-    <div class="d-flex justify-content-end gap-3 mt-4">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            <?= __('Cancel') ?>
-        </button>
-        <button type="submit" class="btn btn-galaxy text-light">
-            <i class="fas fa-check me-1"></i>
-            <?= $isEdit ? __('Save changes') : __('Add galaxy') ?>
-        </button>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'galaxy',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit ? [['label' => __('Galaxy'), 'id' => $id]] : [],
+        'hint' => $isEdit ? '' : __('Clusters are added to the galaxy once it exists.'),
+        'submit' => [
+            'label' => $isEdit ? __('Save Changes') : __('Add Galaxy'),
+            'icon' => 'fas fa-check',
+        ],
+    ]) ?>
 
 </div>
 
