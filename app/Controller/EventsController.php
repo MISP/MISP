@@ -8343,6 +8343,39 @@ class EventsController extends AppController
     }
 
     /**
+     * Chooser of the AI actions available on an event, opened from the event
+     * menu: each entry leads to the confirmation of one action.
+     *
+     * @param int|string $id
+     */
+    public function aiActions($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $actions = [
+            [
+                'id' => 'summarize',
+                'url' => $this->baseurl . '/events/aiSummarize/' . $event['Event']['id'],
+                'icon' => 'fas fa-file-lines',
+                'text' => __('Summarise event'),
+                'description' => __('The module writes a summary of the event into a new event report.'),
+            ],
+        ];
+        $this->set('event', $event);
+        $this->set('actions', $actions);
+        $this->layout = false;
+        $this->render('ajax/aiActions');
+    }
+
+    /**
      * Summarise an event with the AI module into a new event report.
      * GET renders the confirmation; POST queues the job, or runs it at once
      * when background jobs are off. REST answers with the job id.
