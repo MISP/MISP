@@ -8369,6 +8369,15 @@ class EventsController extends AppController
                 'description' => __('The module writes a summary of the event into a new event report.'),
             ],
         ];
+        if ($this->__canModifyTag($event)) {
+            $actions[] = [
+                'id' => 'recommend_tags',
+                'url' => $this->baseurl . '/events/aiRecommendTags/' . $event['Event']['id'],
+                'icon' => 'fas fa-tags',
+                'text' => __('Recommend tags'),
+                'description' => __('The module suggests tags for the event; you pick the ones to attach.'),
+            ];
+        }
         $this->set('event', $event);
         $this->set('actions', $actions);
         $this->layout = false;
