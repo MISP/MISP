@@ -1483,7 +1483,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
