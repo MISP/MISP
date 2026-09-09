@@ -305,7 +305,6 @@ class ACLComponent extends Component
             'extractFromReport' => array('perm_add'),
             'replaceSuggestionInReport' => array('*'),
             'importReportFromUrl' => array('perm_add'),
-            'sendToLLM' => ['perm_add'],
             'configureTemplateVariable' => ['perm_add'],
             'downloadAsPDF' => ['*'],
             'addTag' => ['perm_tagger'],

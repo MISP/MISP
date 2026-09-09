@@ -661,28 +661,6 @@ class EventReportsController extends AppController
         $this->render('ajax/reportFromEvent');
     }
 
-    public function sendToLLM($reportId)
-    {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-        } else {
-            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', true, false);
-            if ($this->request->is('post')) {
-                $errors = [];
-                $result = $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
-                if ($result !== false) {
-                    $successMessage = __('Successfully sent to Event Report %s to LLM', $reportId);
-                    return $this->__getSuccessResponseBasedOnContext($successMessage, $result, 'sendToLLM', $reportId);
-                } else {
-                    $errorMessage = __('Could not send Event Report %s to LLM.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
-                    return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'sendToLLM', $reportId);
-                }
-            }
-            $this->layout = false;
-            $this->render('ajax/sendToLLM');
-        }
-    }
-
     public function uploadPicture($reportId)
     {
         if (!$this->request->is('ajax')) {
