@@ -8447,6 +8447,9 @@ class EventsController extends AppController
         }
         $eventId = (int)$event['Event']['id'];
         $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        // A plain AJAX caller (no Accept header) gets JSON, not JSON escaped
+        // for an HTML document.
+        $format = $this->_isRest() ? $this->response->type() : 'json';
         if ($this->request->is('post')) {
             $names = $this->request->data['tags'] ?? ($this->request->data['Event']['tags'] ?? []);
             if (is_string($names)) {
@@ -8457,7 +8460,7 @@ class EventsController extends AppController
             if (empty($names)) {
                 $error = __('No tags were selected.');
                 if ($this->_isRest() || $this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $error, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $error, $format);
                 }
                 $this->Flash->error($error);
                 return $this->redirect(['action' => $viewAction, $eventId]);
@@ -8466,7 +8469,7 @@ class EventsController extends AppController
                 $result = $this->Event->aiAttachTags($this->Auth->user(), $event, $names, $local);
             } catch (Exception $e) {
                 if ($this->_isRest() || $this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
                 }
                 $this->Flash->error($e->getMessage());
                 return $this->redirect(['action' => $viewAction, $eventId]);
@@ -8481,7 +8484,7 @@ class EventsController extends AppController
                         'message' => $message,
                         'check_publish' => !$local && $result['attached'] > 0,
                     ], $result),
-                    $this->response->type()
+                    $format
                 );
             }
             if ($saved) {
@@ -8496,16 +8499,30 @@ class EventsController extends AppController
         $this->loadModel('Module');
         $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
         @set_time_limit($timeout + 30);
+        $rows = [];
+        $error = null;
         try {
             $rows = $this->Event->aiRecommendTags($this->Auth->user(), $eventId, $local);
         } catch (Exception $e) {
-            return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
+            }
+            $error = $e->getMessage();
         }
-        return $this->RestResponse->viewData([
-            'event_id' => $eventId,
-            'local' => $local,
-            'Tag' => $rows,
-        ], $this->response->type());
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData([
+                'event_id' => $eventId,
+                'local' => $local,
+                'Tag' => $rows,
+            ], $this->response->type());
+        }
+        $this->set('event', $event);
+        $this->set('rows', $rows);
+        $this->set('local', $local);
+        $this->set('error', $error);
+        $this->set('canCreate', !empty($this->Auth->user('Role')['perm_tag_editor']));
+        $this->layout = false;
+        $this->render('ajax/aiRecommendTags');
     }
 
     public function enrichEvent($id)
