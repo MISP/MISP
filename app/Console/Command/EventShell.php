@@ -304,8 +304,9 @@ class EventShell extends AppShell
     /**
      * Summarise an event (scope `event`) or an event report (scope `report`)
      * with the AI module, as the requesting user. Queued by
-     * Event::aiSummarizeRouter(); the job row is updated here, and the exit
-     * code tells the worker whether the run succeeded.
+     * Event::aiSummarizeRouter() / EventReport::aiSummarizeRouter(); the job
+     * row is updated here, and the exit code tells the worker whether the
+     * run succeeded.
      *
      * cake Event aiSummarize <user_id> <event|report> <id> [job_id]
      */
@@ -329,7 +330,8 @@ class EventShell extends AppShell
                 $result = $this->Event->aiSummarize($user, $id);
                 $message = __('AI summary added as report "%s" (#%s).', $result['name'], $result['report_id']);
             } elseif ($scope === 'report') {
-                throw new Exception(__('AI summaries of event reports are not available yet.'));
+                $result = $this->Event->EventReport->aiSummarize($user, $id);
+                $message = __('AI summary written into report "%s" (#%s).', $result['name'], $result['report_id']);
             } else {
                 throw new InvalidArgumentException("Unknown scope `$scope`, expected `event` or `report`.");
             }

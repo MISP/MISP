@@ -619,6 +619,53 @@ class EventReportsController extends AppController
         $this->render('ajax/importReportFromUrl');
     }
 
+    /**
+     * Summarise an event report with the AI module, in place. GET renders
+     * the confirmation; POST queues the job, or runs it at once when
+     * background jobs are off. REST answers with the job id.
+     *
+     * @param int|string $id
+     */
+    public function aiSummarize($id)
+    {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true, true);
+        if (!$this->ACL->canModifyEvent($this->Auth->user(), $report)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $reportId = (int)$report['EventReport']['id'];
+        $redirectTarget = ['controller' => 'eventReports', 'action' => 'view', $reportId];
+        if ($this->request->is('post')) {
+            try {
+                $result = $this->EventReport->aiSummarizeRouter($this->Auth->user(), $reportId);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('EventReports', 'aiSummarize', $reportId, $e->getMessage(), $this->response->type());
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect($redirectTarget);
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI summary job #%s queued — refresh the report when it completes.', $result['job_id']);
+            } else {
+                $message = __('AI summary written into the report "%s".', $result['name']);
+            }
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                    $this->response->type()
+                );
+            }
+            $this->Flash->success($message);
+            return $this->redirect($redirectTarget);
+        }
+        $this->set('report', $report);
+        $this->layout = false;
+        $this->render('ajax/aiSummarizeConfirmationForm');
+    }
+
     public function reportFromEvent($eventId)
     {
         $event = $this->__canModifyReport($eventId);
