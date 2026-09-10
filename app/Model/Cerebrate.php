@@ -184,9 +184,13 @@ class Cerebrate extends AppModel
                 $this->Organisation->create();
             }
             if ($dirty) {
+                $nameCheckConditions = ['Organisation.name' => $orgToSave['name']];
+                if (!empty($orgToSave['id'])) {
+                    $nameCheckConditions['Organisation.id !='] = $orgToSave['id'];
+                }
                 $nameCheck = $this->Organisation->find('first', [
                     'recursive' => -1,
-                    'conditions' => ['Organisation.name' => $orgToSave['name']],
+                    'conditions' => $nameCheckConditions,
                     'fields' => ['Organisation.id']
                 ]);
                 if (!empty($nameCheck)) {
