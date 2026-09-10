@@ -595,6 +595,24 @@ class UsersController extends AppController
         $this->set('urlparams', $urlParams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
+        if ($this->theme === 'Overmind') {
+            // Option lists for the index filter bar
+            $roles = $this->User->Role->find('list', array(
+                'recursive' => -1,
+                'fields' => array('Role.id', 'Role.name'),
+                'order' => array('LOWER(Role.name) ASC')
+            ));
+            $this->set('roleOptions', array('' => __('Any role')) + $roles);
+            if ($this->_isSiteAdmin()) {
+                $orgs = $this->User->Organisation->find('list', array(
+                    'conditions' => array('local' => 1),
+                    'recursive' => -1,
+                    'fields' => array('Organisation.id', 'Organisation.name'),
+                    'order' => array('LOWER(Organisation.name) ASC')
+                ));
+                $this->set('orgOptions', array('' => __('Any organisation')) + $orgs);
+            }
+        }
         if ($this->_isSiteAdmin()) {
             $users = $this->paginate();
             $users = $this->User->attachIsUserMonitored($users);

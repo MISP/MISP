@@ -1,10 +1,13 @@
 <?php
 /**
- * Add user (admin only)Overmind "Admin add user" shown in a modal. 
- * Near-identical to admin_edit.ctp but for a fresh user: no id, "notify" option, pre-generated
- * authkey (legacy), no TOTP/current-password/terms/change-pw/periodic-notif.
+ * Add user (admin only)
  *
- * Submits via AJAX so validation errors (e.g. duplicate email) stay in the modal;
+ * Near-identical to admin_edit.ctp but for a fresh account: no id, a "notify"
+ * option, a pre-generated auth key (legacy authkeys only), and none of the
+ * TOTP / current-password / terms / change-pw / periodic-notification fields.
+ *
+ * Submits via AJAX so a validation error (a taken email, a weak password)
+ * re-renders inside the modal instead of throwing the admin back to a page.
  */
 
 if (empty($ajax)) {
@@ -20,6 +23,18 @@ $syncRoleIds = array_values(array_map('strval', array_keys($syncRoles)));
 $defaultPublishAlert = Configure::read('MISP.default_publish_alert');
 $defaultPublishAlert = ($defaultPublishAlert === null) ? true : (bool)$defaultPublishAlert;
 $roleDefault = (!empty($default_role_id) && isset($roles[(int)$default_role_id])) ? $default_role_id : null;
+$canFetchPgpKey = !empty($canFetchPgpKey);
+$roleChoices = [];
+foreach ($roles as $roleId => $roleName) {
+    $glyph = $this->RoleGlyph->get($roleName);
+    $roleChoices[] = [
+        'value' => $roleId,
+        'title' => $roleName,
+        'icon' => $glyph['icon'],
+        'tone' => $glyph['colour'],
+        'toneBg' => $glyph['tint'],
+    ];
+}
 
 // Strip PCRE delimiters from the complexity regex so it can feed a JS RegExp.
 $pwRegexBody = (string)$complexity;
@@ -32,17 +47,60 @@ $checkedOr = function ($field, $default) use ($u) {
     return array_key_exists($field, $u) ? !empty($u[$field]) : $default;
 };
 
-// BS5 switch (checkbox) helper. $checked null => Form default (unchecked on add).
-$switch = function ($field, $label, $checked = null) {
-    $sid = 'sw_' . $field;
-    $opts = ['class' => 'form-check-input', 'id' => $sid, 'hiddenField' => true];
-    if ($checked !== null) {
-        $opts['checked'] = (bool)$checked;
+/* One switch as a bordered tile — glyph and label on the left, the control on
+ * the right, the whole row clickable. Same shape as the scope tile on the
+ * organisation form, at the density a grid of them needs.
+ *
+ * $opts: note, icon, accent (see ModalAccent), checked (null leaves the
+ * FormHelper default), disabled, col, id.
+ */
+$switchTile = function ($field, $label, array $opts = []) {
+    $disabled = !empty($opts['disabled']);
+    $accent = $this->ModalAccent->get($opts['accent'] ?? 'primary');
+    $checkbox = [
+        'class' => 'form-check-input ms-0',
+        'id' => $opts['id'] ?? ('sw_' . $field),
+        'role' => 'switch',
+        'hiddenField' => true,
+        'disabled' => $disabled,
+        'style' => 'width:2.4rem; height:1.2rem; cursor:' . ($disabled ? 'not-allowed' : 'pointer') . ';',
+    ];
+    if (isset($opts['checked'])) {
+        $checkbox['checked'] = (bool)$opts['checked'];
     }
-    return '<div class="col-md-6"><div class="form-check form-switch">'
-        . $this->Form->checkbox($field, $opts)
-        . $this->Form->label($sid, $label, ['class' => 'form-check-label'])
-        . '</div></div>';
+
+    return sprintf(
+        '<div class="%s">'
+            . '<label class="d-flex align-items-center justify-content-between gap-3 h-100 w-100 border rounded-3 px-3 py-2 bg-light%s" style="cursor:%s;">'
+            . '<span class="d-flex align-items-center gap-2" style="min-width:0;">'
+            . '<i class="%s %s flex-shrink-0" style="width:1rem; font-size:.8rem; %s"></i>'
+            . '<span style="min-width:0;"><span class="fw-semibold d-block" style="font-size:.85rem; line-height:1.25;">%s</span>%s</span>'
+            . '</span>'
+            . '<span class="form-check form-switch m-0 ps-0 flex-shrink-0">%s</span>'
+            . '</label></div>',
+        h($opts['col'] ?? 'col-md-6'),
+        $disabled ? ' opacity-75' : '',
+        $disabled ? 'not-allowed' : 'pointer',
+        h($opts['icon'] ?? 'fas fa-toggle-on'),
+        h($accent['textClass']),
+        $accent['textStyle'],
+        h($label),
+        empty($opts['note'])
+            ? ''
+            : '<span class="text-muted d-block" style="font-size:.7rem; line-height:1.3;">' . h($opts['note']) . '</span>',
+        $this->Form->checkbox($field, $checkbox)
+    );
+};
+
+// One field's validation message, flattened for display.
+$errorFor = function ($field) use ($validationErrors) {
+    if (!isset($validationErrors[$field])) {
+        return '';
+    }
+
+    return is_array($validationErrors[$field])
+        ? implode(' ', $validationErrors[$field])
+        : (string)$validationErrors[$field];
 };
 
 echo $this->Form->create('User', [
@@ -55,7 +113,7 @@ echo $this->Form->create('User', [
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'eyebrow' => __('Administration'),
     'title' => __('Add user'),
-    'description' => __('Create a new account.'),
+    'description' => __('Create an account, choose what it may do and how its credentials reach the user.'),
     'icon' => 'fas fa-user-plus',
 ]) ?>
 
@@ -82,87 +140,117 @@ echo $this->Form->create('User', [
         <!-- ACCOUNT -->
         <div class="w-100 px-2">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'primary',
                 'label' => __('Account'),
+                'required' => true,
             ]) ?>
             <div class="row g-3">
-                <div class="col-md-8">
+                <div class="<?= $isSiteAdmin ? 'col-md-6' : 'col-12' ?>">
                     <?= $this->Form->label('email', __('Email'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('email', [
-                        'class' => 'form-control bg-light' . (isset($validationErrors['email']) ? ' is-invalid' : ''),
-                    ]) ?>
-                    <?php if (isset($validationErrors['email'])): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= h(is_array($validationErrors['email']) ? implode(' ', $validationErrors['email']) : $validationErrors['email']) ?>
-                        </div>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fas fa-at text-muted"></i></span>
+                        <?= $this->Form->text('email', [
+                            'class' => 'form-control' . ($errorFor('email') === '' ? '' : ' is-invalid'),
+                            'placeholder' => __('user@example.com'),
+                            'data-pgp-email' => true,
+                        ]) ?>
+                    </div>
+                    <?php if ($errorFor('email') !== ''): ?>
+                        <div class="invalid-feedback d-block"><?= h($errorFor('email')) ?></div>
                     <?php endif; ?>
-                </div>
-                <div class="col-md-4">
-                    <?= $this->Form->label('nids_sid', __('NIDS SID'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('nids_sid', ['class' => 'form-control bg-light']) ?>
                 </div>
 
                 <?php if ($isSiteAdmin): ?>
                     <div class="col-md-6">
                         <?= $this->Form->label('org_id', __('Organisation'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->select('org_id', $orgs, [
-                            'class' => 'form-select bg-light',
+                            'class' => 'form-select tom-select',
                             'empty' => __('Choose organisation'),
+                            // initTomSelect() reads this; without it the control
+                            // falls back to TomSelect's own "Select options...".
+                            'data-placeholder' => __('Choose an organisation'),
                         ]) ?>
                     </div>
                 <?php endif; ?>
 
                 <div class="col-md-6">
-                    <?= $this->Form->label('role_id', __('Role'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->select('role_id', $roles, [
-                        'class' => 'form-select bg-light',
+                    <?= $this->Form->label('role_id', __('Role'), ['class' => 'form-label fw-semibold', 'for' => 'adminRoleId']) ?>
+                    <?= $this->element('genericElementsBS5/Forms/choice_select', [
+                        'field' => 'role_id',
+                        'options' => $roleChoices,
+                        'value' => $roleDefault,
                         'id' => 'adminRoleId',
-                        'default' => $roleDefault,
-                        'empty' => false,
+                        'ariaLabel' => __('Role'),
+                    ]) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('The role decides every permission this account has.'),
                     ]) ?>
                 </div>
 
-                <?php if (!$advancedAuthkeys): ?>
-                    <div class="col-md-12">
-                        <?= $this->Form->label('authkey', __('Auth key'), ['class' => 'form-label fw-semibold']) ?>
-                        <?= $this->Form->text('authkey', [
-                            'class' => 'form-control bg-light font-monospace',
-                            'value' => $authkey,
-                            'readonly' => 'readonly',
-                        ]) ?>
-                        <div class="form-text"><?= __('Auto-generated key for the new user.') ?></div>
-                    </div>
-                <?php endif; ?>
-
                 <!-- Sync server (shown only for sync roles) -->
-                <div class="col-md-6" id="syncServersBlock" style="display:none;">
+                <div class="col-md-6 d-none" id="syncServersBlock">
                     <?= $this->Form->label('server_id', __('Sync user for'), ['class' => 'form-label fw-semibold']) ?>
                     <?= $this->Form->select('server_id', $servers, [
-                        'class' => 'form-select bg-light',
+                        'class' => 'form-select',
                         'empty' => false,
+                    ]) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('The remote server this account pulls from and pushes to.'),
+                    ]) ?>
+                </div>
+
+                <div class="col-md-6">
+                    <?= $this->Form->label('nids_sid', __('NIDS SID'), ['class' => 'form-label fw-semibold']) ?>
+                    <?= $this->Form->text('nids_sid', ['class' => 'form-control font-monospace']) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('Starting rule ID for the NIDS exports this account generates.'),
                     ]) ?>
                 </div>
             </div>
         </div>
 
+        <?php if (!$advancedAuthkeys): ?>
+            <!-- API ACCESS -->
+            <div class="w-100 px-2">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'label' => __('API access'),
+                ]) ?>
+                <?= $this->Form->label('authkey', __('Auth key'), ['class' => 'form-label fw-semibold']) ?>
+                <div class="input-group">
+                    <?= $this->Form->text('authkey', [
+                        'class' => 'form-control bg-light font-monospace',
+                        'id' => 'adminNewAuthkey',
+                        'value' => $authkey,
+                        'readonly' => 'readonly',
+                    ]) ?>
+                    <button type="button" class="btn btn-outline-secondary"
+                            onclick="copyValueToClipboard(document.getElementById('adminNewAuthkey').value, '<?= h(__('Auth key copied')) ?>');"
+                            title="<?= h(__('Copy the auth key')) ?>">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Generated for this account — the only time it is shown in full.'),
+                ]) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if ($customAuth): ?>
             <!-- EXTERNAL AUTH -->
             <div class="w-100 px-2">
                 <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'accent' => 'primary',
                     'label' => h($customAuthName),
                 ]) ?>
-                <div class="form-check form-switch mb-2">
-                    <?= $this->Form->checkbox('external_auth_required', [
-                        'class' => 'form-check-input',
+                <div class="row g-2">
+                    <?= $switchTile('external_auth_required', __('%s user', $customAuthName), [
                         'id' => 'adminExternalAuthReq',
-                        'hiddenField' => true,
+                        'icon' => 'fas fa-id-badge',
+                        'col' => 'col-12',
+                        'note' => __('The account signs in through %s instead of a MISP password.', $customAuthName),
                     ]) ?>
-                    <?= $this->Form->label('adminExternalAuthReq', __('%s user', h($customAuthName)), ['class' => 'form-check-label']) ?>
                 </div>
-                <div id="externalAuthKeyBlock" style="display:none;">
+                <div id="externalAuthKeyBlock" class="d-none mt-3">
                     <?= $this->Form->label('external_auth_key', __('External auth key'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('external_auth_key', ['class' => 'form-control bg-light']) ?>
+                    <?= $this->Form->text('external_auth_key', ['class' => 'form-control font-monospace']) ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -170,36 +258,35 @@ echo $this->Form->create('User', [
         <!-- PASSWORD -->
         <div class="w-100 px-2" id="adminPasswordSection">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'primary',
                 'label' => __('Password'),
             ]) ?>
-            <div class="form-check form-switch mb-2">
-                <?= $this->Form->checkbox('enable_password', [
-                    'class' => 'form-check-input',
+            <div class="row g-2">
+                <?= $switchTile('enable_password', __('Set a password now'), [
                     'id' => 'adminEnablePassword',
-                    'hiddenField' => true,
+                    'icon' => 'fas fa-key',
+                    'col' => 'col-12',
+                    'note' => __('Leave off to let MISP generate one and mail it with the credentials.'),
                 ]) ?>
-                <?= $this->Form->label('adminEnablePassword', __('Set a password'), ['class' => 'form-check-label']) ?>
             </div>
-            <div id="adminPasswordFields" style="display:none;">
+            <div id="adminPasswordFields" class="d-none mt-3 p-3 border rounded-3">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <?= $this->Form->label('password', __('Password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('password', [
-                            'class' => 'form-control bg-light',
+                            'class' => 'form-control',
                             'id' => 'addPassword',
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
-                        <div class="form-text">
-                            <?= __('Min %s characters — upper & lower case and a number or symbol.', h($length)) ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                            'text' => __('At least %s characters, mixing case with a number or a symbol.', h($length)),
+                        ]) ?>
                         <div id="addPasswordFeedback" class="small mt-1"></div>
                     </div>
                     <div class="col-md-6">
                         <?= $this->Form->label('confirm_password', __('Confirm password'), ['class' => 'form-label fw-semibold']) ?>
                         <?= $this->Form->password('confirm_password', [
-                            'class' => 'form-control bg-light',
+                            'class' => 'form-control',
                             'id' => 'addConfirm',
                             'autocomplete' => 'new-password',
                             'value' => '',
@@ -212,22 +299,48 @@ echo $this->Form->create('User', [
 
         <!-- CRYPTO KEYS -->
         <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'primary',
-                'label' => __('Cryptographic keys'),
-            ]) ?>
-            <?= $this->Form->label('gpgkey', __('PGP key'), ['class' => 'form-label fw-semibold']) ?>
+            <div class="d-flex align-items-end justify-content-between gap-2 mb-1">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'label' => __('PGP key'),
+                ]) ?>
+                <?php if ($canFetchPgpKey): ?>
+                    <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0"
+                            data-pgp-lookup
+                            data-pgp-busy-label="<?= h(__('Searching…')) ?>"
+                            data-pgp-empty-message="<?= h(__('The key server has no key for this address.')) ?>"
+                            data-pgp-error-message="<?= h(__('The key server could not be reached.')) ?>"
+                            data-pgp-disabled-message="<?= h(__('Key fetching is disabled on this instance.')) ?>"
+                            data-pgp-found-message="<?= h(__('PGP key loaded into the field.')) ?>"
+                            title="<?= h(__('Search the CIRCL key server for the email address above')) ?>">
+                        <i class="fas fa-cloud-arrow-down me-1"></i><?= __('Fetch PGP key') ?>
+                    </button>
+                <?php endif; ?>
+            </div>
             <?= $this->Form->textarea('gpgkey', [
-                'class' => 'form-control bg-light font-monospace',
+                'class' => 'form-control font-monospace',
                 'rows' => 4,
-                'placeholder' => __("Paste the user's PGP key here"),
+                'style' => 'font-size:.75rem;',
+                'data-pgp-target' => true,
+                'placeholder' => "-----BEGIN PGP PUBLIC KEY BLOCK-----",
             ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => $canFetchPgpKey
+                    ? __('Paste the armoured public key, or look it up on the CIRCL key server by the email address above.')
+                    : __('Paste the armoured public key. Encrypted notifications need it.'),
+            ]) ?>
+            <!-- Key-server results land here, see initPgpKeyLookup(). -->
+            <div class="mt-2 d-none" data-pgp-results></div>
             <?php if (Configure::read('SMIME.enabled')): ?>
                 <div class="mt-3">
-                    <?= $this->Form->label('certif_public', __('S/MIME public certificate (PEM)'), ['class' => 'form-label fw-semibold']) ?>
+                    <?= $this->Form->label('certif_public', __('S/MIME public certificate'), ['class' => 'form-label fw-semibold']) ?>
                     <?= $this->Form->textarea('certif_public', [
-                        'class' => 'form-control bg-light font-monospace',
+                        'class' => 'form-control font-monospace',
                         'rows' => 4,
+                        'style' => 'font-size:.75rem;',
+                        'placeholder' => "-----BEGIN CERTIFICATE-----",
+                    ]) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('PEM format.'),
                     ]) ?>
                 </div>
             <?php endif; ?>
@@ -236,14 +349,29 @@ echo $this->Form->create('User', [
         <!-- OPTIONS -->
         <div class="w-100 px-2">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'primary',
                 'label' => __('Options'),
             ]) ?>
             <div class="row g-2">
-                <?= $switch('autoalert', __('Receive email alerts when events are published'), $checkedOr('autoalert', $defaultPublishAlert)) ?>
-                <?= $switch('contactalert', __('Receive "Contact reporter" request emails'), $checkedOr('contactalert', true)) ?>
-                <?= $switch('disabled', __('Immediately disable this account')) ?>
-                <?= $switch('notify', __('Send credentials automatically'), $checkedOr('notify', true)) ?>
+                <?= $switchTile('notify', __('Email the credentials'), [
+                    'icon' => 'fas fa-paper-plane',
+                    'checked' => $checkedOr('notify', true),
+                    'note' => __('Sends the new user their login details right away.'),
+                ]) ?>
+                <?= $switchTile('autoalert', __('Event published'), [
+                    'icon' => 'fas fa-bullhorn',
+                    'checked' => $checkedOr('autoalert', $defaultPublishAlert),
+                    'note' => __('One email per published event this account can see.'),
+                ]) ?>
+                <?= $switchTile('contactalert', __('Contact reporter requests'), [
+                    'icon' => 'fas fa-comment-dots',
+                    'checked' => $checkedOr('contactalert', true),
+                    'note' => __('Receives the emails sent through "Contact reporter".'),
+                ]) ?>
+                <?= $switchTile('disabled', __('Account disabled'), [
+                    'icon' => 'fas fa-user-slash',
+                    'accent' => 'danger',
+                    'note' => __('Create the account now, but keep it from signing in.'),
+                ]) ?>
             </div>
         </div>
 
@@ -251,7 +379,6 @@ echo $this->Form->create('User', [
 </div>
 
 <?= $this->element('genericElementsBS5/Forms/modal_footer', [
-    'align' => 'end',
     'bleed' => true,
     'submit' => ['label' => __('Create user'), 'icon' => 'fas fa-user-plus'],
 ]) ?>
@@ -263,10 +390,26 @@ echo $this->Form->create('User', [
     var form = document.getElementById('AdminUserAddForm');
     if (!form) return;
 
+    /* Both live in mispOvermind.js, which the layout loads at the end of the
+     * body — after this script on a full-page render. openModal() already
+     * calls them for the modal path, so wait for the document either way;
+     * initPgpKeyLookup() is idempotent, so calling it twice is free. */
+    function boot() {
+        if (typeof initPgpKeyLookup === 'function') { initPgpKeyLookup(form); }
+        if (typeof initTomSelect === 'function') { initTomSelect(form); }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+
     // ── Toggles (password / sync server / external auth) ──────────
     var enablePw = document.getElementById('adminEnablePassword');
     var pwFields = document.getElementById('adminPasswordFields');
-    function togglePw() { if (pwFields) pwFields.style.display = (enablePw && enablePw.checked) ? '' : 'none'; }
+    function togglePw() {
+        if (pwFields) { pwFields.classList.toggle('d-none', !(enablePw && enablePw.checked)); }
+    }
     if (enablePw) { enablePw.addEventListener('change', togglePw); }
     togglePw();
 
@@ -275,7 +418,7 @@ echo $this->Form->create('User', [
     var syncIds = <?= json_encode($syncRoleIds) ?>;
     function toggleSync() {
         if (syncBlock && roleSel) {
-            syncBlock.style.display = (syncIds.indexOf(String(roleSel.value)) !== -1) ? '' : 'none';
+            syncBlock.classList.toggle('d-none', syncIds.indexOf(String(roleSel.value)) === -1);
         }
     }
     if (roleSel) { roleSel.addEventListener('change', toggleSync); }
@@ -286,8 +429,8 @@ echo $this->Form->create('User', [
     var pwSection = document.getElementById('adminPasswordSection');
     function toggleExt() {
         var on = extReq && extReq.checked;
-        if (extBlock) extBlock.style.display = on ? '' : 'none';
-        if (pwSection) pwSection.style.display = on ? 'none' : '';
+        if (extBlock) { extBlock.classList.toggle('d-none', !on); }
+        if (pwSection) { pwSection.classList.toggle('d-none', !!on); }
     }
     if (extReq) { extReq.addEventListener('change', toggleExt); toggleExt(); }
 

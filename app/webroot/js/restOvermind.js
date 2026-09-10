@@ -381,6 +381,9 @@ function applyQuery(element) {
     const descriptionBox = document.getElementById('template_description');
     if (bodyTextarea) {
         bodyTextarea.value = data['body'] || '';
+        // The body is a json_field: it reads the box on `input`, and an
+        // assignment fires none.
+        bodyTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         if (descriptionBox) descriptionBox.style.display = 'none';
     }
 
@@ -450,6 +453,7 @@ function applyTemplate(element) {
         if (shouldReplace) {
             bodyTextarea.value = formattedBody;
             bodyTextarea.dataset.lastTemplate = url;
+            bodyTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         if (descriptionBox) descriptionBox.style.display = 'block';

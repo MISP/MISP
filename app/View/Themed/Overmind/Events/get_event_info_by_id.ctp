@@ -15,7 +15,7 @@ if (empty($event)):
 ?>
 <div class="d-flex align-items-start gap-2 p-2 rounded border mt-1"
      style="border-color:#d8dde3; font-size:.8rem;">
-    <i class="fas fa-circle-exclamation text-warning mt-2"
+    <i class="fas fa-circle-exclamation text-warning mt-1"
        style="font-size:.75rem; flex-shrink:0;"></i>
     <span class="text-muted"><?= h($msg) ?></span>
 </div>

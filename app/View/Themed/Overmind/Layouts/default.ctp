@@ -248,6 +248,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             ];
             if (!$isAuthPage) {
                 $bs5Js[] = 'onboarding';
+                $bs5Js[] = 'overmind-invaders';
             }
             echo $this->element('genericElements/assetLoader', [
                 'js' => $bs5Js,
