@@ -1382,7 +1382,7 @@ class UsersController extends AppController
             }
             $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password', 'User.totp', 'User.hotp_counter'],
+                'fields' => ['User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
                 'recursive' => -1,
             ]);
             if ($unauth_user) {
