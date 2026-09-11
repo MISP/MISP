@@ -10,7 +10,7 @@ try:
     import plyara
     results['plyara'] = 1
 except Exception:
-    results['playara'] = 0
+    results['plyara'] = 0
     results['success'] = 0
 
 print(json.dumps({

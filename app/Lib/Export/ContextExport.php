@@ -130,7 +130,7 @@ class ContextExport
                 }
                 $this->__taxonomyFetched[$splits['namespace']] = $fetched;
             } else {
-                // Do not try to fetch non existing taxonomy again
+                // Do not try to fetch nonexistent taxonomy again
                 $this->__taxonomyFetched[$splits['namespace']] = false;
             }
         }

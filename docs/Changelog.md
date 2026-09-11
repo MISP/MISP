@@ -4907,7 +4907,7 @@ Fix
   [mokaddem]
 - [attributes:addTag] Pass the event to check ACL. [mokaddem]
 - [taxonomy] avoid MISP becoming unhappy when trying to enable tags for
-  a non-existing taxonomy. [iglocska]
+  a nonexistent taxonomy. [iglocska]
 - [doc] rhel 7 install doc initial fixes. [Steve Clement]
 - [selinux] allow log files rename. [Richard van den Berg]
 - [db_schema] Cerebrates's comment default value. [mokaddem]
@@ -10373,7 +10373,7 @@ Fix
   - Avoiding issues with patterns containing parts
     within brackets and separated by OR statements
     giving results like "[file" instead of "file"
-- [cluster:index] Prevent highlighting non existing JSON. [mokaddem]
+- [cluster:index] Prevent highlighting nonexistent JSON. [mokaddem]
 - [popovers] Prevent closing inexisting popovers. [mokaddem]
 - [userSettings:set_home_page] Added missing view file. Fix #6245.
   [mokaddem]
@@ -14721,7 +14721,7 @@ Fix
 - [attribute:*-seen] Force seconds to be integers and allows editForm
   for *-seen fields. [mokaddem]
 - [timeline] correctly adapt time scale when expanding items. [mokaddem]
-- [event:timeline] Error when trying to restore non-existing backup
+- [event:timeline] Error when trying to restore nonexistent backup
   entries. [mokaddem]
 - [object:quickEdit] fix input selector. [mokaddem]
 - [object:quickEdit] Fixed response to be of JSON type and improved
@@ -22720,7 +22720,7 @@ Fix
   [iglocska]
 - [feeds] Fixed an issue that caused a misp format feed fetch to fail
   intermittently. [iglocska]
-- [upload_analysis_file] Prevent object creation on non-existing events.
+- [upload_analysis_file] Prevent object creation on nonexistent events.
   [Sami Mokaddem]
 - [eventGraph] Object's label gets set correctly Add both requiredOneOf
   and required (forgotten one) fields in the Object's label. [Sami
@@ -23710,7 +23710,7 @@ Fix
 - [sightings/api] now support json output format. [Sami Mokaddem]
 - [bug] Fixed bug with stacking login screens ontop of an event view.
   [iglocska]
-- Aws would error if asked to del non-existing. [Hannah Ward]
+- Aws would error if asked to del nonexistent. [Hannah Ward]
 - [stix import] Avoided import of empty header description. [chrisr3d]
 - [galaxy] added collection uuid capture. [iglocska]
 - [view] Added uuids to galaxy cluster view. [iglocska]
@@ -24398,7 +24398,7 @@ Fix
 - [stix2 export] Fixed unintended syntax error. [chrisr3d]
 - [Event] Prevents bug if object has no attributes. [Sami Mokaddem]
 
-  While using the event quick filter, prevents accessing a non existing index
+  While using the event quick filter, prevents accessing a nonexistent index
   if the object has no attributes.
 - [stix framing] Fixed orgname in stix framing. [chrisr3d]
 - [stix framing] Removed monkey printing. [chrisr3d]
@@ -27799,7 +27799,7 @@ Fix
   [chrisr3d]
 - Fixed hash type parsing. [chrisr3d]
 - Added misp label to distinguish misp stix2 files. [chrisr3d]
-- Handle a non existent case error for the dictionary to return.
+- Handle a nonexistent case error for the dictionary to return.
   [chrisr3d]
 - Fixed some dictionary functions bugs. [chrisr3d]
 - Handling the stix file title None case. [chrisr3d]
@@ -29023,7 +29023,7 @@ Fix
 - Graceful handling of removed users in discussion boards. [iglocska]
 - Suricata export URL encodes an IPv6 between [], fixes #2872.
   [iglocska]
-- Fixed an issue where searching for a non-existing organisation in the
+- Fixed an issue where searching for a nonexistent organisation in the
   attribute search returned any visible attributes no matter the org.
   [iglocska]
 - Fixed messed up org logos in attribute search. [iglocska]
@@ -34762,7 +34762,7 @@ Fix
   address in the user creation form wasn't handled cleanly. [iglocska]
 - Some clarification on the user creation/edit forms. [iglocska]
 - Cleanup of the routes file. [iglocska]
-- Removed unreachable line referencing a non-existing variable.
+- Removed unreachable line referencing a nonexistent variable.
   [iglocska]
 - Cleanup of missing whitespaces in PR. [Iglocska]
 - Fixed a newly introduced bug that breaks the NIDS exports, as
@@ -40115,7 +40115,7 @@ v2.3.117 (2015-08-27)
 
   - CSV export ignored the tag parameters
   - tagging events didn't work as expected in some cases
-  - timing out and clicking on an admin action results in being redirected to a non-existing admin login page
+  - timing out and clicking on an admin action results in being redirected to a nonexistent admin login page
   - distribution setting ignored when uploading attachments
 
 
@@ -41562,7 +41562,7 @@ v2.3.17 (2014-10-28)
   - use terms file as before if nothing else specified
   - specify a file in the app/files/terms directory via the server settings tool
   - specify whether to show it inline or create a download link for users instead
-  - by default everything is the same as before, except that the MISP installation path is no longer exposed by a non-existing terms file
+  - by default everything is the same as before, except that the MISP installation path is no longer exposed by a nonexistent terms file
 - Merge branch 'hotfix-2.3.16' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.16' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.14' into develop. [iglocska]
@@ -43380,9 +43380,9 @@ v2.2.1 (2014-02-19)
 
   - Prevents deletion through XSRF
 - Fixed an issue with siteadmin contact e-mails resetting passwords of
-  non existing users. [iglocska]
+  nonexistent users. [iglocska]
 
-  - a site admin could issue a password reset to a non-existing user
+  - a site admin could issue a password reset to a nonexistent user
 - Fixed a newly created bug in memberslist. [Christophe Vandeplas]
 - Merge branch 'develop' of https://github.com/MISP/MISP into develop.
   [iglocska]
@@ -46196,7 +46196,7 @@ v2.2.1 (2014-02-19)
   %UserProfile% and %AllUsersProfile%.
 - GFI sandbox import. [noud]
 
-  do not load non existing stored_created_file.
+  do not load nonexistent stored_created_file.
 - Better placement of plugins (touching RBAC & Audit log) [noud]
 
   If it's just an existing behavior or lib,
@@ -46422,15 +46422,15 @@ v2.2.1 (2014-02-19)
 - Bug, unknown server internet name and pull. [noud]
 - Fix to pulling from an unknown server. [noud]
 
-  - a server having a non-existing internet name gives
+  - a server having a nonexistent internet name gives
     "php_network_getaddresses:
     getaddrinfo failed: Name or service not known"
     on pull.
-- Sync Servers, error if server no MISP or non-existing hostname. [noud]
-- Sync Servers, fix if server no MISP or non-existing hostname. [noud]
+- Sync Servers, error if server no MISP or nonexistent hostname. [noud]
+- Sync Servers, fix if server no MISP or nonexistent hostname. [noud]
 
   - a server containing no MISP gives "XML cannot be read." on publish.
-  - a server having a non-existing internet name gives
+  - a server having a nonexistent internet name gives
     "php_network_getaddresses: getaddrinfo failed: Name or service not
   known" on publish.
 - Export HIDS files with MD5 and SHA-1. [noud]

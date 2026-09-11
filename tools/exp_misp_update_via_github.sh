@@ -190,7 +190,7 @@ elif [ $OutPull == 0 ]; then
 	apply_permissions
 	cd $misp_folder/app && php composer.phar update
 else
-	echo -n "    [ERROR] An unexepected error occurred: "; log_date
+	echo -n "    [ERROR] An unexpected error occurred: "; log_date
 	exit 1
 fi
 

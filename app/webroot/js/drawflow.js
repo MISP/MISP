@@ -742,13 +742,13 @@ class Drawflow {
   updateConnection(eX, eY) {
     const precanvas = this.precanvas;
     const zoom = this.zoom;
-    let precanvasWitdhZoom = precanvas.clientWidth / (precanvas.clientWidth * zoom);
-    precanvasWitdhZoom = precanvasWitdhZoom || 0;
+    let precanvasWidthZoom = precanvas.clientWidth / (precanvas.clientWidth * zoom);
+    precanvasWidthZoom = precanvasWidthZoom || 0;
     let precanvasHeightZoom = precanvas.clientHeight / (precanvas.clientHeight * zoom);
     precanvasHeightZoom = precanvasHeightZoom || 0;
     var path = this.connection_ele.children[0];
 
-    var line_x = this.ele_selected.offsetWidth / 2 + (this.ele_selected.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+    var line_x = this.ele_selected.offsetWidth / 2 + (this.ele_selected.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
     var line_y = this.ele_selected.offsetHeight / 2 + (this.ele_selected.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
     var x = eX * (this.precanvas.clientWidth / (this.precanvas.clientWidth * this.zoom)) - (this.precanvas.getBoundingClientRect().x * (this.precanvas.clientWidth / (this.precanvas.clientWidth * this.zoom)));
@@ -851,8 +851,8 @@ class Drawflow {
     const reroute_fix_curvature = this.reroute_fix_curvature;
     const rerouteWidth = this.reroute_width;
     const zoom = this.zoom;
-    let precanvasWitdhZoom = precanvas.clientWidth / (precanvas.clientWidth * zoom);
-    precanvasWitdhZoom = precanvasWitdhZoom || 0;
+    let precanvasWidthZoom = precanvas.clientWidth / (precanvas.clientWidth * zoom);
+    precanvasWidthZoom = precanvasWidthZoom || 0;
     let precanvasHeightZoom = precanvas.clientHeight / (precanvas.clientHeight * zoom);
     precanvasHeightZoom = precanvasHeightZoom || 0;
 
@@ -868,12 +868,12 @@ class Drawflow {
 
         var elementsearch = elementsearchId.querySelectorAll('.' + elemsOut[item].classList[4])[0]
 
-        var eX = elementsearch.offsetWidth / 2 + (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+        var eX = elementsearch.offsetWidth / 2 + (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
         var eY = elementsearch.offsetHeight / 2 + (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
         var elementsearchOut = elementsearchId_out.querySelectorAll('.' + elemsOut[item].classList[3])[0]
 
-        var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+        var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
         var line_y = elementsearchOut.offsetHeight / 2 + (elementsearchOut.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
         var x = eX;
@@ -894,11 +894,11 @@ class Drawflow {
             var elementsearchId_out = container.querySelector(`#${id}`);
             var elementsearch = item;
 
-            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
 
             var elementsearchOut = elementsearchId_out.querySelectorAll('.' + item.parentElement.classList[3])[0]
-            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var line_y = elementsearchOut.offsetHeight / 2 + (elementsearchOut.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
             var x = eX;
             var y = eY;
@@ -913,11 +913,11 @@ class Drawflow {
             var elementsearch = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
 
             var elementsearchIn = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
-            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var eY = elementsearchIn.offsetHeight / 2 + (elementsearchIn.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
 
-            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -931,11 +931,11 @@ class Drawflow {
             var elementsearchId_out = container.querySelector(`#${id}`);
             var elementsearch = item;
 
-            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
 
             var elementsearchOut = elementsearchId_out.querySelectorAll('.' + item.parentElement.classList[3])[0]
-            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var line_y = elementsearchOut.offsetHeight / 2 + (elementsearchOut.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
             var x = eX;
@@ -949,9 +949,9 @@ class Drawflow {
             var elementsearchId_out = item;
             var elementsearch = points[i + 1];
 
-            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
-            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -969,7 +969,7 @@ class Drawflow {
             var elementsearch = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
 
             var elementsearchIn = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
-            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var eY = elementsearchIn.offsetHeight / 2 + (elementsearchIn.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
             var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) + rerouteWidth;
@@ -1019,11 +1019,11 @@ class Drawflow {
         var elementsearchId = container.querySelector(`#${id_search}`);
         var elementsearch = elementsearchId.querySelectorAll('.' + elems[item].classList[3])[0]
 
-        var line_x = elementsearch.offsetWidth / 2 + (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+        var line_x = elementsearch.offsetWidth / 2 + (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
         var line_y = elementsearch.offsetHeight / 2 + (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
         var elementsearchId_in = elementsearchId_in.querySelectorAll('.' + elems[item].classList[4])[0]
-        var x = elementsearchId_in.offsetWidth / 2 + (elementsearchId_in.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+        var x = elementsearchId_in.offsetWidth / 2 + (elementsearchId_in.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
         var y = elementsearchId_in.offsetHeight / 2 + (elementsearchId_in.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
         const lineCurve = createCurvature(line_x, line_y, x, y, curvature, 'openclose');
@@ -1042,11 +1042,11 @@ class Drawflow {
             var elementsearchId_out = container.querySelector(`#${id}`);
             var elementsearch = item;
 
-            var line_x = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
 
             var elementsearchIn = elementsearchId_out.querySelectorAll('.' + item.parentElement.classList[4])[0]
-            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var eY = elementsearchIn.offsetHeight / 2 + (elementsearchIn.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
             var x = eX;
@@ -1062,10 +1062,10 @@ class Drawflow {
             var elementsearch = elementsearchId.querySelectorAll('.' + item.parentElement.classList[3])[0]
 
             var elementsearchOut = elementsearchId.querySelectorAll('.' + item.parentElement.classList[3])[0]
-            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var line_y = elementsearchOut.offsetHeight / 2 + (elementsearchOut.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
-            var eX = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -1082,10 +1082,10 @@ class Drawflow {
             var elementsearchId = container.querySelector(`#${id_search}`);
             var elementsearch = elementsearchId.querySelectorAll('.' + item.parentElement.classList[3])[0]
             var elementsearchOut = elementsearchId.querySelectorAll('.' + item.parentElement.classList[3])[0]
-            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var line_x = elementsearchOut.offsetWidth / 2 + (elementsearchOut.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var line_y = elementsearchOut.offsetHeight / 2 + (elementsearchOut.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
-            var eX = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -1098,9 +1098,9 @@ class Drawflow {
             var elementsearchId_out = item;
             var elementsearch = points[i + 1];
 
-            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
-            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -1118,10 +1118,10 @@ class Drawflow {
             var elementsearch = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
 
             var elementsearchIn = elementsearchId.querySelectorAll('.' + item.parentElement.classList[4])[0]
-            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom;
+            var eX = elementsearchIn.offsetWidth / 2 + (elementsearchIn.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom;
             var eY = elementsearchIn.offsetHeight / 2 + (elementsearchIn.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom;
 
-            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
@@ -1135,9 +1135,9 @@ class Drawflow {
             var elementsearchId_out = item;
             var elementsearch = points[i + 1];
 
-            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var eX = (elementsearch.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var eY = (elementsearch.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
-            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWitdhZoom + rerouteWidth;
+            var line_x = (elementsearchId_out.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * precanvasWidthZoom + rerouteWidth;
             var line_y = (elementsearchId_out.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * precanvasHeightZoom + rerouteWidth;
             var x = eX;
             var y = eY;
