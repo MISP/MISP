@@ -358,7 +358,11 @@ jobs:
       - name: Run PHP tests
         run: |
           ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
-          sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
+          # -c is required. Without it PHPUnit never loads app/phpunit.xml,
+          # so the tests get no bootstrap - Test/Support/FrameworkStubs.php
+          # is never installed and APP is never defined - and the exclusions
+          # in the config do not apply either.
+          sudo -u www-data ./app/Vendor/bin/phpunit -c app/phpunit.xml
 
       - name: Clone test files
         uses: actions/checkout@v5
