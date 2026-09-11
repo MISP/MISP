@@ -732,14 +732,17 @@ class Correlation extends AppModel
                         $conditions['value1 LIKE'] = $prefix . '%';
                     }
                 } else {
+                    list($startIp, $endIp) = $this->__ipv6CidrRange(
+                        $networkIp,
+                        $mask
+                    );
+                    // Text prefixes are unsafe because IPv6 zero compression
+                    // can produce different strings for addresses in a CIDR.
                     $conditions[] = 'IS_IPV6(value1)';
-                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
-                    if ($mask >= 16) {
-                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
-                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
-                        $prefix = implode(':', $ipv6Parts);
-                        $conditions['value1 LIKE'] = $prefix . '%';
-                    }
+                    $conditions[
+                        'INET6_ATON(value1) BETWEEN INET6_ATON(?) ' .
+                        'AND INET6_ATON(?)'
+                    ] = [$startIp, $endIp];
                 }
             }
 
@@ -798,6 +801,36 @@ class Correlation extends AppModel
         $mask = -1 << (32 - $bits);
         $subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
         return ($ip & $mask) == $subnet;
+    }
+
+    /**
+     * @param string $ip IPv6 network address
+     * @param int $mask CIDR prefix length
+     * @return array First and last address in the range
+     */
+    private function __ipv6CidrRange($ip, $mask)
+    {
+        $packedIp = inet_pton($ip);
+        $startIp = $endIp = $packedIp;
+        $mask = (int)$mask;
+        $wholeBytes = intdiv($mask, 8);
+        $remainingBits = $mask % 8;
+
+        for ($index = $wholeBytes; $index < 16; $index++) {
+            if ($index === $wholeBytes && $remainingBits !== 0) {
+                $byteMask = (0xff << (8 - $remainingBits)) & 0xff;
+                $networkByte = ord($packedIp[$index]) & $byteMask;
+                $startIp[$index] = chr($networkByte);
+                $endIp[$index] = chr(
+                    $networkByte | ($byteMask ^ 0xff)
+                );
+            } else {
+                $startIp[$index] = "\x00";
+                $endIp[$index] = "\xff";
+            }
+        }
+
+        return [inet_ntop($startIp), inet_ntop($endIp)];
     }
 
     // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
