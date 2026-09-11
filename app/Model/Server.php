@@ -1302,7 +1302,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $server, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -1386,7 +1386,7 @@ class Server extends AppModel
                         $this->Event->shouldBePushedToServer($event, $server);
 
                     if ($pushGalaxyClustersForEvent) {
-                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $this->syncGalaxyClusters($serverSync, $server, $user, $technique=$event['Event']['id'], $event=$event);
                     }
 
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
