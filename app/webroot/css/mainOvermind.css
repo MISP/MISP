@@ -3265,3 +3265,467 @@ tr.evt-extension-row td:first-child {
     border-radius: var(--bs-border-radius);
     font-size: .78rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Event report markdown
+   The rendered form of an event report, wherever one is shown: the General
+   tab preview, the event view teaser and the Edit Content live preview. The
+   three used to carry their own copy of this (or none at all, which is why
+   the General tab rendered unstyled markdown), and js/misp-report-markdown.js
+   is the only thing that emits these classes.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.markdown-preview-body {
+    overflow-wrap: break-word;
+}
+
+.markdown-preview-body h1,
+.markdown-preview-body h2,
+.markdown-preview-body h3,
+.markdown-preview-body h4,
+.markdown-preview-body h5,
+.markdown-preview-body h6 {
+    margin-top: 1.2rem;
+    margin-bottom: .4rem;
+    font-weight: 600;
+}
+
+.markdown-preview-body > :first-child { margin-top: 0; }
+
+.markdown-preview-body p { margin-bottom: .75rem; }
+
+.markdown-preview-body pre {
+    padding: .75rem 1rem;
+    overflow-x: auto;
+    background: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius);
+}
+
+.markdown-preview-body code { font-size: .85em; }
+
+.markdown-preview-body blockquote {
+    margin: .5rem 0;
+    padding: .25rem .75rem;
+    border-left: 4px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+}
+
+.markdown-preview-body table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+
+.markdown-preview-body th,
+.markdown-preview-body td {
+    padding: .4rem .6rem;
+    border: 1px solid var(--bs-border-color);
+}
+
+.markdown-preview-body th {
+    background: var(--bs-tertiary-bg);
+    font-weight: 600;
+}
+
+.markdown-preview-body img { max-width: 100%; height: auto; }
+.markdown-preview-body a { color: var(--bs-link-color); }
+.markdown-preview-body hr { border-color: var(--bs-border-color); }
+
+
+.er-preview-overlay {
+    position: relative;
+    z-index: 1;
+}
+
+.er-preview-gradient {
+    height: 60px;
+    margin-top: -60px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--bs-card-bg, #fff));
+}
+
+.er-preview-bar {
+    padding: .25rem 0;
+    text-align: center;
+    background: var(--bs-card-bg, #fff);
+}
+
+/* Last thing in a card, so it has to follow the card's own bottom corners. */
+.card > .er-preview-overlay:last-child > .er-preview-bar {
+    border-bottom-left-radius: var(--bs-card-inner-border-radius, .375rem);
+    border-bottom-right-radius: var(--bs-card-inner-border-radius, .375rem);
+}
+
+/* ── MISP elements ─────────────────────────────────────────────────────
+   A pill is a key half (what the element is) and a value half (what it
+   says), so the two read apart at a glance inside a paragraph. */
+
+.ov-md-el {
+    display: inline-flex;
+    align-items: baseline;
+    max-width: 100%;
+    margin: 0 .15rem;
+    font-size: .875em;
+    font-weight: 600;
+    line-height: 1.45;
+    vertical-align: baseline;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.ov-md-el-k {
+    flex: 0 0 auto;
+    padding: .05rem .35rem;
+    background: var(--bs-tertiary-bg);
+    border-right: 1px solid var(--bs-border-color);
+    white-space: nowrap;
+}
+
+.ov-md-el-v {
+    padding: .05rem .35rem;
+    max-width: 30ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--bs-link-color);
+}
+
+/* An object, and an attribute inside one, carry the object's blue so a
+   report shows at a glance what came out of a structured object. */
+.ov-md-obj,
+.ov-md-objattr {
+    border-color: #3465a4;
+}
+
+.ov-md-obj > .ov-md-el-k,
+.ov-md-objattr > .ov-md-el-k {
+    background: #3465a4;
+    border-right-color: #3465a4;
+    color: #fff;
+}
+
+.ov-md-objattr .ov-md-el-arrow {
+    margin: 0 .25rem;
+    font-style: normal;
+    opacity: .8;
+}
+
+.ov-md-objattr .ov-md-el-rel {
+    padding: 0 .25rem;
+    background: var(--bs-body-bg);
+    border-radius: 1rem;
+    color: var(--bs-body-color);
+    font-weight: 600;
+}
+
+.ov-md-obj > .ov-md-el-v,
+.ov-md-objattr > .ov-md-el-v {
+    color: var(--bs-body-color);
+}
+
+/* A rule switched off in the menu: the value, and nothing around it. */
+.ov-md-plain {
+    border: 0;
+    font-weight: 600;
+    cursor: inherit;
+}
+
+.ov-md-invalid {
+    padding: .05rem .35rem;
+    border-color: var(--bs-danger-border-subtle);
+    color: var(--bs-danger);
+    cursor: not-allowed;
+}
+
+.ov-md-invalid .ov-md-el-id { color: var(--bs-link-color); }
+
+.ov-md-tag {
+    display: inline-block;
+    margin: 0 .15rem;
+    padding: .1rem .35rem;
+    font-size: .8em;
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: var(--bs-border-radius-sm);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    cursor: pointer;
+}
+
+.ov-md-tag > i { margin-right: .3rem; }
+
+.ov-md-picture {
+    display: block;
+    margin: .75rem 0;
+    text-align: center;
+}
+
+.ov-md-picture > img {
+    max-width: 90%;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+/* A galaxy matrix is named and linked rather than drawn: the matrix widget
+   is jQuery-bound, and a BS5 page has no jQuery. */
+.ov-md-matrix {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 .15rem;
+    padding: .1rem .45rem;
+    font-size: .875em;
+    font-weight: 600;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+}
+
+.ov-md-matrix > i { opacity: .7; }
+.ov-md-matrix-link { font-weight: 400; font-size: .85em; }
+
+
+.ov-md-popover {
+    --bs-popover-max-width: min(44rem, calc(100vw - 2rem));
+    width: max-content;
+    min-width: min(24rem, calc(100vw - 2rem));
+}
+
+.ov-md-popover .popover-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.ov-md-pop-row {
+    display: flex;
+    gap: .75rem;
+    padding: .25rem 0;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: .8rem;
+}
+
+.ov-md-pop-row:first-child { border-top: 0; }
+
+.ov-md-pop-k {
+    flex: 0 0 7rem;
+    color: var(--bs-secondary-color);
+    text-transform: uppercase;
+    font-size: .7rem;
+    letter-spacing: .04em;
+    padding-top: .1rem;
+}
+
+.ov-md-pop-v {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+[data-bs-theme="dark"] .ov-md-objattr .ov-md-el-rel {
+    background: var(--bs-tertiary-bg);
+}
+
+.ov-raw-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+.ov-raw-layer,
+.ov-raw-input {
+    margin: 0;
+    padding: .75rem;
+    border: 0;
+    font-family: var(--bs-font-monospace);
+    font-size: .875rem;
+    line-height: 1.55;
+    letter-spacing: normal;
+    tab-size: 4;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.ov-raw-layer {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    min-height: 100%;
+    pointer-events: none;
+    color: var(--bs-body-color);
+    background: transparent;
+}
+
+.ov-raw-input {
+    position: relative;
+    flex: 1 0 auto;
+    width: 100%;
+    overflow: auto;
+    resize: none;
+    background: transparent;
+    color: var(--bs-body-color);
+}
+
+.ov-raw-input:focus {
+    outline: 0;
+    box-shadow: none;
+}
+
+.ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-layer { display: block; }
+
+.ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input {
+    color: transparent;
+    caret-color: var(--bs-body-color);
+    overflow: hidden;
+}
+
+/* The selection has to stay visible over transparent text. */
+.ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
+    background: rgba(13, 110, 253, .28);
+    color: transparent;
+}
+
+/* The writing toolbar in the Edit Content header. Flat glyphs rather than a
+   row of outlined buttons: fourteen of those would out-shout the Save button
+   they sit next to. */
+.ov-md-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .1rem;
+    flex-wrap: wrap;
+}
+
+.ov-md-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    line-height: 1;
+}
+
+.ov-md-tool:hover,
+.ov-md-tool:focus-visible {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+}
+
+.ov-md-tool:active { background: var(--bs-secondary-bg); }
+
+.ov-md-tool .misp-icon { font-size: .9rem; }
+
+.ov-md-tool-sep {
+    width: 1px;
+    height: 1rem;
+    margin: 0 .3rem;
+    background: var(--bs-border-color);
+}
+
+/* The completion behind Ctrl+Space. It lives on <body> rather than in the
+   pane, which is a scroll container that would clip it, so it carries its own
+   position and closes when that pane scrolls. */
+.ov-raw-hints {
+    position: absolute;
+    z-index: 1080;
+    min-width: 16rem;
+    max-width: min(36rem, calc(100vw - 2rem));
+    max-height: 16rem;
+    overflow-y: auto;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    font-size: .8rem;
+}
+
+.ov-raw-hint {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    padding: .25rem .5rem;
+    cursor: pointer;
+}
+
+.ov-raw-hint.is-active,
+.ov-raw-hint:hover { background: var(--bs-tertiary-bg); }
+
+.ov-raw-hint-label {
+    flex: 0 0 auto;
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--bs-font-monospace);
+    font-weight: 600;
+}
+
+.ov-raw-hint-detail {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+
+/* The help modal's syntax examples, so a <code> in a paragraph of prose reads
+   as the literal it is. */
+.ov-help-body code {
+    padding: .1rem .3rem;
+    background: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius-sm);
+    color: var(--bs-code-color);
+}
+
+.ov-help-body h6 { margin-top: 1.25rem; }
+.ov-help-body > :first-child { margin-top: 0; }
+.ov-help-body ul { margin-bottom: .75rem; }
+
+/* Token colours. The MISP elements keep the family their pills use — an
+   attribute reads blue, an object the object blue, a tag green — so the
+   source and the preview say the same thing. */
+.ov-raw-heading { color: #6741d9; font-weight: 700; }
+.ov-raw-misp { font-weight: 600; }
+.ov-raw-misp-attribute { color: #1971c2; }
+.ov-raw-misp-object { color: #3465a4; }
+.ov-raw-misp-tag { color: #0ca678; }
+.ov-raw-misp-galaxymatrix { color: #e8590c; }
+.ov-raw-misp-suggestion { color: var(--bs-secondary-color); }
+.ov-raw-tvar { color: #c2255c; font-weight: 600; }
+.ov-raw-code,
+.ov-raw-fence { color: #ae3ec9; }
+.ov-raw-link { color: #1c7ed6; }
+.ov-raw-quote { color: var(--bs-secondary-color); font-style: italic; }
+.ov-raw-bullet { color: #e8590c; font-weight: 700; }
+.ov-raw-table { color: #495057; }
+.ov-raw-rule { color: var(--bs-secondary-color); }
+.ov-raw-bold { font-weight: 700; }
+.ov-raw-italic { font-style: italic; }
+
+[data-bs-theme="dark"] .ov-raw-heading { color: #b197fc; }
+[data-bs-theme="dark"] .ov-raw-misp-attribute { color: #74c0fc; }
+[data-bs-theme="dark"] .ov-raw-misp-object { color: #8cb4e8; }
+[data-bs-theme="dark"] .ov-raw-misp-tag { color: #63e6be; }
+[data-bs-theme="dark"] .ov-raw-misp-galaxymatrix { color: #ffa94d; }
+[data-bs-theme="dark"] .ov-raw-tvar { color: #faa2c1; }
+[data-bs-theme="dark"] .ov-raw-code,
+[data-bs-theme="dark"] .ov-raw-fence { color: #eebefa; }
+[data-bs-theme="dark"] .ov-raw-link { color: #74c0fc; }
+[data-bs-theme="dark"] .ov-raw-bullet { color: #ffa94d; }
+[data-bs-theme="dark"] .ov-raw-table { color: #adb5bd; }
+[data-bs-theme="dark"] .ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
+    background: rgba(110, 168, 254, .32);
+}

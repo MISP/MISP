@@ -5683,3 +5683,236 @@ window.initScaffoldFilterDraft = initScaffoldFilterDraft;
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
 });
+
+/*******************************
+ *  Collapsed report preview   *
+ *******************************/
+
+/**
+ * The "Show full content" toggle under a clipped event report preview.
+ *
+ * Collapsed, the wrapper is clamped and hidden: no scrollbar — the fade and
+ * the link are what say there is more. Expanded, it grows to at most a
+ * screenful and scrolls inside, which is the one state where a scrollbar
+ * belongs. A preview that clamps the body itself instead ends up showing a
+ * scrollbar it cannot even draw fully, inside a window the fade already
+ * covers, and reads as a report cut off at the bottom.
+ *
+ * Called from the link's onclick with the collapsed height the template chose.
+ * The link carries its own wording (`data-er-expand-label` /
+ * `data-er-collapse-label`, translated server-side) and the wrapper may name
+ * its expanded ceiling with `data-er-expanded-max`.
+ *
+ * Three templates had a copy of this, and they had already drifted apart on
+ * how they find the gradient — hence the two ways of looking for it below.
+ */
+function erPreviewToggle(link, cardId, overlayId, collapsedMaxH) {
+    var card = document.getElementById(cardId);
+    var overlay = document.getElementById(overlayId);
+    if (!card || !overlay) { return; }
+
+    var gradient = overlay.querySelector('.er-preview-gradient') || overlay.firstElementChild;
+    var icon = link.querySelector('i');
+    var expanded = card.dataset.erExpanded === '1';
+    var expandedMaxH = card.dataset.erExpandedMax || 'calc(100vh - 5rem)';
+
+    if (expanded) {
+        card.style.maxHeight = collapsedMaxH;
+        card.style.overflowY = 'hidden';
+        /* Collapsing has to come back to the top of the report: the box keeps
+           whatever it was scrolled to, and clipping a scrolled box shows its
+           middle. */
+        card.scrollTop = 0;
+        card.dataset.erExpanded = '0';
+        if (gradient) { gradient.style.display = ''; }
+        if (icon) { icon.className = 'fas fa-chevron-down me-1'; }
+        setLabel(link, link.dataset.erExpandLabel || 'Show full content');
+    } else {
+        card.style.maxHeight = expandedMaxH;
+        card.style.overflowY = 'auto';
+        card.dataset.erExpanded = '1';
+        if (gradient) { gradient.style.display = 'none'; }
+        if (icon) { icon.className = 'fas fa-chevron-up me-1'; }
+        setLabel(link, link.dataset.erCollapseLabel || 'Collapse');
+    }
+
+    function setLabel(el, text) {
+        var node = el.lastChild;
+        if (node && node.nodeType === Node.TEXT_NODE) {
+            node.textContent = ' ' + text;
+        } else {
+            el.appendChild(document.createTextNode(' ' + text));
+        }
+    }
+}
+window.erPreviewToggle = erPreviewToggle;
+
+/*******************************
+ *  "Show all" for a tall card *
+ *******************************/
+
+/**
+ * Keeps a card body from running long: past a height it is clipped, a fade
+ * says there is more, and a bar expands it. Declarative — a card opts in with
+ * three attributes and writes no script of its own:
+ *
+ *   <div id="…-body"
+ *        data-collapse-tall="400"
+ *        data-collapse-more="<?= h(__('Show all tags')) ?>"
+ *        data-collapse-less="<?= h(__('Show less')) ?>">
+ *
+ * The fade and the bar are inserted AFTER the box, never inside it: inside a
+ * clipped box they are laid out against the scrollport, so they drift into the
+ * middle of the content and the bar's opaque background hides its last lines
+ * (which is exactly what the event report preview had to be fixed for).
+ *
+ * These bodies arrive from their card's own fetch and are re-filtered by its
+ * search box, so the height is watched rather than measured once: a card that
+ * loads late, filters down to three rows or grows a picture gets the bar, or
+ * loses it, on its own.
+ */
+function initCollapsibleSections(container) {
+    (container || document)
+        .querySelectorAll('[data-collapse-tall]')
+        .forEach(initCollapsibleSection);
+}
+window.initCollapsibleSections = initCollapsibleSections;
+
+function initCollapsibleSection(box) {
+    if (box.dataset.collapseReady === '1') { return; }
+    box.dataset.collapseReady = '1';
+
+    const threshold = parseInt(box.dataset.collapseTall, 10) || 400;
+    const moreLabel = box.dataset.collapseMore || 'Show all';
+    const lessLabel = box.dataset.collapseLess || 'Show less';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'er-preview-overlay d-none';
+    overlay.innerHTML =
+        '<div class="er-preview-gradient"></div>'
+        + '<div class="er-preview-bar">'
+        + '<a href="#" class="small text-muted text-decoration-none er-preview-toggle">'
+        + '<i class="fas fa-chevron-down me-1"></i></a></div>';
+    const gradient = overlay.querySelector('.er-preview-gradient');
+    const link = overlay.querySelector('a');
+    const icon = overlay.querySelector('i');
+    const label = document.createTextNode(' ' + moreLabel);
+    link.appendChild(label);
+    box.insertAdjacentElement('afterend', overlay);
+
+    let expanded = false;
+    let applying = false;
+    let scheduled = null;
+
+    function apply() {
+        applying = true;
+        const tall = box.scrollHeight > threshold + 8;
+
+        if (expanded || !tall) {
+            box.style.maxHeight = '';
+            box.style.overflow = '';
+        } else {
+            box.style.maxHeight = threshold + 'px';
+            box.style.overflow = 'hidden';
+            box.scrollTop = 0;
+        }
+        overlay.classList.toggle('d-none', !(expanded || tall));
+        gradient.classList.toggle('d-none', expanded);
+        icon.className = expanded ? 'fas fa-chevron-up me-1' : 'fas fa-chevron-down me-1';
+        label.textContent = ' ' + (expanded ? lessLabel : moreLabel);
+        applying = false;
+    }
+
+    /* A timer rather than requestAnimationFrame: rAF is throttled to nothing
+       in a background tab, and a card that was filled while hidden would stay
+       unclamped. Reading scrollHeight forces the layout we need anyway. */
+    function schedule() {
+        if (applying || scheduled) { return; }
+        scheduled = window.setTimeout(function () {
+            scheduled = null;
+            apply();
+        }, 0);
+    }
+
+    link.addEventListener('click', function (event) {
+        event.preventDefault();
+        expanded = !expanded;
+        apply();
+        /* Collapsing a long list from its foot would otherwise leave the
+           reader below the card, looking at what came after it. */
+        if (!expanded && box.getBoundingClientRect().top < 0) {
+            box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+    });
+
+    /* Content arriving, a search hiding rows, a class flipping — anything but
+       our own clamp, which is a style attribute on the box itself. */
+    const observer = new MutationObserver(function (records) {
+        for (const record of records) {
+            if (record.type === 'attributes' && record.target === box) { continue; }
+            schedule();
+            return;
+        }
+    });
+    observer.observe(box, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'hidden']
+    });
+
+    /* A picture that finishes loading changes the height without touching the
+       DOM; its load event does not bubble, so it is caught on the way down. */
+    box.addEventListener('load', schedule, true);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('load', schedule);
+
+    apply();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCollapsibleSections();
+});
+
+/*******************************
+ *  Click a card to centre it  *
+ *******************************/
+
+/**
+ * Brings an element into view, centred in the band the fixed navbar leaves
+ * usable. Centring in the whole viewport instead would slide the first
+ * ~16 pixels of a full-height card under the navbar; an element taller than
+ * the band lands right under it rather than half above the fold.
+ */
+function centerElementInView(el) {
+    const NAV_HEIGHT = 56;
+    const rect = el.getBoundingClientRect();
+    const usable = window.innerHeight - NAV_HEIGHT;
+    const offset = Math.max(0, (usable - rect.height) / 2);
+    const top = rect.top + window.pageYOffset - NAV_HEIGHT - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+window.centerElementInView = centerElementInView;
+
+
+function initCenterOnClick(container) {
+    (container || document)
+        .querySelectorAll('[data-center-on-click]')
+        .forEach(function (el) {
+            if (el.dataset.centerReady === '1') { return; }
+            el.dataset.centerReady = '1';
+            el.addEventListener('click', function (event) {
+                if (event.target.closest(
+                    'a, button, input, textarea, select, label, summary, [data-md-pop]'
+                )) { return; }
+                const selection = window.getSelection();
+                if (selection && selection.toString() !== '') { return; }
+                centerElementInView(el);
+            });
+        });
+}
+window.initCenterOnClick = initCenterOnClick;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCenterOnClick();
+});
