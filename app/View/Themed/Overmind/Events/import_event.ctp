@@ -93,24 +93,31 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
             'id' => 'importMispForm',
         ]);
         ?>
-        <p class="text-muted small mb-2">
+        <p class="text-muted small mb-3">
             <?= __('Recommended exchange format. Paste the file content or upload a MISP XML / JSON export.') ?>
         </p>
+
         <div class="mb-3">
-            <label class="form-label fw-semibold" for="mispFileContent">
-                <?= __('Paste MISP XML or JSON file content') ?>
-            </label>
-            <?= $this->Form->textarea('filecontent', [
-                'class' => 'form-control font-monospace',
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'filecontent',
+                'accent' => 'event',
+                'label' => __('Paste a MISP export'),
+                'xml' => true,
                 'id' => 'mispFileContent',
-                'rows' => 6,
-                'placeholder' => '{ "Event": { … } }',
+                'rows' => 8,
+                'minHeight' => '200px',
+                'emptyLabel' => __('Nothing pasted'),
+                'placeholder' => "{\n    \"Event\": {\n        \"info\": \"…\",\n        \"Attribute\": []\n    }\n}",
+                'hint' => __('A MISP JSON or XML export document — or leave it empty and pick the file below.'),
             ]) ?>
         </div>
+
         <div class="mb-3">
-            <label class="form-label fw-semibold" for="mispSubmittedFile">
-                <?= __('…or choose a MISP XML / JSON file') ?>
-            </label>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'event',
+                'label' => __('…or choose a MISP XML / JSON file'),
+                'for' => 'mispSubmittedFile',
+            ]) ?>
             <?= $this->Form->file('submittedfile', [
                 'class' => 'form-control',
                 'id' => 'mispSubmittedFile',
@@ -127,9 +134,10 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
                 <label class="form-check-label" for="mispTakeOwnership">
                     <?= __('Take ownership of the event') ?>
                 </label>
-                <div class="form-text">
-                    <?= __('Warning: this changes the creator organisation of the event and can lead to unexpected behaviour when synchronising with instances that have another creator for the same event.') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'icon' => 'fas fa-triangle-exclamation mt-1',
+                    'text' => __('This changes the creator organisation of the event, and can lead to unexpected behaviour when synchronising with instances that have another creator for the same event.'),
+                ]) ?>
             </div>
         <?php endif; ?>
         <?php if (!empty($isAclPublish)): ?>
@@ -144,15 +152,20 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
                 </label>
             </div>
         <?php endif; ?>
-        <div class="mb-3">
-            <label class="form-label fw-semibold" for="mispSignature">
-                <?= __('Protected event signature') ?>
-            </label>
+        <div class="mb-3 mt-3">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'event',
+                'label' => __('Protected event signature'),
+                'for' => 'mispSignature',
+            ]) ?>
             <?= $this->Form->textarea('signature', [
                 'class' => 'form-control font-monospace',
                 'id' => 'mispSignature',
                 'rows' => 2,
                 'placeholder' => __('Paste the b64 encoded key here if applicable.'),
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Checked against the uploaded file only — a signature is not verified against pasted content.'),
             ]) ?>
         </div>
         <?php if (!empty(Configure::read('MISP.allow_users_override_locked_field_when_importing_events'))): ?>
@@ -189,37 +202,27 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
             ]);
         ?>
         <div class="mb-3">
-            <label class="form-label fw-semibold" for="<?= $p ?>StixFile">
-                <?= __('STIX %s file', $stix['version']) ?>
-            </label>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'event',
+                'label' => __('STIX %s file', $stix['version']),
+                'required' => true,
+                'for' => $p . 'StixFile',
+            ]) ?>
             <?= $this->Form->file('stix', [
                 'class' => 'form-control',
                 'id' => $p . 'StixFile',
+                'accept' => $stix['version'] === '1.x' ? '.xml' : '.json',
             ]) ?>
         </div>
 
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label fw-semibold" for="<?= $p ?>Distribution">
-                    <?= __('Distribution') ?>
-                </label>
-                <?= $this->Form->select('distribution', $distributionLevels, [
-                    'class' => 'form-select',
-                    'id' => $p . 'Distribution',
-                    'value' => $initialDistribution,
-                ]) ?>
-            </div>
-            <div class="col-md-6<?= $initialDistribution === 4 ? '' : ' d-none' ?>"
-                 id="<?= $p ?>SgContainer">
-                <label class="form-label fw-semibold" for="<?= $p ?>SharingGroup">
-                    <?= __('Sharing Group') ?>
-                </label>
-                <?= $this->Form->select('sharing_group_id', $sharingGroups, [
-                    'class' => 'form-select tom-select',
-                    'id' => $p . 'SharingGroup',
-                    'empty' => __('Select a sharing group…'),
-                ]) ?>
-            </div>
+        <div class="mt-3">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'accent' => 'event',
+                'compact' => true,
+                'id' => $p . 'Distribution',
+                'sgId' => $p . 'SharingGroup',
+                'hint' => __('Applied to every event the document produces.'),
+            ]) ?>
         </div>
 
         <div class="form-check mt-3">
@@ -244,59 +247,79 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
             </label>
         </div>
 
-        <div class="mt-3">
-            <label class="form-label fw-semibold" for="<?= $p ?>ForceContextual">
-                <?= __('How to convert contextual STIX objects') ?>
-            </label>
-            <?= $this->Form->select('force_contextual_data', $forceContextualDataOptions, [
-                'class' => 'form-select',
+        <div class="mt-4">
+            <?= $this->element('genericElementsBS5/Forms/choice_cards', [
+                'field' => 'force_contextual_data',
+                'accent' => 'event',
                 'id' => $p . 'ForceContextual',
                 'value' => 1,
+                'columns' => 2,
+                'ariaLabel' => __('How to convert contextual STIX objects'),
+                'options' => [
+                    [
+                        'value' => 0,
+                        'title' => $forceContextualDataOptions[0],
+                        'sub' => $forceContextualDataDescriptions[0],
+                        'icon' => 'fas fa-wand-magic-sparkles',
+                    ],
+                    [
+                        'value' => 1,
+                        'title' => $forceContextualDataOptions[1],
+                        'sub' => $forceContextualDataDescriptions[1],
+                        'icon' => 'fas fa-diagram-project',
+                    ],
+                ],
             ]) ?>
-            <div class="form-text"><?= h($forceContextualDataDescriptions[1]) ?></div>
         </div>
 
         <?php if ($canGalaxyHandling): ?>
-            <div class="mt-3">
-                <label class="form-label fw-semibold" for="<?= $p ?>GalaxiesHandling">
-                    <?= __('How to handle Galaxies and Clusters') ?>
-                </label>
-                <?= $this->Form->select('galaxies_handling', $galaxiesOptions, [
-                    'class' => 'form-select',
+            <div class="mt-4">
+                <?= $this->element('genericElementsBS5/Forms/choice_cards', [
+                    'field' => 'galaxies_handling',
+                    'accent' => 'galaxy',
                     'id' => $p . 'GalaxiesHandling',
                     'value' => 0,
+                    'columns' => 2,
+                    'ariaLabel' => __('How to handle Galaxies and Clusters'),
+                    'reveal' => ['value' => 0, 'target' => '#' . $p . 'ClusterDistWrap'],
+                    'options' => [
+                        [
+                            'value' => 0,
+                            'title' => $galaxiesOptions[0],
+                            'sub' => $galaxiesOptionsDescriptions[0],
+                            'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+                        ],
+                        [
+                            'value' => 1,
+                            'title' => $galaxiesOptions[1],
+                            'sub' => $galaxiesOptionsDescriptions[1],
+                            'icon' => 'fas fa-tag',
+                        ],
+                    ],
                 ]) ?>
-                <div class="form-text"><?= h($galaxiesOptionsDescriptions[0]) ?></div>
             </div>
-            <div class="row g-3 mt-0" id="<?= $p ?>ClusterDistWrap">
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold" for="<?= $p ?>ClusterDistribution">
-                        <?= __('Cluster distribution') ?>
-                    </label>
-                    <?= $this->Form->select('cluster_distribution', $distributionLevels, [
-                        'class' => 'form-select',
-                        'id' => $p . 'ClusterDistribution',
-                        'value' => $initialDistribution,
-                    ]) ?>
-                </div>
-                <div class="col-md-6 d-none" id="<?= $p ?>ClusterSgContainer">
-                    <label class="form-label fw-semibold" for="<?= $p ?>ClusterSharingGroup">
-                        <?= __('Cluster Sharing Group') ?>
-                    </label>
-                    <?= $this->Form->select('cluster_sharing_group_id', $sharingGroups, [
-                        'class' => 'form-select',
-                        'id' => $p . 'ClusterSharingGroup',
-                        'empty' => __('Select a sharing group…'),
-                    ]) ?>
-                </div>
+            <div class="mt-3" id="<?= $p ?>ClusterDistWrap">
+                <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                    'field' => 'cluster_distribution',
+                    'sgField' => 'cluster_sharing_group_id',
+                    'accent' => 'galaxy',
+                    'compact' => true,
+                    'label' => __('Cluster Distribution'),
+                    'id' => $p . 'ClusterDistribution',
+                    'sgId' => $p . 'ClusterSharingGroup',
+                    'sgLabel' => __('Cluster Sharing Group'),
+                    'hint' => __('Applied to the clusters the document creates.'),
+                ]) ?>
             </div>
         <?php endif; ?>
 
         <?php if ($canDebug): ?>
-            <div class="mt-3">
-                <label class="form-label fw-semibold" for="<?= $p ?>Debug">
-                    <?= __('Debugging option') ?>
-                </label>
+            <div class="mt-4">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'event',
+                    'label' => __('Debugging option'),
+                    'for' => $p . 'Debug',
+                ]) ?>
                 <?= $this->Form->select('debug', $debugOptions, [
                     'class' => 'form-select',
                     'id' => $p . 'Debug',
@@ -360,7 +383,13 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
     // On submit, swap the accordion (and footer) for a spinner + progress
     // message. We do NOT preventDefault — the full-page POST still proceeds;
     // hidden fields stay in the DOM so the in-flight submission is unaffected.
-    function showImportSpinner() {
+    //
+    // The json_field guard runs first (it listens on the document in the
+    // capture phase), so a document it refused is already marked here: hiding
+    // the form then would leave a spinner running for an import that never
+    // started.
+    function showImportSpinner(e) {
+        if (e.defaultPrevented) { return; }
         var interactive = byId('importEventInteractive');
         var spinner = byId('importEventSpinner');
         if (interactive) { interactive.classList.add('d-none'); }
@@ -374,32 +403,11 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
     // MISP export: content pasted OR a file chosen.
     requireAny(byId('importMispForm'), [byId('mispFileContent'), byId('mispSubmittedFile')]);
 
-    // STIX 1.x / 2.x share the same wiring, keyed by prefix.
+    // Distribution, cluster distribution and the two card groups wire
+    // themselves — distribution_field and choice_cards declare their own
+    // reveals, and initChoiceFields() binds them. All that is left per
+    // section is the file the endpoint cannot do without.
     ['s1', 's2'].forEach(function (p) {
-        var sg = byId(p + 'SgContainer');
-        if (byId(p + 'Distribution') && typeof initDistributionSelect === 'function') {
-            initDistributionSelect(p + 'Distribution', function (val) {
-                if (sg) { sg.classList.toggle('d-none', String(val) !== '4'); }
-            });
-        }
-
-        var galEl = byId(p + 'GalaxiesHandling');
-        var clWrap = byId(p + 'ClusterDistWrap');
-        var clDist = byId(p + 'ClusterDistribution');
-        var clSg = byId(p + 'ClusterSgContainer');
-        function syncCluster() {
-            var galVal = galEl ? galEl.value : '1';
-            if (clWrap) { clWrap.classList.toggle('d-none', String(galVal) !== '0'); }
-            var clVal = clDist ? clDist.value : '0';
-            if (clSg) {
-                clSg.classList.toggle('d-none', !(String(galVal) === '0' && String(clVal) === '4'));
-            }
-        }
-        if (galEl) { galEl.addEventListener('change', syncCluster); }
-        if (clDist) { clDist.addEventListener('change', syncCluster); }
-        syncCluster();
-
-        // Require a STIX file before submitting.
         requireAny(byId(p + 'Form'), [byId(p + 'StixFile')]);
     });
 })();

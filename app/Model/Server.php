@@ -3996,7 +3996,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2025.2.14'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.8'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';

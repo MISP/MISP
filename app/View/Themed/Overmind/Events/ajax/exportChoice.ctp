@@ -1,10 +1,9 @@
 <?php
-
 $exports = $exports ?? [];
 $uid = 'evt-export-' . dechex(mt_rand());
-/* Past a handful the list would push the footer off screen. */
 $scrolls = count($exports) > 6;
 ?>
+
 <div style="border-radius: var(--bs-modal-border-radius, var(--bs-border-radius-lg)); overflow: hidden;">
     <?= $this->element('genericElementsBS5/Forms/modal_header', [
         'accent' => 'event',
@@ -30,12 +29,13 @@ $scrolls = count($exports) > 6;
                         $optionOn = $hasOption && isset($export['checkbox_default']);
                         ?>
                         <div class="px-3 py-2<?= $first ? '' : ' border-top' ?>">
-                            <a class="d-flex align-items-center justify-content-between gap-3 text-decoration-none"
+                            <a class="d-flex align-items-center gap-3 text-decoration-none"
                                id="<?= h($rowId) ?>-link"
                                href="<?= h($optionOn ? $export['checkbox_set'] : $export['url']) ?>"
                                data-url-off="<?= h($export['url']) ?>"
                                data-url-on="<?= h($hasOption ? $export['checkbox_set'] : $export['url']) ?>">
-                                <span class="fw-semibold text-body" style="font-size:.85rem;">
+                                <?= $this->ExportFormat->tile($key, 'flex-shrink-0') ?>
+                                <span class="fw-semibold text-body flex-fill" style="font-size:.85rem;">
                                     <?= h($export['text']) ?>
                                 </span>
                                 <i class="fas fa-download text-event flex-shrink-0" style="font-size:.8rem;"></i>

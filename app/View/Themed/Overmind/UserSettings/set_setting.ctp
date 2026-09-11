@@ -67,13 +67,20 @@ echo $this->Form->create('UserSetting', [
         </div>
 
         <!-- VALUE (free text) -->
+        <?php
+        /* Only the settings with no `options` land here, and every one of them
+         * validates as JSON (validate_json, validate_homepage,
+         * validate_event_index_hide_columns) — a constrained setting is the
+         * select below instead. The placeholder is rewritten per setting by
+         * the script at the bottom. */
+        ?>
         <div class="col-12 us-value-wrap<?= $hasValueSelect ? ' d-none' : '' ?>">
-            <?= $this->Form->label('value', __('Value'), ['class' => 'form-label fw-semibold']) ?>
-            <?= $this->Form->textarea('value', [
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'value',
+                'label' => __('Value'),
                 'id' => 'UserSettingValue',
-                'class' => 'form-control font-monospace',
                 'rows' => 6,
-                'required' => false,
+                'minHeight' => '150px',
             ]) ?>
         </div>
 

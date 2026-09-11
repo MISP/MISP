@@ -1,4 +1,6 @@
 <?php
+App::uses('IndexFilterDraft', 'Tools');
+
 $filter_bar = $scaffold_data['filter_bar'] ?? null;
 if (empty($filter_bar)) {
     return;
@@ -11,15 +13,40 @@ $filterAction = $filter_bar['action'] ?? 'index';
 $currentPath = $this->request->here(false);
 $currentFilters = [];
 
+/*
+ * `mode => 'event'` is the convention where every filter key is prefixed in
+ * the URL (`searchemail:`, `searchpublished:`). The prefix is stripped ONLY
+ * there: elsewhere a key that happens to start with "search" is just its own
+ * name
+ */
+$searchChild = null;
+foreach ($filter_bar['children'] as $child) {
+    if ($child['type'] === 'search') {
+        $searchChild = $child;
+        break;
+    }
+}
+$stripSearchPrefix = (($searchChild['mode'] ?? 'quickFilter') === 'event');
+$cleanFilterKey = function ($key) use ($stripSearchPrefix) {
+    return $stripSearchPrefix ? preg_replace('/^search/', '', $key) : $key;
+};
+
 if (preg_match('~/' . preg_quote($filterAction, '~') . '/(.+)~', $currentPath, $matches)) {
     $segments = explode('/', $matches[1]);
     foreach ($segments as $segment) {
         if (strpos($segment, ':') !== false) {
             list($key, $value) = explode(':', $segment, 2);
-            $cleanKey = preg_replace('/^search/', '', $key);
-            $currentFilters[$cleanKey] = $value;
+            $currentFilters[$cleanFilterKey($key)] = $value;
         }
     }
+}
+
+
+foreach (($this->request->params['named'] ?? []) as $key => $value) {
+    if (is_array($value)) {
+        $value = implode('||', $value);
+    }
+    $currentFilters[$cleanFilterKey($key)] = $value;
 }
 
 $transport = $filter_bar['transport'] ?? 'path';
@@ -36,13 +63,80 @@ $hasActiveFilters = !empty($currentFilters);
 
 $filterId = 'filter-bar-' . uniqid();
 
-$searchChild = null;
+/*
+ * The advanced filters are pulled out of the bar's flex row: the button stays
+ * in the row as a collapse toggle, the grid of controls and the summary that
+ * runs them are rendered underneath it.
+ */
+$moreFiltersChild = null;
 foreach ($filter_bar['children'] as $child) {
-    if ($child['type'] === 'search') {
-        $searchChild = $child;
+    if (($child['type'] ?? '') === 'more_filters') {
+        $moreFiltersChild = $child;
         break;
     }
 }
+
+// Which URL params are *this bar's own controls* (removable) — everything else
+// (e.g. searchemail: scope, positional pass-args) must never show as a
+// removable chip and must survive "Clear all".
+$controlKeys = [];
+// Optional per-control `chip_label`, so a chip can read "Value: 8.8.8.8"
+// instead of exposing the raw url key.
+$controlLabels = [];
+foreach (($filter_bar['children'] ?? []) as $c) {
+    $ctype = $c['type'] ?? '';
+    if (!empty($c['name']) && !empty($c['chip_label'])) {
+        $controlLabels[$c['name']] = $c['chip_label'];
+    }
+    if ($ctype === 'value_match' && !empty($c['name'])) {
+        $controlKeys[] = $c['name'];
+    } elseif ($ctype === 'search') {
+        $cmode = $c['mode'] ?? 'quickFilter';
+        if ($cmode === 'event' || $cmode === 'legacy') {
+            if (!empty($c['name'])) $controlKeys[] = $c['name'];
+            if (!empty($c['id_field'])) $controlKeys[] = $c['id_field'];
+        } else {
+            $controlKeys[] = 'quickFilter';
+        }
+    } elseif ($ctype === 'dropdown' && !empty($c['name'])) {
+        $controlKeys[] = $c['name'];
+    } elseif ($ctype === 'more_filters') {
+        foreach (($c['children'] ?? []) as $sub) {
+            if (!empty($sub['name'])) $controlKeys[] = $sub['name'];
+        }
+    }
+}
+$paginatorKeys = ['sort', 'direction', 'page', 'limit'];
+
+/*
+ * Filters that are on but have no control in this bar — the `searchemail:`
+ * behind the "My events" button. They have nowhere else to show, so the
+ * panel opens itself for them; a search term does not get that treatment,
+ * its own box is right there in the bar showing the term.
+ */
+$extraKeys = array_diff(
+    array_keys(array_filter($currentFilters, function ($v) { return $v !== ''; })),
+    $controlKeys,
+    $paginatorKeys
+);
+
+$advId = $filterId . '-adv';
+
+// Two counts, two jobs: the panel opens itself only when one of ITS controls
+// is set, while the badge answers "is anything filtering?" — search term and
+// scope included, since those stay visible with the panel folded away. The
+// draft engine recomputes the badge on every change; this is the first paint.
+$activeSubs = 0;
+foreach (($moreFiltersChild['children'] ?? []) as $sub) {
+    if (!empty($sub['name']) && isset($currentFilters[$sub['name']])
+        && $currentFilters[$sub['name']] !== '') {
+        $activeSubs++;
+    }
+}
+$activeTotal = count(array_diff_key(
+    array_filter($currentFilters, function ($v) { return $v !== ''; }),
+    array_flip($paginatorKeys)
+));
 ?>
 
 <div id="<?= h($filterId) ?>" class="d-flex flex-wrap gap-2 align-items-center">
@@ -148,34 +242,12 @@ foreach ($filter_bar['children'] as $child) {
         <?php endif; ?>
 
         <?php if ($child['type'] === 'more_filters'): ?>
-            <div class="dropdown dropdown-filters flex-shrink-0">
-                <button class="btn btn-outline-primary dropdown-toggle"
-                        type="button"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="false">
-                    <i class="fas fa-sliders-h me-1"></i>
-                    <?= h($child['label']) ?>
-                </button>
-
-                <div class="dropdown-menu p-3">
-                    <?php foreach ($child['children'] as $sub): ?>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <?= h($sub['label']) ?>
-                            </label>
-                            <select class="form-select topbar-filter"
-                                    name="<?= h($sub['name']) ?>">
-                                <?php foreach (($sub['options'] ?? []) as $value => $label): ?>
-                                    <option value="<?= h($value) ?>"
-                                        <?= (isset($currentFilters[$sub['name']]) && urldecode($currentFilters[$sub['name']]) == $value) ? 'selected' : '' ?>>
-                                        <?= h($label) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
+            <?= $this->element('genericElementsBS5/IndexTable/filter_toggle', [
+                'target' => $advId,
+                'label' => $child['label'],
+                'count' => $activeTotal,
+                'open' => ($activeSubs || $extraKeys),
+            ]) ?>
         <?php endif; ?>
 
         <?php if ($child['type'] === 'button'): ?>
@@ -196,7 +268,7 @@ foreach ($filter_bar['children'] as $child) {
 
     <?php endforeach; ?>
 
-    <div class="ms-auto">
+    <div class="ms-auto index-filter-pager">
         <?php
         if (empty($filter_bar['skip_pagination'])) {
             echo $this->element(
@@ -239,42 +311,36 @@ foreach ($filter_bar['children'] as $child) {
 
 </div>
 
+<?php if (!empty($moreFiltersChild)): ?>
+    <?php
+    // The advanced controls, rendered by the shared panel
+    $draftFields = [];
+    foreach (($moreFiltersChild['children'] ?? []) as $sub) {
+        $draftFields[] = [
+            'name' => $sub['name'],
+            'label' => $sub['label'] ?? $sub['name'],
+            'type' => 'select',
+            'options' => $sub['options'] ?? [],
+            'value' => isset($currentFilters[$sub['name']])
+                ? urldecode($currentFilters[$sub['name']]) : '',
+            'col' => $sub['col'] ?? 3,
+            'help' => $sub['help'] ?? null,
+        ];
+    }
+    ?>
+    <?= $this->element('genericElementsBS5/IndexTable/filter_panel', [
+        'id' => $advId,
+        'open' => ($activeSubs || $extraKeys),
+        'fields' => $draftFields,
+        'input_class' => 'topbar-filter',
+    ]) ?>
+<?php endif; ?>
+
 <?php
 // Active-filters display. An index may pass an explicit `active_filters` map
 // (label => value) plus a `clear_url`.
 $explicitActive = $filter_bar['active_filters'] ?? null;
 $isAjaxBar = $this->request->is('ajax');
-
-// Which URL params are *this bar's own controls* (removable) — everything else
-// (e.g. searchemail: scope, positional pass-args) must never show as a
-// removable chip and must survive "Clear all".
-$controlKeys = [];
-// Optional per-control `chip_label`, so a chip can read "Value: 8.8.8.8"
-// instead of exposing the raw url key.
-$controlLabels = [];
-foreach (($filter_bar['children'] ?? []) as $c) {
-    $ctype = $c['type'] ?? '';
-    if (!empty($c['name']) && !empty($c['chip_label'])) {
-        $controlLabels[$c['name']] = $c['chip_label'];
-    }
-    if ($ctype === 'value_match' && !empty($c['name'])) {
-        $controlKeys[] = $c['name'];
-    } elseif ($ctype === 'search') {
-        $cmode = $c['mode'] ?? 'quickFilter';
-        if ($cmode === 'event' || $cmode === 'legacy') {
-            if (!empty($c['name'])) $controlKeys[] = $c['name'];
-            if (!empty($c['id_field'])) $controlKeys[] = $c['id_field'];
-        } else {
-            $controlKeys[] = 'quickFilter';
-        }
-    } elseif ($ctype === 'dropdown' && !empty($c['name'])) {
-        $controlKeys[] = $c['name'];
-    } elseif ($ctype === 'more_filters') {
-        foreach (($c['children'] ?? []) as $sub) {
-            if (!empty($sub['name'])) $controlKeys[] = $sub['name'];
-        }
-    }
-}
 
 $clearViaJs = false;
 if ($explicitActive !== null) {
@@ -291,7 +357,9 @@ if ($explicitActive !== null) {
     $clearHref = $item_url . '/' . $filterAction;
 }
 ?>
-<?php if (!empty($activeToShow)): ?>
+<div class="index-active-filters">
+<?php // With a draft in play the chips live in its summary, buttons included. ?>
+<?php if (!empty($activeToShow) && empty($moreFiltersChild)): ?>
     <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
 
         <strong class="me-1"><?= __('Active filters') ?>:</strong>
@@ -317,6 +385,7 @@ if ($explicitActive !== null) {
 
     </div>
 <?php endif; ?>
+</div>
 
 <?php
 $hasMassActions = !empty($filter_bar['delete'])
@@ -361,34 +430,6 @@ var filterBarConfig = <?= json_encode([
     'transport'   => $transport,
 ]) ?>;
 
-function setView(view, save = true, scope = document) {
-    const tableView = scope.querySelector('#tableView');
-    const cardView  = scope.querySelector('#cardView');
-    const viewList  = scope.querySelector('#viewList');
-    const viewCard  = scope.querySelector('#viewCard');
-
-    // Only a deliberate toggle launch the animation
-    if (save) window.animateIndexView?.(view === 'card' ? cardView : tableView);
-
-    if (view === 'card') {
-        tableView?.classList.add('d-none');
-        cardView?.classList.remove('d-none');
-        viewList?.classList.remove('active');
-        viewCard?.classList.add('active');
-    } else {
-        cardView?.classList.add('d-none');
-        tableView?.classList.remove('d-none');
-        viewCard?.classList.remove('active');
-        viewList?.classList.add('active');
-    }
-
-    if (save) localStorage.setItem('indexViewMode', view);
-}
-
-function isMobile() {
-    return window.innerWidth < 1000;
-}
-
 (function init() {
     const filterBarEl = document.getElementById('<?= h($filterId) ?>');
     const scope = filterBarEl?.closest('.tab-pane') || document;
@@ -399,9 +440,16 @@ function isMobile() {
     const base = baseIndexUrl;
     const itemIndexPath = '<?= h($item_url . '/' . $filterAction) ?>';
 
-    // Only wire the table/card view toggle when it is present.
-    // Indexes using a custom view switch have no #viewCard and manage their
-    // own reloads, so we must NOT run setView() in that case.
+    /*
+     * Only wire the table/card view toggle when it is present: indexes using a
+     * custom view switch have no #viewCard and manage their own reloads, so
+     * setView() must NOT run for them.
+     *
+     * Deferred, because setView()/isMobile() live in mispOvermind.js, which
+     * this inline script does not wait for. It used to carry its own copies
+     * of both — that is exactly the duplication this indirection replaces.
+     */
+    function setupViewToggle() {
     if (scope.querySelector('#viewCard')) {
         scope.querySelector('#viewList')?.addEventListener('click', () => setView('table', true, scope));
         scope.querySelector('#viewCard')?.addEventListener('click', () => setView('card', true, scope));
@@ -427,6 +475,59 @@ function isMobile() {
             }
         });
     }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupViewToggle);
+    } else {
+        setupViewToggle();
+    }
+
+    /* ── deferred apply, when the bar carries a `more_filters` control ──
+     *
+     * The advanced controls build a draft instead of firing a query each time
+     * one of them changes. Only the URL work is local, because only this bar
+     * knows about the `search` key prefix, the positional scope arguments
+     * and the ajax tab that may wrap it.
+     * See initIndexFilterDraft() in mispOvermind.js.
+     *
+     * Waiting for DOMContentLoaded matters: initTopbarFilterSelects() turns
+     * these selects into TomSelects there, and wiring earlier would hook a
+     * control about to grow a widget of its own.
+     */
+    let draft = null;
+
+    function setupDraft() {
+        if (typeof initScaffoldFilterDraft !== 'function') { return; }
+        draft = initScaffoldFilterDraft(filterBarEl, {
+            scope: scope,
+            // By id: a tab pane can hold two scaffolded indexes, and a
+            // scoped query would hand this bar its neighbour's panel.
+            advId: <?= json_encode($advId) ?>,
+            ajaxContainer: ajaxContainer,
+            base: base,
+            itemPath: itemIndexPath,
+            mode: cfg.mode,
+            transport: cfg.transport,
+            searchField: cfg.searchField,
+            idField: cfg.idField,
+            // Keys this bar has a control for; anything else in the URL is a
+            // scope it must keep and show, never a filter it owns.
+            ownedKeys: <?= json_encode(array_values(array_unique(array_merge(
+                $controlKeys,
+                ['sort', 'direction', 'page', 'limit']
+            ))), JSON_UNESCAPED_UNICODE) ?>,
+            results: '#index-results',
+            swap: ['#headerCountBadge', '.index-filter-pager', '.index-active-filters'],
+            strings: <?= IndexFilterDraft::stringsJson() ?>,
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupDraft);
+    } else {
+        setupDraft();
+    }
 
     // Build the filter URL from the ajax container's *current* fragment URL so
     // persistent scope survives a search/filter change. Scope can be a named
@@ -435,15 +536,13 @@ function isMobile() {
     // pagination/sort are recomputed.
     function buildScopedUrl() {
         const src = (ajaxContainer && ajaxContainer.dataset.url) ? ajaxContainer.dataset.url : window.location.pathname;
-        const positional = [];
+        const parsed = parseIndexUrl(src, itemIndexPath);
+        const positional = parsed.positional;
+        // Keys are held unprefixed here and re-prefixed when the URL is built.
         const filters = {};
-        const after = src.indexOf(itemIndexPath) !== -1 ? src.split(itemIndexPath)[1] : '';
-        (after || '').split('/').filter(Boolean).forEach(seg => {
-            const idx = seg.indexOf(':');
-            if (idx < 0) { positional.push(seg); return; }          // scope (e.g. userId)
-            let key = seg.slice(0, idx);
-            if (cfg.mode === 'event' && key.indexOf('search') === 0) key = key.slice(6);
-            filters[key] = decodeURIComponent(seg.slice(idx + 1));
+        Object.keys(parsed.named).forEach(key => {
+            const plain = (cfg.mode === 'event' && key.indexOf('search') === 0) ? key.slice(6) : key;
+            filters[plain] = parsed.named[key];
         });
         // A new search/filter resets pagination and sort.
         delete filters['page']; delete filters['sort']; delete filters['direction'];
@@ -469,13 +568,11 @@ function isMobile() {
             if (el.value !== '') filters[n] = el.value; else delete filters[n];
         });
 
-        let url = base;
-        positional.forEach(p => { url += '/' + p; });
+        const named = {};
         Object.keys(filters).forEach(k => {
-            const v = encodeURIComponent(filters[k]);
-            url += (cfg.mode === 'event') ? ('/search' + k + ':' + v) : ('/' + k + ':' + v);
+            named[(cfg.mode === 'event' ? 'search' : '') + k] = filters[k];
         });
-        return url;
+        return formatIndexUrl(base, { positional: positional, named: named });
     }
 
     // Filters as a query string. Same controls as buildFilterUrl(), but the
@@ -515,8 +612,10 @@ function isMobile() {
     }
 
     if (ajaxContainer) {
-        scope.querySelector('#filterButton')?.addEventListener('click', () => go(buildScopedUrl()));
-        scope.querySelector('#filterField')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') go(buildScopedUrl()); });
+        // With a draft in play the search box goes through it, so a search
+        // never reloads the index out from under half-filled advanced filters.
+        scope.querySelector('#filterButton')?.addEventListener('click', () => draft ? draft.apply() : go(buildScopedUrl()));
+        scope.querySelector('#filterField')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') { draft ? draft.apply() : go(buildScopedUrl()); } });
         scope.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => el.addEventListener('change', () => go(buildScopedUrl())));
 
         // "Clear all": drop this bar's own filters but keep the scope (search
@@ -565,11 +664,14 @@ function isMobile() {
         }
     } else {
         scope.querySelector('#filterButton')?.addEventListener('click', () => {
+            if (draft) { draft.apply(); return; }
             window.location.href = buildUrl();
         });
 
         scope.querySelector('#filterField')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') window.location.href = buildUrl();
+            if (e.key !== 'Enter') return;
+            if (draft) { draft.apply(); return; }
+            window.location.href = buildUrl();
         });
 
         scope.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
@@ -584,6 +686,7 @@ function isMobile() {
     // reload. The input still carries .topbar-filter, so the URL builders pick
     // its value up like any other filter.
     function applyFilters() {
+        if (draft) { draft.apply(); return; }
         if (ajaxContainer) {
             go(buildScopedUrl());
         } else {

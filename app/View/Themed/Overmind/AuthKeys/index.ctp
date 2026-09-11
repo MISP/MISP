@@ -27,7 +27,7 @@ $fields = [
         'id_path' => 'User.id',
         'element' => 'user_link',
         'requirement' => $showUserColumn,
-        'card_section' => 'meta',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -69,7 +69,7 @@ if ($seenIpsEnabled) {
         'name' => __('Seen IPs'),
         'data_path' => 'AuthKey.unique_ips',
         'element' => 'ip_list',
-        'card_section' => 'meta',
+        'card_section' => 'tag',
         'display_in' => ['table', 'card'],
     ];
 }
@@ -149,6 +149,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 3,
             'primary_id_path' => 'AuthKey.id',
             'row_dblclick_url' => $baseurl . '/auth_keys/view/%id%',
             'filter_bar' => [
