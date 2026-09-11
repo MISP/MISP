@@ -53,8 +53,6 @@ echo $this->element('Attributes/index', [
 (function () {
     var _sel     = '.ajax-tab-content[data-url*="viewAttributes"]';
     var _msgFail = <?= json_encode(__('Could not load attributes.')) ?>;
-    var _lActive = <?= json_encode(__('Active filters')) ?>;
-    var _lClear  = <?= json_encode(__('Clear')) ?>;
 
     // Shared mutable state — updated every IIFE run so ALL closures see latest values
     window.mispView = window.mispView || {};
@@ -74,32 +72,42 @@ echo $this->element('Attributes/index', [
         return document.querySelector(_sel);
     }
 
-    // URL without search term (deleted + column filters)
+    /*
+     * This tab's own URL shape: `events/viewAttributes/<id>` plus named
+     * segments, not the `/attributes/index/...` the shared bar would build.
+     * The column filters are read straight off the bar's controls — the draft
+     * in `filter_bar.ctp` owns them, and reading a private copy of their
+     * values is how this tab used to drift out of sync with what was on
+     * screen. `warninglist` has no control (it arrives from the banner), so
+     * it stays in the state object.
+     */
     function buildBaseUrl() {
         var S   = window.mispView.attrs;
         var url = S.attrBase;
         if (S.deletedState) url += '/deleted:' + S.deletedState;
         if (S.proposalState) url += '/proposal:' + S.proposalState;
-        Object.keys(S.activeFilters).forEach(function (n) {
-            if (S.activeFilters[n]) url += '/' + n + ':' + encodeURIComponent(S.activeFilters[n]);
-        });
-        return url;
-    }
-
-    // Full URL including current #filterField value
-    function buildAttrsUrl() {
-        var url   = buildBaseUrl();
-        var cont  = getContainer();
-        var field = cont ? cont.querySelector('#filterField') : null;
-        if (field && field.value.trim()) url += '/searchFor:' + encodeURIComponent(field.value.trim());
-        return url;
-    }
-
-    function loadAttributes(url, searchTerm) {
-        if (searchTerm === undefined) {
-            var m = url.match(/searchFor:([^/]+)/);
-            searchTerm = m ? decodeURIComponent(m[1]) : '';
+        if (S.activeFilters.warninglist) {
+            url += '/warninglist:' + encodeURIComponent(S.activeFilters.warninglist);
         }
+        return url;
+    }
+
+    // Full URL: the base plus whatever the filter bar's controls hold.
+    function buildAttrsUrl() {
+        var url  = buildBaseUrl();
+        var cont = getContainer();
+        if (!cont) { return url; }
+        cont.querySelectorAll('select.filter-draft-input').forEach(function (sel) {
+            var name  = sel.getAttribute('name');
+            var value = (sel.value || '').trim();
+            if (name && value !== '') { url += '/' + name + ':' + encodeURIComponent(value); }
+        });
+        var field = cont.querySelector('#filterField');
+        if (field && field.value.trim()) { url += '/searchFor:' + encodeURIComponent(field.value.trim()); }
+        return url;
+    }
+
+    function loadAttributes(url) {
         var container = getContainer();
         if (!container) return;
         // Keep the container's own URL in sync: filter_bar rebuilds pagination
@@ -114,39 +122,28 @@ echo $this->element('Attributes/index', [
                     if (old.src) { s.src = old.src; } else { s.textContent = old.textContent; }
                     document.head.appendChild(s); document.head.removeChild(s);
                 });
-                var field = container.querySelector('#filterField');
-                if (field && searchTerm) field.value = searchTerm;
-                updateActiveFilterBadge(
-                    container,
-                    searchTerm,
-                    function () { loadAttributes(buildBaseUrl(), ''); },
-                    _lActive,
-                    _lClear
-                );
+                // The bar renders the term back into #filterField itself, and
+                // it has to be there *before* the draft reads its state — a
+                // value poked in afterwards leaves the summary saying there is
+                // no filter over a box that holds one.
+                registerFilterOverride(container);
             })
             .catch(function () { showMessage('fail', _msgFail); });
     }
 
-    function initMoreFilters(container) {
-        container.querySelectorAll('.topbar-filter').forEach(function (sel) {
-            var name = sel.getAttribute('name');
-            if (!name) return;
-            var newSel = sel.cloneNode(true);
-            sel.parentNode.replaceChild(newSel, sel);
-            // TomSelect for styling only — value changes come via native change event
-            if (typeof TomSelect !== 'undefined') {
-                new TomSelect(newSel, { allowEmptyOption: true, create: false });
-                var currentVal = (window.mispView.attrs.activeFilters || {})[name];
-                if (currentVal && newSel.tomselect) {
-                    newSel.tomselect.setValue(currentVal, true);
-                }
-            }
-            // Native change listener — fires after both plain-select and TomSelect changes
-            newSel.addEventListener('change', function () {
-                window.mispView.attrs.activeFilters[name] = newSel.value;
-                loadAttributes(buildAttrsUrl());
-            });
-        });
+    /*
+     * The filter bar wires itself (initScaffoldFilterDraft), so all this tab
+     * has to say is "the URLs are mine". Handing over the two functions beats
+     * what used to be here: a second TomSelect over every control, a private
+     * copy of their values, and a change listener that ran a query per
+     * keystroke-and-blur — the very thing the draft exists to stop.
+     */
+    function registerFilterOverride(container) {
+        if (!container) { return; }
+        container.__indexFilterOverride = {
+            buildUrl: buildAttrsUrl,
+            reload: function (url) { loadAttributes(url); return true; },
+        };
     }
 
     // Expose latest function refs so OLD closures (e.g. pagination) can call current impls
@@ -167,26 +164,6 @@ echo $this->element('Attributes/index', [
             window.mispView.attrs.loadFn(
                 window.mispView.attrs.buildFn() + '/page:' + page
             );
-        });
-    }
-
-    // #filterButton — clone to strip filter_bar.ctp's navigation listener
-    var filterBtn = container ? container.querySelector('#filterButton') : null;
-    if (filterBtn) {
-        var newBtn = filterBtn.cloneNode(true);
-        filterBtn.parentNode.replaceChild(newBtn, filterBtn);
-        newBtn.addEventListener('click', function () { loadAttributes(buildAttrsUrl()); });
-    }
-
-    // #filterField — clone, Enter triggers search
-    var filterField = container ? container.querySelector('#filterField') : null;
-    if (filterField) {
-        var newField = filterField.cloneNode(true);
-        filterField.parentNode.replaceChild(newField, filterField);
-        newField.addEventListener('keypress', function (e) {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            loadAttributes(buildAttrsUrl());
         });
     }
 
@@ -216,7 +193,6 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    // TomSelect on More Filters dropdowns
-    if (container) initMoreFilters(container);
+    registerFilterOverride(container);
 }());
 </script>

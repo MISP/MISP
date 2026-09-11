@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('Log', 'Model');
 
 /**
  * @property Log $Log
@@ -62,6 +63,22 @@ class LogsController extends AppController
             }
         }
         $filters = array_filter($filters, fn($value) => !empty($value));
+
+        // _harvestParameters() merges every query parameter in, paramArray or
+        // not, so the search term would otherwise be read back as a column name.
+        unset($filters['quickFilter']);
+
+        // Free-text search box: one term, run against the whole index rather
+        // than against the rows of the current page. `email` and `org` are
+        // denormalised onto the log row, so they need no id lookup here.
+        $quickFilter = $this->IndexFilter->quickFilterTerm();
+        $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'Log', [
+            'like' => ['title', 'change', 'description', 'model', 'action', 'email', 'org'],
+            'numeric' => ['model_id'],
+            'ip_like' => Configure::read('MISP.log_client_ip') ? 'ip' : null,
+        ]);
+        $this->set('quickFilter', $quickFilter);
+
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -101,6 +118,9 @@ class LogsController extends AppController
                     // users can see their own info
                     $conditions['Log.user_id'] = $this->Auth->user('id');
                 }
+            }
+            if (!empty($quickFilterConditions)) {
+                $conditions['AND'][] = $quickFilterConditions;
             }
             $params = array(
                 'conditions' => $conditions,
@@ -151,14 +171,28 @@ class LogsController extends AppController
                 $this->paginate['conditions']["Log.$key"] = $value;
             }
         }
+        if (!empty($quickFilterConditions)) {
+            $this->paginate['conditions']['AND'][] = $quickFilterConditions;
+        }
         $this->set('validFilters', $validFilters);
         $this->set('filter', $filters);
+
+        // Options behind the Action and Model dropdowns. Both come from the
+        // model rather than from a DISTINCT over the table: `logs` is indexed
+        // on its primary key alone, so scanning it to list a dropdown would
+        // cost more than the query the dropdown is there to build.
+        $actions = Log::ACTIONS;
+        sort($actions);
+        $this->set('actions', $actions);
+        $models = $this->Log->searchModelList;
+        sort($models);
+        $this->set('models', $models);
 
         $data = $this->paginate();
 
         // If no limit is set, we retrieve the total and set the headerCountApprox flag to true, so the header shows an estimated count
         $activeFilterKeys = array_diff(array_keys($filters), ['page', 'limit', 'search_token']);
-        if (!empty($activeFilterKeys) || isset($this->params['named']['filter'])) {
+        if (!empty($activeFilterKeys) || $quickFilter !== '' || isset($this->params['named']['filter'])) {
             $this->set('headerCount', (int)$this->Log->find('count', [
                 'conditions' => $this->paginate['conditions'],
                 'recursive' => -1,

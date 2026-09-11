@@ -195,7 +195,6 @@ $fields = [
 ?>
 
 <input type="hidden" id="clusterGalaxyId" value="<?= h($galaxy_id) ?>">
-<input type="hidden" id="clusterCurrentContext" value="<?= h($context) ?>">
 
 <?php
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
@@ -205,12 +204,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
-                // Current-filter chips + "Clear all", shown even in the ajax fragment
-                'active_filters' => array_filter([
-                    __('Context') => (!empty($context) && $context !== 'all') ? $context : null,
-                    __('Search') => $searchall !== '' ? $searchall : null,
-                ]),
-                'clear_url' => $baseurl . '/galaxy_clusters/index/' . $galaxy_id,
                 'children' => [
                     [
                         'type' => 'search',
@@ -223,18 +216,27 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'type' => 'button',
                         'label' => __('My Clusters'),
                         'icon' => 'fas fa-user',
-                        'class' => 'btn btn-primary',
+                        'class' => 'btn ' . ($context === 'orgc' ? 'btn-primary' : 'btn-outline-primary'),
                         'url' => $baseurl . '/galaxy_clusters/index/' . $galaxy_id . '/context:' . ($context === 'orgc' ? 'all' : 'orgc'),
                     ],
                     [
-                        'type' => 'dropdown',
-                        'label' => __('Context'),
-                        'name' => 'context',
-                        'options' => [
-                            '' => __(''),
-                            'default' => __('Default'),
-                            'custom' => __('Custom'),
-                            'deleted' => __('Deleted'),
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Context'),
+                                'name' => 'context',
+                                'col' => 4,
+                                'options' => [
+                                    '' => '',
+                                    'default' => __('Default'),
+                                    'custom' => __('Custom'),
+                                    'orgc' => __('Created by my organisation'),
+                                    'org' => __('Owned by my organisation'),
+                                    'deleted' => __('Deleted'),
+                                ],
+                            ],
                         ],
                     ],
                 ],
@@ -279,6 +281,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     document.head.appendChild(s);
                     document.head.removeChild(s);
                 });
+                registerFilterOverride(c);
             })
             .catch(function () {
                 c.style.opacity = '';
@@ -286,27 +289,41 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             });
     }
 
-    // Build /galaxy_clusters/index/<id>/context:<ctx>/searchall:<term>
-    function buildClusterUrl(ctx) {
+    /*
+     * This tab's URL shape: /galaxy_clusters/index/<id> plus named segments,
+     * not the /galaxy_clusters/index the shared bar would build. The values
+     * are read off the bar's own controls — the draft in filter_bar.ctp owns
+     * them, and keeping a private copy is how a tab drifts out of sync with
+     * what is on screen.
+     */
+    function buildClusterUrl() {
         var c = clustersContainer();
         if (!c) return '#';
         var gidEl = c.querySelector('#clusterGalaxyId');
-        var field = c.querySelector('#filterField');
-        var gid = gidEl ? gidEl.value : '';
-        var term = field ? field.value.trim() : '';
-        var url = baseurl + '/galaxy_clusters/index/' + gid;
+        var url = baseurl + '/galaxy_clusters/index/' + (gidEl ? gidEl.value : '');
+
+        var sel = c.querySelector('select.filter-draft-input[name="context"]');
+        var ctx = sel ? (sel.value || '').trim() : '';
         if (ctx && ctx !== 'all') url += '/context:' + encodeURIComponent(ctx);
+
+        var field = c.querySelector('#filterField');
+        var term = field ? field.value.trim() : '';
         if (term) url += '/searchall:' + encodeURIComponent(term);
         return url;
     }
 
-    // Context to keep on search: the dropdown value
-    function currentContext() {
-        var c = clustersContainer();
-        var sel = c ? c.querySelector('.topbar-filter[name="context"]') : null;
-        if (sel && sel.value) return sel.value;
-        var hid = c ? c.querySelector('#clusterCurrentContext') : null;
-        return hid ? hid.value : 'all';
+    /*
+     * All the bar has to be told is "the URLs are mine". The draft then owns
+     * the search box, the Context control, Apply and Clear all — where this
+     * tab used to bind capture-phase listeners that beat the bar's own and
+     * ran a query on every change.
+     */
+    function registerFilterOverride(container) {
+        if (!container) return;
+        container.__indexFilterOverride = {
+            buildUrl: buildClusterUrl,
+            reload: function (url) { loadClusters(url); return true; },
+        };
     }
 
     // Wire the persistent container ONCE
@@ -314,8 +331,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     if (c && !c.dataset.clustersWired) {
         c.dataset.clustersWired = '1';
 
-        // Internal navigation (context/My Clusters buttons, "Clear all", sort headers, pagination) → reload in place.
+        /*
+         * "My Clusters" is a plain link, so it still needs intercepting to
+         * stay in the tab. Pagination and sort links do NOT: the draft binds
+         * those and calls preventDefault, which is the signal to stand back —
+         * without this guard both would fire and the fragment loaded twice.
+         */
         c.addEventListener('click', function (e) {
+            if (e.defaultPrevented) return;
             var a = e.target.closest('a[href]');
             if (!a) return;
             var href = a.getAttribute('href');
@@ -324,29 +347,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 loadClusters(href);
             }
         });
-
-        // Context dropdown — capture + stopPropagation to beat filter_bar's own window.location listener.
-        c.addEventListener('change', function (e) {
-            var sel = e.target.closest('.topbar-filter[name="context"]');
-            if (!sel) return;
-            e.stopPropagation();
-            loadClusters(buildClusterUrl(sel.value));
-        }, true);
-
-        // Search button + Enter — keep the current context.
-        c.addEventListener('click', function (e) {
-            if (!e.target.closest('#filterButton')) return;
-            e.preventDefault();
-            e.stopPropagation();
-            loadClusters(buildClusterUrl(currentContext()));
-        }, true);
-        c.addEventListener('keypress', function (e) {
-            if (e.key !== 'Enter') return;
-            if (!e.target.closest('#filterField')) return;
-            e.preventDefault();
-            e.stopPropagation();
-            loadClusters(buildClusterUrl(currentContext()));
-        }, true);
     }
+
+    registerFilterOverride(c);
 })();
 </script>

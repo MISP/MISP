@@ -401,6 +401,11 @@ if (!$inEventView) {
     $children[0]['mode'] = 'legacy';
     $children[0]['name'] = 'value';
     $children[0]['chip_label'] = __('Value');
+} else {
+    // Inside an event the tab filters on `searchFor:`. Naming it here is what
+    // lets the bar render the term back into the box.
+    $children[0]['mode'] = 'legacy';
+    $children[0]['name'] = 'searchFor';
 }
 
 if (!empty($show_filters)) {
@@ -436,13 +441,13 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
                     'type' => 'dropdown',
                     'label' => __('Category'),
                     'name' => 'category',
-                    'options' => ['' => __('All')] + ($categoryOptions ?? [])
+                    'options' => ['' => ''] + ($categoryOptions ?? [])
                 ],
                 [
                     'type' => 'dropdown',
                     'label' => __('Type'),
                     'name' => 'type',
-                    'options' => ['' => __('All')] + ($typeOptions ?? [])
+                    'options' => ['' => ''] + ($typeOptions ?? [])
                 ],
             ]
         ]

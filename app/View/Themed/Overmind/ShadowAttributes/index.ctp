@@ -138,7 +138,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'button',
-                        'label' => __('My org\'s events'),
+                        'label' => __('Org events'),
                         'icon' => 'misp-icon misp-icon-organisation misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/shadow_attributes/index/all:0',

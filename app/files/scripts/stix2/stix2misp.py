@@ -42,6 +42,20 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
 from misp_stix_converter import (
     ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser, MISP_org_uuid)
 from misp_stix_converter.tools import is_stix2_from_misp, load_stix2_file
+try:
+    from misp_stix_converter import (
+        MissingSTIXContentError, STIXInputSizeError, STIXLoadingError)
+except ImportError:
+    # misp-stix older than 2026.9.8 has no named loading errors; these
+    # placeholders never match, so every failure takes the generic path.
+    class STIXLoadingError(Exception):
+        pass
+
+    class STIXInputSizeError(STIXLoadingError):
+        pass
+
+    class MissingSTIXContentError(Exception):
+        pass
 
 
 def _get_stix_parser(from_misp, args):
@@ -76,6 +90,27 @@ def _handle_return_message(traceback):
     return '\n - '.join(traceback)
 
 
+def _error_message(error: Exception) -> str:
+    """What MISP shows for a failed import: the cause in operator terms, and
+    the exception class only where the failure is a bug rather than an
+    input problem."""
+    if isinstance(error, STIXInputSizeError):
+        # upstream appends a hint about its `max_size` argument, which is not
+        # something a MISP operator can act on
+        message = str(error).split(' - raise the `max_size`')[0]
+        return f'The STIX 2 document is too large to import: {message}'
+    if isinstance(error, STIXLoadingError):
+        return f'The STIX 2 document could not be loaded: {error}'
+    if isinstance(error, MissingSTIXContentError):
+        return f'The STIX 2 document contains nothing to import: {error}'
+    if isinstance(error, json.JSONDecodeError):
+        return f'The STIX 2 document is not valid JSON: {error}'
+    return (
+        'Internal error while importing STIX 2 content - '
+        f'{type(error).__name__}: {error}'
+    )
+
+
 def _process_stix_file(args: argparse.Namespace):
     try:
         bundle = load_stix2_file(args.input)
@@ -106,7 +141,7 @@ def _process_stix_file(args: argparse.Namespace):
                         file=sys.stderr
                     )
     except Exception as e:
-        error = type(e).__name__ + ': ' + e.__str__()
+        error = _error_message(e)
         print(json.dumps({'error': error}))
         traceback.print_tb(e.__traceback__)
         print(error, file=sys.stderr)

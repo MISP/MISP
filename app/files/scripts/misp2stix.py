@@ -71,7 +71,7 @@ class StixExport:
     def _handle_errors(self):
         for identifier, values in self._parser.errors.items():
             values = '\n - '.join(values)
-            if identifier != 'attributes_collection':
+            if identifier != 'attributes collection':
                 identifier = f'MISP event {identifier}'
             print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
 

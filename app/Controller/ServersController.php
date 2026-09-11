@@ -63,12 +63,18 @@ class ServersController extends AppController
         unset($fields['authkey']);
         $fields = array_keys($fields);
 
-        $filters = $this->IndexFilter->harvestParameters(['search']);
+        $filters = $this->IndexFilter->harvestParameters(['search', 'internal', 'push', 'pull']);
         $conditions = [];
         if (!empty($filters['search'])) {
             $strSearch = '%' . trim(strtolower($filters['search'])) . '%';
             $conditions['OR'][]['LOWER(Server.name) LIKE'] = $strSearch;
             $conditions['OR'][]['LOWER(Server.url) LIKE'] = $strSearch;
+        }
+        // For index's "More filters" panel
+        foreach (['internal', 'push', 'pull'] as $flag) {
+            if (isset($filters[$flag]) && $filters[$flag] !== '') {
+                $conditions['Server.' . $flag] = (int)$filters[$flag];
+            }
         }
 
         if ($this->_isRest()) {

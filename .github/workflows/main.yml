@@ -375,6 +375,7 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/tmp/logs
 
           . ./venv/bin/activate
+          python -m pytest -v tests/test_misp_framing.py tests/test_stix2misp_wrapper.py
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py

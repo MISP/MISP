@@ -37,7 +37,8 @@ class OvermindPages
             'index', 'delete', 'view', 'addTag', 'disableTag'
         ),
         'galaxies' => array(
-            'index', 'view', 'add', 'edit', 'delete', 'viewGraph', 'export'
+            'index', 'view', 'add', 'edit', 'delete', 'viewGraph', 'export',
+            'import'
         ),
         'galaxy_clusters' => array(
             'index', 'view', 'add', 'edit', 'delete',

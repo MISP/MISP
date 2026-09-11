@@ -44,7 +44,7 @@ echo $this->Form->create('Collection', [
 
 <div class="container-fluid px-4 py-4">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-4 px-2">
 
         <?php if ($hasAttachTarget): ?>
             <!-- ── ATTACH TARGET ───────────────────────────────── -->
@@ -74,7 +74,7 @@ echo $this->Form->create('Collection', [
         <?php endif; ?>
 
         <!-- ── NAME ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2 text-primary fw-bold
                             text-uppercase"
@@ -103,7 +103,7 @@ echo $this->Form->create('Collection', [
         </div>
 
         <!-- ── TYPE ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Collection Type'),
@@ -119,35 +119,21 @@ echo $this->Form->create('Collection', [
         </div>
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
-        <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                 'accent' => 'primary',
-                'label' => __('Distribution / Sharing Group'),
+                'levels' => $dropdownData['distributionLevels'] ?? [],
+                'sharingGroups' => $dropdownData['sgs'] ?? [],
+                'value' => $currentDistribution,
+                'showSg' => true,
+                'id' => 'distribution-select',
+                'sgId' => 'sharing-group-select',
+                'sgEmpty' => __('Select a sharing group…'),
             ]) ?>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $dropdownData['distributionLevels'] ?? [], [
-                        'class' => 'form-select',
-                        'id' => 'distribution-select',
-                        'value' => $currentDistribution,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill<?= $currentDistribution === 4 ? '' : ' d-none' ?>"
-                     id="sg-container">
-                    <?= $this->Form->select('sharing_group_id', $dropdownData['sgs'] ?? [], [
-                        'id' => 'sharing-group-select',
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select tom-select',
-                    ]) ?>
-                </div>
-
-            </div>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Description'),
@@ -198,7 +184,7 @@ echo $this->Form->create('Collection', [
         var icon = TYPE_ICONS[data.value] || 'fas fa-folder';
         return '<div class="d-flex align-items-center gap-2' + (compact ? '' : ' py-1') + '">'
             + '<span class="badge d-inline-flex align-items-center'
-                + (compact ? ' px-1' : ' px-2 py-1') + '" style="'
+                + (compact ? ' px-1' : '  py-1') + '" style="'
                 + 'background:rgba(24,146,177,.12); color:var(--primary);'
                 + 'border:1px solid rgba(24,146,177,.25);'
                 + (compact ? 'font-size:.65rem;' : '') + '">'
@@ -221,12 +207,9 @@ echo $this->Form->create('Collection', [
     }
 
 
-    if (typeof initDistributionSelect === 'function') {
-        initDistributionSelect('distribution-select', function (value) {
-            var sg = document.getElementById('sg-container');
-            if (sg) { sg.classList.toggle('d-none', parseInt(value, 10) !== 4); }
-        });
-    }
+    /* The distribution field reveals its own sharing group — initChoiceFields()
+       binds it. Nothing to do here: #sg-container was the old hand-built markup
+       and #distribution-select is now the cards' hidden mirror, not a control. */
 
     /* Live character counter on the name */
     var nameEl = document.getElementById('CollectionName');

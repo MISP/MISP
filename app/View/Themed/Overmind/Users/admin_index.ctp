@@ -181,6 +181,39 @@ $fields = [
     ],
 ];
 
+$moreFilters = [];
+
+// `org` is only a filterable field for a site admin
+if (!empty($isSiteAdmin)) {
+    $moreFilters[] = [
+        'type' => 'dropdown',
+        'name' => 'org',
+        'label' => __('Organisation'),
+        'options' => $orgOptions ?? [],
+    ];
+}
+
+$moreFilters[] = [
+    'type' => 'dropdown',
+    'name' => 'role',
+    'label' => __('Role'),
+    'options' => $roleOptions ?? [],
+];
+
+
+$moreFilters[] = [
+    'type' => 'dropdown',
+    'name' => 'status',
+    'label' => __('Status'),
+    'options' => [
+        ''         => __('Any status'),
+        'enabled'  => __('Enabled'),
+        'disabled' => __('Disabled'),
+        'inactive' => __('Inactive'),
+    ],
+];
+
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -199,19 +232,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'more_filters',
                         'label' => __('More filters'),
-                        'children' => [
-                            [
-                                'type' => 'dropdown',
-                                'name' => 'status',
-                                'label' => __('Status'),
-                                'options' => [
-                                    ''         => __(''),
-                                    'enabled'  => __('Enabled'),
-                                    'disabled' => __('Disabled'),
-                                    'inactive' => __('Inactive'),
-                                ]
-                            ]
-                        ]
+                        'children' => $moreFilters,
                     ],
                 ],
             ],
