@@ -66,48 +66,47 @@ $this->set('headerDescription', $headerDescription);
         $erCanAddReport = $this->Acl->canModifyEvent($data);
         ?>
         <div class="mb-4">
-
-            <?php if ($erHasReport): ?>
-                <div class="border rounded-3 position-relative"
-                     id="<?= h($erCardId) ?>"
-                     style="max-height:<?= $erMaxH ?>;overflow:hidden;">
-                    <div class="p-3">
+            <div class="rounded-3 border p-3 h-100" data-center-on-click>
+                <div class="text-muted small text-uppercase fw-bold mb-2">
+                        <i class="misp-icon misp-icon-report misp-hexagone me-1"></i>
+                        <?= __('Report') ?>
+                </div>
+                <?php if ($erHasReport): ?>
+                    <div id="<?= h($erCardId) ?>"
+                        style="max-height:<?= $erMaxH ?>;overflow:hidden;">
                         <div id="<?= h($erBodyId) ?>" class="markdown-preview-body"></div>
                     </div>
-                    <div id="<?= h($erOverlayId) ?>"
-                         class="position-absolute bottom-0 start-0 end-0"
-                         style="display:none;">
-                        <div style="height:60px;
-                                    background:linear-gradient(to bottom,transparent,var(--bs-card-bg,#fff));
-                                    pointer-events:none;"></div>
-                        <div class="text-center py-1"
-                             style="background:var(--bs-card-bg,#fff);">
+                    <div id="<?= h($erOverlayId) ?>" class="er-preview-overlay" style="display:none;">
+                        <div class="er-preview-gradient"></div>
+                        <div class="er-preview-bar">
                             <a href="#"
-                               class="small text-muted text-decoration-none"
+                               class="small text-muted text-decoration-none er-preview-toggle"
+                               data-er-expand-label="<?= h(__('Show full content')) ?>"
+                               data-er-collapse-label="<?= h(__('Collapse')) ?>"
                                onclick="erPreviewToggle(this,'<?= h($erCardId) ?>','<?= h($erOverlayId) ?>','<?= $erMaxH ?>');return false;">
-                               <i class="fas fa-chevron-down me-1"></i>
+                                <i class="fas fa-chevron-down me-1"></i>
                                 <?= __('Show full content') ?>
                             </a>
                         </div>
                     </div>
-                </div>
-            <?php else: ?>
-                <div class="border rounded-3 d-flex flex-column align-items-center
-                            justify-content-center text-muted py-4">
-                    <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
-                    <p class="mb-1 fw-semibold small">
-                        <?= __("This event doesn't have a report for the moment") ?>
-                    </p>
-                    <?php if ($erCanAddReport): ?>
-                        <p class="small mb-0">
-                            <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
-                               onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
-                                   <?= __('Create the first report') ?>
-                            </a>
+                <?php else: ?>
+                    <div class="d-flex flex-column align-items-center
+                                justify-content-center text-muted py-4">
+                        <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
+                        <p class="mb-1 fw-semibold small">
+                            <?= __("This event doesn't have a report for the moment") ?>
                         </p>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
+                        <?php if ($erCanAddReport): ?>
+                            <p class="small mb-0">
+                                <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
+                                onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
+                                    <?= __('Create the first report') ?>
+                                </a>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
 
         </div>
 
@@ -451,30 +450,6 @@ $this->set('headerDescription', $headerDescription);
             render();
         });
 
-        if (typeof erPreviewToggle === 'undefined') {
-            window.erPreviewToggle = function (link, cId, oId, mH) {
-                var card     = document.getElementById(cId);
-                var overlay  = document.getElementById(oId);
-                var gradient = overlay.querySelector('div');
-                var icon     = link.querySelector('i');
-                var expanded = card.dataset.erExpanded === '1';
-                if (expanded) {
-                    card.style.maxHeight    = mH;
-                    card.style.overflow     = 'hidden';
-                    card.dataset.erExpanded = '0';
-                    gradient.style.display  = '';
-                    icon.className = 'fas fa-chevron-down me-1';
-                    link.lastChild.textContent = ' <?= __('Show full content') ?>';
-                } else {
-                    card.style.maxHeight    = 'none';
-                    card.style.overflow     = 'visible';
-                    card.dataset.erExpanded = '1';
-                    gradient.style.display  = 'none';
-                    icon.className = 'fas fa-chevron-up me-1';
-                    link.lastChild.textContent = ' <?= __('Collapse') ?>';
-                }
-            };
-        }
     }());
     </script>
 <?php endif; ?>
