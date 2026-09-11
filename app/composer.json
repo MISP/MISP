@@ -33,7 +33,7 @@
         "Doctrine simple cache no longer supported, switched to scrapbook"
     ],
     "require-dev": {
-        "phpunit/phpunit": "^8",
+        "phpunit/phpunit": "^9.6",
         "php-parallel-lint/php-parallel-lint": "^1.2",
         "cakephp/debug_kit": "^2.2.0"
     },
