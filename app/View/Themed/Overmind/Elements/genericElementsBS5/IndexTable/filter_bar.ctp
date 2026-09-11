@@ -637,6 +637,7 @@ var filterBarConfig = <?= json_encode([
         if (!ajaxContainer.dataset.indexWired) {
             ajaxContainer.dataset.indexWired = '1';
             ajaxContainer.addEventListener('click', function(e) {
+                if (e.defaultPrevented) return;
                 const a = e.target.closest('a[href]');
                 if (!a || !ajaxContainer.contains(a)) return;
                 const href = a.getAttribute('href') || '';

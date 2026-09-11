@@ -27,7 +27,19 @@
  */
 $fields = $fields ?? [];
 $inputClass = $input_class ?? '';
+
+/*
+ * If a field value is not in the available options, add it so it can be selected.
+ */
+foreach ($fields as $i => $f) {
+    $val = (string)($f['value'] ?? '');
+    if (($f['type'] ?? '') === 'select' && $val !== '' && !array_key_exists($val, $f['options'] ?? [])) {
+        $fields[$i]['options'][$val] = $val;
+    }
+}
 ?>
+
+
 <div class="collapse <?= !empty($open) ? 'show' : '' ?>" id="<?= h($id) ?>" data-filter-draft-panel>
     <hr>
     <div class="row g-3">
