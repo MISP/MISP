@@ -176,7 +176,7 @@ function pasteImg(cm, event) {
         const $checkboxLabel = $('<label for="checkboxSaveAsAttachment">').text('Save the picture as an attachment (create an Attribute).')
         if (!isUserSiteAdmin) {
             $checkbox.prop('disabled', true)
-            $checkboxLabel.css('cursor', 'not-allowed').title('You must be a site-admin to use local instance picture.')
+            $checkboxLabel.css('cursor', 'not-allowed').attr('title', 'You must be a site-admin to use local instance picture.')
         }
         const $checkboxContainer = $('<div>').addClass('checkbox').append(
             $checkbox,
