@@ -61,22 +61,7 @@ $currentValue = function ($name) use ($named, $query) {
     return is_array($v) ? implode('||', $v) : (string)$v;
 };
 
-/*
- * A dropdown lists what a column is *supposed* to hold — an action that has
- * since been renamed, or a model dropped from the searchable list, is not in
- * it. Without its own option the <select> falls back to "Any", so the bar
- * would report no filter while the results below are very much filtered, and
- * the next apply would quietly drop it. Give the value a home instead.
- */
-foreach ($fields as $i => $f) {
-    if (($f['type'] ?? '') !== 'select') {
-        continue;
-    }
-    $val = $currentValue($f['name']);
-    if ($val !== '' && !array_key_exists($val, $f['options'] ?? [])) {
-        $fields[$i]['options'][$val] = $val;
-    }
-}
+
 
 // Named parameters this bar does not own but must not drop when it reloads.
 // Raw values: formatIndexUrl() in mispOvermind.js does the encoding.
