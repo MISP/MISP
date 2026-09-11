@@ -911,6 +911,17 @@
                 "extra": ""
             },
             {
+                "column_name": "authkey_hmac",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "128",
+                "numeric_precision": null,
+                "collation_name": "ascii_general_ci",
+                "column_type": "varchar(128)",
+                "column_default": "NULL",
+                "extra": ""
+            },
+            {
                 "column_name": "created",
                 "is_nullable": "NO",
                 "data_type": "int",
@@ -10945,6 +10956,7 @@
         },
         "auth_keys": {
             "authkey_end": false,
+            "authkey_hmac": false,
             "authkey_start": false,
             "created": false,
             "expiration": false,
@@ -11518,5 +11530,5 @@
             "uuid": false
         }
     },
-    "db_version": "159"
+    "db_version": "160"
 }
