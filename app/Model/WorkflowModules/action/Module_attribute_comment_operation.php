@@ -35,6 +35,10 @@ class Module_attribute_comment_operation extends Module_attribute_edition_operat
         parent::exec($node, $roamingData, $errors);
         $rData = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $rData);
+        // Keep the raw (un-rendered) comment template so _editAttribute can
+        // re-render it per attribute when it references the attribute (#10898).
+        $indexedParams = $node['data']['indexed_params'] ?? [];
+        $params['comment']['template'] = $indexedParams['comment'] ?? '';
         $user = $roamingData->getUser();
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
@@ -50,10 +54,22 @@ class Module_attribute_comment_operation extends Module_attribute_edition_operat
 
     protected function _editAttribute(array $attribute, array $rData, array $params): array
     {
-        $currentRData = $rData;
-        $currentRData['__currentAttribute'] = $attribute;
         $renderedComment = $params['comment']['value'];
-        if ($attribute['comment'] !== $params['comment']['value']) {
+        $template = $params['comment']['template'] ?? '';
+        // Render once per attribute only when the template reaches into the
+        // attribute being edited, so per-attribute values resolve instead of
+        // the event-level render being copied onto every match (#10898).
+        // Templates that do not reference the attribute keep a single render.
+        if (str_contains($template, '__currentAttribute')) {
+            $currentRData = $rData;
+            $currentRData['__currentAttribute'] = $attribute;
+            $currentRData['_env']['baseurl'] = Configure::read('MISP.baseurl');
+            $renderedComment = $this->render_jinja_template(
+                $template,
+                $currentRData
+            );
+        }
+        if ($attribute['comment'] !== $renderedComment) {
             $attribute['comment'] = $renderedComment;
         }
         return $attribute;
