@@ -1,0 +1,22 @@
+{
+  "description": "Event contains one or more public IPv4 DNS resolvers as attribute with an IDS flag set",
+  "list": [
+    "1.1.1.1",
+    "149.112.112.112",
+    "208.67.220.220",
+    "208.67.222.222",
+    "8.8.4.4",
+    "8.8.8.8",
+    "9.9.9.9"
+  ],
+  "matching_attributes": [
+    "ip-src",
+    "ip-dst",
+    "domain|ip",
+    "ip-src|port",
+    "ip-dst|port"
+  ],
+  "name": "List of known IPv4 public DNS resolvers",
+  "type": "cidr",
+  "version": 1
+}

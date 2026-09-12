@@ -1,0 +1,18 @@
+{
+  "description": "Event contains one or more public DNS resolvers (expressed as hostname) as attribute with an IDS flag set",
+  "list": [
+    "dns.google",
+    "dns.quad9.net",
+    "one.one.one.one",
+    "resolver1.opendns.com"
+  ],
+  "matching_attributes": [
+    "hostname",
+    "domain",
+    "url",
+    "domain|ip"
+  ],
+  "name": "List of known public DNS resolvers expressed as hostname",
+  "type": "hostname",
+  "version": 1
+}

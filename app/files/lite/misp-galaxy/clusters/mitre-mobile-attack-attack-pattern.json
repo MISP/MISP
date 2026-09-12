@@ -1,0 +1,1674 @@
+{
+  "authors": [
+    "MITRE"
+  ],
+  "category": "attack-pattern",
+  "description": "ATT&CK tactic",
+  "name": "Mobile Attack - Attack Pattern",
+  "source": "https://github.com/mitre/cti",
+  "type": "mitre-mobile-attack-attack-pattern",
+  "uuid": "1e606d06-1708-11e8-8a43-df11c8cf9ae2",
+  "values": [
+    {
+      "description": "An SMS message could contain content designed to exploit vulnerabilities in the SMS parser on the receiving device. For example, Mulliner and Miller demonstrated such an attack against the iPhone in 2009 as described in  (Citation: Forbes-iPhoneSMS).\n\nAn SMS message could also contain a link to a web site containing malicious content designed to exploit the device web browser.\n\nAs described by SRLabs in  (Citation: SRLabs-SIMCard), vulnerable SIM cards may be remotely exploited and reprogrammed via SMS messages.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1057",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-cellular-network"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1057",
+          "http://www.forbes.com/2009/07/28/hackers-iphone-apple-technology-security-hackers.html",
+          "https://srlabs.de/bites/rooting-sim-cards/"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "2d646840-f6f5-4619-a5a8-29c8316bbac5",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "0bcc4ec1-a897-49a9-a9ff-c00df1d1209d",
+      "value": "Malicious SMS Message - MOB-T1057"
+    },
+    {
+      "description": "If network traffic between the mobile device and remote servers is unencrypted or is encrypted in an insecure manner, then an adversary positioned on the network can eavesdrop on communication. For example, He et al. (Citation: mHealth) describe numerous healthcare-related applications that did not properly protect network communication.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-1",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:general-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1042",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-0.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-1.html",
+          "https://experts.illinois.edu/en/publications/security-concerns-in-android-mhealth-apps"
+        ]
+      },
+      "uuid": "393e8c12-a416-4575-ba90-19cc85656796",
+      "value": "Eavesdrop on Insecure Network Communication - MOB-T1042"
+    },
+    {
+      "description": "An adversary could use knowledge of the techniques used by security software to evade detection. For example, some mobile security products perform compromised device detection by searching for particular artifacts such as an installed \"su\" binary, but that check could be evaded by naming the binary something else. Similarly, polymorphic code techniques could be used to evade signature-based detection as described by  (Citation: Rastogi) et al. (Citation: Rastogi). \n\n (Citation: Brodie) (Citation: Brodie) describes limitations of jailbreak/root detection mechanisms.\n\n (Citation: Tan) (Citation: Tan) describes his experience defeating the jailbreak detection used by the iOS version of Good for Enterprise.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "EMM-5",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1011",
+          "https://pages.nist.gov/mobile-threat-catalogue/emm-threats/EMM-5.html",
+          "http://pages.cs.wisc.edu/~vrastogi/static/papers/rcj13b.pdf",
+          "https://media.blackhat.com/eu-13/briefings/Brodie/bh-eu-13-lacoon-attacks-mdm-brodie-wp.pdf",
+          "http://www.blackhat.com/us-16/briefings.html#bad-for-enterprise-attacking-byod-enterprise-mobile-security-solutions"
+        ]
+      },
+      "uuid": "b332a960-3c04-495a-827f-f17a5daed3a6",
+      "value": "Disguise Root/Jailbreak Indicators - MOB-T1011"
+    },
+    {
+      "description": "On Android, device type information is accessible to apps through the android.os.Build class (Citation: Android-Build). Device information could be used to target privilege escalation exploits.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1022",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1022",
+          "https://zeltser.com/third-party-keyboards-security/"
+        ]
+      },
+      "uuid": "89fcd02f-62dc-40b9-a54b-9ac4b1baef05",
+      "value": "Device Type Discovery - MOB-T1022"
+    },
+    {
+      "description": "A malicious app could use standard Android APIs to send SMS messages. SMS messages could potentially be sent to premium numbers that charge the device owner and generate revenue for an adversary, for example as described by Lookout in  (Citation: Lookout-SMS).\n\nOn iOS, apps cannot send SMS messages.\n\nOn Android, apps must hold the SEND_SMS permission to send SMS messages. Additionally, Android version 4.2 and above has mitigations against this threat by requiring user consent before allowing SMS messages to be sent to premium numbers (Citation: AndroidSecurity2014).\n\nDetection: As described in Google's Android Security 2014 Year in Review Report  (Citation: AndroidSecurity2014), starting with Android 4.2 the user is prompted and must provide consent before applications can send SMS messages to premium numbers.\n\nOn Android 6.0 and up, the user can view which applications have permission to send SMS messages through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1051",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1051",
+          "https://blog.lookout.com/blog/2013/08/02/dragon-lady/",
+          "https://static.googleusercontent.com/media/source.android.com/en//security/reports/Google%20Android%20Security%202014%20Report%20Final.pdf"
+        ]
+      },
+      "uuid": "8f0e39c6-82c9-41ec-9f93-5696c0f2e274",
+      "value": "Premium SMS Toll Fraud - MOB-T1051"
+    },
+    {
+      "description": "An adversary who is able to obtain unauthorized access to or misuse authorized access to cloud backup services (e.g. Google's Android backup service or Apple's iCloud) could use that access to obtain sensitive data stored in device backups. For example, the Elcomsoft Phone Breaker product advertises the ability to retrieve iOS backup data from Apple's iCloud (Citation: Elcomsoft-EPPB).\n\nDetection: Google provides the ability for users to view their account activity. Apple iCloud also provides notifications to users of account activity.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "ECO-1",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cloud-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1073",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-0.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-1.html",
+          "https://www.elcomsoft.com/eppb.html"
+        ]
+      },
+      "uuid": "0c71033e-401e-4b97-9309-7a7c95e43a5d",
+      "value": "Obtain Device Cloud Backups - MOB-T1073"
+    },
+    {
+      "description": "On versions of Android prior to 4.1, an adversary may use a malicious application that holds the READ_LOGS permission to obtain private keys, passwords, other credentials, or other sensitive data stored in the device's system log. On Android 4.1 and later, an adversary would need to attempt to perform an operating system privilege escalation attack to be able to access the log.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "APP-13",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1016",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-3.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-13.html"
+        ]
+      },
+      "uuid": "29e07491-8947-43a3-8d4e-9a787c45f3d3",
+      "value": "Access Sensitive Data in Device Logs - MOB-T1016"
+    },
+    {
+      "description": "With escalated privileges, an adversary could program the mobile device to impersonate USB devices such as input devices (keyboard and mouse), storage devices, and/or networking devices in order to attack a physically connected PC. Wang and Stavrou (Citation: Wang-ExploitingUSB) and Kamkar (Citation: ArsTechnica-PoisonTap) describe this technique. This technique has been demonstrated on Android, and we are unaware of any demonstrations on iOS.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "PHY-2",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:lateral-movement"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1030",
+          "https://pages.nist.gov/mobile-threat-catalogue/physical-threats/PHY-2.html",
+          "http://dl.acm.org/citation.cfm?id=1920314",
+          "http://arstechnica.com/security/2016/11/meet-poisontap-the-5-tool-that-ransacks-password-protected-computers/"
+        ]
+      },
+      "uuid": "a0464539-e1b7-4455-a355-12495987c300",
+      "value": "Attack PC via USB Connection - MOB-T1030"
+    },
+    {
+      "description": "A malicious app can register to receive intents meant for other applications and may then be able to receive sensitive values such as OAuth authorization codes as described in  (Citation: IETF-PKCE).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1019",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1019",
+          "https://tools.ietf.org/html/rfc7636"
+        ]
+      },
+      "uuid": "77e30eee-fd48-40b4-99ec-73e97c158b58",
+      "value": "Android Intent Hijacking - MOB-T1019"
+    },
+    {
+      "description": "An iOS application may be able to maliciously claim a URL scheme, allowing it to intercept calls that are meant for a different application. This technique, for example, could be used to capture OAuth authorization codes as described in  (Citation: IETF-PKCE) or to phish user credentials as described in  (Citation: MobileIron-XARA). Related potential security implications are described in  (Citation: Dhanjani-URLScheme). FireEye researchers describe URL scheme hijacking in a blog post (Citation: FireEye-Masque2), including evidence of its use.\n\nPlatforms: iOS",
+      "meta": {
+        "external_id": "AUT-10",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1018",
+          "https://pages.nist.gov/mobile-threat-catalogue/authentication-threats/AUT-10.html",
+          "https://tools.ietf.org/html/rfc7636",
+          "https://www.mobileiron.com/en/smartwork-blog/ios-url-scheme-hijacking-xara-attack-analysis-and-countermeasures",
+          "http://www.dhanjani.com/blog/2010/11/insecure-handling-of-url-schemes-in-apples-ios.html",
+          "https://www.fireeye.com/blog/threat-research/2015/02/ios%20masque%20attackre.html"
+        ]
+      },
+      "uuid": "8f142a25-f6c3-4520-bd50-2ae3ab50ed3e",
+      "value": "URL Scheme Hijacking - MOB-T1018"
+    },
+    {
+      "description": "Adversaries may attempt to exploit enterprise servers, workstations, or other resources over the network. This technique may take advantage of the mobile device's access to an internal enterprise network either through local connectivity or through a Virtual Private Network (VPN).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-32",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:lateral-movement"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1031",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-32.html"
+        ]
+      },
+      "uuid": "22379609-a99f-4a01-bd7e-70f3e105859d",
+      "value": "Exploit Enterprise Resources - MOB-T1031"
+    },
+    {
+      "description": "If an adversary can escalate privileges, he or she may be able to use those privileges to place malicious code in the device system partition, where it may persist after device resets and may not be easily removed by the device user.\n\nMany Android devices provide the ability to unlock the bootloader for development purposes. An unlocked bootloader may provide the ability for an adversary to modify the system partition. Even if the bootloader is locked, it may be possible for an adversary to escalate privileges and then modify the system partition.\n\nDetection: Android devices with the Verified Boot capability (Citation: Android-VerifiedBoot) perform cryptographic checks of the integrity of the system partition.\n\nThe Android SafetyNet API's remote attestation capability could potentially be used to identify and respond to compromised devices.\n\nSamsung KNOX also provides a remote attestation capability on supported Samsung Android devices.\n\nAs described in the iOS Security Guide (Citation: Apple-iOSSecurityGuide), iOS devices will fail to boot or fail to allow device activation if unauthorized modifications are detected.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-27",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion",
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1003",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-27.html",
+          "https://source.android.com/security/verifiedboot/",
+          "https://www.apple.com/business/docs/iOS%20Security%20Guide.pdf"
+        ]
+      },
+      "uuid": "c5089859-b21f-40a3-8be4-63e381b8b1c0",
+      "value": "Modify System Partition - MOB-T1003"
+    },
+    {
+      "description": "An adversary may attempt to get detailed information about the operating system and hardware, including version, patches, and architecture.\n\nOn Android, much of this information is programmatically accessible to applications through the android.os.Build class (Citation: Android-Build).\n\nOn iOS, techniques exist for applications to programmatically access this information, for example as described in  (Citation: StackOverflow-iOSVersion).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1029",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1029",
+          "https://zeltser.com/third-party-keyboards-security/",
+          "http://stackoverflow.com/questions/7848766/how-can-we-programmatically-detect-which-ios-version-is-device-running-on"
+        ]
+      },
+      "uuid": "e2ea7f6b-8d4f-49c3-819d-660530d12b77",
+      "value": "System Information Discovery - MOB-T1029"
+    },
+    {
+      "description": "Adversaries may attempt to get a listing of services running on remote hosts, including those that may be vulnerable to remote software exploitation. Methods to acquire this information include port scans and vulnerability scans from the mobile device. This technique may take advantage of the mobile device's access to an internal enterprise network either through local connectivity or through a Virtual Private Network (VPN).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1026",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1026"
+        ]
+      },
+      "uuid": "2de38279-043e-47e8-aaad-1b07af6d0790",
+      "value": "Network Service Scanning - MOB-T1026"
+    },
+    {
+      "description": "On Android, an adversary could call standard operating system APIs from a malicious application to gather call log data, or with escalated privileges could directly access files containing call log data.\n\nOn iOS, applications do not have access to the call log, so privilege escalation would be required in order to access the data.\n\nDetection: On Android 6.0 and up, the user can view which applications have permission to access call log information through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-13",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1036",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-13.html"
+        ]
+      },
+      "uuid": "79eec66a-9bd0-4a3f-ac82-19159e94bd44",
+      "value": "Access Call Log - MOB-T1036"
+    },
+    {
+      "description": "An adversary could evade app vetting techniques by placing code in a malicious application to detect whether it is running in an app analysis environment and, if so, avoid performing malicious actions while under analysis.\n\nDiscussion of general Android anti-analysis techniques can be found in  (Citation: Petsas). Discussion of Google Play Store-specific anti-analysis techniques can be found in  (Citation: Oberheide-Bouncer),  (Citation: Percoco-Bouncer).\n\n (Citation: Wang) presents a discussion of iOS anti-analysis techniques.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "ECO-22",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-authorized-app-store"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1043",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-20.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-21.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-22.html",
+          "http://dl.acm.org/citation.cfm?id=2592796",
+          "https://jon.oberheide.org/files/summercon12-bouncer.pdf",
+          "https://media.blackhat.com/bh-us-12/Briefings/Percoco/BH%20US%2012%20Percoco%20Adventures%20in%20Bouncerland%20WP.pdf",
+          "https://www.usenix.org/conference/usenixsecurity13/technical-sessions/presentation/wang%20tielei"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "d9db3d46-66ca-44b4-9daa-1ef97cb7465a",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "b765efd1-02e6-4e67-aebf-0fef5c37e54b",
+      "value": "Detect App Analysis Environment - MOB-T1043"
+    },
+    {
+      "description": "Content of a web page could be designed to exploit vulnerabilities in a web browser running on the mobile device.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-22",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-internet"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1059",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-22.html"
+        ]
+      },
+      "uuid": "fd339382-bfec-4bf0-8d47-1caedc9e7e57",
+      "value": "Malicious Web Content - MOB-T1059"
+    },
+    {
+      "description": "An adversary could use fake identities, payment cards, etc., to create developer accounts to publish malicious applications to app stores. For example, Oberheide and Miller describe use of this technique in  (Citation: Oberheide-Bouncer).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1045",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-authorized-app-store"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1045",
+          "https://jon.oberheide.org/files/summercon12-bouncer.pdf"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "d9db3d46-66ca-44b4-9daa-1ef97cb7465a",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "e30cc912-7ea1-4683-9219-543b86cbdec9",
+      "value": "Fake Developer Accounts - MOB-T1045"
+    },
+    {
+      "description": "Content of a media (audio or video) file could be designed to exploit vulnerabilities in parsers on the mobile device, as for example demonstrated by the Android Stagefright vulnerability (Citation: Zimperium-Stagefright).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-22",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-internet"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1060",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-22.html",
+          "https://blog.zimperium.com/experts-found-a-unicorn-in-the-heart-of-android/"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "fd339382-bfec-4bf0-8d47-1caedc9e7e57",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "a9cab8f6-4c94-4c9b-9e7d-9d863ff53431",
+      "value": "Malicious Media Content - MOB-T1060"
+    },
+    {
+      "description": "The application is delivered as an email attachment.\n\nDetection: An EMM/MDM or mobile threat protection solution can identify the presence of unwanted, known insecure, or malicious apps on devices. Enterprise email security solutions can identify the presence of Android or iOS application packages within email messages.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "ECO-13",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-other-means"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1037",
+          "https://pages.nist.gov/mobile-threat-catalogue/authentication-threats/AUT-9.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-13.html"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "53263a67-075e-48fa-974b-91c5b5445db7",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "1f96d624-8409-4472-ad8a-30618ee6b2e2",
+      "value": "App Delivered via Email Attachment - MOB-T1037"
+    },
+    {
+      "description": "Adversaries may communicate using a common, standardized application layer protocol such as HTTP, HTTPS, SMTP, or DNS to avoid detection by blending in with existing traffic.\n\nIn the mobile environment, the Google Cloud Messaging (GCM; two-way) and Apple Push Notification Service (APNS; one-way server-to-device) are commonly used protocols on Android and iOS respectively that would blend in with routine device traffic and are difficult for enterprises to inspect. As described by Kaspersky (Citation: Kaspersky-MobileMalware), Google responds to reports of abuse by blocking access to GCM.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-29",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:command-and-control",
+          "mitre-mobile-attack:mobile-attack:exfiltration"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1040",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-29.html",
+          "https://securelist.com/analysis/kaspersky-security-bulletin/58335/mobile-malware-evolution-2013/"
+        ]
+      },
+      "uuid": "6a3f6490-9c44-40de-b059-e5940f246673",
+      "value": "Standard Application Layer Protocol - MOB-T1040"
+    },
+    {
+      "description": "On Android, command line tools or the Java file APIs can be used to enumerate file system contents. However, Linux file permissions and SELinux policies generally strongly restrict what can be accessed by apps (without taking advantage of a privilege escalation exploit). The contents of the external storage directory are generally visible, which could present concern if sensitive data is inappropriately stored there.\n\niOS's security architecture generally restricts the ability to perform file and directory discovery without use of escalated privileges.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1023",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1023"
+        ]
+      },
+      "uuid": "cf28ca46-1fd3-46b4-b1f6-ec0b72361848",
+      "value": "File and Directory Discovery - MOB-T1023"
+    },
+    {
+      "description": "A malicious application could abuse Android device administrator access to wipe device contents, for example if a ransom is not paid.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1050",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1050"
+        ]
+      },
+      "uuid": "8e27551a-5080-4148-a584-c64348212e4f",
+      "value": "Wipe Device Data - MOB-T1050"
+    },
+    {
+      "description": "An adversary could use a malicious or exploited application to surreptitiously record activities using the device microphone and/or camera through use of standard operating system APIs.\n\nDetection: On both Android (6.0 and up) and iOS, the user can view which applications have permission to use the microphone or the camera through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-19",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1032",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-19.html"
+        ]
+      },
+      "uuid": "6683aa0c-d98a-4f5b-ac57-ca7e9934a760",
+      "value": "Microphone or Camera Recordings - MOB-T1032"
+    },
+    {
+      "description": "The mobile device could contain built-in functionality with malicious behavior or exploitable vulnerabilities. An adversary could deliberately insert and take advantage of the malicious behavior or could exploit inadvertent vulnerabilities. In many cases, it is difficult to be certain whether exploitable functionality is due to malicious intent or simply an inadvertent mistake.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1076",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:supply-chain"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1076"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "0d95940f-9583-4e0f-824c-a42c1be47fad",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "f9e4f526-ac9d-4df5-8949-833a82a1d2df",
+      "value": "Malicious or Vulnerable Built-in Device Functionality - MOB-T1076"
+    },
+    {
+      "description": "An app could contain malicious code in obfuscated or encrypted form, then deobfuscate or decrypt the code at runtime to evade many app vetting techniques, as described in  (Citation: Rastogi) (Citation: Zhou) (Citation: TrendMicro-Obad) (Citation: Xiao-iOS).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-21",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1009",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-21.html",
+          "http://pages.cs.wisc.edu/~vrastogi/static/papers/rcj13b.pdf",
+          "http://ieeexplore.ieee.org/document/6234407",
+          "http://blog.trendmicro.com/trendlabs-security-intelligence/cybercriminals-improve-android-malware-stealth-routines-with-obad/",
+          "http://www.slideshare.net/Shakacon/fruit-vs-zombies-defeat-nonjailbroken-ios-malware-by-claud-xiao"
+        ]
+      },
+      "uuid": "d13fa042-8f26-44e1-a2a8-af0bf8e2ac9a",
+      "value": "Obfuscated or Encrypted Payload - MOB-T1009"
+    },
+    {
+      "description": "At least three methods exist to perform User Interface Spoofing:\n\nFirst, on both Android and iOS, an adversary could impersonate the user interface of a legitimate app or device function to trick a user into entering account credentials. \n\nSecond, on both Android and iOS, a malicious app could impersonate the identity of another app in order to trick users into installing and using it.\n\nThird, on older versions of Android, a malicious app could abuse mobile operating system features to interfere with a running legitimate app as described in  (Citation: Felt-PhishingOnMobileDevices) and  (Citation: Hassell-ExploitingAndroid). However, this technique appears to have been addressed starting in Android 5.0 with the deprecation of the Android's ActivityManager.getRunningTasks method and modification of its behavior (Citation: Android-getRunningTasks) and further addressed in Android 5.1.1 (Citation: StackOverflow-getRunningAppProcesses) to prevent a malicious app from determining what app is currently in the foreground.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-31",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1014",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-31.html",
+          "http://w2spconf.com/2011/papers/felt-mobilephishing.pdf",
+          "http://conference.hitb.org/hitbsecconf2011kul/materials/D1T1",
+          "https://developer.android.com/reference/android/app/ActivityManager.html#getRunningTasks%28int%29",
+          "http://stackoverflow.com/questions/30619349/android-5-1-1-and-above-getrunningappprocesses-returns-my-application-packag"
+        ]
+      },
+      "uuid": "3dd58c80-4c2e-458c-9503-1b2cd273c4d2",
+      "value": "User Interface Spoofing - MOB-T1014"
+    },
+    {
+      "description": "A message sent over a radio interface (typically cellular, but potentially Bluetooth, GPS, NFC, Wi-Fi or other) to the mobile device could exploit a vulnerability in code running on the device.\n\nD. Komaromy and N. Golde demonstrated baseband exploitation of a Samsung mobile device at the PacSec 2015 security conference (Citation: Register-BaseStation).\n\nWeinmann described and demonstrated \"the risk of remotely exploitable memory corruptions in cellular baseband stacks.\" (Citation: Weinmann-Baseband)\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "STA-19",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-cellular-network"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1058",
+          "https://pages.nist.gov/mobile-threat-catalogue/stack-threats/STA-18.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/stack-threats/STA-19.html",
+          "http://www.theregister.co.uk/2015/11/12/mobile%20pwn2own1/",
+          "https://www.usenix.org/system/files/conference/woot12/woot12-final24.pdf"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "2d646840-f6f5-4619-a5a8-29c8316bbac5",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "c91c304a-975d-4501-9789-0db1c57afd3f",
+      "value": "Exploit Baseband Vulnerability - MOB-T1058"
+    },
+    {
+      "description": "On Android versions prior to 5, applications can observe information about other processes that are running through methods in the ActivityManager class. On Android versions prior to 7, applications can obtain this information by executing the <code>ps</code> command, or by examining the <code>/proc</code> directory. Starting in Android version 7, use of the Linux kernel's <code>hidepid</code> feature prevents applications (without escalated privileges) from accessing this information (Citation: Android-SELinuxChanges).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1027",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1027",
+          "https://code.google.com/p/android/issues/detail?id=205565"
+        ]
+      },
+      "uuid": "1b51f5bc-b97a-498a-8dbd-bc6b1901bf19",
+      "value": "Process Discovery - MOB-T1027"
+    },
+    {
+      "description": "A malicious application can request Device Administrator privileges. If the user grants the privileges, the application can take steps to make its removal more difficult.\n\nDetection: The device user can view a list of apps with Device Administrator privilege in the device settings.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "APP-22",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1004",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-22.html"
+        ]
+      },
+      "uuid": "82f04b1e-5371-4a6f-be06-411f0f43b483",
+      "value": "Abuse Device Administrator Access to Prevent Removal - MOB-T1004"
+    },
+    {
+      "description": "The application is downloaded from an arbitrary web site. A link to the application's download URI may be sent in an email or SMS, placed on another web site that the target is likely to view, or sent via other means (such as QR code).\n\nDetection: An EMM/MDM or mobile threat protection solution can identify the presence of unwanted, known insecure, or malicious apps on devices.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "ECO-21",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-other-means"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1034",
+          "https://pages.nist.gov/mobile-threat-catalogue/authentication-threats/AUT-9.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-21.html"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "53263a67-075e-48fa-974b-91c5b5445db7",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "6b846ad0-cc20-4db6-aa34-91561397c5e2",
+      "value": "App Delivered via Web Download - MOB-T1034"
+    },
+    {
+      "description": "A malicious application could capture sensitive data sent via SMS, including authentication credentials. SMS is frequently used to transmit codes used for multi-factor authentication.\n\nOn Android, a malicious application must request and obtain permission (either at app install time or run time) in order to receive SMS messages. Alternatively, a malicious application could attempt to perform an operating system privilege escalation attack to bypass the permission requirement.\n\nOn iOS, applications cannot access SMS messages in normal operation, so an adversary would need to attempt to perform an operating system privilege escalation attack to potentially be able to access SMS messages.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1015",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1015"
+        ]
+      },
+      "uuid": "e8b4e1ec-8e3b-484c-9038-4459b1ed8060",
+      "value": "Capture SMS Messages - MOB-T1015"
+    },
+    {
+      "description": "An adversary may encrypt files stored on the mobile device to prevent the user from accessing them, only unlocking access to the files after a ransom is paid. Without escalated privileges, the adversary is generally limited to only encrypting files in external/shared storage locations. This technique has been demonstrated on Android, and we are unaware of any demonstrated use on iOS.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "APP-28",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1074",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-28.html"
+        ]
+      },
+      "uuid": "d9e88203-2b5d-405f-a406-2933b1e3d7e4",
+      "value": "Encrypt Files for Ransom - MOB-T1074"
+    },
+    {
+      "description": "An adversary could abuse an iOS enterprise app signing key (intended for enterprise in-house distribution of apps) to sign malicious iOS apps so that they can be installed on iOS devices without the app needing to be published on Apple's App Store. For example, Xiao describes use of this technique in  (Citation: Xiao-iOS).\n\nDetection: iOS 9 and above typically requires explicit user consent before allowing installation of applications signed with enterprise distribution keys rather than installed from Apple's App Store.\n\nPlatforms: iOS",
+      "meta": {
+        "external_id": "ECO-23",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-other-means"
+        ],
+        "mitre_platforms": [
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1048",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-23.html",
+          "http://www.slideshare.net/Shakacon/fruit-vs-zombies-defeat-nonjailbroken-ios-malware-by-claud-xiao"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "53263a67-075e-48fa-974b-91c5b5445db7",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "51aedbd6-2837-4d15-aeb0-cb09f2bf22ac",
+      "value": "Abuse of iOS Enterprise App Signing Key - MOB-T1048"
+    },
+    {
+      "description": "On Android, details of onboard network interfaces are accessible to apps through the java.net. (Citation: NetworkInterface) class (Citation: NetworkInterface). The Android  (Citation: TelephonyManager) class can be used to gather related information such as the IMSI, IMEI, and phone number (Citation: TelephonyManager).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1025",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1025",
+          "https://developer.android.com/reference/java/net/NetworkInterface.html",
+          "https://developer.android.com/reference/android/telephony/TelephonyManager.html"
+        ]
+      },
+      "uuid": "d4536441-1bcc-49fa-80ae-a596ed3f7ffd",
+      "value": "Local Network Configuration Discovery - MOB-T1025"
+    },
+    {
+      "description": "Adversaries can communicate using cellular networks rather than enterprise Wi-Fi in order to bypass enterprise network monitoring systems. Adversaries may also communicate using other non-Internet Protocol mediums such as SMS, NFC, or Bluetooth to bypass network monitoring systems.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-30",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:command-and-control",
+          "mitre-mobile-attack:mobile-attack:exfiltration"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1041",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-30.html"
+        ]
+      },
+      "uuid": "b3c2e5de-0941-4b57-ba61-af029eb5517a",
+      "value": "Alternate Network Mediums - MOB-T1041"
+    },
+    {
+      "description": "On Android, applications can use standard APIs to gather a list of network connections to and from the device. For example, the Network Connections app available in the Google Play Store (Citation: ConnMonitor) advertises this functionality.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1024",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1024",
+          "https://play.google.com/store/apps/details?id=com.antispycell.connmonitor&hl=en"
+        ]
+      },
+      "uuid": "dd818ea5-adf5-41c7-93b5-f3b839a219fb",
+      "value": "Local Network Connections Discovery - MOB-T1024"
+    },
+    {
+      "description": "An adversary could make educated guesses of the device lock screen's PIN/password (e.g., commonly used values, birthdays, anniversaries) or attempt a dictionary or brute force attack against it. Brute force attacks could potentially be automated (Citation: PopSci-IPBox).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1062",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-physical-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1062",
+          "http://www.popsci.com/box-can-figure-out-your-4-digit-iphone-passcode"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "dfe29258-ce59-421c-9dee-e85cb9fa90cd",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "f296fc9c-2ff5-43ee-941e-6b49c438270a",
+      "value": "Device Unlock Code Guessing or Brute Force - MOB-T1062"
+    },
+    {
+      "description": "A malicious app or other attack vector could be used to exploit vulnerabilities in code running within the Trusted Execution Environment (TEE) (Citation: Thomas-TrustZone). The adversary could then obtain privileges held by the TEE potentially including the ability to access cryptographic keys or other sensitive data (Citation: QualcommKeyMaster). Escalated operating system privileges may be first required in order to have the ability to attack the TEE (Citation: EkbergTEE). If not, privileges within the TEE can potentially be used to exploit the operating system (Citation: laginimaineb-TEE).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "APP-27",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:credential-access",
+          "mitre-mobile-attack:mobile-attack:privilege-escalation"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1008",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-27.html",
+          "https://usmile.at/symposium/program/2015/thomas-holmes",
+          "https://bits-please.blogspot.in/2016/06/extracting-qualcomms-keymaster-keys.html",
+          "https://usmile.at/symposium/program/2015/ekberg",
+          "http://bits-please.blogspot.co.il/2016/05/war-of-worlds-hijacking-linux-kernel.html"
+        ]
+      },
+      "uuid": "ef771e03-e080-43b4-a619-ac6f84899884",
+      "value": "Exploit TEE Vulnerability - MOB-T1008"
+    },
+    {
+      "description": "An adversary could set up unauthorized Wi-Fi access points or compromise existing access points and, if the device connects to them, carry out network-based attacks such as eavesdropping on or modifying network communication as described in NIST SP 800-153 (Citation: NIST-SP800153). \n\nFor example, Kaspersky describes a threat actor they call DarkHotel that targeted hotel Wi-Fi networks, using them to compromise computers belonging to business executives (Citation: Kaspersky-DarkHotel).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "LPN-0",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:general-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1068",
+          "https://pages.nist.gov/mobile-threat-catalogue/lan-pan-threats/LPN-0.html",
+          "http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-153.pdf",
+          "https://blog.kaspersky.com/darkhotel-apt/6613/"
+        ]
+      },
+      "uuid": "633baf01-6de4-4963-bb54-ff6c6357bed3",
+      "value": "Rogue Wi-Fi Access Points - MOB-T1068"
+    },
+    {
+      "description": "An adversary who is able to obtain unauthorized access to or misuse authorized access to cloud services (e.g. Google's Android Device Manager or Apple iCloud's Find my iPhone) or to an enterprise mobility management (EMM) / mobile device management (MDM) server console could use that access to track mobile devices.\n\nDetection: Google sends a notification to the device when Android Device Manager is used to locate it. Additionally, Google provides the ability for users to view their general account activity. Apple iCloud also provides notifications to users of account activity.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "EMM-7",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cloud-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1071",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-5.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/emm-threats/EMM-7.html"
+        ]
+      },
+      "uuid": "6f86d346-f092-4abc-80df-8558a90c426a",
+      "value": "Remotely Track Device Without Authorization - MOB-T1071"
+    },
+    {
+      "description": "An adversary could attempt to spoof a mobile device's biometric authentication mechanism, for example by providing a fake fingerprint as described by SRLabs in  (Citation: SRLabs-Fingerprint).\n\niOS partly mitigates this attack by requiring the device passcode rather than a fingerprint to unlock the device after every device restart and after 48 hours since the device was last unlocked (Citation: Apple-TouchID).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1063",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-physical-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1063",
+          "https://srlabs.de/bites/spoofing-fingerprints/",
+          "https://support.apple.com/en-us/HT204587"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "dfe29258-ce59-421c-9dee-e85cb9fa90cd",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "45dcbc83-4abc-4de1-b643-e528d1e9df09",
+      "value": "Biometric Spoofing - MOB-T1063"
+    },
+    {
+      "description": "An attacker could jam radio signals (e.g. Wi-Fi, cellular, GPS) to prevent the mobile device from communicating as described in draft NIST SP 800-187 (Citation: NIST-SP800187).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "GPS-0",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based",
+          "mitre-mobile-attack:mobile-attack:general-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1067",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-7.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-8.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/lan-pan-threats/LPN-5.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/gps-threats/GPS-0.html",
+          "http://csrc.nist.gov/publications/drafts/800-187/sp800%20187%20draft.pdf"
+        ]
+      },
+      "uuid": "d2e112dc-f6d4-488d-b8df-ecbfb57a0a2d",
+      "value": "Jamming or Denial of Service - MOB-T1067"
+    },
+    {
+      "description": "A malicious app or other attack vector could capture sensitive data stored in the device clipboard, for example passwords being copy-and-pasted from a password manager app.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-35",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1017",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-35.html"
+        ]
+      },
+      "uuid": "c4b96c0b-cb58-497a-a1c2-bb447d79d692",
+      "value": "Capture Clipboard Data - MOB-T1017"
+    },
+    {
+      "description": "An adversary could call standard operating system APIs from a malicious application to gather contact list (i.e., address book) data, or with escalated privileges could directly access files containing contact list data.\n\nDetection: On both Android (6.0 and up) and iOS, the user can view which applications have permission to access contact list information through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-13",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1035",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-13.html"
+        ]
+      },
+      "uuid": "4e6620ac-c30c-4f6d-918e-fa20cae7c1ce",
+      "value": "Access Contact List - MOB-T1035"
+    },
+    {
+      "description": "An adversary could steal developer account credentials on an app store and/or signing keys to publish malicious updates to existing Android or iOS apps, or to abuse the developer's identity and reputation to publish new malicious applications. For example, Infoworld describes this technique and suggests mitigations in  (Citation: Infoworld-Appstore).\n\nDetection: Developers can regularly scan (or have a third party scan on their behalf) the app stores for presence of unauthorized apps that were submitted using the developer's identity.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "ECO-17",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-authorized-app-store"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1044",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-16.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-17.html",
+          "http://www.infoworld.com/article/2854963/mobile-development/how-to-keep-your-app-store-dev-account-from-being-hijacked.html"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "d9db3d46-66ca-44b4-9daa-1ef97cb7465a",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "a21a6a79-f9a1-4c87-aed9-ba2d79536881",
+      "value": "Stolen Developer Credentials or Signing Keys - MOB-T1044"
+    },
+    {
+      "description": "An adversary may capture network traffic to and from the device to obtain credentials or other sensitive data, or redirect network traffic to flow through an adversary-controlled gateway to do the same.\n\nA malicious app could register itself as a VPN client on Android or iOS to gain access to network packets. However, on both platforms, the user must grant consent to the app to act as a VPN client, and on iOS the app requires a special entitlement that must be granted by Apple.\n\nAlternatively, if a malicious app is able to escalate operating system privileges, it may be able to use those privileges to gain access to network traffic.\n\nAn adversary could redirect network traffic to an adversary-controlled gateway by establishing a VPN connection or by manipulating the device's proxy settings. For example, Skycure (Citation: Skycure-Profiles) describes the ability to redirect network traffic by installing a malicious iOS Configuration Profile.\n\nIf applications encrypt their network traffic, sensitive data may not be accessible to an adversary, depending on the point of capture.\n\nDetection: On both Android and iOS the user must grant consent to an app to act as a VPN. Both platforms also provide visual context to the user in the top status bar when a VPN connection is in place.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1013",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1013",
+          "https://www.skycure.com/blog/malicious-profiles-the-sleeping-giant-of-ios-security/"
+        ]
+      },
+      "uuid": "3b0b604f-10db-41a0-b54c-493124d455b9",
+      "value": "Network Traffic Capture or Redirection - MOB-T1013"
+    },
+    {
+      "description": "An adversary could attempt to read files that contain sensitive data or credentials (e.g., private keys, passwords, access tokens). This technique requires either escalated privileges or for the targeted app to have stored the data in an insecure manner (e.g., with insecure file permissions or in an insecure location such as an external storage directory).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "AUT-0",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1012",
+          "https://pages.nist.gov/mobile-threat-catalogue/authentication-threats/AUT-0.html"
+        ]
+      },
+      "uuid": "702055ac-4e54-4ae9-9527-e23a38e0b160",
+      "value": "Access Sensitive Data or Credentials in Files - MOB-T1012"
+    },
+    {
+      "description": "If an adversary can escalate privileges, he or she may be able to use those privileges to place malicious code in the device's Trusted Execution Environment (TEE) or other similar isolated execution environment where the code can evade detection, may persist after device resets, and may not be removable by the device user. Running code within the TEE may provide an adversary with the ability to monitor or tamper with overall device behavior.\n\nThomas Roth describes the potential for placing a rootkit within the TrustZone secure world (Citation: Roth-Rootkits).\n\nDetection: Devices may perform cryptographic integrity checks of code running within the TEE at boot time.\n\nAs described in the iOS Security Guide (Citation: Apple-iOSSecurityGuide), iOS devices will fail to boot if the software running within the Secure Enclave does not pass signature verification.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "APP-27",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion",
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1002",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-27.html",
+          "https://hackinparis.com/data/slides/2013/Slidesthomasroth.pdf",
+          "https://www.apple.com/business/docs/iOS%20Security%20Guide.pdf"
+        ]
+      },
+      "uuid": "f1c3d071-0c24-483d-aca0-e8b8496ce468",
+      "value": "Modify Trusted Execution Environment - MOB-T1002"
+    },
+    {
+      "description": "An adversary could cause the mobile device to use less secure protocols, for example by jamming frequencies used by newer protocols such as LTE and only allowing older protocols such as GSM to communicate as described in draft NIST SP 800-187 (Citation: NIST-SP800187). Use of less secure protocols may make communication easier to eavesdrop upon or manipulate.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-3",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based",
+          "mitre-mobile-attack:mobile-attack:general-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1069",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-3.html",
+          "http://csrc.nist.gov/publications/drafts/800-187/sp800%20187%20draft.pdf"
+        ]
+      },
+      "uuid": "f58cd69a-e548-478b-9248-8a9af881dc34",
+      "value": "Downgrade to Insecure Protocols - MOB-T1069"
+    },
+    {
+      "description": "An adversary could seek to generate fraudulent advertising revenue from mobile devices, for example by triggering automatic clicks of advertising links without user involvement.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1075",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1075"
+        ]
+      },
+      "uuid": "f981d199-2720-467e-9dc9-eea04dbe05cf",
+      "value": "Generate Fraudulent Advertising Revenue - MOB-T1075"
+    },
+    {
+      "description": "An Android application can listen for the BOOT_COMPLETED broadcast, ensuring that the app's functionality will be activated every time the device starts up without having to wait for the device user to manually start the app.\n\n (Citation: Zhou) and Jiang (Citation: Zhou) analyzed 1260 Android malware samples belonging to 49 families of malware, and determined that 29 malware families and 83.3% of the samples listened for BOOT_COMPLETED.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1005",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1005",
+          "http://ieeexplore.ieee.org/document/6234407"
+        ]
+      },
+      "uuid": "bd4d32f5-eed4-4018-a649-40b229dd1d69",
+      "value": "App Auto-Start at Device Boot - MOB-T1005"
+    },
+    {
+      "description": "Adversaries may communicate over a commonly used port to bypass firewalls or network detection systems and to blend with normal network activity to avoid more detailed inspection. They may use commonly open ports such as\n* TCP:80 (HTTP)\n* TCP:443 (HTTPS)\n* TCP:25 (SMTP)\n* TCP/UDP:53 (DNS)\n\nThey may use the protocol associated with the port or a completely different protocol.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1039",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:command-and-control",
+          "mitre-mobile-attack:mobile-attack:exfiltration"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1039"
+        ]
+      },
+      "uuid": "3911658a-6506-4deb-9ab4-595a51ae71ad",
+      "value": "Commonly Used Port - MOB-T1039"
+    },
+    {
+      "description": "An adversary could use access to a compromised device's credentials to attempt to manipulate app store rankings or ratings by triggering application downloads or posting fake reviews of applications. This technique likely requires privileged access (a rooted or jailbroken device).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1055",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1055"
+        ]
+      },
+      "uuid": "76c12fc8-a4eb-45d6-a3b7-e371a7248f69",
+      "value": "Manipulate App Store Rankings or Ratings - MOB-T1055"
+    },
+    {
+      "description": "An adversary could call standard operating system APIs from a malicious application to gather calendar entry data, or with escalated privileges could directly access files containing calendar data.\n\nDetection: On both Android (6.0 and up) and iOS, the user can view which applications have permission to access calendar information through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-13",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1038",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-13.html"
+        ]
+      },
+      "uuid": "62adb627-f647-498e-b4cc-41499361bacb",
+      "value": "Access Calendar Entries - MOB-T1038"
+    },
+    {
+      "description": "An adversary who is able to obtain unauthorized access to or misuse authorized access to cloud services (e.g. Google's Android Device Manager or Apple iCloud's Find my iPhone) or to an EMM console could use that access to wipe enrolled devices (Citation: Honan-Hacking).\n\nDetection: Google provides the ability for users to view their general account activity. Apple iCloud also provides notifications to users of account activity.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "EMM-7",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cloud-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1072",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-5.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/emm-threats/EMM-7.html",
+          "https://www.wired.com/2012/08/apple-amazon-mat-honan-hacking/"
+        ]
+      },
+      "uuid": "537ea573-8a1c-468c-956b-d16d2ed9d067",
+      "value": "Remotely Wipe Data Without Authorization - MOB-T1072"
+    },
+    {
+      "description": "An adversary could exploit signaling system vulnerabilities to redirect calls or text messages to a phone number under the attacker's control. The adversary could then act as a man-in-the-middle to intercept or manipulate the communication. These issues are discussed in  (Citation: Engel-SS7),  (Citation: Engel-SS7)-2008,  (Citation: 3GPP-Security),  (Citation: Positive-SS7), as well as in a report from the Communications, Security, Reliability, and Interoperability Council (CSRIC)  (Citation: CSRIC5-WG10-FinalReport).\n\nDetection: Network carriers may be able to use firewalls, Intrusion Detection Systems (IDS), or Intrusion Prevention Systems (IPS) to detect and/or block SS7 exploitation as described by the CSRIC (Citation: CSRIC5-WG10-FinalReport). The CSRIC also suggests threat information sharing between telecommunications industry members.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-37",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1052",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-37.html",
+          "https://berlin.ccc.de/~tobias/31c3-ss7-locate-track-manipulate.pdf",
+          "http://www.3gpp.org/ftp/tsg%20sa/wg3%20security/%20specs/33900-120.pdf",
+          "https://www.ptsecurity.com/upload/ptcom/PT-SS7-AD-Data-Sheet-eng.pdf",
+          "https://www.fcc.gov/files/csric5-wg10-finalreport031517pdf"
+        ]
+      },
+      "uuid": "fb3fa94a-3aee-4ab0-b7e7-abdf0a51286d",
+      "value": "Exploit SS7 to Redirect Phone Calls/SMS - MOB-T1052"
+    },
+    {
+      "description": "If an adversary can escalate privileges, he or she may be able to use those privileges to place malicious code in the device kernel or other boot partition components, where the code may evade detection, may persist after device resets, and may not be removable by the device user. In some cases (e.g., the Samsung Knox warranty bit as described under Detection), the attack may be detected but could result in the device being placed in a state that no longer allows certain functionality.\n\nMany Android devices provide the ability to unlock the bootloader for development purposes, but doing so introduces the potential ability for others to maliciously update the kernel or other boot partition code.\n\nIf the bootloader is not unlocked, it may still be possible to exploit device vulnerabilities to update the code.\n\nDetection: The Android SafetyNet API's remote attestation capability could potentially be used to identify and respond to compromised devices. Samsung KNOX also provides a remote attestation capability on supported Samsung Android devices.\n\nSamsung KNOX devices include a non-reversible Knox warranty bit fuse that is triggered \"if a non-Knox kernel has been loaded on the device\" (Citation: Samsung-KnoxWarrantyBit). If triggered, enterprise Knox container services will no longer be available on the device.\n\nAs described in the iOS Security Guide (Citation: Apple-iOSSecurityGuide), iOS devices will fail to boot or fail to allow device activation if unauthorized modifications are detected.\n\nMany enterprise applications perform their own checks to detect and respond to compromised devices. These checks are not foolproof but can detect common signs of compromise.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-27",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion",
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1001",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-26.html",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-27.html",
+          "https://www2.samsungknox.com/en/faq/what-knox-warranty-bit-and-how-it-triggered",
+          "https://www.apple.com/business/docs/iOS%20Security%20Guide.pdf"
+        ]
+      },
+      "uuid": "46d818a5-67fa-4585-a7fc-ecf15376c8d5",
+      "value": "Modify OS Kernel or Boot Partition - MOB-T1001"
+    },
+    {
+      "description": "A malicious app could abuse Android's accessibility features to capture sensitive data or perform other malicious actions, as demonstrated in a proof of concept created by Skycure (Citation: Skycure-Accessibility).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1056",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1056",
+          "https://www.skycure.com/blog/accessibility-clickjacking/"
+        ]
+      },
+      "uuid": "2204c371-6100-4ae0-82f3-25c07c29772a",
+      "value": "Abuse Accessibility Features - MOB-T1056"
+    },
+    {
+      "description": "Third-party libraries incorporated into mobile apps could contain malicious behavior, privacy-invasive behavior, or exploitable vulnerabilities. An adversary could deliberately insert malicious behavior or could exploit inadvertent vulnerabilities.\n\nFor example, Ryan Welton of NowSecure identified exploitable remote code execution vulnerabilities in a third-party advertisement library (Citation: NowSecure-RemoteCode). Grace et al. identified security issues in mobile advertisement libraries (Citation: Grace-Advertisement).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-6",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:supply-chain"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1028",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-6.html",
+          "https://www.nowsecure.com/blog/2015/06/15/a-pattern-for-remote-code-execution-using-arbitrary-file-writes-and-multidex-applications/"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "0d95940f-9583-4e0f-824c-a42c1be47fad",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "11bd699b-f2c2-4e48-bf46-fb3f8acd9799",
+      "value": "Insecure Third-Party Libraries - MOB-T1028"
+    },
+    {
+      "description": "An app could download and execute dynamic code (not included in the original application package) after installation to evade static analysis techniques (and potentially dynamic analysis techniques) used for application vetting or application store review (Citation: Poeplau-ExecuteThis). \n\nOn Android, dynamic code could include native code, Dalvik code, or JavaScript code that uses the Android WebView's JavascriptInterface capability (Citation: Bromium-AndroidRCE).\n\nOn iOS, techniques for executing dynamic code downloaded after application installation include JSPatch (Citation: FireEye-JSPatch).  (Citation: Wang) et al. describe a related method of constructing malicious logic at app runtime on iOS (Citation: Wang).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-20",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1010",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-20.html",
+          "https://www.internetsociety.org/sites/default/files/10%205%200.pdf",
+          "https://labs.bromium.com/2014/07/31/remote-code-execution-on-android-devices/",
+          "https://www.fireeye.com/blog/threat-research/2016/01/hot%20or%20not%20the%20bene.html",
+          "https://www.usenix.org/conference/usenixsecurity13/technical-sessions/presentation/wang%20tielei"
+        ]
+      },
+      "uuid": "6c49d50f-494d-4150-b774-a655022d20a6",
+      "value": "Download New Code at Runtime - MOB-T1010"
+    },
+    {
+      "description": "An adversary could exploit signaling system vulnerabilities to track the location of mobile devices, for example as described in  (Citation: Engel-SS7),  (Citation: Engel-SS7)-2008,  (Citation: 3GPP-Security) and  (Citation: Positive-SS7), as well as in a report from the Communications, Security, Reliability, and Interoperability Council (CSRIC)  (Citation: CSRIC5-WG10-FinalReport).\n\nDetection: Network carriers may be able to use firewalls, Intrusion Detection Systems (IDS), or Intrusion Prevention Systems (IPS) to detect and/or block SS7 exploitation as described by the CSRIC (Citation: CSRIC-WG1-FinalReport). The CSRIC also suggests threat information sharing between telecommunications industry members.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-38",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1053",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-38.html",
+          "https://berlin.ccc.de/~tobias/31c3-ss7-locate-track-manipulate.pdf",
+          "http://www.3gpp.org/ftp/tsg%20sa/wg3%20security/%20specs/33900-120.pdf",
+          "https://www.ptsecurity.com/upload/ptcom/PT-SS7-AD-Data-Sheet-eng.pdf",
+          "https://www.fcc.gov/files/csric5-wg10-finalreport031517pdf"
+        ]
+      },
+      "uuid": "52651225-0b3a-482d-aa7e-10618fd063b5",
+      "value": "Exploit SS7 to Track Device Location - MOB-T1053"
+    },
+    {
+      "description": "A malicious app can register as a device keyboard and intercept keypresses containing sensitive values such as usernames and passwords. Zeltser (Citation: Zeltser-Keyboard) describes these risks.\n\nBoth iOS and Android require the user to explicitly authorize use of third party keyboard apps. Users should be advised to use extreme caution before granting this authorization when it is requested.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1020",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection",
+          "mitre-mobile-attack:mobile-attack:credential-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1020",
+          "https://zeltser.com/third-party-keyboards-security/"
+        ]
+      },
+      "uuid": "a8c31121-852b-46bd-9ba4-674ae5afe7ad",
+      "value": "Malicious Third Party Keyboard App - MOB-T1020"
+    },
+    {
+      "description": "A malicious app can exploit unpatched vulnerabilities in the operating system to obtain escalated privileges.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-26",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:privilege-escalation"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1007",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-26.html"
+        ]
+      },
+      "uuid": "351c0927-2fc1-4a2c-ad84-cbbee7eb8172",
+      "value": "Exploit OS Vulnerability - MOB-T1007"
+    },
+    {
+      "description": "An adversary with control of a target's Google account can use the Google Play Store's remote installation capability to install apps onto the Android devices associated with the Google account as described in  (Citation: Oberheide-RemoteInstall),  (Citation: Konoth). However, only applications that are available for download through the Google Play Store can be remotely installed using this technique.\n\nDetection: An EMM/MDM or mobile threat protection solution can identify the presence of unwanted or known insecure or malicious apps on devices.\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "ECO-4",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-authorized-app-store"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1046",
+          "https://pages.nist.gov/mobile-threat-catalogue/ecosystem-threats/ECO-4.html",
+          "https://jon.oberheide.org/blog/2010/06/25/remote-kill-and-install-on-google-android/",
+          "http://www.vvdveen.com/publications/BAndroid.pdf"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "d9db3d46-66ca-44b4-9daa-1ef97cb7465a",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "831e3269-da49-48ac-94dc-948008e8fd16",
+      "value": "Remotely Install Application - MOB-T1046"
+    },
+    {
+      "description": "ART (the Android Runtime) compiles optimized code on the device itself to improve performance. If an adversary can escalate privileges, he or she may be able to use those privileges to modify the cached code in order to hide malicious behavior. Since the code is compiled on the device, it may not receive the same level of integrity checks that are provided to code running in the system partition.\n\nSabanal describes the potential use of this technique in  (Citation: Sabanal-ART).\n\nPlatforms: Android",
+      "meta": {
+        "external_id": "MOB-T1006",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:persistence"
+        ],
+        "mitre_platforms": [
+          "Android"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1006",
+          "https://www.blackhat.com/docs/asia-15/materials/asia-15-Sabanal-Hiding-Behind-ART-wp.pdf"
+        ]
+      },
+      "uuid": "88932a8c-3a17-406f-9431-1da3ff19f6d6",
+      "value": "Modify cached executable code - MOB-T1006"
+    },
+    {
+      "description": "Adversaries may seek to identify all applications installed on the device. One use case for doing so is to identify the presence of endpoint security applications that may increase the adversary's risk of detection. Another use case is to identify the presence of applications that the adversary may wish to target.\n\nOn Android, applications can use methods in the PackageManager class (Citation: Android-PackageManager) to enumerate other apps installed on device, or an entity with shell access can use the pm command line tool.\n\nOn iOS, apps can use private API calls to obtain a list of other apps installed on the device as described by Kurtz (Citation: Kurtz-MaliciousiOSApps), however use of private API calls will likely prevent the application from being distributed through Apple's App Store.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1021",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:defense-evasion",
+          "mitre-mobile-attack:mobile-attack:discovery"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1021",
+          "https://developer.android.com/reference/android/content/pm/PackageManager.html",
+          "https://andreas-kurtz.de/2014/09/malicious-ios-apps/"
+        ]
+      },
+      "uuid": "198ce408-1470-45ee-b47f-7056050d4fc2",
+      "value": "Application Discovery - MOB-T1021"
+    },
+    {
+      "description": "Techniques have periodically been demonstrated that exploit vulnerabilities on Android (Citation: Wired-AndroidBypass), iOS (Citation: Kaspersky-iOSBypass), or other mobile devices to bypass the device lock screen. The vulnerabilities are generally patched by the device/operating system vendor once they become aware of their existence.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1064",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-physical-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1064",
+          "https://www.wired.com/2015/09/hack-brief-new-emergency-number-hack-easily-bypasses-android-lock-screens/",
+          "https://threatpost.com/ios-10-passcode-bypass-can-access-photos-contacts/122033/"
+        ]
+      },
+      "uuid": "dfe29258-ce59-421c-9dee-e85cb9fa90cd",
+      "value": "Lockscreen Bypass - MOB-T1064"
+    },
+    {
+      "description": "An adversary could convince the mobile network operator (e.g. through social networking or forged identification) to issue a new SIM card and associate it with an existing phone number and account (Citation: NYGov-Simswap). The adversary could then obtain SMS messages or hijack phone calls intended for someone else (Citation: Betanews-Simswap). One use case is intercepting authentication messages or phone calls to obtain illicit access to online banking or other online accounts (Citation: Guardian-Simswap).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "STA-22",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1054",
+          "https://pages.nist.gov/mobile-threat-catalogue/stack-threats/STA-22.html",
+          "http://www.dos.ny.gov/consumerprotection/scams/att-sim.html",
+          "http://betanews.com/2016/02/12/everything-you-need-to-know-about-sim-swap-scams/",
+          "https://www.theguardian.com/money/2016/apr/16/sim-swap-fraud-mobile-banking-fraudsters"
+        ]
+      },
+      "uuid": "a64a820a-cb21-471f-920c-506a2ff04fa5",
+      "value": "SIM Card Swap - MOB-T1054"
+    },
+    {
+      "description": "An adversary could use a malicious or exploited application to surreptitiously track the device's physical location through use of standard operating system APIs.\n\nDetection: On both Android (6.0 and up) and iOS, the user can view which applications have permission to access device location through the device settings screen, and the user can choose to revoke the permissions.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-24",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:collection"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1033",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-24.html"
+        ]
+      },
+      "uuid": "99e6295e-741b-4857-b6e5-64989eb039b4",
+      "value": "Location Tracking - MOB-T1033"
+    },
+    {
+      "description": "If the mobile device is connected (typically via USB) to a charging station or a PC, for example to charge the device's battery, then a compromised or malicious charging station or PC could attempt to exploit the mobile device via the connection.\n\nKrebs described this technique in  (Citation: Krebs-JuiceJacking). Lau et al. (Citation: Lau-Mactans) demonstrated the ability to inject malicious applications into an iOS device via USB. Hay (Citation: IBM-NexusUSB) demonstrated the ability to exploit a Nexus 6 or 6P device over USB and then gain the ability to perform actions including intercepting phone calls, intercepting network traffic, and obtaining the device physical location.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "PHY-1",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:exploit-via-physical-access"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1061",
+          "https://pages.nist.gov/mobile-threat-catalogue/physical-threats/PHY-1.html",
+          "http://krebsonsecurity.com/2011/08/beware-of-juice-jacking/",
+          "https://media.blackhat.com/us-13/US-13-Lau-Mactans-Injecting-Malware-into-iOS-Devices-via-Malicious-Chargers-WP.pdf",
+          "https://securityintelligence.com/android-vulnerabilities-attacking-nexus-6-and-6p-custom-boot-modes/"
+        ]
+      },
+      "uuid": "667e5707-3843-4da8-bd34-88b922526f0d",
+      "value": "Exploit via Charging Station or PC - MOB-T1061"
+    },
+    {
+      "description": "If network traffic between the mobile device and a remote server is not securely protected, then an attacker positioned on the network may be able to manipulate network communication without being detected. For example, FireEye researchers found in 2014 that 68% of the top 1,000 free applications in the Google Play Store had at least one Transport Layer Security (TLS) implementation vulnerability potentially opening the applications' network traffic to man-in-the-middle attacks (Citation: FireEye-SSL).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-1",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:general-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1066",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-1.html",
+          "https://www.fireeye.com/blog/threat-research/2014/08/ssl-vulnerabilities-who-listens-when-android-applications-talk.html"
+        ]
+      },
+      "uuid": "d731c21e-f27d-4756-b418-0e2aaabd6d63",
+      "value": "Manipulate Device Communication - MOB-T1066"
+    },
+    {
+      "description": "An adversary could set up a rogue cellular base station and then use it to eavesdrop on or manipulate cellular device communication. For example, Ritter and DePerry of iSEC Partners demonstrated this technique using a compromised cellular femtocell at Black Hat USA 2013 (Citation: Computerworld-Femtocell).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "CEL-7",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:cellular-network-based"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1070",
+          "https://pages.nist.gov/mobile-threat-catalogue/cellular-threats/CEL-7.html",
+          "http://www.computerworld.com/article/2484538/cybercrime-hacking/researchers-exploit-cellular-tech-flaws-to-intercept-phone-calls.html"
+        ]
+      },
+      "uuid": "a5de0540-73e7-4c67-96da-4143afedc7ed",
+      "value": "Rogue Cellular Base Station - MOB-T1070"
+    },
+    {
+      "description": "An adversary could download a legitimate app, disassemble it, add malicious code, and then reassemble the app, for example as described by  (Citation: Zhou) and Jiang in  (Citation: Zhou). The app would appear to be the original app but contain additional malicious functionality. The adversary could then publish this app to app stores or use another delivery technique.\n\nDetection: An EMM/MDM or mobile threat protection solution can identify the presence of unwanted, known insecure, or malicious apps on devices.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-14",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-authorized-app-store",
+          "mitre-mobile-attack:mobile-attack:app-delivery-via-other-means"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1047",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-14.html",
+          "http://ieeexplore.ieee.org/document/6234407"
+        ]
+      },
+      "uuid": "a93ccb8f-3996-42e2-b7c7-bb599d4e205f",
+      "value": "Repackaged Application - MOB-T1047"
+    },
+    {
+      "description": "An adversary may seek to lock the legitimate user out of the device, for example until a ransom is paid.\n\nOn Android versions prior to 7, apps can abuse Device Administrator access to reset the device lock passcode to lock the user out of the device.\n\nOn iOS devices, this technique does not work because mobile device management servers can only remove the screen lock passcode, they cannot set a new passcode. However, on jailbroken devices, malware has been demonstrated that can lock the user out of the device (Citation: KeyRaider).\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "APP-28",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:effects"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1049",
+          "https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-28.html",
+          "http://researchcenter.paloaltonetworks.com/2015/08/keyraider-ios-malware-steals-over-225000-apple-accounts-to-create-free-app-utopia/"
+        ]
+      },
+      "uuid": "9d7c32f4-ab39-49dc-8055-8106bc2294a1",
+      "value": "Lock User Out of Device - MOB-T1049"
+    },
+    {
+      "description": "As demonstrated by the XcodeGhost attack (Citation: PaloAlto-XcodeGhost1), app developers could be provided with modified versions of software development tools (e.g. compilers) that automatically inject malicious or exploitable code into applications.\n\nDetection: Enterprises could deploy integrity checking software to the computers that they use to develop code to detect presence of unauthorized, modified software development tools.\n\nPlatforms: Android, iOS",
+      "meta": {
+        "external_id": "MOB-T1065",
+        "kill_chain": [
+          "mitre-mobile-attack:mobile-attack:supply-chain"
+        ],
+        "mitre_platforms": [
+          "Android",
+          "iOS"
+        ],
+        "refs": [
+          "https://attack.mitre.org/mobile/index.php/Technique/MOB-T1065",
+          "http://researchcenter.paloaltonetworks.com/2015/09/novel-malware-xcodeghost-modifies-xcode-infects-apple-ios-apps-and-hits-app-store/"
+        ]
+      },
+      "related": [
+        {
+          "dest-uuid": "0d95940f-9583-4e0f-824c-a42c1be47fad",
+          "tags": [
+            "estimative-language:likelihood-probability=\"almost-certain\""
+          ],
+          "type": "revoked-by"
+        }
+      ],
+      "uuid": "b928b94a-4966-4e2a-9e61-36505b896ebc",
+      "value": "Malicious Software Development Tools - MOB-T1065"
+    }
+  ],
+  "version": 6
+}

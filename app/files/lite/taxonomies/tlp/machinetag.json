@@ -1,0 +1,67 @@
+{
+  "predicates": [
+    {
+      "colour": "#FF2B2B",
+      "description": "For the eyes and ears of individual recipients only, no further disclosure. Sources may use TLP:RED when information cannot be effectively acted upon without significant risk for the privacy, reputation, or operations of the organizations involved. Recipients may therefore not share TLP:RED information with anyone else. In the context of a meeting, for example, TLP:RED information is limited to those present at the meeting.",
+      "expanded": "(TLP:RED) For the eyes and ears of individual recipients only, no further disclosure.",
+      "value": "red",
+      "uuid": "845de186-eefa-57a6-be53-a0d36b7c6d2e"
+    },
+    {
+      "colour": "#FFC000",
+      "description": "Limited disclosure, recipients can only spread this on a need-to-know basis within their organization and its clients. Sources may use TLP:AMBER when information requires support to be effectively acted upon, yet carries risk to privacy, reputation, or operations if shared outside of the organizations involved. Recipients may share TLP:AMBER information with members of their own organization and its clients, but only on a need-to-know basis to protect their organization and its clients and prevent further harm. Note that TLP:AMBER+STRICT restricts sharing to the organization only.",
+      "expanded": "(TLP:AMBER) Limited disclosure, recipients can only spread this on a need-to-know basis within their organization and its clients.",
+      "value": "amber",
+      "uuid": "8906fac2-2d9c-55fd-af11-0f35e91a6347"
+    },
+    {
+      "colour": "#FFC000",
+      "description": "Limited disclosure, recipients can only spread this on a need-to-know basis within their organization. Sources may use TLP:AMBER+STRICT when information requires support to be effectively acted upon, yet carries risk to privacy, reputation, or operations if shared outside of the organizations involved. Recipients may share TLP:AMBER+STRICT information with members of their own organization.",
+      "expanded": "(TLP:AMBER+STRICT) Limited disclosure, recipients can only spread this on a need-to-know basis within their organization.",
+      "value": "amber+strict",
+      "uuid": "50d91806-8b6a-55e2-bb3b-0c8ed62e16b7"
+    },
+    {
+      "colour": "#33FF00",
+      "description": "Limited disclosure, recipients can spread this within their community. Sources may use TLP:GREEN when information is useful to increase awareness within their wider community. Recipients may share TLP:GREEN information with peers and partner organizations within their community, but not via publicly accessible channels. TLP:GREEN information may not be shared outside of the community. Note: when “community” is not defined, assume the cybersecurity/defense community.",
+      "expanded": "(TLP:GREEN) Limited disclosure, recipients can spread this within their community.",
+      "value": "green",
+      "uuid": "3b175931-962f-5536-9d2c-5768d94b906c"
+    },
+    {
+      "colour": "#ffffff",
+      "description": "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction. The version 2.0 of TLP doesn't mention anymore this tag which is most probably compatible with new TLP:CLEAR tag.",
+      "expanded": "(TLP:WHITE) Information can be shared publicly in accordance with the law.",
+      "value": "white",
+      "uuid": "104192d4-7326-58f3-bab5-95f4043d3cde"
+    },
+    {
+      "colour": "#ffffff",
+      "description": "Recipients can spread this to the world, there is no limit on disclosure. Sources may use TLP:CLEAR when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:CLEAR information may be shared without restriction.",
+      "expanded": "(TLP:CLEAR) Recipients can spread this to the world, there is no limit on disclosure.",
+      "value": "clear",
+      "uuid": "b0c9f8eb-01ed-5933-b7f2-99940ae5ff89"
+    },
+    {
+      "colour": "#d208f4",
+      "expanded": "(TLP:EX:CHR) Information extended with a specific tag called Chatham House Rule (CHR). When this specific CHR tag is mentioned, the attribution (the source of information) must not be disclosed. This additional rule is at the discretion of the initial sender who can decide to apply or not the CHR tag.",
+      "value": "ex:chr",
+      "uuid": "aa31d804-b83d-5e27-9b81-c9e443e83390"
+    },
+    {
+      "colour": "#7e7eae",
+      "expanded": "(TLP:UNCLEAR) Community, Organization, Clients, and Recipients are all so confused what the appropriate disclosure level is, and if this or that indicator can or cannot be shared. Assumptions are rampant and the confusion is so high that a chi-square test might in fact be required to ensure the randomness of the mess before labelling this case TLP:UNCLEAR.",
+      "value": "unclear",
+      "uuid": "78a18757-934e-51ae-8575-02111239adbb"
+    }
+  ],
+  "refs": [
+    "https://www.first.org/tlp"
+  ],
+  "version": 10,
+  "description": "The Traffic Light Protocol (TLP) (v2.0) was created to facilitate greater sharing of potentially sensitive information and more effective collaboration. Information sharing happens from an information source, towards one or more recipients. TLP is a set of four standard labels (a fifth label is included in amber to limit the diffusion) used to indicate the sharing boundaries to be applied by the recipients. Only labels listed in this standard are considered valid by FIRST. This taxonomy includes additional labels for backward compatibility which are no more validated by FIRST SIG.",
+  "expanded": "Traffic Light Protocol",
+  "exclusive": true,
+  "namespace": "tlp",
+  "uuid": "34c3905d-5e01-5b53-aebc-6aca2b78eb2b"
+}

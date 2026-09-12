@@ -141,12 +141,14 @@ class Galaxy extends AppModel
 
     /**
      * @param bool $force
+     * @param string|null $baseDir Base directory to load the galaxies from, defaults to APP/files
      * @return array Galaxy type => Galaxy ID
      * @throws Exception
      */
-    private function __load_galaxies($force = false)
+    private function __load_galaxies($force = false, $baseDir = null)
     {
-        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
+        $baseDir = $baseDir ?: APP . 'files';
+        $files = new GlobIterator($baseDir . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
         $galaxies = array();
         foreach ($files as $file) {
             $galaxies[] = FileAccessTool::readJsonFromFile($file->getPathname());
@@ -330,10 +332,16 @@ class Galaxy extends AppModel
         return [$elements, $relations];
     }
 
-    public function update($force = false)
+    /**
+     * @param bool $force
+     * @param string|null $baseDir Base directory to load the galaxies and clusters from, defaults to APP/files
+     * @return bool
+     * @throws Exception
+     */
+    public function update($force = false, $baseDir = null)
     {
-        $galaxies = $this->__load_galaxies($force);
-        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
+        $galaxies = $this->__load_galaxies($force, $baseDir);
+        $files = new GlobIterator(($baseDir ?: APP . 'files') . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
         $force = (bool)$force;
         $allRelations = [];
         foreach ($files as $file) {

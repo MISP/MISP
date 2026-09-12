@@ -35,15 +35,21 @@ class Taxonomy extends AppModel
 
     private $__taxonomyConflicts = [];
 
-    public function update($force = false)
+    /**
+     * @param bool $force
+     * @param string|null $baseDir Base directory to load the taxonomies from, defaults to APP/files
+     * @return array
+     */
+    public function update($force = false, $baseDir = null)
     {
+        $baseDir = $baseDir ?: APP . 'files';
         $existing = $this->find('all', array(
             'recursive' => -1,
             'fields' => array('version', 'enabled', 'namespace')
         ));
         $existing = array_column(array_column($existing, 'Taxonomy'), null, 'namespace');
 
-        $directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob($baseDir . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
             $dir = basename($dir);
@@ -51,7 +57,7 @@ class Taxonomy extends AppModel
                 continue;
             }
 
-            $machineTagPath = APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json';
+            $machineTagPath = $baseDir . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json';
 
             try {
                 $vocab = FileAccessTool::readJsonFromFile($machineTagPath);

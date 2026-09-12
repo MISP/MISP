@@ -51,11 +51,19 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
-    public function update($user = false, $type = false, $force = false)
+    /**
+     * @param array|false $user
+     * @param string|false $type
+     * @param bool $force
+     * @param string|null $baseDir Base directory to load the object templates from, defaults to APP/files
+     * @return array
+     */
+    public function update($user = false, $type = false, $force = false, $baseDir = null)
     {
-        $directories = $this->getTemplateDirectoryPaths();
+        $objectsDir = $baseDir === null ? self::OBJECTS_DIR : $baseDir . '/misp-objects/objects';
+        $directories = $this->getTemplateDirectoryPaths(true, $objectsDir);
         foreach ($directories as $k => $dir) {
-            $dir = str_replace(self::OBJECTS_DIR, '', $dir);
+            $dir = str_replace($objectsDir, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
@@ -63,10 +71,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $template = FileAccessTool::readJsonFromFile(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json');
+            $template = FileAccessTool::readJsonFromFile($objectsDir . DS . $dir . DS . 'definition.json');
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
@@ -419,12 +427,13 @@ class ObjectTemplate extends AppModel
 
     /**
      * @param bool $fullPath
+     * @param string|null $objectsDir Directory holding the object templates, defaults to self::OBJECTS_DIR
      * @return array
      */
-    private function getTemplateDirectoryPaths($fullPath=true)
+    private function getTemplateDirectoryPaths($fullPath=true, $objectsDir = null)
     {
         App::uses('Folder', 'Utility');
-        $dir = new Folder(self::OBJECTS_DIR, false);
+        $dir = new Folder($objectsDir === null ? self::OBJECTS_DIR : $objectsDir, false);
         return $dir->read(true, false, $fullPath)[0];
     }
 
