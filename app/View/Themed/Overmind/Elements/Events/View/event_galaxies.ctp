@@ -4,6 +4,7 @@ $uid      = 'evt-galaxies-' . $eventId;
 $fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId
     . ($extensionSuffix ?? ''));
 $editUrl  = h($baseurl . '/events/editEventGalaxies/' . $eventId);
+$relUrl   = h($baseurl . '/events/editEventGalaxyRelationships/' . $eventId);
 $mayModify = $this->Acl->canModifyTag($data);
 ?>
 
@@ -40,7 +41,16 @@ $mayModify = $this->Acl->canModifyTag($data);
 
             <?php if ($mayModify || $isSiteAdmin): ?>
             <button type="button"
-                    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    class="btn btn-sm btn-outline-galaxy d-flex align-items-center gap-1"
+                    data-tour="event-galaxies-relationships"
+                    onclick="openModal('<?= $relUrl ?>', 'xl')"
+                    title="<?= __('Set how this event relates to its clusters') ?>">
+                <i class="fas fa-diagram-project"></i>
+                <?= __('Relationships') ?>
+            </button>
+
+            <button type="button"
+                    class="btn btn-sm btn-galaxy d-flex align-items-center gap-1"
                     data-tour="event-galaxies-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')">
                 <i class="fas fa-pen-to-square"></i>

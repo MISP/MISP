@@ -178,9 +178,12 @@ $fields = array_merge($fields, [
         'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card'],
+        // Cell actions are handled by the tag_list element
         'add_tag' => $_rowMayTag,
         'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
         'add_tag_id_path' => $path('id'),
+        'add_relationship_url' => $baseurl
+            . '/attributes/editAttributeTagRelationships/%id%',
     ],
     [
         'name' => __('Galaxy'),
@@ -188,9 +191,12 @@ $fields = array_merge($fields, [
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card'],
+        // Cell actions are handled by the galaxy element
         'add_galaxy' => $_rowMayTag,
         'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
         'add_galaxy_id_path' => $path('id'),
+        'add_galaxy_relationship_url' => $baseurl
+            . '/attributes/editAttributeGalaxyRelationships/%id%',
     ],
     [
         'name' => __('IDS'),

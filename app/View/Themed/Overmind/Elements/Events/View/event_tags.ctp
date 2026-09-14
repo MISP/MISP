@@ -4,6 +4,7 @@ $uid       = 'evt-tags-' . $eventId;
 $fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId
     . ($extensionSuffix ?? ''));
 $editUrl   = h($baseurl . '/events/editEventTags/' . $eventId);
+$relUrl    = h($baseurl . '/events/editEventTagRelationships/' . $eventId);
 
 $mayModify = $this->Acl->canModifyTag($data);
 ?>
@@ -40,9 +41,19 @@ $mayModify = $this->Acl->canModifyTag($data);
             </div>
 
             <?php if ($mayModify): ?>
+            <!-- Relationship button -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-tag flex-shrink-0"
+                    data-tour="event-tags-relationships"
+                    onclick="openModal('<?= $relUrl ?>', 'xl')"
+                    title="<?= __('Set how this event relates to its tags') ?>">
+                <i class="fas fa-diagram-project me-1"></i>
+                <?= __('Relationships') ?>
+            </button>
+
             <!-- Edit button -->
             <button type="button"
-                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    class="btn btn-sm btn-tag flex-shrink-0"
                     data-tour="event-tags-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')"
                     title="<?= __('Edit Tags') ?>">

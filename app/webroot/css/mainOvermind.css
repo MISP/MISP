@@ -87,21 +87,27 @@ body[data-controller="users"][data-action="change_pw"] {
 
 .btn.show,
 .btn-primary,
+.btn-tag,
+.btn-galaxy,
+.btn.show:hover,
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active,
-.btn-outline-primary:active ,
-.btn-outline-primary:hover {
+.btn-outline-primary:active,
+.btn-outline-primary:hover,
+.btn-tag:hover,
+.btn-tag:focus,
+.btn-tag:active,
+.btn-outline-tag:active,
+.btn-outline-tag:hover,
+.btn-galaxy:hover,
+.btn-galaxy:focus,
+.btn-galaxy:active,
+.btn-outline-galaxy:active,
+.btn-outline-galaxy:hover{
     color: #fff !important;
 }
 
-.btn-galaxy-light:hover,
-.btn-galaxy-light:focus,
-.btn-galaxy-light:active,
-.btn-outline-galaxy-light:active ,
-.btn-outline-galaxy-light:hover {
-    background-color: #d2e4fc !important;
-}
 
 .btn-light{
     color:var(--primary);

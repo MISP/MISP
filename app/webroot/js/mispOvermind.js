@@ -168,6 +168,47 @@ function openModal(url, size = 'xl') {
 }
 
 /**
+ * Reload whichever event-view index tab is currently shown.
+ *
+ * Where the tag, galaxy and relationship modals are opened from an attribute
+ * row there is no card to refresh: the change shows in the attribute or object
+ * index behind the modal. Each tab exposes { loadFn, buildFn } on
+ * window.mispView once rendered (view_attributes.ctp / Objects/index.ctp), and
+ * neither exists outside the event view - a global index gets nothing to do.
+ *
+ * @return {boolean} whether a tab was reloaded
+ */
+function reloadEventViewIndexTab() {
+    const view = window.mispView || {};
+    const tabs = [
+        { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: view.objects },
+        { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: view.attrs }
+    ];
+    const reload = function (api) {
+        if (api && typeof api.loadFn === 'function'
+                && typeof api.buildFn === 'function') {
+            api.loadFn(api.buildFn());
+            return true;
+        }
+        return false;
+    };
+    /* Prefer the tab whose container is currently visible. */
+    for (let i = 0; i < tabs.length; i++) {
+        const cont = document.querySelector(tabs[i].sel);
+        if (cont && cont.offsetParent !== null && reload(tabs[i].api)) {
+            return true;
+        }
+    }
+    /* Fallback: any exposed tab API. */
+    for (let j = 0; j < tabs.length; j++) {
+        if (reload(tabs[j].api)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Announce that page entity attributes may have changed so derived cards can update.
  *
  * Listeners use document.addEventListener('misp:attributes-changed').
@@ -1660,7 +1701,10 @@ function escapeHtml(unsafe) {
 
 function getCsrfToken() {
     const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : '';
+    if (match) {
+        return decodeURIComponent(match[1]);
+    }
+    return window.csrfToken || '';
 }
 
 /*******************************

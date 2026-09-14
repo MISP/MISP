@@ -72,9 +72,16 @@ class EventsController extends AppController
 
         $this->Security->unlockedActions[] = 'viewEventAttributes';
         // Posted by hand-built AJAX (the UiBeta publish toggle, the collections
-        // panel), which sends the CSRF token as a header. None of the three take
-        // body fields a form hash would protect.
-        $this->_csrfTokenHeaderOnly(['publish', 'unpublish', 'restSearch']);
+        // panel, the Overmind tag/galaxy/relationship modals), which sends the
+        // CSRF token as a header. None of them take body fields a form hash
+        // would protect - they post a JSON document, which is exactly why
+        // _validatePost() can never pass: Security starts up before the
+        // component that decodes it, so it sees no _Token at all.
+        $this->_csrfTokenHeaderOnly([
+            'publish', 'unpublish', 'restSearch',
+            'editEventTags', 'editEventGalaxies',
+            'editEventTagRelationships', 'editEventGalaxyRelationships',
+        ]);
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
@@ -2768,6 +2775,54 @@ class EventsController extends AppController
     }
 
     /**
+     * The tags of an event that the galaxies card does not draw: every
+     * non-galaxy tag, plus the galaxy tags whose cluster this instance cannot
+     * resolve - an orphan tag would otherwise vanish from the event view
+     * altogether. Shared by the tags card and its relationship modal, so both
+     * offer exactly the same list.
+     *
+     * @param array $eventTags EventTag rows, each containing its Tag
+     * @param array $user
+     * @return array The subset, reindexed
+     */
+    private function __cardEventTags(array $eventTags, array $user)
+    {
+        $galaxyTagNames = [];
+        foreach ($eventTags as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$et['Tag']['id']] = $et['Tag']['name'];
+            }
+        }
+
+        $resolvedTagNames = [];
+        if (!empty($galaxyTagNames)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, false, false
+            );
+            foreach ($clusters as $cluster) {
+                $tagName = $cluster['GalaxyCluster']['tag_name'] ?? null;
+                if ($tagName !== null) {
+                    $resolvedTagNames[strtolower($tagName)] = true;
+                }
+            }
+        }
+
+        return array_values(array_filter(
+            $eventTags,
+            function ($et) use ($resolvedTagNames) {
+                if (empty($et['Tag']['is_galaxy'])) {
+                    return true;
+                }
+                /* Orphan galaxy tag: no cluster resolved for it. */
+                return !isset(
+                    $resolvedTagNames[strtolower($et['Tag']['name'] ?? '')]
+                );
+            }
+        ));
+    }
+
+    /**
      * Returns an Overmind-styled HTML fragment listing the plain tags of
      * a given event - every tag that the galaxy card does not render,
      * which includes galaxy tags whose cluster is unknown to this
@@ -2804,43 +2859,10 @@ class EventsController extends AppController
             );
         }
 
-        $galaxyTagNames = [];
-        foreach ($event['EventTag'] ?? [] as $et) {
-            if (!empty($et['Tag']['is_galaxy'])) {
-                $galaxyTagNames[$et['Tag']['id']] = $et['Tag']['name'];
-            }
-        }
-
-        $resolvedTagNames = [];
-        if (!empty($galaxyTagNames)) {
-            $this->loadModel('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->getClustersByTags(
-                $galaxyTagNames, $user, false, false
-            );
-            foreach ($clusters as $cluster) {
-                $tagName = $cluster['GalaxyCluster']['tag_name'] ?? null;
-                if ($tagName !== null) {
-                    $resolvedTagNames[strtolower($tagName)] = true;
-                }
-            }
-        }
-
-        $tags = array_filter(
-            $event['EventTag'] ?? [],
-            function ($et) use ($resolvedTagNames) {
-                if (empty($et['Tag']['is_galaxy'])) {
-                    return true;
-                }
-                /* Orphan galaxy tag: no cluster resolved for it. */
-                return !isset(
-                    $resolvedTagNames[
-                        strtolower($et['Tag']['name'] ?? '')
-                    ]
-                );
-            }
+        $this->set(
+            'eventTags',
+            $this->__cardEventTags($event['EventTag'] ?? [], $user)
         );
-
-        $this->set('eventTags', array_values($tags));
         $this->set('eventId', $event['Event']['id']);
 
         $mayModify = $this->__canModifyTag(
@@ -3021,6 +3043,208 @@ class EventsController extends AppController
     }
 
     /**
+     * Overmind modal that puts one relationship type on a selection of the
+     * event's tags.
+     *
+     * The stock theme edits a relationship one tag at a time, from a pencil on
+     * every chip (/tags/modifyTagRelationship/event/<eventTagId>, a generic
+     * select whose "custom" entry carries a second free-text field). This is
+     * the same write the other way round - the relationship is picked once,
+     * then the tags it lands on - which is what a card listing every tag at
+     * once wants.
+     *
+     * GET  -> renders the Bootstrap 5 modal: the object-relationship
+     *         vocabulary as a free-text picker, plus the event's attached tags
+     *         with the relationship each one currently carries.
+     * POST -> accepts { relationship: string, tag_connector_ids: int[] } as
+     *         JSON and writes EventTag.relationship_type on those rows. An
+     *         empty relationship clears it, which is what the stock modal's
+     *         "Unspecified" option does.
+     *
+     * Only this event's own EventTag rows are offered: an extended view merges
+     * the tags of the events it extends, and those rows hang off another event
+     * whose tagging permission is its own.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function editEventTagRelationships($id = null)
+    {
+        $user  = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => [
+                    'Event.id', 'Event.orgc_id',
+                    'Event.org_id', 'Event.user_id',
+                ],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false,
+                    ],
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = (int)$event['Event']['id'];
+
+        /* Tagging is granted per locality: a host-org user who cannot touch
+           the event at all may still own its local tags. */
+        $mayModify = [
+            0 => $this->__canModifyTag($event, false),
+            1 => $this->__canModifyTag($event, true),
+        ];
+
+        /* The rows the card shows are the rows this modal may write. */
+        $rows = [];
+        foreach ($this->__cardEventTags($event['EventTag'] ?? [], $user) as $et) {
+            $rows[(int)$et['id']] = $et;
+        }
+
+        /* ── POST: one relationship onto the selected rows ── */
+        if ($this->request->is('post')) {
+            return $this->_applyTagRelationships(
+                $this->Event->EventTag,
+                $rows,
+                function (array $row) use ($mayModify) {
+                    return !empty($mayModify[empty($row['local']) ? 0 : 1]);
+                }
+            );
+        }
+
+        /* ── GET: the tags to apply a relationship to ── */
+        $tags = [];
+        foreach ($rows as $eventTagId => $et) {
+            $tags[] = [
+                'connector_id' => $eventTagId,
+                'id'           => (int)$et['Tag']['id'],
+                'name'         => $et['Tag']['name'],
+                'colour'       => !empty($et['Tag']['colour'])
+                    ? $et['Tag']['colour'] : '#0088cc',
+                'local'        => !empty($et['local']),
+                'relationship' => (string)($et['relationship_type'] ?? ''),
+                'editable'     => !empty($mayModify[empty($et['local']) ? 0 : 1]),
+            ];
+        }
+        usort($tags, function ($a, $b) {
+            return strnatcasecmp($a['name'], $b['name']);
+        });
+
+        $this->set('eventTags', $tags);
+        $this->set(
+            'relationshipOptions',
+            $this->_tagRelationshipVocabulary(array_column($tags, 'relationship'))
+        );
+        $this->set('eventId',   $eventId);
+        $this->set('mayModify', $mayModify[0] || $mayModify[1]);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind modal that puts one relationship type on a selection of the
+     * event's galaxy clusters - the galaxies-card counterpart of
+     * editEventTagRelationships(), and the same write: a cluster rides on an
+     * EventTag row like any tag, so the relationship is that row's
+     * relationship_type.
+     *
+     * Only the clusters this instance can resolve are offered, which is
+     * exactly what the galaxies card draws; an orphan galaxy tag is listed by
+     * the tags modal instead. As there, only this event's own rows are
+     * offered - an extended view merges the tags of the events it extends.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function editEventGalaxyRelationships($id = null)
+    {
+        $user  = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user, $id,
+            [
+                'fields'  => [
+                    'Event.id', 'Event.orgc_id',
+                    'Event.org_id', 'Event.user_id',
+                ],
+                'contain' => [
+                    'EventTag' => [
+                        'Tag'   => ['order' => false],
+                        'order' => false,
+                    ],
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = (int)$event['Event']['id'];
+
+        /* Tagging is granted per locality: a host-org user who cannot touch
+           the event at all may still own its local clusters. */
+        $mayModify = [
+            0 => $this->__canModifyTag($event, false),
+            1 => $this->__canModifyTag($event, true),
+        ];
+
+        $clustersByTagId = $this->_clustersByTagId(
+            $event['EventTag'] ?? [], $user
+        );
+        $rows = [];
+        $clusterByRow = [];
+        foreach ($event['EventTag'] ?? [] as $et) {
+            $tagId = $et['Tag']['id'] ?? null;
+            if (empty($et['Tag']['is_galaxy'])
+                || !isset($clustersByTagId[$tagId])) {
+                continue;
+            }
+            $connectorId = (int)$et['id'];
+            $rows[$connectorId] = $et;
+            $clusterByRow[$connectorId] = $clustersByTagId[$tagId];
+        }
+
+        /* ── POST: one relationship onto the selected rows ── */
+        if ($this->request->is('post')) {
+            return $this->_applyTagRelationships(
+                $this->Event->EventTag,
+                $rows,
+                function (array $row) use ($mayModify) {
+                    return !empty($mayModify[empty($row['local']) ? 0 : 1]);
+                },
+                'galaxy'
+            );
+        }
+
+        /* ── GET: the clusters to apply a relationship to ── */
+        $clusters = [];
+        foreach ($rows as $connectorId => $et) {
+            $cluster = $clusterByRow[$connectorId];
+            $clusters[] = [
+                'connector_id' => $connectorId,
+                'id'           => (int)$cluster['id'],
+                'name'         => $cluster['value'],
+                'galaxy'       => $cluster['Galaxy']['name'] ?? '',
+                'local'        => !empty($et['local']),
+                'relationship' => (string)($et['relationship_type'] ?? ''),
+                'editable'     => !empty($mayModify[empty($et['local']) ? 0 : 1]),
+            ];
+        }
+        /* Grouped the way the card groups them, galaxy first. */
+        usort($clusters, function ($a, $b) {
+            return strnatcasecmp($a['galaxy'], $b['galaxy'])
+                ?: strnatcasecmp($a['name'], $b['name']);
+        });
+
+        $this->set('eventClusters', $clusters);
+        $this->set(
+            'relationshipOptions',
+            $this->_tagRelationshipVocabulary(array_column($clusters, 'relationship'))
+        );
+        $this->set('eventId',   $eventId);
+        $this->set('mayModify', $mayModify[0] || $mayModify[1]);
+        $this->layout = false;
+    }
+
+    /**
      * Returns an Overmind-styled HTML fragment listing the
      * galaxy clusters attached to a given event, grouped by
      * galaxy. Rendered with layout=false for AJAX injection.
@@ -3056,58 +3280,36 @@ class EventsController extends AppController
             );
         }
 
-        $galaxyTagNames = [];
-        foreach ($event['EventTag'] as $et) {
-            if (!empty($et['Tag']['is_galaxy'])) {
-                $galaxyTagNames[$et['Tag']['id']] =
-                    $et['Tag']['name'];
-            }
-        }
+        $clustersByTagId = $this->_clustersByTagId(
+            $event['EventTag'], $user
+        );
 
         $galaxies = [];
-        if (!empty($galaxyTagNames)) {
-            $this->loadModel('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->getClustersByTags(
-                $galaxyTagNames, $user, true, false
-            );
-            if (!empty($clusters)) {
-                $clustersByTagId = array_column(
-                    array_column($clusters, 'GalaxyCluster'),
-                    null, 'tag_id'
-                );
-                foreach ($event['EventTag'] as $et) {
-                    if (empty($et['Tag']['is_galaxy'])) {
-                        continue;
-                    }
-                    $tagId = $et['Tag']['id'];
-                    if (!isset($clustersByTagId[$tagId])) {
-                        continue;
-                    }
-                    $cluster = $clustersByTagId[$tagId];
-                    $galaxyId = $cluster['Galaxy']['id'];
-                    $cluster['event_tag_id'] = $et['id'];
-                    $cluster['event_id'] = $et['event_id'] ?? null;
-                    $cluster['local'] =
-                        $et['local'] ?? false;
-                    $cluster['relationship_type'] =
-                        !empty($et['relationship_type'])
-                        ? $et['relationship_type']
-                        : false;
-                    if (isset($galaxies[$galaxyId])) {
-                        unset($cluster['Galaxy']);
-                        $galaxies[$galaxyId]
-                            ['GalaxyCluster'][] = $cluster;
-                    } else {
-                        $galaxies[$galaxyId] =
-                            $cluster['Galaxy'];
-                        unset($cluster['Galaxy']);
-                        $galaxies[$galaxyId]
-                            ['GalaxyCluster'] = [$cluster];
-                    }
-                }
-                $galaxies = array_values($galaxies);
+        foreach ($event['EventTag'] as $et) {
+            $tagId = $et['Tag']['id'];
+            if (empty($et['Tag']['is_galaxy'])
+                || !isset($clustersByTagId[$tagId])) {
+                continue;
+            }
+            $cluster = $clustersByTagId[$tagId];
+            $galaxyId = $cluster['Galaxy']['id'];
+            $cluster['event_tag_id'] = $et['id'];
+            $cluster['event_id'] = $et['event_id'] ?? null;
+            $cluster['local'] = $et['local'] ?? false;
+            $cluster['relationship_type'] =
+                !empty($et['relationship_type'])
+                ? $et['relationship_type']
+                : false;
+            if (isset($galaxies[$galaxyId])) {
+                unset($cluster['Galaxy']);
+                $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
+            } else {
+                $galaxies[$galaxyId] = $cluster['Galaxy'];
+                unset($cluster['Galaxy']);
+                $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
             }
         }
+        $galaxies = array_values($galaxies);
 
         $this->set('galaxies',  $galaxies);
         $this->set('eventId',   $event['Event']['id']);
