@@ -340,6 +340,7 @@ class EventShell extends AppShell
             $this->Job->saveStatus($jobId, false, $message);
             $this->error($message);
         }
+        $message .= Event::aiTagsNote($result);
         $this->Job->saveStatus($jobId, true, $message);
         $this->out($message);
     }

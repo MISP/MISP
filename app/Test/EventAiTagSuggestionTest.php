@@ -49,6 +49,7 @@ if (!function_exists('__n')) {
     }
 }
 
+require_once __DIR__ . '/../Model/Module.php';
 require_once __DIR__ . '/../Model/Tag.php';
 require_once __DIR__ . '/../Model/Event.php';
 
@@ -83,6 +84,50 @@ class EventAiTagSuggestionTest extends TestCase
             $out[$row['name']] = $row;
         }
         return $out;
+    }
+
+    // --- results.Tag of a module answer (#11099) ---------------------------
+
+    public function testSplitSeparatesTheProvenanceNamesInTheirCanonicalSpelling()
+    {
+        $split = Event::splitAiTagNames([
+            ['name' => 'tlp:amber'],
+            ['name' => 'AI-Computer-Assisted:Review-Level="Unreviewed"'],
+            'misp-galaxy:threat-actor="APT1"',
+            ['name' => ' ai-computer-assisted:assistance-level="ai-generated" '],
+            ['name' => ''],
+            ['colour' => '#000000'],
+            'TLP:AMBER',
+            42,
+        ]);
+        $this->assertSame([
+            'ai-computer-assisted:review-level="unreviewed"',
+            'ai-computer-assisted:assistance-level="ai-generated"',
+        ], $split['provenance']);
+        $this->assertSame(['tlp:amber', 'misp-galaxy:threat-actor="APT1"'], $split['other']);
+    }
+
+    public function testSplitOfNothingIsEmpty()
+    {
+        $this->assertSame(['provenance' => [], 'other' => []], Event::splitAiTagNames([]));
+    }
+
+    public function testThePredicatePrefixIsTheValuelessMachineTag()
+    {
+        $this->assertSame('ai-computer-assisted:review-level=', Event::aiTagPredicatePrefix('ai-computer-assisted:review-level="unreviewed"'));
+        $this->assertSame('ai-computer-assisted:review-level=', Event::aiTagPredicatePrefix('AI-Computer-Assisted:Review-Level="human-reviewed"'));
+        $this->assertSame('misp-galaxy:threat-actor=', Event::aiTagPredicatePrefix('misp-galaxy:threat-actor="APT1"'));
+        $this->assertNull(Event::aiTagPredicatePrefix('tlp:amber'));
+        $this->assertNull(Event::aiTagPredicatePrefix('plain'));
+        $this->assertNull(Event::aiTagPredicatePrefix('a=b:c'));
+    }
+
+    public function testTheTagsNoteNamesWhatWasAttachedAndReplaced()
+    {
+        $this->assertSame('', Event::aiTagsNote(['tags' => ['attached' => [], 'replaced' => [], 'skipped' => ['x'], 'failed' => []]]));
+        $this->assertSame('', Event::aiTagsNote([]));
+        $this->assertSame(' Event tagged a, b.', Event::aiTagsNote(['tags' => ['attached' => ['a', 'b'], 'replaced' => []]]));
+        $this->assertSame(' Event tagged a. Replaced c.', Event::aiTagsNote(['tags' => ['attached' => ['a'], 'replaced' => ['c']]]));
     }
 
     // --- shape ------------------------------------------------------------

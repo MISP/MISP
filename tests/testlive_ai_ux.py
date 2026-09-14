@@ -55,6 +55,11 @@ FAKE_URL = f"http://127.0.0.1:{FAKE_PORT}"
 
 AI_HEADING = "# AI summary"
 AI_DELINEATOR = "=================="
+# The provenance the module puts on everything it produces (#11099).
+AI_TAGS = (
+    'ai-computer-assisted:assistance-level="ai-generated"',
+    'ai-computer-assisted:review-level="unreviewed"',
+)
 
 
 def check_response(response):
@@ -112,6 +117,8 @@ class TestAiUx(unittest.TestCase):
 
         cls.__start_fake()
         cls.__configure_instance()
+        # Provenance tag rows the run creates are removed again at the end.
+        cls.provenance_before = set(cls.__provenance_rows())
 
         # Fixtures: another org owning the event, three roles, three users.
         org = MISPOrganisation()
@@ -148,6 +155,9 @@ class TestAiUx(unittest.TestCase):
         try:
             if getattr(cls, "event_id", None):
                 cls.admin.delete_event(cls.event_id)
+            for name, tag_id in cls.__provenance_rows().items():
+                if name not in getattr(cls, "provenance_before", set()):
+                    rest(key, "POST", f"tags/delete/{tag_id}")
             for tag_id in sorted(cls.created_tag_ids):
                 rest(key, "POST", f"tags/delete/{tag_id}")
             # deleting a user leaves its auth keys behind
@@ -190,6 +200,22 @@ class TestAiUx(unittest.TestCase):
             except subprocess.TimeoutExpired:
                 cls.fake.kill()
             cls.fake = None
+
+    @classmethod
+    def __provenance_rows(cls):
+        """{name: id} of the two provenance tag rows that exist on the instance."""
+        rows = rest_json(key, "POST", "tags/search/0/1", {"tag": list(AI_TAGS)})
+        wanted = {name.lower(): name for name in AI_TAGS}
+        found = {}
+        for row in rows:
+            tag = row.get("Tag", row)
+            if tag["name"].lower() in wanted:
+                found[wanted[tag["name"].lower()]] = int(tag["id"])
+        return found
+
+    @staticmethod
+    def __provenance_on(event):
+        return [t["name"] for t in event.get("Tag", []) if t["name"].lower().startswith("ai-computer-assisted:")]
 
     @classmethod
     def __setting(cls, name, value):
@@ -298,7 +324,9 @@ class TestAiUx(unittest.TestCase):
 
     def test_03_summarise_event_adds_a_report(self):
         before = self.__event()
-        body = rest_json(key, "POST", f"events/aiSummarize/{self.event_id}")
+        # As the org user: may edit the event, may not create tags — the
+        # provenance rows must still be created (the taxonomy is not enabled).
+        body = rest_json(self.org_key, "POST", f"events/aiSummarize/{self.event_id}")
         self.assertTrue(body["saved"], body)
         self.assertIn("report_id", body, "background jobs are off, the report must be added at once")
         content = self.__report_content(body["report_id"])
@@ -307,6 +335,9 @@ class TestAiUx(unittest.TestCase):
         self.assertEqual(len(before.get("EventReport", [])) + 1, len(after.get("EventReport", [])))
         self.assertFalse(after["published"])
         self.assertEqual("summarization_on_event", fake_last()["last"]["use_case"])
+        # #11099: the module's results.Tag marks the event as AI-generated and unreviewed
+        self.assertEqual(sorted(AI_TAGS), sorted(body["tags"]["attached"]), body["tags"])
+        self.assertEqual(sorted(AI_TAGS), sorted(self.__provenance_on(after)))
 
     # ---- A1 -----------------------------------------------------------------
 
@@ -324,6 +355,17 @@ class TestAiUx(unittest.TestCase):
         last = fake_last()["last"]
         self.assertEqual("summarization_on_eventReport", last["use_case"])
         self.assertEqual(original, last["data"]["EventReport"]["content"], "the module must see the original text")
+        self.assertEqual(sorted(AI_TAGS), sorted(body["tags"]["skipped"]), "on the event since the event summary")
+
+        # An analyst reviewed the event and flipped the review level; a fresh
+        # AI write makes it unreviewed again (exclusive predicate, replaced).
+        reviewed = 'ai-computer-assisted:review-level="human-reviewed"'
+        unreviewed_id = next(t["id"] for t in self.__event()["Tag"] if t["name"] == AI_TAGS[1])
+        rest_json(key, "POST", f"events/removeTag/{self.event_id}/{unreviewed_id}")
+        tag = rest_json(key, "POST", "tags/add", {"name": reviewed, "colour": "#3366ff"})["Tag"]
+        self.created_tag_ids.add(int(tag["id"]))
+        rest_json(key, "POST", f"events/addTag/{self.event_id}", {"tag": int(tag["id"])})
+        self.assertEqual(sorted([AI_TAGS[0], reviewed]), sorted(self.__provenance_on(self.__event())))
 
         # re-run: one block, not two, and the module again saw the original
         body = rest_json(key, "POST", f"eventReports/aiSummarize/{report_id}")
@@ -332,6 +374,9 @@ class TestAiUx(unittest.TestCase):
         self.assertEqual((1, 1), count_blocks(content))
         self.assertTrue(content.rstrip().endswith(original.rstrip()))
         self.assertEqual(original, fake_last()["last"]["data"]["EventReport"]["content"])
+        self.assertEqual([reviewed], body["tags"]["replaced"], body["tags"])
+        self.assertEqual([AI_TAGS[1]], body["tags"]["attached"], body["tags"])
+        self.assertEqual(sorted(AI_TAGS), sorted(self.__provenance_on(self.__event())))
 
     # ---- A3 -----------------------------------------------------------------
 

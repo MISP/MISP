@@ -480,7 +480,10 @@ class EventReport extends AppModel
         if (!empty($errors)) {
             throw new Exception(__('The AI summary could not be saved into the report: %s', json_encode($errors)));
         }
-        return ['report_id' => (int)$report['EventReport']['id'], 'name' => $report['EventReport']['name']];
+        // The module marks what it produced (the two ai-computer-assisted
+        // tags for the event); the report edit above already unpublished.
+        $tags = $this->Event->aiAttachResultTags($user, (int)$report['EventReport']['event_id'], $results);
+        return ['report_id' => (int)$report['EventReport']['id'], 'name' => $report['EventReport']['name'], 'tags' => $tags];
     }
 
     private function captureSG(array $user, array $report)

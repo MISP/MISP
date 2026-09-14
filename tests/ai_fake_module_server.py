@@ -12,7 +12,9 @@ LLM. Standard library only.
     POST /query     -> {"module", "data", "use_case", "params", "timeout"}
                        answered per use_case with a deterministic result:
         summarization_on_event        results.EventReport {name, content}
+                                      + results.Tag (the two AI tags)
         summarization_on_eventReport  results.EventReport {name, content}
+                                      + results.Tag (the two AI tags)
                                       (the summary block on top of the
                                       original content; a request whose
                                       content already carries the block is
@@ -251,7 +253,7 @@ def answer(envelope):
         return {"results": {"EventReport": {
             "name": f"AI summary: {info}",
             "content": summary_block(event_facts(event, params)),
-        }}}
+        }, "Tag": ai_tags()}}
 
     if use_case == "summarization_on_eventReport":
         report = data.get("EventReport")
@@ -268,7 +270,7 @@ def answer(envelope):
         return {"results": {"EventReport": {
             "name": report.get("name", ""),
             "content": f"{block}\n\n{content}",
-        }}}
+        }, "Tag": ai_tags()}}
 
     # tag_suggest
     if not isinstance(data.get("Event"), dict):

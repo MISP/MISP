@@ -651,6 +651,7 @@ class EventReportsController extends AppController
                 $message = __('AI summary job #%s queued — refresh the report when it completes.', $result['job_id']);
             } else {
                 $message = __('AI summary written into the report "%s".', $result['name']);
+                $message .= Event::aiTagsNote($result);
             }
             if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->viewData(

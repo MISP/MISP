@@ -3244,6 +3244,191 @@ class Event extends AppModel
     }
 
     /**
+     * Split the tag names of a module answer (results.Tag) into the two
+     * ai-computer-assisted provenance names (Module::AI_PROVENANCE_TAGS,
+     * matched case-insensitively, returned in their canonical spelling) and
+     * the rest, in the module's order, blanks and duplicates dropped.
+     *
+     * @param array $tags [{name}, ...] or [name, ...]
+     * @return array {provenance: [names], other: [names]}
+     */
+    public static function splitAiTagNames(array $tags)
+    {
+        App::uses('Module', 'Model');
+        $canonical = [];
+        foreach (Module::AI_PROVENANCE_TAGS as $name) {
+            $canonical[mb_strtolower($name)] = $name;
+        }
+        $split = ['provenance' => [], 'other' => []];
+        $seen = [];
+        foreach ($tags as $tag) {
+            $name = is_array($tag) ? ($tag['name'] ?? null) : $tag;
+            if (!is_string($name) || trim($name) === '') {
+                continue;
+            }
+            $name = trim($name);
+            $key = mb_strtolower($name);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            if (isset($canonical[$key])) {
+                $split['provenance'][] = $canonical[$key];
+            } else {
+                $split['other'][] = $name;
+            }
+        }
+        return $split;
+    }
+
+    /**
+     * The sentence a summary message ends with when the run also tagged the
+     * event, empty otherwise.
+     *
+     * @param array $result an aiSummarize() result
+     * @return string
+     */
+    public static function aiTagsNote(array $result)
+    {
+        if (empty($result['tags']['attached']) && empty($result['tags']['replaced'])) {
+            return '';
+        }
+        $note = ' ' . __('Event tagged %s.', implode(', ', $result['tags']['attached']));
+        if (!empty($result['tags']['replaced'])) {
+            $note .= ' ' . __('Replaced %s.', implode(', ', $result['tags']['replaced']));
+        }
+        return $note;
+    }
+
+    /**
+     * The lower-cased `namespace:predicate=` prefix of a machine tag, or
+     * null for a tag without a value. Two tags sharing the prefix are values
+     * of the same predicate.
+     *
+     * @param string $name
+     * @return string|null
+     */
+    public static function aiTagPredicatePrefix($name)
+    {
+        $equals = strpos($name, '=');
+        $colon = strpos($name, ':');
+        if ($equals === false || $colon === false || $colon > $equals) {
+            return null;
+        }
+        return mb_strtolower(substr($name, 0, $equals + 1));
+    }
+
+    /**
+     * Attach the tags of a module answer (results.Tag) to the event.
+     *
+     * The two provenance names go through Tag::captureAiProvenanceTags()
+     * (rows guaranteed, no tag-editor permission needed). Both predicates of
+     * the ai-computer-assisted taxonomy are exclusive and a fresh AI write
+     * makes the event's AI content unreviewed again, so a sibling value
+     * already on the event (say review-level="human-reviewed") is replaced,
+     * not kept next to the new one. Any other name follows the normal rules:
+     * captureTag() (creation needs perm_tag_editor, reserved tags refused)
+     * and the taxonomy exclusivity check, as an accepted A3 suggestion does.
+     * Idempotent: a tag already on the event is skipped. Does not unpublish;
+     * the caller's write already did, or decides.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $results the module's results block
+     * @param bool $local attach (and replace) as local tags
+     * @return array {attached: [names], replaced: [names], skipped: [names], failed: {name: reason}}
+     */
+    public function aiAttachResultTags(array $user, $eventId, array $results, $local = false)
+    {
+        $eventId = (int)$eventId;
+        $local = (bool)$local;
+        $outcome = ['attached' => [], 'replaced' => [], 'skipped' => [], 'failed' => []];
+        $split = self::splitAiTagNames(isset($results['Tag']) && is_array($results['Tag']) ? $results['Tag'] : []);
+        if (empty($split['provenance']) && empty($split['other'])) {
+            return $outcome;
+        }
+        $Tag = $this->EventTag->Tag;
+        $ids = [];
+        if (!empty($split['provenance'])) {
+            foreach ($Tag->captureAiProvenanceTags($user) as $name => $id) {
+                if (in_array($name, $split['provenance'], true)) {
+                    $ids[$name] = $id;
+                }
+            }
+        }
+        foreach ($split['other'] as $name) {
+            $ids[$name] = $Tag->captureTag(['name' => $name], $user);
+        }
+        $current = $this->EventTag->find('all', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => ['Tag' => ['fields' => ['Tag.id', 'Tag.name']]],
+            'fields' => ['EventTag.id', 'EventTag.tag_id', 'EventTag.local'],
+            'recursive' => -1,
+        ]);
+        $eventTagNames = [];
+        foreach ($current as $row) {
+            if (!empty($row['Tag']['name'])) {
+                $eventTagNames[] = $row['Tag']['name'];
+            }
+        }
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $log = $this->loadLog();
+        foreach ($ids as $name => $tagId) {
+            if (!$tagId) {
+                $outcome['failed'][$name] = __('the tag does not exist or is reserved for another organisation or user');
+                continue;
+            }
+            if (in_array($name, $split['provenance'], true)) {
+                $prefix = self::aiTagPredicatePrefix($name);
+                foreach ($current as $row) {
+                    $rowName = isset($row['Tag']['name']) ? $row['Tag']['name'] : '';
+                    if ((int)$row['EventTag']['tag_id'] === (int)$tagId || (bool)$row['EventTag']['local'] !== $local) {
+                        continue;
+                    }
+                    if ($prefix === null || self::aiTagPredicatePrefix($rowName) !== $prefix) {
+                        continue;
+                    }
+                    if ($this->EventTag->detachTagFromEvent($eventId, $row['EventTag']['tag_id'], $local)) {
+                        $outcome['replaced'][] = $rowName;
+                        $eventTagNames = array_values(array_diff($eventTagNames, [$rowName]));
+                        $log->createLogEntry(
+                            $user,
+                            'tag',
+                            'Event',
+                            $eventId,
+                            sprintf('Removed%s tag (%s) "%s" from event (%s)', $local ? ' local' : '', $row['EventTag']['tag_id'], $rowName, $eventId),
+                            sprintf('Replaced by the AI provenance tag "%s"', $name)
+                        );
+                    }
+                }
+            } elseif (!$Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $eventTagNames)) {
+                $outcome['failed'][$name] = __('refused by taxonomy exclusivity against the event\'s tags');
+                continue;
+            }
+            $nothingToChange = false;
+            if (!$this->EventTag->attachTagToEvent($eventId, ['id' => $tagId, 'local' => $local], $nothingToChange)) {
+                $outcome['failed'][$name] = __('the tag could not be attached');
+                continue;
+            }
+            if ($nothingToChange) {
+                $outcome['skipped'][] = $name;
+                continue;
+            }
+            $outcome['attached'][] = $name;
+            $eventTagNames[] = $name;
+            $log->createLogEntry(
+                $user,
+                'tag',
+                'Event',
+                $eventId,
+                sprintf('Attached%s tag (%s) "%s" to event (%s)', $local ? ' local' : '', $tagId, $name, $eventId),
+                sprintf('Event (%s) tagged as Tag (%s)%s by the AI module', $eventId, $tagId, $local ? ' locally' : '')
+            );
+        }
+        return $outcome;
+    }
+
+    /**
      * Summarise an event with the AI module: queued as a background job, or
      * run at once when background jobs are off.
      *
@@ -3319,7 +3504,10 @@ class Event extends AppModel
         if (!empty($errors)) {
             throw new Exception(__('The AI summary could not be saved as a report: %s', json_encode($errors)));
         }
-        return ['report_id' => (int)$this->EventReport->id, 'name' => $name];
+        // The module marks what it produced (the two ai-computer-assisted
+        // tags for the event); the report save above already unpublished.
+        $tags = $this->aiAttachResultTags($user, $eventId, $results);
+        return ['report_id' => (int)$this->EventReport->id, 'name' => $name, 'tags' => $tags];
     }
 
     /**
