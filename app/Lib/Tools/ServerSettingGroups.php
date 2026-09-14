@@ -631,6 +631,16 @@ class ServerSettingGroups
                     'Plugin.AI_suggest_min_score',
                 ),
             ),
+            array(
+                'id' => 'ai-extraction',
+                'title' => 'Indicator extraction',
+                'description' => 'The confidence the module needs before an indicator read out of an event report is kept',
+                'icon' => 'magnifying-glass',
+                'accent' => '#198754',
+                'settings' => array(
+                    'Plugin.AI_min_confidence',
+                ),
+            ),
         ),
     );
 

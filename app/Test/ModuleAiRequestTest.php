@@ -81,7 +81,7 @@ class ModuleAiRequestTest extends TestCase
 
     public function testParamSettingsAreTheUnprefixedModuleConfigNames()
     {
-        $expected = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score'];
+        $expected = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score', 'min_confidence'];
         $this->assertSame($expected, Module::AI_PARAM_SETTINGS);
         foreach (Module::AI_PARAM_SETTINGS as $name) {
             $this->assertStringStartsNotWith('AI_', $name);
@@ -101,6 +101,7 @@ class ModuleAiRequestTest extends TestCase
             'request_timeout' => 120,
             'suggest_limit' => 5,
             'suggest_min_score' => 0.0,
+            'min_confidence' => 0.9,
         ];
         $params = Module::buildAiParams(function ($name) use ($values) {
             return $values[$name];

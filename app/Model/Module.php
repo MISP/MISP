@@ -56,7 +56,7 @@ class Module extends AppModel
      * The Plugin.AI_* settings sent to the module as `params`, listed by the
      * module's own config names (the setting name without the `AI_` prefix).
      */
-    const AI_PARAM_SETTINGS = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score'];
+    const AI_PARAM_SETTINGS = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score', 'min_confidence'];
 
     const CONFIG_TYPES = array(
         'IP' => array(

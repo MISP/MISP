@@ -8945,6 +8945,14 @@ class Server extends AppModel
                     'type' => 'float',
                     'null' => true
                 ),
+                'AI_min_confidence' => array(
+                    'level' => 2,
+                    'description' => __('Indicators the AI module extracts from event reports with a confidence below this value (0 to 1) are dropped. Fewer, certain indicators beat many doubtful ones.'),
+                    'value' => 0.9,
+                    'test' => $this->floatInRange(0, 1),
+                    'type' => 'float',
+                    'null' => true
+                ),
                 'CustomAuth_custom_password_reset' => array(
                     'level' => 2,
                     'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
