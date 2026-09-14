@@ -63,6 +63,7 @@ $useCases = array(
         'answered' => __('Answer for event %s'),
         'noTags' => __('The module recommended no tag.'),
         'newTag' => __('(new)'),
+        'provenance' => __('(AI provenance)'),
     ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
     const form = root.querySelector('[data-aidr-form]');
@@ -98,7 +99,7 @@ $useCases = array(
             if (!answer.Tag.length) list.appendChild(el('span', 'text-muted', L.noTags));
             answer.Tag.forEach(function (tag) {
                 list.appendChild(el('span', 'badge ' + (tag.exists ? 'bg-primary' : 'bg-secondary'),
-                    tag.name + (tag.exists ? '' : ' ' + L.newTag)));
+                    tag.name + (tag.exists ? '' : ' ' + L.newTag) + (tag.provenance ? ' ' + L.provenance : '')));
             });
             result.appendChild(list);
         } else {

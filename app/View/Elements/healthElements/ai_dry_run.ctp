@@ -47,6 +47,7 @@ $(document).ready(function () {
         'answered' => __('Answer for event %s'),
         'noTags' => __('The module recommended no tag.'),
         'newTag' => __('(new)'),
+        'provenance' => __('(AI provenance)'),
     ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var $form = $('#aiDryRunForm');
     var $result = $('#aiDryRunResult');
@@ -71,7 +72,7 @@ $(document).ready(function () {
                 $result.append($('<span>').addClass('tag').css({
                     display: 'inline-block', margin: '0 .4em .4em 0', padding: '.15em .5em', borderRadius: '.3em',
                     backgroundColor: tag.exists ? '#0088cc' : '#999999', color: '#ffffff'
-                }).text(tag.name + (tag.exists ? '' : ' ' + L.newTag)));
+                }).text(tag.name + (tag.exists ? '' : ' ' + L.newTag) + (tag.provenance ? ' ' + L.provenance : '')));
             });
         } else {
             $result.append($('<pre>').text(JSON.stringify(answer, null, 2)));

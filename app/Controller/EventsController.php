@@ -8530,9 +8530,21 @@ class EventsController extends AppController
                 'provenance' => $provenance,
             ], $this->response->type());
         }
+        // The provenance names as tag chips: stored colour when the row
+        // exists, the name's colour otherwise (as the suggestion rows).
+        $Tag = $this->Event->EventTag->Tag;
+        $colours = empty($provenance) ? [] : $Tag->find('list', [
+            'conditions' => ['LOWER(Tag.name)' => array_map('mb_strtolower', $provenance)],
+            'fields' => ['Tag.name', 'Tag.colour'],
+        ]);
+        $colours = array_change_key_case($colours, CASE_LOWER);
+        $provenanceRows = [];
+        foreach ($provenance as $name) {
+            $provenanceRows[] = ['name' => $name, 'colour' => $colours[mb_strtolower($name)] ?? $Tag->tagColor($name)];
+        }
         $this->set('event', $event);
         $this->set('rows', $rows);
-        $this->set('provenance', $provenance);
+        $this->set('provenance', $provenanceRows);
         $this->set('local', $local);
         $this->set('error', $error);
         $this->set('canCreate', !empty($this->Auth->user('Role')['perm_tag_editor']));

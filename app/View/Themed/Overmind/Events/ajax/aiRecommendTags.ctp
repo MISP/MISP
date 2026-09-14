@@ -13,8 +13,11 @@
  *   $local      bool         the tags will be attached as local tags
  *   $error      string|null  the module's error, when the query failed
  *   $canCreate  bool         the user may create unknown tags
+ *   $provenance array        [{name, colour}] the ai-computer-assisted tags
+ *                            that go on the event with an accepted suggestion
  */
 $eventId = (int)$event['Event']['id'];
+$provenance = isset($provenance) ? $provenance : [];
 $selectable = 0;
 $needsEditor = false;
 foreach ($rows as $row) {
@@ -126,6 +129,21 @@ $canSubmit = $error === null && $selectable > 0;
                 </table>
             </div>
         </div>
+        <?php if (!empty($provenance)): ?>
+            <div id="aiRecommendTagsProvenance" class="d-flex flex-wrap align-items-center gap-2 mt-3 small text-muted">
+                <i class="fas fa-robot"></i>
+                <span><?= __('With an accepted suggestion the event is also tagged') ?></span>
+                <?php foreach ($provenance as $row): ?>
+                    <?= $this->element('genericElementsBS5/Badges/tag', [
+                        'tag' => ['name' => $row['name'], 'colour' => $row['colour']],
+                        'local' => $local,
+                        'hiddenClass' => '',
+                        'showFavourite' => false,
+                    ]) ?>
+                <?php endforeach; ?>
+                <span>— <?= __('AI provenance, not optional') ?></span>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
