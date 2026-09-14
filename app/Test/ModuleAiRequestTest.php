@@ -154,11 +154,45 @@ class ModuleAiRequestTest extends TestCase
 
     public function testEveryUseCaseIsAccepted()
     {
-        foreach (['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest'] as $useCase) {
+        $useCases = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest', 'infoextraction', 'ping'];
+        foreach ($useCases as $useCase) {
             $request = Module::buildAiRequest($useCase, [], [], 1);
             $this->assertSame($useCase, $request['use_case']);
         }
-        $this->assertSame(['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest'], Module::AI_USE_CASES);
+        $this->assertSame($useCases, Module::AI_USE_CASES);
+    }
+
+    public function testEventUseCasesCarryData()
+    {
+        foreach (['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest', 'infoextraction'] as $useCase) {
+            $request = Module::buildAiRequest($useCase, ['Event' => ['id' => 3]], [], 1);
+            $this->assertSame(['Event' => ['id' => 3]], $request['data'], $useCase);
+        }
+    }
+
+    public function testPingEnvelopeHasNoData()
+    {
+        $this->assertSame(['ping'], Module::AI_DATALESS_USE_CASES);
+        $request = Module::buildAiRequest('ping', ['Event' => ['id' => 3]], ['model_id' => 'm'], 30);
+        $this->assertArrayNotHasKey('data', $request);
+        $this->assertSame([
+            'module' => 'ai_connector',
+            'use_case' => 'ping',
+            'params' => ['model_id' => 'm'],
+            'timeout' => 30,
+        ], $request);
+    }
+
+    public function testProvenanceTagsAreTheTwoTaxonomyEntries()
+    {
+        $this->assertSame('ai-computer-assisted', Module::AI_PROVENANCE_TAXONOMY);
+        $this->assertSame([
+            'ai-computer-assisted:assistance-level="ai-generated"',
+            'ai-computer-assisted:review-level="unreviewed"',
+        ], Module::AI_PROVENANCE_TAGS);
+        foreach (Module::AI_PROVENANCE_TAGS as $name) {
+            $this->assertStringStartsWith(Module::AI_PROVENANCE_TAXONOMY . ':', $name);
+        }
     }
 
     public function testUnknownUseCaseIsRejected()
@@ -225,6 +259,36 @@ class ModuleAiRequestTest extends TestCase
     {
         $module = $this->module([], ['something' => 'else']);
         $this->assertSame([], $module->queryAI('tag_suggest', ['Event' => []]));
+    }
+
+    public function testMetadataIsHandedBackWhenAsked()
+    {
+        $metadata = ['added' => 2, 'rejected' => [['type' => 'domain', 'value' => 'x', 'reason' => 'not-in-source']]];
+        $module = $this->module([], ['results' => ['Attribute' => []], 'metadata' => $metadata]);
+        $received = null;
+        $results = $module->queryAI('infoextraction', ['Event' => ['id' => 1]], null, $received);
+        $this->assertSame(['Attribute' => []], $results);
+        $this->assertSame($metadata, $received);
+    }
+
+    public function testMetadataIsEmptyWhenTheModuleSendsNone()
+    {
+        $module = $this->module([], ['results' => ['Tag' => []]]);
+        $received = ['stale' => true];
+        $module->queryAI('tag_suggest', ['Event' => []], null, $received);
+        $this->assertSame([], $received);
+        $module = $this->module([], ['results' => [], 'metadata' => 'not an array']);
+        $module->queryAI('tag_suggest', ['Event' => []], null, $received);
+        $this->assertSame([], $received);
+    }
+
+    public function testPingQueryPostsNoData()
+    {
+        $module = $this->module(['model_id' => 'm'], ['results' => ['ok' => true, 'latency_ms' => 4]]);
+        $results = $module->queryAI('ping', []);
+        $this->assertSame(['ok' => true, 'latency_ms' => 4], $results);
+        $this->assertArrayNotHasKey('data', $module->sent['postData']);
+        $this->assertSame('ping', $module->sent['postData']['use_case']);
     }
 
     public function testUnreadableAnswerIsAnException()

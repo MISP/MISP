@@ -35,7 +35,22 @@ class Module extends AppModel
     const AI_MODULE_NAME = 'ai_connector';
 
     /** The use-cases the AI module accepts (`use_case` of a request). */
-    const AI_USE_CASES = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest'];
+    const AI_USE_CASES = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest', 'infoextraction', 'ping'];
+
+    /** Use-cases that take no `data`: the request envelope omits the key. */
+    const AI_DATALESS_USE_CASES = ['ping'];
+
+    /**
+     * The provenance the module puts on everything it produces: two entries
+     * of the ai-computer-assisted taxonomy, verbatim. MISP guarantees the two
+     * tag rows exist before any AI write (Tag::captureAiProvenanceTags()), so
+     * machine-made content never lands untagged.
+     */
+    const AI_PROVENANCE_TAXONOMY = 'ai-computer-assisted';
+    const AI_PROVENANCE_TAGS = [
+        'ai-computer-assisted:assistance-level="ai-generated"',
+        'ai-computer-assisted:review-level="unreviewed"',
+    ];
 
     /**
      * The Plugin.AI_* settings sent to the module as `params`, listed by the
@@ -503,10 +518,11 @@ class Module extends AppModel
     }
 
     /**
-     * The request envelope the AI module expects on POST /query.
+     * The request envelope the AI module expects on POST /query. A use-case
+     * of AI_DATALESS_USE_CASES (ping) gets no `data` key at all.
      *
      * @param string $useCase one of AI_USE_CASES
-     * @param array $data {"Event": ...} or {"EventReport": ...}
+     * @param array $data {"Event": ...} or {"EventReport": ...}; ignored for a data-less use-case
      * @param array $params see buildAiParams()
      * @param int $timeout seconds, the module's time budget for the request
      * @return array
@@ -517,13 +533,14 @@ class Module extends AppModel
         if (!in_array($useCase, self::AI_USE_CASES, true)) {
             throw new InvalidArgumentException("Unknown AI use-case `$useCase`.");
         }
-        return [
-            'module' => self::AI_MODULE_NAME,
-            'data' => $data,
-            'use_case' => $useCase,
-            'params' => $params,
-            'timeout' => (int)$timeout,
-        ];
+        $request = ['module' => self::AI_MODULE_NAME];
+        if (!in_array($useCase, self::AI_DATALESS_USE_CASES, true)) {
+            $request['data'] = $data;
+        }
+        $request['use_case'] = $useCase;
+        $request['params'] = $params;
+        $request['timeout'] = (int)$timeout;
+        return $request;
     }
 
     /**
@@ -553,14 +570,16 @@ class Module extends AppModel
      * answer. Access control is the caller's job (perm_ai_tools + event ACL).
      *
      * @param string $useCase one of AI_USE_CASES
-     * @param array $data {"Event": ...} or {"EventReport": ...}
+     * @param array $data {"Event": ...} or {"EventReport": ...}; [] for a data-less use-case
      * @param int|null $timeout seconds, default Plugin.AI_timeout
+     * @param array|null $metadata receives the module's `metadata` block ([] when absent):
+     *        counts, rejected candidates, model and prompt details
      * @return array the module's `results`, e.g. ['EventReport' => [...]] or ['Tag' => [...]]
      * @throws InvalidArgumentException on an unknown use-case
      * @throws Exception when the AI services are disabled or unreachable, the
      *         answer is not JSON, or the module answered with `error`
      */
-    public function queryAI($useCase, array $data, $timeout = null)
+    public function queryAI($useCase, array $data, $timeout = null, &$metadata = null)
     {
         if ($timeout === null) {
             $timeout = (int)$this->aiSetting('timeout') ?: 300;
@@ -575,6 +594,7 @@ class Module extends AppModel
             $error = is_string($response['error']) ? $response['error'] : JsonTool::encode($response['error']);
             throw new Exception(__('The AI module reported an error: %s', $error));
         }
+        $metadata = isset($response['metadata']) && is_array($response['metadata']) ? $response['metadata'] : [];
         return isset($response['results']) && is_array($response['results']) ? $response['results'] : [];
     }
 
