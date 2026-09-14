@@ -53,6 +53,14 @@
         && $this->Acl->canAccess('eventReports', 'aiSummarize'))
         ? $baseurl . '/eventReports/aiSummarize/' . (int)$report['EventReport']['id']
         : null;
+    // A4 from the report page: only this report is sent, the answer is
+    // reviewed before it is added to the event.
+    $aiExtractIndicatorsReportUrl = ($canEdit
+        && !$report['EventReport']['deleted']
+        && Configure::read('Plugin.AI_services_enable')
+        && $this->Acl->canAccess('eventReports', 'aiExtractIndicators'))
+        ? $baseurl . '/eventReports/aiExtractIndicators/' . (int)$report['EventReport']['id']
+        : null;
 ?>
 
 <div class='<?= !isset($ajax) || !$ajax ? 'view' : '' ?>'>
@@ -76,6 +84,7 @@
                                 'reportid' => $report['EventReport']['id'],
                                 'eventid' => $report['EventReport']['event_id'],
                                 'aiSummarizeReportUrl' => $aiSummarizeReportUrl,
+                                'aiExtractIndicatorsReportUrl' => $aiExtractIndicatorsReportUrl,
                             ]
                         ],
                         'additionalMarkdownHelpModalElements' => [[

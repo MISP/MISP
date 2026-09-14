@@ -1152,13 +1152,18 @@ function injectCustomRulesMenu() {
             { name: 'Configure Template variables', icon: 'fas fa-pen', clickHandler: configureTemplateVariable},
         ]
     })
+    var aiItems = []
     if (typeof aiSummarizeReportUrl !== 'undefined' && aiSummarizeReportUrl) {
+        aiItems.push({ name: 'Summarise report', icon: 'fas fa-file-lines', clickHandler: aiSummarizeReport})
+    }
+    if (typeof aiExtractIndicatorsReportUrl !== 'undefined' && aiExtractIndicatorsReportUrl) {
+        aiItems.push({ name: 'Extract indicators', icon: 'fas fa-magnifying-glass', clickHandler: aiExtractIndicatorsReport})
+    }
+    if (aiItems.length) {
         createSubMenu({
             name: 'AI',
             icon: 'fas fa-robot',
-            items: [
-                { name: 'Summarise report', icon: 'fas fa-file-lines', clickHandler: aiSummarizeReport},
-            ]
+            items: aiItems
         })
     }
     reloadRenderingRuleEnabledUI()
@@ -1169,6 +1174,12 @@ function injectCustomRulesMenu() {
 // while the action is available to the user.
 function aiSummarizeReport() {
     openGenericModal(aiSummarizeReportUrl)
+}
+
+// A4 from this report: only this report is sent; the module's answer is
+// reviewed before it is added to the event.
+function aiExtractIndicatorsReport() {
+    openGenericModal(aiExtractIndicatorsReportUrl)
 }
 
 function markdownItToggleCustomRule(rulename, event) {

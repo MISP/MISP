@@ -138,9 +138,19 @@ $aiSummarizeUrl = ($editable
     && $this->Acl->canAccess('eventReports', 'aiSummarize'))
     ? $baseurl . '/eventReports/aiSummarize/' . $reportId
     : null;
-if ($aiSummarizeUrl !== null) {
+// A4 from the report page: only this report is sent, the answer is
+// reviewed in the modal before it is added to the event.
+$aiExtractUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiExtractIndicators'))
+    ? $baseurl . '/eventReports/aiExtractIndicators/' . $reportId
+    : null;
+if ($aiSummarizeUrl !== null || $aiExtractUrl !== null) {
     $menuItems[] = ['type' => 'divider'];
     $menuItems[] = ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('AI')];
+}
+if ($aiSummarizeUrl !== null) {
     $menuItems[] = [
         'type'    => 'item',
         'url'     => $aiSummarizeUrl,
@@ -148,6 +158,16 @@ if ($aiSummarizeUrl !== null) {
         'icon'    => 'fas fa-file-lines',
         'label'   => __('Summarise report'),
         'title'   => __('The AI module puts its summary on top of the report; a previous AI summary is replaced'),
+    ];
+}
+if ($aiExtractUrl !== null) {
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiExtractUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiExtractUrl . "', 'md');",
+        'icon'    => 'fas fa-magnifying-glass',
+        'label'   => __('Extract indicators'),
+        'title'   => __('The AI module reads this report and proposes attributes and objects, reviewed before they are added'),
     ];
 }
 

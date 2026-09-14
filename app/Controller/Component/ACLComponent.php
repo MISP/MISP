@@ -299,6 +299,7 @@ class ACLComponent extends Component
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'reportFromEvent' => array('perm_add'),
             'restore' => array('perm_add'),
+            'aiExtractIndicators' => array('perm_ai_tools'),
             'aiSummarize' => array('perm_ai_tools'),
             'index' => array('*'),
             'getProxyMISPElements' => array('*'),

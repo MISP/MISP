@@ -403,7 +403,7 @@ $accent = $isAi ? 'primary' : 'enrichment';
             'label' => __('Back'),
             'icon' => 'fas fa-arrow-left',
             'attrs' => ['onclick' => $isAi
-                ? sprintf("openModal('%s/events/aiExtractIndicators/%s', 'md');", $baseurl, h($eventId))
+                ? sprintf("openModal('%s', 'md');", h(!empty($backUrl) ? $backUrl : $baseurl . '/events/aiExtractIndicators/' . $eventId))
                 : sprintf(
                     "openModal('%s/events/queryEnrichment/%s/0/%s/%s');",
                     $baseurl, h($sourceId), h($backType), h($backModel)

@@ -17,7 +17,7 @@ how to test without an LLM.
 | **Summarise event** (A2) | the full event, REST shape without correlations | `summarization_on_event` | one **new** event report on the event; the event tagged `ai-computer-assisted` | side menu *AI actions* chooser; button next to *Generate report from Event* in the event reports section |
 | **Summarise report** (A1) | one event report + its event | `summarization_on_eventReport` | the report's content **overwritten** with the summary block on top; the event tagged | robot icon in the report row; *AI → Summarise report* in the report page menu; the workflow action node |
 | **Recommend tags** (A3) | the full event | `tag_suggest` | tags the user accepts are attached (created when missing); the event tagged when at least one is | *AI actions* chooser; robot button in the event's tag element |
-| **Extract indicators** (A4) | the full event, reports included | `infoextraction` | the module's new attributes and `file` / `vulnerability` objects added to the event, each tagged `ai-computer-assisted` with the source report in its comment | *AI actions* chooser; button next to *Summarise with AI* in the event reports section; the workflow action node; REST |
+| **Extract indicators** (A4) | the full event, reports included | `infoextraction` | the module's new attributes and `file` / `vulnerability` objects added to the event, each tagged `ai-computer-assisted` with the source report in its comment | *AI actions* chooser; button next to *Summarise with AI* in the event reports section; *AI → Extract indicators* in the report page menu (that report only); the workflow action node; REST |
 
 Plus **Test LLM** on the AI settings tab: `use_case` `ping`, no data — the
 module checks that the LLM endpoint is reachable and serves the configured
@@ -297,6 +297,13 @@ accumulate, so two exclusive tags accepted together yield one refusal.
   `{saved, success, message, attributes, objects, rejected}` when it ran
   inline. An event without a readable, non-deleted report is refused before
   the module is called.
+- **One report.** `EventReportsController::aiExtractIndicators($reportId)` is the
+  same action scoped to the report of the page (*AI → Extract indicators* in
+  the report page menu, both themes): only that report is sent
+  (`$onlyReportUuids`), the review and the save are the event's. Over REST it
+  applies directly through `EventReport::aiExtractIndicatorsRouter()`
+  (`cake Event aiSummarize <user> extractReport <report> [job]`). A deleted
+  report is refused with `405` before the module is called.
 - **Model:** `Event::aiExtractIndicators($user, $eventId, $onlyReportUuids = null)`
   (query + normalise + provenance rows, nothing written; `rejected` and
   `metadata` from the module), `Event::aiApplyExtraction()` (the
@@ -375,7 +382,7 @@ enable it on the workflow modules page (`toggleModule/ai-extract-indicators/1`).
 | A2 | `EventsController::aiActions/aiSummarize`, `Event::aiSummarizeRouter/aiSummarize/fetchEventForAi`, `EventShell::aiSummarize`, `Events/ajax/aiActions.ctp`, `Events/ajax/aiSummarizeConfirmationForm.ctp` (+ Overmind twins), side menu / `event_actions.ctp`, `EventReports/ajax/indexForEvent.ctp`, Overmind `Elements/EventReports/index.ctp` |
 | A1 | `EventReportsController::aiSummarize`, `EventReport::stripAiSummary/mergeAiSummary/aiSummarize/aiSummarizeRouter`, `EventReports/ajax/aiSummarizeConfirmationForm.ctp` (+ twin), report row + page menu (`event-report.js`, `reportEditor.ctp`, Overmind `eventReport_content.ctp`), `WorkflowModules/action/Module_ai_summarize_report.php` |
 | A3 | `EventsController::aiRecommendTags`, `Event::classifyAiTagSuggestions/aiClassifyTagNames/aiRecommendTags/aiAttachTags/aiTagResultMessage`, `Events/ajax/aiRecommendTags.ctp` (+ twin), `Elements/ajaxTags.ctp`, Overmind `Elements/Events/View/event_tags.ctp` |
-| A4 | `EventsController::aiExtractIndicators`, `Event::aiExtractIndicators/aiApplyExtraction/aiExtractAndApply/aiExtractIndicatorsRouter/aiExtractionCounts/aiExtractionMessage/aiExtractedReportUuids`, `Events/ajax/aiExtractIndicatorsConfirmationForm.ctp` (+ twin), `Events/resolved_misp_format.ctp` (+ twin, `$type = 'AI'`), `WorkflowModules/action/Module_ai_extract_indicators.php` |
+| A4 | `EventsController::aiExtractIndicators`, `EventReportsController::aiExtractIndicators`, `Event::aiExtractIndicators/aiApplyExtraction/aiExtractAndApply/aiExtractIndicatorsRouter/aiExtractionCounts/aiExtractionMessage/aiExtractedReportUuids`, `EventReport::aiExtractIndicatorsRouter`, `EventShell::aiSummarize` (`extract`, `extractReport`), `Events/ajax/aiExtractIndicatorsConfirmationForm.ctp` + `EventReports/ajax/aiExtractIndicatorsConfirmationForm.ctp` (+ Overmind twins, sharing `genericElementsBS5/Modals/ai_extract_submit_script.ctp`), `Events/resolved_misp_format.ctp` (+ twin, `$type = 'AI'`), report page menus (`event-report.js`, `EventReports/view.ctp`, `reportEditor.ctp`, Overmind `eventReport_content.ctp`), `WorkflowModules/action/Module_ai_extract_indicators.php` |
 | Provenance | `Tag::captureAiProvenanceTags`, `Event::splitAiTagNames/aiTagPredicatePrefix/aiAttachResultTags/aiTagsNote`, `Module::AI_PROVENANCE_TAGS` |
 | Test LLM | `ServersController::aiDryRun` (`use_case=ping`), `healthElements/ai_status.ctp`, `healthElementsBS5/ai_status.ctp` |
 | Tests | `tests/ai_fake_module_server.py`, `tests/testlive_ai_ux.py`, `app/Test/*Ai*Test.php`, `app/Test/ServerSettingFloatTypeTest.php` |

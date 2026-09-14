@@ -403,6 +403,45 @@ class EventReport extends AppModel
     }
 
     /**
+     * A4 from one report (direct apply): extract indicators out of this
+     * report only and add them to its event as the requesting user — a job
+     * when MISP.background_jobs is on (cake Event aiSummarize <user>
+     * extractReport <report> <job>), inline otherwise. The report is only
+     * read; the review flow of the browser lives in the controller.
+     *
+     * @param array $user
+     * @param int $reportId
+     * @return array {job_id} or the result of Event::aiExtractAndApply()
+     * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception
+     */
+    public function aiExtractIndicatorsRouter(array $user, $reportId)
+    {
+        $report = $this->fetchIfAuthorized($user, $reportId, 'edit', true, true);
+        if (!empty($report['EventReport']['deleted'])) {
+            throw new MethodNotAllowedException(__('The report is deleted.'));
+        }
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_extract_indicators',
+                'Event report: ' . (int)$reportId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'extractReport', (int)$reportId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->Event->aiExtractAndApply($user, (int)$report['EventReport']['event_id'], [$report['EventReport']['uuid']]);
+    }
+
+    /**
      * Summarise an event report with the AI module: queued as a background
      * job, or run at once when background jobs are off.
      *

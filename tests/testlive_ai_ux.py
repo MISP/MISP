@@ -580,6 +580,34 @@ class TestAiUx(unittest.TestCase):
         finally:
             rest(key, "POST", f"events/delete/{bare['id']}")
 
+    def test_08c_extract_indicators_from_one_report(self):
+        # Two reports on a fresh event: the report-scoped action sends only
+        # the chosen one, and the added elements cite only that report.
+        event = rest_json(self.org_key, "POST", "events/add", {"info": "AI UX report extraction " + random(), "distribution": 1, "threat_level_id": 4, "analysis": 0})["Event"]
+        event_id = int(event["id"])
+        try:
+            first = rest_json(key, "POST", f"eventReports/add/{event_id}", {"name": "first", "content": "acme-bank-secure.example", "distribution": 5})["EventReport"]
+            second = rest_json(key, "POST", f"eventReports/add/{event_id}", {"name": "second", "content": "198.51.100.23", "distribution": 5})["EventReport"]
+            body = rest_json(self.org_key, "POST", f"eventReports/aiExtractIndicators/{first['id']}")
+            self.assertTrue(body["saved"], body)
+            self.assertEqual(5, body["attributes"], body)
+            last = fake_last()["last"]
+            self.assertEqual("infoextraction", last["use_case"])
+            self.assertEqual([first["uuid"]], [r["uuid"] for r in last["data"]["Event"]["EventReport"]], "only the chosen report goes to the module")
+            after = rest_json(key, "GET", f"events/view/{event_id}")["Event"]
+            for attribute in after.get("Attribute", []):
+                self.assertIn(first["uuid"], attribute["comment"], attribute)
+                self.assertNotIn(second["uuid"], attribute["comment"], attribute)
+            self.assertEqual(403, rest(self.reader_key, "POST", f"eventReports/aiExtractIndicators/{first['id']}").status_code)
+            # a deleted report is refused before the module is called
+            rest_json(key, "POST", f"eventReports/delete/{second['id']}")
+            calls = fake_last()["count"]
+            body = rest_json(self.org_key, "POST", f"eventReports/aiExtractIndicators/{second['id']}", expect=405)
+            self.assertIn("deleted", body["message"])
+            self.assertEqual(calls, fake_last()["count"])
+        finally:
+            rest(key, "POST", f"events/delete/{event_id}")
+
     # ---- ACL ----------------------------------------------------------------
 
     def test_09_acl(self):
