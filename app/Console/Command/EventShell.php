@@ -313,7 +313,7 @@ class EventShell extends AppShell
     public function aiSummarize()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: cake Event aiSummarize <user_id> <event|report> <id> [job_id]' . PHP_EOL);
+            die('Usage: cake Event aiSummarize <user_id> <event|report|extract> <id> [job_id]' . PHP_EOL);
         }
         $user = $this->getUser($this->args[0]);
         // Rows the default audit engine writes from here carry the requesting
@@ -332,11 +332,16 @@ class EventShell extends AppShell
             } elseif ($scope === 'report') {
                 $result = $this->Event->EventReport->aiSummarize($user, $id);
                 $message = __('AI summary written into report "%s" (#%s).', $result['name'], $result['report_id']);
+            } elseif ($scope === 'extract') {
+                // A4 direct apply: the module's indicators land on the event
+                // as this user, each tagged ai-computer-assisted.
+                $result = $this->Event->aiExtractAndApply($user, $id);
+                $message = Event::aiExtractionMessage($result);
             } else {
-                throw new InvalidArgumentException("Unknown scope `$scope`, expected `event` or `report`.");
+                throw new InvalidArgumentException("Unknown scope `$scope`, expected `event`, `report` or `extract`.");
             }
         } catch (Exception $e) {
-            $message = __('AI summary failed: %s', $e->getMessage());
+            $message = __('AI %s failed: %s', $scope === 'extract' ? 'extraction' : 'summary', $e->getMessage());
             $this->Job->saveStatus($jobId, false, $message);
             $this->error($message);
         }

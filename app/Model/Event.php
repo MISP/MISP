@@ -3429,6 +3429,190 @@ class Event extends AppModel
     }
 
     /**
+     * A4 — ask the AI module for the indicators it reads out of the event's
+     * reports (use-case infoextraction) and hand back what MISP would save:
+     * the module's new attributes and objects, MISP core format, normalised
+     * like any misp_standard import (handleMispFormatFromModuleResult(): the
+     * module's comment, to_ids and Tag[] kept, category and distribution
+     * filled). The two provenance tag rows are guaranteed here so the tags
+     * on every element survive the save whoever the user is. Only
+     * results.Attribute and results.Object are read; results.Event is the
+     * module's processed copy and is ignored. Nothing is written.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array {Event: {...}, Attribute: [...], Object: [...], rejected: [{type, value, reason}], metadata: [...]}
+     * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception with a user-facing message
+     */
+    public function aiExtractIndicators(array $user, $eventId)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->userCanModifyEvent($user, $event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $reports = 0;
+        foreach (isset($data['Event']['EventReport']) ? $data['Event']['EventReport'] : [] as $report) {
+            if (empty($report['deleted'])) {
+                $reports++;
+            }
+        }
+        if ($reports === 0) {
+            // The module would answer nothing and still burn an LLM call.
+            throw new MethodNotAllowedException(__('The event has no report to extract indicators from.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $metadata = [];
+        $results = $this->Module->queryAI('infoextraction', $data, null, $metadata);
+        $answer = ['results' => [
+            'Attribute' => isset($results['Attribute']) && is_array($results['Attribute']) ? $results['Attribute'] : [],
+            'Object' => isset($results['Object']) && is_array($results['Object']) ? $results['Object'] : [],
+        ]];
+        $resolved = $this->handleMispFormatFromModuleResult($answer);
+        $resolved['Event'] = $event['Event'];
+        $resolved['Attribute'] = isset($resolved['Attribute']) ? $resolved['Attribute'] : [];
+        $resolved['Object'] = isset($resolved['Object']) ? $resolved['Object'] : [];
+        $resolved['rejected'] = isset($metadata['rejected']) && is_array($metadata['rejected']) ? array_values($metadata['rejected']) : [];
+        $resolved['metadata'] = $metadata;
+        if (!empty($resolved['Attribute']) || !empty($resolved['Object'])) {
+            $this->EventTag->Tag->captureAiProvenanceTags($user);
+        }
+        return $resolved;
+    }
+
+    /**
+     * A4 — save an extraction (what aiExtractIndicators() returned, or the
+     * subset a review kept) onto the event through the module-result path
+     * every import module uses: tags captured per element, an element already
+     * on the event recovered rather than duplicated, one unpublish.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $resolved {Attribute, Object, rejected?}
+     * @return array {message: the saver's report, attributes, objects, rejected}
+     */
+    public function aiApplyExtraction(array $user, $eventId, array $resolved)
+    {
+        $counts = self::aiExtractionCounts($resolved);
+        $message = $this->processModuleResultsData(
+            $user,
+            [
+                'Attribute' => isset($resolved['Attribute']) ? $resolved['Attribute'] : [],
+                'Object' => isset($resolved['Object']) ? $resolved['Object'] : [],
+            ],
+            (int)$eventId,
+            'extracted by ai_connector'
+        );
+        return ['message' => (string)$message] + $counts;
+    }
+
+    /**
+     * A4 — direct apply: query and save in one go (worker, workflow node,
+     * REST). An empty answer writes nothing.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array {message, attributes, objects, rejected}
+     */
+    public function aiExtractAndApply(array $user, $eventId)
+    {
+        $resolved = $this->aiExtractIndicators($user, $eventId);
+        if (empty($resolved['Attribute']) && empty($resolved['Object'])) {
+            return ['message' => '', 'attributes' => 0, 'objects' => 0, 'rejected' => count($resolved['rejected'])];
+        }
+        return $this->aiApplyExtraction($user, $eventId, $resolved);
+    }
+
+    /**
+     * A4 — background job when MISP.background_jobs is on (cake Event
+     * aiSummarize <user> extract <event> <job>), inline otherwise.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array {job_id} or the result of aiExtractAndApply()
+     */
+    public function aiExtractIndicatorsRouter(array $user, $eventId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_extract_indicators',
+                'Event: ' . (int)$eventId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'extract', (int)$eventId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->aiExtractAndApply($user, $eventId);
+    }
+
+    /**
+     * Counts of an extraction: attributes (plain and inside objects), objects
+     * and the candidates the module rejected. Pure.
+     *
+     * @param array $resolved {Attribute, Object, rejected}
+     * @return array {attributes, objects, rejected}
+     */
+    public static function aiExtractionCounts(array $resolved)
+    {
+        $attributes = isset($resolved['Attribute']) && is_array($resolved['Attribute']) ? count($resolved['Attribute']) : 0;
+        $objects = isset($resolved['Object']) && is_array($resolved['Object']) ? $resolved['Object'] : [];
+        foreach ($objects as $object) {
+            $attributes += isset($object['Attribute']) && is_array($object['Attribute']) ? count($object['Attribute']) : 0;
+        }
+        return [
+            'attributes' => $attributes,
+            'objects' => count($objects),
+            'rejected' => isset($resolved['rejected']) && is_array($resolved['rejected']) ? count($resolved['rejected']) : 0,
+        ];
+    }
+
+    /**
+     * The sentence a direct apply answers with: what the module added, what
+     * it dropped, and the saver's own report when something went wrong.
+     *
+     * @param array $result of aiExtractAndApply()
+     * @return string
+     */
+    public static function aiExtractionMessage(array $result)
+    {
+        $attributes = (int)($result['attributes'] ?? 0);
+        $objects = (int)($result['objects'] ?? 0);
+        $rejected = (int)($result['rejected'] ?? 0);
+        if ($attributes === 0 && $objects === 0) {
+            $message = __('The AI module found no new indicator in the event\'s reports.');
+        } else {
+            $message = __n('%s indicator added by the AI module', '%s indicators added by the AI module', $attributes, $attributes);
+            if ($objects) {
+                $message .= ' ' . __n('(%s object)', '(%s objects)', $objects, $objects);
+            }
+            $message .= '.';
+        }
+        if ($rejected) {
+            $message .= ' ' . __n('%s candidate rejected by the module.', '%s candidates rejected by the module.', $rejected, $rejected);
+        }
+        $saver = isset($result['message']) ? trim((string)$result['message']) : '';
+        if ($saver !== '' && stripos($saver, 'could not be saved') !== false) {
+            $message .= ' ' . $saver;
+        }
+        return $message;
+    }
+
+    /**
      * Summarise an event with the AI module: queued as a background job, or
      * run at once when background jobs are off.
      *
