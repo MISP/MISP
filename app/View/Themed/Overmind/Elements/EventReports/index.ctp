@@ -167,6 +167,20 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'label' => __('Summarise with AI'),
                         'title' => __('The AI module writes a summary of the event into a new report'),
                     ] : null,
+                    // A4: the module reads the reports and proposes attributes
+                    // and objects, reviewed in the modal before they are added.
+                    (!empty($event['Event']['id'])
+                        && Configure::read('Plugin.AI_services_enable')
+                        && $this->Acl->canAccess('events', 'aiExtractIndicators')
+                        && $this->Acl->canModifyEvent($event)) ? [
+                        'type' => 'button',
+                        'url' => $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'],
+                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'] . "', 'md');",
+                        'class' => 'btn btn-outline-primary',
+                        'icon' => 'fas fa-magnifying-glass me-1',
+                        'label' => __('Extract indicators with AI'),
+                        'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
+                    ] : null,
                     [
                         'type' => 'search',
                         'button' => 'Search',

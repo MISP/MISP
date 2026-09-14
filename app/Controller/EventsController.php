@@ -8368,6 +8368,13 @@ class EventsController extends AppController
                 'text' => __('Summarise event'),
                 'description' => __('The module writes a summary of the event into a new event report.'),
             ],
+            [
+                'id' => 'extract_indicators',
+                'url' => $this->baseurl . '/events/aiExtractIndicators/' . $event['Event']['id'],
+                'icon' => 'fas fa-magnifying-glass',
+                'text' => __('Extract indicators'),
+                'description' => __('The module reads the event reports and proposes attributes and objects; you review them before they are added.'),
+            ],
         ];
         if ($this->__canModifyTag($event)) {
             $actions[] = [

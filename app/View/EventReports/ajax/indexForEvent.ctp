@@ -55,6 +55,15 @@
                                     'class' => 'modal-open',
                                     'requirement' => $canModify && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiSummarize'),
                                 ),
+                                array(
+                                    'url' => $baseurl . '/events/aiExtractIndicators/' . h($event_id),
+                                    'active' => true,
+                                    'text' => __('Extract indicators with AI'),
+                                    'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
+                                    'fa-icon' => 'magnifying-glass',
+                                    'class' => 'modal-open',
+                                    'requirement' => $canModify && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiExtractIndicators'),
+                                ),
                             )
                         ),
                         array(
