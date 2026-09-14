@@ -94,6 +94,23 @@ class EventAiExtractionTest extends TestCase
         );
     }
 
+    public function testExtractionCommentsYieldTheReportUuidsTheyCite()
+    {
+        $a = '5e5da363-02d8-4fcc-a6a6-0bdb01fbd783';
+        $b = 'C8C3800D-B02B-4494-AAE4-E5C4F77B0542';
+        $uuids = Event::aiParseExtractedReportUuids([
+            "extracted by ai_connector from EventReport $a",
+            "extracted by ai_connector from EventReport $a, $b; defanged in source as hxxp://x",
+            "Extracted by AI_connector from EventReport $b",
+            "analyst note mentioning $a",
+            'extracted by ai_connector from EventReport',
+            42,
+            null,
+        ]);
+        $this->assertSame([$a, strtolower($b)], $uuids);
+        $this->assertSame([], Event::aiParseExtractedReportUuids([]));
+    }
+
     public function testTheSaverIsQuotedOnlyWhenSomethingCouldNotBeSaved()
     {
         $fine = Event::aiExtractionMessage(['attributes' => 2, 'objects' => 0, 'rejected' => 0, 'message' => '2 attributes created.']);

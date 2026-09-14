@@ -627,6 +627,44 @@ class TestAiUx(unittest.TestCase):
         self.assertEqual((1, 1), count_blocks(content))
         self.assertTrue(content.rstrip().endswith(original.rstrip()))
 
+    def test_10b_workflow_node_extracts_once(self):
+        # A fresh event with one report: the node adds the indicators the
+        # first time, and skips the report the second time without calling
+        # the module (its uuid is cited by the extraction comments).
+        event = rest_json(key, "POST", "events/add", {"info": "AI UX node extraction " + random(), "distribution": 0, "threat_level_id": 4, "analysis": 0})["Event"]
+        event_id = int(event["id"])
+        try:
+            rest_json(key, "POST", f"eventReports/add/{event_id}", {"name": "notes", "content": "acme-bank-secure.example and CVE-2026-12345", "distribution": 5})
+            payload = rest_json(key, "GET", f"events/view/{event_id}")
+            r = rest(key, "POST", "workflows/moduleStatelessExecution/ai-extract-indicators", {
+                "input_data": json.dumps(payload),
+                "module_indexed_param": {},
+                "convert_data": False,
+            })
+            if r.status_code == 404:
+                self.skipTest("workflow stateless execution not available: " + r.text[:200])
+            self.assertEqual(200, r.status_code, r.text[:300])
+            self.assertEqual("infoextraction", fake_last()["last"]["use_case"])
+            after = rest_json(key, "GET", f"events/view/{event_id}")["Event"]
+            self.assertEqual(2, len(after.get("Attribute", [])), after.get("Attribute"))
+            self.assertEqual(2, len(after.get("Object", [])), after.get("Object"))
+            for attribute in after["Attribute"]:
+                self.assertEqual(sorted(AI_TAGS), sorted(t["name"] for t in attribute.get("Tag", [])), attribute)
+            self.assertFalse(after["published"])
+
+            calls = fake_last()["count"]
+            payload = rest_json(key, "GET", f"events/view/{event_id}")
+            r = rest(key, "POST", "workflows/moduleStatelessExecution/ai-extract-indicators", {
+                "input_data": json.dumps(payload),
+                "module_indexed_param": {},
+                "convert_data": False,
+            })
+            self.assertEqual(200, r.status_code, r.text[:300])
+            self.assertEqual(calls, fake_last()["count"], "the report was extracted already: no module call")
+            self.assertEqual(2, len(rest_json(key, "GET", f"events/view/{event_id}")["Event"].get("Attribute", [])))
+        finally:
+            rest(key, "POST", f"events/delete/{event_id}")
+
 
 if __name__ == "__main__":
     unittest.main()

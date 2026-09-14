@@ -3441,10 +3441,12 @@ class Event extends AppModel
      *
      * @param array $user
      * @param int $eventId
+     * @param array|null $onlyReportUuids send only these reports (the workflow node's
+     *        loop guard); null sends every report the user may read
      * @return array {Event: {...}, Attribute: [...], Object: [...], rejected: [{type, value, reason}], metadata: [...]}
      * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception with a user-facing message
      */
-    public function aiExtractIndicators(array $user, $eventId)
+    public function aiExtractIndicators(array $user, $eventId, array $onlyReportUuids = null)
     {
         $event = $this->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
@@ -3458,11 +3460,18 @@ class Event extends AppModel
             throw new NotFoundException(__('Invalid event.'));
         }
         $reports = 0;
+        $kept = [];
         foreach (isset($data['Event']['EventReport']) ? $data['Event']['EventReport'] : [] as $report) {
-            if (empty($report['deleted'])) {
-                $reports++;
+            if (!empty($report['deleted'])) {
+                continue;
             }
+            if ($onlyReportUuids !== null && !in_array($report['uuid'] ?? '', $onlyReportUuids, true)) {
+                continue;
+            }
+            $kept[] = $report;
+            $reports++;
         }
+        $data['Event']['EventReport'] = $kept;
         if ($reports === 0) {
             // The module would answer nothing and still burn an LLM call.
             throw new MethodNotAllowedException(__('The event has no report to extract indicators from.'));
@@ -3518,11 +3527,12 @@ class Event extends AppModel
      *
      * @param array $user
      * @param int $eventId
+     * @param array|null $onlyReportUuids see aiExtractIndicators()
      * @return array {message, attributes, objects, rejected}
      */
-    public function aiExtractAndApply(array $user, $eventId)
+    public function aiExtractAndApply(array $user, $eventId, array $onlyReportUuids = null)
     {
-        $resolved = $this->aiExtractIndicators($user, $eventId);
+        $resolved = $this->aiExtractIndicators($user, $eventId, $onlyReportUuids);
         if (empty($resolved['Attribute']) && empty($resolved['Object'])) {
             return ['message' => '', 'attributes' => 0, 'objects' => 0, 'rejected' => count($resolved['rejected'])];
         }
@@ -3558,6 +3568,50 @@ class Event extends AppModel
             return ['job_id' => $jobId];
         }
         return $this->aiExtractAndApply($user, $eventId);
+    }
+
+    /**
+     * The report uuids named in extraction comments ("extracted by
+     * ai_connector from EventReport <uuid>[, <uuid>]…", whatever follows).
+     * Pure.
+     *
+     * @param array $comments attribute comments
+     * @return array unique uuids, lower-cased
+     */
+    public static function aiParseExtractedReportUuids(array $comments)
+    {
+        $uuids = [];
+        foreach ($comments as $comment) {
+            if (!is_string($comment) || stripos($comment, 'extracted by ai_connector from EventReport') !== 0) {
+                continue;
+            }
+            if (preg_match_all('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i', $comment, $matches)) {
+                foreach ($matches[0] as $uuid) {
+                    $uuids[strtolower($uuid)] = true;
+                }
+            }
+        }
+        return array_keys($uuids);
+    }
+
+    /**
+     * The reports of an event an extraction already ran on: every uuid an
+     * attribute comment of the event cites (the workflow node's loop guard).
+     *
+     * @param int $eventId
+     * @return array uuids
+     */
+    public function aiExtractedReportUuids($eventId)
+    {
+        $comments = $this->Attribute->find('column', [
+            'conditions' => [
+                'Attribute.event_id' => (int)$eventId,
+                'Attribute.deleted' => 0,
+                'Attribute.comment LIKE' => 'extracted by ai_connector from EventReport %',
+            ],
+            'fields' => ['Attribute.comment'],
+        ]);
+        return self::aiParseExtractedReportUuids($comments);
     }
 
     /**
