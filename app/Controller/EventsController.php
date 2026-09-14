@@ -8386,9 +8386,15 @@ class EventsController extends AppController
 
     /**
      * A4 — extract indicators from the event's reports with the AI module
-     * (use-case infoextraction). Over REST the extraction is applied
-     * directly (R2-D7): a job id when background jobs are on, the counts
-     * when it ran inline. The browser flow reviews first.
+     * (use-case infoextraction).
+     *
+     * Browser: GET renders the confirmation; the POST queries the module
+     * while the browser waits and renders the review screen import modules
+     * use (resolved_misp_format: a page in the legacy theme, the modal body
+     * for an AJAX caller in Overmind) — nothing is saved until that screen
+     * is submitted to handleModuleResults (R2-D1, R2-D6).
+     * REST: the POST applies the extraction directly (R2-D7): a job id when
+     * background jobs are on, the counts when it ran inline.
      */
     public function aiExtractIndicators($id)
     {
@@ -8403,23 +8409,75 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
         }
         $eventId = (int)$event['Event']['id'];
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        $this->loadModel('Module');
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+            }
+            $this->set('event', $event);
+            $this->set('reports', $this->Event->EventReport->find('count', [
+                'conditions' => ['EventReport.event_id' => $eventId, 'EventReport.deleted' => 0],
+            ]));
+            $this->set('minConfidence', $this->Module->aiSetting('min_confidence'));
+            $this->set('timeout', (int)$this->Module->aiSetting('timeout') ?: 300);
+            $this->layout = false;
+            return $this->render('ajax/aiExtractIndicatorsConfirmationForm');
         }
+        if ($this->_isRest()) {
+            try {
+                $result = $this->Event->aiExtractIndicatorsRouter($this->Auth->user(), $eventId);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), $this->response->type());
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI extraction job #%s queued — refresh the event when it completes.', $result['job_id']);
+            } else {
+                $message = Event::aiExtractionMessage($result);
+            }
+            return $this->RestResponse->viewData(
+                array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                $this->response->type()
+            );
+        }
+        // Browser: review first. The module is queried now; the review screen
+        // saves through handleModuleResults.
+        $isAjax = $this->request->is('ajax');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
         try {
-            $result = $this->Event->aiExtractIndicatorsRouter($this->Auth->user(), $eventId);
+            $resolved = $this->Event->aiExtractIndicators($this->Auth->user(), $eventId);
         } catch (Exception $e) {
-            return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), $this->response->type());
+            if ($isAjax) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), 'json');
+            }
+            $this->Flash->error($e->getMessage());
+            return $this->redirect(['action' => $viewAction, $eventId]);
         }
-        if (isset($result['job_id'])) {
-            $message = __('AI extraction job #%s queued — refresh the event when it completes.', $result['job_id']);
-        } else {
-            $message = Event::aiExtractionMessage($result);
+        $counts = Event::aiExtractionCounts($resolved);
+        $rejected = $resolved['rejected'];
+        unset($resolved['rejected'], $resolved['metadata']);
+        if ($counts['attributes'] === 0 && $counts['objects'] === 0 && !$isAjax) {
+            $this->Flash->info(Event::aiExtractionMessage($counts));
+            return $this->redirect(['action' => $viewAction, $eventId]);
         }
-        return $this->RestResponse->viewData(
-            array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
-            $this->response->type()
-        );
+        $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
+        $this->set('event', $resolved);
+        $this->set('distributions', $distributionData['levels']);
+        $this->set('sgs', $distributionData['sgs']);
+        $this->set('title', __('Extracted indicators'));
+        $this->set('title_for_layout', __('Extracted indicators'));
+        $this->set('importComment', 'extracted by ai_connector');
+        $this->set('menuItem', 'importResults');
+        $this->set('type', 'AI');
+        $this->set('model', 'Event');
+        $this->set('sourceId', $eventId);
+        $this->set('aiRejected', $rejected);
+        $this->set('emptyMessage', Event::aiExtractionMessage($counts));
+        if ($isAjax) {
+            $this->layout = false;
+        }
+        $this->render('resolved_misp_format');
     }
 
     /**
