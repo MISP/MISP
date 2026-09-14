@@ -15,7 +15,7 @@
 $threshold = ($minConfidence === null || $minConfidence === '') ? '0.9' : $minConfidence;
 $description = __('The AI module reads the report "%s" (#%s) and lists the indicators it finds with a confidence of %s or higher, each tagged ai-computer-assisted; the event\'s other reports are not sent.', h($report['EventReport']['name']), h($report['EventReport']['id']), h($threshold));
 $description .= ' ' . __('You review the list and untick anything wrong before it is added to event #%s; the event is unpublished when you import.', h($report['Event']['id']));
-$description .= ' ' . __('The module usually answers within a minute, at most %s s.', (int)$timeout);
+$description .= ' ' . __('The duration of the task is variable based on the model used and server utilisation, at most %s s.', (int)$timeout);
 echo $this->element('genericElements/Form/genericForm', array(
     'form' => $this->Form,
     'data' => array(

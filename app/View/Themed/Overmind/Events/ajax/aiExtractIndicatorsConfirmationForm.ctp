@@ -22,7 +22,7 @@ $message = __n(
     (int)$reports,
     h($threshold)
 );
-$warning = __('The module usually answers within a minute, at most %s s; the event is unpublished when you import.', (int)$timeout);
+$warning = __('The duration of the task is variable based on the model used and server utilisation answers within a minute, at most %s s; the event is unpublished when you import.', (int)$timeout);
 if ((int)$reports === 0) {
     $warning = __('This event has no report: nothing can be extracted.');
 }

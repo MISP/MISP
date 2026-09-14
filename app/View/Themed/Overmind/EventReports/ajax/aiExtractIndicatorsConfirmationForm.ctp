@@ -22,7 +22,7 @@ echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Extract indicators with AI'),
     'description' => __('The module reads this report and proposes attributes and objects for the event.'),
     'message' => __('The AI module reads the report "%s" and lists the indicators it finds with a confidence of %s or higher, each tagged ai-computer-assisted; the event\'s other reports are not sent. You review the list and remove anything wrong before it is added.', $report['EventReport']['name'], $threshold),
-    'warning' => __('The module usually answers within a minute, at most %s s; the event is unpublished when you import.', (int)$timeout),
+    'warning' => __('The duration of the task is variable based on the model used and server utilisation, at most %s s; the event is unpublished when you import.', (int)$timeout),
     'submitLabel' => __('Extract'),
     'submitIcon' => 'magnifying-glass',
     'icon' => 'fas fa-robot',

@@ -22,7 +22,7 @@ $description = __n(
     h($minConfidence === null || $minConfidence === '' ? '0.9' : $minConfidence)
 );
 $description .= ' ' . __('You review the list and untick anything wrong before it is added; the event is unpublished when you import.');
-$description .= ' ' . __('The module usually answers within a minute, at most %s s.', (int)$timeout);
+$description .= ' ' . __('The duration of the task is variable based on the model used and server utilisation, at most %s s.', (int)$timeout);
 if ((int)$reports === 0) {
     $description .= ' ' . __('This event has no report: nothing can be extracted.');
 }
