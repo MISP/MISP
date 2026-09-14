@@ -14,6 +14,10 @@
  *   $objectType      — the parent object's type (e.g. 'Note', 'Event')
  *   $objectUuid      — the parent object's uuid
  *   $showModalHeader — bool, draw the modal header strip + close button (default false)
+ *
+ * Every item leads with its distribution, as the icon-only shared badge, and a
+ * nested item carries a left rule in the accent of its own type so a thread
+ * reads by colour as well as by indent.
  */
 $showModalHeader = !empty($showModalHeader);
 
@@ -22,6 +26,31 @@ $opinions      = $analystData['Opinion'] ?? [];
 $relationships = $analystData['Relationship'] ?? [];
 $inbound       = $analystData['RelationshipInbound'] ?? [];
 $total = count($notes) + count($opinions) + count($relationships) + count($inbound);
+
+/*
+ * The accent an analyst-data type is drawn in, held as a scope name rather than
+ * a colour: the section label above a group and the left rule a nested card
+ * carries both read it from here, so the two cannot drift. ModalAccent turns
+ * the name into the colour expression and the text utility.
+ */
+$typeAccents = [
+    'Note'         => 'primary',
+    'Opinion'      => 'success',
+    'Relationship' => 'info',
+];
+$accentOf = function ($type) use ($typeAccents) {
+    return $this->ModalAccent->get($typeAccents[$type] ?? 'primary');
+};
+
+// The item's distribution, icon only, seated to the left of its content.
+$distBadge = function ($item) {
+    return '<span class="flex-shrink-0 d-inline-flex align-self-start">'
+        . $this->element('genericElementsBS5/Badges/distribution', [
+            'distribution' => $item['distribution'] ?? null,
+            'full' => false,
+        ])
+        . '</span>';
+};
 
 // Link to a referenced MISP object (analyst types open their own view).
 $objLink = function ($type, $uuid) use ($baseurl) {
@@ -109,12 +138,15 @@ $metaLine = function ($item) {
 
 // Renders a Note/Opinion item card, then recurses into the child notes/opinions
 // attached to it (analyst data on analyst data), indented under the parent.
-$renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemActions, $metaLine) {
+// $nested draws the left rule in the item's own accent
+$renderNode = function ($item, $type, $nested = false) use (&$renderNode, $opinionBadge, $itemActions, $metaLine, $distBadge, $accentOf) {
+    $cardAttrs = 'class="border rounded p-2 ov-ad-nested" style="--ov-ad-accent: ' . $accentOf($type)['colour'] . ';"';
     ob_start();
     ?>
-    <div class="border rounded p-2">
+    <div <?= $cardAttrs ?>>
         <?php if ($type === 'Opinion'): ?>
             <div class="d-flex align-items-center gap-2">
+                <?= $distBadge($item) ?>
                 <?= $opinionBadge($item['opinion'] ?? 0) ?>
                 <?= $itemActions($item, 'Opinion') ?>
             </div>
@@ -123,6 +155,7 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
             <?php endif; ?>
         <?php else: ?>
             <div class="d-flex align-items-start gap-2">
+                <?= $distBadge($item) ?>
                 <div class="flex-grow-1" style="white-space:pre-wrap;"><?= h($item['note'] ?? '') ?></div>
                 <?= $itemActions($item, 'Note') ?>
             </div>
@@ -132,9 +165,9 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         $childNotes    = $item['Note'] ?? [];
         $childOpinions = $item['Opinion'] ?? [];
         if (!empty($childNotes) || !empty($childOpinions)): ?>
-            <div class="mt-2 ms-3 ps-2 border-start d-flex flex-column gap-2">
-                <?php foreach ($childNotes as $cn) { echo $renderNode($cn, 'Note'); } ?>
-                <?php foreach ($childOpinions as $co) { echo $renderNode($co, 'Opinion'); } ?>
+            <div class="mt-2 ms-3 d-flex flex-column gap-2">
+                <?php foreach ($childNotes as $cn) { echo $renderNode($cn, 'Note', true); } ?>
+                <?php foreach ($childOpinions as $co) { echo $renderNode($co, 'Opinion', true); } ?>
             </div>
         <?php endif; ?>
     </div>
@@ -168,7 +201,7 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         <!-- ── NOTES ───────────────────────────────────────────── -->
         <?php if (!empty($notes)): ?>
             <div>
-                <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                <div class="<?= h($accentOf('Note')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= __('Notes') ?> (<?= count($notes) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
@@ -180,7 +213,7 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         <!-- ── OPINIONS ────────────────────────────────────────── -->
         <?php if (!empty($opinions)): ?>
             <div>
-                <div class="text-success fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                <div class="<?= h($accentOf('Opinion')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="misp-icon misp-icon-analyst-opinion misp-simple me-1"></i><?= __('Opinions') ?> (<?= count($opinions) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
@@ -192,13 +225,14 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         <!-- ── RELATIONSHIPS (outbound) ────────────────────────── -->
         <?php if (!empty($relationships)): ?>
             <div>
-                <div class="text-info fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Relationships') ?> (<?= count($relationships) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($relationships as $rel): ?>
                         <div class="border rounded p-2">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <?= $distBadge($rel) ?>
                                 <?php if (!empty($rel['relationship_type'])): ?>
                                     <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
                                         <?= h($rel['relationship_type']) ?>
@@ -212,9 +246,9 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
                             $relNotes    = $rel['Note'] ?? [];
                             $relOpinions = $rel['Opinion'] ?? [];
                             if (!empty($relNotes) || !empty($relOpinions)): ?>
-                                <div class="mt-2 ms-3 ps-2 border-start d-flex flex-column gap-2">
-                                    <?php foreach ($relNotes as $cn) { echo $renderNode($cn, 'Note'); } ?>
-                                    <?php foreach ($relOpinions as $co) { echo $renderNode($co, 'Opinion'); } ?>
+                                <div class="mt-2 ms-3 d-flex flex-column gap-2">
+                                    <?php foreach ($relNotes as $cn) { echo $renderNode($cn, 'Note', true); } ?>
+                                    <?php foreach ($relOpinions as $co) { echo $renderNode($co, 'Opinion', true); } ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -226,12 +260,13 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         <!-- ── RELATIONSHIPS (inbound) ─────────────────────────── -->
         <?php if (!empty($inbound)): ?>
             <div>
-                <div class="text-info fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Inbound relationships') ?> (<?= count($inbound) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($inbound as $rel): ?>
                         <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap">
+                            <?= $distBadge($rel) ?>
                             <?= $objLink($rel['object_type'] ?? '', $rel['object_uuid'] ?? '') ?>
                             <i class="fas fa-arrow-right text-muted"></i>
                             <?php if (!empty($rel['relationship_type'])): ?>

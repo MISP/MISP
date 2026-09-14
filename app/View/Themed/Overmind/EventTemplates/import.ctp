@@ -58,25 +58,13 @@ echo $this->Form->create('EventTemplate', [
 
         <!-- ── TEMPLATE DOCUMENT ───────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Template Document') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('json', [
-                'class' => 'form-control bg-light font-monospace',
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'json',
+                'label' => __('Template Document'),
                 'rows' => 14,
-                'style' => 'font-size:.8rem;',
-                'placeholder' => __(
-                    'Paste the event template export document here'
-                ),
-            ]) ?>
-            <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('The export document of any MISP instance running the same template schema.'),
+                'minHeight' => '280px',
+                'placeholder' => "{\n    \"EventTemplate\": {\n        \"name\": \"…\"\n    }\n}",
+                'hint' => __('The export document of any MISP instance running the same template schema — leave it empty to upload the file instead.'),
             ]) ?>
         </div>
 

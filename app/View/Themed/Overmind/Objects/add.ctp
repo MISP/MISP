@@ -49,8 +49,9 @@ $k = -1;
 ]) ?>
 
 <!-- ── ACCORDION WIZARD ─────────────────────────────────────── -->
-<div class="container-fluid px-4 py-3">
-    <div class="accordion" id="objectAccordion">
+<div class="container-fluid px-4 py-4">
+
+    <div class="accordion px-2" id="objectAccordion">
 
         <!-- ===== STEP 1 : TEMPLATE SELECTION ===== -->
         <div class="accordion-item border mb-2 rounded shadow-sm">
@@ -230,76 +231,20 @@ $k = -1;
                             <?php endif; ?>
                         </div>
 
-                        <!-- Distribution cards -->
-                        <?php
-                        $distIconMap = $this->DistributionLevel->all();
-                        $initDist = (int)$distributionData['initial'];
-                        ?>
+                        <!-- Distribution + sharing group -->
                         <div class="mb-3">
-                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                                 'accent' => 'object',
-                                'label' => __('Distribution'),
+                                'field' => 'Object.distribution',
+                                'id' => 'ObjectDistribution',
+                                'value' => $object['Object']['distribution']
+                                    ?? $distributionData['initial'],
+                                'selectAttrs' => [
+                                    'class' => 'Object_distribution_select',
+                                ],
+                                'sgId' => 'ObjectSharingGroup',
+                                'showSg' => true,
                             ]) ?>
-                            <?= $this->Form->select(
-                                'Object.distribution',
-                                $distributionData['levels'],
-                                [
-                                    'id'      => 'ObjectDistribution',
-                                    'class'   => 'Object_distribution_select',
-                                    'default' => $distributionData['initial'],
-                                    'style'   => 'display:none;',
-                                ]
-                            ) ?>
-                            <div class="row g-2" id="distCardRow">
-                                <?php foreach ($distributionData['levels'] as $level => $label):
-                                    $level = (int)$level;
-                                    $ic = $distIconMap[$level]
-                                        ?? ['bg' => '#f1f1f1', 'color' => '#333',
-                                            'icon' => 'fas fa-question'];
-                                    $sel = ($level === $initDist);
-                                    $bdr = $sel
-                                        ? 'border-color:var(--bs-object) !important;background:rgba(82,73,72,.08);'
-                                        : 'border-color:#d8dde3;';
-                                ?>
-                                <div class="col dist-card-col"
-                                     style="cursor:pointer;"
-                                     data-dist-value="<?= $level ?>">
-                                    <div class="border rounded p-2 d-flex flex-column align-items-center gap-1 h-100 text-center"
-                                         style="transition:border-color .15s,background .15s;
-                                                <?= $bdr ?>">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-1"
-                                              style="width:1.8rem;height:1.8rem;
-                                                     background:<?= h($ic['bg']) ?>;
-                                                     border:1px solid <?= h($ic['color']) ?>30;">
-                                            <i class="<?= h($ic['icon']) ?>"
-                                               style="color:<?= h($ic['color']) ?>;font-size:.7rem;"></i>
-                                        </span>
-                                        <span class="fw-bold lh-sm"
-                                              style="font-size:.68rem;color:var(--bs-body-color);">
-                                            <?= h($label) ?>
-                                        </span>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-
-                        <!-- Sharing Group (conditional) -->
-                        <div class="mb-3"
-                             id="objectSGWrapper"
-                             style="<?= ($initDist == 4) ? '' : 'display:none;' ?>">
-                            <?= $this->element('genericElementsBS5/Forms/section_label', [
-                                'accent' => 'object',
-                                'label' => __('Sharing Group'),
-                            ]) ?>
-                            <?= $this->Form->select(
-                                'Object.sharing_group_id',
-                                $distributionData['sgs'],
-                                [
-                                    'id'    => 'ObjectSharingGroup',
-                                    'class' => 'form-select',
-                                ]
-                            ) ?>
                         </div>
 
                         <!-- First Seen / Last Seen -->
@@ -620,27 +565,6 @@ $k = -1;
     /* ── Row enable/disable for initial rows ─────────────────── */
     var rows = <?= json_encode($row_list) ?>;
     rows.forEach(function (k) { window.overmindEnableObjectRow(k); });
-
-    /* ── Distribution cards ──────────────────────────────────── */
-    var objDistSel = document.getElementById('ObjectDistribution');
-    var sgWrapper  = document.getElementById('objectSGWrapper');
-
-    document.querySelectorAll('.dist-card-col').forEach(function (card) {
-        card.addEventListener('click', function () {
-            var val = card.dataset.distValue;
-            document.querySelectorAll('.dist-card-col > div').forEach(function (d) {
-                d.style.borderColor = '#d8dde3';
-                d.style.background  = '';
-            });
-            var inner = card.querySelector('div');
-            if (inner) {
-                inner.style.borderColor = 'var(--bs-object)';
-                inner.style.background  = 'rgba(82,73,72,.08)';
-            }
-            if (objDistSel) objDistSel.value = val;
-            if (sgWrapper) sgWrapper.style.display = (val == 4) ? '' : 'none';
-        });
-    });
 
     /* ── First / Last Seen picker → hidden input sync ─────────── */
     var firstPicker = document.getElementById('obj-first-seen-picker');
