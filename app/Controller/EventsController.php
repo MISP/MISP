@@ -8510,9 +8510,12 @@ class EventsController extends AppController
         $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
         @set_time_limit($timeout + 30);
         $rows = [];
+        $provenance = [];
         $error = null;
         try {
-            $rows = $this->Event->aiRecommendTags($this->Auth->user(), $eventId, $local);
+            $answer = $this->Event->aiRecommendTags($this->Auth->user(), $eventId, $local);
+            $rows = $answer['Tag'];
+            $provenance = $answer['provenance'];
         } catch (Exception $e) {
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
@@ -8524,10 +8527,12 @@ class EventsController extends AppController
                 'event_id' => $eventId,
                 'local' => $local,
                 'Tag' => $rows,
+                'provenance' => $provenance,
             ], $this->response->type());
         }
         $this->set('event', $event);
         $this->set('rows', $rows);
+        $this->set('provenance', $provenance);
         $this->set('local', $local);
         $this->set('error', $error);
         $this->set('canCreate', !empty($this->Auth->user('Role')['perm_tag_editor']));

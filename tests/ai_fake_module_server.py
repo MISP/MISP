@@ -21,7 +21,8 @@ LLM. Standard library only.
                                       an error — MISP must strip it first)
         tag_suggest                   results.Tag [{name}, ...] filtered by
                                       params.suggest_min_score and capped by
-                                      params.suggest_limit
+                                      params.suggest_limit, the two AI tags
+                                      appended when anything was suggested
         infoextraction                results.Attribute [...] and
                                       results.Object [...] (a file and a
                                       vulnerability object), every element
@@ -281,7 +282,8 @@ def answer(envelope):
     except (TypeError, ValueError):
         return {"error": "suggest_min_score / suggest_limit must be numbers."}
     tags = [{"name": name} for name, score in TAG_CANDIDATES if score >= min_score][:max(limit, 0)]
-    return {"results": {"Tag": tags}}
+    # the two AI tags follow a non-empty answer, as the module does
+    return {"results": {"Tag": tags + (ai_tags() if tags else [])}}
 
 
 class Handler(BaseHTTPRequestHandler):

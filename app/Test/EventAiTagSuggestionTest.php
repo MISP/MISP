@@ -292,4 +292,17 @@ class EventAiTagSuggestionTest extends TestCase
         $this->assertStringContainsString('local', $local);
         $this->assertSame('0 tags attached, 1 failed.', Event::aiTagResultMessage(['attached' => 0, 'failed' => 1, 'local' => true]), 'nothing landed: no local note');
     }
+
+    public function testTheMessageSaysWhenTheEventWasMarkedAsAiAssisted()
+    {
+        $result = ['attached' => 2, 'created' => 0, 'skipped' => 0, 'failed' => 0, 'local' => false,
+            'provenance' => ['attached' => ['a', 'b'], 'replaced' => [], 'skipped' => [], 'failed' => []]];
+        $this->assertSame('2 tags attached. The event is marked ai-computer-assisted.', Event::aiTagResultMessage($result));
+        $result['provenance'] = ['attached' => ['b'], 'replaced' => ['c'], 'skipped' => ['a'], 'failed' => []];
+        $this->assertSame('2 tags attached. The event is marked ai-computer-assisted. Replaced c.', Event::aiTagResultMessage($result));
+        $result['provenance'] = ['attached' => [], 'replaced' => [], 'skipped' => ['a', 'b'], 'failed' => []];
+        $this->assertSame('2 tags attached.', Event::aiTagResultMessage($result));
+        unset($result['provenance']);
+        $this->assertSame('2 tags attached.', Event::aiTagResultMessage($result));
+    }
 }

@@ -1598,7 +1598,7 @@ class ServersController extends AppController
      *
      * POST {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}
      * Answer: {"success": true, "event_id", "event_info", "use_case",
-     *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour}]}}
+     *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour, provenance}]}}
      */
     public function aiDryRun()
     {
@@ -1643,12 +1643,15 @@ class ServersController extends AppController
                 'conditions' => ['Tag.name' => $names],
                 'fields' => ['Tag.name', 'Tag.colour'],
             ]);
+            $provenance = array_map('mb_strtolower', Event::splitAiTagNames($names)['provenance']);
             $answer['Tag'] = [];
             foreach ($names as $name) {
                 $answer['Tag'][] = [
                     'name' => $name,
                     'exists' => isset($existing[$name]),
                     'colour' => $existing[$name] ?? null,
+                    // the ai-computer-assisted names are provenance, not a suggestion
+                    'provenance' => in_array(mb_strtolower($name), $provenance, true),
                 ];
             }
         } else {

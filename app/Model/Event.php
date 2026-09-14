@@ -3661,6 +3661,12 @@ class Event extends AppModel
         if (!empty($result['local']) && $attached) {
             $message .= ' ' . __('Attached as local tags: you cannot modify this event.');
         }
+        if (!empty($result['provenance']['attached'])) {
+            $message .= ' ' . __('The event is marked ai-computer-assisted.');
+        }
+        if (!empty($result['provenance']['replaced'])) {
+            $message .= ' ' . __('Replaced %s.', implode(', ', $result['provenance']['replaced']));
+        }
         return $message;
     }
 
@@ -3758,7 +3764,8 @@ class Event extends AppModel
      * @param array $user
      * @param int $eventId
      * @param bool $local whether an accept would attach local tags
-     * @return array see classifyAiTagSuggestions()
+     * @return array {Tag: rows of classifyAiTagSuggestions(), provenance: the
+     *         ai-computer-assisted names the module sent along}
      * @throws NotFoundException|Exception with a user-facing message
      */
     public function aiRecommendTags(array $user, $eventId, $local)
@@ -3773,15 +3780,15 @@ class Event extends AppModel
         }
         $this->Module = ClassRegistry::init('Module');
         $results = $this->Module->queryAI('tag_suggest', $data);
-        $names = [];
-        foreach ($results['Tag'] ?? [] as $tag) {
-            if (is_array($tag) && isset($tag['name']) && is_string($tag['name'])) {
-                $names[] = $tag['name'];
-            } elseif (is_string($tag)) {
-                $names[] = $tag;
-            }
-        }
-        return $this->aiClassifyTagNames($user, $event, $names, $local);
+        // The two ai-computer-assisted names the module appends to a
+        // non-empty answer are provenance, not suggestions: they are not
+        // offered as rows; aiAttachTags() puts them on when a suggestion
+        // is accepted.
+        $split = self::splitAiTagNames(isset($results['Tag']) && is_array($results['Tag']) ? $results['Tag'] : []);
+        return [
+            'Tag' => $this->aiClassifyTagNames($user, $event, $split['other'], $local),
+            'provenance' => $split['provenance'],
+        ];
     }
 
     /**
@@ -3804,7 +3811,11 @@ class Event extends AppModel
     {
         $eventId = (int)$event['Event']['id'];
         $local = (bool)$local;
-        $result = ['attached' => 0, 'created' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => [], 'local' => $local];
+        $provenance = ['attached' => [], 'replaced' => [], 'skipped' => [], 'failed' => []];
+        $result = ['attached' => 0, 'created' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => [], 'local' => $local, 'provenance' => $provenance];
+        // The provenance names are never suggestions (a client cannot pick
+        // them); they go on below, once a suggestion is attached.
+        $names = self::splitAiTagNames($names)['other'];
         $rows = $this->aiClassifyTagNames($user, $event, $names, $local);
         if (empty($rows)) {
             return $result;
@@ -3899,6 +3910,12 @@ class Event extends AppModel
                 sprintf('Attached%s tag (%s) "%s" to event (%s)', $local ? ' local' : '', $tagId, $name, $eventId),
                 sprintf('Event (%s) tagged as Tag (%s)%s', $eventId, $tagId, $local ? ' locally' : '')
             );
+        }
+        if ($result['attached'] > 0) {
+            // What the analyst accepted was AI-suggested: mark the event
+            // (Module::AI_PROVENANCE_TAGS, same locality as the suggestions).
+            App::uses('Module', 'Model');
+            $result['provenance'] = $this->aiAttachResultTags($user, $eventId, ['Tag' => Module::AI_PROVENANCE_TAGS], $local);
         }
         if ($unpublish) {
             $this->unpublishEvent($event);

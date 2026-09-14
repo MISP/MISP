@@ -213,6 +213,11 @@ class TestAiUx(unittest.TestCase):
                 found[wanted[tag["name"].lower()]] = int(tag["id"])
         return found
 
+    def __remove_provenance(self):
+        for tag in self.__event().get("Tag", []):
+            if tag["name"] in AI_TAGS:
+                rest_json(key, "POST", f"events/removeTag/{self.event_id}/{tag['id']}")
+
     @staticmethod
     def __provenance_on(event):
         return [t["name"] for t in event.get("Tag", []) if t["name"].lower().startswith("ai-computer-assisted:")]
@@ -314,6 +319,8 @@ class TestAiUx(unittest.TestCase):
         for row in body["result"]["Tag"]:
             self.assertIn("exists", row)
             self.assertTrue(row["name"])
+            self.assertEqual(row["name"] in AI_TAGS, row["provenance"], row)
+        self.assertEqual(2, sum(1 for row in body["result"]["Tag"] if row["provenance"]))
 
         after = self.__event()
         self.assertEqual(before["timestamp"], after["timestamp"])
@@ -383,6 +390,9 @@ class TestAiUx(unittest.TestCase):
     def test_05_recommend_tags_without_the_tag_editor_permission(self):
         body = rest_json(self.org_key, "GET", f"events/aiRecommendTags/{self.event_id}")
         self.assertFalse(body["local"], "the org user may modify the event: global tags")
+        # #11099: the AI names are provenance, reported apart, never a row to tick
+        self.assertEqual(sorted(AI_TAGS), sorted(body["provenance"]), body)
+        self.assertFalse([row for row in body["Tag"] if row["name"].lower().startswith("ai-computer-assisted:")], body["Tag"])
         unknown = [row for row in body["Tag"] if not row["exists"] and row["cluster_id"] is None and row["status"] != "present"]
         for row in unknown:
             self.assertEqual("needs_tag_editor", row["status"], row)
@@ -400,18 +410,26 @@ class TestAiUx(unittest.TestCase):
         self.assertTrue(body["local"], "no edit rights on another org's event: local tags")
         candidates = [row["name"] for row in body["Tag"] if row["selectable"] and row["cluster_id"] is None]
         self.assertTrue(candidates, body)
+        # the summaries marked the event globally; take that off so the local mark can be seen
+        self.__remove_provenance()
         before = self.__event()
         body = rest_json(self.host_key, "POST", f"events/aiRecommendTags/{self.event_id}", {"tags": candidates[:1]})
         self.assertEqual(1, body["attached"], body)
         self.assertTrue(body["local"])
         self.assertFalse(body["check_publish"])
         self.assertIn("local", body["success"])
+        self.assertEqual(sorted(AI_TAGS), sorted(body["provenance"]["attached"]), body["provenance"])
+        self.assertIn("ai-computer-assisted", body["success"])
         after = self.__event()
         self.assertEqual(before["timestamp"], after["timestamp"], "a local tag must not unpublish the event")
         local = [t for t in after.get("Tag", []) if t["name"].lower() == candidates[0].lower()]
         self.assertEqual(1, len(local), after.get("Tag"))
         self.assertTrue(local[0]["local"])
+        marks = [t for t in after.get("Tag", []) if t["name"] in AI_TAGS]
+        self.assertEqual(2, len(marks), after.get("Tag"))
+        self.assertTrue(all(t["local"] for t in marks), "the mark follows the locality of the suggestions")
         self.__remember_tags(rest_json(key, "GET", f"events/aiRecommendTags/{self.event_id}")["Tag"])
+        self.__remove_provenance()
 
     def test_07_recommend_tags_accept_creates_attaches_and_skips(self):
         body = rest_json(key, "GET", f"events/aiRecommendTags/{self.event_id}")
@@ -427,20 +445,25 @@ class TestAiUx(unittest.TestCase):
         new = [row["name"] for row in rows if row["selectable"] and not row["exists"]]
         self.assertTrue(names, rows)
 
-        body = rest_json(key, "POST", f"events/aiRecommendTags/{self.event_id}", {"tags": names})
+        body = rest_json(key, "POST", f"events/aiRecommendTags/{self.event_id}", {"tags": names + list(AI_TAGS)})
         self.assertTrue(body["saved"], body)
-        self.assertEqual(len(names), body["attached"], body)
+        self.assertEqual(len(names), body["attached"], "the provenance names in the payload are not suggestions")
         self.assertEqual(len(new), body["created"], body)
         self.assertEqual(0, body["failed"], body)
         self.assertTrue(body["check_publish"])
+        self.assertEqual(sorted(AI_TAGS), sorted(body["provenance"]["attached"]), body["provenance"])
         event = self.__event()
         on_event = {t["name"].lower() for t in event.get("Tag", [])}
         for name in names:
             self.assertIn(name.lower(), on_event)
+        marks = [t for t in event.get("Tag", []) if t["name"] in AI_TAGS]
+        self.assertEqual(2, len(marks), event.get("Tag"))
+        self.assertFalse(any(t["local"] for t in marks), "a global accept marks globally")
 
         again = rest_json(key, "POST", f"events/aiRecommendTags/{self.event_id}", {"tags": names})
         self.assertEqual(0, again["attached"], again)
         self.assertEqual(len(names), again["skipped"], again)
+        self.assertEqual([], again["provenance"]["attached"], "nothing accepted, nothing marked")
 
         rows = rest_json(key, "GET", f"events/aiRecommendTags/{self.event_id}")["Tag"]
         self.__remember_tags(rows)
@@ -455,6 +478,7 @@ class TestAiUx(unittest.TestCase):
         self.assertEqual(0, body["attached"], body)
         self.assertEqual(1, body["failed"], body)
         self.assertIn("cluster", body["errors"][ghost])
+        self.assertEqual([], body["provenance"]["attached"], "nothing accepted, nothing marked")
 
         # an empty selection is a failed save: MISP's saveFailResponse answers 403
         body = rest_json(key, "POST", f"events/aiRecommendTags/{self.event_id}", {"tags": []}, expect=403)
