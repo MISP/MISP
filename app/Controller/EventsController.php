@@ -8385,6 +8385,44 @@ class EventsController extends AppController
     }
 
     /**
+     * A4 — extract indicators from the event's reports with the AI module
+     * (use-case infoextraction). Over REST the extraction is applied
+     * directly (R2-D7): a job id when background jobs are on, the counts
+     * when it ran inline. The browser flow reviews first.
+     */
+    public function aiExtractIndicators($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $eventId = (int)$event['Event']['id'];
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+        }
+        try {
+            $result = $this->Event->aiExtractIndicatorsRouter($this->Auth->user(), $eventId);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), $this->response->type());
+        }
+        if (isset($result['job_id'])) {
+            $message = __('AI extraction job #%s queued — refresh the event when it completes.', $result['job_id']);
+        } else {
+            $message = Event::aiExtractionMessage($result);
+        }
+        return $this->RestResponse->viewData(
+            array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+            $this->response->type()
+        );
+    }
+
+    /**
      * Summarise an event with the AI module into a new event report.
      * GET renders the confirmation; POST queues the job, or runs it at once
      * when background jobs are off. REST answers with the job id.

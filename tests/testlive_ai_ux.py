@@ -524,6 +524,62 @@ class TestAiUx(unittest.TestCase):
             self.assertEqual(0, body["attached"], body)
             self.assertIn("exclusiv", body["errors"].get(other, ""), body)
 
+    # ---- A4 -----------------------------------------------------------------
+
+    def test_08b_extract_indicators_saves_directly_over_rest(self):
+        # The event has reports by now (the summaries). As the org user: may
+        # edit the event, may not create tags; background jobs are off.
+        before = self.__event()
+        body = rest_json(self.org_key, "POST", f"events/aiExtractIndicators/{self.event_id}")
+        self.assertTrue(body["saved"], body)
+        self.assertNotIn("job_id", body, "background jobs are off: applied at once")
+        self.assertEqual(5, body["attributes"], body)
+        self.assertEqual(2, body["objects"], body)
+        self.assertEqual(2, body["rejected"], body)
+        self.assertIn("5 indicators", body["success"])
+        last = fake_last()["last"]
+        self.assertEqual("infoextraction", last["use_case"])
+        self.assertIn("min_confidence", last["params"])
+        self.assertEqual(self.event_id, int(last["data"]["Event"]["id"]))
+
+        after = self.__event()
+        self.assertFalse(after["published"])
+        self.assertEqual(len(before.get("Attribute", [])) + 2, len(after.get("Attribute", [])))
+        by_value = {a["value"]: a for a in after.get("Attribute", [])}
+        for value in ("acme-bank-secure.example", "198.51.100.23"):
+            self.assertIn(value, by_value)
+            self.assertEqual(sorted(AI_TAGS), sorted(t["name"] for t in by_value[value].get("Tag", [])), by_value[value])
+            self.assertIn("extracted by ai_connector from EventReport", by_value[value]["comment"])
+        objects = {o["name"]: o for o in after.get("Object", [])}
+        self.assertIn("file", objects, after.get("Object"))
+        self.assertIn("vulnerability", objects, after.get("Object"))
+        self.assertEqual({"filename", "md5"}, {a["object_relation"] for a in objects["file"]["Attribute"]})
+        self.assertEqual(["CVE-2026-12345"], [a["value"] for a in objects["vulnerability"]["Attribute"]])
+        for name in ("file", "vulnerability"):
+            for attribute in objects[name]["Attribute"]:
+                self.assertEqual(sorted(AI_TAGS), sorted(t["name"] for t in attribute.get("Tag", [])), attribute)
+
+        # a second run adds nothing: the module deduplicates against the event
+        again = rest_json(self.org_key, "POST", f"events/aiExtractIndicators/{self.event_id}")
+        self.assertTrue(again["saved"], again)
+        self.assertEqual(0, again["attributes"], again)
+        self.assertIn("no new indicator", again["success"])
+        self.assertEqual(len(after.get("Attribute", [])), len(self.__event().get("Attribute", [])))
+
+        # no perm_ai_tools: refused
+        self.assertEqual(403, rest(self.reader_key, "POST", f"events/aiExtractIndicators/{self.event_id}").status_code)
+
+        # an event without a report is refused before the module is called
+        calls = fake_last()["count"]
+        bare = rest_json(self.org_key, "POST", "events/add", {"info": "AI UX bare " + random(), "distribution": 1, "threat_level_id": 4, "analysis": 0})["Event"]
+        try:
+            body = rest_json(self.org_key, "POST", f"events/aiExtractIndicators/{bare['id']}", expect=403)
+            self.assertFalse(body["saved"])
+            self.assertIn("no report", body["errors"])
+            self.assertEqual(calls, fake_last()["count"], "the module must not have been called")
+        finally:
+            rest(key, "POST", f"events/delete/{bare['id']}")
+
     # ---- ACL ----------------------------------------------------------------
 
     def test_09_acl(self):
