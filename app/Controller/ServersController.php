@@ -1592,13 +1592,19 @@ class ServersController extends AppController
     }
 
     /**
-     * Dry run of the AI module on one event, from the AI settings tab: run a
-     * use-case and hand the module's answer back. The event is only read,
-     * never modified.
+     * Dry run of the AI module from the AI settings tab: run a use-case and
+     * hand the module's answer back. An event is only read, never modified.
      *
      * POST {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}
      * Answer: {"success": true, "event_id", "event_info", "use_case",
      *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour, provenance}]}}
+     *
+     * POST {"use_case": "ping"} — no event: the module checks that the LLM
+     * endpoint is reachable and serves the configured model (the Test LLM
+     * button of the status card). A dead endpoint fails only after the
+     * module's own request timeout.
+     * Answer: {"success": true, "use_case": "ping",
+     *          "result": {ok, endpoint, model: {name, server, digest, quantization}, latency_ms, models_listed, tag_suggest: {url, reachable}}}
      */
     public function aiDryRun()
     {
@@ -1608,24 +1614,36 @@ class ServersController extends AppController
         $data = isset($this->request->data['Server']) ? $this->request->data['Server'] : $this->request->data;
         $eventId = isset($data['event_id']) ? (int)$data['event_id'] : 0;
         $useCase = isset($data['use_case']) ? (string)$data['use_case'] : '';
-        $useCases = ['summarization_on_event', 'tag_suggest'];
-        if ($eventId < 1 || !in_array($useCase, $useCases, true)) {
+        $useCases = ['summarization_on_event', 'tag_suggest', 'ping'];
+        if (!in_array($useCase, $useCases, true) || ($useCase !== 'ping' && $eventId < 1)) {
             return $this->RestResponse->saveFailResponse(
                 'Servers',
                 'aiDryRun',
                 false,
-                __('Expected {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}.'),
+                __('Expected {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"} or {"use_case": "ping"}.'),
                 $this->response->type()
             );
+        }
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        if ($useCase === 'ping') {
+            try {
+                $results = $this->Module->queryAI('ping', [], $timeout);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+            }
+            return $this->RestResponse->viewData([
+                'success' => true,
+                'use_case' => 'ping',
+                'result' => $results,
+            ], $this->response->type());
         }
         $this->loadModel('Event');
         $event = $this->Event->fetchEventForAi($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
-        $this->loadModel('Module');
-        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
-        @set_time_limit($timeout + 30);
         try {
             $results = $this->Module->queryAI($useCase, $event, $timeout);
         } catch (Exception $e) {

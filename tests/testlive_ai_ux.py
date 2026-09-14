@@ -327,6 +327,35 @@ class TestAiUx(unittest.TestCase):
         self.assertEqual(len(before.get("EventReport", [])), len(after.get("EventReport", [])))
         self.assertEqual(len(before.get("Tag", [])), len(after.get("Tag", [])))
 
+    def test_02b_ping_checks_the_endpoint_and_the_model(self):
+        body = rest_json(key, "POST", "servers/aiDryRun", {"use_case": "ping"})
+        self.assertTrue(body["success"], body)
+        self.assertEqual("ping", body["use_case"])
+        result = body["result"]
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(self.admin.get_server_setting("Plugin.AI_model_id")["value"], result["model"]["name"])
+        self.assertIn("latency_ms", result)
+        self.assertIn("models_listed", result)
+        self.assertTrue(result["tag_suggest"]["reachable"], result)
+        last = fake_last()["last"]
+        self.assertEqual("ping", last["use_case"])
+        self.assertNotIn("data", last, "a ping carries no event")
+        self.assertIn("model_id", last["params"])
+
+        # a model the endpoint does not serve is the module's error, passed through
+        model = self.admin.get_server_setting("Plugin.AI_model_id")["value"]
+        try:
+            self.__setting("Plugin.AI_model_id", "fake:unlisted")
+            body = rest_json(key, "POST", "servers/aiDryRun", {"use_case": "ping"}, expect=403)
+            self.assertFalse(body["saved"])
+            self.assertIn("not served", body["errors"])
+        finally:
+            self.__setting("Plugin.AI_model_id", model)
+
+        # an event use-case still needs an event id
+        body = rest_json(key, "POST", "servers/aiDryRun", {"use_case": "tag_suggest"}, expect=403)
+        self.assertFalse(body["saved"])
+
     # ---- A2 -----------------------------------------------------------------
 
     def test_03_summarise_event_adds_a_report(self):
