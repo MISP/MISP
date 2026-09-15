@@ -88,6 +88,9 @@ class TasksController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
+        if (!$this->_isHAPrimary()) {
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
+        }
 
         $task = $this->Task->find('first', array(
             'recursive' => -1,
@@ -133,6 +136,9 @@ class TasksController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
+        if (!$this->_isHAPrimary()) {
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
+        }
 
         $this->set('dropdownData', $this->__getDropdownData());
 
@@ -162,6 +168,9 @@ class TasksController extends AppController
     {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        if (!$this->_isHAPrimary()) {
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
 
         $this->set('dropdownData', $this->__getDropdownData());
@@ -257,6 +266,10 @@ class TasksController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
+        if (!$this->_isHAPrimary()) {
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
+        }
+
         $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -346,7 +359,9 @@ class TasksController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-
+        if (!$this->_isHAPrimary()) {
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
+        }
         $task = $this->Task->find('first', array(
             'recursive' => -1,
             'conditions' => array('Task.id' => $id)
