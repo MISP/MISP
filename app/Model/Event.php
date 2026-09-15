@@ -7962,16 +7962,23 @@ class Event extends AppModel
             if (!isset($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             }
-            $clusters = $this->GalaxyCluster->find('all', array(
+            // The latest version of every cluster, by tag name. This used to
+            // be a GROUP BY tag_name that also selected value and id, which
+            // MySQL tolerates (and answers with an arbitrary row per group)
+            // and PostgreSQL rejects. Ascending by version and letting the
+            // later row overwrite the earlier one is the same question asked
+            // portably, and it is what the old query was assumed to answer.
+            $clusters = array();
+            $allClusters = $this->GalaxyCluster->find('all', array(
                 'recursive' => -1,
-                'fields' => array(
-                    'GalaxyCluster.value',
-                    'MAX(GalaxyCluster.version)',
-                    'GalaxyCluster.tag_name',
-                    'GalaxyCluster.id'
-                ),
-                'group' => array('GalaxyCluster.tag_name')
+                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
             ));
+            foreach ($allClusters as $cluster) {
+                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
+            }
+            unset($allClusters);
+            $clusters = array_values($clusters);
             $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
                 'recursive' => -1,
                 'fields' => array('galaxy_cluster_id', 'value'),
