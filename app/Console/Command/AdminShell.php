@@ -1230,7 +1230,11 @@ class AdminShell extends AppShell
                     $this->out('  <warning>-- ' . $hint . '</warning>');
                 }
             }
-            if ($this->__hasDataStep($migration)) {
+            if ($this->__hasDataStep($migration, 'beforeUp')) {
+                $this->out();
+                $this->out('  <comment>' . __('This migration also has a beforeUp() data step, run before any of the SQL above and described by none of it.') . '</comment>');
+            }
+            if ($this->__hasDataStep($migration, 'afterUp')) {
                 $this->out();
                 $this->out('  <comment>' . __('This migration also has an afterUp() data step, which no SQL above describes.') . '</comment>');
             }
@@ -1248,11 +1252,12 @@ class AdminShell extends AppShell
      * whole of a schema-only migration, and only half of a data one.
      *
      * @param AbstractMigration $migration
+     * @param string $method 'beforeUp' or 'afterUp'
      * @return bool
      */
-    private function __hasDataStep(AbstractMigration $migration)
+    private function __hasDataStep(AbstractMigration $migration, $method)
     {
-        $declaring = (new ReflectionMethod($migration, 'afterUp'))->getDeclaringClass();
+        $declaring = (new ReflectionMethod($migration, $method))->getDeclaringClass();
         return $declaring->getName() !== 'AbstractMigration';
     }
 

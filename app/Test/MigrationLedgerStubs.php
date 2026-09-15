@@ -99,6 +99,49 @@ if (!class_exists('Migration_20260106_000000_not_a_subclass', false)) {
     }
 }
 
+if (!class_exists('Migration_20260107_000000_data_on_both_sides', false)) {
+    /**
+     * Records the order the manager calls its three parts in. up() declares
+     * nothing, so the real execute() can run it with no runner behind it.
+     */
+    class Migration_20260107_000000_data_on_both_sides extends AbstractMigration
+    {
+        public $description = 'Data work before and after an empty up()';
+
+        /** @var array The parts called, in order. */
+        public static $calls = array();
+
+        /** @var bool|Exception What beforeUp() answers, or throws. */
+        public static $beforeUpOutcome = true;
+
+        public static function reset($beforeUpOutcome = true)
+        {
+            self::$calls = array();
+            self::$beforeUpOutcome = $beforeUpOutcome;
+        }
+
+        public function beforeUp()
+        {
+            self::$calls[] = 'beforeUp';
+            if (self::$beforeUpOutcome instanceof Exception) {
+                throw self::$beforeUpOutcome;
+            }
+            return self::$beforeUpOutcome;
+        }
+
+        public function up(SchemaBuilder $schema)
+        {
+            self::$calls[] = 'up';
+        }
+
+        public function afterUp()
+        {
+            self::$calls[] = 'afterUp';
+            return true;
+        }
+    }
+}
+
 // -------- the manager, with its I/O in memory --------
 
 if (!class_exists('TestMigrationManager', false)) {
@@ -223,6 +266,23 @@ if (!class_exists('SchemaRenderingMigrationManager', false)) {
         protected function dataSource()
         {
             return $this->db;
+        }
+    }
+}
+
+if (!class_exists('ExecutingMigrationManager', false)) {
+    /**
+     * Runs the real execute() - the one that orders beforeUp(), up() and
+     * afterUp() and turns a refusal into a failed row - over the connectionless
+     * datasource. Only a migration whose up() declares nothing can go through
+     * it, since there is no runner behind the statements.
+     */
+    class ExecutingMigrationManager extends SchemaRenderingMigrationManager
+    {
+        protected function execute($id, AbstractMigration $migration)
+        {
+            $this->executed[] = $id;
+            return MigrationManager::execute($id, $migration);
         }
     }
 }

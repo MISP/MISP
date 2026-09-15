@@ -56,6 +56,20 @@ class {{class}} extends AbstractMigration
     }
 
     /**
+     * Data work the DDL above cannot proceed without - rows that would violate
+     * a constraint up() is about to add, for instance. Same rules as afterUp();
+     * returning false halts the run before any statement has been issued.
+     *
+     * Delete this method unless the DDL depends on it.
+     *
+     * @return bool
+     */
+    public function beforeUp()
+    {
+        return true;
+    }
+
+    /**
      * Data work, run once every statement up() declared has landed.
      *
      * Go through models - a save() or updateAll() is portable where

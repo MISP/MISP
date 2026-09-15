@@ -67,13 +67,15 @@ them chronologically, which is how pending migrations are ordered.
 `migrationCreate` derives the id from the current time and the slug you give it;
 slugs are `[A-Za-z0-9_]+` because the slug ends up inside a class name.
 
-A migration has two halves, both optional:
+A migration has three parts, all optional:
 
 ```php
 class Migration_20260901_120000_probe_shares extends AbstractMigration
 {
     public $description = 'One line, shown by migrationStatus';
     public $requiresLogout = false;
+
+    public function beforeUp() { /* PHP data work the DDL depends on */ return true; }
 
     public function up(SchemaBuilder $schema) { /* DDL */ }
 
@@ -87,6 +89,14 @@ rows, regenerating correlations, backfilling a column. Returning `false` from it
 marks the migration **failed**, exactly as a broken statement does: a migration
 is one unit, and a seeding step that could not finish must not be recorded as
 done.
+
+`beforeUp()` runs first, for the data work the DDL cannot proceed without:
+merging the rows a unique index about to be added would refuse, filling in the
+nulls a `NOT NULL` would trip over. Same contract as `afterUp()` — returning
+`false` or throwing marks the migration failed and halts the run — with the
+difference that nothing has been issued yet, so a failure there leaves the
+schema exactly as it was. Anything that can wait until the DDL has landed
+belongs in `afterUp()`.
 
 `requiresLogout` carries the meaning the old `DB_CHANGES` value had. Set it if
 the change touches a table the session data is built from.
@@ -143,7 +153,8 @@ free — CakePHP's Postgres driver simply declares no such parameters. An index
 **prefix length** is different in kind: dropping it changes what the index
 indexes, so it is logged rather than vanishing. `--dry-run` prints all of these.
 
-**Data changes go through models, in `afterUp()`, never as DML.** A
+**Data changes go through models, in `beforeUp()` and `afterUp()`, never as
+DML.** A
 `save()`/`updateAll()` is portable by construction where a hand-written `INSERT`
 is not, and the entire historic corpus contains 34 data statements, so nothing is
 lost by declining to abstract them.
@@ -171,8 +182,8 @@ dry run also prints:
 
 - dropped hints, as SQL comments under the flavour that dropped them;
 - `No schema changes.` for a data-only migration;
-- a note when the migration carries an `afterUp()`, because otherwise "no schema
-  changes" reads as "does nothing";
+- a note when the migration carries a `beforeUp()` or an `afterUp()`, because
+  otherwise "no schema changes" reads as "does nothing";
 - a hard error for a `rawSql()` that does not cover every flavour.
 
 With no `--id`, it renders every pending migration.
@@ -193,6 +204,11 @@ A `rawSql()` missing the flavour being rendered is a **hard error**, not a skip.
 A migration that quietly does nothing on one engine leaves that engine's schema
 behind the code that expects it, which is the failure this whole subsystem exists
 to end.
+
+An explicit empty list is not a missing flavour. `'pgsql' => []` says, in so many
+words, that PostgreSQL has nothing to run at this point — the spelling for a MySQL
+storage option (`ROW_FORMAT`, an `ENGINE` change) that the other engine has no
+counterpart to, or the mirror image — and it renders as no statement at all.
 
 Reach for it when the DSL genuinely cannot express the change — not when
 expressing it is inconvenient. Every `rawSql()` is a place a future engine has to
@@ -245,8 +261,8 @@ public function up(SchemaBuilder $schema)
 }
 ```
 
-A one-statement migration needs none of that. `afterUp()` is yours to guard the
-same way, through the models it writes with.
+A one-statement migration needs none of that. `beforeUp()` and `afterUp()` are
+yours to guard the same way, through the models they write with.
 
 `migrationApply --id` on a migration already recorded as applied does nothing and
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,

@@ -205,6 +205,58 @@ class MigrationManagerTest extends TestCase
         $this->assertGreaterThan(1, $manager->ledgerReads);
     }
 
+    // ------------------------------------------------------------ beforeUp()
+
+    private function executing()
+    {
+        return new ExecutingMigrationManager(array('Migration_20260107_000000_data_on_both_sides.php'));
+    }
+
+    public function testBeforeUpRunsFirstAndAfterUpLast()
+    {
+        Migration_20260107_000000_data_on_both_sides::reset();
+        $manager = $this->executing();
+
+        $this->assertTrue($manager->apply('20260107_000000_data_on_both_sides'));
+        $this->assertSame(
+            array('beforeUp', 'up', 'afterUp'),
+            Migration_20260107_000000_data_on_both_sides::$calls
+        );
+    }
+
+    /**
+     * A beforeUp() that could not put the rows right stops the migration
+     * before any DDL is even rendered: the schema is left exactly as it was,
+     * and the ledger says why.
+     */
+    public function testABeforeUpReportingFailureHaltsBeforeTheDdl()
+    {
+        Migration_20260107_000000_data_on_both_sides::reset(false);
+        $manager = $this->executing();
+
+        $this->assertFalse($manager->apply('20260107_000000_data_on_both_sides'));
+        $this->assertSame(array('beforeUp'), Migration_20260107_000000_data_on_both_sides::$calls);
+
+        $row = $manager->ledger();
+        $row = $row['20260107_000000_data_on_both_sides'];
+        $this->assertSame(MigrationManager::STATUS_FAILED, $row['status']);
+        $this->assertSame('beforeUp() reported failure.', $row['error']);
+    }
+
+    public function testAnExceptionOutOfBeforeUpIsAFailureNotACrash()
+    {
+        Migration_20260107_000000_data_on_both_sides::reset(new RuntimeException('the rows could not be merged'));
+        $manager = $this->executing();
+
+        $this->assertFalse($manager->apply('20260107_000000_data_on_both_sides'));
+        $this->assertSame(array('beforeUp'), Migration_20260107_000000_data_on_both_sides::$calls);
+
+        $row = $manager->ledger();
+        $row = $row['20260107_000000_data_on_both_sides'];
+        $this->assertSame(MigrationManager::STATUS_FAILED, $row['status']);
+        $this->assertSame('the rows could not be merged', $row['error']);
+    }
+
     // ------------------------------------------------------------- rendering
 
     public function testUpIsRenderedThroughTheGrammarWithoutExecutingAnything()

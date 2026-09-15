@@ -6,12 +6,13 @@ App::uses('SchemaInspector', 'Migration');
 /**
  * The base class every migration under app/Lib/Migration/Migrations/ extends.
  *
- * A migration has two halves, both optional. up() declares DDL against the
+ * A migration has three parts, all optional. up() declares DDL against the
  * flavour-agnostic SchemaBuilder; afterUp() runs PHP data work once that DDL has
- * landed. Splitting them this way is what lets the updateMISP()-style cases -
- * seeding rows, regenerating correlations, anything that needs models rather
- * than SQL - be expressed natively instead of living in a second switch
- * statement beside the first one.
+ * landed; beforeUp() runs the PHP data work the DDL cannot proceed without.
+ * Splitting them this way is what lets the updateMISP()-style cases - seeding
+ * rows, regenerating correlations, anything that needs models rather than SQL -
+ * be expressed natively instead of living in a second switch statement beside
+ * the first one.
  *
  *     class Migration_20260826_120000_event_templates_exposed extends AbstractMigration
  *     {
@@ -41,8 +42,8 @@ App::uses('SchemaInspector', 'Migration');
  *
  * ## Data changes go through models
  *
- * afterUp() should reach for ClassRegistry::init() and save()/updateAll(), not
- * hand-written DML. A Cake write is portable by construction where an INSERT
+ * beforeUp() and afterUp() should reach for ClassRegistry::init() and
+ * save()/updateAll(), not hand-written DML. A Cake write is portable by construction where an INSERT
  * spelled out by hand is not, and nothing in the historic corpus suggests the
  * expressiveness is missed.
  *
@@ -133,6 +134,27 @@ abstract class AbstractMigration
             ));
         }
         return $this->schemaInspector;
+    }
+
+    /**
+     * PHP data work that has to happen before up()'s statements run.
+     *
+     * The case this exists for is a constraint the current rows would violate:
+     * a unique index over a column that still holds duplicates, a NOT NULL
+     * over a column with nulls in it. The rows are put right here, through
+     * models, and the DDL that follows then applies cleanly. Anything that can
+     * wait until the DDL has landed belongs in afterUp() instead.
+     *
+     * Same contract as afterUp(): runs once, and returning false or throwing
+     * marks the migration failed and halts the run - here before any statement
+     * has been issued. The inspector is available, so the work can be guarded
+     * the way the DDL is, and a retry finds nothing left to do.
+     *
+     * @return bool
+     */
+    public function beforeUp()
+    {
+        return true;
     }
 
     /**

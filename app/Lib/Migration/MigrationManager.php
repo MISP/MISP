@@ -506,6 +506,13 @@ class MigrationManager
     {
         $schema = SchemaBuilder::forDataSource($this->dataSource());
         $migration->setSchemaInspector($this->inspector());
+        // The data work the DDL depends on comes first, and a failure there
+        // stops everything: no statement runs against rows the migration could
+        // not put right.
+        if ($migration->beforeUp() === false) {
+            $this->lastError = __('beforeUp() reported failure.');
+            return false;
+        }
         $migration->up($schema);
         $statements = $schema->toSql();
         $this->reportDroppedHints($id, $schema->getGrammar()->takeDroppedHints());

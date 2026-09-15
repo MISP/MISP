@@ -198,6 +198,21 @@ class SchemaBuilderTest extends TestCase
         );
     }
 
+    /**
+     * An empty list is not a missing flavour. It says, in so many words, that
+     * this engine has nothing to run here - the spelling for a MySQL storage
+     * option that PostgreSQL has no counterpart to, or the mirror image - and
+     * it renders as no statement at all rather than as an empty one.
+     */
+    public function testRawSqlWithAnEmptyListForAFlavourIsAnExplicitNoOp()
+    {
+        $schema = $this->mysql();
+        $schema->rawSql(array('mysql' => 'ALTER TABLE `tags` ROW_FORMAT=DYNAMIC;', 'pgsql' => array()));
+
+        $this->assertSame(array('ALTER TABLE `tags` ROW_FORMAT=DYNAMIC;'), $schema->toSql());
+        $this->assertSame(array(), $schema->toSql($this->pgsqlGrammar));
+    }
+
     public function testRawSqlInterleavesWithDeclaredOperations()
     {
         $schema = $this->mysql();
