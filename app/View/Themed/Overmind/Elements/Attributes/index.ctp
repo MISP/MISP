@@ -274,7 +274,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
@@ -284,7 +284,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add opinion'),
-                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
+                'icon' => 'text-success misp-icon misp-icon-analyst-opinion misp-simple',
                 'url' => $baseurl . '/analystData/add/Opinion/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
@@ -294,7 +294,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add relationship'),
-                'icon' => 'diagram-project',
+                'icon' => 'text-correlation fas fa-diagram-project',
                 'url' => $baseurl . '/analystData/add/Relationship/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
