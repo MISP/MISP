@@ -674,6 +674,11 @@ class MispObject extends AppModel
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        // MySQL hands an object's attributes back in
+                        // primary-key order off the object_id index without
+                        // being asked; PostgreSQL must be asked, or an edited
+                        // attribute moves to the end of the list.
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -697,6 +702,7 @@ class MispObject extends AppModel
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'

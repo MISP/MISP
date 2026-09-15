@@ -1947,7 +1947,12 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $fields,
             'recursive' => -1,
-            'order' => ['Attribute.' . $sort => $direction],
+            // The id as a tiebreaker: attributes saved in the same second
+            // share a timestamp, and without it PostgreSQL returns them in
+            // whatever physical order they happen to have - which changes
+            // when a row is updated - where MySQL happens to keep insertion
+            // order. Callers and tests read attributes[0] as "the first one".
+            'order' => ['Attribute.' . $sort => $direction, 'Attribute.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2401,7 +2406,7 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $objectFields,
             'recursive' => -1,
-            'order' => ['Object.' . $sort => $direction],
+            'order' => ['Object.' . $sort => $direction, 'Object.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2479,7 +2484,7 @@ class Event extends AppModel
             'conditions' => $attrConditions,
             'fields' => $attrFields,
             'recursive' => -1,
-            'order' => ['Attribute.object_relation' => 'ASC'],
+            'order' => ['Attribute.object_relation' => 'ASC', 'Attribute.id' => 'ASC'],
         ]);
 
         // Collect attribute IDs and group by object
@@ -2900,6 +2905,28 @@ class Event extends AppModel
     // to: date string (YYYY-MM-DD)
     // includeAllTags: true will include the tags that are marked as non-exportable
     // includeAttachments: true will attach the attachments to the attributes in the data field
+    /**
+     * The order an event's children are fetched in: none on MySQL, by id on
+     * anything else.
+     *
+     * The containment below deliberately asks for no order, and on MySQL
+     * that has always meant insertion order anyway: InnoDB answers a
+     * `WHERE event_id IN (...)` off the event_id index, which holds the rows
+     * of one event in primary-key order, and an updated row stays where it
+     * was. PostgreSQL returns a heap in physical order, which is insertion
+     * order until a row is updated and then moves that row to the end - so
+     * attributes[0] stops meaning "the first one" the moment any of them is
+     * edited. Asking PostgreSQL for the id order gives what MySQL gives for
+     * free; asking MySQL for it would add a sort it does not need.
+     *
+     * @param string $alias
+     * @return string|false
+     */
+    private function childOrder($alias)
+    {
+        return $this->isMysql() ? false : $alias . '.id ASC';
+    }
+
     public function fetchEvent($user, $options = array(), $useCache = false)
     {
         if (!isset($user['org_id'])) {
@@ -3154,24 +3181,24 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false
+                    'order' => $this->childOrder('Attribute'),
                 ),
                 'Object' => array(
                     'conditions' => $conditionsObjects,
-                    'order' => false,
+                    'order' => $this->childOrder('Object'),
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
                     'conditions' => $proposal_conditions,
                     'Org' => array('fields' => $fieldsOrg),
-                    'order' => false
+                    'order' => $this->childOrder('ShadowAttribute'),
                 ),
                 'EventTag' => array(
-                    'order' => false
+                    'order' => $this->childOrder('EventTag'),
                 ),
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
-                    'order' => false,
+                    'order' => $this->childOrder('EventReport'),
                     'EventReportTag',
                 ),
                 'CryptographicKey'
