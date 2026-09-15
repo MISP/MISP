@@ -141,7 +141,14 @@ class WorkflowsController extends AppController
 
     public function rebuildRedis()
     {
+        $this->request->allowMethod(['post']);
         $this->Workflow->rebuildRedis();
+        $message = __('Workflow Redis cache rebuilt.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Workflow', 'rebuildRedis', false, $this->response->type(), $message);
+        }
+        $this->Flash->success($message);
+        $this->redirect(['controller' => 'workflows', 'action' => 'index']);
     }
 
     public function add()
@@ -555,7 +562,11 @@ class WorkflowsController extends AppController
         $mispModules = $this->Module->getModules('Action');
         $this->set('module_service_error', !is_array($mispModules));
         $filters = $this->IndexFilter->harvestParameters(['type', 'actiontype', 'enabled', 'quickFilter']);
-        $moduleType = $filters['type'] ?? 'action';
+        if ($this->theme === 'Overmind') {
+            $moduleType = $filters['type'] ?? 'all';
+        } else {
+            $moduleType = $filters['type'] ?? 'action';
+        }
         $actionType = $filters['actiontype'] ?? 'all';
         $enabledState = $filters['enabled'] ?? false;
         if ($moduleType == 'all' || $moduleType == 'custom') {

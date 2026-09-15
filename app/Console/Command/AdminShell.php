@@ -285,7 +285,13 @@ class AdminShell extends AppShell
         $email = $this->args[0];
         $ip = empty($this->args[1]) ? null : $this->args[1];
         $jobId = empty($this->args[2]) ? null : $this->args[2];
-        $this->User->forgot($email, $ip, $jobId);
+        // User::forgot() takes two arguments; the job id is this shell's to
+        // resolve, exactly as every other job* method in this file does.
+        $this->User->forgot($email, $ip);
+        // Uniform whatever forgot() returned. Recording the hit or miss here
+        // would put an account-enumeration answer in the jobs table, which is
+        // the same reason forgotRouter() queues before it looks anybody up.
+        $this->Job->saveStatus($jobId, true, __('Password reset request processed.'));
     }
 
     public function jobGenerateCorrelation()
@@ -821,7 +827,7 @@ class AdminShell extends AppShell
             $this->error(__('Setting change rejected.'), $message);
         }
 
-        // Convert value to boolean or to int
+        // Convert value to boolean, int or float
         if ($value !== null) {
             if ($setting['type'] === 'boolean') {
                 $value = $this->toBoolean($value);
@@ -833,6 +839,11 @@ class AdminShell extends AppShell
                 } else {
                     $this->error(__('Setting "%s" change rejected.', $settingName), __('Provided value %s is not a number.', $value));
                 }
+            } else if ($setting['type'] === 'float') {
+                if (!is_numeric($value)) {
+                    $this->error(__('Setting "%s" change rejected.', $settingName), __('Provided value %s is not a number.', $value));
+                }
+                $value = (float)$value;
             }
         }
 

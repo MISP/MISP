@@ -2479,7 +2479,7 @@ trait LegacyMigrationsTrait
                 $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_key` TEXT NOT NULL";
                 break;
             case 141:
-                $sqlArray[] = "CREATE TABLE `scheduled_tasks` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(100) NOT NULL, `timer` INT(11) NOT NULL, `last_job_id` INT(11) DEFAULT NULL, `description` VARCHAR(255) NOT NULL, `next_execution_time` INT(11) NOT NULL, `message` VARCHAR(255) NOT NULL, `user_id` INT(11) NOT NULL, `action` VARCHAR(40) NOT NULL, `params` VARCHAR(255) DEFAULT NULL, `enabled` TINYINT(1) DEFAULT 0, `last_run_at` INT(11) DEFAULT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(100) NOT NULL, `timer` INT(11) NOT NULL, `last_job_id` INT(11) DEFAULT NULL, `description` VARCHAR(255) NOT NULL, `next_execution_time` INT(11) NOT NULL, `message` VARCHAR(255) NOT NULL, `user_id` INT(11) NOT NULL, `action` VARCHAR(40) NOT NULL, `params` VARCHAR(255) DEFAULT NULL, `enabled` TINYINT(1) DEFAULT 0, `last_run_at` INT(11) DEFAULT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 $this->cleanCacheFiles();
                 break;
             case 142:
@@ -2548,7 +2548,7 @@ trait LegacyMigrationsTrait
                 break;
             case 148:
                 $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_root` VARCHAR(1024);";
-                $sqlArray[] = "UPDATE `taxii_servers` SET `api_root` = CONCAT(TRIM(TRAILING \"/\" FROM baseurl)),\"/\",api_root);";
+                $sqlArray[] = "UPDATE `taxii_servers` SET `api_root` = CONCAT(TRIM(TRAILING \"/\" FROM baseurl),\"/\",api_root);";
                 $sqlArray[] = "ALTER TABLE `taxii_servers` RENAME COLUMN `baseurl` TO `discovery_url`;";
                 $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `discovery_url` VARCHAR(512);";
                 $sqlArray[] = "UPDATE `taxii_servers` SET `discovery_url` = CONCAT(TRIM(TRAILING \"/\" FROM discovery_url),\"/taxii2/\");";

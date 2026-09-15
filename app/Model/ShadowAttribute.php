@@ -997,7 +997,7 @@ class ShadowAttribute extends AppModel
             $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
             $this->Log->create();
             $this->Log->saveOrFailSilently(array(
-                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
                 'email' => $user['email'],
@@ -1032,7 +1032,7 @@ class ShadowAttribute extends AppModel
             }
             $this->Log->create();
             $this->Log->saveOrFailSilently(array(
-                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
                 'email' => $user['email'],

@@ -147,20 +147,25 @@ class TaxiiServersController extends AppController
         } else {
             $discovery_url = $this->request->data['discovery_url'];
 
-            // 1. Strict Protocol Validation
-            if (!preg_match('/^https?:\/\//i', $discovery_url)) {
+            // Scheme, host and resolved address are checked by the shared
+            // validator. POLICY_DENY_LOOPBACK keeps this action's existing
+            // intent - loopback and cloud metadata refused, RFC1918 left
+            // reachable, because a TAXII server on an internal host is an
+            // ordinary site-admin deployment rather than an attack.
+            //
+            // The check it replaces resolved with gethostbyname and compared
+            // against three literal values, so it refused 127.x, exactly
+            // 169.254.169.254 and 0.0.0.0 and nothing else. It missed IPv6
+            // entirely - [::1] walked straight through - took only the first
+            // A record of a multi-record name, and let numeric host encodings
+            // such as 0x7f000001 past, which curl resolves to 127.0.0.1.
+            App::uses('UrlEgressValidator', 'Tools');
+            try {
+                UrlEgressValidator::validate($discovery_url, UrlEgressValidator::POLICY_DENY_LOOPBACK);
+            } catch (InvalidArgumentException $e) {
                 return $this->RestResponse->saveFailResponse(
-                    'TaxiiServers', 'getRoot', null, __('Invalid URL scheme. Only HTTP and HTTPS are supported.'), $this->response->type()
+                    'TaxiiServers', 'getRoot', null, $e->getMessage(), $this->response->type()
                 );
-            }
-
-            // 2. Host Resolution and Banned IP Checking (Loopback & Metadata)
-            $host = parse_url($discovery_url, PHP_URL_HOST);
-            if ($host) {
-                $resolvedIp = gethostbyname($host);
-                if (strpos($resolvedIp, '127.') === 0 || $resolvedIp === '169.254.169.254' || $resolvedIp === '0.0.0.0') {
-                    throw new ForbiddenException(__('The provided discovery URL points to a restricted network block.'));
-                }
             }
 
             App::uses('HttpSocket', 'Network/Http');

@@ -25,25 +25,13 @@ echo $this->Form->create('UserSetting', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--bs-primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('User settings') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $settingDisabled ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $settingDisabled ? __('Edit user setting') : __('Set user setting') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Store a per-user preference (dashboard, homepage, alert filters, UI theme…).') ?>
-        </p>
-    </div>
-    <i class="fas fa-sliders text-primary" style="font-size:2rem; opacity:.4;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('User settings'),
+    'title' => $settingDisabled ? __('Edit user setting') : __('Set user setting'),
+    'description' => __('Store a per-user preference (dashboard, homepage, alert filters, UI theme…).'),
+    'icon' => 'fas fa-sliders',
+    'isEdit' => $settingDisabled,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -79,13 +67,20 @@ echo $this->Form->create('UserSetting', [
         </div>
 
         <!-- VALUE (free text) -->
+        <?php
+        /* Only the settings with no `options` land here, and every one of them
+         * validates as JSON (validate_json, validate_homepage,
+         * validate_event_index_hide_columns) — a constrained setting is the
+         * select below instead. The placeholder is rewritten per setting by
+         * the script at the bottom. */
+        ?>
         <div class="col-12 us-value-wrap<?= $hasValueSelect ? ' d-none' : '' ?>">
-            <?= $this->Form->label('value', __('Value'), ['class' => 'form-label fw-semibold']) ?>
-            <?= $this->Form->textarea('value', [
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'value',
+                'label' => __('Value'),
                 'id' => 'UserSettingValue',
-                'class' => 'form-control font-monospace',
                 'rows' => 6,
-                'required' => false,
+                'minHeight' => '150px',
             ]) ?>
         </div>
 
@@ -112,22 +107,11 @@ echo $this->Form->create('UserSetting', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center mt-4 pt-3 gap-2"
-         style="border-top:1px solid var(--bs-border-color);">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-        </button>
-        <?= $this->Form->button(
-            '<i class="fas fa-check me-1"></i> ' . __('Submit'),
-            [
-                'class' => 'btn btn-primary btn-sm',
-                'escapeTitle' => false,
-                'title' => __('Submit'),
-                'aria-label' => __('Submit'),
-            ]
-        ) ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'align' => 'end',
+        'cancel' => ['label' => __('Cancel')],
+        'submit' => ['label' => __('Submit'), 'icon' => 'fas fa-check'],
+    ]) ?>
 </div>
 
 <?= $this->Form->end(); ?>

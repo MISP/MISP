@@ -435,9 +435,10 @@ class Sighting extends AppModel
     /**
      * @param array $user
      * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
+     * @param array $reporterCache isReporter results keyed by event ID, shared across chunks
      * @return array
      */
-    private function createConditionsByAttributes(array $user, array $attributes)
+    private function createConditionsByAttributes(array $user, array $attributes, array &$reporterCache = [])
     {
         $sightingsPolicy = $this->sightingsPolicy();
 
@@ -461,23 +462,52 @@ class Sighting extends AppModel
             }
         }
 
-        // Create conditions for merged attributes
+        // Create conditions for merged attributes. Under every policy the per event conditions collapse to at most
+        // two distinct shapes (no org filter for own events, one fixed org filter for foreign events), so group the
+        // attribute IDs by shape instead of emitting one `OR` branch per event - a chunk spanning thousands of events
+        // would otherwise produce thousands of `OR` branches, which is much slower than a single large `IN` list.
         $hostOrgId = Configure::read('MISP.host_org_id');
-        $conditions = [];
+        $unfilteredIds = []; // attribute IDs that need no org filter
+        $orgFilteredIds = []; // attribute IDs that need the org filter below
+        $orgFilter = null;
         foreach ($attributesByEventId as $eventId => $eventAttributes) {
-            $attributeConditions = ['Sighting.attribute_id' => $eventAttributes['ids']];
+            $filtered = false;
             if (!$eventAttributes['ownEvent']) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                    $attributeConditions['Sighting.org_id'] = $userOrgId;
+                    $orgFilter = $userOrgId;
+                    $filtered = true;
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($eventId, $userOrgId)) {
+                    if (!isset($reporterCache[$eventId])) {
+                        $reporterCache[$eventId] = $this->isReporter($eventId, $userOrgId);
+                    }
+                    if (!$reporterCache[$eventId]) {
                         continue; // skip event
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                    $attributeConditions['Sighting.org_id'] = [$userOrgId, $hostOrgId];
+                    $orgFilter = [$userOrgId, $hostOrgId];
+                    $filtered = true;
                 }
             }
-            $conditions['OR'][] = $attributeConditions;
+            if ($filtered) {
+                foreach ($eventAttributes['ids'] as $id) {
+                    $orgFilteredIds[] = $id;
+                }
+            } else {
+                foreach ($eventAttributes['ids'] as $id) {
+                    $unfilteredIds[] = $id;
+                }
+            }
+        }
+
+        $conditions = [];
+        if (!empty($unfilteredIds)) {
+            $conditions['OR'][] = ['Sighting.attribute_id' => $unfilteredIds];
+        }
+        if (!empty($orgFilteredIds)) {
+            $conditions['OR'][] = [
+                'Sighting.attribute_id' => $orgFilteredIds,
+                'Sighting.org_id' => $orgFilter,
+            ];
         }
         return $conditions;
     }
@@ -730,6 +760,56 @@ class Sighting extends AppModel
             }
             $conditions['Sighting.uuid >'] = $uuids[$count - 1];
         }
+    }
+
+    /**
+     * Bulk variant of `attachToEvent` for a whole batch of attributes. Instead of running two queries per attribute,
+     * sightings for all provided attributes are fetched with a few grouped queries.
+     *
+     * @param array $attributes Attributes with `Attribute.id`, `Attribute.uuid`, `Event.id` and `Event.org_id` fields
+     * @param array $user
+     * @param bool $forSync
+     * @return array Sightings grouped by attribute ID
+     */
+    public function attachToAttributes(array $attributes, array $user, $forSync = false)
+    {
+        if (empty($attributes)) {
+            return [];
+        }
+
+        $attributeUuids = [];
+        foreach ($attributes as $attribute) {
+            $attributeUuids[$attribute['Attribute']['id']] = $attribute['Attribute']['uuid'];
+        }
+
+        $sightings = [];
+        $reporterCache = []; // memoize isReporter per event ID across chunks
+        // Chunk attributes to keep the generated `IN` conditions reasonably sized
+        foreach (array_chunk($attributes, 5000) as $chunk) {
+            $conditions = $this->createConditionsByAttributes($user, $chunk, $reporterCache);
+            if (empty($conditions)) {
+                continue; // user is not allowed to see any sighting for this chunk
+            }
+            $chunkSightings = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+            ]);
+            foreach ($chunkSightings as $sighting) {
+                $sighting['Sighting']['attribute_uuid'] = $attributeUuids[$sighting['Sighting']['attribute_id']];
+                $sightings[] = $sighting;
+            }
+        }
+        if (empty($sightings)) {
+            return [];
+        }
+
+        $sightings = $this->attachOrgToSightings($sightings, $user, $forSync);
+
+        $grouped = [];
+        foreach ($sightings as $sighting) {
+            $grouped[$sighting['attribute_id']][] = $sighting;
+        }
+        return $grouped;
     }
 
     /**

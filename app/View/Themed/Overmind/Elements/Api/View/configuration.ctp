@@ -133,19 +133,15 @@
 </div>
 
 <div class="mb-4">
-    <label class="form-label fw-bold">
-        <?= __('Body') ?>
-    </label>
-
-    <?php
-        echo $this->Form->input('body', [
-            'type' => 'textarea',
-            'label' => false,
-            'class' => 'form-control',
-            'rows' => 8,
-            'id' => 'server-body'
-        ]);
-    ?>
+    <?= $this->element('genericElementsBS5/Forms/json_field', [
+        'field' => 'body',
+        'label' => __('Body'),
+        'id' => 'server-body',
+        'rows' => 8,
+        'minHeight' => '200px',
+        'emptyLabel' => __('No body'),
+        'hint' => __('The request body — a GET needs none.'),
+    ]) ?>
 
     <div id="template_description" class="alert alert-danger mt-3" style="display:none;">
          <?= __('⚠️ Fill out the JSON template above, make sure to replace all placeholder values. Fields with the value "optional" can be removed.') ?>

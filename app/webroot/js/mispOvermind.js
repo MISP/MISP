@@ -49,6 +49,28 @@ function showToast(message, variant = 'success') {
 }
 
 /*******************************
+ * Size the shared #mainModal dialog.
+ *
+ * Bootstrap ships four widths but only three classes: 'md' IS the class-less
+ * default (500px), so a medium modal is obtained by removing every size class,
+ * never by adding one. `modal-md` is in the remove list because the theme used
+ * to add it — it never had any CSS, so it silently meant 500px, but it stuck to
+ * the dialog for every later open.
+ *
+ *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *******************************/
+function setModalSize(size, dialog) {
+    dialog = dialog || document.querySelector('#mainModal .modal-dialog');
+    if (!dialog) {
+        return;
+    }
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    if (size && size !== 'md') {
+        dialog.classList.add('modal-' + size);
+    }
+}
+
+/*******************************
  * Confirmation modal (inline — no AJAX)
  *
  * opts:
@@ -57,7 +79,7 @@ function showToast(message, variant = 'success') {
  *   confirmLabel  (string)   — confirm button text
  *   confirmClass  (string)   — Bootstrap btn class, default 'btn-primary'
  *   cancelLabel   (string)   — cancel button text, default 'Cancel'
- *   size          (string)   — modal size suffix: 'sm'|'lg'|'xl', default 'sm'
+ *   size          (string)   — see setModalSize: 'sm'|'md'|'lg'|'xl', default 'md'
  *   onConfirm     (function) — called after the user confirms
  *******************************/
 function showConfirmModal(opts) {
@@ -65,7 +87,7 @@ function showConfirmModal(opts) {
     const modalBody = document.getElementById('mainModalBody');
     if (!modalEl || !modalBody) return;
 
-    const size         = opts.size         || 'sm';
+    const size         = opts.size         || 'md';
     const confirmClass = opts.confirmClass || 'btn-primary';
     const confirmLabel = opts.confirmLabel || 'Confirm';
     const cancelLabel  = opts.cancelLabel  || 'Cancel';
@@ -86,9 +108,7 @@ function showConfirmModal(opts) {
             '</div>' +
         '</div>';
 
-    const dialog = modalEl.querySelector('.modal-dialog');
-    dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    dialog.classList.add('modal-' + size);
+    setModalSize(size, modalEl.querySelector('.modal-dialog'));
 
     const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
     bsModal.show();
@@ -111,11 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Index Filtering Bar
  *******************************/
 function openModal(url, size = 'xl') {
-    const modalDialog = document.querySelector('#mainModal .modal-dialog');
-    modalDialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-    if (size) {
-        modalDialog.classList.add('modal-' + size);
-    }
+    setModalSize(size);
 
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
@@ -136,6 +152,9 @@ function openModal(url, size = 'xl') {
             });
 
             initTomSelect(container);
+            initChoiceFields(container);
+            initJsonFields(container);
+            initPgpKeyLookup(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
             initServerForm(container);
@@ -359,6 +378,15 @@ function renderMainModalContent(html) {
     if (typeof initTomSelect === 'function') {
         initTomSelect(container);
     }
+    if (typeof initChoiceFields === 'function') {
+        initChoiceFields(container);
+    }
+    if (typeof initJsonFields === 'function') {
+        initJsonFields(container);
+    }
+    if (typeof initPgpKeyLookup === 'function') {
+        initPgpKeyLookup(container);
+    }
 }
 
 // POST `body` to `url` and render the HTML response into #mainModal, chaining
@@ -367,11 +395,7 @@ function openModalPostChained(url, body, size = 'xl') {
     const el = document.getElementById('mainModal');
     const inst = el ? bootstrap.Modal.getInstance(el) : null;
     const run = () => {
-        const dialog = el.querySelector('.modal-dialog');
-        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
-        if (size) {
-            dialog.classList.add('modal-' + size);
-        }
+        setModalSize(size, el.querySelector('.modal-dialog'));
         fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(response => response.text())
             .then(html => {
@@ -391,7 +415,7 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
-function multiSelectItems(url, suffixe, size = 'sm') {
+function multiSelectItems(url, suffixe, size = 'md') {
     if (selectedItems.size === 0) {
         return;
     }
@@ -437,11 +461,27 @@ function isMobile() {
     return window.innerWidth < 1000;
 }
 
-function setView(view, save = true) {
-    const tableView = document.getElementById('tableView');
-    const cardView  = document.getElementById('cardView');
-    const viewList  = document.getElementById('viewList');
-    const viewCard  = document.getElementById('viewCard');
+function animateIndexView(el) {
+    if (!el) return;
+    el.classList.remove('idx-view-anim');
+    void el.offsetWidth;
+    el.classList.add('idx-view-anim');
+}
+
+/**
+ * Switch an index between its table and card views.
+ *
+ * `scope` exists because an index can be rendered inside an ajax tab, where
+ * several #tableView/#cardView pairs share the document and getElementById
+ * would always answer with the first one.
+ */
+function setView(view, save = true, scope = document) {
+    const tableView = scope.querySelector('#tableView');
+    const cardView  = scope.querySelector('#cardView');
+    const viewList  = scope.querySelector('#viewList');
+    const viewCard  = scope.querySelector('#viewCard');
+    // Only a deliberate toggle launches the animation
+    if (save) animateIndexView(view === 'card' ? cardView : tableView);
     if (view === 'card') {
         tableView?.classList.add('d-none');
         cardView?.classList.remove('d-none');
@@ -608,7 +648,7 @@ function buildFilterUrl() {
         const name  = el.getAttribute('name');
         const value = el.value;
         if (!name) return;
-        if (value !== '') filters[name] = value;
+        if (value !== '') filters[name] = encodeURIComponent(value);
         else delete filters[name];
     });
 
@@ -647,7 +687,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
-    document.querySelectorAll('.topbar-filter').forEach(el => {
+    // [data-manual] filters (free-text value_match inputs) are applied by their
+    // own button/Enter handler in filter_bar.ctp, never on change.
+    document.querySelectorAll('.topbar-filter:not([data-manual])').forEach(el => {
         el.addEventListener('change', () => {
             window.location.href = buildFilterUrl();
         });
@@ -689,55 +731,83 @@ function toggleTags(badge) {
     badge.textContent = isHidden ? '−' : '+' + hiddenTags.length;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.body.addEventListener('click', async function(e) {
+/**
+ * Favourite toggle on a tag badge's star.
+ *
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.addEventListener('click', async function (e) {
         const starIcon = e.target.closest('.tag-star');
+        if (!starIcon) { return; }
 
-        if (starIcon) {
-            e.preventDefault();
-            e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
 
-            const tagId = starIcon.getAttribute('data-id');
-            const wasFavourite = starIcon.classList.contains('fas');
-            starIcon.classList.toggle('fas');
-            starIcon.classList.toggle('far');
+        // A second click while the first is in flight would post a stale form
+        // and race the two responses onto the same icon.
+        if (starIcon.dataset.busy === '1') { return; }
+        starIcon.dataset.busy = '1';
 
-            const formData = new URLSearchParams();
-            formData.append('data[FavouriteTag][data]', tagId);
+        const root = (typeof baseurl !== 'undefined' ? baseurl : '');
+        const tagId = starIcon.getAttribute('data-id');
+        const label = tagLabel(starIcon);
+        const wasFavourite = starIcon.classList.contains('fas');
+        setStar(starIcon, !wasFavourite);
 
-            try {
-                const url = (typeof baseurl !== 'undefined' ? baseurl : '') + '/favourite_tags/toggle';
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json'
-                    },
-                    body: formData
-                });
+        try {
+            const formResponse = await fetch(root + '/favourite_tags/getToggleField', {
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            if (!formResponse.ok) { throw new Error('HTTP ' + formResponse.status); }
 
-                const result = await response.json();
+            const form = new DOMParser()
+                .parseFromString(await formResponse.text(), 'text/html')
+                .querySelector('form');
+            if (!form) { throw new Error('no toggle form in the response'); }
 
-                if (!result.saved) {
-                    revertStar(starIcon, wasFavourite);
-                    console.error('Erreur lors du changement de favori:', result.fails);
-                }
-            } catch (error) {
-                revertStar(starIcon, wasFavourite);
-                console.error('Erreur réseau lors de la mise à jour du favori:', error);
+            const formData = new FormData(form);
+            formData.set('data[FavouriteTag][data]', tagId);
+
+            const response = await fetch(form.getAttribute('action') || root + '/favourite_tags/toggle', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams(formData)
+            });
+
+            const result = await response.json().catch(function () { return {}; });
+            if (!result.saved) {
+                throw new Error(result.fails || result.message || 'HTTP ' + response.status);
             }
+            showToast(wasFavourite
+                ? label + ' removed from your favourites.'
+                : label + ' added to your favourites.', 'success');
+        } catch (error) {
+            setStar(starIcon, wasFavourite);
+            showToast(wasFavourite
+                ? 'Could not remove ' + label + ' from your favourites.'
+                : 'Could not add ' + label + ' to your favourites.', 'danger');
+            console.error('Favourite tag toggle failed:', error);
+        } finally {
+            delete starIcon.dataset.busy;
         }
     });
 
-    function revertStar(element, shouldBeFavourite) {
-        if (shouldBeFavourite) {
-            element.classList.add('fas text-warning');
-            element.classList.remove('far text-muted');
-        } else {
-            element.classList.add('far text-muted');
-            element.classList.remove('fas text-warning');
-        }
+    function tagLabel(starIcon) {
+        const badge = starIcon.parentElement
+            ? starIcon.parentElement.querySelector('.badge')
+            : null;
+        const name = badge ? badge.textContent.trim() : '';
+        return name === '' ? 'Tag' : escapeHtml(name);
+    }
+
+    function setStar(element, isFavourite) {
+        element.classList.toggle('fas', isFavourite);
+        element.classList.toggle('far', !isFavourite);
     }
 });
 
@@ -807,7 +877,26 @@ function testSyncRule(id, method) {
 }
 
 
-function testConnection(id) {
+/*
+ * The two remote probes below are shared by the servers table view and the
+ * servers card view. The table renders `connection_test_<id>` /
+ * `sync_user_test_<id>` containers, the card view draws its own panels, and
+ * both views live in the DOM at once — so a caller can hand over its own
+ * container rather than fight over duplicate ids.
+ */
+function resolveServerTestContainer(target, fallbackId) {
+    if (target && target.nodeType === 1) return target;
+    if (typeof target === 'string' && target) return document.getElementById(target);
+    return document.getElementById(fallbackId);
+}
+
+// Both probes announce their outcome so a view can dress itself around the
+// result (the card view flips its header badge and tint on this).
+function announceServerTest(name, detail) {
+    document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+}
+
+function testConnection(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -817,15 +906,16 @@ function testConnection(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("connection_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "connection_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
 
     resultContainer.innerHTML = '<span class="text-muted">' +
         '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
         '</span>';
+    announceServerTest('misp:server-connection', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/testConnection/' + id)
+    return fetch(baseurl + '/servers/testConnection/' + id)
         .then(response => response.json())
         .then(function(result) {
 
@@ -970,14 +1060,20 @@ function testConnection(id) {
             }
 
             resultContainer.innerHTML = html;
+            announceServerTest('misp:server-connection', {
+                id: id,
+                state: result.status === 1 ? 'ok' : 'down',
+                status: result.status
+            });
         })
         .catch(function() {
             resultContainer.innerHTML = '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-connection', { id: id, state: 'down' });
         });
 }
 
 
-function getRemoteSyncUser(id) {
+function getRemoteSyncUser(id, target) {
     function esc(input) {
         return String(input === null || input === undefined ? '' : input)
             .replace(/&/g, '&amp;')
@@ -987,11 +1083,12 @@ function getRemoteSyncUser(id) {
             .replace(/'/g, '&#039;');
     }
 
-    var container = document.getElementById("sync_user_test_" + id);
-    if (!container) return;
+    var container = resolveServerTestContainer(target, "sync_user_test_" + id);
+    if (!container) return Promise.resolve();
     var resultContainer = container.querySelector('.server-action-result') || container;
+    announceServerTest('misp:server-sync-user', { id: id, state: 'running' });
 
-    fetch(baseurl + '/servers/getRemoteUser/' + id)
+    return fetch(baseurl + '/servers/getRemoteUser/' + id)
         .then(function(response) {
             resultContainer.innerHTML = '<span class="text-muted">' +
                 '<i class="fas fa-spinner fa-spin me-1"></i>Running test...' +
@@ -1004,11 +1101,14 @@ function getRemoteSyncUser(id) {
             if (typeof response !== 'object' || response === null) {
                 resultContainer.innerHTML =
                     '<span class="text-danger fw-semibold">Internal error</span>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else if ("error" in response) {
                 resultContainer.innerHTML =
                     '<div class="text-danger fw-semibold">Error: #' +
                     esc(response.error) + '</div>';
+                announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
             } else {
+                announceServerTest('misp:server-sync-user', { id: id, state: 'ok' });
                 var wrapper = document.createElement('div');
                 wrapper.className = 'border rounded p-2 bg-light';
                 Object.keys(response).forEach(function(key) {
@@ -1025,6 +1125,7 @@ function getRemoteSyncUser(id) {
         .catch(function() {
             resultContainer.innerHTML =
                 '<span class="text-danger fw-semibold">Internal error</span>';
+            announceServerTest('misp:server-sync-user', { id: id, state: 'down' });
         });
 }
 
@@ -1173,7 +1274,7 @@ async function submitEventTemplatesLibraryUpdate() {
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
             method: 'POST',
-            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '')},
             cache: 'no-cache',
         });
         if (!response.ok) throw response;
@@ -1200,8 +1301,19 @@ async function submitEventTemplatesLibraryUpdate() {
     }
 }
 
+/**
+ * Turn every `.tom-select` in `container` into a TomSelect. Safe to call more
+ * than once on the same scope — which happens routinely (a modal body, an
+ * ajax fragment, and initChoiceCards' sharing-group reveal all call it).
+ *
+ * The selector is qualified by tag on purpose: TomSelect copies the source
+ * element's class list onto the `.ts-wrapper` div it builds, so a bare
+ * `.tom-select` query matches twice per control after the first pass — and the
+ * wrapper carries no `.tomselect` back-reference, so it slips past the guard
+ * below and `new TomSelect(div)` throws on `e.value.trim()`.
+ */
 function initTomSelect(container) {
-    container.querySelectorAll('.tom-select').forEach(el => {
+    container.querySelectorAll('select.tom-select').forEach(el => {
         if (el.tomselect) return;
 
         const config = {
@@ -1249,6 +1361,121 @@ function toggleSecret(fieldId, btn) {
         icon.classList.replace('fa-eye-slash', 'fa-eye');
         btn.classList.remove('text-primary');
     }
+}
+
+/*******************************
+ * PGP key lookup on the CIRCL key server, for the user forms.
+ *
+ * The form only describes where the pieces are:
+ *   [data-pgp-lookup]   the button
+ *   [data-pgp-email]    the email input the search runs on
+ *   [data-pgp-target]   the textarea the chosen key lands in
+ *   [data-pgp-results]  the panel the result list is dropped into
+ *
+ * `users/searchGpgKey` answers with Users/ajax/fetchpgpkey (the themed
+ * fragment), so the rows arrive ready to display and are only read back for
+ * their `data-pgp-fingerprint`; `users/fetchGpgKey` then answers with the
+ * armoured key itself. Both are gated server-side on
+ * GnuPG.key_fetching_disabled, and a 403 is reported as such rather than
+ * swallowed.
+ *******************************/
+function initPgpKeyLookup(container) {
+    const root = container || document;
+    const button = root.querySelector('[data-pgp-lookup]');
+    if (!button || button.dataset.pgpBound) return;
+    button.dataset.pgpBound = '1';
+
+    const email = root.querySelector('[data-pgp-email]');
+    const target = root.querySelector('[data-pgp-target]');
+    const panel = root.querySelector('[data-pgp-results]');
+    if (!email || !target || !panel) return;
+
+    const label = button.innerHTML;
+    const base = (typeof baseurl === 'string') ? baseurl : '';
+
+    function busy(on) {
+        button.disabled = on || email.value.trim() === '';
+        button.innerHTML = on
+            ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + button.dataset.pgpBusyLabel
+            : label;
+    }
+
+    function notice(variant, icon, message) {
+        panel.innerHTML = '<div class="alert alert-' + variant + ' d-flex align-items-start gap-2 mb-0 py-2"'
+            + ' style="font-size:.8rem;"><i class="fas ' + icon + ' mt-1"></i><div>' + escapeHtml(message) + '</div></div>';
+        panel.classList.remove('d-none');
+    }
+
+    function clear() {
+        panel.innerHTML = '';
+        panel.classList.add('d-none');
+    }
+
+    // The button is only ever as usable as the email field it searches on.
+    email.addEventListener('input', function () { busy(false); });
+    busy(false);
+
+    button.addEventListener('click', function () {
+        const address = email.value.trim();
+        if (address === '') return;
+        clear();
+        busy(true);
+        fetch(base + '/users/searchGpgKey/' + encodeURIComponent(address), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (response) {
+            return response.text().then(function (body) {
+                return { status: response.status, body: body };
+            });
+        })
+        .then(function (result) {
+            if (result.status === 403) {
+                notice('secondary', 'fa-ban', button.dataset.pgpDisabledMessage);
+            } else if (result.status === 404) {
+                notice('warning', 'fa-circle-question', button.dataset.pgpEmptyMessage);
+            } else if (result.status >= 400) {
+                notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+            } else {
+                panel.innerHTML = result.body;
+                panel.classList.remove('d-none');
+            }
+        })
+        .catch(function () {
+            notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+        })
+        .finally(function () { busy(false); });
+    });
+
+    // One delegated handler for the injected list: dismiss, or take a key.
+    panel.addEventListener('click', function (event) {
+        if (event.target.closest('[data-pgp-dismiss]')) {
+            clear();
+            return;
+        }
+        const row = event.target.closest('[data-pgp-fingerprint]');
+        if (!row) return;
+
+        row.classList.add('disabled');
+        fetch(base + '/users/fetchGpgKey/' + encodeURIComponent(row.dataset.pgpFingerprint), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (response) {
+            if (!response.ok) { throw new Error(response.status); }
+            return response.text();
+        })
+        .then(function (key) {
+            target.value = key.trim();
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            clear();
+            if (typeof showToast === 'function') {
+                showToast(button.dataset.pgpFoundMessage);
+            }
+        })
+        .catch(function () {
+            row.classList.remove('disabled');
+            notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
+        });
+    });
 }
 
 
@@ -2479,23 +2706,38 @@ function initSharingGroupForm(container) {
 }
 
 /*******************************
- * Sighting cells — popover lazy-init + add-sighting
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Lazy index-table popovers
+ * Index rows are re-rendered by AJAX pagination and filtering, so these
+ * popovers are built on the first hover/focus rather than initialised up
+ * front on every render. `container: 'body'` keeps them out of the table's
+ * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    /* Lazy popover */
-    document.addEventListener('mouseenter', function (e) {
-        var el = e.target.closest('.sighting-counts');
+    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter';
+
+    function lazyPopover(e) {
+        var el = e.target && e.target.closest ? e.target.closest(LAZY_POPOVERS) : null;
         if (!el || el._popoverReady) return;
         el._popoverReady = true;
         new bootstrap.Popover(el, {
             trigger:   'hover focus',
             html:      true,
             placement: 'top',
+            container: 'body',
         }).show();
-    }, true);
+    }
 
+    // The triggering event predates the instance, hence the .show() above.
+    document.addEventListener('mouseenter', lazyPopover, true);
+    document.addEventListener('focusin', lazyPopover);
+})();
+
+/*******************************
+ * Sighting cells — add-sighting buttons
+ * i18n strings are injected once per page via window._sightingI18n
+ * (set by the sightings.ctp field partial)
+ *******************************/
+(function () {
     document.addEventListener('click', async function (e) {
         var btn = e.target.closest('.add-sighting-btn');
         if (!btn) return;
@@ -2784,6 +3026,927 @@ function initTagPickerSection(root, catData, initTags, options) {
 
     return { ids: ids };
 }
+
+/*******************************
+ * galaxyBadgeStyle
+ * The client-side mirror of GalaxyColour::palette()/badgeStyle() — a cluster
+ * badge drawn by JavaScript has to come out looking exactly like one drawn by
+ * PHP, so keep the numbers in sync with the lib.
+ * @param {number} hue  GalaxyColour::hue() of the cluster's galaxy
+ *******************************/
+function galaxyBadgeStyle(hue) {
+    hue = (hue == null) ? 270 : hue;
+    return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
+        + 'color:hsl(' + hue + ',65%,28%);'
+        + 'border:1px solid hsl(' + hue + ',55%,65%);'
+        + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
+        + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
+}
+
+/*******************************
+ * initGalaxyPickerSection
+ * The galaxy cluster picker used everywhere in the theme: galaxy category
+ * buttons, a TomSelect searching the cluster endpoint remotely (an empty query
+ * lists the scoped galaxy's clusters, "All Galaxies" needs 2 characters), and
+ * the picked clusters drawn below as galaxy badges with a remove cross. Drives
+ * both the standalone edit-clusters modal (Modals/galaxy_picker.ctp, one
+ * section per locality) and the in-form field (Forms/galaxy_picker_field.ctp).
+ *
+ * `root` must contain .galaxy-cat-btn buttons (the per-galaxy ones carrying
+ * data-galaxy-id), a select.galaxy-picker, .galaxy-selected and
+ * .galaxy-selected-empty.
+ *
+ * @param {Element} root          Section container
+ * @param {Array}   initClusters  Pre-selected [{id,name,galaxy,hue}]
+ * @param {object}  options       searchUrl: cluster search endpoint (required);
+ *                                localMarker: draw the local user glyph on badges;
+ *                                onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
+ *******************************/
+function initGalaxyPickerSection(root, initClusters, options) {
+    options = options || {};
+    var selEl = root.querySelector('.galaxy-selected');
+    var emptyEl = root.querySelector('.galaxy-selected-empty');
+    var pickerEl = root.querySelector('.galaxy-picker');
+    var searchUrl = options.searchUrl;
+
+    var selected = {};          /* id(string) -> {id,name,galaxy,hue} */
+    var currentGalaxyId = null; /* null = "All" (search across galaxies) */
+
+    function ids() {
+        return Object.keys(selected).map(Number);
+    }
+
+    function addCluster(c) {
+        if (!c || c.id == null) { return; }
+        selected[String(c.id)] = {
+            id: c.id, name: c.name, galaxy: c.galaxy || '',
+            hue: (c.hue == null ? 270 : c.hue)
+        };
+    }
+
+    function render() {
+        var keys = Object.keys(selected);
+        emptyEl.classList.toggle('d-none', keys.length > 0);
+        selEl.innerHTML = '';
+        keys.sort(function (a, b) {
+            return selected[a].name.localeCompare(selected[b].name);
+        });
+        keys.forEach(function (id) {
+            var c = selected[id];
+
+            var badge = document.createElement('span');
+            badge.className = 'badge p-2 d-inline-flex align-items-center gap-2';
+            badge.style.cssText = galaxyBadgeStyle(c.hue);
+            if (c.galaxy) { badge.title = c.galaxy; }
+
+            var txt = document.createElement('span');
+            txt.style.cssText = 'overflow:hidden;text-overflow:ellipsis;'
+                + 'white-space:nowrap;min-width:0;';
+            if (options.localMarker) {
+                txt.innerHTML = '<i class="fas fa-user me-1"></i>';
+            }
+            txt.appendChild(document.createTextNode(c.name));
+
+            var x = document.createElement('i');
+            x.className = 'fas fa-times';
+            x.style.cssText = 'cursor:pointer; opacity:.8; flex-shrink:0;';
+            x.setAttribute('role', 'button');
+            x.setAttribute('aria-label', 'Remove');
+            x.addEventListener('click', function () {
+                delete selected[id];
+                render();
+            });
+
+            badge.appendChild(txt);
+            badge.appendChild(x);
+            selEl.appendChild(badge);
+        });
+        if (typeof options.onChange === 'function') { options.onChange(ids()); }
+    }
+
+    function renderOpt(item, escape) {
+        return '<div class="d-flex flex-column py-1">'
+            + '<span>' + escape(item.name) + '</span>'
+            + (item.galaxy
+                ? '<span class="text-muted" style="font-size:.72rem;">'
+                    + escape(item.galaxy) + '</span>'
+                : '')
+            + '</div>';
+    }
+
+    var ts = new TomSelect(pickerEl, {
+        valueField:   'id',
+        labelField:   'name',
+        searchField:  ['name', 'galaxy'],
+        maxItems:     1,
+        options:      [],
+        loadThrottle: 300,
+        /* Use a different class name for the loading state to avoid a CSS collision. */
+        loadingClass: 'ts-loading',
+        /* When a galaxy is selected, even an empty query lists its clusters */
+        shouldLoad:   function (q) {
+            return currentGalaxyId ? true : q.length >= 2;
+        },
+        /* The endpoint handles matching, so TomSelect's filter is disabled to keep all server-sorted results. */
+        score:        function () {
+            return function () { return 1; };
+        },
+        load: function (query, callback) {
+            var self = this;
+            var url = searchUrl + '?q=' + encodeURIComponent(query);
+            if (currentGalaxyId) {
+                url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
+            }
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    /* clearOptions() clears stale results and forces the endpoint to reload when the query changes. */
+                    self.clearOptions();
+                    callback(json);
+                })
+                .catch(function () { callback(); });
+        },
+        render: {
+            option: renderOpt,
+            item: renderOpt,
+            option_create: false,
+            /* Use a custom loading spinner to avoid a CSS collision */
+            loading: function () {
+                return '<div class="text-center py-2">'
+                    + '<span class="spinner-border spinner-border-sm '
+                    + 'text-galaxy" role="status" aria-hidden="true">'
+                    + '</span></div>';
+            }
+        },
+        onItemAdd: function (value) {
+            var item = this.options[value];
+            if (item) { addCluster(item); render(); }
+            var self = this;
+            setTimeout(function () { self.clear(true); self.blur(); }, 0);
+        }
+    });
+
+    /* Clear stale results when the query is too short to offer any valid options. */
+    ts.on('type', function (q) {
+        if (currentGalaxyId || q.length >= 2) { return; }
+        if (Object.keys(ts.options).length === 0) { return; }
+        ts.clearOptions();
+        ts.refreshOptions();
+    });
+
+    /* Category buttons: "All" (remote search) or one galaxy (scoped) */
+    root.querySelectorAll('.galaxy-cat-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            root.querySelectorAll('.galaxy-cat-btn').forEach(function (b) {
+                b.classList.toggle('active', b === btn);
+            });
+            var gid = btn.getAttribute('data-galaxy-id');
+            currentGalaxyId = gid ? gid : null;
+
+            /* reset cache + options so the new scope reloads cleanly */
+            ts.clearOptions();
+            ts.clearCache();
+
+            if (currentGalaxyId) {
+                /* preload this galaxy's clusters and show them */
+                ts.load('');
+                ts.focus();
+                ts.open();
+            }
+        });
+    });
+
+    (initClusters || []).forEach(addCluster);
+    render();
+
+    return { ids: ids };
+}
+
+/**
+ * The `d-none` toggle a choice field can drive on another block — the
+ * distribution field revealing its sharing group. Returns a function to call
+ * with the current value; a group that declares no reveal gets a no-op, so
+ * callers never branch.
+ */
+function choiceRevealBinder(group) {
+    var expected = group.dataset.choiceRevealValue;
+    var target = group.dataset.choiceRevealTarget
+        ? document.querySelector(group.dataset.choiceRevealTarget)
+        : null;
+    if (!target || expected === undefined) {
+        return function () {};
+    }
+    return function (current) {
+        target.classList.toggle('d-none', String(current) !== expected);
+    };
+}
+
+/*******************************
+ * initChoiceCards
+ * Wires every card-based radio group inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_cards.ctp, which the distribution
+ * field, the analysis level and the threat level are all built from.
+ *
+ * The hidden <select> stays the value: the cards only mirror it, and a click
+ * fires a real `change` on it so host forms (an object's review pane, a
+ * warning banner) keep listening to the select and to nothing else.
+ *
+ * Idempotent — a group is bound once, so calling this on a container that is
+ * already live costs nothing.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceCards(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-cards]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        var cards = Array.prototype.slice.call(
+            group.querySelectorAll('[data-choice-value]')
+        );
+        if (!select || !cards.length) { return; }
+
+        var reveal = choiceRevealBinder(group);
+        var revealTarget = group.dataset.choiceRevealTarget
+            ? document.querySelector(group.dataset.choiceRevealTarget)
+            : null;
+
+        function sync() {
+            var current = String(select.value);
+            var hit = false;
+            cards.forEach(function (card) {
+                var on = card.dataset.choiceValue === current;
+                if (on) { hit = true; }
+                card.classList.toggle('is-selected', on);
+                card.setAttribute('aria-checked', on ? 'true' : 'false');
+                /* Only the selected card is in the tab order, so the group is
+                   one tab stop and the arrow keys move within it. */
+                card.tabIndex = on ? 0 : -1;
+            });
+            /* A value with no card of its own (a level the form dropped) would
+               otherwise leave the group unreachable by keyboard. */
+            if (!hit) { cards[0].tabIndex = 0; }
+            reveal(current);
+        }
+
+        function pick(card) {
+            if (card.dataset.choiceValue === String(select.value)) { return; }
+            select.value = card.dataset.choiceValue;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        var steps = {
+            ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1
+        };
+
+        cards.forEach(function (card, index) {
+            card.addEventListener('click', function () { pick(card); });
+            card.addEventListener('keydown', function (e) {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    pick(card);
+                    return;
+                }
+                if (!(e.key in steps)) { return; }
+                e.preventDefault();
+                var next = cards[
+                    (index + steps[e.key] + cards.length) % cards.length
+                ];
+                pick(next);
+                next.focus();
+            });
+        });
+
+        select.addEventListener('change', sync);
+        sync();
+
+        /* The sharing-group select the distribution field reveals is a
+           .tom-select, and a full page has nothing else that would init it. */
+        if (revealTarget && typeof initTomSelect === 'function') {
+            initTomSelect(revealTarget);
+        }
+    });
+}
+window.initChoiceCards = initChoiceCards;
+
+/*******************************
+ * initChoiceSliders
+ * Wires every slider-based choice inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_slider.ctp.
+ *
+ * The slider's own number is a position in the scale, never the value: option
+ * `i` of the hidden <select> is what stop `i` posts, and the select stays the
+ * one thing host forms read and listen on.
+ *
+ * Idempotent, like initChoiceCards.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceSliders(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-slider]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        var range = group.querySelector('[data-choice-slider-input]');
+        var readout = group.querySelector('[data-slider-value]');
+        var subLine = group.querySelector('[data-slider-sub]');
+        var ticks = Array.prototype.slice.call(
+            group.querySelectorAll('[data-slider-index]')
+        );
+        if (!select || !range || !select.options.length) { return; }
+
+        var reveal = choiceRevealBinder(group);
+        var last = select.options.length - 1;
+
+        /* The stop's colour and gloss live on its tick, so repainting is a
+           read off the DOM rather than a table shipped in a data attribute. */
+        function paint(index) {
+            var option = select.options[index];
+            var tick = ticks[index];
+            if (!option) { return; }
+
+            group.style.setProperty(
+                '--ov-slider-fill', (last > 0 ? (index / last) * 100 : 0) + '%'
+            );
+            group.style.setProperty(
+                '--ov-slider-tone',
+                (tick && tick.style.getPropertyValue('--ov-slider-tone'))
+                    || 'var(--ov-slider-accent)'
+            );
+
+            if (readout) { readout.textContent = option.text; }
+            if (subLine) { subLine.textContent = tick ? tick.dataset.sub : ''; }
+            range.setAttribute('aria-valuetext', option.text);
+
+            ticks.forEach(function (t, i) {
+                t.classList.toggle('is-current', i === index);
+            });
+            reveal(option.value);
+        }
+
+        function pick(index) {
+            var bounded = Math.max(0, Math.min(last, index));
+            range.value = bounded;
+            paint(bounded);
+            if (select.selectedIndex === bounded) { return; }
+            select.selectedIndex = bounded;
+            /* Host forms listen on the select and on nothing else. */
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        /* `input` for the drag, so the readout follows the thumb. */
+        range.addEventListener('input', function () { pick(+range.value); });
+
+        /* The tick labels are a mouse shortcut, not a control: the range is
+           the focusable one, and it already reaches every stop by keyboard. */
+        ticks.forEach(function (tick) {
+            tick.addEventListener('click', function () {
+                pick(+tick.dataset.sliderIndex);
+                range.focus();
+            });
+        });
+
+        /* Something setting the select directly (a template prefill) must not
+           leave the slider behind. */
+        select.addEventListener('change', function () {
+            if (+range.value !== select.selectedIndex) {
+                range.value = select.selectedIndex;
+                paint(select.selectedIndex);
+            }
+        });
+
+        paint(+range.value);
+    });
+}
+window.initChoiceSliders = initChoiceSliders;
+
+/**
+ * The badge a choice_select draws beside an option — the same tile
+ * renderDistOption/renderDistSelected build for the distribution selects, but
+ * fed from the element's own glyph table instead of DIST_MAP, so a field that
+ * is not distribution gets one too.
+ *
+ * @param {Object} entry  {icon, tone, toneBg} for the option, or null
+ * @param {boolean} small the closed control's badge, tighter than a row's
+ * @returns {HTMLElement|null}
+ */
+function choiceBadge(entry, small) {
+    if (!entry || !entry.icon) { return null; }
+    var badge = document.createElement('span');
+    badge.className = 'badge d-inline-flex align-items-center '
+        + (small ? 'px-1' : 'px-2 py-1');
+    badge.style.background = entry.toneBg || 'transparent';
+    badge.style.color = entry.tone || 'inherit';
+    /* `33` is 20% alpha on the tone — the border every distribution badge in
+       the theme wears. */
+    badge.style.border = '1px solid ' + (entry.tone || 'transparent') + '33';
+    if (small) { badge.style.fontSize = '.65rem'; }
+
+    var icon = document.createElement('i');
+    icon.className = entry.icon;
+    badge.appendChild(icon);
+    return badge;
+}
+
+/**
+ * TomSelect render callback for a choice_select: the option's badge, then its
+ * wording. `small` picks the closed control's tighter shape.
+ */
+function choiceSelectRenderer(glyphs, small) {
+    return function (data) {
+        var row = document.createElement('div');
+        row.className = 'd-flex align-items-center '
+            + (small ? 'gap-1' : 'gap-2 py-1');
+
+        var badge = choiceBadge(glyphs[String(data.value)], small);
+        if (badge) { row.appendChild(badge); }
+
+        var label = document.createElement('span');
+        /* textContent, not the escape() helper: the wording never reaches the
+           DOM as markup, so nothing can be smuggled through an option title. */
+        label.textContent = data.text;
+        row.appendChild(label);
+        return row;
+    };
+}
+
+/*******************************
+ * initChoiceSelects
+ * Wires every compact choice inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/choice_select.ctp, the one-line shape of
+ * the same field the cards draw as tiles.
+ *
+ * It builds the TomSelect itself rather than leaving it to initTomSelect():
+ * the badges are the whole point of this shape, and they live in the render
+ * callbacks. Here the <select> is the control, not a mirror of one, so there is
+ * no value to keep in sync — only the reveal the cards also drive.
+ *
+ * Idempotent, like initChoiceCards.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initChoiceSelects(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-choice-select]').forEach(function (group) {
+        if (group.dataset.choiceBound) { return; }
+        group.dataset.choiceBound = '1';
+
+        var select = group.querySelector('[data-choice-input]');
+        if (!select) { return; }
+
+        var glyphs = {};
+        group.querySelectorAll('[data-choice-icon]').forEach(function (node) {
+            glyphs[node.dataset.choiceIcon] = {
+                icon: node.dataset.icon,
+                tone: node.dataset.tone,
+                toneBg: node.dataset.toneBg
+            };
+        });
+
+        var reveal = choiceRevealBinder(group);
+        var revealTarget = group.dataset.choiceRevealTarget
+            ? document.querySelector(group.dataset.choiceRevealTarget)
+            : null;
+
+        function sync() {
+            reveal(String(select.value));
+        }
+
+        if (typeof TomSelect === 'function' && !select.tomselect) {
+            new TomSelect(select, {
+                create: false,
+                persist: false,
+                render: {
+                    option: choiceSelectRenderer(glyphs, false),
+                    item: choiceSelectRenderer(glyphs, true)
+                },
+                onChange: sync
+            });
+        } else {
+            select.addEventListener('change', sync);
+        }
+        sync();
+
+        /* The sharing-group select this reveals is a .tom-select, and a full
+           page has nothing else that would init it — same as the cards. */
+        if (revealTarget && typeof initTomSelect === 'function') {
+            initTomSelect(revealTarget);
+        }
+    });
+}
+window.initChoiceSelects = initChoiceSelects;
+
+function initChoiceFields(container) {
+    initChoiceCards(container);
+    initChoiceSliders(container);
+    initChoiceSelects(container);
+}
+window.initChoiceFields = initChoiceFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initChoiceFields(document);
+});
+
+/**
+ * The submit a JSON box can refuse, installed once for the whole page rather
+ * than once per form.
+ *
+ * It listens on the document in the capture phase, so it decides before any
+ * submit handler the form itself carries and those can read its decision off
+ * `event.defaultPrevented` — a form that swaps itself for a progress spinner
+ * on submit (the event import) would otherwise hide itself behind a spinner
+ * for an import the field then refused. For the same reason it does not
+ * stopPropagation: a host handler still has to see the event to know it was
+ * turned down.
+ */
+var jsonSubmitGuardInstalled = false;
+function installJsonSubmitGuard() {
+    if (jsonSubmitGuardInstalled) { return; }
+    jsonSubmitGuardInstalled = true;
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.querySelectorAll) { return; }
+
+        var offender = null;
+        form.querySelectorAll('[data-json-field] [data-json-input]')
+            .forEach(function (node) {
+                if (offender) { return; }
+                var field = node.jsonField;
+                if (!field) { return; }
+                /* A hidden box is one the form swapped out (the user setting
+                   whose value became a select, a collapsed accordion section):
+                   refusing the submit over a box nobody can see would be a
+                   dead end. */
+                if (node.offsetParent === null) { return; }
+                if (!field.check()) { offender = node; }
+            });
+
+        if (offender) {
+            e.preventDefault();
+            offender.focus();
+        }
+    }, true);
+}
+
+/*******************************
+ * initJsonFields
+ * Wires every JSON box inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/json_field.ctp.
+ *
+ * What a bound field does on its own:
+ *   - parses as it is typed, and says so in the badge beside its label
+ *   - reports the parser's complaint, with the line it points at, under the
+ *     box, and reddens that number in the gutter
+ *   - re-indents on Format, and restores a default on Reset
+ *   - indents with Tab instead of leaving the field
+ *   - refuses a submit that would send a broken document, or an empty one for
+ *     a required field (see installJsonSubmitGuard)
+ *
+ * What a host adds, from a `misp:json-change` listener on the textarea:
+ *   a reading of the value it just parsed (`setPreview`), a complaint of its
+ *   own about a document that parses but says something the endpoint will not
+ *   understand (`setProblem`), or its own wording in the badge (`setStatus`).
+ *   `event.detail` carries {field, valid, empty, parsed, raw}, and `field` is
+ *   the same API, also reachable as `textarea.jsonField`.
+ *
+ * Idempotent: binding the same container twice binds nothing twice.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+function initJsonFields(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-json-field]').forEach(function (wrap) {
+        if (wrap.dataset.jsonBound) { return; }
+        wrap.dataset.jsonBound = '1';
+
+        var input = wrap.querySelector('[data-json-input]');
+        if (!input) { return; }
+
+        var box = wrap.querySelector('[data-json-box]');
+        var statusEl = wrap.querySelector('[data-json-status]');
+        var errorEl = wrap.querySelector('[data-json-error]');
+        var gutter = wrap.querySelector('[data-json-gutter] .ov-json-gutter-inner');
+        var previewEl = wrap.querySelector('[data-json-preview]');
+        var previewWrap = wrap.querySelector('[data-json-preview-wrap]');
+
+        var shape = wrap.dataset.jsonShape || 'any';
+        var required = wrap.dataset.jsonRequired === '1';
+        var allowXml = wrap.dataset.jsonXml === '1';
+
+        /* CakePHP 2 counts spellcheck among its minimized attributes, so a
+           template cannot write spellcheck="false" through FormHelper at all —
+           and a spellchecked JSON document is underlined on every key. */
+        input.spellcheck = false;
+
+        /* The element hands its wordings over as data attributes so they stay
+           translatable; a field rendered without them still works. */
+        var d = wrap.dataset;
+        var L = {
+            empty: d.lEmpty || 'Waiting for input',
+            valid: d.lValid || 'Valid',
+            invalid: d.lInvalid || 'Invalid JSON',
+            object: d.lObject || 'The value has to be a JSON object.',
+            array: d.lArray || 'The value has to be a JSON array.',
+            required: d.lRequired || 'Please fill this field in.',
+            keys: d.lKeys || '%s key(s)',
+            items: d.lItems || '%s item(s)',
+            line: d.lLine || 'line %s',
+            problem: d.lProblem || 'Check the content',
+            xml: d.lXml || 'XML document'
+        };
+
+        var lineCount = -1;
+        var errorLine = 0;
+        var state = {
+            valid: false, empty: true, xml: false, parsed: undefined, raw: ''
+        };
+
+        /* ── Badge, error line, gutter ── */
+
+        function setStatus(kind, text) {
+            if (!statusEl) { return; }
+            statusEl.className = 'badge ov-json-status bg-' + kind;
+            statusEl.textContent = text;
+        }
+
+        /* `soft` writes the message without reddening the box: the value is
+           not what the parser refused, so the field is not in an error state. */
+        function setError(message, soft) {
+            if (box) { box.classList.toggle('is-invalid-field', !!message && !soft); }
+            if (!errorEl) { return; }
+            errorEl.classList.toggle('d-none', !message);
+            errorEl.querySelector('span').textContent = message || '';
+        }
+
+        /* A host's complaint about a document that parses but says something
+           the endpoint will not understand. It reads as a warning rather than
+           a rejection, and it does not stop the submit — a host that wants to
+           refuse one says so from its own submit handler. */
+        function setProblem(message) {
+            if (!message) { return; }
+            /* Not L.invalid: the document parsed, so calling it invalid JSON
+               would send the reader looking for a syntax error there is
+               none of. */
+            setStatus('warning', L.problem);
+            setError(message, true);
+        }
+
+        function paintGutter() {
+            if (!gutter) { return; }
+            var count = state.raw.length ? state.raw.split('\n').length : 1;
+            if (count !== lineCount) {
+                lineCount = count;
+                var rows = '';
+                for (var i = 1; i <= count; i++) {
+                    rows += '<div>' + i + '</div>';
+                }
+                gutter.innerHTML = rows;
+            }
+            gutter.querySelectorAll('.is-error').forEach(function (node) {
+                node.classList.remove('is-error');
+            });
+            if (errorLine > 0 && errorLine <= count) {
+                gutter.children[errorLine - 1].classList.add('is-error');
+            }
+            gutter.style.transform = 'translateY(' + (-input.scrollTop) + 'px)';
+        }
+
+        /* Where the parser stopped, as a line number, or 0 when it cannot be
+           had. Firefox and Safari name the line; V8 names a character offset
+           and, in recent versions, the line beside it — except for its
+           "Unexpected token" messages, which carry neither and quote a window
+           of the document instead. There the token's place inside that window
+           is the position, but only when the window holds one candidate for
+           it: a number pointing at the wrong line is worse than none, so
+           anything ambiguous highlights nothing and leaves the message, which
+           quotes the text itself, to say where to look. */
+        function locate(message, raw) {
+            var m = /line (\d+)/.exec(message);
+            if (m) { return +m[1]; }
+            m = /position (\d+)/.exec(message);
+            if (m) {
+                return raw.slice(0, Math.min(+m[1], raw.length)).split('\n').length;
+            }
+            m = /^Unexpected token '(.)', (?:\.\.\.)?"([\s\S]*)"(?:\.\.\.)? is not valid JSON$/
+                .exec(message);
+            if (!m) { return 0; }
+
+            var token = m[1];
+            var window_ = m[2];
+            var at = raw.indexOf(window_);
+            if (at === -1) { return 0; }
+            /* A bare word V8 choked on opens a value or a key, so it follows a
+               separator; that is what tells it from the same letter inside a
+               string next to it. */
+            var pattern = '(?:^|[:,\\[{\\s])'
+                + token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var hits = window_.match(new RegExp(pattern, 'g'));
+            if (!hits || hits.length !== 1) { return 0; }
+
+            var idx = window_.search(new RegExp(pattern));
+            /* The match may start on the separator before the token. */
+            while (window_.charAt(idx) !== token) { idx++; }
+            return raw.slice(0, at + idx).split('\n').length;
+        }
+
+        /* ── Reading the value ── */
+
+        function summary(parsed) {
+            if (Array.isArray(parsed)) {
+                return L.items.replace('%s', parsed.length);
+            }
+            if (parsed && typeof parsed === 'object') {
+                return L.keys.replace('%s', Object.keys(parsed).length);
+            }
+            return L.valid;
+        }
+
+        function shapeProblem(parsed) {
+            if (shape === 'object') {
+                var isObject = parsed && typeof parsed === 'object'
+                    && !Array.isArray(parsed);
+                return isObject ? null : L.object;
+            }
+            if (shape === 'array') {
+                return Array.isArray(parsed) ? null : L.array;
+            }
+            return null;
+        }
+
+        function refresh() {
+            var raw = input.value.trim();
+            state = {
+                valid: false,
+                empty: raw === '',
+                xml: allowXml && raw.charAt(0) === '<',
+                parsed: undefined,
+                raw: input.value
+            };
+            errorLine = 0;
+
+            if (state.empty) {
+                setStatus('secondary', L.empty);
+                setError(null);
+                setPreview(null);
+            } else if (state.xml) {
+                setStatus('success', L.xml);
+                setError(null);
+                setPreview(null);
+            } else {
+                var parsed;
+                var failure = null;
+                try {
+                    parsed = JSON.parse(raw);
+                } catch (e) {
+                    failure = e.message;
+                }
+
+                if (failure !== null) {
+                    errorLine = locate(failure, raw);
+                    setStatus('danger', L.invalid);
+                    setError(errorLine && !/line \d+/.test(failure)
+                        ? failure + ' — ' + L.line.replace('%s', errorLine)
+                        : failure);
+                    setPreview(null);
+                } else {
+                    var problem = shapeProblem(parsed);
+                    if (problem) {
+                        setStatus('danger', L.invalid);
+                        setError(problem);
+                        setPreview(null);
+                    } else {
+                        state.valid = true;
+                        state.parsed = parsed;
+                        setStatus('success', summary(parsed));
+                        setError(null);
+                    }
+                }
+            }
+
+            paintGutter();
+
+            /* Last word to the host: it knows what the endpoint accepts. */
+            input.dispatchEvent(new CustomEvent('misp:json-change', {
+                bubbles: true,
+                detail: {
+                    field: api,
+                    valid: state.valid,
+                    empty: state.empty,
+                    xml: state.xml,
+                    parsed: state.parsed,
+                    raw: state.raw
+                }
+            }));
+        }
+
+        /* ── The box a host fills from the parsed value ── */
+
+        function setPreview(node) {
+            if (!previewEl) { return; }
+            previewEl.innerHTML = '';
+            if (node) { previewEl.appendChild(node); }
+            if (previewWrap) { previewWrap.classList.toggle('d-none', !node); }
+        }
+
+        /* ── Editing ── */
+
+        input.addEventListener('input', refresh);
+        input.addEventListener('scroll', function () {
+            if (gutter) {
+                gutter.style.transform = 'translateY(' + (-input.scrollTop) + 'px)';
+            }
+        });
+
+        /* Tab indents rather than leaving the field — in a box where the
+           indentation is the readability, losing it to focus traversal is the
+           surprising behaviour. Shift+Tab still leaves, so nothing is trapped:
+           it takes back one level only when there is one to take back. */
+        input.addEventListener('keydown', function (e) {
+            if (e.key !== 'Tab' || e.ctrlKey || e.altKey || e.metaKey) { return; }
+            var start = input.selectionStart;
+            var value = input.value;
+            var lineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+            if (e.shiftKey) {
+                var indent = /^ {1,4}/.exec(value.slice(lineStart, start));
+                if (!indent) { return; }
+                e.preventDefault();
+                input.value = value.slice(0, lineStart)
+                    + value.slice(lineStart + indent[0].length);
+                input.setSelectionRange(start - indent[0].length, start - indent[0].length);
+            } else {
+                e.preventDefault();
+                var end = input.selectionEnd;
+                input.value = value.slice(0, start) + '    ' + value.slice(end);
+                input.setSelectionRange(start + 4, start + 4);
+            }
+            refresh();
+        });
+
+        var formatBtn = wrap.querySelector('[data-json-format]');
+        if (formatBtn) {
+            /* Only when it parses: re-indenting a broken document would mean
+               guessing at it, and it is what has to be read to be fixed. */
+            formatBtn.addEventListener('click', function () {
+                try {
+                    input.value = JSON.stringify(JSON.parse(input.value), null, 4);
+                } catch (e) { /* refresh() reports it */ }
+                refresh();
+                input.focus();
+            });
+        }
+
+        var resetBtn = wrap.querySelector('[data-json-reset]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                input.value = resetBtn.dataset.jsonReset || '';
+                refresh();
+            });
+        }
+
+        installJsonSubmitGuard();
+
+        var api = {
+            input: input,
+            refresh: refresh,
+            isValid: function () { return state.valid; },
+            isEmpty: function () { return state.empty; },
+            isXml: function () { return state.xml; },
+            get: function () { return state.parsed; },
+            setStatus: setStatus,
+            setError: setError,
+            setProblem: setProblem,
+            setPreview: setPreview,
+            /* True when the value may go out: a filled field has to parse, and
+               a required one has to be filled. */
+            check: function () {
+                if (state.empty) {
+                    if (!required) { return true; }
+                    setStatus('danger', L.invalid);
+                    setError(L.required);
+                    return false;
+                }
+                return state.valid || state.xml;
+            }
+        };
+        input.jsonField = api;
+        wrap.jsonField = api;
+
+        refresh();
+    });
+}
+window.initJsonFields = initJsonFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initJsonFields(document);
+});
 
 function initDistributionSelect(elId, onChange) {
     var el = document.getElementById(elId);
@@ -3226,153 +4389,265 @@ function initAttributeForm(currentDist, isEdit) {
 }
 
 /*******************************
- * initEventForm
- * Bootstraps all interactive behaviour for Events/add and Events/edit.
- * Call once the DOM is ready: initEventForm(baseurl)
- * @param {string} base  MISP base URL (no trailing slash)
+ * Events/add and Events/edit
+ *
+ * initEventForm(container) wires the event form inside `container` (default:
+ * the document) and binds nothing outside it, so it is safe on a modal body,
+ * on a full page, and twice on either.
+ *
+ * What it owns:
+ *   - the three choice_cards groups (distribution, analysis, threat level)
+ *   - the extends-event preview
+ *   - the DD/MM/YYYY date field over its ISO hidden twin
+ *   - required-field validation, and a submit that cannot fire twice
+ *
+ * The field look — the underline, the box, the invalid state — lives in
+ * mainOvermind.css under `.ov-form-*`; nothing here writes a style.
  *******************************/
-function initEventForm(base) {
+function initEventForm(container) {
+    /* Takes the form itself, any container holding it, or nothing at all. */
+    var scope = (container && container.querySelector) ? container : document;
+    var form = (scope.matches && scope.matches('#EventForm'))
+        ? scope
+        : scope.querySelector('#EventForm');
+    if (!form || form.dataset.eventFormBound) { return; }
+    form.dataset.eventFormBound = '1';
 
-    /* Fetch a live event summary when the user types a UUID/ID */
-    function setupUuidPreview() {
-        var input   = document.getElementById('EventExtendsUuid');
-        var preview = document.getElementById('event_preview');
-        if (!input || !preview) { return; }
+    var base = (typeof baseurl === 'string') ? baseurl : '';
 
-        var timer = null;
-        function fetchPreview(val) {
-            clearTimeout(timer);
-            if (!val || !val.trim()) {
-                preview.style.display = 'none';
-                return;
-            }
-            timer = setTimeout(function () {
-                fetch(base + '/events/getEventInfoById/'
-                        + encodeURIComponent(val.trim()),
-                    { credentials: 'same-origin' })
-                    .then(function (r) { return r.text(); })
-                    .then(function (html) {
-                        preview.innerHTML     = html;
-                        preview.style.display = '';
-                        bindCardClick();
-                    })
-                    .catch(function () { preview.style.display = 'none'; });
-            }, 100);
+    /* ── Invalid state ───────────────────────────────────────────
+     * One place decides what a rejected field looks like: the class on the
+     * field (or on the box around it) and one message under its group. */
+    function fieldGroup(el) {
+        return el.closest('.ov-form-group') || el.parentNode;
+    }
+
+    function markInvalid(el, message) {
+        (el.closest('.ov-form-box') || el).classList.add('is-invalid-field');
+        var group = fieldGroup(el);
+        var msg = group.querySelector('.ov-field-error');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'ov-field-error';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-circle-exclamation';
+            var text = document.createElement('span');
+            msg.appendChild(icon);
+            msg.appendChild(text);
+            group.appendChild(msg);
         }
-
-        /* Clicking the matched-event card copies its UUID into the input */
-        function bindCardClick() {
-            var card = preview.querySelector('.js-extends-event-card');
-            if (!card) { return; }
-            card.addEventListener('click', function () {
-                var uuid = card.dataset.extendsUuid;
-                if (uuid) { input.value = uuid; }
-            });
-        }
-
-        input.addEventListener('input', function () { fetchPreview(input.value); });
-        if (input.value) { fetchPreview(input.value); }
+        msg.querySelector('span').textContent = message;
     }
 
-    /* Card-based radio groups for Analysis and Threat Level */
-    function setupRadioCards() {
-        var selectIds = {
-            analysis: 'EventAnalysisInput',
-            threat:   'EventThreatLevelInput',
-        };
-        document.querySelectorAll('.event-card').forEach(function (card) {
-            card.addEventListener('click', function () {
-                var group  = card.dataset.group;
-                var select = document.getElementById(selectIds[group]);
-                if (select) { select.value = card.dataset.value; }
-
-                document.querySelectorAll(
-                    '.event-card[data-group="' + group + '"]'
-                ).forEach(function (c) {
-                    var inner = c.querySelector('.border');
-                    if (!inner) { return; }
-                    var selected = c === card;
-                    inner.style.borderColor = selected ? 'var(--primary)' : '#d8dde3';
-                    inner.style.background  = selected ? 'rgba(24,146,177,.08)' : '';
-                });
-            });
-        });
+    function markValid(el) {
+        (el.closest('.ov-form-box') || el).classList.remove('is-invalid-field');
+        var msg = fieldGroup(el).querySelector('.ov-field-error');
+        if (msg) { msg.remove(); }
     }
 
-    /* Convert DD/MM/YYYY display input → YYYY-MM-DD hidden field */
-    function setupDateInput() {
-        var display = document.getElementById('EventDateDisplay');
-        var hidden  = document.getElementById('EventDate');
-        if (!display || !hidden) { return; }
+    /* A validator returns the element to focus when the field is wrong, and
+     * null when it is fine; the submit handler collects them all. */
+    var validators = [];
 
-        display.addEventListener('input', function () {
-            var parts = display.value.split('/');
-            if (parts.length === 3
-                    && parts[0].length === 2
-                    && parts[1].length === 2
-                    && parts[2].length === 4) {
-                hidden.value = parts[2] + '-' + parts[1] + '-' + parts[0];
-            }
-        });
-    }
-
-    /* Require a non-empty Event Info (name) before submitting */
-    function setupInfoValidation() {
-        var info = document.getElementById('EventInfo');
+    /* ── Event info ──────────────────────────────────────────── */
+    function bindInfo() {
+        var info = form.querySelector('#EventInfo');
         if (!info) { return; }
-        var form = info.form || (info.closest && info.closest('form'));
-        if (!form) { return; }
-
-        var errorId = 'EventInfoError';
         var message = info.dataset.requiredMsg
             || 'Please provide a name for the event.';
 
-        function showError() {
-            info.style.setProperty('border', '1px solid #dc3545', 'important');
-            info.style.setProperty('border-radius', '4px', 'important');
-            if (!document.getElementById(errorId)) {
-                var msg = document.createElement('div');
-                msg.id        = errorId;
-                msg.className  = 'text-danger d-flex align-items-center gap-1';
-                msg.style.fontSize  = '.75rem';
-                msg.style.marginTop = '.35rem';
-                var icon = document.createElement('i');
-                icon.className = 'fas fa-circle-exclamation';
-                msg.appendChild(icon);
-                msg.appendChild(document.createTextNode(message));
-                info.parentNode.appendChild(msg);
+        function validate(quiet) {
+            if (info.value.trim()) {
+                markValid(info);
+                return null;
             }
+            if (!quiet) { markInvalid(info, message); }
+            return info;
         }
 
-        function clearError() {
-            info.style.removeProperty('border');
-            info.style.removeProperty('border-radius');
-            info.style.setProperty('border-bottom', '1px solid #d8dde3', 'important');
-            var msg = document.getElementById(errorId);
-            if (msg) { msg.remove(); }
+        /* Only ever clears while typing: nagging about an empty field the user
+         * has not finished with is what the submit check is for. */
+        info.addEventListener('input', function () {
+            if (info.value.trim()) { markValid(info); }
+        });
+        validators.push(validate);
+    }
+
+    /* ── Extends-event preview ───────────────────────────────────
+     * The field takes an id or a UUID; the endpoint answers with a card for
+     * the matched event, or a note saying nothing matched. */
+    function bindExtendsPreview() {
+        var input = form.querySelector('#EventExtendsUuid');
+        var preview = form.querySelector('#event_preview');
+        if (!input || !preview) { return; }
+
+        var IS_ID = /^[0-9]+$/;
+        var IS_UUID =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        var timer = null;
+        var pending = null;
+
+        function hide() {
+            preview.classList.add('d-none');
+            preview.innerHTML = '';
         }
 
-        form.addEventListener('submit', function (e) {
-            if (!info.value.trim()) {
-                e.preventDefault();
-                e.stopPropagation();
-                showError();
-                info.focus();
+        function request(value) {
+            /* One lookup at a time: the answers are rendered HTML, so a slow
+             * early request must not land on top of a later one. */
+            if (pending) { pending.abort(); }
+            pending = new AbortController();
+            preview.setAttribute('aria-busy', 'true');
+            fetch(base + '/events/getEventInfoById/' + encodeURIComponent(value), {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: pending.signal
+            })
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .then(function (html) {
+                    preview.removeAttribute('aria-busy');
+                    if (!html.trim()) { hide(); return; }
+                    preview.innerHTML = html;
+                    preview.classList.remove('d-none');
+                })
+                .catch(function (err) {
+                    if (err.name === 'AbortError') { return; }
+                    preview.removeAttribute('aria-busy');
+                    hide();
+                });
+        }
+
+        function schedule() {
+            clearTimeout(timer);
+            var value = input.value.trim();
+            /* Nothing but a whole id or a whole UUID can match, and a UUID
+             * typed by hand would otherwise cost 36 lookups on its way in. */
+            if (!IS_ID.test(value) && !IS_UUID.test(value)) {
+                if (pending) { pending.abort(); pending = null; }
+                hide();
+                return;
+            }
+            timer = setTimeout(function () { request(value); }, 250);
+        }
+
+        input.addEventListener('input', schedule);
+
+        /* Delegated, so the card stays clickable through every re-render:
+         * clicking it swaps the id the user typed for the event's UUID. */
+        preview.addEventListener('click', function (e) {
+            var card = e.target.closest('.js-extends-event-card');
+            if (!card || !card.dataset.extendsUuid) { return; }
+            input.value = card.dataset.extendsUuid;
+        });
+
+        schedule();
+    }
+
+    /* ── Event date ──────────────────────────────────────────────
+     * DD/MM/YYYY in front of the user, YYYY-MM-DD in the hidden field MISP
+     * actually reads. */
+    function bindDate() {
+        var display = form.querySelector('#EventDateDisplay');
+        var hidden = form.querySelector('#EventDate');
+        if (!display || !hidden) { return; }
+
+        var message = display.dataset.invalidMsg
+            || 'Enter the event date as DD/MM/YYYY.';
+
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+        function build(y, m, d) {
+            var date = new Date(Date.UTC(y, m - 1, d));
+            /* Date() rolls 31/02 over into March, so compare the parts back:
+             * that is what rejects a day the month does not have. */
+            if (date.getUTCFullYear() !== y
+                    || date.getUTCMonth() !== m - 1
+                    || date.getUTCDate() !== d) {
+                return null;
+            }
+            return date;
+        }
+
+        function parse(text) {
+            var value = text.trim();
+            var human = value.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+            if (human) {
+                return build(+human[3], +human[2], +human[1]);
+            }
+            /* Also accept what the hidden field speaks, so pasting an ISO date
+             * out of MISP itself works. */
+            var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            return iso ? build(+iso[1], +iso[2], +iso[3]) : null;
+        }
+
+        function sync() {
+            var date = parse(display.value);
+            if (date) {
+                hidden.value = date.getUTCFullYear() + '-'
+                    + pad(date.getUTCMonth() + 1) + '-'
+                    + pad(date.getUTCDate());
+                markValid(display);
+            }
+            return date;
+        }
+
+        display.addEventListener('input', sync);
+
+        /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only
+         * here does a half-typed date get called wrong. */
+        display.addEventListener('blur', function () {
+            var date = sync();
+            if (date) {
+                display.value = pad(date.getUTCDate()) + '/'
+                    + pad(date.getUTCMonth() + 1) + '/'
+                    + date.getUTCFullYear();
+            } else if (display.value.trim()) {
+                markInvalid(display, message);
             }
         });
 
-        info.addEventListener('input', function () {
-            if (info.value.trim()) { clearError(); }
+        validators.push(function (quiet) {
+            var date = sync();
+            if (date) { return null; }
+            if (!quiet) { markInvalid(display, message); }
+            return display;
         });
     }
 
-    initDistributionSelect('distribution-select', null);
-    if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
-    setupUuidPreview();
-    setupRadioCards();
-    setupDateInput();
-    setupInfoValidation();
+    /* ── Submit ──────────────────────────────────────────────── */
+    function bindSubmit() {
+        var button = form.querySelector('#EventSubmitButton');
+
+        form.addEventListener('submit', function (e) {
+            var wrong = validators
+                .map(function (validate) { return validate(false); })
+                .filter(Boolean);
+
+            if (wrong.length) {
+                /* preventDefault alone: a listener elsewhere may still want to
+                 * know the form was submitted and turned down. */
+                e.preventDefault();
+                wrong[0].focus();
+                return;
+            }
+
+            /* The form navigates away on success, so the only thing a second
+             * click can do is create the event twice. */
+            if (button) {
+                button.disabled = true;
+                var icon = button.querySelector('i');
+                if (icon) { icon.className = 'fas fa-circle-notch fa-spin me-1'; }
+            }
+        });
+    }
+
+    initChoiceFields(form);
+    bindInfo();
+    bindExtendsPreview();
+    bindDate();
+    bindSubmit();
 }
+window.initEventForm = initEventForm;
 
 /*******************************
  * updateActiveFilterBadge
@@ -3518,6 +4793,9 @@ function loadAjaxContainer(container) {
             });
 
             initTopbarFilterSelects(container);
+            if (typeof initJsonFields === 'function') {
+                initJsonFields(container);
+            }
         })
         .catch(() => {
             container.innerHTML =
@@ -3633,4 +4911,775 @@ document.addEventListener('DOMContentLoaded', function () {
     // The tab that is already active gets no shown.bs.tab event.
     document.querySelectorAll('.tab-pane.active .ajax-tab-content')
         .forEach(loadAjaxContainer);
+});
+
+
+
+/* ==========================================================================
+ * Index URLs
+ * ==========================================================================
+ *
+ * MISP indexes carry their state in CakePHP named URL segments
+ * (`/events/index/sort:date/searchpublished:1`), sometimes next to positional
+ * scope arguments (`/authKeys/index/<userId>`) and sometimes in the query
+ * string instead (a value holding a '/' cannot survive a named segment).
+ * Five places used to split that apart by hand with the same
+ * `split('/')` / `indexOf(':')` dance; this is that dance, once.
+ */
+
+/**
+ * @param {string} url       absolute or root-relative, query string included
+ * @param {string} itemPath  the index path the segments follow, e.g. '/events/index'
+ * @returns {{positional: string[], named: Object, query: URLSearchParams, path: string}}
+ */
+function parseIndexUrl(url, itemPath) {
+    // One side is often absolute (a config's baseurl) and the other not (what
+    // popstate hands over), so compare paths, never whole URLs.
+    const stripOrigin = function (u) { return (u || '').replace(/^[a-z]+:\/\/[^/]+/i, ''); };
+    url = stripOrigin(url);
+    itemPath = stripOrigin(itemPath);
+
+    const cut = url.indexOf('?');
+    const path = cut === -1 ? url : url.slice(0, cut);
+    const query = new URLSearchParams(cut === -1 ? '' : url.slice(cut + 1));
+    const positional = [];
+    const named = {};
+
+    const at = itemPath ? path.indexOf(itemPath) : -1;
+    const after = at !== -1 ? path.slice(at + itemPath.length) : '';
+    after.split('/').filter(Boolean).forEach(function (segment) {
+        const colon = segment.indexOf(':');
+        if (colon < 0) {
+            positional.push(segment);
+        } else {
+            named[segment.slice(0, colon)] = decodeURIComponent(segment.slice(colon + 1));
+        }
+    });
+    return { positional: positional, named: named, query: query, path: path };
+}
+
+/**
+ * The inverse. Named values are encoded here, so callers hand over raw ones.
+ *
+ * @param {string} base                 index URL with no state on it
+ * @param {Object} parts                { positional, named, query }
+ * @returns {string}
+ */
+function formatIndexUrl(base, parts) {
+    let url = base;
+    (parts.positional || []).forEach(function (segment) { url += '/' + segment; });
+    const named = parts.named || {};
+    Object.keys(named).forEach(function (key) {
+        url += '/' + key + ':' + encodeURIComponent(named[key]);
+    });
+    const query = parts.query ? parts.query.toString() : '';
+    return url + (query ? '?' + query : '');
+}
+
+/* ==========================================================================
+ * Index filter bars — deferred apply
+ * ==========================================================================
+ *
+ * The code snippets provided here create a *draft* using pills: \
+ * his will be executed via a single button using Ajax, refreshing the container 
+ *
+ * Two bars share this engine — Elements/Logs/filter_card.ctp (the log
+ * indexes) and genericElementsBS5/IndexTable/filter_bar.ctp (a scaffolded
+ * index that declares a `more_filters` control). They agree on the
+ * interaction and disagree on everything around it: where a filter lives in
+ * the URL, what counts as a scope worth keeping, whether an ajax tab wraps
+ * the whole thing. So every URL decision is the caller's, handed in as
+ * `buildUrl` / `clearAll` / `reload`.
+ */
+
+/**
+ * @param {Element} root  element owning the controls; marked as wired
+ * @param {Object}  opts
+ *   Required:
+ *     inputs()       -> Element[]     the controls the draft is read from
+ *     nameOf(el)     -> string        that control's filter name
+ *     buildUrl()     -> string        URL for the current draft
+ *     summaryEl      Element          where the chips and buttons are drawn
+ *   Optional:
+ *     labelOf(name)          -> string   chip label      (default: the name)
+ *     displayOf(name, value) -> string   chip value      (default: the value)
+ *     quickEl                Element     free-text box outside the draft grid
+ *     quickLabel             string      its chip label
+ *     applied / appliedQuick             what the page currently shows
+ *     countEl                Element     badge showing how many filters are set
+ *     results                string      selector of the container to swap
+ *     swap                   string[]    other nodes to refresh from the response
+ *     rootLinks / resultLinks string[]   links to keep inside the ajax loop
+ *     syncFromUrl(url)                   read a URL back into the controls
+ *     clearAll()                         reset the controls ("Clear all")
+ *     reload(url)            -> bool     take over the reload (ajax tabs)
+ *     onApplied()                        after a successful swap
+ *     strings                object      see S below
+ * @returns {Object|null} { refresh } so a caller can redraw the chips
+ */
+function initIndexFilterDraft(root, opts) {
+    if (!root || root.dataset.filterDraftReady || !opts || !opts.summaryEl) { return null; }
+    root.dataset.filterDraftReady = '1';
+
+    const S = opts.strings || {};
+    const summaryEl = opts.summaryEl;
+    const results = opts.results ? document.querySelector(opts.results) : null;
+
+    // What the page currently shows. Replaced on every successful apply, so
+    // the chips can tell an applied filter from one still being typed.
+    let applied = Object.assign({}, opts.applied || {});
+    let appliedQuick = opts.appliedQuick || '';
+    let inFlight = null;
+
+    /* ── draft state ─────────────────────────────────────────────────── */
+
+    function inputs() { return opts.inputs(); }
+
+    function draft() {
+        const out = {};
+        inputs().forEach(function (el) {
+            const name = opts.nameOf(el);
+            const value = (el.value || '').trim();
+            if (name && value !== '') { out[name] = value; }
+        });
+        return out;
+    }
+
+    function draftQuick() {
+        return opts.quickEl ? (opts.quickEl.value || '').trim() : '';
+    }
+
+    function labelFor(name) {
+        return opts.labelOf ? opts.labelOf(name) : name;
+    }
+
+    // A select stores `remove_tag` but the user picked "Remove tag".
+    function displayFor(name, value) {
+        return opts.displayOf ? opts.displayOf(name, value) : value;
+    }
+
+    // TomSelect keeps its own DOM, so the underlying <select> alone is not enough.
+    function setValue(el, value) {
+        if (el.tomselect) {
+            el.tomselect.setValue(value, true);
+        } else {
+            el.value = value;
+        }
+    }
+
+    /* ── chips ───────────────────────────────────────────────────────── */
+
+    function chip(label, value, state) {
+        const el = document.createElement('span');
+        el.className = 'badge d-inline-flex align-items-center gap-1 '
+            + (state === 'removed'
+                ? 'text-bg-light border border-danger text-danger text-decoration-line-through'
+                : state === 'pending'
+                    ? 'text-bg-warning border border-warning-subtle'
+                    : 'bg-primary');
+        if (state === 'pending') {
+            el.title = S.notApplied || '';
+            el.insertAdjacentHTML('beforeend', '<i class="fas fa-clock"></i>');
+        } else if (state === 'removed') {
+            el.title = S.willBeRemoved || '';
+        }
+        el.insertAdjacentText('beforeend', label + ': ' + value);
+        return el;
+    }
+
+    function removeButton(chipEl, onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-close btn-close-sm ms-1';
+        btn.style.fontSize = '.5rem';
+        btn.title = S.remove || '';
+        btn.addEventListener('click', onClick);
+        chipEl.appendChild(btn);
+    }
+
+    function renderSummary() {
+        const current = draft();
+        const quick = draftQuick();
+        let pending = 0;
+
+        summaryEl.textContent = '';
+
+        const chips = document.createElement('div');
+        chips.className = 'd-flex align-items-center flex-wrap gap-2 flex-grow-1';
+
+        if (opts.quickEl) {
+            if (quick !== '') {
+                const state = quick === appliedQuick ? 'applied' : 'pending';
+                if (state === 'pending') { pending++; }
+                const c = chip(opts.quickLabel || '', quick, state);
+                removeButton(c, function () { opts.quickEl.value = ''; renderSummary(); });
+                chips.appendChild(c);
+            } else if (appliedQuick !== '') {
+                pending++;
+                chips.appendChild(chip(opts.quickLabel || '', appliedQuick, 'removed'));
+            }
+        }
+
+        Object.keys(current).forEach(function (name) {
+            const state = current[name] === applied[name] ? 'applied' : 'pending';
+            if (state === 'pending') { pending++; }
+            const c = chip(labelFor(name), displayFor(name, current[name]), state);
+            removeButton(c, function () {
+                inputs().forEach(function (el) {
+                    if (opts.nameOf(el) === name) { setValue(el, ''); }
+                });
+                renderSummary();
+            });
+            chips.appendChild(c);
+        });
+
+        Object.keys(applied).forEach(function (name) {
+            if (current[name] === undefined) {
+                pending++;
+                chips.appendChild(chip(labelFor(name), displayFor(name, applied[name]), 'removed'));
+            }
+        });
+
+        // Filters that are applied but have no control here — the scope a
+        // button like "My events" puts in the URL. Read-only, but visible:
+        // without a chip the only sign they are on is the row count.
+        const extras = opts.extraChips ? opts.extraChips() : [];
+        extras.forEach(function (extra) {
+            chips.appendChild(chip(extra.label, extra.value, 'applied'));
+        });
+
+        if (!chips.children.length) {
+            const empty = document.createElement('span');
+            empty.className = 'text-muted small filter-draft-empty';
+            empty.textContent = S.noFilter || '';
+            chips.appendChild(empty);
+        }
+
+        summaryEl.appendChild(buildBar(chips, pending, extras.length));
+
+        if (opts.countEl) {
+            // Everything that filters counts, not just the controls in the
+            // panel: with the panel folded away the badge is the only thing
+            // saying a search or a scope is still on.
+            const n = Object.keys(current).length + (quick !== '' ? 1 : 0) + extras.length;
+            opts.countEl.textContent = String(n);
+            opts.countEl.classList.toggle('d-none', n === 0);
+        }
+    }
+
+    function buildBar(chips, pending, extraCount) {
+        const bar = document.createElement('div');
+        bar.className = 'd-flex align-items-start flex-wrap gap-2';
+        bar.appendChild(chips);
+
+        const status = document.createElement('span');
+        status.className = 'small align-self-center filter-draft-status '
+            + (pending ? 'text-warning-emphasis fw-semibold' : 'text-muted');
+        status.textContent = pending
+            ? (pending === 1 ? S.pendingOne : (S.pendingMany || '').replace('%s', pending))
+            : S.applied;
+        bar.appendChild(status);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'btn btn-sm ' + (pending ? 'btn-primary' : 'btn-outline-primary');
+        applyBtn.innerHTML = '<i class="fas fa-filter me-1"></i>' + S.apply;
+        applyBtn.addEventListener('click', apply);
+        bar.appendChild(applyBtn);
+
+        // Extras count too: a scope set from a button outside this panel is
+        // still a filter the user has to be able to drop.
+        if (Object.keys(applied).length || appliedQuick !== '' || extraCount) {
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'btn btn-sm btn-outline-danger';
+            clearBtn.innerHTML = '<i class="fas fa-times me-1"></i>' + S.clearAll;
+            clearBtn.addEventListener('click', function () {
+                if (opts.clearAll) {
+                    opts.clearAll();
+                } else {
+                    if (opts.quickEl) { opts.quickEl.value = ''; }
+                    inputs().forEach(function (el) { setValue(el, ''); });
+                }
+                apply();
+            });
+            bar.appendChild(clearBtn);
+        }
+        return bar;
+    }
+
+    /* ── applying ────────────────────────────────────────────────────── */
+
+    function apply() {
+        load(opts.buildUrl(), true);
+    }
+
+    function setBusy(busy) {
+        root.classList.toggle('filter-draft-busy', busy);
+        if (!results) { return; }
+        results.classList.toggle('is-busy', busy);
+        let overlay = results.querySelector(':scope > .index-results-overlay');
+        if (busy && !overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'index-results-overlay';
+            overlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+            results.appendChild(overlay);
+        } else if (!busy && overlay) {
+            overlay.remove();
+        }
+    }
+
+    /**
+     * Fetch a filtered/sorted/paged version of this index and swap in its
+     * results. The whole page is requested rather than a fragment — the
+     * layout is cheap next to the queries these filters cost, and it keeps
+     * the views free of an ajax branch — but only the results and the nodes
+     * named in `swap` are taken out of the response, so the live filter bar
+     * (and its TomSelect instances) is never rebuilt.
+     */
+    function load(url, push) {
+        // An ajax tab reloads its own fragment, bar included, and comes back
+        // with the server's state — nothing to keep in sync here.
+        if (opts.reload && opts.reload(url)) { return; }
+        if (!results) { window.location.href = url; return; }
+        if (inFlight) { inFlight.abort(); }
+        const controller = new AbortController();
+        inFlight = controller;
+        setBusy(true);
+
+        fetch(url, { credentials: 'same-origin', signal: controller.signal })
+            .then(function (response) {
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                return response.text();
+            })
+            .then(function (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const fresh = doc.querySelector(opts.results);
+                if (!fresh) { throw new Error('no results container in response'); }
+
+                results.innerHTML = fresh.innerHTML;
+                (opts.swap || []).forEach(function (selector) { swap(doc, selector); });
+
+                if (push) { history.pushState({ indexFilter: true }, '', url); }
+                if (opts.syncFromUrl) { opts.syncFromUrl(url); }
+                applied = draft();
+                appliedQuick = draftQuick();
+                renderSummary();
+                bindNavLinks();
+                // Rows the selection pointed at are gone.
+                if (window.selectedItems && typeof selectedItems.clear === 'function') {
+                    selectedItems.clear();
+                    if (typeof updateMultiSelectToolbar === 'function') { updateMultiSelectToolbar(); }
+                }
+                if (typeof initTomSelect === 'function') { initTomSelect(results); }
+                if (opts.onApplied) { opts.onApplied(); }
+                results.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') { return; }
+                showLoadError();
+            })
+            .finally(function () {
+                if (inFlight === controller) { inFlight = null; setBusy(false); }
+            });
+    }
+
+    function swap(doc, selector) {
+        const target = document.querySelector(selector);
+        const fresh = doc.querySelector(selector);
+        if (target && fresh) { target.innerHTML = fresh.innerHTML; }
+    }
+
+    function showLoadError() {
+        // The summary can live inside a collapse or a dropdown, so an error
+        // raised from a button outside it would land out of sight.
+        const panel = summaryEl.closest('.collapse');
+        if (panel && !panel.classList.contains('show')
+            && window.bootstrap && bootstrap.Collapse) {
+            bootstrap.Collapse.getOrCreateInstance(panel).show();
+        }
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show mb-0 mt-3';
+        alert.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>'
+            + S.loadError
+            + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        summaryEl.appendChild(alert);
+    }
+
+    /* ── paging and sorting stay inside the ajax loop ─────────────────── */
+
+    function bindNavLinks() {
+        (opts.rootLinks || []).forEach(function (selector) {
+            root.querySelectorAll(selector).forEach(bindLink);
+        });
+        if (!results) { return; }
+        (opts.resultLinks || []).forEach(function (selector) {
+            results.querySelectorAll(selector).forEach(bindLink);
+        });
+    }
+
+    function bindLink(link) {
+        if (link.dataset.filterDraftBound) { return; }
+        link.dataset.filterDraftBound = '1';
+        link.addEventListener('click', function (event) {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) { return; }
+            event.preventDefault();
+            load(link.getAttribute('href'), true);
+        });
+    }
+
+    /* ── wiring ──────────────────────────────────────────────────────── */
+
+    function watch(el) {
+        el.addEventListener('change', renderSummary);
+        el.addEventListener('input', renderSummary);
+        el.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') { event.preventDefault(); apply(); }
+        });
+        // TomSelect swallows the original <select>'s change event in some
+        // versions, so listen on the instance as well.
+        if (el.tomselect) { el.tomselect.on('change', renderSummary); }
+    }
+
+    inputs().forEach(watch);
+    if (opts.quickEl) { watch(opts.quickEl); }
+
+    // `base` is an absolute URL, `location.pathname` is not — compare paths.
+    const basePath = opts.base ? opts.base.replace(/^[a-z]+:\/\/[^/]+/i, '') : null;
+    window.addEventListener('popstate', function () {
+        // Another page's history entry is none of this bar's business.
+        if (basePath && window.location.pathname.indexOf(basePath) !== 0) { return; }
+        load(window.location.pathname + window.location.search, false);
+    });
+
+    renderSummary();
+    bindNavLinks();
+
+    return { refresh: renderSummary, apply: apply };
+}
+window.initIndexFilterDraft = initIndexFilterDraft;
+
+/* --------------------------------------------------------------------------
+ * Adapter: the log indexes' filter card
+ * --------------------------------------------------------------------------
+ * Its configuration (base URL, applied filters, field labels) is rendered
+ * next to it as a JSON <script>; see Elements/Logs/filter_card.ctp.
+ */
+function initLogFilterCard(root) {
+    if (!root) { return; }
+    const configEl = root.querySelector('.log-filter-config');
+    if (!configEl) { return; }
+    const cfg = JSON.parse(configEl.textContent);
+    const quickEl = root.querySelector('.log-quick-filter');
+
+    // TomSelect copies the select's classes onto its wrapper, so
+    // `.filter-draft-input` alone matches two nodes per control.
+    function inputs() {
+        return Array.prototype.slice.call(
+            root.querySelectorAll('select.filter-draft-input, input.filter-draft-input'));
+    }
+
+    /*
+     * Filters go in the query string, paginator parameters stay named URL
+     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
+     * the access log controller with the value dropped — and the free-text
+     * search of a URL column is exactly where slashes turn up.
+     */
+    function buildUrl() {
+        const query = new URLSearchParams();
+        const quick = quickEl ? (quickEl.value || '').trim() : '';
+        if (quick !== '') { query.set(cfg.quickName, quick); }
+        inputs().forEach(function (el) {
+            const value = (el.value || '').trim();
+            if (value !== '') { query.set(el.getAttribute('name'), value); }
+        });
+        return formatIndexUrl(cfg.base, { named: cfg.preserved, query: query });
+    }
+
+    /**
+     * Read a URL back into the card. Applying round-trips to itself, but the
+     * back button and the pagination/sort links do not: they hand over a URL
+     * this card did not build, and its inputs, its chips and the paginator
+     * parameters it carries across all have to follow.
+     */
+    function syncFromUrl(url) {
+        const parts = parseIndexUrl(url, cfg.base);
+        // `page` is deliberately not carried across: a new filter starts over.
+        cfg.preserved = {};
+        ['sort', 'direction', 'limit'].forEach(function (key) {
+            if (parts.named[key] !== undefined) { cfg.preserved[key] = parts.named[key]; }
+        });
+
+        // A filter may still arrive as a named segment, from an older link.
+        inputs().forEach(function (el) {
+            const name = el.getAttribute('name');
+            const value = parts.query.get(name) || parts.named[name] || '';
+            if (el.tomselect) { el.tomselect.setValue(value, true); } else { el.value = value; }
+        });
+        if (quickEl) {
+            quickEl.value = parts.query.get(cfg.quickName) || parts.named[cfg.quickName] || '';
+        }
+    }
+
+    if (typeof initTomSelect === 'function') { initTomSelect(root); }
+
+    const draft = initIndexFilterDraft(root, {
+        base: cfg.base,
+        inputs: inputs,
+        nameOf: function (el) { return el.getAttribute('name'); },
+        labelOf: function (name) {
+            return (cfg.fields[name] && cfg.fields[name].label) || name;
+        },
+        displayOf: function (name, value) {
+            const options = cfg.fields[name] && cfg.fields[name].options;
+            return (options && options[value]) || value;
+        },
+        quickEl: quickEl,
+        quickLabel: cfg.strings.searchLabel,
+        applied: cfg.applied,
+        appliedQuick: cfg.appliedQuick,
+        countEl: root.querySelector('.filter-draft-count'),
+        summaryEl: root.querySelector('.filter-draft-summary'),
+        results: cfg.results,
+        swap: ['#headerCountBadge', '.log-filter-pager'],
+        rootLinks: ['.log-filter-pager a[href]'],
+        resultLinks: ['.pagination a[href]', 'thead a[href]'],
+        buildUrl: buildUrl,
+        syncFromUrl: syncFromUrl,
+        strings: cfg.strings,
+    });
+
+    // The magnifier next to the search box applies too — it is the only
+    // control left in reach when the advanced panel is folded away.
+    const quickBtn = root.querySelector('.log-quick-btn');
+    if (quickBtn && draft) { quickBtn.addEventListener('click', draft.apply); }
+}
+window.initLogFilterCard = initLogFilterCard;
+
+/* --------------------------------------------------------------------------
+ * Adapter: the scaffold's index filter bar
+ * --------------------------------------------------------------------------
+ * genericElementsBS5/IndexTable/filter_bar.ctp calls this whenever it renders
+ * a `more_filters` control. Everything here is URL work.
+ *
+ * @param {Element} bar   the filter bar element
+ * @param {Object}  cfg   scope, ajaxContainer, base, itemPath, mode,
+ *                        transport, searchField, idField, ownedKeys,
+ *                        results, swap, strings
+ * @returns {Object|null} the draft handle, so the bar's own buttons can apply
+ */
+function initScaffoldFilterDraft(bar, cfg) {
+    const scope = cfg.scope || document;
+    /*
+     * By id, never by a scoped query: a tab pane can hold two scaffolded
+     * indexes (the event view renders the attribute list twice), and only one
+     * of them may declare `more_filters`. Searching the pane hands the
+     * panel-less bar its neighbour's panel, and its config then builds the
+     * neighbour's URLs.
+     */
+    const panel = document.getElementById(cfg.advId);
+    if (!panel) { return null; }
+
+    // TomSelect copies the select's classes onto its wrapper, so
+    // `.filter-draft-input` alone matches two nodes per control.
+    const inputs = function () {
+        return Array.prototype.slice.call(panel.querySelectorAll('select.filter-draft-input'));
+    };
+    const controlFor = function (name) { return panel.querySelector('[name="' + name + '"]'); };
+    // `#filterField` is a repeated id across bars; scope it to this one.
+    const searchEl = bar.querySelector('#filterField');
+
+    // In `event` mode every filter key is prefixed in the URL.
+    const rawKey = function (name) {
+        return (cfg.mode === 'event' ? 'search' : '') + name;
+    };
+    // The URL this bar is currently showing: an ajax tab tracks its own.
+    const source = function () {
+        return (cfg.ajaxContainer && cfg.ajaxContainer.dataset.url)
+            ? cfg.ajaxContainer.dataset.url
+            : (window.location.pathname + window.location.search);
+    };
+
+    // "Clear all" on a full page used to be a plain link to the bare index,
+    // scope included; inside an ajax tab it kept the scope. One flag, read
+    // and reset by the next build, preserves both.
+    let clearScope = false;
+
+    function controlValues() {
+        const out = {};
+        const term = searchEl ? searchEl.value.trim() : '';
+        if (term !== '') {
+            // A number or a UUID means the user is after one record, not a phrase.
+            const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const key = (cfg.idField && (uuidRe.test(term) || /^[0-9]+$/.test(term)))
+                ? cfg.idField : cfg.searchField;
+            out[key] = term;
+        }
+        scope.querySelectorAll('.topbar-filter').forEach(function (el) {
+            const name = el.getAttribute('name');
+            if (!name) { return; }
+            const value = (el.value || '').trim();
+            if (value !== '') { out[name] = value; }
+        });
+        return out;
+    }
+
+    /*
+     * Filters as a query string, for an index that declares
+     * `transport => 'query'` (the global attribute index) because a named
+     * segment cannot hold a '/'. The path is left exactly as it is — it
+     * carries whatever scope the bar does not own.
+     */
+    function buildQueryDraftUrl() {
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const query = parts.query;
+        query.delete('page');
+        if (clearScope) {
+            clearScope = false;
+            Array.prototype.slice.call(query.keys()).forEach(function (key) {
+                if (['sort', 'direction', 'limit'].indexOf(key) === -1) { query.delete(key); }
+            });
+        }
+        [cfg.searchField, cfg.idField].forEach(function (k) { if (k) { query.delete(k); } });
+        cfg.ownedKeys.forEach(function (key) {
+            if (['sort', 'direction', 'page', 'limit'].indexOf(key) === -1) { query.delete(key); }
+        });
+        const values = controlValues();
+        Object.keys(values).forEach(function (name) { query.set(name, values[name]); });
+        const qs = query.toString();
+        return parts.path + (qs ? '?' + qs : '');
+    }
+
+    /*
+     * Filters as named segments. Everything the bar does not own is kept —
+     * the positional scope arguments, the unowned named keys, and the
+     * paginator's sort/direction, because dropping those would silently reset
+     * the column the table is sorted on. Only `page` resets: a new filter
+     * starts over.
+     */
+    function buildUrl() {
+        if (cfg.transport === 'query') { return buildQueryDraftUrl(); }
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const named = parts.named;
+        delete named['page'];
+        if (clearScope) {
+            clearScope = false;
+            parts.positional.length = 0;
+            Object.keys(named).forEach(function (key) {
+                if (['sort', 'direction', 'limit'].indexOf(key) === -1) { delete named[key]; }
+            });
+        }
+        [cfg.searchField, cfg.idField].forEach(function (k) { if (k) { delete named[rawKey(k)]; } });
+        cfg.ownedKeys.forEach(function (key) {
+            if (['sort', 'direction', 'page', 'limit'].indexOf(key) === -1) { delete named[rawKey(key)]; }
+        });
+        const values = controlValues();
+        Object.keys(values).forEach(function (name) { named[rawKey(name)] = values[name]; });
+        return formatIndexUrl(cfg.base, { positional: parts.positional, named: named });
+    }
+
+    /*
+     * Applied filters with no control in this bar — the `searchemail:` that
+     * the "My events" button puts in the URL. They used to show in the
+     * server-rendered "Active filters" row; now that the summary owns the
+     * chips, they have to be read back out of the URL or clicking "My events"
+     * leaves no trace at all.
+     */
+    function extraChips() {
+        const parts = parseIndexUrl(source(), cfg.itemPath);
+        const out = [];
+        const seen = {};
+        const add = function (key, value) {
+            if (cfg.mode === 'event' && key.indexOf('search') === 0) { key = key.slice(6); }
+            if (!key || value === '' || cfg.ownedKeys.indexOf(key) !== -1 || seen[key]) { return; }
+            seen[key] = true;
+            out.push({
+                label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+                value: value,
+            });
+        };
+        Object.keys(parts.named).forEach(function (key) { add(key, parts.named[key]); });
+        parts.query.forEach(function (value, key) { add(key, value); });
+        return out;
+    }
+
+    return initIndexFilterDraft(bar, {
+        base: cfg.base,
+        inputs: inputs,
+        nameOf: function (el) { return el.getAttribute('name'); },
+        labelOf: function (name) {
+            const field = controlFor(name) && controlFor(name).closest('.filter-draft-field');
+            const label = field && field.querySelector('label');
+            return label ? label.textContent.trim() : name;
+        },
+        displayOf: function (name, value) {
+            const el = controlFor(name);
+            if (el && el.tagName === 'SELECT') {
+                const option = Array.prototype.find.call(el.options, function (o) {
+                    return o.value === value;
+                });
+                if (option && option.text.trim() !== '') { return option.text.trim(); }
+            }
+            return value;
+        },
+        // The search term is part of the draft too, exactly as on the log
+        // indexes: one summary says everything the next run will apply.
+        quickEl: searchEl,
+        quickLabel: cfg.strings.searchLabel,
+        appliedQuick: searchEl ? searchEl.value.trim() : '',
+        // The server rendered the controls already selected, so what they
+        // hold at init is exactly what the page is showing.
+        applied: (function () {
+            const out = {};
+            inputs().forEach(function (el) {
+                const value = (el.value || '').trim();
+                if (value !== '') { out[el.getAttribute('name')] = value; }
+            });
+            return out;
+        }()),
+        // The badge rides the toggle button, which lives in the bar's flex
+        // row — outside the panel the controls are in.
+        countEl: bar.querySelector('.filter-draft-count'),
+        summaryEl: panel.querySelector('.filter-draft-summary'),
+        extraChips: extraChips,
+        results: cfg.results,
+        swap: cfg.swap,
+        rootLinks: ['.index-filter-pager a[href]'],
+        resultLinks: ['.pagination a[href]', 'thead a[href]'],
+        // A tab that drives its own URLs — the attribute list inside an event
+        // view builds `events/viewAttributes/<id>/category:x` — registers the
+        // two functions it owns on its container. Looked up per call, because
+        // it registers them after this bar has already wired itself.
+        buildUrl: function () {
+            const over = cfg.ajaxContainer && cfg.ajaxContainer.__indexFilterOverride;
+            return (over && over.buildUrl) ? over.buildUrl() : buildUrl();
+        },
+        // Drops the bar's own filters and the search term. Outside an ajax
+        // tab it drops the scope too, the way the old "Clear all" link to the
+        // bare index did; inside one the scope is what the tab is about.
+        clearAll: function () {
+            clearScope = !cfg.ajaxContainer;
+            if (searchEl) { searchEl.value = ''; }
+            inputs().forEach(function (el) {
+                if (el.tomselect) { el.tomselect.setValue('', true); } else { el.value = ''; }
+            });
+        },
+        // An ajax tab reloads its own fragment, this bar included, and comes
+        // back with the server's state — nothing to keep in sync here.
+        reload: function (url) {
+            const over = cfg.ajaxContainer && cfg.ajaxContainer.__indexFilterOverride;
+            if (over && over.reload) { return over.reload(url); }
+            if (cfg.ajaxContainer && typeof reloadAjaxTabIndex === 'function') {
+                reloadAjaxTabIndex(cfg.ajaxContainer, url);
+                return true;
+            }
+            return false;
+        },
+        strings: cfg.strings,
+    });
+}
+window.initScaffoldFilterDraft = initScaffoldFilterDraft;
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
 });

@@ -290,7 +290,7 @@ class ObjectsController extends AppController
                     if (is_numeric($result)) {
                         $this->Flash->success('Object saved.');
                         if ($this->theme === 'Overmind') {
-                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId, '#' => 'tab-objects'));
                         } else {
                             $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                         }
@@ -406,7 +406,7 @@ class ObjectsController extends AppController
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             if($this->theme === "Overmind"){
-                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
             } else {
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
             }
@@ -510,7 +510,7 @@ class ObjectsController extends AppController
                         $this->Flash->error($error_message);
                     }
                     if ($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
                     }
@@ -958,6 +958,115 @@ class ObjectsController extends AppController
                 }
             }
         }
+    }
+
+    /**
+     * Soft- or hard-delete a set of objects in one request, for the object
+     * index's mass select. GET renders the confirmation modal, POST does the
+     * work — the shape AttributesController::deleteSelection already uses, so
+     * the two selections behave the same way from the index.
+     *
+     * @param string|null $id JSON list of object ids, or one numeric id
+     * @param bool $hard
+     * @return CakeResponse|void
+     */
+    public function deleteSelection($id = null, $hard = false)
+    {
+        if (!$this->userRole['perm_modify']) {
+            throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
+        }
+        if (isset($this->request->data['hard'])) {
+            $hard = $this->request->data['hard'];
+        }
+
+        if (!$this->request->is('post')) {
+            $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+            if (empty($idList) || !is_array($idList)) {
+                throw new NotFoundException(__('Invalid object ID.'));
+            }
+            $this->layout = false;
+            $this->set('idArray', array_map('intval', $idList));
+            $this->set('hard', (bool)$hard);
+            $this->render('ajax/objectDeleteSelectionForm');
+            return;
+        }
+
+        $idList = null;
+        if (isset($this->request->data['Object']['ids'])) {
+            $idList = $this->_jsonDecode($this->request->data['Object']['ids']);
+        } elseif (!empty($id)) {
+            $idList = is_numeric($id) ? [(int)$id] : $this->_jsonDecode($id);
+        }
+        if (empty($idList) || !is_array($idList)) {
+            throw new NotFoundException(__('No matching objects found.'));
+        }
+
+        $successes = [];
+        $fails = [];
+        $locked = [];
+        foreach ($idList as $objectId) {
+            $objectId = (int)$objectId;
+            $object = $this->MispObject->find('first', array(
+                'recursive' => -1,
+                'fields' => array(
+                    'Object.id', 'Object.event_id',
+                    'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'
+                ),
+                'conditions' => array('Object.id' => $objectId),
+                'contain' => array('Event')
+            ));
+            // Checked one by one rather than once for the lot: a selection made
+            // in an extended event view spans several events, and the rights
+            // are not the same on all of them.
+            if (empty($object) || !$this->__canModifyEvent($object)) {
+                $fails[] = $objectId;
+                continue;
+            }
+            $eventId = $object['Event']['id'];
+            if (!isset($locked[$eventId])) {
+                $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
+                $locked[$eventId] = true;
+            }
+            try {
+                if ($this->__delete($objectId, $hard)) {
+                    $successes[] = $objectId;
+                } else {
+                    $fails[] = $objectId;
+                }
+            } catch (Exception $e) {
+                $fails[] = $objectId;
+            }
+        }
+
+        $n = count($successes);
+        if (empty($fails)) {
+            return new CakeResponse(array(
+                'body' => json_encode(array(
+                    'saved' => true,
+                    'success' => __n(
+                        '%s object deleted.',
+                        '%s objects deleted.',
+                        $n, $n
+                    ),
+                    'ids' => $successes,
+                )),
+                'status' => 200,
+                'type' => 'json',
+            ));
+        }
+        return new CakeResponse(array(
+            'body' => json_encode(array(
+                'saved' => false,
+                'errors' => __n(
+                    '%s object could not be deleted.',
+                    '%s objects could not be deleted.',
+                    count($fails), count($fails)
+                ),
+                'ids' => $successes,
+            )),
+            'status' => 200,
+            'type' => 'json',
+        ));
     }
 
     private function __delete($id, $hard)

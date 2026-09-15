@@ -1,10 +1,20 @@
 <?php
 $eventId   = h($data['Event']['id'] ?? '');
 $uid       = 'evt-tags-' . $eventId;
-$fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId);
+$fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId
+    . ($extensionSuffix ?? ''));
 $editUrl   = h($baseurl . '/events/editEventTags/' . $eventId);
 
 $mayModify = $this->Acl->canModifyTag($data);
+// AI tag recommendations (A3): anyone who may add at least a local tag may
+// accept suggestions; without edit rights they land as local tags.
+$aiUrl = null;
+if (Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canModifyTag($data, true)
+    && $this->Acl->canAccess('events', 'aiRecommendTags')
+) {
+    $aiUrl = h($baseurl . '/events/aiRecommendTags/' . $eventId);
+}
 ?>
 
 <div class="card shadow-sm mb-3" id="tags-card">
@@ -38,10 +48,23 @@ $mayModify = $this->Acl->canModifyTag($data);
                        aria-label="<?= __('Filter tags') ?>">
             </div>
 
+            <?php if ($aiUrl !== null): ?>
+            <!-- AI recommendations -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-tags-ai"
+                    onclick="openModal('<?= $aiUrl ?>', 'lg')"
+                    title="<?= __('Recommend tags with AI') ?>">
+                <i class="fas fa-robot me-1"></i>
+                <?= __('AI') ?>
+            </button>
+            <?php endif; ?>
+
             <?php if ($mayModify): ?>
             <!-- Edit button -->
             <button type="button"
                     class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-tags-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')"
                     title="<?= __('Edit Tags') ?>">
                 <i class="fas fa-pen-to-square me-1"></i>

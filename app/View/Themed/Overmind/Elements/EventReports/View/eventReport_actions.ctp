@@ -15,7 +15,7 @@ if (!empty($canEdit)) {
 if (!empty($canEdit)) {
     $actions[] = [
         'url' => "$baseurl/event_reports/view/$reportId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/event_reports/deleteSelection/$reportId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/event_reports/deleteSelection/$reportId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Report'),
         'danger' => true,

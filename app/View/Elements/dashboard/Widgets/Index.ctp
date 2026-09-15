@@ -27,7 +27,14 @@
  * "Index renderer". The renderer supports the subset of `element`
  * values the in-tree consumers actually use; new field types are
  * added one switch case at a time.
+ *
+ * Every emitted URL — the `links` element's `url` and the `org` element's
+ * derived organisation link — is gated by DashboardURLValidator (DD-03),
+ * the same gate SimpleList and the other list renderers use; an unsafe
+ * URL degrades to plain text rather than a link.
  */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+
 $rows   = isset($data['data'])   ? $data['data']   : [];
 $fields = isset($data['fields']) ? $data['fields'] : [];
 
@@ -41,20 +48,7 @@ if (empty($rows)) {
     return;
 }
 
-$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
-
-/**
- * Same URL safety contract as SimpleList: relative paths starting with
- * `/` (single slash), or absolute URLs on the same host as MISP.baseurl.
- */
-$isSafeUrl = function ($url) use ($baseurl) {
-    if (!is_string($url) || $url === '') return false;
-    if ($url[0] === '/' && (!isset($url[1]) || $url[1] !== '/')) return true;
-    if ($baseurl === '') return false;
-    $baseHost = parse_url($baseurl, PHP_URL_HOST);
-    $host     = parse_url($url, PHP_URL_HOST);
-    return $baseHost && $host && strcasecmp($baseHost, $host) === 0;
-};
+$baseurl = DashboardURLValidator::baseUrl();
 
 /**
  * Dot-notation getter using Cake's Hash::get (already loaded by the
@@ -69,7 +63,7 @@ $pluck = function ($row, $path) {
  * Render a single cell. The `element` field determines the dispatch;
  * unknown elements fall through to the scalar path (escaped value).
  */
-$renderCell = function ($row, $field) use ($pluck, $isSafeUrl, $baseurl) {
+$renderCell = function ($row, $field) use ($pluck, $baseurl) {
     $element = isset($field['element']) ? $field['element'] : null;
     $value   = $pluck($row, isset($field['data_path']) ? $field['data_path'] : '');
 
@@ -87,10 +81,11 @@ $renderCell = function ($row, $field) use ($pluck, $isSafeUrl, $baseurl) {
                 }
             }
             $text = ($value === null || $value === '') ? '—' : (string)$value;
-            if ($url !== '' && $isSafeUrl($url)) {
+            $safeUrl = $url !== '' ? DashboardURLValidator::validate($url) : null;
+            if ($safeUrl !== null) {
                 return sprintf(
                     '<a class="misp-index-link" href="%s">%s</a>',
-                    h($url),
+                    h($safeUrl),
                     h($text)
                 );
             }
@@ -112,8 +107,10 @@ $renderCell = function ($row, $field) use ($pluck, $isSafeUrl, $baseurl) {
             if ($key === '') {
                 return h($orgName);
             }
-            $orgUrl = $baseurl . '/organisations/view/' . rawurlencode($key);
-            if (!$isSafeUrl($orgUrl)) {
+            $orgUrl = DashboardURLValidator::validate(
+                $baseurl . '/organisations/view/' . rawurlencode($key)
+            );
+            if ($orgUrl === null) {
                 return h($orgName);
             }
             return sprintf(

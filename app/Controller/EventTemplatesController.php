@@ -43,6 +43,9 @@ class EventTemplatesController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
+        // The builder and the user form post hand-built JSON, so they carry the
+        // CSRF token in the X-CSRF-Token header rather than in _Token fields.
+        $this->_csrfTokenHeaderOnly(['add', 'edit', 'update', 'instantiate', 'validate_definition']);
         $missing = EventTemplateDependencies::missing();
         if (!empty($missing)) {
             $response = $this->__renderDependencyMissing($missing);

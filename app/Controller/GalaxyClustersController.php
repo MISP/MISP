@@ -191,7 +191,7 @@ class GalaxyClustersController extends AppController
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $tag = $this->GalaxyCluster->Tag->find('first', array(
             'conditions' => array(
-                'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
+                'Tag.name' => $cluster['GalaxyCluster']['tag_name'],
             ),
             'fields' => array('id'),
             'recursive' => -1,
@@ -289,7 +289,10 @@ class GalaxyClustersController extends AppController
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxyId;
             $cluster['GalaxyCluster']['published'] = false;
-            if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4) {
+            if (
+                !empty($cluster['GalaxyCluster']['sharing_group_id']) ||
+                (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4)
+            ) {
                 $canSGBeUsed = $this->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $cluster, 'GalaxyCluster');
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);
@@ -424,7 +427,10 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['id'] = $id;
             }
 
-            if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4) {
+            if (
+                !empty($cluster['GalaxyCluster']['sharing_group_id']) ||
+                (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4)
+            ) {
                 $canSGBeUsed = $this->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $cluster, 'GalaxyCluster');
                 if ($canSGBeUsed !== true) {
                     throw new MethodNotAllowedException($canSGBeUsed);

@@ -166,6 +166,10 @@ class BlocklistComponent extends Component
 
     public function delete($rest = false, $id)
     {
+        // Every blocklist controller routes its delete() through here, including
+        // the two that resolve a uuid themselves first, so one guard covers all
+        // five. deleteSelection() and massDelete() already gate on the verb.
+        $this->controller->request->allowMethod(['post']);
         if (Validation::uuid($id)) {
             $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', [
                 'conditions' => array(

@@ -358,7 +358,7 @@ if (!empty($headerActions)) {
 
     <div class="d-flex justify-content-between align-items-center">
 
-        <div class="d-flex flex-column align-items-start">
+        <div class="d-flex flex-column align-items-start" data-tour="page-title">
             <?php if ($breadcrumb): ?>
                 <span class="text-muted text-uppercase fw-semibold mb-1"
                         style="font-size:0.68rem; letter-spacing:0.07em;">
@@ -371,7 +371,7 @@ if (!empty($headerActions)) {
                 </h1>
                 <?php // headerCountText => '' is the opt-out for pages whose paginator counts something other than the page's subject ?>
                 <?php if ($countDisplay !== null && $countDisplay !== ''): ?>
-                    <span class="badge rounded-pill bg-primary fw-semibold px-3">
+                    <span class="badge rounded-pill bg-primary fw-semibold px-3" id="headerCountBadge">
                         <?= h($countDisplay) ?>
                     </span>
                 <?php endif; ?>
@@ -387,7 +387,8 @@ if (!empty($headerActions)) {
         </div>
 
         <?php if (!empty($headerActionStrip)): ?>
-            <div class="d-flex gap-2 align-items-center flex-wrap">
+            <div class="d-flex gap-2 align-items-center flex-wrap"
+                 data-tour="page-actions">
                 <?php foreach ($headerActionStrip as $slot): ?>
                     <?php
                     $tabAttr = empty($slot['tab'])
@@ -437,7 +438,7 @@ if (!empty($headerActions)) {
     </div>
 
     <?php if (!empty($headerStats)): ?>
-        <div class="row g-3 mt-2">
+        <div class="row g-3 mt-2" data-tour="page-stats">
             <?php foreach ($headerStats as $stat): ?>
                 <?php
                     $color = h($stat['color'] ?? 'secondary');

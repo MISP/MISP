@@ -25,6 +25,7 @@ class AccessLogsController extends AppController
 
     public function admin_index()
     {
+        $exception = null;
         $params = $this->IndexFilter->harvestParameters([
             'created',
             'ip',
@@ -42,9 +43,25 @@ class AccessLogsController extends AppController
             'duration',
             'query_count',
             'response_code',
-        ]);
+        ], $exception, ['fromQuery' => true]);
 
         $conditions =  $this->__searchConditions($params);
+
+        // Free-text search box: one term, run against the whole index rather
+        // than against the rows of the current page. The HTTP method is left
+        // out on purpose — it is stored as an int and has its own dropdown.
+        $quickFilter = $this->IndexFilter->quickFilterTerm();
+        $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'AccessLog', [
+            'like' => ['url', 'controller', 'action', 'user_agent', 'request_id'],
+            'numeric' => ['response_code'],
+            'ip' => 'ip',
+            'user' => 'user_id',
+            'org' => 'org_id',
+        ]);
+        if (!empty($quickFilterConditions)) {
+            $conditions['AND'][] = $quickFilterConditions;
+        }
+        $this->set('quickFilter', $quickFilter);
 
         if ($this->_isRest()) {
             $list = $this->AccessLog->find('all', [

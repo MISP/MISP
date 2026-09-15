@@ -9,6 +9,14 @@ class CollectionElementsController extends AppController
 
     public $components = ['Session', 'RequestHandler'];
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // Posted by hand-built AJAX from the collection pickers, which sends the
+        // CSRF token as the X-CSRF-Token header instead of _Token fields.
+        $this->_csrfTokenHeaderOnly(['addElementToCollection']);
+    }
+
     public $paginate = [
         'limit' => 60,
         'order' => []
@@ -38,7 +46,52 @@ class CollectionElementsController extends AppController
 
         return array_values(array_unique($uuids));
     }
-    
+
+    /**
+     * Authorise the objects a collection element points at.
+     *
+     * A collection element is a bare UUID that the model never checks against
+     * the caller's ACL, and the read side resolves those UUIDs back into real
+     * objects when the collection is rendered. Both write paths must therefore
+     * refuse a UUID the caller cannot read - otherwise a collection is a
+     * self-service handle on another organisation's private data, which is
+     * what made the beta collection view disclose org-only events (V17).
+     *
+     * @param string|null $elementType 'Event' or 'GalaxyCluster'. Empty when the
+     *      caller omitted it, in which case CollectionElement::beforeValidate()
+     *      deduces it on save - so deduce it the same way here, or the guard
+     *      could be skipped simply by leaving the field out.
+     * @param array $elementUuids
+     * @throws NotFoundException
+     */
+    private function __assertCanUseElements($elementType, array $elementUuids)
+    {
+        $user = $this->Auth->user();
+        foreach ($elementUuids as $elementUuid) {
+            $type = empty($elementType)
+                ? $this->CollectionElement->deduceType($elementUuid)
+                : $elementType;
+            if ($type === 'Event') {
+                $this->loadModel('Event');
+                $event = $this->Event->fetchSimpleEvent($user, $elementUuid, [
+                    'fields' => ['Event.id']
+                ]);
+                if (empty($event)) {
+                    throw new NotFoundException(__('Invalid event or not authorized.'));
+                }
+            } elseif ($type === 'GalaxyCluster') {
+                $this->loadModel('GalaxyCluster');
+                $clusterCount = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $elementUuid],
+                    'count' => true
+                ]);
+                if (empty($clusterCount)) {
+                    throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
+                }
+            }
+        }
+    }
+
     public function add($collection_id)
     {   
         $this->CollectionElement->Collection->current_user = $this->Auth->user();
@@ -48,6 +101,12 @@ class CollectionElementsController extends AppController
         $this->CRUD->add([
             'redirect' => ['controller' => 'collections', 'action' => 'view', $collection_id],
             'beforeSave' => function (array $collectionElement) use ($collection_id) {
+                // Guard the sink: this callback sees the exact row CRUD::add()
+                // is about to save, on both the form and the REST path.
+                $this->__assertCanUseElements(
+                    $collectionElement['CollectionElement']['element_type'] ?? null,
+                    $this->__normaliseElementUuids($collectionElement['CollectionElement']['element_uuid'] ?? null)
+                );
                 $collectionElement['CollectionElement']['collection_id'] = intval($collection_id);
                 return $collectionElement;
             }
@@ -161,17 +220,7 @@ class CollectionElementsController extends AppController
             if (empty($elementUuids)) {
                 throw new NotFoundException(__('No element UUID specified.'));
             }
-            if ($element_type === 'Event') {
-                $this->loadModel('Event');
-                foreach ($elementUuids as $currentElementUuid) {
-                    $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $currentElementUuid, [
-                        'fields' => ['Event.id']
-                    ]);
-                    if (empty($event)) {
-                        throw new NotFoundException(__('Invalid event or not authorized.'));
-                    }
-                }
-            }
+            $this->__assertCanUseElements($element_type, $elementUuids);
 
             $result = true;
             $duplicateCount = 0;

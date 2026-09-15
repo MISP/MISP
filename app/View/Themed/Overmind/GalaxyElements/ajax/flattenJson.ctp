@@ -1,18 +1,10 @@
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06); border-bottom:2px solid var(--bs-galaxy);">
-    <div>
-        <div class="text-galaxy text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Galaxy Cluster Elements') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-code text-galaxy" style="font-size:1.25rem;"></i>
-            <?= __('Convert JSON into elements') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => __('Galaxy Cluster Elements'),
+    'title' => __('Convert JSON into elements'),
+    'titleIcon' => 'fas fa-code',
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
@@ -25,9 +17,18 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label fw-semibold" for="flattenJsonData"><?= __('JSON') ?></label>
-        <textarea id="flattenJsonData" class="form-control font-monospace bg-light" rows="12"
-                  placeholder='{ "synonyms": [ "..." ], "refs": [ "https://..." ] }'></textarea>
+        <?= $this->element('genericElementsBS5/Forms/json_field', [
+            'field' => false,
+            'accent' => 'galaxy',
+            'label' => __('JSON'),
+            'shape' => 'object',
+            'required' => true,
+            'id' => 'flattenJsonData',
+            'rows' => 12,
+            'minHeight' => '240px',
+            'placeholder' => "{\n    \"synonyms\": [\"…\"],\n    \"refs\": [\"https://…\"]\n}",
+            'hint' => __('Every leaf of the document becomes one key/value element.'),
+        ]) ?>
     </div>
 
     <div class="d-flex justify-content-end gap-3">
@@ -52,8 +53,11 @@
     var msgErr  = <?= json_encode(__('Request failed — please try again.')) ?>;
 
     btn.addEventListener('click', async function () {
+        /* The box has already said what is wrong with the document, and
+           nothing leaves until it parses. */
+        var api = field.jsonField;
+        if (api && !api.check()) { field.focus(); return; }
         var json = field.value.trim();
-        if (!json) { field.focus(); return; }
         btn.disabled = true;
         try {
             var body = 'data[GalaxyElement][jsonData]=' + encodeURIComponent(json);
