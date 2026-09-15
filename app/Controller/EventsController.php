@@ -5484,8 +5484,10 @@ class EventsController extends AppController
         } else {
             $options = [];
             $format = 'simplified';
+            $moduleFound = false;
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
+                    $moduleFound = true;
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
@@ -5494,6 +5496,9 @@ class EventsController extends AppController
                     }
                     break;
                 }
+            }
+            if (!$moduleFound) {
+                throw new MethodNotAllowedException(__('Module not found or not available.'));
             }
             $distributions = $this->Event->Attribute->distributionLevels;
             $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
