@@ -3456,6 +3456,13 @@ class Server extends AppModel
         // an instance is behind on rather than just how far. A failed migration
         // is still pending - it is retried first on the next run - so its id is
         // in both lists.
+        // The expected version is the one db_schema.json was dumped at, on
+        // any engine - the file is JSON and reads the same everywhere. Only
+        // the column-by-column comparison below is MySQL-shaped.
+        $dbExpectedSchema = $this->getExpectedDBSchema();
+        if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
+            $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+        }
         $migrationManager = $this->getMigrationManager();
         $pendingMigrations = array_keys($migrationManager->pending());
         $failedMigrations = $migrationManager->failed();
@@ -3466,7 +3473,6 @@ class Server extends AppModel
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
-            $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
                 $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
