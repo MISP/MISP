@@ -98,7 +98,8 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false, 154 => false, 157 => false, 158 => false, 159 => false
+        153 => false, 154 => false, 157 => false, 158 => false, 159 => false,
+        160 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -309,6 +310,12 @@ class AppModel extends Model
             case 152:
                 $dbUpdateSuccess = $this->__importDefaultDashboardTemplates();
                 break;
+            case 160:
+                // tags.name goes case-insensitive: merge the names that
+                // collide under the new collation and make sure the unique
+                // key is there, then run the ALTER.
+                $dbUpdateSuccess = $this->__prepareTagsForCaseInsensitiveName() && $this->updateDatabase($command);
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
@@ -405,6 +412,213 @@ class AppModel extends Model
             ));
         }
         return true;
+    }
+
+    // Collation update 160 moves tags.name to. The pre-flight groups the
+    // existing names under this same collation, so it merges exactly the
+    // rows the new unique key would refuse.
+    const TAG_NAME_COLLATION = 'utf8mb4_unicode_ci';
+
+    // Link tables whose (owner, tag_id) pair may not repeat once a merged
+    // tag's rows are repointed onto the survivor.
+    const TAG_LINK_TABLES = array(
+        'event_tags' => 'event_id',
+        'attribute_tags' => 'attribute_id',
+        'event_report_tags' => 'event_report_id',
+        'tag_collection_tags' => 'tag_collection_id',
+        'favourite_tags' => 'user_id',
+        'galaxy_cluster_relation_tags' => 'galaxy_cluster_relation_id',
+        'template_tags' => 'template_id',
+    );
+
+    /**
+     * Pre-flight of update 160 (case-insensitive tags.name, #11114).
+     *
+     * The unique key on tags.name becomes case-insensitive, so it would
+     * refuse `tlp:red` next to `TLP:RED`. Tag::captureTag() has matched
+     * names through LOWER() since 2016 and never created such pairs, but
+     * the plain isUnique rule and the REST existing-tag check in
+     * TagsController::add() compared byte-for-byte under utf8mb3_bin, so
+     * they exist in the wild. Instances installed before 2.5.0 never got
+     * the unique key at all (MYSQL.sql gained it in 2024 with no migration
+     * behind it), so there the ALTER would not even complain.
+     *
+     * Every group of names that collide under the target collation is
+     * merged into its oldest member: each tag_id column in the schema is
+     * repointed, link rows that became duplicates are collapsed, server
+     * push rules (which hold local tag ids) are rewritten, the merged rows
+     * are deleted, and each merge is written to the audit log. Server pull
+     * rules and feed rules hold remote tag names and are left alone. The
+     * unique key is then (re)created where it is missing. Replayable: a
+     * re-run finds nothing to merge.
+     *
+     * @return bool
+     */
+    private function __prepareTagsForCaseInsensitiveName()
+    {
+        $this->Log = ClassRegistry::init('Log');
+        try {
+            $groups = $this->__fetchFlatRows(
+                'SELECT MIN(`id`) AS `keep_id` FROM `tags` GROUP BY ' .
+                $this->__tagNameUnderTargetCollation('`name`') . ' HAVING COUNT(*) > 1'
+            );
+            foreach ($groups as $group) {
+                $this->__mergeTagsInto((int)$group['keep_id']);
+            }
+            if (!$this->checkIndexExists('tags', 'name', true)) {
+                $this->__dropIndex('tags', 'name');
+                if (!$this->__addIndex('tags', 'name', null, true)) {
+                    return false;
+                }
+            }
+        } catch (Exception $e) {
+            $this->logException('Update 160: could not prepare the tags table for the case-insensitive name column.', $e);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param string $expression column or quoted literal
+     * @return string the expression compared the way the new column will be
+     */
+    private function __tagNameUnderTargetCollation($expression)
+    {
+        return 'CONVERT(' . $expression . ' USING utf8mb4) COLLATE ' . self::TAG_NAME_COLLATION;
+    }
+
+    /**
+     * Merges every tag whose name equals the given tag's name under the
+     * target collation into that tag.
+     *
+     * @param int $keepId
+     */
+    private function __mergeTagsInto($keepId)
+    {
+        $keep = $this->__fetchFlatRows('SELECT `id`, `name` FROM `tags` WHERE `id` = ' . $keepId);
+        if (empty($keep)) {
+            return;
+        }
+        $keepName = $keep[0]['name'];
+        $losers = $this->__fetchFlatRows(
+            'SELECT `id`, `name` FROM `tags` WHERE `id` <> ' . $keepId . ' AND ' .
+            $this->__tagNameUnderTargetCollation('`name`') . ' = ' .
+            $this->__tagNameUnderTargetCollation($this->getDataSource()->value($keepName)) . ' ORDER BY `id`'
+        );
+        if (empty($losers)) {
+            return;
+        }
+        $tagIdTables = array_column($this->__fetchFlatRows(
+            "SELECT `TABLE_NAME` FROM `information_schema`.`COLUMNS` WHERE `TABLE_SCHEMA` = DATABASE() AND `COLUMN_NAME` = 'tag_id'"
+        ), 'TABLE_NAME');
+        foreach ($losers as $loser) {
+            $loserId = (int)$loser['id'];
+            $changes = array();
+            foreach ($tagIdTables as $table) {
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+                    continue;
+                }
+                $this->query('UPDATE `' . $table . '` SET `tag_id` = ' . $keepId . ' WHERE `tag_id` = ' . $loserId);
+                $affected = $this->getAffectedRows();
+                if ($affected) {
+                    $changes[] = $table . ': ' . $affected;
+                }
+            }
+            foreach (self::TAG_LINK_TABLES as $table => $owner) {
+                if (!in_array($table, $tagIdTables, true)) {
+                    continue;
+                }
+                $this->query(
+                    'DELETE `a` FROM `' . $table . '` `a` JOIN `' . $table . '` `b`' .
+                    ' ON `a`.`' . $owner . '` = `b`.`' . $owner . '` AND `a`.`tag_id` = `b`.`tag_id` AND `a`.`id` > `b`.`id`' .
+                    ' WHERE `a`.`tag_id` = ' . $keepId
+                );
+                $affected = $this->getAffectedRows();
+                if ($affected) {
+                    $changes[] = $table . ': ' . $affected . ' duplicate link(s) removed';
+                }
+            }
+            $rewritten = $this->__replaceTagIdInPushRules($loserId, $keepId);
+            if ($rewritten) {
+                $changes[] = 'servers push rules rewritten: ' . $rewritten;
+            }
+            $this->query('DELETE FROM `tags` WHERE `id` = ' . $loserId);
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => 'SYSTEM',
+                'model' => 'Tag',
+                'model_id' => $keepId,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Update 160: merged tag "%s" (id %s) into "%s" (id %s), the names being equal under the case-insensitive collation.', $loser['name'], $loserId, $keepName, $keepId),
+                'change' => empty($changes) ? __('No references to repoint.') : implode(', ', $changes),
+            ));
+        }
+    }
+
+    /**
+     * Server push rules filter on local tag ids; a merged tag's id is
+     * replaced by the survivor's so the rule keeps matching.
+     *
+     * @param int $from
+     * @param int $to
+     * @return int number of servers rewritten
+     */
+    private function __replaceTagIdInPushRules($from, $to)
+    {
+        $servers = $this->__fetchFlatRows("SELECT `id`, `push_rules` FROM `servers` WHERE `push_rules` LIKE '%\"tags\"%'");
+        $rewritten = 0;
+        foreach ($servers as $server) {
+            $rules = json_decode($server['push_rules'], true);
+            if (!is_array($rules) || empty($rules['tags']) || !is_array($rules['tags'])) {
+                continue;
+            }
+            $changed = false;
+            foreach ($rules['tags'] as $operator => $ids) {
+                if (!is_array($ids)) {
+                    continue;
+                }
+                $replaced = array();
+                foreach ($ids as $id) {
+                    if (is_numeric($id) && (int)$id === $from) {
+                        $id = is_string($id) ? (string)$to : $to;
+                        $changed = true;
+                    }
+                    if (!in_array($id, $replaced, true)) {
+                        $replaced[] = $id;
+                    }
+                }
+                $rules['tags'][$operator] = $replaced;
+            }
+            if (!$changed) {
+                continue;
+            }
+            $this->query(
+                'UPDATE `servers` SET `push_rules` = ' . $this->getDataSource()->value(json_encode($rules)) .
+                ' WHERE `id` = ' . (int)$server['id']
+            );
+            $rewritten++;
+        }
+        return $rewritten;
+    }
+
+    /**
+     * Raw SELECT with Cake's per-request query cache off, each row
+     * flattened across the table / expression grouping Cake applies
+     * (`['tags' => [...]]`, `[0 => [...]]`).
+     *
+     * @param string $sql
+     * @return array
+     */
+    private function __fetchFlatRows($sql)
+    {
+        $rows = $this->query($sql, false);
+        $flat = array();
+        foreach ((array)$rows as $row) {
+            $flat[] = array_merge(...array_values($row));
+        }
+        return $flat;
     }
 
     // SQL scripts for updates
@@ -2725,6 +2939,22 @@ class AppModel extends Model
                 // Collection sync per-server toggles (T1.2).
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
+                break;
+            case 160:
+                // Case-insensitive tag names (#11114). Tag::captureTag() has
+                // matched names through LOWER(name) since 2016, which no index
+                // can serve: every tag capture was a full scan of `tags`,
+                // hundreds of times a second during feed ingestion. With the
+                // column on a case-insensitive collation the plain equality,
+                // the isUnique rule and the GalaxyCluster.tag_name = Tag.name
+                // joins all run off the unique key. Length stays 255: shipped
+                // galaxy cluster tag names reach 209 characters. utf8mb4 makes
+                // that a 1020-byte key, above the 767-byte cap of the COMPACT
+                // row format that tables from pre-5.7 installs still carry, so
+                // the row format is switched in the same statement (the
+                // column change rebuilds the table anyway). The pre-flight in
+                // updateMISP() merges colliding names first.
+                $sqlArray[] = "ALTER TABLE `tags` ROW_FORMAT=DYNAMIC, MODIFY `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

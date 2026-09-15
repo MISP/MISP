@@ -680,7 +680,7 @@ class TaxonomiesController extends AppController
         $existingTags = $this->Tag->find('column', [
             'fields' => ['Tag.name'],
             'conditions' => [
-                'lower(Tag.name)' => array_keys($tags),
+                'Tag.name' => array_keys($tags),
                 'hide_tag' => 0
             ],
         ]);

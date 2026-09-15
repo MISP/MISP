@@ -1729,7 +1729,7 @@ class GalaxyCluster extends AppModel
                 'first',
                 array(
                     'conditions' => array(
-                        'LOWER(Tag.name)' => strtolower($cluster['GalaxyCluster']['tag_name'])
+                        'Tag.name' => $cluster['GalaxyCluster']['tag_name']
                     ),
                     'recursive' => -1,
                     'fields' => array('Tag.id')

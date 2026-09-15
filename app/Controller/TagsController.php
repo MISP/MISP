@@ -937,7 +937,7 @@ class TagsController extends AppController
                 $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
             }
             foreach ($tag as $t) {
-                $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+                $conditions['OR'][] = array('Tag.name LIKE' => $t);
             }
         } else {
             foreach ($tag as $t) {
