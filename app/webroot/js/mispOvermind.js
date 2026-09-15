@@ -2418,6 +2418,21 @@ function initSharingGroupForm(container) {
     const form = container.querySelector('#sharingGroupForm');
     if (!form) return;
 
+    let sgConfig = {};
+    const sgConfigNode = container.querySelector('#sharingGroupFormConfig');
+    if (sgConfigNode) {
+        try {
+            sgConfig = JSON.parse(sgConfigNode.textContent) || {};
+        } catch (e) {
+            console.error('Sharing group form: could not parse its configuration', e);
+        }
+    }
+    const sgInitData      = sgConfig.initData      || null;
+    const sgDefaultOrg    = sgConfig.defaultOrg    || null;
+    const sgDefaultServer = sgConfig.defaultServer || null;
+    const sgOrgMeta       = sgConfig.orgMeta       || {};
+    const sgServerMeta    = sgConfig.serverMeta    || {};
+
     const orgState    = new Map();  // organisations : Map<id|uuid, { id, name, type, uuid, extend, removable }>
     const serverState = new Map();  // servers       : Map<id,      { id, name, url,  all_orgs, removable }>
 
@@ -2541,7 +2556,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (orgState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgOrgMeta !== 'undefined') ? (sgOrgMeta[value] || {}) : {};
+            const meta = sgOrgMeta[value] || {};
             orgState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2560,7 +2575,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (orgState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgOrgMeta !== 'undefined') ? (sgOrgMeta[value] || {}) : {};
+            const meta = sgOrgMeta[value] || {};
             orgState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2579,7 +2594,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (serverState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgServerMeta !== 'undefined') ? (sgServerMeta[value] || {}) : {};
+            const meta = sgServerMeta[value] || {};
             serverState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2695,7 +2710,7 @@ function initSharingGroupForm(container) {
     // ── Initialization in edit mode ───────────────────────────────────────────
     // The controller passes $sharingGroup along with SharingGroupOrg and SharingGroupServer
     // We initialize the two Maps using the inline PHP data
-    if (typeof sgInitData !== 'undefined' && sgInitData) {
+    if (sgInitData) {
         (sgInitData.organisations || []).forEach(o => {
             const key = String(o.id);
             orgState.set(key, {
@@ -2736,11 +2751,11 @@ function initSharingGroupForm(container) {
         }
         _updateSummary();
     } else {
-        if (typeof sgDefaultOrg !== 'undefined' && sgDefaultOrg) {
+        if (sgDefaultOrg) {
             const key = String(sgDefaultOrg.id);
             orgState.set(key, { ...sgDefaultOrg, removable: false });
         }
-        if (typeof sgDefaultServer !== 'undefined' && sgDefaultServer) {
+        if (sgDefaultServer) {
             const key = String(sgDefaultServer.id);
             serverState.set(key, { ...sgDefaultServer, removable: false });
         }
