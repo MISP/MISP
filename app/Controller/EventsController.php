@@ -8376,6 +8376,14 @@ class EventsController extends AppController
                 'description' => __('The module reads the event reports and proposes attributes and objects; you review them before they are added.'),
             ],
         ];
+        // Nothing to extract from: the entry stays visible but cannot be chosen.
+        $reports = $this->Event->EventReport->find('count', [
+            'conditions' => ['EventReport.event_id' => $event['Event']['id'], 'EventReport.deleted' => 0],
+        ]);
+        if ($reports === 0) {
+            $actions[1]['disabled'] = true;
+            $actions[1]['description'] = __('This event has no report: there is nothing to extract indicators from.');
+        }
         if ($this->__canModifyTag($event)) {
             $actions[] = [
                 'id' => 'recommend_tags',

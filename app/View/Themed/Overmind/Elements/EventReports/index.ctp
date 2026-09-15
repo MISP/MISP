@@ -15,6 +15,13 @@ $reportOrigin = function ($row) use ($extensionEvents) {
 // action itself checks the report's edit rights.
 $aiSummarizeReport = Configure::read('Plugin.AI_services_enable')
     && $this->Acl->canAccess('eventReports', 'aiSummarize');
+$hasActiveReport = false;
+foreach ($reports as $row) {
+    if (empty($row['EventReport']['deleted'])) {
+        $hasActiveReport = true;
+        break;
+    }
+}
 
 $fields = [
     [
@@ -169,7 +176,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ] : null,
                     // A4: the module reads the reports and proposes attributes
                     // and objects, reviewed in the modal before they are added.
+                    // Offered only with a non-deleted report to read.
                     (!empty($event['Event']['id'])
+                        && $hasActiveReport
                         && Configure::read('Plugin.AI_services_enable')
                         && $this->Acl->canAccess('events', 'aiExtractIndicators')
                         && $this->Acl->canModifyEvent($event)) ? [

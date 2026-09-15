@@ -23,8 +23,12 @@ $description = __n(
 );
 $description .= ' ' . __('You review the list and untick anything wrong before it is added; the event is unpublished when you import.');
 $description .= ' ' . __('The duration of the task is variable based on the model used and server utilisation, at most %s s.', (int)$timeout);
+$submit = array('action' => $this->request->params['action']);
 if ((int)$reports === 0) {
-    $description .= ' ' . __('This event has no report: nothing can be extracted.');
+    // Nothing to send: no submit button at all (the chooser and the reports
+    // header do not offer the action either), the modal closes with ×.
+    $description = __('This event has no report: there is nothing to extract indicators from. Add an event report first.');
+    $submit['no_submit'] = true;
 }
 echo $this->element('genericElements/Form/genericForm', array(
     'form' => $this->Form,
@@ -32,9 +36,7 @@ echo $this->element('genericElements/Form/genericForm', array(
         'title' => __('Extract indicators with AI'),
         'description' => $description,
         'model' => 'Event',
-        'submit' => array(
-            'action' => $this->request->params['action'],
-        ),
+        'submit' => $submit,
     )
 ));
 ?>
@@ -43,8 +45,5 @@ echo $this->element('genericElements/Form/genericForm', array(
     // review page. Show that it is waiting.
     $('.genericForm').on('submit', function () {
         $('#submitButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> <?= __('Waiting for the module…') ?>');
-        <?php if ((int)$reports === 0): ?>
-        return false;
-        <?php endif; ?>
     });
 </script>

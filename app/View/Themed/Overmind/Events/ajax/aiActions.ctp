@@ -22,9 +22,10 @@
 <div class="p-4" style="background:var(--bs-tertiary-bg, #f8f9fa);">
     <div class="d-flex flex-column gap-2">
         <?php foreach ($actions as $action): ?>
+            <?php $disabled = !empty($action['disabled']); ?>
             <button type="button"
-                    class="btn btn-light border text-start d-flex align-items-start gap-3 p-3 ai-action-choice"
-                    data-url="<?= h($action['url']) ?>">
+                    class="btn btn-light border text-start d-flex align-items-start gap-3 p-3 ai-action-choice<?= $disabled ? ' disabled text-muted' : '' ?>"
+                    <?= $disabled ? 'disabled aria-disabled="true"' : 'data-url="' . h($action['url']) . '"' ?>>
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
                       style="width:2.2rem;height:2.2rem;background:rgba(13,110,253,.1);">
                     <i class="<?= h($action['icon']) ?> text-primary"></i>

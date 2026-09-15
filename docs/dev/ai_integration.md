@@ -296,7 +296,9 @@ accumulate, so two exclusive tags accepted together yield one refusal.
   <user> extract <id> [job]`, applied as the requesting user), or
   `{saved, success, message, attributes, objects, rejected}` when it ran
   inline. An event without a readable, non-deleted report is refused before
-  the module is called.
+  the module is called; in the browser the chooser entry is disabled with the
+  reason, the reports-header button is not offered, and the confirmation
+  has no submit.
 - **One report.** `EventReportsController::aiExtractIndicators($reportId)` is the
   same action scoped to the report of the page (*AI → Extract indicators* in
   the report page menu, both themes): only that report is sent

@@ -14,9 +14,10 @@
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
         <p><?= __('Event #%s — choose what the AI module should do. You confirm the action next.', h($event['Event']['id'])) ?></p>
         <?php foreach ($actions as $action): ?>
-            <button type="button" class="btn btn-primary"
+            <?php $disabled = !empty($action['disabled']); ?>
+            <button type="button" class="btn <?= $disabled ? 'btn-inverse' : 'btn-primary' ?>"
                     style="display:block; width:100%; margin-bottom:6px; text-align:left; white-space:normal;"
-                    onclick="cancelPrompt(); openGenericModal('<?= h($action['url']) ?>');"
+                    <?= $disabled ? 'disabled aria-disabled="true"' : 'onclick="cancelPrompt(); openGenericModal(\'' . h($action['url']) . '\');"' ?>
                     title="<?= h($action['description']) ?>">
                 <i class="<?= h($action['icon']) ?>"></i> <?= h($action['text']) ?>
                 <span style="display:block; font-size:.85em; opacity:.85;"><?= h($action['description']) ?></span>

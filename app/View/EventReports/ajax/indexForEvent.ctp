@@ -11,6 +11,15 @@
         $aiSummarizeReport = $canModify
             && Configure::read('Plugin.AI_services_enable')
             && $this->Acl->canAccess('eventReports', 'aiSummarize');
+        // A4 needs something to read: the button is offered only with a
+        // non-deleted report on the event.
+        $hasActiveReport = false;
+        foreach ($reports as $row) {
+            if (empty($row['EventReport']['deleted'])) {
+                $hasActiveReport = true;
+                break;
+            }
+        }
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'containerId' => 'eventreport',
             'data' => array(
@@ -62,7 +71,7 @@
                                     'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
                                     'fa-icon' => 'magnifying-glass',
                                     'class' => 'modal-open',
-                                    'requirement' => $canModify && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiExtractIndicators'),
+                                    'requirement' => $canModify && $hasActiveReport && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiExtractIndicators'),
                                 ),
                             )
                         ),
