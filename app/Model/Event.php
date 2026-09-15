@@ -8299,8 +8299,6 @@ class Event extends AppModel
 
     public function enrichmentRouter($options)
     {
-        $result = $this->enrichment($options);
-        return __('#' . $result . ' attributes have been created during the enrichment process.');
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
