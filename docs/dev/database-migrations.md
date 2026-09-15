@@ -305,10 +305,11 @@ Two things worth knowing about the file:
   rather than nothing. That is correct signal, not noise: such an instance really
   does have schema work outstanding. But it is new, so expect it.
 
-`INSTALL/MYSQL.sql` is a different file with a different lifecycle, and it *is*
-hand-edited. It usually needs nothing from a migration: it is the `db_version`
-126 baseline, so a column added after 126 is not in it to change. When it is
-regenerated, §10 applies.
+`INSTALL/MYSQL.sql` is a different file with a different lifecycle. It is
+generated, like `INSTALL/POSTGRESQL.sql`, from a reference database that has
+applied everything, and it needs nothing from a migration: a fresh install
+loads it, finds the migration recorded in the seeded ledger, and runs nothing.
+It is regenerated before a release; §10 applies.
 
 ## 9. The ledger
 
@@ -333,92 +334,119 @@ but no longer on disk**; nothing else cares.
 `schemaDiagnostics` noise: the diagnostic iterates the *expected* schema, so a
 table it does not know about yields no diff.
 
-## 10. Checklist: regenerating an install baseline
+## 10. Checklist: regenerating the install baselines
 
-Two baselines, one generator. `INSTALL/MYSQL.sql` is the hand-maintained dump
-new MySQL installs load before the upgrade system carries them the rest of the
-way; it sits at db_version 126 and the legacy corpus takes a fresh install to
-159. `INSTALL/POSTGRESQL.sql` is generated, equivalent to db_version 159, and
-is the *only* way in for PostgreSQL: the legacy corpus is MySQL-only, so a
-PostgreSQL instance never replays it and 159 is its permanent floor.
+Two baselines, one generator, one reference. `INSTALL/MYSQL.sql` and
+`INSTALL/POSTGRESQL.sql` are both rendered by `dumpInstallBaseline` from a
+MySQL/MariaDB database that has applied everything — the frozen legacy corpus
+to 159 and every migration on disk — so a fresh install on either engine
+starts at the current schema, with `db_version` 159 and every migration
+recorded in `schema_migrations`, and runs no legacy update and no migration.
+Existing instances are untouched by this: they climb the legacy corpus to 159
+and then apply the migrations, exactly as before.
 
-Both are refreshed rarely. **From the first migration onwards, refreshing
-either has an extra obligation.**
+Regenerate both, from the same reference, once a migration has landed since
+the last time — at the latest before a release. A baseline that lags the
+migrations is not wrong, merely wasteful: a fresh install applies what is
+missing. A baseline dumped from a reference that applied migrations **without**
+recording them would be wrong — every fresh install would re-run them, and a
+data step is author-guarded, not automatically idempotent — which is why the
+ledger is a seed table and the reference is always a database that recorded
+what it applied.
 
-A baseline dumped from an instance that has applied migrations already contains
-their effects. If it does not also carry their ledger rows, every fresh install
-re-applies all of them. For schema work that is merely wasteful — the DDL is
-guarded and lands as a no-op. For an `afterUp()` it is a **correctness bug**:
-data steps are author-guarded, not automatically idempotent, so a re-run can
-double-seed rows.
+### 1. Build the reference
 
-### Regenerating `INSTALL/POSTGRESQL.sql`
+Never a working instance: whatever drift it has accumulated becomes canonical.
+Build it from the previous release's baseline, so that the legacy corpus and
+the migrations are what produced it:
 
-1. Build a clean reference on a MySQL/MariaDB server the instance can reach:
-   an empty database, `INSTALL/MYSQL.sql` loaded into it, then every update
-   applied to it. Confirm with `Console/cake Admin migrationStatus` that nothing
-   is pending or failed — the generator refuses a reference that is not at the
-   frozen db_version. Never use a working instance: whatever drift it has
-   accumulated becomes canonical.
-2. Render it:
-   ```bash
-   Console/cake Admin dumpInstallBaseline --engine pgsql \
-       --database <reference> --output INSTALL/POSTGRESQL.sql
-   ```
-   `--database` names the reference on the connected server; the connected
-   user needs `SELECT` on it. The notes on stderr list everything that is not
-   the reference's shape — prefix-length indexes rendered as hash indexes,
-   dropped hints, over-long index names — and are the review list, not noise.
-3. The ledger is seeded automatically: `schema_migrations` is one of the seed
-   tables, so whatever the reference recorded as applied is carried across. So
-   are the default dashboards a legacy update seeds, which a PostgreSQL
-   instance would otherwise never get.
-4. Verify against a real PostgreSQL: load the file into an empty database, run
-   `Console/cake Admin migrationStatus` against it, and confirm every migration
-   is reported applied with nothing pending. If anything is pending, the
-   reference was not up to date.
+```bash
+mysql -e 'CREATE DATABASE misp_ref'
+git show v2.5.45:INSTALL/MYSQL.sql | mysql misp_ref   # the last hand-maintained baseline, db_version 126
+Console/cake Admin runUpdates                         # against misp_ref: legacy to 159, then every migration
+Console/cake Admin migrationStatus                    # everything applied, nothing pending or failed
+```
 
-### Regenerating `INSTALL/MYSQL.sql`
+The generator refuses a reference that is not at the frozen `db_version`.
+`runUpdates` works on the instance's default connection, so on a development
+box point it at the reference from a probe shell for the duration rather than
+editing `database.php`. **Legacy update 150 rewrites the `encoding` of every
+connection in `app/Config/database.php` to a MySQL spelling** and leaves the
+original as `database.php.bak-update-150`; a box whose default connection is
+PostgreSQL has to restore that backup afterwards.
 
-Still hand-edited, still at 126, and that is deliberate: the legacy corpus
-carries a fresh install 127 → 159, and it is what CI exercises. Seeding the
-ledger is a separate obligation from moving the version, and does not require
-moving it:
+### 2. Render
 
-1. Dump the schema from an instance that is fully up to date — no pending
-   migrations, nothing failed. Confirm with `Console/cake Admin migrationStatus`.
-2. Get the applied ids:
-   ```bash
-   Console/cake Admin migrationStatus --json    # .applied[].id
-   ```
-3. Add a `CREATE TABLE schema_migrations` block to the dump, and one
-   `INSERT IGNORE` per applied id, in the `Default values for initial
-   installation` block beside the existing seed rows. The id goes in
-   `migration_id`; leave `id` to the engine. `status` is `applied`,
-   `duration_ms` may be `0`, and `applied_at` is the dump's own date — the value
-   is informational, only the row's existence matters.
-4. **Leave `db_version` alone.**
+```bash
+Console/cake Admin dumpInstallBaseline --engine mysql --database misp_ref --output INSTALL/MYSQL.sql
+Console/cake Admin dumpInstallBaseline --engine pgsql --database misp_ref --output INSTALL/POSTGRESQL.sql
+Console/cake Admin dumpCurrentDatabaseSchema          # db_schema.json, from the same reference
+```
 
-`dumpInstallBaseline --engine mysql` renders the same reference for MySQL, at
-159, and is what advancing the baseline will use. **When that happens:** CI
-loads `MYSQL.sql` and then runs `runUpdates`, which is what exercises the legacy
-corpus on every build. Advancing the baseline makes that a no-op, so it has to
-land together with an explicit legacy-replay step
-(`Console/cake Admin setDatabaseVersion 0` then `runUpdates`) or the frozen
-corpus stops being tested at all.
+`--database` names the reference on the connected server; the connected user
+needs `SELECT` on it, and the connection has to be MySQL — the reference is
+read through `information_schema`, which is what carries the column widths and
+index prefixes the baseline needs. The notes on stderr list everything that is
+not the reference's shape and are the review list, not noise:
+
+- prefix-length indexes on text columns, rendered as hash indexes on
+  PostgreSQL (equality lookups only) or with the prefix dropped where the
+  index is unique;
+- the PostgreSQL-only indexes a migration created through `rawSql()` on that
+  engine alone (`BaselineGenerator::PGSQL_ONLY_INDEXES`), added because a
+  fresh install seeds that migration as applied and would never create them;
+- a default dropped from a key column, an index name PostgreSQL would
+  truncate, any hint the grammar could not express.
+
+The ledger is seeded automatically: `schema_migrations` is a seed table, so
+whatever the reference recorded as applied is carried across. So are the
+default dashboards a legacy update seeds. `admin_settings` is restricted to
+`db_version`, `default_role` and `fix_login` (the install's own epoch).
+
+### 3. Verify the round trip, on both engines
+
+Load each file into an empty database, then compare what the driver reads back
+with the reference:
+
+```bash
+Console/cake Admin verifyInstallBaseline --connection <loaded> --database misp_ref   # 0 findings
+Console/cake Admin migrationStatus     # against the loaded database: all applied, nothing pending
+Console/cake User init                 # the first admin, as an installer would
+```
+
+`<loaded>` is a connection in `database.php` pointing at the loaded database.
+For PostgreSQL that can be a scratch schema in an existing database: `'schema'
+=> 'baseline_check'` in the connection, and the file loaded with `SET
+search_path TO baseline_check;` inserted after `BEGIN;`. The comparison names
+every column, key and index that differs, in both directions, and knows which
+deviations are the rendering being right — hash indexes, PostgreSQL-only
+indexes, boolean defaults. Anything pending in `migrationStatus` means the
+reference was not up to date.
+
+### 4. What CI checks
+
+The fresh-install job loads `INSTALL/MYSQL.sql`, runs `runUpdates` and asserts
+that it had nothing to do: `db_version` 159, no pending migration. A second
+step loads the previous release's `MYSQL.sql` out of git history into another
+database, runs `runUpdates` there — the legacy corpus and then every
+migration, the path every existing instance takes — and compares the result
+with the fresh install through `verifyInstallBaseline`. That comparison is the
+drift guard: the two ways in have to produce the same schema. Bump the tag the
+legacy step pins when a release moves the baseline.
 
 ### Both files
 
-- Keep the literal comment `Default values for initial installation` verbatim —
-  `tools/misp-wipe/misp-wipe.sh` locates the seed block by matching it, strips
-  only the `admin_settings` and `db_version` lines, and replays the rest after a
-  wipe. Ledger rows written as `INSERT IGNORE` / `ON CONFLICT DO NOTHING` are
-  therefore correct whether or not a wipe ever touches them; `misp-wipe.sql`
-  does not truncate `schema_migrations`, and should not start to — a wipe clears
-  data, not schema.
+- Keep the literal comment `Default values for initial installation` verbatim
+  and once — `tools/misp-wipe/misp-wipe.sh` locates the seed block by matching
+  it, drops the `admin_settings` lines, and replays the rest after a wipe.
+  `admin_settings` is rendered one single-line statement per row for that
+  filter's sake; ledger rows are `INSERT IGNORE` / `ON CONFLICT DO NOTHING`,
+  so a replay is harmless. `misp-wipe.sql` does not truncate
+  `schema_migrations`, and should not start to — a wipe clears data, not
+  schema.
 - Do not edit the generated DDL by hand. A column added to `MYSQL.sql` by hand
-  is a migration for PostgreSQL, and a migration is what carries both engines
-  forward; the baseline is regenerated when it is worth regenerating.
+  is a column PostgreSQL never gets; a migration is what carries both engines,
+  and the next regeneration carries it into both baselines.
 
 ## 11. Monitoring: what to alert on
 
