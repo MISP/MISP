@@ -1289,6 +1289,51 @@ class AppController extends Controller
         return $newArray;
     }
 
+    /**
+     * Resolve the ids a mass action (massEnable, massDisable, ...) acts on.
+     *
+     * The list arrives in one of two places: as a JSON array in the URL
+     * (`/warninglists/massEnable/[1,2]`), which is how the multi-select
+     * toolbar fetches the confirmation form and how API callers address the
+     * action, or in the request body under `<Model>.id` (JSON string or
+     * array), which is where the confirmation form carries it back.
+     *
+     * The form must not post back to the URL form. The rewrite rule hands the
+     * path to PHP as `index.php?/<path>`, and PHP reads the `[...]` of the
+     * list as array syntax on that query key, so CakeRequest::_processGet()
+     * cannot strip it: request->here() grows a phantom query string that the
+     * SecurityComponent URL hash was never computed over, and the POST is
+     * black-holed.
+     *
+     * @param string|null $idList JSON id list from the URL, if any
+     * @param string $modelName Model the confirmation form is created for
+     * @return int[] Numeric ids, empty when nothing usable was passed
+     */
+    protected function _massActionIdList($idList, $modelName)
+    {
+        $raw = null;
+        if ($idList !== null && $idList !== '') {
+            $raw = json_decode(htmlspecialchars_decode(urldecode((string)$idList)), true);
+        } elseif (isset($this->request->data[$modelName]['id'])) {
+            $raw = $this->request->data[$modelName]['id'];
+        } elseif (isset($this->request->data['id'])) {
+            $raw = $this->request->data['id'];
+        }
+        if (is_string($raw)) {
+            $raw = ctype_digit($raw) ? [$raw] : json_decode($raw, true);
+        }
+        if (!is_array($raw)) {
+            return [];
+        }
+        $ids = [];
+        foreach ($raw as $id) {
+            if (is_int($id) || (is_string($id) && ctype_digit($id))) {
+                $ids[] = (int)$id;
+            }
+        }
+        return $ids;
+    }
+
     // checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
     protected function _isAdmin()
     {

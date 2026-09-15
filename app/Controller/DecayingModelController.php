@@ -555,9 +555,9 @@ class DecayingModelController extends AppController
 
     private function __massToggleState($idList = null, $state = 1)
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode((string)$idList));
-        $ids = json_decode($cleanIdList, true);
-        if (empty($ids) || !is_array($ids)) {
+        $ids = $this->_massActionIdList($idList, 'DecayingModel');
+
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('DecayingModel', 'massToggle', false, $message, $this->response->type());
@@ -593,7 +593,10 @@ class DecayingModelController extends AppController
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/decayingModel/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in DecayingModel.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['DecayingModel']['id'] = json_encode($ids);
+        $this->set('url', '/decayingModel/' . ($state ? 'massEnable' : 'massDisable'));
         $this->render('ajax/toggle_confirmation');
     }
 

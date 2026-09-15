@@ -1302,7 +1302,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $server, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -1380,13 +1380,14 @@ class Server extends AppModel
 
                     // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
                     // server
+                    $reason = null;
                     $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
                         $server['Server']['push_galaxy_clusters'] &&
                         "full" !== $technique &&
-                        $this->Event->shouldBePushedToServer($event, $server);
+                        $this->Event->shouldBePushedToServer($event, $server, $reason);
 
                     if ($pushGalaxyClustersForEvent) {
-                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $this->syncGalaxyClusters($serverSync, $server, $user, $technique=$event['Event']['id'], $event=$event);
                     }
 
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
@@ -1738,6 +1739,10 @@ class Server extends AppModel
                         }
                         if (strpos($branchKey, 'Secur') === 0) {
                             $leafValue['tab'] = 'Security';
+                        } elseif ($branchKey === 'Plugin' && $leafValue['subGroup'] === 'AI') {
+                            // The AI family has a settings tab of its own; the names keep
+                            // the Plugin. prefix the module-family plumbing reads.
+                            $leafValue['tab'] = 'AI';
                         } else {
                             $leafValue['tab'] = $branchKey;
                         }
@@ -1937,6 +1942,62 @@ class Server extends AppModel
             return __('This setting has to be a number.');
         }
         return true;
+    }
+
+    /**
+     * Validator for a `float` setting with optional bounds (either may be
+     * null). Returns a closure usable as a setting's `test`.
+     *
+     * @param float|null $min
+     * @param float|null $max
+     * @return Closure
+     */
+    public function floatInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value)) {
+                return __('This setting has to be a number.');
+            }
+            $value = (float)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a number lower or equal %s.', $max);
+            }
+            return true;
+        };
+    }
+
+    /**
+     * Validator for a whole-number setting with optional bounds (either may
+     * be null). Returns a closure usable as a setting's `test`.
+     *
+     * @param int|null $min
+     * @param int|null $max
+     * @return Closure
+     */
+    public function integerInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value) || (float)$value != (int)$value) {
+                return __('The value has to be a whole number.');
+            }
+            $value = (int)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a whole number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a whole number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a whole number lower or equal %s.', $max);
+            }
+            return true;
+        };
     }
 
     public function testTheme($value)
@@ -2745,13 +2806,25 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value)
+    /**
+     * Cast a raw setting value to the PHP type its definition declares. Every
+     * save path (web, REST, CLI) goes through here. A non-numeric value for a
+     * `float` setting is left untouched so that the setting's test rejects it
+     * instead of it silently becoming 0.
+     *
+     * @param array $setting Setting definition, only `type` is read
+     * @param mixed $value
+     * @return mixed
+     */
+    public static function normaliseSettingValue(array $setting, $value)
     {
-        if (!empty($data['type'])) {
-            if ($data['type'] === 'boolean') {
+        if (!empty($setting['type'])) {
+            if ($setting['type'] === 'boolean') {
                 $value = (bool)$value;
-            } elseif ($data['type'] === 'numeric') {
+            } elseif ($setting['type'] === 'numeric') {
                 $value = (int)$value;
+            } elseif ($setting['type'] === 'float' && is_numeric($value)) {
+                $value = (float)$value;
             }
         }
         return $value;
@@ -2811,12 +2884,7 @@ class Server extends AppModel
             }
         }
         if ($value !== null) {
-            $value = trim($value);
-            if ($setting['type'] === 'boolean') {
-                $value = (bool)$value;
-            } else if ($setting['type'] === 'numeric') {
-                $value = (int)$value;
-            }
+            $value = self::normaliseSettingValue($setting, trim($value));
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
                     $testResult = $setting['test']($value);
@@ -2915,7 +2983,7 @@ class Server extends AppModel
 
         $settingObject = $this->getSettingData($setting, false);
         if ($settingObject) {
-            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
+            $value = self::normaliseSettingValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -3996,7 +4064,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2025.2.14'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.8'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
@@ -8763,6 +8831,129 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ),
+                'AI_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the AI services (the ai_connector misp-module). While disabled, no AI action is offered anywhere in the UI.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'AI_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the AI services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the AI services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'AI_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Timeout in seconds for a request from MISP to the AI services. It is also passed to the module as its overall time budget for the request.'),
+                    'value' => 300,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ),
+                'AI_ssl_verify_peer' => array(
+                    'level' => 1,
+                    'description' => __('Set to false to disable SSL verification when reaching the AI services. This is not recommended.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_verify_host' => array(
+                    'level' => 1,
+                    'description' => __('Set to false if you wish to ignore hostname match errors when validating the certificate of the AI services.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_allow_self_signed' => array(
+                    'level' => 1,
+                    'description' => __('Set to true to accept a self-signed certificate from the AI services. This requires AI_ssl_verify_peer to be enabled.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_cafile' => array(
+                    'level' => 1,
+                    'description' => __('Set to the absolute path of the Certificate Authority file that you wish to use for verifying the SSL certificate of the AI services.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'AI_openai_api_base' => array(
+                    'level' => 1,
+                    'description' => __('Base URL of the OpenAI-compatible LLM endpoint the AI module talks to (Ollama, vLLM, OpenAI, ...). Passed to the module with every request.'),
+                    'value' => 'http://127.0.0.1:11434/v1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_api_key' => array(
+                    'level' => 2,
+                    'description' => __('API key for the LLM endpoint, if it requires one. Passed to the module with every request and never shown once set.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                    'redacted' => true
+                ),
+                'AI_model_id' => array(
+                    'level' => 1,
+                    'description' => __('Identifier of the model to use at the LLM endpoint, for example gemma4:12b.'),
+                    'value' => 'gemma4:12b',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_temperature' => array(
+                    'level' => 2,
+                    'description' => __('Sampling temperature for the model. 0 gives the most deterministic output.'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'float',
+                    'null' => true
+                ),
+                'AI_request_timeout' => array(
+                    'level' => 2,
+                    'description' => __('Timeout in seconds the AI module applies to each call it makes to the LLM endpoint.'),
+                    'value' => 120,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'AI_suggest_limit' => array(
+                    'level' => 2,
+                    'description' => __('Maximum number of tags the AI module may recommend for an event, between 1 and 10.'),
+                    'value' => 5,
+                    'test' => $this->integerInRange(1, 10),
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'AI_suggest_min_score' => array(
+                    'level' => 2,
+                    'description' => __('Recommended tags whose confidence score is below this value (0 to 1) are dropped.'),
+                    'value' => 0,
+                    'test' => $this->floatInRange(0, 1),
+                    'type' => 'float',
+                    'null' => true
+                ),
+                'AI_min_confidence' => array(
+                    'level' => 2,
+                    'description' => __('Indicators the AI module extracts from event reports with a confidence below this value (0 to 1) are dropped. Fewer, certain indicators beat many doubtful ones.'),
+                    'value' => 0.9,
+                    'test' => $this->floatInRange(0, 1),
+                    'type' => 'float',
+                    'null' => true
+                ),
                 'CustomAuth_custom_password_reset' => array(
                     'level' => 2,
                     'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
@@ -8795,29 +8986,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ],
-                'CTIInfoExtractor_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
-                'CTIInfoExtractor_url' => [
-                    'level' => 1,
-                    'description' => __('The url of the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ],
-                'CTIInfoExtractor_authentication' => [
-                    'level' => 1,
-                    'description' => __('The authentication key for the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ]
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,

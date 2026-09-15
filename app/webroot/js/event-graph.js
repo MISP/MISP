@@ -1413,7 +1413,7 @@ class DataHandler {
         this.mapping_node_to_from_edges = {};
         this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
-        this.extended_event = $('#eventgraph_network').data('is_extended') == 1 ? true : false;
+        this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();
         this.scope_name;
     }
@@ -1482,6 +1482,7 @@ class DataHandler {
                 type: 'post',
                 contentType: 'application/json',
                 data: JSON.stringify( payload ),
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
                     if (updateOnly === undefined || updateOnly === false) {
@@ -1515,6 +1516,8 @@ class DataHandler {
                     }
                 },
                 error: function( jqXhr, textStatus, errorThrown ){
+                    eventGraph.network_loading(false, "");
+                    showMessage('fail', 'Could not fetch the event graph data');
                     console.log( errorThrown );
                 }
             });

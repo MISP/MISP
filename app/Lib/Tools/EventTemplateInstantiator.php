@@ -349,7 +349,7 @@ class EventTemplateInstantiator
         $rows = $eventModel->EventTag->Tag->find('all', array(
             'recursive' => -1,
             'conditions' => array(
-                'LOWER(Tag.name)' => array_values(array_unique($lowered)),
+                'Tag.name' => array_values(array_unique($lowered)),
                 'Tag.local_only' => 1,
             ),
             'fields' => array('Tag.name'),
