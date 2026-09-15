@@ -945,6 +945,7 @@ class Event extends AppModel
         if (!isset($server['Server']['internal'])) {
             throw new InvalidArgumentException('Invalid Server array provided.');
         }
+        $this->Server = ClassRegistry::init('Server');
 
         // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
         // But keep it here just for sure
