@@ -183,7 +183,7 @@ class Tag extends AppModel
     public function lookupTagIdForUser(array $user, $tagName)
     {
         $conditions = $this->createConditions($user);
-        $conditions['LOWER(Tag.name)'] = mb_strtolower($tagName);
+        $conditions['Tag.name'] = $tagName;
 
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
@@ -204,7 +204,7 @@ class Tag extends AppModel
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('LOWER(Tag.name)' => mb_strtolower($tagName)),
+            'conditions' => array('Tag.name' => $tagName),
             'recursive' => -1,
             'fields' => array('Tag.id'),
             'callbacks' => false,
@@ -329,9 +329,12 @@ class Tag extends AppModel
      */
     public function captureTag(array $tag, array $user, $force=false)
     {
+        // tags.name is case-insensitive (utf8mb4_unicode_ci, update 160): the
+        // plain equality matches every casing straight off the unique index.
+        // Wrapping it in LOWER() forced a full table scan per capture (#11114).
         $existingTag = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
+            'conditions' => array('Tag.name' => $tag['name']),
             'fields' => ['id', 'org_id', 'user_id'],
             'callbacks' => false,
         ));

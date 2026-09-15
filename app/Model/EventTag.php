@@ -219,7 +219,7 @@ class EventTag extends AppModel
             if (is_numeric($tagIdOrName)) {
                 $conditions[] = array('Tag.id' => $tagIdOrName);
             } else {
-                $conditions[] = array('LOWER(Tag.name)' => mb_strtolower($tagIdOrName));
+                $conditions[] = array('Tag.name' => $tagIdOrName);
             }
         }
         return $this->find('column', array(
