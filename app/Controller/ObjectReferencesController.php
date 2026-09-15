@@ -101,6 +101,35 @@ class ObjectReferencesController extends AppController
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
             }
 
+            $user = $this->Auth->user();
+            $attributeConditions = array('Attribute.deleted' => 0, 'Attribute.object_id' => 0);
+            $objectConditions = array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0);
+            $objectAttributeConditions = array('Attribute.deleted' => 0);
+            if (empty($user['Role']['perm_site_admin'])) {
+                $ownEventId = (int)$object['Event']['id'];
+                $sgids = $this->ObjectReference->Object->SharingGroup->authorizedIds($user);
+                $attributeConditions[] = array(
+                    'OR' => array(
+                        'Attribute.event_id' => $ownEventId,
+                        'Attribute.distribution' => array(1, 2, 3, 5),
+                        array('Attribute.distribution' => 4, 'Attribute.sharing_group_id' => $sgids),
+                    )
+                );
+                $objectConditions[] = array(
+                    'OR' => array(
+                        'Object.event_id' => $ownEventId,
+                        'Object.distribution' => array(1, 2, 3, 5),
+                        array('Object.distribution' => 4, 'Object.sharing_group_id' => $sgids),
+                    )
+                );
+                $objectAttributeConditions[] = array(
+                    'OR' => array(
+                        'Attribute.event_id' => $ownEventId,
+                        'Attribute.distribution' => array(1, 2, 3, 5),
+                        array('Attribute.distribution' => 4, 'Attribute.sharing_group_id' => $sgids),
+                    )
+                );
+            }
             $events = $this->ObjectReference->Object->Event->find('all', array(
                 'conditions' => array(
                     'OR' => array(
@@ -115,14 +144,14 @@ class ObjectReferencesController extends AppController
                 'fields' => array('Event.id'),
                 'contain' => array(
                     'Attribute' => array(
-                        'conditions' => array('Attribute.deleted' => 0, 'Attribute.object_id' => 0),
+                        'conditions' => $attributeConditions,
                         'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
                     ),
                     'Object' => array(
-                        'conditions' => array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0),
+                        'conditions' => $objectConditions,
                         'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
                         'Attribute' => array(
-                            'conditions' => array('Attribute.deleted' => 0),
+                            'conditions' => $objectAttributeConditions,
                             'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
                         )
                     )
