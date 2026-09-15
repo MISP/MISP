@@ -2722,9 +2722,9 @@ function indexFilterClearRow(field) {
         filtering.published = 2;
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
-    } else if (field == "extending") {
+    } else if (field == "is_extension") {
         filtering.is_extension = 2;
-    } else if (field == "extended") {
+    } else if (field == "is_extended") {
         filtering.is_extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
