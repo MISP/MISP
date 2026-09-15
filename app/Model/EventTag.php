@@ -219,7 +219,7 @@ class EventTag extends AppModel
             if (is_numeric($tagIdOrName)) {
                 $conditions[] = array('Tag.id' => $tagIdOrName);
             } else {
-                $conditions[] = array('Tag.name' => $tagIdOrName);
+                $conditions[] = $this->Tag->nameCondition($tagIdOrName);
             }
         }
         return $this->find('column', array(

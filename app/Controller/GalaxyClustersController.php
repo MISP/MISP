@@ -190,9 +190,7 @@ class GalaxyClustersController extends AppController
         $this->GalaxyCluster->includeAnalystDataRecursive = true;
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $tag = $this->GalaxyCluster->Tag->find('first', array(
-            'conditions' => array(
-                'Tag.name' => $cluster['GalaxyCluster']['tag_name'],
-            ),
+            'conditions' => $this->GalaxyCluster->Tag->nameCondition($cluster['GalaxyCluster']['tag_name']),
             'fields' => array('id'),
             'recursive' => -1,
             'contain' => array('EventTag.event_id')

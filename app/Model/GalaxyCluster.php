@@ -1728,9 +1728,7 @@ class GalaxyCluster extends AppModel
             $tag_id = $this->Tag->find(
                 'first',
                 array(
-                    'conditions' => array(
-                        'Tag.name' => $cluster['GalaxyCluster']['tag_name']
-                    ),
+                    'conditions' => $this->Tag->nameCondition($cluster['GalaxyCluster']['tag_name']),
                     'recursive' => -1,
                     'fields' => array('Tag.id')
                 )
