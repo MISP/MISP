@@ -378,6 +378,48 @@ class Tag extends AppModel
     }
 
     /**
+     * The two ai-computer-assisted provenance tags the AI module puts on
+     * everything it produces (Module::AI_PROVENANCE_TAGS), guaranteed to
+     * exist before an AI write: a name the taxonomy knows is enabled through
+     * the Taxonomy model (its colour, linked to the taxonomy, the taxonomy
+     * itself left as it is); a name it does not know (taxonomy not loaded,
+     * or an older version) is created as a plain tag. No perm_tag_editor is
+     * needed for these two names. An existing row reserved for another
+     * organisation or user stays unusable and comes back as false.
+     *
+     * @param array $user
+     * @return array tag name => tag id, or false when the tag cannot be used
+     */
+    public function captureAiProvenanceTags(array $user)
+    {
+        App::uses('Module', 'Model');
+        $names = Module::AI_PROVENANCE_TAGS;
+        $existing = $this->find('list', array(
+            'conditions' => array('LOWER(Tag.name)' => array_map('mb_strtolower', $names)),
+            'fields' => array('Tag.name', 'Tag.id'),
+            'recursive' => -1,
+        ));
+        $existingLower = array_map('mb_strtolower', array_keys($existing));
+        $missing = array();
+        foreach ($names as $name) {
+            if (!in_array(mb_strtolower($name), $existingLower, true)) {
+                $missing[] = $name;
+            }
+        }
+        if (!empty($missing)) {
+            // Creates only the listed names the taxonomy knows; false when
+            // the taxonomy is not loaded. captureTag() below covers the rest.
+            $Taxonomy = ClassRegistry::init('Taxonomy');
+            $Taxonomy->addTags(Module::AI_PROVENANCE_TAXONOMY, $missing);
+        }
+        $ids = array();
+        foreach ($names as $name) {
+            $ids[$name] = $this->captureTag(array('name' => $name), $user, true);
+        }
+        return $ids;
+    }
+
+    /**
      * Generate tag color according to name. So color will be same on all instances.
      * @param string $tagName
      * @return string

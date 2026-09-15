@@ -1152,14 +1152,34 @@ function injectCustomRulesMenu() {
             { name: 'Configure Template variables', icon: 'fas fa-pen', clickHandler: configureTemplateVariable},
         ]
     })
-    createSubMenu({
-        name: 'LLM ',
-        icon: 'fas fa-robot',
-        items: [
-            { name: 'Send report to LLM', icon: 'fas fa-robot', clickHandler: sendToLLM},
-        ]
-    })
+    var aiItems = []
+    if (typeof aiSummarizeReportUrl !== 'undefined' && aiSummarizeReportUrl) {
+        aiItems.push({ name: 'Summarise report', icon: 'fas fa-file-lines', clickHandler: aiSummarizeReport})
+    }
+    if (typeof aiExtractIndicatorsReportUrl !== 'undefined' && aiExtractIndicatorsReportUrl) {
+        aiItems.push({ name: 'Extract indicators', icon: 'fas fa-magnifying-glass', clickHandler: aiExtractIndicatorsReport})
+    }
+    if (aiItems.length) {
+        createSubMenu({
+            name: 'AI',
+            icon: 'fas fa-robot',
+            items: aiItems
+        })
+    }
     reloadRenderingRuleEnabledUI()
+}
+
+// A1: the AI module puts its summary on top of the report (a previous AI
+// summary is replaced). Opens the confirmation; the view sets the URL only
+// while the action is available to the user.
+function aiSummarizeReport() {
+    openGenericModal(aiSummarizeReportUrl)
+}
+
+// A4 from this report: only this report is sent; the module's answer is
+// reviewed before it is added to the event.
+function aiExtractIndicatorsReport() {
+    openGenericModal(aiExtractIndicatorsReportUrl)
 }
 
 function markdownItToggleCustomRule(rulename, event) {
@@ -1554,11 +1574,6 @@ function submitExtractionSuggestion() {
             url: formUrl
         })
     })
-}
-
-function sendToLLM() {
-    var url = baseurl + '/eventReports/sendToLLM/' + reportid
-    openGenericModal(url)
 }
 
 function configureTemplateVariable() {

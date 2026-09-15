@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('JsonTool', 'Tools');
+App::uses('EncryptedValue', 'Tools');
 
 class Module extends AppModel
 {
@@ -12,7 +13,8 @@ class Module extends AppModel
         'Import' => array('import'),
         'Export' => array('export'),
         'Action' => array('action'),
-        'Cortex' => array('cortex')
+        'Cortex' => array('cortex'),
+        'AI' => array('ai')
     );
 
     // private
@@ -22,8 +24,39 @@ class Module extends AppModel
         'Action' => 'Action',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
-        'Cortex' => 'Cortex'
+        'Cortex' => 'Cortex',
+        'AI' => 'AI'
     );
+
+    /**
+     * The single hard-wired module of the AI family. It is never discovered
+     * through /modules for gating: Plugin.AI_services_enable is the switch.
+     */
+    const AI_MODULE_NAME = 'ai_connector';
+
+    /** The use-cases the AI module accepts (`use_case` of a request). */
+    const AI_USE_CASES = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest', 'infoextraction', 'ping'];
+
+    /** Use-cases that take no `data`: the request envelope omits the key. */
+    const AI_DATALESS_USE_CASES = ['ping'];
+
+    /**
+     * The provenance the module puts on everything it produces: two entries
+     * of the ai-computer-assisted taxonomy, verbatim. MISP guarantees the two
+     * tag rows exist before any AI write (Tag::captureAiProvenanceTags()), so
+     * machine-made content never lands untagged.
+     */
+    const AI_PROVENANCE_TAXONOMY = 'ai-computer-assisted';
+    const AI_PROVENANCE_TAGS = [
+        'ai-computer-assisted:assistance-level="ai-generated"',
+        'ai-computer-assisted:review-level="unreviewed"',
+    ];
+
+    /**
+     * The Plugin.AI_* settings sent to the module as `params`, listed by the
+     * module's own config names (the setting name without the `AI_` prefix).
+     */
+    const AI_PARAM_SETTINGS = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score', 'min_confidence'];
 
     const CONFIG_TYPES = array(
         'IP' => array(
@@ -135,6 +168,8 @@ class Module extends AppModel
                 $output['Export'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
                 $output['Action'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('ai', $temp['meta']['module-type'])) {
+                $output['AI'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
@@ -457,5 +492,155 @@ class Module extends AppModel
         }
 
         return $this->httpSocket[$unique] = $httpSocket;
+    }
+
+    /**
+     * The `params` block of an AI request: the settings of AI_PARAM_SETTINGS,
+     * un-prefixed. A setting without a value (null or the empty string) is
+     * left out so the module's own configuration applies to it.
+     *
+     * @param callable $read function (string $name): mixed — the effective
+     *        value of `Plugin.AI_<name>`, or null; injected to keep the
+     *        builder free of Configure
+     * @return array
+     */
+    public static function buildAiParams(callable $read)
+    {
+        $params = [];
+        foreach (self::AI_PARAM_SETTINGS as $name) {
+            $value = $read($name);
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        return $params;
+    }
+
+    /**
+     * The request envelope the AI module expects on POST /query. A use-case
+     * of AI_DATALESS_USE_CASES (ping) gets no `data` key at all.
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}; ignored for a data-less use-case
+     * @param array $params see buildAiParams()
+     * @param int $timeout seconds, the module's time budget for the request
+     * @return array
+     * @throws InvalidArgumentException on an unknown use-case
+     */
+    public static function buildAiRequest($useCase, array $data, array $params, $timeout)
+    {
+        if (!in_array($useCase, self::AI_USE_CASES, true)) {
+            throw new InvalidArgumentException("Unknown AI use-case `$useCase`.");
+        }
+        $request = ['module' => self::AI_MODULE_NAME];
+        if (!in_array($useCase, self::AI_DATALESS_USE_CASES, true)) {
+            $request['data'] = $data;
+        }
+        $request['use_case'] = $useCase;
+        $request['params'] = $params;
+        $request['timeout'] = (int)$timeout;
+        return $request;
+    }
+
+    /**
+     * Effective value of a Plugin.AI_* setting: what is configured, else the
+     * default of its definition, so that a request carries exactly what the
+     * settings page shows. A value stored encrypted is decrypted.
+     *
+     * @param string $name setting name without the `AI_` prefix
+     * @return mixed|null
+     */
+    public function aiSetting($name)
+    {
+        $value = Configure::read('Plugin.AI_' . $name);
+        if ($value instanceof EncryptedValue) {
+            $value = $value->decrypt();
+        }
+        if ($value !== null) {
+            return $value;
+        }
+        $this->Server = ClassRegistry::init('Server');
+        return $this->Server->serverSettings['Plugin']['AI_' . $name]['value'] ?? null;
+    }
+
+    /**
+     * Query the AI module: POST /query on the AI family server with the
+     * envelope of buildAiRequest(), and return the `results` block of its
+     * answer. Access control is the caller's job (perm_ai_tools + event ACL).
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}; [] for a data-less use-case
+     * @param int|null $timeout seconds, default Plugin.AI_timeout
+     * @param array|null $metadata receives the module's `metadata` block ([] when absent):
+     *        counts, rejected candidates, model and prompt details
+     * @return array the module's `results`, e.g. ['EventReport' => [...]] or ['Tag' => [...]]
+     * @throws InvalidArgumentException on an unknown use-case
+     * @throws Exception when the AI services are disabled or unreachable, the
+     *         answer is not JSON, or the module answered with `error`
+     */
+    public function queryAI($useCase, array $data, $timeout = null, &$metadata = null)
+    {
+        if ($timeout === null) {
+            $timeout = (int)$this->aiSetting('timeout') ?: 300;
+        }
+        $params = self::buildAiParams([$this, 'aiSetting']);
+        $request = self::buildAiRequest($useCase, $data, $params, $timeout);
+        $response = $this->sendRequest('/query', $timeout, $request, 'AI');
+        if (!is_array($response)) {
+            throw new Exception(__('The AI module returned an unreadable answer.'));
+        }
+        if (!empty($response['error'])) {
+            $error = is_string($response['error']) ? $response['error'] : JsonTool::encode($response['error']);
+            throw new Exception(__('The AI module reported an error: %s', $error));
+        }
+        $metadata = isset($response['metadata']) && is_array($response['metadata']) ? $response['metadata'] : [];
+        return isset($response['results']) && is_array($response['results']) ? $response['results'] : [];
+    }
+
+    /**
+     * Health of the AI family as the settings page shows it: whether the
+     * family is enabled, which server it points at, whether that server
+     * answers /modules, and whether the ai_connector module is listed there.
+     *
+     * @return array {enabled: bool, server: string, reachable: bool,
+     *         error: string|null, listed: bool, module: array|null}
+     */
+    public function aiStatus()
+    {
+        $status = [
+            'enabled' => (bool)$this->aiSetting('services_enable'),
+            'server' => rtrim((string)$this->aiSetting('services_url'), '/') . ':' . $this->aiSetting('services_port'),
+            'reachable' => false,
+            'error' => null,
+            'listed' => false,
+            'module' => null,
+        ];
+        if (!$status['enabled']) {
+            return $status;
+        }
+        try {
+            $modules = $this->getModules('AI', true);
+        } catch (Exception $e) {
+            $status['error'] = $e->getMessage();
+            return $status;
+        }
+        $status['reachable'] = true;
+        if (!is_array($modules)) {
+            $status['error'] = __('The module server did not return a module list.');
+            return $status;
+        }
+        foreach ($modules as $module) {
+            if (isset($module['name']) && $module['name'] === self::AI_MODULE_NAME) {
+                $status['listed'] = true;
+                $status['module'] = [
+                    'version' => $module['meta']['version'] ?? null,
+                    'description' => $module['meta']['description'] ?? null,
+                    'types' => $module['meta']['module-type'] ?? [],
+                ];
+                break;
+            }
+        }
+        return $status;
     }
 }

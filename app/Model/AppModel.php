@@ -99,7 +99,7 @@ class AppModel extends Model
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
         153 => false, 154 => false, 157 => false, 158 => false, 159 => false,
-        160 => false
+        160 => false, 161 => true,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2941,20 +2941,13 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
                 break;
             case 160:
-                // Case-insensitive tag names (#11114). Tag::captureTag() has
-                // matched names through LOWER(name) since 2016, which no index
-                // can serve: every tag capture was a full scan of `tags`,
-                // hundreds of times a second during feed ingestion. With the
-                // column on a case-insensitive collation the plain equality,
-                // the isUnique rule and the GalaxyCluster.tag_name = Tag.name
-                // joins all run off the unique key. Length stays 255: shipped
-                // galaxy cluster tag names reach 209 characters. utf8mb4 makes
-                // that a 1020-byte key, above the 767-byte cap of the COMPACT
-                // row format that tables from pre-5.7 installs still carry, so
-                // the row format is switched in the same statement (the
-                // column change rebuilds the table anyway). The pre-flight in
-                // updateMISP() merges colliding names first.
+                // Case-insensitive tag names (utf8mb4_unicode_ci) for MISP 2.4.163+.
                 $sqlArray[] = "ALTER TABLE `tags` ROW_FORMAT=DYNAMIC, MODIFY `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
+                break;
+            case 161:
+                // AI tools role permission, granted to site-admin roles.
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_ai_tools` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_ai_tools`=1 WHERE `perm_site_admin` = 1;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

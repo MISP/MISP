@@ -8342,6 +8342,319 @@ class EventsController extends AppController
         $this->set('event', $event);
     }
 
+    /**
+     * Chooser of the AI actions available on an event, opened from the event
+     * menu: each entry leads to the confirmation of one action.
+     *
+     * @param int|string $id
+     */
+    public function aiActions($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $actions = [
+            [
+                'id' => 'summarize',
+                'url' => $this->baseurl . '/events/aiSummarize/' . $event['Event']['id'],
+                'icon' => 'fas fa-file-lines',
+                'text' => __('Summarise event'),
+                'description' => __('The module writes a summary of the event into a new event report.'),
+            ],
+            [
+                'id' => 'extract_indicators',
+                'url' => $this->baseurl . '/events/aiExtractIndicators/' . $event['Event']['id'],
+                'icon' => 'fas fa-magnifying-glass',
+                'text' => __('Extract indicators'),
+                'description' => __('The module reads the event reports and proposes attributes and objects; you review them before they are added.'),
+            ],
+        ];
+        if ($this->__canModifyTag($event)) {
+            $actions[] = [
+                'id' => 'recommend_tags',
+                'url' => $this->baseurl . '/events/aiRecommendTags/' . $event['Event']['id'],
+                'icon' => 'fas fa-tags',
+                'text' => __('Recommend tags'),
+                'description' => __('The module suggests tags for the event; you pick the ones to attach.'),
+            ];
+        }
+        $this->set('event', $event);
+        $this->set('actions', $actions);
+        $this->layout = false;
+        $this->render('ajax/aiActions');
+    }
+
+    /**
+     * A4 — extract indicators from the event's reports with the AI module
+     * (use-case infoextraction).
+     *
+     * Browser: GET renders the confirmation; the POST queries the module
+     * while the browser waits and renders the review screen import modules
+     * use (resolved_misp_format: a page in the legacy theme, the modal body
+     * for an AJAX caller in Overmind) — nothing is saved until that screen
+     * is submitted to handleModuleResults (R2-D1, R2-D6).
+     * REST: the POST applies the extraction directly (R2-D7): a job id when
+     * background jobs are on, the counts when it ran inline.
+     */
+    public function aiExtractIndicators($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $eventId = (int)$event['Event']['id'];
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        $this->loadModel('Module');
+        if (!$this->request->is('post')) {
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+            }
+            $this->set('event', $event);
+            $this->set('reports', $this->Event->EventReport->find('count', [
+                'conditions' => ['EventReport.event_id' => $eventId, 'EventReport.deleted' => 0],
+            ]));
+            $this->set('minConfidence', $this->Module->aiSetting('min_confidence'));
+            $this->set('timeout', (int)$this->Module->aiSetting('timeout') ?: 300);
+            $this->layout = false;
+            return $this->render('ajax/aiExtractIndicatorsConfirmationForm');
+        }
+        if ($this->_isRest()) {
+            try {
+                $result = $this->Event->aiExtractIndicatorsRouter($this->Auth->user(), $eventId);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), $this->response->type());
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI extraction job #%s queued — refresh the event when it completes.', $result['job_id']);
+            } else {
+                $message = Event::aiExtractionMessage($result);
+            }
+            return $this->RestResponse->viewData(
+                array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                $this->response->type()
+            );
+        }
+        // Browser: review first. The module is queried now; the review screen
+        // saves through handleModuleResults.
+        $isAjax = $this->request->is('ajax');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        try {
+            $resolved = $this->Event->aiExtractIndicators($this->Auth->user(), $eventId);
+        } catch (Exception $e) {
+            if ($isAjax) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), 'json');
+            }
+            $this->Flash->error($e->getMessage());
+            return $this->redirect(['action' => $viewAction, $eventId]);
+        }
+        $counts = Event::aiExtractionCounts($resolved);
+        $rejected = $resolved['rejected'];
+        unset($resolved['rejected'], $resolved['metadata']);
+        if ($counts['attributes'] === 0 && $counts['objects'] === 0 && !$isAjax) {
+            $this->Flash->info(Event::aiExtractionMessage($counts));
+            return $this->redirect(['action' => $viewAction, $eventId]);
+        }
+        $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
+        $this->set('event', $resolved);
+        $this->set('distributions', $distributionData['levels']);
+        $this->set('sgs', $distributionData['sgs']);
+        $this->set('title', __('Extracted indicators'));
+        $this->set('title_for_layout', __('Extracted indicators'));
+        $this->set('importComment', 'extracted by ai_connector');
+        $this->set('menuItem', 'importResults');
+        $this->set('type', 'AI');
+        $this->set('model', 'Event');
+        $this->set('sourceId', $eventId);
+        $this->set('aiRejected', $rejected);
+        $this->set('emptyMessage', Event::aiExtractionMessage($counts));
+        if ($isAjax) {
+            $this->layout = false;
+        }
+        $this->render('resolved_misp_format');
+    }
+
+    /**
+     * Summarise an event with the AI module into a new event report.
+     * GET renders the confirmation; POST queues the job, or runs it at once
+     * when background jobs are off. REST answers with the job id.
+     *
+     * @param int|string $id
+     */
+    public function aiSummarize($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        if ($this->request->is('post')) {
+            try {
+                $result = $this->Event->aiSummarizeRouter($this->Auth->user(), $event['Event']['id']);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiSummarize', $event['Event']['id'], $e->getMessage(), $this->response->type());
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI summary job #%s queued — refresh the event when it completes.', $result['job_id']);
+            } else {
+                $message = __('AI summary added to the event as the report "%s".', $result['name']);
+                $message .= Event::aiTagsNote($result);
+            }
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                    $this->response->type()
+                );
+            }
+            $this->Flash->success($message);
+            return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+        }
+        $this->set('event', $event);
+        $this->layout = false;
+        $this->render('ajax/aiSummarizeConfirmationForm');
+    }
+
+    /**
+     * Recommend tags for an event with the AI module (A3, inline). GET asks
+     * the module synchronously and answers the classified suggestions; POST
+     * attaches the accepted names. Edit rights attach global tags; a host-org
+     * tagger without them may still accept suggestions, as local tags.
+     *
+     * @param int|string $id
+     */
+    public function aiRecommendTags($id)
+    {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $local = !$this->__canModifyEvent($event);
+        if (!$this->__canModifyTag($event, $local)) {
+            throw new ForbiddenException(__('You do not have permission to tag this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $eventId = (int)$event['Event']['id'];
+        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
+        // A plain AJAX caller (no Accept header) gets JSON, not JSON escaped
+        // for an HTML document.
+        $format = $this->_isRest() ? $this->response->type() : 'json';
+        if ($this->request->is('post')) {
+            $names = $this->request->data['tags'] ?? ($this->request->data['Event']['tags'] ?? []);
+            if (is_string($names)) {
+                $decoded = json_decode($names, true);
+                $names = is_array($decoded) ? $decoded : [$names];
+            }
+            $names = is_array($names) ? array_values(array_filter($names, 'is_string')) : [];
+            if (empty($names)) {
+                $error = __('No tags were selected.');
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $error, $format);
+                }
+                $this->Flash->error($error);
+                return $this->redirect(['action' => $viewAction, $eventId]);
+            }
+            try {
+                $result = $this->Event->aiAttachTags($this->Auth->user(), $event, $names, $local);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect(['action' => $viewAction, $eventId]);
+            }
+            $message = Event::aiTagResultMessage($result);
+            $saved = $result['attached'] > 0 || $result['failed'] === 0;
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge([
+                        'saved' => $saved,
+                        'success' => $message,
+                        'message' => $message,
+                        'check_publish' => !$local && $result['attached'] > 0,
+                    ], $result),
+                    $format
+                );
+            }
+            if ($saved) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error($message);
+            }
+            return $this->redirect(['action' => $viewAction, $eventId]);
+        }
+        // The tag-suggest backend is retrieval, not generation, but the call
+        // is still bound by the module timeout.
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        $rows = [];
+        $provenance = [];
+        $error = null;
+        try {
+            $answer = $this->Event->aiRecommendTags($this->Auth->user(), $eventId, $local);
+            $rows = $answer['Tag'];
+            $provenance = $answer['provenance'];
+        } catch (Exception $e) {
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
+            }
+            $error = $e->getMessage();
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData([
+                'event_id' => $eventId,
+                'local' => $local,
+                'Tag' => $rows,
+                'provenance' => $provenance,
+            ], $this->response->type());
+        }
+        // The provenance names as tag chips: stored colour when the row
+        // exists, the name's colour otherwise (as the suggestion rows).
+        $Tag = $this->Event->EventTag->Tag;
+        $colours = empty($provenance) ? [] : $Tag->find('list', [
+            'conditions' => ['LOWER(Tag.name)' => array_map('mb_strtolower', $provenance)],
+            'fields' => ['Tag.name', 'Tag.colour'],
+        ]);
+        $colours = array_change_key_case($colours, CASE_LOWER);
+        $provenanceRows = [];
+        foreach ($provenance as $name) {
+            $provenanceRows[] = ['name' => $name, 'colour' => $colours[mb_strtolower($name)] ?? $Tag->tagColor($name)];
+        }
+        $this->set('event', $event);
+        $this->set('rows', $rows);
+        $this->set('provenance', $provenanceRows);
+        $this->set('local', $local);
+        $this->set('error', $error);
+        $this->set('canCreate', !empty($this->Auth->user('Role')['perm_tag_editor']));
+        $this->layout = false;
+        $this->render('ajax/aiRecommendTags');
+    }
+
     public function enrichEvent($id)
     {
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
