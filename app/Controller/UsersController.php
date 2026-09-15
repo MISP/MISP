@@ -1375,15 +1375,10 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This feature is only accessible via POST requests');
         }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $this->Auth->user('id'))
-        ));
         $this->User->id = $this->Auth->user('id');
         $this->User->saveField('last_login', time());
         $this->User->saveField('current_login', time());
-        $user = $this->User->getAuthUser($user['User']['id']);
-        $this->Auth->login($user);
+        $this->_refreshAuth();
         $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
     }
 
