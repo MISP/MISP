@@ -278,6 +278,7 @@ class AuditLog extends AppModel
                 if ($syslogIdent) {
                     $options['ident'] = $syslogIdent;
                 }
+                App::uses('SysLog', 'SysLog.Lib');
                 $this->syslog = new SysLog($options);
             } else {
                 $this->syslog = false;
