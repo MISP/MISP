@@ -305,7 +305,7 @@ class ACLComponent extends Component
             'getProxyMISPElements' => array('*'),
             'extractAllFromReport' => array('perm_add'),
             'extractFromReport' => array('perm_add'),
-            'replaceSuggestionInReport' => array('*'),
+            'replaceSuggestionInReport' => array('perm_add'),
             'importReportFromUrl' => array('perm_add'),
             'configureTemplateVariable' => ['perm_add'],
             'downloadAsPDF' => ['*'],
