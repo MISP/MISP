@@ -51,6 +51,16 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
             $this->_sequenceMap[$table][$field] = $sequence;
         }
 
+        /** @var array Every statement handed to the connection, in order. */
+        public $executed = array();
+
+        protected function _execute($sql, $params = array(), $prepareOptions = array())
+        {
+            // Without the observer's "who is running this" comment prefix.
+            $this->executed[] = preg_replace('/^\/\*.*?\*\/ /', '', $sql);
+            return true;
+        }
+
         public function primeResult(array $map, array $rows)
         {
             $this->map = $map;
@@ -67,12 +77,44 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
     {
         public $alias;
 
+        public $table;
+
+        public $tablePrefix = '';
+
+        public $schemaName = null;
+
+        public $primaryKey = 'id';
+
+        public $data = array();
+
+        public $id = null;
+
         private $fields;
 
-        public function __construct($alias, array $fields)
+        public function __construct($alias, array $fields, $table = null)
         {
             $this->alias = $alias;
             $this->fields = $fields;
+            $this->table = $table === null ? strtolower($alias) . 's' : $table;
+        }
+
+        public function schema($field = false)
+        {
+            return array();
+        }
+
+        public function getColumnType($column)
+        {
+            return $column === 'id' ? 'integer' : 'string';
+        }
+
+        public function setInsertID($id)
+        {
+            $this->id = $id;
+        }
+
+        public function onError()
+        {
         }
 
         public function hasField($name, $checkVirtual = false)
@@ -280,12 +322,13 @@ class DatasourceCapabilitiesTest extends TestCase
     }
 
     /**
-     * Cake's Postgres::fetchResult() hands a bool column back as a PHP
-     * boolean. MISP compares flags against the strings "1" and "0" in over a
-     * hundred places, so the shipped datasource hands them back the way MySQL
-     * does. bytea is unwrapped whether the driver gave a stream or a string.
+     * A bool column comes back as a PHP boolean, or null - which is exactly
+     * what Cake's MySQL driver makes of a tinyint(1), through the ORM and
+     * through Model::query() alike, and what the API therefore serialises as
+     * true/false. bytea comes back as the bytes whether the driver handed
+     * over a stream or a string.
      */
-    public function testFetchResultReturnsBooleansAsTheStringsMispCompares()
+    public function testFetchResultReturnsBooleansAsBooleansLikeTheMysqlDriver()
     {
         $db = new DatasourceTestPostgresObserverExtended();
         $stream = fopen('php://memory', 'r+');
@@ -307,8 +350,8 @@ class DatasourceCapabilitiesTest extends TestCase
         $this->assertSame(
             array('Event' => array(
                 'id' => '7',
-                'published' => '1',
-                'deleted' => '0',
+                'published' => true,
+                'deleted' => false,
                 'unknown' => null,
                 'blob' => 'bytes',
                 'blob2' => 'plain',
@@ -316,6 +359,34 @@ class DatasourceCapabilitiesTest extends TestCase
             $db->fetchResult()
         );
         $this->assertFalse($db->fetchResult());
+    }
+
+    /**
+     * Cake's condition quoting hands a raw subquery back with its alias bare
+     * - `attributes AS Attribute` - while every reference to it stays quoted.
+     * PostgreSQL folds the bare one to lowercase; the datasource quotes it.
+     * An alias Cake quoted itself, and the AS inside a CAST, are left alone.
+     */
+    public function testQuoteFieldsQuotesTheAliasCakeLeftBare()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $quoteFields = new ReflectionMethod('PostgresObserverExtended', '_quoteFields');
+        $quoteFields->setAccessible(true);
+
+        $this->assertSame(
+            '"Event"."id" IN (SELECT event_id FROM attributes AS "Attribute"   WHERE "Attribute"."value1" = \'x\')',
+            $quoteFields->invoke($db, 'Event.id IN (SELECT event_id FROM attributes AS "Attribute"   WHERE "Attribute"."value1" = \'x\')')
+        );
+        $this->assertSame(
+            'SELECT COUNT(*) FROM "public"."sightings" AS "Sighting" WHERE "Sighting"."id" = 1',
+            $quoteFields->invoke($db, 'SELECT COUNT(*) FROM "public"."sightings" AS "Sighting" WHERE "Sighting"."id" = 1'),
+            'an alias Cake already quoted is untouched'
+        );
+        $this->assertSame(
+            'CAST("Attribute"."value1" AS integer) > 3',
+            $quoteFields->invoke($db, 'CAST(Attribute.value1 AS integer) > 3'),
+            'the AS of a CAST is not a table alias'
+        );
     }
 
     /**
@@ -401,4 +472,38 @@ class DatasourceCapabilitiesTest extends TestCase
         $this->assertSame('currval(public.attributes_id_seq)', $db->lastInsertId('attributes', 'id'));
         $this->assertSame(array(), $db->catalogueAsked);
     }
+    /**
+     * An INSERT that names its own id leaves a PostgreSQL sequence behind
+     * the data, where MySQL moves AUTO_INCREMENT past it; User::init()
+     * inserts the first role, organisation and user as id 1 that way. The
+     * datasource sets the owned sequence to the column's maximum after such
+     * an insert, and does nothing extra when the engine assigned the id.
+     */
+    public function testCreateAdvancesTheSequencePastAnExplicitId()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $db->catalogue = array('roles' => array('id' => 'public.roles_id_seq'));
+        $Role = new Model('Role', array('id', 'name'));
+
+        $this->assertTrue($db->create($Role, array('id', 'name'), array(1, 'Site Admin')));
+        $this->assertSame(1, $Role->id);
+        $this->assertSame(
+            array(
+                'INSERT INTO "public"."roles" ("id", "name") VALUES (1, \'Site Admin\')',
+                'SELECT setval(\'public.roles_id_seq\', (SELECT MAX("id") FROM "public"."roles"))',
+            ),
+            $db->executed
+        );
+
+        $db->executed = array();
+        $this->assertTrue($db->create($Role, array('name'), array('User')));
+        $this->assertSame('currval(public.roles_id_seq)', $Role->id, 'the engine assigned it, and was asked for it');
+        $this->assertSame(array('INSERT INTO "public"."roles" ("name") VALUES (\'User\')'), $db->executed);
+
+        $db->executed = array();
+        $Bruteforce = new Model('Bruteforce', array('ip'), 'bruteforces');
+        $this->assertTrue($db->create($Bruteforce, array('id', 'ip'), array(5, '10.0.0.1')));
+        $this->assertCount(1, $db->executed, 'no sequence to advance for a key that owns none');
+    }
+
 }

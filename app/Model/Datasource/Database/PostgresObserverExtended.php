@@ -19,17 +19,17 @@ App::uses('RedisTool', 'Tools');
  * than left undeclared - the vocabulary is the same on both engines, and a
  * reader should see the answer, not an absence. Multi-row INSERT it has.
  *
- * **What the application expects of a flag.** MISP's flag columns are
- * tinyint(1) on MySQL, which the application reads back as the strings "1"
- * and "0" and compares as such in more than a hundred places. On PostgreSQL
- * they are boolean, and Cake's Postgres driver would hand the application a
- * PHP true or false - correct in the abstract, and a strict comparison
- * against '0' fails on every one of them. fetchResult() therefore returns
- * booleans as "1" and "0", which is also what a raw PDO fetch already
- * returns under ATTR_STRINGIFY_FETCHES, so the ORM and the raw paths agree
- * with each other and with MySQL.
+ * **What the application gets back for a flag.** MISP's flag columns are
+ * tinyint(1) on MySQL, and Cake's MySQL driver hands them to the application
+ * as PHP booleans - through the ORM and through Model::query() alike, since
+ * both read through fetchResult(). On PostgreSQL they are boolean columns
+ * and this driver does the same: a bool column is true, false or null, never
+ * "1" or "0". (An earlier version returned the strings, on the belief that
+ * MySQL did; it does not, and a "0" that MySQL renders as false reached the
+ * API as a string that every consumer took for true.) bytea arrives as the
+ * bytes whether the driver build hands it over as a stream or a string.
  *
- * The other direction matters as much. MysqlExtended::value() short-circuits
+ * The other direction is where the engines differ. MysqlExtended::value() short-circuits
  * PHP integers and booleans before looking at the column type; copying that
  * here would render `deleted = 1` for a boolean column, which PostgreSQL
  * rejects. So a value bound for a boolean column goes through the driver's
@@ -61,6 +61,17 @@ App::uses('RedisTool', 'Tools');
  * "relation does not exist". MySQL returns 0 for a table without
  * AUTO_INCREMENT, so lastInsertId() here asks the catalogue which sequence
  * the column owns, once per table, and answers "0" when it owns none.
+ *
+ * **What a raw subquery's alias looks like.** Cake's condition quoting
+ * strips every quote from a raw SQL fragment and re-quotes only the dotted
+ * names, then re-quotes an alias only when the table before AS came out
+ * quoted. A subquery built by DboSource::buildStatement() from a bare table
+ * name - `SELECT event_id FROM attributes AS "Attribute" ...`, the shape
+ * AppModel::subQueryGenerator() produces - therefore reaches the engine as
+ * `attributes AS Attribute` while every reference to it stays "Attribute".
+ * MySQL does not fold identifier case and never notices; PostgreSQL folds
+ * the bare alias to `attribute` and reports a missing FROM-clause entry.
+ * _quoteFields() here quotes the alias after AS whenever Cake left it bare.
  *
  * **What the operator sees in the logs.** Every statement is prefixed with
  * the user, controller and action the way MysqlObserver's are, timed the
@@ -186,14 +197,12 @@ class PostgresObserverExtended extends Postgres
     }
 
     /**
-     * Rows as MISP reads them on MySQL: a boolean is "1" or "0", bytea is
-     * the bytes.
+     * Rows as MISP reads them on MySQL: a bool column is a PHP boolean (or
+     * null), bytea is the bytes.
      *
-     * Cake's Postgres::fetchResult() converts a bool column to a PHP boolean
-     * and assumes a bytea arrives as a stream. Under the ATTR_STRINGIFY_FETCHES
-     * flag MISP sets, a raw fetch already yields "1"/"0" for a bool, and
-     * whether bytea is a stream or a string depends on the driver build - so
-     * both are handled either way.
+     * Cake's Postgres::fetchResult() already makes the boolean; what it
+     * assumes is that a bytea arrives as a stream, and whether it does
+     * depends on the driver build, so both forms are taken.
      *
      * @return array|bool
      */
@@ -206,7 +215,7 @@ class PostgresObserverExtended extends Postgres
                 $value = $row[$index];
                 switch ($type) {
                     case 'bool':
-                        $resultRow[$table][$column] = $value === null ? null : ($this->boolean($value) ? '1' : '0');
+                        $resultRow[$table][$column] = $value === null ? null : $this->boolean($value);
                         break;
                     case 'binary':
                     case 'bytea':
@@ -220,6 +229,32 @@ class PostgresObserverExtended extends Postgres
         }
         $this->_result->closeCursor();
         return false;
+    }
+
+    /**
+     * Cake's quoting of a raw condition fragment, plus the alias after AS
+     * when Cake left it bare. See the class docblock.
+     *
+     * The table before AS is a bare or dotted name; an alias Cake already
+     * quoted starts with a quote and does not match. What follows the alias
+     * is whitespace, a closing parenthesis, a comma or the end - which is
+     * what follows a FROM alias, and not what follows the word AS inside an
+     * expression like CAST(x AS integer).
+     *
+     * @param string $conditions
+     * @return string
+     */
+    protected function _quoteFields($conditions)
+    {
+        $conditions = parent::_quoteFields($conditions);
+        if (!is_string($conditions)) {
+            return $conditions;
+        }
+        return preg_replace(
+            '/(\s(?:[a-z0-9_]+\.)?[a-z0-9_]+)\s+AS\s+([a-z0-9_]+)(?=\s|\)|,|$)/i',
+            '$1 AS ' . $this->startQuote . '$2' . $this->endQuote,
+            $conditions
+        );
     }
 
     /**
@@ -298,6 +333,73 @@ class PostgresObserverExtended extends Postgres
     }
 
     /**
+     * INSERT, and when the row named its own key, move the sequence past it.
+     *
+     * MySQL moves AUTO_INCREMENT past an explicitly inserted id; a PostgreSQL
+     * sequence does not know the insert happened. User::init() inserts the
+     * first role, organisation and user as id 1, and on a fresh PostgreSQL
+     * install the next insert into each of those tables then asked its
+     * sequence for 1 and collided. After such an insert the owned sequence
+     * is set to the column's maximum, which is what MySQL's behaviour comes
+     * to; an insert that let the engine assign the id costs nothing extra.
+     *
+     * @param Model $Model
+     * @param array|null $fields
+     * @param array|null $values
+     * @return bool
+     */
+    public function create(Model $Model, $fields = null, $values = null)
+    {
+        $named = $fields === null ? array_keys((array)$Model->data) : $fields;
+        $created = parent::create($Model, $fields, $values);
+        if ($created && in_array($Model->primaryKey, $named, true)) {
+            $this->advanceSequencePastMax($this->fullTableName($Model, false, false), $Model->primaryKey);
+        }
+        return $created;
+    }
+
+    /**
+     * setval() the sequence owned by $table.$field to the column's maximum,
+     * if it owns one.
+     *
+     * @param string $table
+     * @param string $field
+     * @return void
+     */
+    protected function advanceSequencePastMax($table, $field)
+    {
+        $sequence = $this->sequenceFor($table, $field);
+        if ($sequence === false) {
+            return;
+        }
+        $this->_execute(sprintf(
+            'SELECT setval(%s, (SELECT MAX(%s) FROM %s))',
+            $this->value($sequence, 'string'),
+            $this->name($field),
+            $this->fullTableName($table)
+        ));
+    }
+
+    /**
+     * The sequence behind a key column: what describe() saw in a nextval()
+     * default this process, else what the catalogue says, remembered.
+     *
+     * @param string $table
+     * @param string $field
+     * @return string|false
+     */
+    private function sequenceFor($table, $field)
+    {
+        if (isset($this->_sequenceMap[$table][$field])) {
+            return $this->_sequenceMap[$table][$field];
+        }
+        if (!isset($this->ownedSequences[$table][$field])) {
+            $this->ownedSequences[$table][$field] = $this->ownedSequence($table, $field);
+        }
+        return $this->ownedSequences[$table][$field];
+    }
+
+    /**
      * The id PostgreSQL just assigned, or "0" - MySQL's answer - for a key
      * column with no sequence behind it. See the class docblock.
      *
@@ -308,14 +410,7 @@ class PostgresObserverExtended extends Postgres
     public function lastInsertId($source = null, $field = 'id')
     {
         $table = is_object($source) ? $this->fullTableName($source, false, false) : (string)$source;
-        if (isset($this->_sequenceMap[$table][$field])) {
-            // describe() read the nextval() default itself this process.
-            return $this->_connection->lastInsertId($this->_sequenceMap[$table][$field]);
-        }
-        if (!isset($this->ownedSequences[$table][$field])) {
-            $this->ownedSequences[$table][$field] = $this->ownedSequence($table, $field);
-        }
-        $sequence = $this->ownedSequences[$table][$field];
+        $sequence = $this->sequenceFor($table, $field);
         return $sequence === false ? '0' : $this->_connection->lastInsertId($sequence);
     }
 
