@@ -901,6 +901,43 @@ class AppModel extends Model
      * @param bool $negation
      * @return string[]
      */
+    /**
+     * A correlated subquery reading one column of the row another table's
+     * alias points at - `(SELECT t.column FROM t WHERE t.id = Alias.foreignKey)`
+     * - spelled for this connection.
+     *
+     * Every identifier is quoted through the driver and the table is
+     * schema-qualified when the connection names a schema, because the driver
+     * does not reach inside a hand-written condition string to do either.
+     * Use the result as a raw condition string, `<subquery> = 3` or
+     * `<subquery> IN (1, 2)`, never as an array key with a value: CakePHP
+     * splits such a key at its last space to find an operator, and the tail
+     * of the subquery is then appended unquoted.
+     *
+     * @param string $table
+     * @param string $column
+     * @param string $alias The model alias in the enclosing query.
+     * @param string $foreignKey Its column holding the looked-up row's id.
+     * @return string
+     */
+    protected function correlatedLookup($table, $column, $alias, $foreignKey)
+    {
+        $db = $this->getDataSource();
+        $qualified = empty($db->config['schema'])
+            ? $db->name($table)
+            : $db->name($db->config['schema']) . '.' . $db->name($table);
+        return sprintf(
+            '(SELECT %s.%s FROM %s WHERE %s.%s = %s.%s)',
+            $qualified,
+            $db->name($column),
+            $qualified,
+            $qualified,
+            $db->name('id'),
+            $db->name($alias),
+            $db->name($foreignKey)
+        );
+    }
+
     protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(

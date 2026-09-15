@@ -1904,7 +1904,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2348,7 +2348,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 ]],
-                $objectCondSelect => $user['org_id'],
+                $objectCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2451,7 +2451,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2990,7 +2990,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                $attributeCondSelect => $user['org_id']
+                $attributeCondSelect . ' = ' . (int)$user['org_id']
             );
 
             $conditionsObjects['AND'][0]['OR'] = array(
@@ -3002,7 +3002,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                $objectCondSelect => $user['org_id']
+                $objectCondSelect . ' = ' . (int)$user['org_id']
             );
 
             $conditionsEventReport['AND'][0]['OR'] = array(
@@ -3014,7 +3014,7 @@ class Event extends AppModel
                     'EventReport.distribution' => 4,
                     'EventReport.sharing_group_id' => $sgids,
                 )),
-                $eventReportCondSelect => $user['org_id']
+                $eventReportCondSelect . ' = ' . (int)$user['org_id']
             );
         }
         if (isset($options['distribution'])) {
@@ -3088,7 +3088,7 @@ class Event extends AppModel
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
                             'AND' => array(
-                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                $this->eventOwnerSubquery($softDeletable) . ' = ' . (int)$user['org_id'],
                                 "$softDeletable.deleted" => $options['deleted'],
                             ),
                             $deletion_subconditions
@@ -3116,7 +3116,7 @@ class Event extends AppModel
             if ($isSiteAdmin) {
                 $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 1));
             } else {
-                $proposal_conditions['OR'][] = array('(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']);
+                $proposal_conditions['OR'][] = $this->eventOwnerSubquery('ShadowAttribute') . ' = ' . (int)$user['org_id'];
             }
         }
         if ($options['idList'] && !$options['tags']) {
@@ -4398,20 +4398,7 @@ class Event extends AppModel
      */
     private function eventOwnerSubquery($alias)
     {
-        $db = $this->getDataSource();
-        $events = empty($db->config['schema'])
-            ? $db->name('events')
-            : $db->name($db->config['schema']) . '.' . $db->name('events');
-        return sprintf(
-            '(SELECT %s.%s FROM %s WHERE %s.%s = %s.%s)',
-            $events,
-            $db->name('org_id'),
-            $events,
-            $events,
-            $db->name('id'),
-            $db->name($alias),
-            $db->name('event_id')
-        );
+        return $this->correlatedLookup('events', 'org_id', $alias, 'event_id');
     }
 
     public function set_filter_object_name(&$params, $conditions, $options) {

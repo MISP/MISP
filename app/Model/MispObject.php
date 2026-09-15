@@ -630,9 +630,7 @@ class MispObject extends AppModel
             $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
-                    array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-                    ),
+                    $this->correlatedLookup('events', 'org_id', 'Attribute', 'event_id') . ' = ' . (int)$user['org_id'],
                     array(
                         'OR' => array(
                             'Attribute.distribution' => array(1, 2, 3, 5),
