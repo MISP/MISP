@@ -57,6 +57,9 @@ class Relationship extends AnalystData
     /** @var array|null */
     private $__currentUser;
 
+    /** @var bool set while expanding a related relationship, to stop afterFind() recursing */
+    private $__expandingRelatedRelationship = false;
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate($options);
@@ -132,31 +135,34 @@ class Relationship extends AnalystData
             $data = $this->rearrangeData($data, 'Object');
         } else if ($type == 'Note') {
             $this->Note = ClassRegistry::init('Note');
-            $params = [
-
-            ];
             $backup = $this->Note->includeAnalystData;
             $this->Note->includeAnalystData = false;
-            $data = $this->Note->fetchNote();
+            $data = $this->Note->fetchSimple($user, $uuid);
             $this->Note->includeAnalystData = $backup;
         } else if ($type == 'Opinion') {
             $this->Opinion = ClassRegistry::init('Opinion');
-            $params = [
-
-            ];
             $backup = $this->Opinion->includeAnalystData;
             $this->Opinion->includeAnalystData = false;
-            $data = $this->Opinion->fetchOpinion();
+            $data = $this->Opinion->fetchSimple($user, $uuid);
             $this->Opinion->includeAnalystData = $backup;
         } else if ($type == 'Relationship') {
+            // A relationship may point at another relationship. Fetching it
+            // runs Relationship::afterFind(), which would expand its own
+            // related_object and recurse indefinitely on cyclic graphs, so
+            // only expand one level deep.
+            if ($this->__expandingRelatedRelationship) {
+                return [];
+            }
             $this->Relationship = ClassRegistry::init('Relationship');
-            $params = [
-
-            ];
             $backup = $this->Relationship->includeAnalystData;
             $this->Relationship->includeAnalystData = false;
-            $data = $this->Relationship->fetchRelationship();
-            $this->Relationship->includeAnalystData = $backup;
+            $this->Relationship->__expandingRelatedRelationship = true;
+            try {
+                $data = $this->Relationship->fetchSimple($user, $uuid);
+            } finally {
+                $this->Relationship->__expandingRelatedRelationship = false;
+                $this->Relationship->includeAnalystData = $backup;
+            }
         }
         return $data;
     }
