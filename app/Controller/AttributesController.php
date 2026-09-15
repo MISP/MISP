@@ -36,6 +36,16 @@ class AttributesController extends AppController
     {
         parent::beforeFilter();
 
+        // Posted by hand-built AJAX (the Overmind tag/galaxy/relationship
+        // modals), which sends the CSRF token as a header. They post a JSON
+        // document, which is exactly why _validatePost() can never pass:
+        // Security starts up before the component that decodes it, so it sees
+        // no _Token at all.
+        $this->_csrfTokenHeaderOnly([
+            'editAttributeTags', 'editAttributeGalaxies',
+            'editAttributeTagRelationships', 'editAttributeGalaxyRelationships',
+        ]);
+
         // permit reuse of CSRF tokens on the search page.
         if ('search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
@@ -3163,48 +3173,34 @@ class AttributesController extends AppController
         $attributeId = (int)$attribute['Attribute']['id'];
 
         /* Current galaxy clusters attached to the attribute, split by locality */
-        $galaxyTagNames = [];
-        foreach ($attribute['AttributeTag'] as $at) {
-            if (!empty($at['Tag']['is_galaxy'])) {
-                $galaxyTagNames[$at['Tag']['id']] = $at['Tag']['name'];
-            }
-        }
-        $this->loadModel('GalaxyCluster');
+        $clustersByTagId = $this->_clustersByTagId(
+            $attribute['AttributeTag'], $user
+        );
         $currentGlobalClusters = [];
         $currentLocalClusters  = [];
         $currentGlobalIds      = [];
         $currentLocalIds       = [];
-        if (!empty($galaxyTagNames)) {
-            $clusters = $this->GalaxyCluster->getClustersByTags(
-                $galaxyTagNames, $user, true, false
-            );
-            $clustersByTagId = array_column(
-                array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
-            );
-            foreach ($attribute['AttributeTag'] as $at) {
-                if (empty($at['Tag']['is_galaxy'])) {
-                    continue;
-                }
-                $tagId = $at['Tag']['id'];
-                if (!isset($clustersByTagId[$tagId])) {
-                    continue;
-                }
-                $gc         = $clustersByTagId[$tagId];
-                $cid        = (int)$gc['id'];
-                $galaxyName = $gc['Galaxy']['name'] ?? '';
-                $entry = [
-                    'id'     => $cid,
-                    'name'   => $gc['value'],
-                    'galaxy' => $galaxyName,
-                    'hue'    => GalaxyColour::hue($galaxyName),
-                ];
-                if (!empty($at['local'])) {
-                    $currentLocalClusters[] = $entry;
-                    $currentLocalIds[]      = $cid;
-                } else {
-                    $currentGlobalClusters[] = $entry;
-                    $currentGlobalIds[]      = $cid;
-                }
+        foreach ($attribute['AttributeTag'] as $at) {
+            $tagId = $at['Tag']['id'] ?? null;
+            if (empty($at['Tag']['is_galaxy'])
+                || !isset($clustersByTagId[$tagId])) {
+                continue;
+            }
+            $gc         = $clustersByTagId[$tagId];
+            $cid        = (int)$gc['id'];
+            $galaxyName = $gc['Galaxy']['name'] ?? '';
+            $entry = [
+                'id'     => $cid,
+                'name'   => $gc['value'],
+                'galaxy' => $galaxyName,
+                'hue'    => GalaxyColour::hue($galaxyName),
+            ];
+            if (!empty($at['local'])) {
+                $currentLocalClusters[] = $entry;
+                $currentLocalIds[]      = $cid;
+            } else {
+                $currentGlobalClusters[] = $entry;
+                $currentGlobalIds[]      = $cid;
             }
         }
 
@@ -3302,6 +3298,143 @@ class AttributesController extends AppController
         $this->set('galaxyList',            $galaxyList);
         $this->set('attributeId',           $attributeId);
         $this->set('mayModify',             $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind modal that puts one relationship type on a selection of an
+     * attribute's tags - the "+"-sibling button in the tag column of the
+     * attribute and object indexes.
+     *
+     * Mirrors EventsController::editEventTagRelationships(), scoped to one
+     * attribute: AttributeTag.relationship_type is the same column, and the
+     * stock theme reaches it through the same
+     * /tags/modifyTagRelationship/attribute/<attributeTagId>.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeTagRelationships($id = null)
+    {
+        return $this->__attributeTagRelationships($id, false);
+    }
+
+    /**
+     * The same, for an attribute's galaxy clusters - the sibling of the "+"
+     * button in the galaxy column. A cluster rides on an AttributeTag row like
+     * any tag, so it is the same write.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeGalaxyRelationships($id = null)
+    {
+        return $this->__attributeTagRelationships($id, true);
+    }
+
+    /**
+     * Both of the above. The two differ only in which rows they offer, which
+     * is what each column draws: a galaxy tag whose cluster this instance can
+     * resolve belongs to the galaxy column, and everything else - a plain tag,
+     * or a galaxy tag with no cluster here - to the tag column. Nothing is in
+     * both, and nothing in neither.
+     *
+     * @param int|string $id       Attribute ID or UUID
+     * @param bool       $galaxies Offer the resolved clusters rather than the tags
+     * @return CakeResponse|void
+     */
+    private function __attributeTagRelationships($id, $galaxies)
+    {
+        $user = $this->Auth->user();
+        if ($id === null) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+            'conditions' => $this->__idToConditions($id),
+            'contain' => [
+                'Event',
+                'AttributeTag' => [
+                    'Tag'   => ['order' => false],
+                    'order' => false,
+                ],
+            ],
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attributeId = (int)$attribute['Attribute']['id'];
+
+        /* Tagging is granted per locality: a host-org user who cannot touch
+           the attribute at all may still own its local tags. */
+        $mayModify = [
+            0 => $this->__canModifyTag($attribute, false),
+            1 => $this->__canModifyTag($attribute, true),
+        ];
+
+        $clustersByTagId = $this->_clustersByTagId(
+            $attribute['AttributeTag'], $user
+        );
+        $rows = [];
+        $clusterByRow = [];
+        foreach ($attribute['AttributeTag'] as $at) {
+            $tagId = $at['Tag']['id'] ?? null;
+            $isCluster = !empty($at['Tag']['is_galaxy'])
+                && isset($clustersByTagId[$tagId]);
+            if ($isCluster !== (bool)$galaxies) {
+                continue;
+            }
+            $connectorId = (int)$at['id'];
+            $rows[$connectorId] = $at;
+            if ($isCluster) {
+                $clusterByRow[$connectorId] = $clustersByTagId[$tagId];
+            }
+        }
+
+        /* ── POST: one relationship onto the selected rows ── */
+        if ($this->request->is('post')) {
+            return $this->_applyTagRelationships(
+                $this->MispAttribute->AttributeTag,
+                $rows,
+                function (array $row) use ($mayModify) {
+                    return !empty($mayModify[empty($row['local']) ? 0 : 1]);
+                },
+                $galaxies ? 'galaxy' : 'tag'
+            );
+        }
+
+        /* ── GET: the rows to apply a relationship to ── */
+        $items = [];
+        foreach ($rows as $connectorId => $at) {
+            $cluster = $clusterByRow[$connectorId] ?? null;
+            $items[] = [
+                'connector_id' => $connectorId,
+                'id'           => (int)($cluster
+                    ? $cluster['id'] : $at['Tag']['id']),
+                'name'         => $cluster
+                    ? $cluster['value'] : $at['Tag']['name'],
+                'galaxy'       => $cluster
+                    ? ($cluster['Galaxy']['name'] ?? '') : null,
+                'colour'       => !empty($at['Tag']['colour'])
+                    ? $at['Tag']['colour'] : '#0088cc',
+                'local'        => !empty($at['local']),
+                'relationship' => (string)($at['relationship_type'] ?? ''),
+                'editable'     => !empty($mayModify[empty($at['local']) ? 0 : 1]),
+            ];
+        }
+        usort($items, function ($a, $b) use ($galaxies) {
+            if ($galaxies) {
+                /* Grouped the way the galaxy column groups them. */
+                return strnatcasecmp($a['galaxy'], $b['galaxy'])
+                    ?: strnatcasecmp($a['name'], $b['name']);
+            }
+            return strnatcasecmp($a['name'], $b['name']);
+        });
+
+        $this->set($galaxies ? 'attributeClusters' : 'attributeTags', $items);
+        $this->set(
+            'relationshipOptions',
+            $this->_tagRelationshipVocabulary(array_column($items, 'relationship'))
+        );
+        $this->set('attributeId', $attributeId);
+        $this->set('mayModify',   $mayModify[0] || $mayModify[1]);
         $this->layout = false;
     }
 

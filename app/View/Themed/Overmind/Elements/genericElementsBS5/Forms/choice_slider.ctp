@@ -28,6 +28,7 @@
  *   $selectAttrs array   extra attributes for the hidden select
  *   $reveal      array   ['value' => x, 'target' => '#id'] — toggles `d-none`
  *                        on the target as that one value is picked or left
+ *   $readonly    bool    draw the same meter as a read-out
  */
 
 $accentMeta = $this->ModalAccent->get($accent ?? 'primary');
@@ -36,7 +37,8 @@ $last = count($options) - 1;
 
 /* Same precedence as choice_cards: the request first (an edit, or a form back
  * from a failed validation), then the caller, then the bottom of the scale. */
-$posted = $this->Form->value($field);
+$readonly = !empty($readonly);
+$posted = $readonly ? null : $this->Form->value($field);
 if ($posted !== null && $posted !== '') {
     $selected = (string)$posted;
 } elseif (isset($value) && $value !== '') {
@@ -89,11 +91,13 @@ $style = sprintf(
     $last > 0 ? round($index / $last * 100) : 0
 );
 ?>
-<div class="ov-slider <?= h($class ?? '') ?>"
-     data-choice-slider
+<div class="ov-slider<?= $readonly ? ' is-readonly' : '' ?> <?= h($class ?? '') ?>"
+     <?= $readonly ? '' : 'data-choice-slider' ?>
      style="<?= $style ?>"<?= $revealAttrs ?>>
 
+    <?php if (!$readonly): ?>
     <?= $this->Form->select($field, $selectOptions, $selectAttrs) ?>
+    <?php endif; ?>
 
     <div class="ov-slider-head">
         <span class="ov-slider-value" data-slider-value>
@@ -111,7 +115,13 @@ $style = sprintf(
            max="<?= (int)max($last, 0) ?>"
            step="1"
            value="<?= (int)$index ?>"
+           <?php if ($readonly): ?>
+           disabled
+           tabindex="-1"
+           aria-hidden="true"
+           <?php else: ?>
            <?= empty($ariaLabel) ? '' : 'aria-label="' . h($ariaLabel) . '"' ?>
+           <?php endif; ?>
            aria-valuetext="<?= h($current['title']) ?>">
 
     <div class="ov-slider-ticks">
