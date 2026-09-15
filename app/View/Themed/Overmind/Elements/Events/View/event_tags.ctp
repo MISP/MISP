@@ -67,9 +67,7 @@ $mayModify = $this->Acl->canModifyTag($data);
 
     <!-- BODY -->
     <div id="<?= $uid ?>-body"
-         data-collapse-tall="400"
-         data-collapse-more="<?= h(__('Show all tags')) ?>"
-         data-collapse-less="<?= h(__('Show less')) ?>">
+         data-collapse-tall="400">
         <div class="text-center py-4 text-muted">
             <div class="spinner-border spinner-border-sm" role="status"></div>
         </div>

@@ -3553,7 +3553,7 @@ class EventsController extends AppController
     /**
      * Returns JSON statistics for a given event:
      * attribute & object breakdowns, attachment count,
-     * report count. Used by the event_general stats widget.
+     * analyst data count. Used by the event_general stats widget.
      *
      * @param int|string $id Event ID or UUID
      */
@@ -3562,7 +3562,8 @@ class EventsController extends AppController
         $user = $this->Auth->user();
         $event = $this->Event->fetchSimpleEvent(
             $user, $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            // uuid: analyst data hangs off an object's uuid, never its id.
+            ['fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -3619,15 +3620,9 @@ class EventsController extends AppController
             'recursive' => -1,
         ]);
 
-        // EventReport count
-        $this->loadModel('EventReport');
-        $reportCount = (int)$this->EventReport->find('count', [
-            'conditions' => [
-                'EventReport.event_id' => $eventId,
-                'EventReport.deleted'  => 0,
-            ],
-            'recursive' => -1,
-        ]);
+        // Analyst data count
+        $this->loadModel('Note');
+        $adCount = $this->Note->countForObjectRecursive($user, $event['Event']['uuid']);
 
         return $this->RestResponse->viewData([
             'attributes'  => [
@@ -3638,8 +3633,8 @@ class EventsController extends AppController
                 'total'   => $objTotal,
                 'by_name' => $objByName,
             ],
-            'attachments' => $attachmentCount,
-            'reports'     => $reportCount,
+            'attachments'   => $attachmentCount,
+            'analyst_datas' => $adCount,
         ], 'json');
     }
 

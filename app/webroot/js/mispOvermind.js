@@ -5748,63 +5748,108 @@ document.addEventListener('DOMContentLoaded', function () {
  *******************************/
 
 /**
- * The "Show full content" toggle under a clipped event report preview.
+ * Expand / collapse a clipped event report preview.
  *
- * Collapsed, the wrapper is clamped and hidden: no scrollbar — the fade and
- * the link are what say there is more. Expanded, it grows to at most a
- * screenful and scrolls inside, which is the one state where a scrollbar
- * belongs. A preview that clamps the body itself instead ends up showing a
- * scrollbar it cannot even draw fully, inside a window the fade already
- * covers, and reads as a report cut off at the bottom.
+ * Collapsed, the wrapper is clamped and hidden: no scrollbar — the fade is
+ * what says there is more. Expanded, it grows to at most a screenful and
+ * scrolls inside, which is the one state where a scrollbar belongs, and it is
+ * given a track it always draws (`.er-preview-scroll`) so a reader can see
+ * there is more below rather than having to guess.
  *
- * Called from the link's onclick with the collapsed height the template chose.
- * The link carries its own wording (`data-er-expand-label` /
- * `data-er-collapse-label`, translated server-side) and the wrapper may name
- * its expanded ceiling with `data-er-expanded-max`.
+ * The whole box is the control, so there is no link to aim at — but it only
+ * ever opens. Closing is a click anywhere else on the page, which is what
+ * leaves an open report entirely alone: every click inside it belongs to
+ * reading it, not to putting it away. The guards are what keep the opening
+ * click from firing on something that was never a click: a link inside the
+ * report keeps its own, and a drag is a text selection.
  *
- * Three templates had a copy of this, and they had already drifted apart on
- * how they find the gradient — hence the two ways of looking for it below.
+ * The box names its parts in data attributes:
+ *   data-er-preview           id of the clipped wrapper            (required)
+ *   data-er-preview-overlay   id of the fade's wrapper
+ *   data-er-preview-collapsed clamped height          (default 300px)
+ *   data-er-preview-expanded  ceiling once open  (default a screenful)
+ *
+ * Idempotent, so a lazily-loaded fragment can call it on its own container.
  */
-function erPreviewToggle(link, cardId, overlayId, collapsedMaxH) {
-    var card = document.getElementById(cardId);
-    var overlay = document.getElementById(overlayId);
-    if (!card || !overlay) { return; }
+function initErPreviews(container) {
+    var scope = container || document;
 
-    var gradient = overlay.querySelector('.er-preview-gradient') || overlay.firstElementChild;
-    var icon = link.querySelector('i');
-    var expanded = card.dataset.erExpanded === '1';
-    var expandedMaxH = card.dataset.erExpandedMax || 'calc(100vh - 5rem)';
+    scope.querySelectorAll('[data-er-preview]').forEach(function (box) {
+        if (box.dataset.erPreviewReady === '1') { return; }
+        box.dataset.erPreviewReady = '1';
 
-    if (expanded) {
-        card.style.maxHeight = collapsedMaxH;
-        card.style.overflowY = 'hidden';
-        /* Collapsing has to come back to the top of the report: the box keeps
-           whatever it was scrolled to, and clipping a scrolled box shows its
-           middle. */
-        card.scrollTop = 0;
-        card.dataset.erExpanded = '0';
-        if (gradient) { gradient.style.display = ''; }
-        if (icon) { icon.className = 'fas fa-chevron-down me-1'; }
-        setLabel(link, link.dataset.erExpandLabel || 'Show full content');
-    } else {
-        card.style.maxHeight = expandedMaxH;
-        card.style.overflowY = 'auto';
-        card.dataset.erExpanded = '1';
-        if (gradient) { gradient.style.display = 'none'; }
-        if (icon) { icon.className = 'fas fa-chevron-up me-1'; }
-        setLabel(link, link.dataset.erCollapseLabel || 'Collapse');
-    }
+        var card = document.getElementById(box.dataset.erPreview);
+        if (!card) { return; }
+        var overlay = box.dataset.erPreviewOverlay
+            ? document.getElementById(box.dataset.erPreviewOverlay)
+            : null;
 
-    function setLabel(el, text) {
-        var node = el.lastChild;
-        if (node && node.nodeType === Node.TEXT_NODE) {
-            node.textContent = ' ' + text;
-        } else {
-            el.appendChild(document.createTextNode(' ' + text));
+        var collapsedMaxH = box.dataset.erPreviewCollapsed || '300px';
+        var expandedMaxH = box.dataset.erPreviewExpanded || 'calc(100vh - 5rem)';
+
+        var downX = 0;
+        var downY = 0;
+        box.addEventListener('mousedown', function (event) {
+            downX = event.clientX;
+            downY = event.clientY;
+        });
+
+        box.addEventListener('click', function (event) {
+            /* Open already: the click is the reader's, not ours. */
+            if (card.dataset.erExpanded === '1') { return; }
+
+            /* Anything that already does something on click keeps its click —
+               a link in the report body above all. */
+            if (event.target.closest(
+                'a, button, input, textarea, select, label, summary, [data-md-pop]'
+            )) { return; }
+
+            /* A pointer that travelled was dragging out a text selection. */
+            if (Math.abs(event.clientX - downX) > 4 ||
+                Math.abs(event.clientY - downY) > 4) { return; }
+
+            var selection = window.getSelection();
+            if (selection && selection.toString() !== '') { return; }
+
+            setExpanded(true);
+        });
+
+        /* Closing lives on the document rather than being armed when the box
+           opens: a listener added mid-dispatch still runs for the very click
+           that added it, so arming it on open would shut the report again
+           before the pointer came back up. Reading the state here instead
+           costs nothing and cannot race. */
+        document.addEventListener('click', function (event) {
+            if (card.dataset.erExpanded !== '1') { return; }
+            if (box.contains(event.target)) { return; }
+            setExpanded(false);
+        });
+
+        function setExpanded(expand) {
+            if (expand) {
+                card.style.maxHeight = expandedMaxH;
+                card.style.overflowY = 'auto';
+                card.classList.add('er-preview-scroll');
+            } else {
+                card.style.maxHeight = collapsedMaxH;
+                card.style.overflowY = 'hidden';
+                card.classList.remove('er-preview-scroll');
+                /* Collapsing has to come back to the top of the report: the box
+                   keeps whatever it was scrolled to, and clipping a scrolled
+                   box shows its middle. */
+                card.scrollTop = 0;
+            }
+            card.dataset.erExpanded = expand ? '1' : '0';
+            box.classList.toggle('is-expanded', expand);
+            if (overlay) { overlay.classList.toggle('is-expanded', expand); }
         }
-    }
+    });
 }
-window.erPreviewToggle = erPreviewToggle;
+window.initErPreviews = initErPreviews;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initErPreviews();
+});
 
 /*******************************
  *  "Show all" for a tall card *
@@ -5812,18 +5857,16 @@ window.erPreviewToggle = erPreviewToggle;
 
 /**
  * Keeps a card body from running long: past a height it is clipped, a fade
- * says there is more, and a bar expands it. Declarative — a card opts in with
- * three attributes and writes no script of its own:
+ * says there is more, and a click on the body itself expands it — a clipped
+ * body opens on its own click and closes on a click anywhere else, the same
+ * bargain the event report preview makes (see initErPreviews). Declarative —
+ * a card opts in with one attribute and writes no script of its own:
  *
- *   <div id="…-body"
- *        data-collapse-tall="400"
- *        data-collapse-more="<?= h(__('Show all tags')) ?>"
- *        data-collapse-less="<?= h(__('Show less')) ?>">
+ *   <div id="…-body" data-collapse-tall="400">
  *
- * The fade and the bar are inserted AFTER the box, never inside it: inside a
- * clipped box they are laid out against the scrollport, so they drift into the
- * middle of the content and the bar's opaque background hides its last lines
- * (which is exactly what the event report preview had to be fixed for).
+ * The fade is inserted AFTER the box, never inside it: inside a clipped box it
+ * is laid out against the scrollport, so it drifts into the middle of the
+ * content (which is exactly what the event report preview had to be fixed for).
  *
  * These bodies arrive from their card's own fetch and are re-filtered by its
  * search box, so the height is watched rather than measured once: a card that
@@ -5842,21 +5885,11 @@ function initCollapsibleSection(box) {
     box.dataset.collapseReady = '1';
 
     const threshold = parseInt(box.dataset.collapseTall, 10) || 400;
-    const moreLabel = box.dataset.collapseMore || 'Show all';
-    const lessLabel = box.dataset.collapseLess || 'Show less';
 
     const overlay = document.createElement('div');
     overlay.className = 'er-preview-overlay d-none';
-    overlay.innerHTML =
-        '<div class="er-preview-gradient"></div>'
-        + '<div class="er-preview-bar">'
-        + '<a href="#" class="small text-muted text-decoration-none er-preview-toggle">'
-        + '<i class="fas fa-chevron-down me-1"></i></a></div>';
+    overlay.innerHTML = '<div class="er-preview-gradient"></div>';
     const gradient = overlay.querySelector('.er-preview-gradient');
-    const link = overlay.querySelector('a');
-    const icon = overlay.querySelector('i');
-    const label = document.createTextNode(' ' + moreLabel);
-    link.appendChild(label);
     box.insertAdjacentElement('afterend', overlay);
 
     let expanded = false;
@@ -5877,9 +5910,16 @@ function initCollapsibleSection(box) {
         }
         overlay.classList.toggle('d-none', !(expanded || tall));
         gradient.classList.toggle('d-none', expanded);
-        icon.className = expanded ? 'fas fa-chevron-up me-1' : 'fas fa-chevron-down me-1';
-        label.textContent = ' ' + (expanded ? lessLabel : moreLabel);
+        /* Only a clipped body has something to give on a click, and it is the
+           only state that should offer a cursor saying so. */
+        box.classList.toggle('is-clipped', !expanded && tall);
         applying = false;
+    }
+
+    function setExpanded(next) {
+        if (expanded === next) { return; }
+        expanded = next;
+        apply();
     }
 
     /* A timer rather than requestAnimationFrame: rAF is throttled to nothing
@@ -5893,15 +5933,44 @@ function initCollapsibleSection(box) {
         }, 0);
     }
 
-    link.addEventListener('click', function (event) {
-        event.preventDefault();
-        expanded = !expanded;
-        apply();
-        /* Collapsing a long list from its foot would otherwise leave the
-           reader below the card, looking at what came after it. */
-        if (!expanded && box.getBoundingClientRect().top < 0) {
-            box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    let downX = 0;
+    let downY = 0;
+    box.addEventListener('mousedown', function (event) {
+        downX = event.clientX;
+        downY = event.clientY;
+    });
+
+    /* Opening: only while the body is actually clipped, so a card that fits
+       never swallows a click. These bodies are lists of tags, clusters and
+       files whose every row does something, hence the wider net than the
+       report preview casts — `[onclick]` above all, which is how the rows
+       arriving from the card's own fetch are wired. */
+    box.addEventListener('click', function (event) {
+        if (expanded || !box.classList.contains('is-clipped')) { return; }
+        if (event.target.closest(
+            'a, button, input, textarea, select, label, summary,'
+            /* A tooltip is not an action — excluding it would make whole rows
+               of these cards dead to the opening click. */
+            + ' [onclick], [data-bs-toggle]:not([data-bs-toggle="tooltip"]),'
+            + ' [data-md-pop]'
+        )) { return; }
+        if (Math.abs(event.clientX - downX) > 4 ||
+            Math.abs(event.clientY - downY) > 4) { return; }
+        const selection = window.getSelection();
+        if (selection && selection.toString() !== '') { return; }
+        setExpanded(true);
+    });
+
+    /* Closing: a click anywhere but the body and its fade. Registered once
+       rather than armed on opening — a listener added mid-dispatch still runs
+       for the very click that added it, which would shut the card again before
+       the pointer came back up. */
+    document.addEventListener('click', function (event) {
+        if (!expanded) { return; }
+        if (box.contains(event.target) || overlay.contains(event.target)) {
+            return;
         }
+        setExpanded(false);
     });
 
     /* Content arriving, a search hiding rows, a class flipping — anything but

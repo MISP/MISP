@@ -60,10 +60,10 @@
                     'Events/View/event_tags',
                     'Events/View/event_galaxies',
                     'Events/View/event_attachments',
+                    'Events/View/event_analyst_data',
                 ],
                 'right' => [
                     'Events/View/event_actions',
-                    'Events/View/event_analyst_data',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
                     'Events/View/event_warninglists',

@@ -20,16 +20,6 @@ $canAddReport = $this->Acl->canModifyEvent($data);
 $overlayHtml = '
 <div id="' . h($overlayId) . '" class="er-preview-overlay" style="display:none;">
     <div class="er-preview-gradient"></div>
-    <div class="er-preview-bar">
-        <a href="#"
-           class="small text-muted text-decoration-none er-preview-toggle"
-           data-er-expand-label="' . h(__('Show full content')) . '"
-           data-er-collapse-label="' . h(__('Collapse')) . '"
-           onclick="erPreviewToggle(this,\'' . h($cardId) . '\',\'' . h($overlayId) . '\',\'' . $maxH . '\');return false;">
-            <i class="fas fa-chevron-down me-1"></i>
-            ' . __('Show full content') . '
-        </a>
-    </div>
 </div>';
 ?>
 
@@ -61,13 +51,17 @@ $overlayHtml = '
         </div>
 
         <?php if ($hasReport): ?>
-            <div id="<?= h($cardId) ?>"
-                 style="max-height:<?= $maxH ?>;overflow:hidden;">
-                <div class="card-body p-3">
-                    <div id="<?= h($bodyId) ?>" class="markdown-preview-body"></div>
+            <div data-er-preview="<?= h($cardId) ?>"
+                 data-er-preview-overlay="<?= h($overlayId) ?>"
+                 data-er-preview-collapsed="<?= h($maxH) ?>">
+                <div id="<?= h($cardId) ?>"
+                     style="max-height:<?= $maxH ?>;overflow:hidden;">
+                    <div class="card-body p-3">
+                        <div id="<?= h($bodyId) ?>" class="markdown-preview-body"></div>
+                    </div>
                 </div>
+                <?= $overlayHtml ?>
             </div>
-            <?= $overlayHtml ?>
         <?php else: ?>
             <div class="card-body d-flex flex-column align-items-center
                         justify-content-center text-muted py-5">

@@ -29,6 +29,10 @@
     --bs-dropdown-link-active-bg: var(--primary);
 }
 
+.min-w-0 {
+    min-width: 0;
+}
+
 html {
     height: 100%;
 }
@@ -89,6 +93,7 @@ body[data-controller="users"][data-action="change_pw"] {
 .btn-primary,
 .btn-tag,
 .btn-galaxy,
+.btn-report,
 .btn.show:hover,
 .btn-primary:hover,
 .btn-primary:focus,
@@ -104,7 +109,12 @@ body[data-controller="users"][data-action="change_pw"] {
 .btn-galaxy:focus,
 .btn-galaxy:active,
 .btn-outline-galaxy:active,
-.btn-outline-galaxy:hover{
+.btn-outline-galaxy:hover
+.btn-report:hover,
+.btn-report:focus,
+.btn-report:active,
+.btn-outline-report:active,
+.btn-outline-report:hover{
     color: #fff !important;
 }
 
@@ -209,7 +219,6 @@ body[data-controller="users"][data-action="change_pw"] {
 .navbar .nav-link,
 .dropdown-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
 }
 
@@ -2259,10 +2268,6 @@ tr.evt-extension-row td:first-child {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
-.et-template-picker .min-w-0 { 
-    min-width: 0; 
-}
-
 /* ==========================================================================
    events/export — cached exports & text signature downloads
    ========================================================================== */
@@ -3042,6 +3047,53 @@ tr.evt-extension-row td:first-child {
     font-weight: 700;
 }
 
+/* Read-only variant */
+.ov-slider.is-readonly {
+    max-width: none;
+}
+
+.ov-slider.is-readonly .ov-slider-range {
+    pointer-events: none;
+    cursor: default;
+    opacity: 1;
+}
+
+.ov-slider.is-readonly .ov-slider-tick,
+.ov-slider.is-readonly .ov-slider-tick:hover {
+    cursor: default;
+    color: var(--bs-secondary-color);
+}
+
+.ov-slider.is-readonly .ov-slider-tick.is-current {
+    color: var(--ov-slider-tone);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   "MORE DETAILS" TOGGLE  (the event view's general card)
+   Bootstrap puts `.collapsed` on the *trigger* while the panel
+   is shut, which is the only state either half needs — so the
+   wording and the chevron are swapped in CSS rather than by a
+   listener of our own.
+   ═══════════════════════════════════════════════════════════ */
+.ov-more-toggle .ov-more-open,
+.ov-more-toggle.collapsed .ov-more-close {
+    display: none;
+}
+
+.ov-more-toggle .ov-more-close,
+.ov-more-toggle.collapsed .ov-more-open {
+    display: inline;
+}
+
+.ov-more-chevron {
+    transition: transform .2s ease;
+    transform: rotate(180deg);
+}
+
+.ov-more-toggle.collapsed .ov-more-chevron {
+    transform: rotate(0);
+}
+
 .ov-subfield {
     margin-top: .6rem;
     padding-left: .75rem;
@@ -3350,16 +3402,125 @@ tr.evt-extension-row td:first-child {
     background: linear-gradient(to bottom, transparent, var(--bs-card-bg, #fff));
 }
 
-.er-preview-bar {
-    padding: .25rem 0;
-    text-align: center;
-    background: var(--bs-card-bg, #fff);
+/* Open, the fade would sit over text the reader is now meant to read — and
+   over the scrollbar that has taken over the job of saying there is more. */
+.er-preview-overlay.is-expanded .er-preview-gradient {
+    display: none;
 }
 
-/* Last thing in a card, so it has to follow the card's own bottom corners. */
-.card > .er-preview-overlay:last-child > .er-preview-bar {
-    border-bottom-left-radius: var(--bs-card-inner-border-radius, .375rem);
-    border-bottom-right-radius: var(--bs-card-inner-border-radius, .375rem);
+/* ═══════════════════════════════════════════════════════════
+   BORDERED MINI-CARDS
+   The tile a general card states one value in: the event
+   view's report preview and identity boxes, every tile on
+   the user view. `.rounded-3 border p-3 h-100` plus this.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Only the border and the shadow move: a background change would fight the
+   tinted chips these boxes hold, and moving the box itself would nudge the
+   four that sit on one `h-100` row. */
+.ov-mini-card {
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-mini-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), .45) !important;
+    box-shadow: 0 .125rem .5rem rgba(0, 0, 0, .07);
+}
+
+/* An open report is a reading surface, not a target. */
+.ov-mini-card.is-expanded:hover {
+    border-color: var(--bs-border-color) !important;
+    box-shadow: none;
+}
+
+/* A folded key (PGP, S/MIME): the summary is the control, and the body is
+   capped rather than letting a 4 kB armoured block run the page long. `pre`
+   would otherwise scroll sideways — a key has no spaces to wrap at, hence
+   break-all rather than the usual word wrapping. */
+.ov-key > summary {
+    cursor: pointer;
+}
+
+.ov-key-body {
+    max-height: 16rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* The "nothing here yet" row, sized to sit at the height of the identity
+   boxes below rather than the screenful a centred empty state used to take.
+   Dashed, because a slot that is waiting to be filled reads differently from
+   a box that holds something. */
+.ov-empty-slot {
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .5rem;
+    padding: .625rem .75rem;
+    background: color-mix(in srgb, var(--bs-tertiary-bg) 60%, transparent);
+}
+
+.ov-empty-slot-glyph {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: .5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--bs-report-rgb), .12);
+    color: var(--bs-report);
+    font-size: 1rem;
+}
+
+/* The box is the toggle, so it says so — but only while shut. Reading, and
+   selecting, a full report under a pointer cursor is worse than the hint.
+   A tall card body (initCollapsibleSections) earns the same cursor, and for
+   the same window only: `is-clipped` is set exactly while there is content
+   the click would reveal. */
+[data-er-preview],
+[data-collapse-tall].is-clipped {
+    cursor: pointer;
+}
+
+[data-er-preview].is-expanded {
+    cursor: auto;
+}
+
+/* An overlay scrollbar fades out the moment the pointer stops, so an expanded
+   report looks exactly like one that ends there. Each engine has one lever
+   that opts a box out of the overlay kind, and they must not be pulled
+   together: from Chrome 121 the standard `scrollbar-width`/`scrollbar-color`
+   make it ignore every `::-webkit-scrollbar` rule on the element, and the thin
+   scrollbar they ask for is the auto-hiding one. So the standard pair is
+   fenced off behind a query only Firefox answers, and Chromium keeps the
+   pseudo-elements, which always draw a real, permanent track.
+   `scrollbar-gutter` belongs to neither camp and reserves the width in both. */
+.er-preview-scroll {
+    scrollbar-gutter: stable;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .er-preview-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--bs-secondary-color) var(--bs-secondary-bg);
+    }
+}
+
+.er-preview-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.er-preview-scroll::-webkit-scrollbar-track {
+    background: var(--bs-secondary-bg);
+    border-radius: 5px;
+}
+
+.er-preview-scroll::-webkit-scrollbar-thumb {
+    background: var(--bs-secondary-color);
+    border-radius: 5px;
+    /* Inset the thumb so the track stays legible behind it. */
+    border: 2px solid var(--bs-secondary-bg);
+    background-clip: content-box;
 }
 
 /* ── MISP elements ─────────────────────────────────────────────────────
