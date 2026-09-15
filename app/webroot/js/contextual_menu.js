@@ -393,10 +393,10 @@ class ContextualMenu {
             var option = document.createElement('option');
             if (typeof value === 'object') {
                 option.value = value.value;
-                option.innerHTML = value.text;
+                option.textContent = value.text;
             } else {
                 option.value = value;
-                option.innerHTML = value;
+                option.textContent = value;
             }
             select.appendChild(option);
         }
