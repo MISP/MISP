@@ -474,12 +474,12 @@ class BaselineGeneratorTest extends TestCase
         // a second occurrence higher up would hand it the DDL instead.
         $this->assertStringContainsString("--\n-- Default values for initial installation\n--\n", $sql);
         $this->assertSame(1, substr_count($sql, BaselineGenerator::SEED_MARKER));
+        // admin_settings: one single-line statement per row, so that a line
+        // filter (misp-wipe's) drops each whole.
         $this->assertStringContainsString(
-            "INSERT INTO \"admin_settings\" (\"id\", \"setting\", \"value\") VALUES\n"
-                . "(1, 'db_version', '159'),\n"
-                . "(8, 'fix_login', FLOOR(EXTRACT(EPOCH FROM NOW()))::bigint::text),\n"
-                . "(9, 'default_role', '3')\n"
-                . "ON CONFLICT DO NOTHING;",
+            "INSERT INTO \"admin_settings\" (\"id\", \"setting\", \"value\") VALUES (1, 'db_version', '159') ON CONFLICT DO NOTHING;\n"
+                . "INSERT INTO \"admin_settings\" (\"id\", \"setting\", \"value\") VALUES (8, 'fix_login', FLOOR(EXTRACT(EPOCH FROM NOW()))::bigint::text) ON CONFLICT DO NOTHING;\n"
+                . "INSERT INTO \"admin_settings\" (\"id\", \"setting\", \"value\") VALUES (9, 'default_role', '3') ON CONFLICT DO NOTHING;",
             $sql
         );
         $this->assertStringContainsString(
@@ -507,6 +507,58 @@ class BaselineGeneratorTest extends TestCase
      * The same tool with the other grammar is the MySQL baseline. Nothing is
      * dropped there, so nothing is noted.
      */
+    /**
+     * What a migration creates through rawSql() on PostgreSQL alone has no
+     * column in the MySQL reference to be derived from, and a fresh install
+     * seeds that migration as applied - so the PostgreSQL rendering carries
+     * the index itself, says so, and the round trip expects it back.
+     */
+    public function testAPostgresOnlyIndexIsRenderedForItsTableAndExpectedBack()
+    {
+        $schema = array(
+            'tags' => array(
+                'columns' => array(
+                    'id' => array('type' => 'integer', 'length' => 11, 'null' => false, 'key' => 'primary'),
+                    'name' => array('type' => 'string', 'length' => 255, 'null' => false),
+                ),
+                'indexes' => array(
+                    'name' => array('name' => 'name', 'column' => array('name'), 'unique' => true),
+                ),
+                'primary' => 'id',
+                'options' => array('engine' => 'InnoDB', 'charset' => 'utf8mb4', 'collate' => 'utf8mb4_unicode_ci'),
+                'expressionDefaults' => array(),
+            ),
+        );
+
+        $pgsql = $this->generator()->render($this->pgsql, $schema, array(), 159);
+        $this->assertStringContainsString('CREATE UNIQUE INDEX "idx_tags_name" ON "tags" ("name");', $pgsql['sql']);
+        $this->assertStringContainsString('CREATE UNIQUE INDEX "idx_tags_name_lower" ON "tags" (lower("name"));', $pgsql['sql']);
+        $this->assertCount(1, $pgsql['notes']);
+        $this->assertStringContainsString('PostgreSQL-only index idx_tags_name_lower added to tags', $pgsql['notes'][0]);
+
+        $mysql = $this->generator()->render($this->mysql, $schema, array(), 159);
+        $this->assertStringNotContainsString('idx_tags_name_lower', $mysql['sql']);
+        $this->assertSame(array(), $mysql['notes']);
+
+        $db = new BaselineGeneratorTestLoadedPostgres();
+        $db->tables = array('tags');
+        $db->descriptions = array('tags' => array(
+            'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11, 'key' => 'primary'),
+            'name' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 255),
+        ));
+        $db->indexData = array('tags' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+            'idx_tags_name' => array('unique' => true, 'column' => 'name'),
+        ));
+        $this->assertSame(
+            array('tags: PostgreSQL-only index idx_tags_name_lower missing'),
+            $this->generator()->compare(new SchemaInspector($db), $schema)
+        );
+
+        $db->indexData['tags']['idx_tags_name_lower'] = array('unique' => true, 'column' => 'lower(name)');
+        $this->assertSame(array(), $this->generator()->compare(new SchemaInspector($db), $schema));
+    }
+
     public function testTheMysqlRenderingKeepsEverythingAndNotesNothing()
     {
         $rendered = $this->generator()->render($this->mysql, $this->fixtureSchema(), $this->fixtureSeeds(), 159);
@@ -523,14 +575,21 @@ class BaselineGeneratorTest extends TestCase
             'ALTER TABLE `correlations` ALTER COLUMN `created` SET DEFAULT UNIX_TIMESTAMP();',
             $sql
         );
+        // admin_settings one row per single-line statement: misp-wipe.sh
+        // replays the seed block after a wipe and filters that table out by
+        // line. Every other table stays one multi-row INSERT.
         $this->assertStringContainsString(
-            "INSERT IGNORE INTO `admin_settings` (`id`, `setting`, `value`) VALUES\n"
-                . "(1, 'db_version', '159'),\n"
-                . "(8, 'fix_login', UNIX_TIMESTAMP()),\n"
-                . "(9, 'default_role', '3');",
+            "INSERT IGNORE INTO `admin_settings` (`id`, `setting`, `value`) VALUES (1, 'db_version', '159');\n"
+                . "INSERT IGNORE INTO `admin_settings` (`id`, `setting`, `value`) VALUES (8, 'fix_login', UNIX_TIMESTAMP());\n"
+                . "INSERT IGNORE INTO `admin_settings` (`id`, `setting`, `value`) VALUES (9, 'default_role', '3');",
             $sql
         );
-        $this->assertStringContainsString("(1, 'admin''s', NOW(), '1'),", $sql);
+        $this->assertStringContainsString(
+            "INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `perm_add`) VALUES\n"
+                . "(1, 'admin''s', NOW(), '1'),\n"
+                . "(2, 'user', NULL, '0');",
+            $sql
+        );
         $this->assertStringNotContainsString('setval', $sql);
         $this->assertSame(array(), $rendered['notes']);
     }

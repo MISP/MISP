@@ -69,6 +69,26 @@ class BaselineGenerator
     const SEED_MARKER = 'Default values for initial installation';
 
     /**
+     * Indexes the PostgreSQL rendering carries that the MySQL reference has
+     * nothing to derive them from: what a migration created through rawSql()
+     * on PostgreSQL alone, because MySQL gets the same effect from something
+     * the CREATE TABLE already says. A fresh install seeds that migration's
+     * ledger row, so the index has to come from the baseline, and the
+     * round-trip comparison expects it there and nowhere else.
+     *
+     * Table => index name => statement, with %1$s the quoted index name and
+     * %2$s the quoted table.
+     */
+    const PGSQL_ONLY_INDEXES = array(
+        'tags' => array(
+            // 20260915_131521_tags_name_case_insensitive: case-insensitive
+            // uniqueness of tags.name, which MySQL has through the column's
+            // utf8mb4_unicode_ci collation.
+            'idx_tags_name_lower' => 'CREATE UNIQUE INDEX %1$s ON %2$s (lower("name"));',
+        ),
+    );
+
+    /**
      * The tables a fresh install starts with rows in: the ones MYSQL.sql seeds,
      * in its order, plus dashboards, which a legacy update seeds with the
      * default dashboard templates and which a PostgreSQL instance - never
@@ -680,6 +700,17 @@ class BaselineGenerator
             );
         }
 
+        if ($flavour === AbstractGrammar::FLAVOUR_PGSQL && isset(self::PGSQL_ONLY_INDEXES[$table])) {
+            foreach (self::PGSQL_ONLY_INDEXES[$table] as $indexName => $template) {
+                $statements[] = sprintf($template, $grammar->name($indexName), $grammar->name($table));
+                $notes[] = sprintf(
+                    'PostgreSQL-only index %s added to %s: a migration creates it through rawSql() on PostgreSQL alone, and a fresh install seeds that migration as applied.',
+                    $indexName,
+                    $table
+                );
+            }
+        }
+
         foreach ($definition['expressionDefaults'] as $column => $expression) {
             $statements[] = sprintf(
                 'ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s;',
@@ -724,20 +755,32 @@ class BaselineGenerator
                 $renderedRows[] = '(' . implode(', ', $values) . ')';
             }
             $columnList = implode(', ', array_map(array($grammar, 'name'), $columns));
-            if ($flavour === AbstractGrammar::FLAVOUR_MYSQL) {
-                $statements[] = sprintf(
-                    "INSERT IGNORE INTO %s (%s) VALUES\n%s;",
-                    $grammar->name($table),
-                    $columnList,
-                    implode(",\n", $renderedRows)
-                );
-            } else {
-                $statements[] = sprintf(
-                    "INSERT INTO %s (%s) VALUES\n%s\nON CONFLICT DO NOTHING;",
-                    $grammar->name($table),
-                    $columnList,
-                    implode(",\n", $renderedRows)
-                );
+            // admin_settings goes one row per statement, on one line each:
+            // tools/misp-wipe/misp-wipe.sh replays this block after a wipe and
+            // drops that table's rows by filtering lines, which would leave a
+            // multi-row INSERT in pieces.
+            $groups = $table === 'admin_settings'
+                ? array_chunk($renderedRows, 1)
+                : array($renderedRows);
+            foreach ($groups as $group) {
+                $single = count($group) === 1;
+                $rows = $single ? ' ' . $group[0] : "\n" . implode(",\n", $group);
+                if ($flavour === AbstractGrammar::FLAVOUR_MYSQL) {
+                    $statements[] = sprintf(
+                        'INSERT IGNORE INTO %s (%s) VALUES%s;',
+                        $grammar->name($table),
+                        $columnList,
+                        $rows
+                    );
+                } else {
+                    $statements[] = sprintf(
+                        'INSERT INTO %s (%s) VALUES%s%sON CONFLICT DO NOTHING;',
+                        $grammar->name($table),
+                        $columnList,
+                        $rows,
+                        $single ? ' ' : "\n"
+                    );
+                }
             }
             $statements[] = '';
 
@@ -1013,6 +1056,14 @@ class BaselineGenerator
                     );
                 }
                 unset($indexes[$physical]);
+            }
+            if ($flavour === AbstractGrammar::FLAVOUR_PGSQL && isset(self::PGSQL_ONLY_INDEXES[$table])) {
+                foreach (array_keys(self::PGSQL_ONLY_INDEXES[$table]) as $only) {
+                    if (!isset($indexes[$only])) {
+                        $findings[] = sprintf('%s: PostgreSQL-only index %s missing', $table, $only);
+                    }
+                    unset($indexes[$only]);
+                }
             }
             foreach (array_keys($indexes) as $extra) {
                 $findings[] = sprintf('%s: index %s not in the reference', $table, $extra);
