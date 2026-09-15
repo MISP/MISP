@@ -186,7 +186,7 @@ $this->set('headerDescription', $headerDescription);
                             'full'         => true
                         ]); ?>
                         <?php if ($distribution === 4 && !empty($sg)): ?>
-                            <a href="<?= h($baseurl . '/sharing_groups/view/' . ($sg['id'] ?? '')) ?>"
+                            <a href="<?= h($baseurl . '/sharingGroups/view/' . ($sg['id'] ?? '')) ?>"
                             class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold">
                                 <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
                                 <?= h($sg['name'] ?? '') ?>
