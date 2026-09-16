@@ -4449,6 +4449,29 @@ class AppModel extends Model
     }
 
     /**
+     * Deduce to which of the given models a uuid belongs.
+     *
+     * @param string $uuid
+     * @param array $candidateModels
+     * @return string The name of the first model having a record with that uuid
+     * @throws NotFoundException
+     */
+    protected function deduceTypeFromUuid(string $uuid, array $candidateModels)
+    {
+        foreach ($candidateModels as $candidateModel) {
+            $model = ClassRegistry::init($candidateModel);
+            $result = $model->find('first', [
+                'conditions' => [$candidateModel.'.uuid' => $uuid],
+                'recursive' => -1
+            ]);
+            if (!empty($result)) {
+                return $candidateModel;
+            }
+        }
+        throw new NotFoundException(__('Invalid UUID'));
+    }
+
+    /**
      * Faster version of default `hasAny` method
      * @param array|null $conditions
      * @return bool
