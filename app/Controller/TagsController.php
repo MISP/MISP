@@ -580,11 +580,13 @@ class TagsController extends AppController
 
     public function tagStatistics($percentage = false, $keysort = false)
     {
+        // Every selected non-aggregate column is in the GROUP BY: PostgreSQL
+        // insists, MySQL does not mind.
         $result = $this->Tag->EventTag->find('all', array(
                 'recursive' => -1,
-                'fields' => array('count(EventTag.id) as count', 'tag_id'),
+                'fields' => array('count(EventTag.id) as count', 'EventTag.tag_id'),
                 'contain' => array('Tag' => array('fields' => array('Tag.name'))),
-                'group' => array('tag_id')
+                'group' => array('EventTag.tag_id', 'Tag.id', 'Tag.name')
         ));
         $tags = array();
         $taxonomies = array();

@@ -232,10 +232,12 @@ class EventTag extends AppModel
 
     public function getSortedTagList($context = false)
     {
+        // Every selected non-aggregate column is in the GROUP BY: PostgreSQL
+        // insists, MySQL does not mind.
         $tag_counts = $this->find('all', array(
             'recursive' => -1,
-            'fields' => array('tag_id', 'count(*)'),
-            'group' => array('tag_id'),
+            'fields' => array('EventTag.tag_id', 'count(*)'),
+            'group' => array('EventTag.tag_id', 'Tag.id', 'Tag.name'),
             'contain' => array('Tag.name')
         ));
         $temp = array();
