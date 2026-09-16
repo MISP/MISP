@@ -43,6 +43,9 @@ class CollectionsController extends AppController
         if ($this->request->is('post')) {
             $data = $this->request->data;
             $params = [
+                'redirect' => $attachTarget === null
+                    ? ['action' => 'index']
+                    : $this->referer(['controller' => 'collections', 'action' => 'index'], true),
                 'beforeSave' => function (array $collection) use ($currentUser) {
                     if (isset($collection['Collection']['distribution']) && $collection['Collection']['distribution'] == 4) {
                         $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($currentUser, $this->_isRest(), $collection, 'Collection');
@@ -59,7 +62,8 @@ class CollectionsController extends AppController
                             $this->__attachElementToCollection(
                                 $collection['Collection']['id'],
                                 $attachTarget['type'],
-                                $attachElementUuid
+                                $attachElementUuid,
+                                $attachTarget['description'] ?? ''
                             );
                         }
                     }
@@ -78,7 +82,14 @@ class CollectionsController extends AppController
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
         $this->set('initialDistribution', Configure::read('MISP.default_event_distribution'));
-        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids'));
+        // Rendered inside the collection picker's modal rather than as a modal of
+        // its own: the view then drops the header strip and the attach banner the
+        // picker is already showing.
+        // GET only: a rejected save re-renders this view as a whole page, which
+        // needs its header back.
+        $this->set('embedded', $this->request->is('get') && (bool)$this->request->query('embedded'));
+        $attachElementDescription = $attachTarget['description'] ?? '';
+        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementDescription'));
         if($this->theme === "Overmind"){
             $this->layout = false;
         }
@@ -89,6 +100,7 @@ class CollectionsController extends AppController
     {
         $attachElementType = null;
         $attachElementUuids = [];
+        $attachElementDescription = '';
 
         if ($this->request->is('post')) {
             if (!empty($this->request->data['Collection']['_attach_element_type'])) {
@@ -96,6 +108,10 @@ class CollectionsController extends AppController
             }
             if (!empty($this->request->data['Collection']['_attach_element_uuid'])) {
                 $attachElementUuids = (array)$this->request->data['Collection']['_attach_element_uuid'];
+            }
+            if (isset($this->request->data['Collection']['_attach_element_description'])) {
+                $description = $this->request->data['Collection']['_attach_element_description'];
+                $attachElementDescription = is_scalar($description) ? trim((string)$description) : '';
             }
         }
 
@@ -139,10 +155,11 @@ class CollectionsController extends AppController
             'type' => $attachElementType,
             'uuid' => $attachElementUuids[0],
             'uuids' => $attachElementUuids,
+            'description' => $attachElementDescription,
         ];
     }
 
-    private function __attachElementToCollection($collectionId, $elementType, $elementUuid)
+    private function __attachElementToCollection($collectionId, $elementType, $elementUuid, $description = '')
     {
         if ($elementType === 'Event') {
             // Mirror CollectionElementsController::addElementToCollection()'s visibility
@@ -165,7 +182,7 @@ class CollectionsController extends AppController
                     'collection_id' => $collectionId,
                     'element_type' => $elementType,
                     'element_uuid' => $elementUuid,
-                    'description' => ''
+                    'description' => $description
                 ]
             ]);
         } catch (PDOException $e) {
