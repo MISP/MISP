@@ -11,8 +11,9 @@ class OvermindPages
         // Events and their content
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view2',
-            'importChoice', 'automation', 'export', 'getEventInfoById',
-            'freeTextImport', 'proposalEventIndex'
+            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
+            'freeTextImport', 'proposalEventIndex',
+            'merge'
         ),
         'attributes' => array(
             'index', 'add', 'edit', 'delete', 'add_attachment'
@@ -68,7 +69,7 @@ class OvermindPages
         // Workflows
         'workflows' => array(
             'index', 'triggers', 'adhoc', 'add', 'edit', 'executeWorkflow',
-            'moduleIndex', 'editor', 'massToggleTrigger',
+            'moduleIndex', 'massToggleTrigger',
             'massToggleModule', 'toggleDebugMode'
         ),
         'workflowBlueprints' => array(

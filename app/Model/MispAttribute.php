@@ -2351,6 +2351,12 @@ class MispAttribute extends AppModel
 
                 $this->attachTagsToAttributes($batch, $options);
 
+                if (!empty($options['includeSightings'])) {
+                    // Fetch sightings for the whole batch at once instead of two queries per attribute.
+                    // Conditions are built from the raw joined Event fields, before the context substitution below.
+                    $sightingsByAttributeId = $this->Sighting->attachToAttributes($batch, $user);
+                }
+
                 $lastSightings = false;
                 if (!empty($options['includeDecayScore'])) {
                     // Fetch the last sighting of the whole batch with a single query instead of one query per attribute
@@ -2379,10 +2385,8 @@ class MispAttribute extends AppModel
                     }
                     $attr['Event']['ThreatLevel'] = $threat_levels[$attr['Event']['threat_level_id']]['ThreatLevel'] ?? '';
                     if (!empty($options['includeSightings'])) {
-                        $tmp = $attr['Attribute'];
-                        $tmp['Event'] = $attr['Event'];
                         $attr['Attribute']['Sighting'] =
-                            $this->Sighting->attachToEvent($tmp, $user, $tmp['id']);
+                            $sightingsByAttributeId[$attr['Attribute']['id']] ?? [];
                     }
                     if (!empty($options['includeCorrelations'])) {
                         $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];

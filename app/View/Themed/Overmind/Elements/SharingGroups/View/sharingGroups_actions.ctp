@@ -16,7 +16,7 @@ if ($editable) {
 if ($deletable) {
     $actions[] = [
         'url' => "$baseurl/SharingGroups/delete/$SharingGroupId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/deleteSelection/$SharingGroupId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/deleteSelection/$SharingGroupId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete SharingGroup'),
         'danger' => true

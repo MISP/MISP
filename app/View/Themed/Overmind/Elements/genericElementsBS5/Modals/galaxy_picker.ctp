@@ -66,11 +66,9 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 
         <select class="galaxy-picker"
                 placeholder="<?= __('Search clusters to add…') ?>"></select>
-        <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-             style="font-size:.75rem;">
-            <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-            <?= __('Type at least 2 characters to search across all galaxies.') ?>
-        </div>
+        <?= $this->element('genericElementsBS5/Forms/field_hint', [
+            'text' => __('Type at least 2 characters to search across all galaxies.'),
+        ]) ?>
 
         <div class="mt-2 d-flex flex-wrap gap-2 galaxy-selected"></div>
         <div class="text-muted small fst-italic galaxy-selected-empty">
@@ -81,27 +79,13 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06);
-            border-bottom:2px solid var(--galaxy);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-galaxy"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($headerEyebrow) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <span class="fas fa-pen-to-square text-galaxy"
-                  style="font-size:1.25rem;"></span>
-            <?= __('Edit Galaxy Clusters') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Pick a galaxy, search the input, and the selected clusters appear below. ') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => $headerEyebrow,
+    'title' => __('Edit Galaxy Clusters'),
+    'titleIcon' => 'fas fa-pen-to-square',
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -119,22 +103,16 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?php if ($mayModify): ?>
-        <button type="button"
-                id="edit-galaxies-save-btn"
-                class="btn btn-galaxy btn-sm text-white">
-            <i class="fas fa-save me-1"></i>
-            <?= __('Save Clusters') ?>
-        </button>
-        <?php endif; ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'galaxy',
+        'align' => 'end',
+        'submit' => $mayModify ? [
+            'label' => __('Save Clusters'),
+            'icon' => 'fas fa-save',
+            'id' => 'edit-galaxies-save-btn',
+            'type' => 'button',
+        ] : false,
+    ]) ?>
 
 </div>
 
@@ -149,164 +127,20 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
     };
 
     /*
-     * Cluster badge style, built client-side from the hue the backend emits
-     * (GalaxyColour::hue). Mirrors GalaxyColour::palette()/badgeStyle() exactly
-     * so picker badges match every other galaxy view — keep the numbers in sync.
+     * One Global/Local section, driven by the shared picker in mispOvermind.js
+     * (initGalaxyPickerSection): its own selection, badges and remote search
+     * against the shared cluster endpoint.
      */
-    function badgeStyle(hue) {
-        hue = (hue == null) ? 270 : hue;
-        return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
-            + 'color:hsl(' + hue + ',65%,28%);'
-            + 'border:1px solid hsl(' + hue + ',55%,65%);'
-            + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
-            + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
-            + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
+    function makeSection(scope) {
+        return initGalaxyPickerSection(
+            document.querySelector('[data-section="' + scope + '"]'),
+            initSelected[scope],
+            { searchUrl: searchUrl, localMarker: (scope === 'local') }
+        );
     }
 
-    /*
-     * Build one Global/Local section: its own selected map and remote-search
-     * picker. The search endpoint is shared between both sections.
-     */
-    function makeSection(scope, initClusters) {
-        var root    = document.querySelector('[data-section="' + scope + '"]');
-        var selEl   = root.querySelector('.galaxy-selected');
-        var emptyEl = root.querySelector('.galaxy-selected-empty');
-        var pickEl  = root.querySelector('.galaxy-picker');
-        var isLocal = (scope === 'local');
-
-        var selected = {};         /* id(string) -> {id,name,galaxy,hue} */
-        var currentGalaxyId = null; /* null = "All" (search across galaxies) */
-
-        function addCluster(c) {
-            if (!c || c.id == null) { return; }
-            selected[String(c.id)] = {
-                id: c.id, name: c.name, galaxy: c.galaxy || '',
-                hue: (c.hue == null ? 270 : c.hue)
-            };
-        }
-
-        function render() {
-            var ids = Object.keys(selected);
-            emptyEl.classList.toggle('d-none', ids.length > 0);
-            selEl.innerHTML = '';
-            ids.sort(function (a, b) {
-                return selected[a].name.localeCompare(selected[b].name);
-            });
-            ids.forEach(function (id) {
-                var c = selected[id];
-
-                var badge = document.createElement('span');
-                badge.className = 'badge p-2 d-inline-flex align-items-center gap-2';
-                badge.style.cssText = badgeStyle(c.hue);
-                if (c.galaxy) { badge.title = c.galaxy; }
-
-                var txt = document.createElement('span');
-                txt.style.cssText = 'overflow:hidden;text-overflow:ellipsis;'
-                    + 'white-space:nowrap;min-width:0;';
-                if (isLocal) {
-                    txt.innerHTML = '<i class="fas fa-user me-1"></i>';
-                }
-                txt.appendChild(document.createTextNode(c.name));
-
-                var x = document.createElement('i');
-                x.className = 'fas fa-times';
-                x.style.cssText = 'cursor:pointer; opacity:.8; flex-shrink:0;';
-                x.setAttribute('role', 'button');
-                x.setAttribute('aria-label', 'Remove');
-                x.addEventListener('click', function () {
-                    delete selected[id];
-                    render();
-                });
-
-                badge.appendChild(txt);
-                badge.appendChild(x);
-                selEl.appendChild(badge);
-            });
-        }
-
-        function renderOpt(item, escape) {
-            return '<div class="d-flex flex-column py-1">'
-                + '<span>' + escape(item.name) + '</span>'
-                + (item.galaxy
-                    ? '<span class="text-muted" style="font-size:.72rem;">'
-                        + escape(item.galaxy) + '</span>'
-                    : '')
-                + '</div>';
-        }
-
-        var ts = new TomSelect(pickEl, {
-            valueField:   'id',
-            labelField:   'name',
-            searchField:  ['name', 'galaxy'],
-            maxItems:     1,
-            options:      [],
-            loadThrottle: 300,
-            /* Use a different class name for the loading state to avoid a CSS collision.*/
-            loadingClass: 'ts-loading',
-            /* When a galaxy is selected, even an empty query lists its clusters */
-            shouldLoad:   function (q) {
-                return currentGalaxyId ? true : q.length >= 2;
-            },
-            load: function (query, callback) {
-                var url = searchUrl + '?q=' + encodeURIComponent(query);
-                if (currentGalaxyId) {
-                    url += '&galaxy_id=' + encodeURIComponent(currentGalaxyId);
-                }
-                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function (r) { return r.json(); })
-                    .then(function (json) { callback(json); })
-                    .catch(function () { callback(); });
-            },
-            render: {
-                option: renderOpt,
-                item: renderOpt,
-                option_create: false,
-                /* Use a custom loading spinner to avoid a CSS collision */
-                loading: function () {
-                    return '<div class="text-center py-2">'
-                        + '<span class="spinner-border spinner-border-sm '
-                        + 'text-galaxy" role="status" aria-hidden="true">'
-                        + '</span></div>';
-                }
-            },
-            onItemAdd: function (value) {
-                var item = this.options[value];
-                if (item) { addCluster(item); render(); }
-                var self = this;
-                setTimeout(function () { self.clear(true); self.blur(); }, 0);
-            }
-        });
-
-        /* Category buttons: "All" (remote search) or one galaxy (scoped) */
-        root.querySelectorAll('.galaxy-cat-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                root.querySelectorAll('.galaxy-cat-btn').forEach(function (b) {
-                    b.classList.toggle('active', b === btn);
-                });
-                var gid = btn.getAttribute('data-galaxy-id');
-                currentGalaxyId = gid ? gid : null;
-
-                /* reset cache + options so the new scope reloads cleanly */
-                ts.clearOptions();
-                ts.clearCache();
-
-                if (currentGalaxyId) {
-                    /* preload this galaxy's clusters and show them */
-                    ts.load('');
-                    ts.focus();
-                    ts.open();
-                }
-            });
-        });
-
-        (initClusters || []).forEach(addCluster);
-        render();
-
-        return { ids: function () { return Object.keys(selected).map(Number); } };
-    }
-
-    var globalSection = makeSection('global', initSelected.global);
-    var localSection  = makeSection('local',  initSelected.local);
+    var globalSection = makeSection('global');
+    var localSection  = makeSection('local');
 
     /*
      * After a successful save: prefer an event-view card reload hook

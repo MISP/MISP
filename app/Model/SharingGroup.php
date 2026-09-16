@@ -463,6 +463,34 @@ class SharingGroup extends AppModel
     }
 
     /**
+     * Whether $user is allowed to place data into the sharing group $id.
+     *
+     * The single authority for that question. Every caller that needs to decide
+     * whether a submitted sharing_group_id may be used should come through here
+     * rather than reimplementing it - the check had drifted across four
+     * controller actions and two model backstops, and each copy had to be fixed
+     * separately.
+     *
+     * An empty id is refused rather than waved through. fetchAllAuthorised()
+     * reads a falsy id as "no filter" and answers with the user's entire
+     * authorised list, so asking it about a sharing group that was never
+     * supplied returns a non-empty result - and therefore "yes" - for anyone who
+     * belongs to any sharing group at all. That is a fail-open answer to a
+     * question nobody asked; callers that have no id do not have authorisation.
+     *
+     * @param array $user
+     * @param int|string|null $id
+     * @return bool
+     */
+    public function canUse(array $user, $id)
+    {
+        if (empty($id)) {
+            return false;
+        }
+        return !empty($this->fetchAllAuthorised($user, 'name', true, $id));
+    }
+
+    /**
      * Returns true if the SG exists and the user is allowed to see it, from the parent element
      * @param array $user
      * @param array $element Parent element containing the SG data
@@ -471,8 +499,8 @@ class SharingGroup extends AppModel
      */
     public function checkIfCanBeUsed($user, $isRest, $element, $modelKey=false)
     {
-        $sgs = $this->fetchAllAuthorised($user, 'name', 1);
         $object = !empty($modelKey) ? $element[$modelKey] : $element;
+        $sharingGroupId = isset($object['sharing_group_id']) ? $object['sharing_group_id'] : null;
         if ($user['Role']['perm_sync'] && $isRest) {
             if (isset($object['SharingGroup'])) {
                 if (!isset($object['SharingGroup']['uuid'])) {
@@ -485,11 +513,11 @@ class SharingGroup extends AppModel
                         return __('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
                     }
                 }
-            } else if (!isset($sgs[$object['sharing_group_id']])) {
+            } else if (!$this->canUse($user, $sharingGroupId)) {
                 return __('Invalid Sharing Group or not authorised.');
             }
         } else {
-            if (!isset($sgs[$object['sharing_group_id']])) {
+            if (!$this->canUse($user, $sharingGroupId)) {
                 return __('Invalid Sharing Group or not authorised.');
             }
         }

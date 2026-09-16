@@ -315,7 +315,7 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                             }
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
-                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','md');">
                                 <div>
                                     <i class="fas fa-<?= $iconClass ?> me-2"></i>
                                     <?= h($label) ?>
@@ -336,7 +336,7 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                         <?php
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');
                         if ($action['label'] ===  __('Delete')){
-                            $onclick="event.preventDefault(); openModal('$url', 'sm');";
+                            $onclick="event.preventDefault(); openModal('$url', 'md');";
                         } else {
                             $onclick="event.preventDefault(); openModal('$url');";
                         }

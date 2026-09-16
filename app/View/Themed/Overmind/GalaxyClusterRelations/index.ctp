@@ -44,7 +44,7 @@ $fields = [
         'sort' => 'type',
         'data_path' => 'GalaxyClusterRelation.referenced_galaxy_cluster_type',
         'element' => 'relationship_type',
-        'card_section' => 'attribute',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -61,7 +61,7 @@ $fields = [
         'name' => __('Tags'),
         'data_path' => 'GalaxyClusterRelationTag',
         'element' => 'custom',
-        'card_section' => 'meta',
+        'card_section' => 'tag',
         'display_in' => ['table', 'card'],
         'function' => function ($row) {
             $relTags = $row['GalaxyClusterRelationTag'] ?? [];
@@ -157,6 +157,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 3,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

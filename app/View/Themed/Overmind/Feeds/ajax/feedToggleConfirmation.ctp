@@ -27,7 +27,7 @@ if (!empty($enable)) {
     $submitIcon = 'stop';
 }
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => $title,
     'model' => 'Feed',
     'hiddenField' => false,

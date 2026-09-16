@@ -52,23 +52,14 @@ echo $this->Form->create($m, [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-<?= $color ?> bg-opacity-10"
-     style="border-bottom:2px solid var(--bs-<?= $color ?>);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-<?= $color ?>"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Analyst Data') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="<?= $isEdit ? 'fas fa-pen-to-square' : 'fas fa-circle-plus' ?> text-<?= $color ?>"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit %s', $s['label']) : __('Add %s', $s['label']) ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;"><?= h($s['desc']) ?></p>
-    </div>
-    <i class="<?= h($s['icon']) ?> text-<?= $color ?>" style="font-size:2rem; opacity:.4;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => $color,
+    'eyebrow' => __('Analyst Data'),
+    'title' => $isEdit ? __('Edit %s', $s['label']) : __('Add %s', $s['label']),
+    'description' => $s['desc'],
+    'icon' => $s['icon'],
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
     <div class="d-flex flex-column gap-4">
@@ -254,31 +245,21 @@ echo $this->Form->create($m, [
 
     </div>
 
-    <!-- ── FOOTER ──────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if (!empty($me['email'])): ?>
-                <?= __('Analyst') ?>: <strong class="text-body"><?= h($me['email']) ?></strong>
-                <?php if (!empty($me['Organisation']['name'])): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($me['Organisation']['name']) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save changes') : __('Create %s', $s['label'])),
-                [
-                    'class'       => 'btn btn-' . $color . ' btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if (!empty($me['email'])) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $me['email']];
+        if (!empty($me['Organisation']['name'])) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $me['Organisation']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => $color,
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => ['label' => $isEdit ? __('Save changes') : __('Create %s', $s['label'])],
+    ]);
+    ?>
 
 </div>
 

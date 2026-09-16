@@ -8,6 +8,14 @@ class ObjectReferencesController extends AppController
 {
     public $components = array('RequestHandler', 'Session');
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // The event pivot explorer posts hand-built JSON to add(), so it sends
+        // the CSRF token as the X-CSRF-Token header instead of _Token fields.
+        $this->_csrfTokenHeaderOnly(['add']);
+    }
+
     public $paginate = array(
         'limit' => 20,
         'order' => array(

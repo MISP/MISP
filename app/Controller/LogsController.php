@@ -393,9 +393,7 @@ class LogsController extends AppController
 
     public function pruneUpdateLogs()
     {
-        if (!$this->request->is('post')) {
-            //throw new MethodNotAllowedException('This functionality is only accessible via POST requests');
-        }
+        $this->request->allowMethod(['post']);
         $this->Log->pruneUpdateLogsRouter($this->Auth->user());
         if (Configure::read('MISP.background_jobs')) {
             $this->Flash->success('The pruning job is queued.');

@@ -464,7 +464,32 @@ class Feed extends AppModel
         return $resultArray;
     }
 
-    public function getFreetextFeedCorrelations($data, $feedId)
+    /**
+     * Conditions restricting a feed listing to the feeds $user may see.
+     *
+     * Single source for the rule FeedsController::__canViewFeed applies to
+     * one feed: site admins and members of the host organisation see every
+     * feed, everyone else sees only the ones flagged lookup_visible. An
+     * empty array means "no restriction".
+     *
+     * @param array $user
+     * @return array
+     */
+    public function visibleConditions(array $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return array();
+        }
+        $hostOrgId = (int)Configure::read('MISP.host_org_id');
+        // Both sides cast: org_id arrives from the database as a string, and
+        // an unset host_org_id casts to 0, which matches no organisation.
+        if (!empty($hostOrgId) && (int)$user['org_id'] === $hostOrgId) {
+            return array();
+        }
+        return array('Feed.lookup_visible' => 1);
+    }
+
+    public function getFreetextFeedCorrelations($data, $feedId, array $user)
     {
         $values = array();
         foreach ($data as $key => $value) {
@@ -473,10 +498,24 @@ class Feed extends AppModel
         $this->Attribute = ClassRegistry::init('MispAttribute');
         $redis = $this->setupRedis();
         if ($redis !== false) {
+            // `url` is deliberately absent. The whole row is pushed into
+            // $data[...]['feed_correlations'] below and returned to the
+            // caller by the REST branch of FeedsController::__previewFreetext.
+            // Nothing renders or reads the URL: it was disclosure with no
+            // consumer.
+            //
+            // The listing is also scoped to what the caller may see. Without
+            // visibleConditions() this query reached across every cached feed
+            // on the instance - __canViewFeed gates which feed you may
+            // preview, but placed no restriction on which feeds appear inside
+            // that preview's payload, so a public feed disclosed the names of
+            // feeds the instance had marked as not disclosable.
+            $conditions = array('Feed.id !=' => $feedId);
+            $conditions = array_merge($conditions, $this->visibleConditions($user));
             $feeds = $this->find('all', array(
                 'recursive' => -1,
-                'conditions' => array('Feed.id !=' => $feedId),
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                'conditions' => $conditions,
+                'fields' => array('id', 'name', 'provider', 'source_format')
             ));
             foreach ($feeds as $k => $v) {
                 if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {
@@ -486,11 +525,45 @@ class Feed extends AppModel
         } else {
             return array();
         }
-        // Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
-        // The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
-        $correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
-        $correlations2 = $this->Attribute->find('list', array('conditions' => array('Attribute.value2' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value2')));
-        $correlations = array_merge_recursive($correlations, $correlations2);
+        // Scoped to what $user may actually read. These were two raw
+        // find('list') calls filtered only on `deleted = 0`, with no user
+        // and no ACL - and MispAttribute has no beforeFind hook to catch
+        // that - so the preview reported correlations against events the
+        // caller cannot open, and FeedsController then resolved those ids
+        // to their Event.info. fetchAttributesSimple() applies
+        // buildConditions($user), which covers event distribution, the
+        // caller's own org, sharing groups, and attribute- and
+        // object-level distribution; for a site admin it is empty, so
+        // they lose nothing.
+        //
+        // One find with an OR replaces the pair: the previous version ran
+        // value1 and value2 separately and array_merge_recursive'd the
+        // results, which appended duplicates because event ids are numeric
+        // keys. Grouping by the matched value here dedupes instead.
+        $valueSet = array_flip($values);
+        $correlatingAttributes = $this->Attribute->fetchAttributesSimple($user, array(
+            'conditions' => array(
+                'Attribute.deleted' => 0,
+                'OR' => array(
+                    'Attribute.value1' => $values,
+                    'Attribute.value2' => $values,
+                ),
+            ),
+            'fields' => array('Attribute.event_id', 'Attribute.value1', 'Attribute.value2'),
+        ));
+        $correlations = array();
+        foreach ($correlatingAttributes as $correlatingAttribute) {
+            $eventId = $correlatingAttribute['Attribute']['event_id'];
+            foreach (array('value1', 'value2') as $valueField) {
+                $value = $correlatingAttribute['Attribute'][$valueField];
+                // Skip the empty value2 that every non-composite attribute
+                // carries, so an empty feed line cannot match the lot.
+                if ($value === '' || $value === null || !isset($valueSet[$value])) {
+                    continue;
+                }
+                $correlations[$value][$eventId] = $eventId;
+            }
+        }
         foreach ($data as $key => $value) {
             if (isset($correlations[$value['value']])) {
                 $data[$key]['correlations'] = array_values($correlations[$value['value']]);
@@ -1355,7 +1428,7 @@ class Feed extends AppModel
             }
             $disableCorrelation = false;
             if (!empty($feed['Feed']['settings'])) {
-                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+                $disableCorrelation = (bool)($feed['Feed']['settings']['disable_correlation'] ?? false);
             }
             $event = array(
                 'info' => $feed['Feed']['name'] . ' feed',
@@ -2218,14 +2291,50 @@ class Feed extends AppModel
      */
     private function getFollowRedirect(HttpSocket $HttpSocket, $url, $request, $iterations = 5)
     {
+        App::uses('UrlEgressValidator', 'Tools');
+        App::uses('CurlClient', 'Tools');
+
         for ($i = 0; $i < $iterations; $i++) {
             $response = $HttpSocket->get($url, [], $request);
-            if ($response->isRedirect()) {
-                $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
-                $url = trim($response->getHeader('Location'), '=');
-            } else {
+            if (!$response->isRedirect()) {
                 return $response;
             }
+
+            // A relative Location used to be passed through unchanged, and
+            // trim($location, '=') was never a sanitiser. Resolve it against
+            // the current URL and strip CR/LF before it becomes a URL again.
+            $target = UrlEgressValidator::resolveLocation($response->getHeader('Location'), $url);
+            if ($target === null) {
+                throw new Exception("Redirect from $url had no usable Location header.");
+            }
+
+            if (UrlEgressValidator::isRedirectAllowed($url, $target)) {
+                // Same host, so still the target the admin configured - an
+                // internal feed that redirects within itself keeps working,
+                // and its headers travel no further than they already did.
+                // Resolved anyway, purely so the address can be pinned.
+                $hop = UrlEgressValidator::validate($target, UrlEgressValidator::POLICY_RESOLVE_ONLY);
+            } else {
+                // A different host, chosen by the feed operator or by anyone
+                // on the path rather than by the admin. It must be external:
+                // whatever the admin authorised, they did not authorise a
+                // third party to move MISP onto internal infrastructure.
+                $hop = UrlEgressValidator::validate($target, UrlEgressValidator::POLICY_DENY_INTERNAL);
+                // Operator-configured feed headers are where Authorization
+                // and API keys for commercial feeds live, and the request was
+                // built once and replayed at every hop, handing those
+                // credentials to whoever the redirect named. Rebuild without.
+                $request = $this->__createFeedRequest();
+            }
+
+            $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
+            if ($HttpSocket instanceof CurlClient && $hop['pin']) {
+                // Connect to the address that was just validated, rather than
+                // resolving the name a second time and trusting the answer.
+                $port = $hop['port'] ?: ($hop['scheme'] === 'https' ? 443 : 80);
+                $HttpSocket->pinHost($hop['host'], $port, $hop['ip']);
+            }
+            $url = $target;
         }
 
         throw new Exception("Too many redirects when fetching $url.");

@@ -13,6 +13,63 @@ class BetterSecurityComponent extends SecurityComponent
      */
     public $doNotGenerateToken = false;
 
+    /**
+     * The only method overrides CakeRequest acts on without discarding the
+     * request body. Mirrors the list in CakeRequest::_processPost().
+     */
+    const ALLOWED_METHOD_OVERRIDES = array('POST', 'PUT', 'PATCH', 'DELETE');
+
+    /**
+     * Reject `_method` overrides that name anything but a write verb.
+     *
+     * CakeRequest::_processPost() honours a `_method` field in the POST body by
+     * rewriting REQUEST_METHOD, and for any verb outside POST/PUT/PATCH/DELETE
+     * it *also* empties $request->data. SecurityComponent::startup() then reads
+     * $hasData as false and skips both _validatePost() and _validateCsrf(), so a
+     * cross-site form posting nothing but `_method=GET` reaches any action that
+     * takes its input from the URL with form security switched off entirely.
+     *
+     * MISP never emits a `_method` other than those four verbs, so anything else
+     * is refused here - before parent::startup() computes $hasData from the
+     * emptied body.
+     *
+     * @param Controller $controller
+     * @return void
+     * @throws BadRequestException
+     */
+    private function __rejectUnsafeMethodOverride(Controller $controller)
+    {
+        // Header first, then body - the same precedence _processPost() applies.
+        $override = null;
+        if (isset($_POST['_method'])) {
+            $override = $_POST['_method'];
+        }
+        $headerOverride = env('HTTP_X_HTTP_METHOD_OVERRIDE');
+        if (!empty($headerOverride)) {
+            $override = $headerOverride;
+        }
+        if ($override === null) {
+            return;
+        }
+        // A non-string override (`_method[]=GET`) misses Cake's in_array() check
+        // just as surely as an unexpected verb does, so it is refused too.
+        if (is_string($override) && in_array($override, self::ALLOWED_METHOD_OVERRIDES, true)) {
+            return;
+        }
+        $this->log(sprintf(
+            'Rejected unsupported HTTP method override when accessing %s (override: %s).',
+            $controller->here,
+            is_string($override) ? $override : gettype($override)
+        ));
+        throw new BadRequestException(__('Unsupported HTTP method override.'));
+    }
+
+    public function startup(Controller $controller)
+    {
+        $this->__rejectUnsafeMethodOverride($controller);
+        return parent::startup($controller);
+    }
+
     public function blackHole(Controller $controller, $error = '', SecurityException $exception = null)
     {
         $action = $controller->request->params['action'];
@@ -65,6 +122,53 @@ class BetterSecurityComponent extends SecurityComponent
             'key' => $token['key'],
             'unlockedFields' => $token['unlockedFields'],
         );
+        return true;
+    }
+
+    /**
+     * Accept the CSRF token from the `X-CSRF-Token` header as well as from the
+     * request body.
+     *
+     * Same-origin AJAX cannot use the body form: `Security` starts up before the
+     * component that decodes a JSON request body, so `request->data('_Token.key')`
+     * is empty for any caller posting `application/json`. A header carries the
+     * token regardless of content type, and it is a strictly stronger position
+     * than the body field to begin with - `X-CSRF-Token` is not CORS-safelisted,
+     * so a cross-origin page cannot attach it without a preflight this instance
+     * refuses unless `Security.allow_cors` names the origin.
+     *
+     * A header token is validated but not consumed, whatever `csrfUseOnce` says:
+     * the page that rendered it has exactly one token and makes an unbounded
+     * number of AJAX calls with it, so consuming it would break every call after
+     * the first. It still expires with the page's token, so a page left open past
+     * `csrfExpires` has to be reloaded - the same deal its forms already get.
+     *
+     * @param Controller $controller
+     * @return bool
+     * @throws SecurityException
+     */
+    protected function _validateCsrf(Controller $controller)
+    {
+        $headerToken = $controller->request->header('X-CSRF-Token');
+        if (empty($headerToken)) {
+            // Cake reads the body token through CakeRequest::data(), which runs
+            // the path through Hash::get() and type-errors on PHP 8 when
+            // request->data is not an array. It is not an array whenever the body
+            // held a single `data` field: _processPost() replaces the whole of
+            // request->data with that field's value. Such a body carries no token,
+            // so refuse it as one rather than letting it surface as a 500.
+            if (!is_array($controller->request->data)) {
+                throw new SecurityException('Missing CSRF token');
+            }
+            return parent::_validateCsrf($controller);
+        }
+        $token = $this->Session->read('_Token');
+        if (!isset($token['csrfTokens'][$headerToken])) {
+            throw new SecurityException('CSRF token mismatch');
+        }
+        if ($token['csrfTokens'][$headerToken] < time()) {
+            throw new SecurityException('CSRF token expired');
+        }
         return true;
     }
 

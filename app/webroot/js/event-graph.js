@@ -1413,7 +1413,7 @@ class DataHandler {
         this.mapping_node_to_from_edges = {};
         this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
-        this.extended_event = $('#eventgraph_network').data('is_extended') == 1 ? true : false;
+        this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();
         this.scope_name;
     }

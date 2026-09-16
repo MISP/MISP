@@ -737,7 +737,7 @@ $openCard('plug', '#198754', __('Services & integrations'),
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-dg-zmq="start"><?= __('Start') ?></button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-dg-zmq="stop"><?= __('Stop') ?></button>
                 <button type="button" class="btn btn-sm btn-outline-secondary"
-                        onclick="openModal('<?= h($baseurl . '/servers/statusZeroMQServer') ?>', 'sm')"><?= __('Status') ?></button>
+                        onclick="openModal('<?= h($baseurl . '/servers/statusZeroMQServer') ?>', 'md')"><?= __('Status') ?></button>
             </span>
         </span>
     </div>
@@ -1031,7 +1031,13 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
     if (jsonButton) {
         jsonButton.addEventListener('click', function () {
             jsonButton.disabled = true;
-            fetch(baseurl + '/servers/updateJSON/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            fetch(baseurl + '/servers/updateJSON/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': (window.csrfToken || '')
+                }
+            })
                 .then(function (r) { if (!r.ok) throw 0; return r.json(); })
                 .then(function () { showToast(L.jsonLoaded, 'success'); })
                 .catch(function () { showToast(L.jsonFailed, 'danger'); })

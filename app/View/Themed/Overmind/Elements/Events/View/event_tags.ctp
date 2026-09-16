@@ -1,7 +1,8 @@
 <?php
 $eventId   = h($data['Event']['id'] ?? '');
 $uid       = 'evt-tags-' . $eventId;
-$fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId);
+$fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId
+    . ($extensionSuffix ?? ''));
 $editUrl   = h($baseurl . '/events/editEventTags/' . $eventId);
 
 $mayModify = $this->Acl->canModifyTag($data);
@@ -42,6 +43,7 @@ $mayModify = $this->Acl->canModifyTag($data);
             <!-- Edit button -->
             <button type="button"
                     class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-tags-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')"
                     title="<?= __('Edit Tags') ?>">
                 <i class="fas fa-pen-to-square me-1"></i>

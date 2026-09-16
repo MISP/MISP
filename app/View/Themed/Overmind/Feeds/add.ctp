@@ -123,26 +123,13 @@ echo $this->Form->create('Feed', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Feeds') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Feed') : __('Add Feed') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A source that can be imported as events or merely cached, so its values light up in correlations.') ?>
-        </p>
-    </div>
-    <i class="fas fa-rss text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Feeds'),
+    'title' => $isEdit ? __('Edit Feed') : __('Add Feed'),
+    'description' => __('A source that can be imported as events or merely cached, so its values light up in correlations.'),
+    'icon' => 'fas fa-rss',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -259,10 +246,10 @@ echo $this->Form->create('Feed', [
 
         <!-- ── HEADERS (network only) ──────────────────────────── -->
         <div class="w-100 px-2" id="HeadersDiv">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Request Headers') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Request Headers'),
+            ]) ?>
             <?= $this->Form->textarea('headers', [
                 'class' => 'w-100 rounded-2 p-3',
                 'id' => 'FeedHeaders',
@@ -311,10 +298,10 @@ echo $this->Form->create('Feed', [
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $option): ?>
                     <div class="col-md-4<?= !empty($option['div']) ? ' optionalField' : '' ?>"
@@ -355,10 +342,10 @@ echo $this->Form->create('Feed', [
 
         <!-- ── PARSING TARGET (freetext / csv) ─────────────────── -->
         <div class="w-100 px-2 optionalField" id="TargetSection" style="display:none;">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Parsing Target') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Parsing Target'),
+            ]) ?>
             <div class="row g-3">
                 <div class="col-md-6 optionalField" id="OrgcDiv" style="display:none;">
                     <label class="form-label text-muted mb-1" style="font-size:.75rem;">
@@ -450,10 +437,10 @@ echo $this->Form->create('Feed', [
 
         <!-- ── DISTRIBUTION ────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Distribution / Sharing Group'),
+            ]) ?>
             <div class="d-flex gap-3">
                 <div class="flex-fill">
                     <?= $this->Form->select('distribution', $dropdownData['distributionLevels'], [
@@ -496,20 +483,19 @@ echo $this->Form->create('Feed', [
                     ]) ?>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Attached to everything this feed brings in.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Attached to everything this feed brings in.'),
+            ]) ?>
         </div>
 
         <!-- ── PULL FILTER RULES ───────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="text-primary fw-bold text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Pull Filter Rules') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Pull Filter Rules'),
+                    'class' => '',
+                ]) ?>
                 <div class="d-flex align-items-center gap-2">
                     <span id="feedRulesStatus" class="badge bg-secondary"
                           style="font-size:.65rem;"></span>
@@ -568,34 +554,12 @@ echo $this->Form->create('Feed', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($feedId)): ?>
-                <?= __('Feed') ?>:
-                <strong class="text-body">#<?= h($feedId) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('A feed can be previewed from the index before it is pulled.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Feed')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                    'type' => 'submit',
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($feedId) ? [['label' => __('Feed'), 'id' => $feedId]] : [],
+        'hint' => __('A feed can be previewed from the index before it is pulled.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Feed')],
+    ]) ?>
 
 </div>
 

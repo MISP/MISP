@@ -1,7 +1,8 @@
 <?php
 $eventId  = h($data['Event']['id'] ?? '');
 $uid      = 'evt-galaxies-' . $eventId;
-$fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId);
+$fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId
+    . ($extensionSuffix ?? ''));
 $editUrl  = h($baseurl . '/events/editEventGalaxies/' . $eventId);
 $mayModify = $this->Acl->canModifyTag($data);
 ?>
@@ -40,6 +41,7 @@ $mayModify = $this->Acl->canModifyTag($data);
             <?php if ($mayModify || $isSiteAdmin): ?>
             <button type="button"
                     class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    data-tour="event-galaxies-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')">
                 <i class="fas fa-pen-to-square"></i>
                 <?= __('Edit Galaxy Clusters') ?>

@@ -10,24 +10,13 @@ echo $this->Form->create('User', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Profile') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-pen-to-square text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Edit profile') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Update your account details, notification preferences and cryptographic keys.') ?>
-        </p>
-    </div>
-    <i class="fas fa-user-pen text-primary" style="font-size:2rem; opacity:.5;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Profile'),
+    'title' => __('Edit profile'),
+    'description' => __('Update your account details, notification preferences and cryptographic keys.'),
+    'icon' => 'fas fa-user-pen',
+    'isEdit' => true,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -35,10 +24,10 @@ echo $this->Form->create('User', [
 
         <!-- ACCOUNT -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Account') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Account'),
+            ]) ?>
             <div class="row g-3">
                 <div class="col-md-8">
                     <?= $this->Form->label('email', __('Email'), ['class' => 'form-label fw-semibold']) ?>
@@ -57,10 +46,10 @@ echo $this->Form->create('User', [
         <?php if ($canChangePassword): ?>
             <!-- PASSWORD -->
             <div class="w-100 px-2">
-                <div class="text-primary fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Change password') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Change password'),
+                ]) ?>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <?= $this->Form->label('password', __('New password'), ['class' => 'form-label fw-semibold']) ?>
@@ -87,10 +76,10 @@ echo $this->Form->create('User', [
 
         <!-- CRYPTO KEYS -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Cryptographic keys') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Cryptographic keys'),
+            ]) ?>
             <?= $this->Form->label('gpgkey', __('PGP key'), ['class' => 'form-label fw-semibold']) ?>
             <?= $this->Form->textarea('gpgkey', [
                 'class' => 'form-control bg-light font-monospace',
@@ -110,10 +99,10 @@ echo $this->Form->create('User', [
 
         <!-- NOTIFICATIONS -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Notifications') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Notifications'),
+            ]) ?>
             <?php
                 $switches = [
                     'contactalert' => __('Receive "Contact reporter" request emails'),
@@ -142,10 +131,10 @@ echo $this->Form->create('User', [
         <?php if (Configure::read('Security.require_password_confirmation')): ?>
             <!-- CONFIRM WITH CURRENT PASSWORD -->
             <div class="w-100 px-2">
-                <div class="text-primary fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Confirm changes') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Confirm changes'),
+                ]) ?>
                 <?= $this->Form->label('current_password', __('Enter your current password to save'), ['class' => 'form-label fw-semibold']) ?>
                 <?= $this->Form->password('current_password', [
                     'class' => 'form-control bg-light',
@@ -158,18 +147,10 @@ echo $this->Form->create('User', [
     </div>
 </div>
 
-<!-- ── FOOTER ───────────────────────────────────────────────── -->
-<div class="px-4 py-3 d-flex align-items-center justify-content-end gap-2 border-top">
-    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-        <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-    </button>
-    <?= $this->Form->button(
-        '<i class="fas fa-check me-1"></i>' . __('Save changes'),
-        [
-            'class' => 'btn btn-primary btn-sm',
-            'escapeTitle' => false,
-        ]
-    ) ?>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_footer', [
+    'align' => 'end',
+    'bleed' => true,
+    'submit' => ['label' => __('Save changes'), 'icon' => 'fas fa-check'],
+]) ?>
 
 <?= $this->Form->end() ?>

@@ -4,6 +4,9 @@ $fp    = $warninglistHits['false_positive'] ?? [];
 $known = $warninglistHits['known'] ?? [];
 $total = count($fp) + count($known);
 
+// Ids of every list that hit, in one flat list (/warninglists/index/id:3||7||12).
+$hitIds = array_map('intval', array_keys($fp + $known));
+
 $sections = [
     [
         'items'   => $fp,
@@ -24,7 +27,8 @@ $sections = [
 ];
 ?>
 
-<div data-wl-count="<?= $total ?>">
+<div data-wl-count="<?= $total ?>"
+     data-wl-ids="<?= h(implode(',', $hitIds)) ?>">
 
 <?php if ($total === 0): ?>
 
@@ -63,19 +67,22 @@ $sections = [
             </span>
         </div>
 
-        <!-- Items -->
+        <!-- Items — a row filters the Attributes tab down to the attributes
+             this list flagged; the card wires the click (delegated). -->
         <?php foreach ($section['items'] as $id => $name): ?>
-        <a href="<?= h($baseurl) ?>/warninglists/view/<?= (int)$id ?>"
+        <a href="#"
            class="d-flex align-items-center gap-2 px-3 py-2
                   border-bottom text-decoration-none text-dark
                   wl-item-row"
+           data-wl-id="<?= (int)$id ?>"
+           title="<?= __('Show the attributes flagged by this warning list') ?>"
            style="transition:background .15s;">
             <i class="fas fa-list-ul text-muted"
                style="font-size:.8rem;width:14px;"></i>
             <span class="small flex-fill text-truncate">
                 <?= h($name) ?>
             </span>
-            <i class="fas fa-chevron-right text-muted opacity-50"
+            <i class="fas fa-filter text-muted opacity-50"
                style="font-size:.7rem;"></i>
         </a>
         <?php endforeach; ?>

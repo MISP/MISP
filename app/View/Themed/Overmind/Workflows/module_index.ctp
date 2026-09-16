@@ -217,7 +217,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'id',
-            'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
+            //'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
         ]
     ],
     'item_url' => '/workflows'

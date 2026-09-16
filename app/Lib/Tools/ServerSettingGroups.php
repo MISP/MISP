@@ -457,6 +457,8 @@ class ServerSettingGroups
                     'Security.log_each_individual_auth_fail',
                     'Security.allow_self_registration',
                     'Security.allow_password_forgotten',
+                    'Security.pre_auth_flood_filter_enable',
+                    'Security.pre_auth_flood_filter_threshold',
                     'Security.self_registration_message',
                     'Security.require_password_confirmation',
                     'Security.auth_enforced',
@@ -490,6 +492,7 @@ class ServerSettingGroups
                     'Security.rest_client_baseurl',
                     'Security.workflow_enable_arbitrary_urls',
                     'Security.eventreport_enable_arbitrary_urls',
+                    'Security.eventreport_max_fetch_size',
                 ),
             ),
             array(

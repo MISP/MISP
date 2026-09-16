@@ -5,23 +5,13 @@
  */
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(139,92,246,.06);
-            border-bottom:2px solid var(--bs-galaxy);">
-    <div>
-        <div class="text-galaxy text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Galaxies') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-upload text-galaxy" style="font-size:1.25rem;"></i>
-            <?= __('Import galaxy clusters') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-galaxy misp-simple text-galaxy"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'galaxy',
+    'eyebrow' => __('Galaxies'),
+    'title' => __('Import galaxy clusters'),
+    'titleIcon' => 'fas fa-upload',
+    'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">

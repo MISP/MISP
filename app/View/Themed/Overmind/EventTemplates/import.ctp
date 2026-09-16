@@ -32,26 +32,13 @@ echo $this->Form->create('EventTemplate', [
 ?>
 
 <?php if ($isModal): ?>
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event, var(--primary));">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-event"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Event Templates') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-event" style="font-size:1.25rem;"></i>
-            <?= __('Import Event Template') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= h($headerDescription) ?>
-        </p>
-    </div>
-    <span class="fas fa-file-import text-event"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Event Templates'),
+    'title' => __('Import Event Template'),
+    'description' => $headerDescription,
+    'icon' => 'fas fa-file-import',
+]) ?>
 <?php endif; ?>
 
 <div class="<?= $isModal ? 'p-4' : 'container-fluid px-4 py-3' ?>">
@@ -88,36 +75,32 @@ echo $this->Form->create('EventTemplate', [
                     'Paste the event template export document here'
                 ),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('The export document of any MISP instance running the same template schema.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('The export document of any MISP instance running the same template schema.'),
+            ]) ?>
         </div>
 
         <!-- ── JSON FILE ───────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Or Upload a JSON File') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Or Upload a JSON File'),
+            ]) ?>
             <?= $this->Form->file('submittedjson', [
                 'class' => 'form-control bg-light',
                 'accept' => 'application/json,.json',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Optional — if both a pasted document and a file are provided, the file wins.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Optional — if both a pasted document and a file are provided, the file wins.'),
+            ]) ?>
         </div>
 
         <!-- ── DUPLICATE HANDLING ──────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('If a Template With the Same UUID Already Exists') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('If a Template With the Same UUID Already Exists'),
+            ]) ?>
             <?= $this->Form->select('mode', $modeOptions, [
                 'class' => 'form-select tom-select bg-light',
                 'default' => 'fail',
@@ -127,35 +110,15 @@ echo $this->Form->create('EventTemplate', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <i class="fas fa-shield-halved me-1"></i>
-            <?= __('The import is refused whole if any element fails validation.') ?>
-        </div>
-        <div class="d-flex gap-2">
-            <?php if ($isModal): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm"
-                        data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-                </button>
-            <?php else: ?>
-                <a class="btn btn-outline-secondary btn-sm"
-                   href="<?= h($baseurl . '/event_templates/index') ?>">
-                    <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-                </a>
-            <?php endif; ?>
-            <?= $this->Form->button(
-                '<i class="fas fa-upload me-1"></i> ' . __('Import'),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'hint' => __('The import is refused whole if any element fails validation.'),
+        'cancel' => $isModal ? [] : [
+            'label' => __('Cancel'),
+            'href' => $baseurl . '/event_templates/index',
+            'attrs' => [],
+        ],
+        'submit' => ['label' => __('Import'), 'icon' => 'fas fa-upload'],
+    ]) ?>
 </div>
 
 <?= $this->Form->end() ?>

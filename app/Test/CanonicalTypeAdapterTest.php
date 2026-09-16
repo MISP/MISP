@@ -21,7 +21,29 @@ if (!class_exists('App')) {
 
 require_once __DIR__ . '/../Vendor/autoload.php';
 require_once __DIR__ . '/../Lib/Dashboard/Tools/WidgetSchema.php';
+require_once __DIR__ . '/../Lib/Dashboard/Tools/DashboardURLValidator.php';
 require_once __DIR__ . '/../Lib/Dashboard/Tools/CanonicalTypeAdapter.php';
+
+// The `url` schema type delegates to DashboardURLValidator, whose only
+// framework touchpoints are Configure::read('MISP.baseurl') and the
+// Router fallback. Stub both, guarded — DashboardURLValidatorTest
+// defines the same pair and either file may load first.
+if (!class_exists('Configure', false)) {
+    class Configure
+    {
+        private static $values = array();
+        public static function write($key, $value) { self::$values[$key] = $value; }
+        public static function read($key) { return isset(self::$values[$key]) ? self::$values[$key] : null; }
+        public static function reset() { self::$values = array(); }
+    }
+}
+if (!class_exists('Router', false)) {
+    class Router
+    {
+        public static $fullBase = 'http://served-from.example.com/';
+        public static function url($url = null, $full = false) { return self::$fullBase; }
+    }
+}
 
 use PHPUnit\Framework\TestCase;
 
@@ -1811,5 +1833,113 @@ class CanonicalTypeAdapterTest extends TestCase
         ]));
         // scalar non-string
         $this->assertNotNull(CanonicalTypeAdapter::validateEventIdFilter('foo'));
+    }
+
+    // -------- validateUrl(): the `url` schema type (V05 leftover) --------
+
+    /**
+     * A widget stub carrying only the schema shape validate() reads, so
+     * these exercise the dispatch in validate() and not just the leaf.
+     */
+    private function buttonLikeWidget()
+    {
+        return new class {
+            public $schema = array(
+                'url'  => array('type' => 'url'),
+                'text' => array('type' => 'string'),
+            );
+        };
+    }
+
+    protected function setUpUrlConfigure(): void
+    {
+        Configure::reset();
+        Configure::write('MISP.baseurl', 'http://misp.local');
+    }
+
+    public function testValidateUrlAcceptsSameOriginShapes(): void
+    {
+        $this->setUpUrlConfigure();
+        $this->assertNull(CanonicalTypeAdapter::validateUrl('/events/index'));
+        $this->assertNull(CanonicalTypeAdapter::validateUrl('http://misp.local/events/index'));
+        $this->assertNull(CanonicalTypeAdapter::validateUrl('/events/index/tag:tlp:red'));
+    }
+
+    public function testValidateUrlTreatsAbsentValueAsNoUrl(): void
+    {
+        $this->setUpUrlConfigure();
+        // The widget's own no-op: handler() leaves `url` unset and the
+        // renderer degrades to its inert tile. Refusing these would make
+        // a half-configured widget unsavable.
+        $this->assertNull(CanonicalTypeAdapter::validateUrl(null));
+        $this->assertNull(CanonicalTypeAdapter::validateUrl(''));
+    }
+
+    public function testValidateUrlRejectsTheV05Payloads(): void
+    {
+        $this->setUpUrlConfigure();
+        foreach ([
+            'javascript://localhost/%0aalert(document.domain)',
+            '/\\evil.example.com/x',
+            '\\\\evil.example.com/x',
+            'https:/\\evil.example.com',
+            '\\\\localhost@evil.example.com/x',
+            'http://evil.example.com/events/index',
+        ] as $payload) {
+            $this->assertNotNull(
+                CanonicalTypeAdapter::validateUrl($payload),
+                'expected rejection for: ' . $payload
+            );
+        }
+    }
+
+    public function testValidateUrlRejectsNonStrings(): void
+    {
+        $this->setUpUrlConfigure();
+        $this->assertNotNull(CanonicalTypeAdapter::validateUrl(array('/events/index')));
+        $this->assertNotNull(CanonicalTypeAdapter::validateUrl(42));
+        $this->assertNotNull(CanonicalTypeAdapter::validateUrl(true));
+    }
+
+    public function testValidateDispatchesUrlTypeAndKeysErrorsByField(): void
+    {
+        $this->setUpUrlConfigure();
+        $widget = $this->buttonLikeWidget();
+        $this->assertNull(CanonicalTypeAdapter::validate($widget, array(
+            'url' => '/events/index', 'text' => 'Go to events',
+        )));
+        $errs = CanonicalTypeAdapter::validate($widget, array(
+            'url' => 'javascript:alert(1)', 'text' => 'Go to events',
+        ));
+        $this->assertIsArray($errs);
+        $this->assertArrayHasKey('url', $errs);
+        $this->assertArrayNotHasKey('text', $errs);
+    }
+
+    public function testValidateIgnoresAnAbsentUrlKey(): void
+    {
+        $this->setUpUrlConfigure();
+        // validate() only checks keys present in config, so a config
+        // that never mentions `url` is clean.
+        $this->assertNull(CanonicalTypeAdapter::validate(
+            $this->buttonLikeWidget(),
+            array('text' => 'Go to events')
+        ));
+    }
+
+    public function testTranslateLeavesUrlAndTextUntouched(): void
+    {
+        $this->setUpUrlConfigure();
+        // No `default` on either entry, so translate() must inject
+        // nothing and pass both values through byte-for-byte - that is
+        // what keeps handler() seeing exactly what it saw before the
+        // schema existed.
+        $config = array('url' => '/events/index', 'text' => 'Go to events');
+        $this->assertSame($config, CanonicalTypeAdapter::translate(
+            $this->buttonLikeWidget(), $config
+        ));
+        $this->assertSame(array(), CanonicalTypeAdapter::translate(
+            $this->buttonLikeWidget(), array()
+        ));
     }
 }

@@ -622,6 +622,9 @@ class OrganisationsController extends AppController
                 // '../../../../AI-marketing') would allow path traversal to arbitrary png/svg files.
                 if ($candidate !== false && $realBase !== false && str_starts_with($candidate, $realBase . DS)) {
                     $this->response->file($candidate, ['download' => false, 'name' => $org['Organisation']['id'] . '.' . $extension]);
+                    // An SVG logo is a document, not a bitmap: sandbox it so
+                    // whatever it carries cannot run here when opened directly.
+                    $this->RestResponse->sandboxInlineFile($this->response, $extension);
                     return $this->response;
                 }
             }

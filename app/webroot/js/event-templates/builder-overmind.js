@@ -742,7 +742,8 @@
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     body: JSON.stringify(body)
                 }).then((r) => r.json().then((data) => ({status: r.status, data})))
@@ -773,7 +774,8 @@
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     body: JSON.stringify(probe)
                 }).then((r) => r.json().then((data) => ({status: r.status, data})))

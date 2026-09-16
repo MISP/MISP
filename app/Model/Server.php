@@ -7420,12 +7420,20 @@ class Server extends AppModel
                 ),
                 'eventreport_enable_arbitrary_urls' => array(
                     'level' => 0,
-                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server or, for HTML imports, by the misp-modules host, so any internal IP reachable from either - including loopback and cloud metadata endpoints - becomes reachable by the requesting user. This is NOT limited to site admins: the import action requires only perm_add, which the default user role carries. Enable this only where every user holding perm_add is trusted with that network position.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => 1
+                ),
+                'eventreport_max_fetch_size' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size, in bytes, of a document fetched by the event report URL import. The document is held in memory and base64 encoded before being passed to the module, so the peak cost is roughly 2.5x this value. Set to 0 for no limit, which is not recommended - an unbounded read is reachable from a request of a couple of hundred bytes.'),
+                    'value' => 26214400, // 25 MB - real threat reports routinely exceed 5
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
                 ),
                 'syslog' => array(
                     'level' => 0,
@@ -7589,6 +7597,22 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'null' => true
+                ),
+                'pre_auth_flood_filter_enable' => array(
+                    'level' => 1,
+                    'description' => __('Cap the number of requests a single source address may make before it has authenticated. Every pre-auth surface does durable work before it knows who is calling - the password reset form writes an audit entry and queues a job, self-registration writes an inbox entry, and a REST call with no API key writes an authentication failure - so an anonymous flood costs storage on every request. Authenticated callers are never affected, including API keys and synchronisation. Leave this off unless the instance is exposed to the public internet; a shared egress address may need the threshold raised.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'pre_auth_flood_filter_threshold' => array(
+                    'level' => 1,
+                    'description' => __('The number of requests one source address may make in any 15 minute window before it has authenticated. Further requests are refused with a 429 until the window ends. Only used when Security.pre_auth_flood_filter_enable is on.'),
+                    'value' => 100,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
                     'null' => true
                 ),
                 'self_registration_message' => array(
@@ -7765,7 +7789,7 @@ class Server extends AppModel
                 ],
                 'enable_svg_logos' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('When enabled, organisations logos in svg format are allowed.'),
+                    'description' => __('When enabled, SVG images are accepted as organisation logos and as event report pictures. SVG files are served with a sandboxing Content-Security-Policy so any script they carry cannot run in the browser; they still remain XML documents rather than bitmaps, so leave this disabled unless you need it.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
