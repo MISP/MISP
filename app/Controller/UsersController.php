@@ -2478,7 +2478,7 @@ class UsersController extends AppController
         $orgs = $this->User->Organisation->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+            'fields' => array('id', 'name', 'uuid', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
         ));
         $orgs = array_column(array_column($orgs, 'Organisation'), null, 'id');
         $users = $this->User->find('all', array(
@@ -2506,9 +2506,25 @@ class UsersController extends AppController
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
         // f*** php
         uksort($orgs, 'strcasecmp');
+        // Flag orgs that have a logo. Logos live under files/img/orgs (moved out of
+        // webroot long ago) and are named by id, name or uuid, so mirror the lookup
+        // getOrgLogo() serves from. realpath() + the prefix check reject a value that
+        // escapes the directory - e.g. an org name of '../../../../AI-marketing' - so
+        // reviving this flag does not reintroduce the org-name path traversal.
+        $logoPath = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
+        $logoBase = realpath($logoPath);
         foreach ($orgs as $k => $value) {
-            if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
-                $orgs[$k]['logo'] = true;
+            foreach (['id', 'name', 'uuid'] as $field) {
+                if (empty($value[$field])) {
+                    continue;
+                }
+                foreach (['png', 'svg'] as $extension) {
+                    $candidate = realpath($logoPath . $value[$field] . '.' . $extension);
+                    if ($candidate !== false && $logoBase !== false && str_starts_with($candidate, $logoBase . DS)) {
+                        $orgs[$k]['logo'] = true;
+                        break 2;
+                    }
+                }
             }
         }
         if ($this->_isRest()) {
