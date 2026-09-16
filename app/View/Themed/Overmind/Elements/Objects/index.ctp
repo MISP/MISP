@@ -2,11 +2,6 @@
 App::uses('DistributionLevel', 'Tools');
 
 $eventId   = $event['Event']['id'];
-$total     = (int)($total ?? 0);
-$page      = (int)($page  ?? 1);
-$limit     = (int)($limit ?? 60);
-$totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
-$window     = 2;
 // The extended / extending mode rides along on every URL this list builds,
 // so a filter, a toggle or a page change never falls back to the atomic view.
 $objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
@@ -664,52 +659,11 @@ $foldChildren = empty($objects) ? [] : [
         </div>
     <?php endif; ?>
 
-    <!-- ── Bottom pagination ───────────────────────────────── -->
-    <?php if ($totalPages > 1): ?>
+    <!-- ── Bottom pagination ───────────────────────────── -->
+    <?php if (!empty($objects)): ?>
     <div class="card shadow-sm mt-3">
-        <div class="card-body py-2 d-flex justify-content-center">
-            <nav aria-label="<?= __('Objects pagination') ?>">
-                <ul class="pagination pagination-sm mb-0">
-                    <?php if ($page > 1): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page - 1 ?>">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-
-                    <?php for ($p = 1; $p <= $totalPages; $p++):
-                        if (
-                            $p === 1
-                            || $p === $totalPages
-                            || abs($p - $page) <= $window
-                        ):
-                    ?>
-                        <li class="page-item <?= $p === $page ? 'active' : '' ?>">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $p ?>">
-                                <?= $p ?>
-                            </a>
-                        </li>
-                    <?php
-                        elseif (abs($p - $page) === $window + 1):
-                    ?>
-                        <li class="page-item disabled">
-                            <span class="page-link">&hellip;</span>
-                        </li>
-                    <?php endif; endfor; ?>
-
-                    <?php if ($page < $totalPages): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page + 1 ?>">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </nav>
+        <div class="card-body py-2">
+            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
         </div>
     </div>
     <?php endif; ?>
@@ -758,6 +712,7 @@ $foldChildren = empty($objects) ? [] : [
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 container.innerHTML       = html;
+                container.dataset.url        = url;
                 container.style.opacity      = '';
                 container.style.pointerEvents = '';
                 container.querySelectorAll('script').forEach(function (oldScript) {
@@ -970,16 +925,5 @@ $foldChildren = empty($objects) ? [] : [
         });
     });
 
-    // Pagination link clicks
-    document.addEventListener('click', function (e) {
-        var link = e.target.closest('.obj-page-link');
-        if (!link) return;
-        e.preventDefault();
-        var p = link.dataset.page;
-        if (!p) return;
-        loadObjects(
-            baseurl + <?= json_encode($objectsUrl) ?> + '/page:' + encodeURIComponent(p)
-        );
-    });
 })();
 </script>

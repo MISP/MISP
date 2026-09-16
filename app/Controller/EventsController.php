@@ -2638,10 +2638,27 @@ class EventsController extends AppController
                 'json'
             );
         }
+        $page      = (int)$result['page'];
+        $limit     = (int)$result['limit'];
+        $total     = (int)$result['total'];
+        $pageCount = $limit > 0 ? (int)ceil($total / $limit) : 0;
+        $this->request->params['paging']['Object'] = [
+            'page'      => $page,
+            'current'   => count($result['Object']),
+            'count'     => $total,
+            'prevPage'  => $page > 1,
+            'nextPage'  => $page < $pageCount,
+            'pageCount' => $pageCount,
+            'order'     => null,
+            'limit'     => $limit,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
         $this->set('objects', $result['Object']);
-        $this->set('total', $result['total']);
-        $this->set('page', $result['page']);
-        $this->set('limit', $result['limit']);
+        $this->set('total', $total);
+        $this->set('page', $page);
+        $this->set('limit', $limit);
         $this->set('event', $event);
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('proposal', !empty($options['proposal']));
