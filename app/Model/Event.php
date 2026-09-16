@@ -4470,6 +4470,12 @@ class Event extends AppModel
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
             );
+        } else {
+            // No order asked for. MySQL answers an id lookup in id order off
+            // the primary key; PostgreSQL answers in heap order, which an
+            // UPDATE reshuffles - the same gap childOrder() closes for the
+            // event's children.
+            $params['order'] = $this->childOrder('Event');
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
