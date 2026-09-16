@@ -424,8 +424,9 @@ class Tag extends AppModel
     {
         App::uses('Module', 'Model');
         $names = Module::AI_PROVENANCE_TAGS;
+        // Every casing matches, off the unique index - see nameCondition().
         $existing = $this->find('list', array(
-            'conditions' => array('LOWER(Tag.name)' => array_map('mb_strtolower', $names)),
+            'conditions' => $this->nameCondition($names),
             'fields' => array('Tag.name', 'Tag.id'),
             'recursive' => -1,
         ));

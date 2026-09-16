@@ -121,7 +121,9 @@ class ProvenanceTestTag extends Tag
     {
         $conditions = $query['conditions'];
         if ($type === 'list') {
-            $wanted = $conditions['LOWER(Tag.name)'];
+            // captureAiProvenanceTags(): find('list') by Tag.name IN (...),
+            // which the column's collation compares case-insensitively.
+            $wanted = array_map('mb_strtolower', $conditions['Tag.name']);
             $list = array();
             foreach ($this->rows as $row) {
                 if (in_array(mb_strtolower($row['name']), $wanted, true)) {
