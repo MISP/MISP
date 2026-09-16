@@ -2332,14 +2332,22 @@ class EventsController extends AppController
             }
         }
 
-        // Favorite event report (for the moment, only the most recent one)
+        // Favorite event report (for the moment, only the most recent one).
+        // A report carries its own distribution, so seeing the event does not
+        // mean seeing every report on it: apply the report ACL, as the
+        // reports tab does, and skip soft-deleted ones.
+        $reportConditions =
+            $this->Event->EventReport->buildACLConditions($user);
+        $reportConditions['AND'][] = [
+            'EventReport.event_id' => $event['Event']['id'],
+            'EventReport.deleted' => 0,
+        ];
         $result = $this->Event->EventReport->find(
             'first',
             [
-                'conditions' => [
-                    'EventReport.event_id' =>
-                        $event['Event']['id'],
-                ]
+                'conditions' => $reportConditions,
+                'contain' => EventReport::DEFAULT_CONTAIN,
+                'recursive' => -1,
             ]
         );
         $event['EventReport'] = $result['EventReport'] ?? null;
