@@ -3049,9 +3049,11 @@ class AttributesController extends AppController
 
         /* Custom Tags: tags that do not belong to any taxonomy */
         $this->loadModel('Taxonomy');
-        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
-            true, $user, true, true, false
-        );
+        $customRaw  = $this->Taxonomy->getAllTaxonomyTags([
+            'inverse' => true,
+            'user' => $user,
+            'full' => true,
+        ]);
         $customTags = [];
         foreach ($customRaw as $t) {
             $tag = $t['Tag'];

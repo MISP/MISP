@@ -262,15 +262,33 @@ class Taxonomy extends AppModel
     /**
      * Returns all tags associated to a taxonomy
      * Returns all tags not associated to a taxonomy if $inverse is true
-     * @param bool $inverse
-     * @param false|array $user
-     * @param bool $full
-     * @param bool $hideUnselectable
-     * @param bool $local_tag
+     * The parameters can either be passed as an options array, or positionally
+     * through $inverse and the trailing parameters kept for compatibility.
+     * @param bool|array $options Either $inverse, or an array with any of the
+     *     keys inverse, user, full, hideUnselectable, local_tag
+     * @param false|array $user Only honoured if $options is not an array
+     * @param bool $full Only honoured if $options is not an array
+     * @param bool $hideUnselectable Only honoured if $options is not an array
+     * @param bool $local_tag Only honoured if $options is not an array
      * @return array|int|null
      */
-    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true, $local_tag = false)
+    public function getAllTaxonomyTags($options = false, $user = false, $full = false, $hideUnselectable = true, $local_tag = false)
     {
+        $inverse = $options;
+        if (is_array($options)) {
+            $options += [
+                'inverse' => false,
+                'user' => false,
+                'full' => false,
+                'hideUnselectable' => true,
+                'local_tag' => false,
+            ];
+            $inverse = $options['inverse'];
+            $user = $options['user'];
+            $full = $options['full'];
+            $hideUnselectable = $options['hideUnselectable'];
+            $local_tag = $options['local_tag'];
+        }
         $taxonomies = $this->find('all', [
             'fields' => ['namespace'],
             'recursive' => -1,
@@ -851,7 +869,11 @@ class Taxonomy extends AppModel
         $tagConverted = 0;
         $rowUpdated = 0;
         $craftedTags = $this->__craftTaxonomiesTags();
-        $allTaxonomyTagsByName = Hash::combine($this->getAllTaxonomyTags(false, false, true, false, true), '{n}.Tag.name', '{n}.Tag.id');
+        $allTaxonomyTagsByName = Hash::combine($this->getAllTaxonomyTags([
+            'full' => true,
+            'hideUnselectable' => false,
+            'local_tag' => true,
+        ]), '{n}.Tag.name', '{n}.Tag.id');
         $tagsToMigrate = array_diff_key($allTaxonomyTagsByName, $craftedTags);
         foreach ($tagsToMigrate as $tagToMigrate_name => $tagToMigrate_id) {
             foreach (array_keys($craftedTags) as $craftedTag) {

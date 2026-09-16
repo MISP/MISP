@@ -451,7 +451,12 @@ class TagsController extends AppController
                 }
             }
         } elseif ($taxonomy_id === '0') { // custom tags
-            $temp = $this->Taxonomy->getAllTaxonomyTags(true, $user, true, true, $local_tag);
+            $temp = $this->Taxonomy->getAllTaxonomyTags([
+                'inverse' => true,
+                'user' => $user,
+                'full' => true,
+                'local_tag' => $local_tag,
+            ]);
             $tags = array();
             foreach ($temp as $tag) {
                 $tags[$tag['Tag']['id']] = $tag['Tag'];
