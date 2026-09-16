@@ -574,7 +574,10 @@ dd {
     bottom:0px;
     height:42px;
     min-width:1300px;
-    z-index: 2;
+    /* Above sticky table headers (10) so a fixed footer covers them when the
+       viewport is short; still below the spinner (15), the workflow editor
+       side panels (18) and #gray_out (20). */
+    z-index: 11;
 }
 
 .debugOff {
