@@ -2004,20 +2004,7 @@ class Event extends AppModel
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (!$isSiteAdmin) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -2027,7 +2014,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2082,7 +2069,12 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $fields,
             'recursive' => -1,
-            'order' => ['Attribute.' . $sort => $direction],
+            // The id as a tiebreaker: attributes saved in the same second
+            // share a timestamp, and without it PostgreSQL returns them in
+            // whatever physical order they happen to have - which changes
+            // when a row is updated - where MySQL happens to keep insertion
+            // order. Callers and tests read attributes[0] as "the first one".
+            'order' => ['Attribute.' . $sort => $direction, 'Attribute.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2614,20 +2606,7 @@ class Event extends AppModel
         // Object distribution ACL for non-site-admins
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
-            $objectCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Object.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $objectCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Object"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Object.distribution >' => 0,
@@ -2637,7 +2616,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 ]],
-                $objectCondSelect => $user['org_id'],
+                $objectCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2690,7 +2669,7 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $objectFields,
             'recursive' => -1,
-            'order' => ['Object.' . $sort => $direction],
+            'order' => ['Object.' . $sort => $direction, 'Object.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2722,20 +2701,7 @@ class Event extends AppModel
             'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $attrConditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -2745,7 +2711,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2773,7 +2739,7 @@ class Event extends AppModel
             'conditions' => $attrConditions,
             'fields' => $attrFields,
             'recursive' => -1,
-            'order' => ['Attribute.object_relation' => 'ASC'],
+            'order' => ['Attribute.object_relation' => 'ASC', 'Attribute.id' => 'ASC'],
         ]);
 
         // Collect attribute IDs and group by object
@@ -4171,6 +4137,28 @@ class Event extends AppModel
     // to: date string (YYYY-MM-DD)
     // includeAllTags: true will include the tags that are marked as non-exportable
     // includeAttachments: true will attach the attachments to the attributes in the data field
+    /**
+     * The order an event's children are fetched in: none on MySQL, by id on
+     * anything else.
+     *
+     * The containment below deliberately asks for no order, and on MySQL
+     * that has always meant insertion order anyway: InnoDB answers a
+     * `WHERE event_id IN (...)` off the event_id index, which holds the rows
+     * of one event in primary-key order, and an updated row stays where it
+     * was. PostgreSQL returns a heap in physical order, which is insertion
+     * order until a row is updated and then moves that row to the end - so
+     * attributes[0] stops meaning "the first one" the moment any of them is
+     * edited. Asking PostgreSQL for the id order gives what MySQL gives for
+     * free; asking MySQL for it would add a sort it does not need.
+     *
+     * @param string $alias
+     * @return string|false
+     */
+    private function childOrder($alias)
+    {
+        return $this->isMysql() ? false : $alias . '.id ASC';
+    }
+
     public function fetchEvent($user, $options = array(), $useCache = false)
     {
         if (!isset($user['org_id'])) {
@@ -4249,15 +4237,9 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
-            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
-            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if (!$this->isMysql()) {
-                $schemaName = $this->getDataSource()->config['schema'];
-                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
-                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
-                $eventReportCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "EventReport"."event_id")', $schemaName, $schemaName, $schemaName);
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
+            $eventReportCondSelect = $this->eventOwnerSubquery('EventReport');
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -4267,7 +4249,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                $attributeCondSelect => $user['org_id']
+                $attributeCondSelect . ' = ' . (int)$user['org_id']
             );
 
             $conditionsObjects['AND'][0]['OR'] = array(
@@ -4279,7 +4261,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                $objectCondSelect => $user['org_id']
+                $objectCondSelect . ' = ' . (int)$user['org_id']
             );
 
             $conditionsEventReport['AND'][0]['OR'] = array(
@@ -4291,7 +4273,7 @@ class Event extends AppModel
                     'EventReport.distribution' => 4,
                     'EventReport.sharing_group_id' => $sgids,
                 )),
-                $eventReportCondSelect => $user['org_id']
+                $eventReportCondSelect . ' = ' . (int)$user['org_id']
             );
         }
         if (isset($options['distribution'])) {
@@ -4365,7 +4347,7 @@ class Event extends AppModel
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
                             'AND' => array(
-                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                $this->eventOwnerSubquery($softDeletable) . ' = ' . (int)$user['org_id'],
                                 "$softDeletable.deleted" => $options['deleted'],
                             ),
                             $deletion_subconditions
@@ -4393,7 +4375,7 @@ class Event extends AppModel
             if ($isSiteAdmin) {
                 $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 1));
             } else {
-                $proposal_conditions['OR'][] = array('(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']);
+                $proposal_conditions['OR'][] = $this->eventOwnerSubquery('ShadowAttribute') . ' = ' . (int)$user['org_id'];
             }
         }
         if ($options['idList'] && !$options['tags']) {
@@ -4431,24 +4413,24 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false
+                    'order' => $this->childOrder('Attribute'),
                 ),
                 'Object' => array(
                     'conditions' => $conditionsObjects,
-                    'order' => false,
+                    'order' => $this->childOrder('Object'),
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
                     'conditions' => $proposal_conditions,
                     'Org' => array('fields' => $fieldsOrg),
-                    'order' => false
+                    'order' => $this->childOrder('ShadowAttribute'),
                 ),
                 'EventTag' => array(
-                    'order' => false
+                    'order' => $this->childOrder('EventTag'),
                 ),
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
-                    'order' => false,
+                    'order' => $this->childOrder('EventReport'),
                     'EventReportTag',
                 ),
                 'CryptographicKey'
@@ -4488,6 +4470,12 @@ class Event extends AppModel
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
             );
+        } else {
+            // No order asked for. MySQL answers an id lookup in id order off
+            // the primary key; PostgreSQL answers in heap order, which an
+            // UPDATE reshuffles - the same gap childOrder() closes for the
+            // event's children.
+            $params['order'] = $this->childOrder('Event');
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -5614,7 +5602,8 @@ class Event extends AppModel
                   $operand === 'NOT'
                 );
                 // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                     $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -5644,7 +5633,8 @@ class Event extends AppModel
                       $lookup_field
                     );
                     // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                    if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                         $subQuery[0] = explode('WHERE', $subQuery[0]);
                         $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                         $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -5655,6 +5645,25 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * A correlated subquery reading the owning event's org_id, spelled for this
+     * connection.
+     *
+     * Four call sites used to carry this twice - once bare for MySQL and once
+     * quoted and schema-qualified for PostgreSQL. name() spells the quoting on
+     * either engine, so the only thing left to decide is whether the connection
+     * names a schema at all, which is a configuration question rather than an
+     * engine one. The qualification is needed because the driver does not reach
+     * inside a hand-written condition string to add it.
+     *
+     * @param string $alias The model alias whose event_id is being joined on.
+     * @return string
+     */
+    private function eventOwnerSubquery($alias)
+    {
+        return $this->correlatedLookup('events', 'org_id', $alias, 'event_id');
     }
 
     public function set_filter_object_name(&$params, $conditions, $options) {
@@ -9229,16 +9238,23 @@ class Event extends AppModel
             if (!isset($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             }
-            $clusters = $this->GalaxyCluster->find('all', array(
+            // The latest version of every cluster, by tag name. This used to
+            // be a GROUP BY tag_name that also selected value and id, which
+            // MySQL tolerates (and answers with an arbitrary row per group)
+            // and PostgreSQL rejects. Ascending by version and letting the
+            // later row overwrite the earlier one is the same question asked
+            // portably, and it is what the old query was assumed to answer.
+            $clusters = array();
+            $allClusters = $this->GalaxyCluster->find('all', array(
                 'recursive' => -1,
-                'fields' => array(
-                    'GalaxyCluster.value',
-                    'MAX(GalaxyCluster.version)',
-                    'GalaxyCluster.tag_name',
-                    'GalaxyCluster.id'
-                ),
-                'group' => array('GalaxyCluster.tag_name')
+                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
             ));
+            foreach ($allClusters as $cluster) {
+                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
+            }
+            unset($allClusters);
+            $clusters = array_values($clusters);
             $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
                 'recursive' => -1,
                 'fields' => array('galaxy_cluster_id', 'value'),

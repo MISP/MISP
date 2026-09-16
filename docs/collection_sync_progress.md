@@ -95,6 +95,7 @@ Accepted non-additive touch points = **PRD §5**. Anything beyond that list need
      `db_version` 153→155 (it tracks the latest migration). `MYSQL.sql` — add the column to the
      `collections` CREATE TABLE; **leave MYSQL.sql's `db_version='126'` baseline untouched** (the
      established convention — e.g. `taxii_servers.enabled`/153 is in MYSQL.sql with db_version 126).
+     *(Superseded: both install baselines are now generated from a fully updated reference and sit at db_version 159 — see `docs/dev/database-migrations.md` §10. The convention above applied while `MYSQL.sql` was hand-maintained.)*
 - **`locked` column = `tinyint(1) NOT NULL DEFAULT 0`** (mirrors `events.locked` byte-for-byte in
   both db_schema.json and MYSQL.sql). No index on `locked` (matches events; indexes section untouched).
 - **Dev DB live state (read-only check):** `collections` has the 12 original cols, **no `locked`**;

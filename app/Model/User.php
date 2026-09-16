@@ -2341,11 +2341,8 @@ class User extends AppModel
                 'perm_tagger' => 1,
             ]];
             $this->Role->save($siteAdmin);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-                $this->Role->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Role->resetAutoIncrement();
         }
 
         if (!$this->Organisation->hasAny(['Organisation.local' => true])) {
@@ -2359,11 +2356,8 @@ class User extends AppModel
                 'local' => 1,
             ]];
             $this->Organisation->save($org);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
-                $this->Organisation->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Organisation->resetAutoIncrement();
             $orgId = $this->Organisation->id;
         }
 

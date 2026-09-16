@@ -97,6 +97,15 @@ require_once __DIR__ . '/../Model/Tag.php';
 class ProvenanceTestTag extends Tag
 {
     public $rows = array();
+
+    // Tag::nameCondition() spells the lookup for the engine; the in-memory
+    // table compares the way MySQL's collation does. On the subclass rather
+    // than the AppModel stand-in, since another test file may have declared
+    // that first.
+    protected function isMysql()
+    {
+        return true;
+    }
     public $nextId = 1;
     public $id = null;
     public $saved = array();
@@ -121,8 +130,9 @@ class ProvenanceTestTag extends Tag
             }
             return $list;
         }
-        // captureTag(): find('first') by LOWER(name)
-        $wanted = $conditions['LOWER(name)'];
+        // captureTag(): find('first') by Tag.name, which the column's collation
+        // compares case-insensitively.
+        $wanted = mb_strtolower($conditions['Tag.name']);
         foreach ($this->rows as $row) {
             if (mb_strtolower($row['name']) === $wanted) {
                 return array('Tag' => $row);

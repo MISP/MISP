@@ -2424,22 +2424,27 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
-        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        // Not max(array_keys(Server::DB_CHANGES)) - $dbVersion any more: that
+        // counted version numbers rather than updates, and after the freeze
+        // db_version cannot move at all, so it would count nothing while ledger
+        // migrations were still pending.
+        $updateProgress['complete_update_remaining'] = $this->Server->countPendingUpdates($dbVersion);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
         $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
         $currentIndex = $updateProgress['current'];
         $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
         $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        // Empty on an engine with no process list of its own, which degrades the
+        // screen to no live DDL state rather than erroring.
+        $sqlInfo = $this->Server->getSchemaInspector()->runningQueries();
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sqlInfo as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
-                    $sqlInfo = $row['PROCESSLIST'];
+            foreach ($sqlInfo as $row) {
+                if (isset($row['INFO']) && preg_replace('/\s{2,}/', '', $row['INFO']) == $lookupString) {
+                    $sqlInfo = $row;
                     break;
                 }
             }
@@ -2744,6 +2749,11 @@ public function updateJSON()
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
+            $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
+            $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
+            $this->set('migrationsFailedIds', $dbSchemaDiagnostics['migrations_failed_ids']);
+            $this->set('migrationsApplied', $dbSchemaDiagnostics['migrations_applied']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
     }

@@ -1,5 +1,7 @@
 <?php
 App::uses('ConnectionManager', 'Model');
+App::uses('Mysql', 'Model/Datasource/Database');
+App::uses('Postgres', 'Model/Datasource/Database');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
@@ -457,9 +459,7 @@ class AppController extends Controller
 
         if ($user && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') === 'database') {
-                $db = ConnectionManager::getDataSource('default');
-                $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
-                if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
+                if ($this->User->Server->expiredSessionCount() > 1000) {
                     $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
@@ -1233,9 +1233,12 @@ class AppController extends Controller
             $db->setConfig(array('encoding' => 'utf8'));
             ConnectionManager::create('default', $db->config);
         }
-        $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended', 'Database/MysqlObserverExtended'], true)) {
-            throw new Exception('Datasource not supported: ' . $dataSource);
+        // Any MySQL or PostgreSQL driver, including MISP's own subclasses of
+        // Cake's two - checked by class rather than by name, so a new subclass
+        // cannot be forgotten here the way the first PostgreSQL one was.
+        $db = ConnectionManager::getDataSource('default');
+        if (!($db instanceof Mysql) && !($db instanceof Postgres)) {
+            throw new Exception('Datasource not supported: ' . $dataSourceConfig['datasource']);
         }
     }
 
