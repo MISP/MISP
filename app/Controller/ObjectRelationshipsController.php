@@ -133,36 +133,6 @@ class ObjectRelationshipsController extends AppController
         ]);
     }
 
-    // public function toggleHighlighted($name)
-    // {
-    //     $relationship = $this->ObjectRelationship->find('first', [
-    //         'fields' => ['id', 'name', 'highlighted'],
-    //         'recursive' => -1,
-    //         'conditions' => array('ObjectRelationship.name' => $name)
-    //     ]);
-    //     if (empty($relationship)) {
-    //         return $this->RestResponse->saveFailResponse('ObjectRelationship', 'toggleHighlighted', $name, 'Invalid ObjectRelationship', $this->response->type());
-    //     }
-    //     if ($this->request->is('post')) {
-    //         $relationship['ObjectRelationship']['highlighted'] = $this->request->data['ObjectRelationship']['highlighted'];
-    //         $result = $this->ObjectRelationship->save($relationship, ['highlighted', ]);
-    //         if ($result) {
-    //             return $this->RestResponse->saveSuccessResponse('ObjectRelationship', 'toggleHighlighted', $name, $this->response->type());
-    //         } else {
-    //             return $this->RestResponse->saveFailResponse('ObjectRelationship', 'toggleHighlighted', $name, $this->validationError, $this->response->type());
-    //         }
-    //     }
-
-    //     $this->set('highlighted', !$relationship['ObjectRelationship']['highlighted']);
-    //     $this->set('id', $relationship['ObjectRelationship']['id']);
-    //     $this->set('name', $name);
-    //     if($this->theme !== "Overmind"){
-    //         $this->autoRender = false;
-    //         $this->layout = false;
-    //         $this->render('ajax/toggle_highlighted');
-    //     }
-    // }
-
     public function toggleHighlighted($name)
     {
         $relationship = $this->ObjectRelationship->find('first', [
@@ -282,20 +252,6 @@ class ObjectRelationshipsController extends AppController
                         if ($field === 'enabled' && !$state) {
                             $this->ObjectRelationship->disableTags($id);
                         }
-                        // Log
-                        // $action = $state ? 'enable' : 'disable';
-                        // if ($field === 'required') {
-                        //     $action = $state ? 'required' : 'required';
-                        // } elseif ($field === 'highlighted') {
-                        //     $action = $state ? 'highlighted' : 'highlighted';
-                        // }
-
-                        // $this->__log(
-                        //     $action,
-                        //     $id,
-                        //     'Taxonomy ' . $field . ' changed',
-                        //     'Taxonomy ID ' . $id . ' set ' . $field . ' = ' . $state
-                        // );
 
                         $successCount++;
                     }
