@@ -25,7 +25,7 @@ class OvermindPages
         'event_reports' => array('index', 'view', 'add', 'edit'),
         'EventReportTemplateVariables' => array('index', 'add', 'edit'),
         'collections' => array('index', 'view', 'add', 'edit'),
-        'CollectionElements' => array('add', 'index'),
+        'CollectionElements' => array('add', 'index', 'addElementToCollection'),
         'analystData' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'
         ),
