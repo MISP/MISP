@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('GalaxyColour', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
 
 /**
@@ -1957,6 +1958,180 @@ class AppController extends Controller
     protected function __canModifyTag(array $event, $isTagLocal = false)
     {
         return $this->ACL->canModifyTag($this->Auth->user(), $event, $isTagLocal);
+    }
+
+    /**
+     * Shared implementation of the Overmind edit-galaxies modal, which the
+     * event and the attribute scopes render and submit identically.
+     *
+     * GET  → sets the view variables the modal needs.
+     * POST → diffs { global_ids: int[], local_ids: int[] } against the
+     *        currently attached clusters and calls attach/detach with the
+     *        given target scope.
+     *
+     * Fetching the target, rejecting an invalid one, resolving the ACL
+     * predicate and setting the scope's own id view variable stay with the
+     * calling action.
+     *
+     * @param string $scope Galaxy target scope, such as 'event'
+     * @param int $scopeId Id of the record the clusters hang off
+     * @param array $tags Tag associations of that record
+     * @param bool $mayModify Whether the user may change the clusters
+     * @param string $invalidMessage Thrown when the target cannot be fetched
+     * @param array $extraSuccessFields Extra POST success payload keys
+     * @return CakeResponse|void CakeResponse on POST, nothing on GET
+     */
+    protected function __editGalaxiesForScope(
+        $scope,
+        $scopeId,
+        array $tags,
+        $mayModify,
+        $invalidMessage,
+        array $extraSuccessFields = []
+    ) {
+        $user = $this->Auth->user();
+
+        /* Current galaxy clusters attached to the target, split by locality */
+        $galaxyTagNames = [];
+        foreach ($tags as $tag) {
+            if (!empty($tag['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$tag['Tag']['id']] = $tag['Tag']['name'];
+            }
+        }
+        $this->loadModel('GalaxyCluster');
+        $currentGlobalClusters = [];
+        $currentLocalClusters  = [];
+        $currentGlobalIds      = [];
+        $currentLocalIds       = [];
+        if (!empty($galaxyTagNames)) {
+            $clusters = $this->GalaxyCluster->getClustersByTags(
+                $galaxyTagNames, $user, true, false
+            );
+            $clustersByTagId = array_column(
+                array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
+            );
+            foreach ($tags as $tag) {
+                if (empty($tag['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                $tagId = $tag['Tag']['id'];
+                if (!isset($clustersByTagId[$tagId])) {
+                    continue;
+                }
+                $gc         = $clustersByTagId[$tagId];
+                $cid        = (int)$gc['id'];
+                $galaxyName = $gc['Galaxy']['name'] ?? '';
+                $entry = [
+                    'id'     => $cid,
+                    'name'   => $gc['value'],
+                    'galaxy' => $galaxyName,
+                    'hue'    => GalaxyColour::hue($galaxyName),
+                ];
+                if (!empty($tag['local'])) {
+                    $currentLocalClusters[] = $entry;
+                    $currentLocalIds[]      = $cid;
+                } else {
+                    $currentGlobalClusters[] = $entry;
+                    $currentGlobalIds[]      = $cid;
+                }
+            }
+        }
+
+        /* ── POST: apply the desired cluster state ── */
+        if ($this->request->is('post')) {
+            if (!$mayModify) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved' => false,
+                                             'errors' => __('Forbidden')]),
+                    'status' => 403,
+                    'type'   => 'json',
+                ]);
+            }
+
+            $desiredGlobal = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['global_ids'] ?? [])))));
+            $desiredLocal  = array_values(array_unique(array_filter(
+                array_map('intval',
+                    (array)($this->request->data['local_ids'] ?? [])))));
+
+            $toAddGlobal    = array_diff($desiredGlobal, $currentGlobalIds);
+            $toAddLocal     = array_diff($desiredLocal,  $currentLocalIds);
+            $toRemoveGlobal = array_diff($currentGlobalIds, $desiredGlobal);
+            $toRemoveLocal  = array_diff($currentLocalIds,  $desiredLocal);
+
+            $this->loadModel('Galaxy');
+            try {
+                /*
+                 * Detach before attaching: attachCluster() refuses to attach a
+                 * cluster whose tag is already on the target (regardless of
+                 * the local flag), so a global→local move must remove the old
+                 * row first.
+                 */
+                foreach (array_merge($toRemoveGlobal, $toRemoveLocal) as $cid) {
+                    $this->Galaxy->detachCluster(
+                        $user, $scope, $scopeId, $cid
+                    );
+                }
+                if (!empty($toAddGlobal) || !empty($toAddLocal)) {
+                    $target = $this->Galaxy->fetchTarget(
+                        $user, $scope, $scopeId
+                    );
+                    if (empty($target)) {
+                        throw new NotFoundException($invalidMessage);
+                    }
+                    foreach ($toAddGlobal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, $scope, $target, $cid, false
+                        );
+                    }
+                    foreach ($toAddLocal as $cid) {
+                        $this->Galaxy->attachCluster(
+                            $user, $scope, $target, $cid, true
+                        );
+                    }
+                }
+            } catch (Exception $e) {
+                return new CakeResponse([
+                    'body'   => json_encode(['saved'  => false,
+                                             'errors' => $e->getMessage()]),
+                    'status' => 200,
+                    'type'   => 'json',
+                ]);
+            }
+
+            return new CakeResponse([
+                'body'   => json_encode(array_merge([
+                    'saved'   => true,
+                    'success' => __('Galaxy clusters updated.'),
+                ], $extraSuccessFields)),
+                'status' => 200,
+                'type'   => 'json',
+            ]);
+        }
+
+        /* ── GET: build the modal ── */
+        /* Galaxy list for the per-galaxy category buttons */
+        $this->loadModel('Galaxy');
+        $galaxyRows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields'    => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
+            'order'     => ['Galaxy.name asc'],
+        ]);
+        $galaxyList = [];
+        foreach ($galaxyRows as $g) {
+            $galaxyList[] = [
+                'id'   => (int)$g['Galaxy']['id'],
+                'name' => $g['Galaxy']['name'],
+                'icon' => !empty($g['Galaxy']['icon']) ? $g['Galaxy']['icon'] : 'meteor',
+            ];
+        }
+
+        $this->set('currentGlobalClusters', $currentGlobalClusters);
+        $this->set('currentLocalClusters',  $currentLocalClusters);
+        $this->set('galaxyList',            $galaxyList);
+        $this->set('mayModify',             $mayModify);
+        $this->layout = false;
     }
 
     /**
