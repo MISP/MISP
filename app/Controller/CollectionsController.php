@@ -400,7 +400,7 @@ class CollectionsController extends AppController
     {
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'index'));
         $params = [
-            'filters' => ['Collection.uuid', 'Collection.type', 'Collection.name'],
+            'filters' => ['Collection.uuid', 'Collection.type', 'type', 'Collection.name'],
             'quickFilters' => ['Collection.name'],
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
@@ -442,6 +442,9 @@ class CollectionsController extends AppController
         }
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
+        $this->set('dropdownData', [
+            'types' => array_combine($this->valid_types, $this->valid_types)
+        ]);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
