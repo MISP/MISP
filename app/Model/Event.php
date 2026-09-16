@@ -2713,6 +2713,10 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
+        $fieldOrder = $this->Object->fieldOrderByTemplate(
+            array_column($flat, 'template_uuid')
+        );
+
         // Fetch attributes for these objects with ACL, in the deleted scope
         // settled above.
         $attrConditions = [
@@ -2876,6 +2880,17 @@ class Event extends AppModel
                         $proposalsByAttr[$attr['id']] ?? [];
                 }
                 unset($attr);
+                // Highest ui-priority first else keeps the alphabetical order
+                $rank = $fieldOrder[$obj['template_uuid']] ?? [];
+                if (!empty($rank)) {
+                    usort(
+                        $attrsByObject[$objId],
+                        function ($a, $b) use ($rank) {
+                            return ($rank[$a['object_relation']] ?? PHP_INT_MAX)
+                                <=> ($rank[$b['object_relation']] ?? PHP_INT_MAX);
+                        }
+                    );
+                }
                 $obj['Attribute'] = $attrsByObject[$objId];
             }
         }
