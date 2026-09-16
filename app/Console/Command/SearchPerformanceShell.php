@@ -7,10 +7,19 @@
  *
  * Read-only: all queries are SELECT statements.
  *
+ * MySQL/MariaDB only. Every statement quotes identifiers
+ * with backticks, and the index and row-estimate figures
+ * are MySQL planner statistics with no same-shaped
+ * counterpart on another engine - so the report is gated
+ * on the engine rather than translated; it is performance
+ * engineering, not data access.
+ *
  * Usage:
  *   app/Console/cake SearchPerformance report
  *   app/Console/cake SearchPerformance report --json
  */
+App::uses('SqlDialect', 'Migration');
+
 class SearchPerformanceShell extends AppShell
 {
     public $uses = ['MispAttribute', 'Event', 'Object',
@@ -24,7 +33,8 @@ class SearchPerformanceShell extends AppShell
             'help' => __(
                 'Harvest database statistics and produce '
                 . 'a performance evaluation of attribute '
-                . 'restSearch filter combinations.'
+                . 'restSearch filter combinations. '
+                . 'MySQL/MariaDB only.'
             ),
             'parser' => [
                 'options' => [
@@ -55,6 +65,12 @@ class SearchPerformanceShell extends AppShell
      */
     public function report()
     {
+        if ($this->MispAttribute->getSqlDialect()->flavour() !== SqlDialect::FLAVOUR_MYSQL) {
+            $this->error(
+                __('This report is MySQL/MariaDB only.'),
+                __('It reads MySQL planner statistics (SHOW INDEX, information_schema.TABLES) and is written against MySQL throughout; it has nothing to say about another engine.')
+            );
+        }
         $stats = $this->__collectStats();
         $evaluation = $this->__evaluate($stats);
 

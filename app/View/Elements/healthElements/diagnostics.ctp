@@ -364,6 +364,11 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
             'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
             'indexes' => $dbSchemaDiagnostics['indexes'],
+            'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
+            'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
+            'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
+            'migrationsFailedIds' => $dbSchemaDiagnostics['migrations_failed_ids'],
+            'migrationsApplied' => $dbSchemaDiagnostics['migrations_applied'],
         )); ?>
     </div>
 

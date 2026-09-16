@@ -23,7 +23,9 @@ echo '<div id="' . $containerId . '_content">';
         </div>
     <?php endif; ?>
 
-    <!-- CARD 2 : DATA -->
+    <!-- CARD 2 + 3 : DATA AND PAGINATION -->
+    <div id="index-results" class="index-results">
+
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
             <div id="tableView">
@@ -56,6 +58,8 @@ echo '<div id="' . $containerId . '_content">';
             </div>
         </div>
     <?php endif; ?>
+
+    </div>
 
 </div>
 

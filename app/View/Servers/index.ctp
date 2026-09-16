@@ -239,11 +239,8 @@
                     'title' => __('Explore')
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'update'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/update',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'sync',
                     'title' => __('Pull updates to events that already exist locally'),
                     'postLink' => true,
@@ -255,11 +252,8 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'full'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/full',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Pull all'),
                     'postLink' => true,
@@ -271,11 +265,8 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'pull_relevant_clusters'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/pull_relevant_clusters',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'tags',
                     'title' => __('Pull known relevant custom clusters'),
                     'postLink' => true,
@@ -287,11 +278,8 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/push',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'full'
-                    ],
+                    'url' => $baseurl . '/servers/push/%s/full',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'arrow-circle-up',
                     'title' => __('Push all'),
                     'postLink' => true,

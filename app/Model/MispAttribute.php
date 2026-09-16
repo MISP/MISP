@@ -2280,8 +2280,7 @@ class MispAttribute extends AppModel
             }
 
             if (self::$hasDeletedIndex === null) {
-                $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
-                self::$hasDeletedIndex = !empty($idx);
+                self::$hasDeletedIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'deleted');
             }
             if (self::$hasDeletedIndex) {
                 $params['ignoreIndexHint'] = 'deleted';
