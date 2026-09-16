@@ -3011,3 +3011,9 @@ Query builder
     width: 100%;
     border-bottom: 1px solid black;
 }
+
+/* Inside a modal the scroll container is .modal-body, not the page, so the
+   40px navbar offset above would push the header over the first body row. */
+.modal .table thead th {
+    top: 0;
+}
