@@ -9953,6 +9953,11 @@ class Event extends AppModel
             $total_reports = count($resolved_data['EventReport']);
             foreach ($resolved_data['EventReport'] as $i => $report) {
                 $this->EventReport->create();
+                // Module-result import only creates reports; strip any client id so a
+                // supplied existing report id cannot redirect save() onto another event's
+                // report row and reparent/overwrite it (no fieldList here, create() does
+                // not strip it) - matching the attribute and object loops above.
+                unset($report['id']);
                 $report['event_id'] = $id;
                 if ($this->EventReport->save($report)) {
                     $saved_reports++;
