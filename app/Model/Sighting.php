@@ -872,8 +872,24 @@ class Sighting extends AppModel
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false, $filters=[])
+    /**
+     * @param int|string|false $id Attribute ID, attribute UUID, ID list or 'stix'
+     * @param array|string|false $values
+     * @param int $timestamp
+     * @param array $user
+     * @param array $options Supported keys: `type`, `source`, `sighting_uuid`,
+     *      `publish`, `saveOnBehalfOf` and `filters`
+     * @return int|string Number of sightings saved or an error message
+     */
+    public function saveSightings($id, $values, $timestamp, $user, array $options = [])
     {
+        $type = $options['type'] ?? false;
+        $source = $options['source'] ?? false;
+        $sighting_uuid = $options['sighting_uuid'] ?? false;
+        $publish = $options['publish'] ?? false;
+        $saveOnBehalfOf = $options['saveOnBehalfOf'] ?? false;
+        $filters = $options['filters'] ?? [];
+
         if (!in_array($type, array(0, 1, 2))) {
             return 'Invalid type, please change it before you POST 1000000 sightings.';
         }
