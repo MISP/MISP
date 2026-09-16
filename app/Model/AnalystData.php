@@ -1208,7 +1208,7 @@ class AnalystData extends AppModel
 
         $this->Server = ClassRegistry::init('Server');
         try {
-            $filterRules = $this->buildPullFilterRules($serverSync->server());
+            $filterRules = $serverSync->buildPullFilterRules();
             $remoteData = $serverSync->fetchIndexMinimal($filterRules)->json();
         } catch (Exception $e) {
             $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
@@ -1305,20 +1305,5 @@ class AnalystData extends AppModel
             }
         }
         return $analystData;
-    }
-
-    private function buildPullFilterRules(array $server): array
-    {
-        $filterRules = ['orgc_name' => []];
-        $pullRules = $this->jsonDecode($server['Server']['pull_rules']);
-        if (!empty($pullRules['orgs']['OR'])) {
-            $filterRules['orgc_name'] = $pullRules['orgs']['OR'];
-        }
-        if (!empty($pullRules['orgs']['NOT'])) {
-            $filterRules['orgc_name'] = array_merge($filterRules['orgc_name'], array_map(function($orgName) {
-                return '!' . $orgName;
-            }, $pullRules['orgs']['NOT']));
-        }
-        return $filterRules;
     }
 }
