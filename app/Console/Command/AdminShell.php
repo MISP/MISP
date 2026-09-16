@@ -200,7 +200,7 @@ class AdminShell extends AppShell
     public function jobForgot()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot']);
         }
 
         $email = $this->args[0];
@@ -235,7 +235,7 @@ class AdminShell extends AppShell
     public function jobGenerateOccurrences()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate over-correlation occurrences'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate over-correlation occurrences']);
         }
 
         $jobId = $this->args[0];
@@ -245,7 +245,7 @@ class AdminShell extends AppShell
     public function jobPurgeCorrelation()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge correlation'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge correlation']);
         }
 
         $jobId = $this->args[0];
@@ -256,7 +256,7 @@ class AdminShell extends AppShell
     public function jobGenerateShadowAttributeCorrelation()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation']);
         }
 
         $jobId = $this->args[0];
@@ -275,7 +275,7 @@ class AdminShell extends AppShell
     public function updateAfterPull()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update after pull'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update after pull']);
         }
 
         $this->loadModel('Job');
@@ -314,7 +314,7 @@ class AdminShell extends AppShell
 
         // Supervisor identifies its programs by name, CakeResque by PID.
         if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
-            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker']);
         }
 
         $worker = $this->args[0];
@@ -352,7 +352,7 @@ class AdminShell extends AppShell
         $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
 
         if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
-            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker']);
         }
 
         $worker = $this->args[0];
@@ -376,7 +376,7 @@ class AdminShell extends AppShell
     public function startWorker()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Start a worker'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Start a worker']);
         }
 
         $queue = $this->args[0];
@@ -617,7 +617,7 @@ class AdminShell extends AppShell
     public function updateObjectTemplates()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update object templates'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update object templates']);
         } else {
             $userId = $this->args[0];
             $user = $this->User->getAuthUser($userId);
@@ -654,7 +654,7 @@ class AdminShell extends AppShell
     public function jobUpgrade24()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade']);
         }
 
         $jobId = $this->args[0];
@@ -671,7 +671,7 @@ class AdminShell extends AppShell
     public function prune_update_logs()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs']);
         }
 
         $jobId = $this->args[0];
@@ -780,7 +780,7 @@ class AdminShell extends AppShell
     public function setDatabaseVersion()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set database version'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set database version']);
         } else {
             $db_version = $this->AdminSetting->find('first', array(
                 'conditions' => array('setting' => 'db_version')
@@ -854,8 +854,8 @@ class AdminShell extends AppShell
             foreach ($aliasList as $alias => $data) {
                 $this->out('<info>' . $alias . ':</info> <comment>' . $data['help'] . '</comment>' . PHP_EOL);
             }
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Run DB Script'] . PHP_EOL);
-            die();
+            $this->out('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Run DB Script']);
+            return;
         }
 
         if (isset($aliasList[$script])) {
@@ -873,13 +873,11 @@ class AdminShell extends AppShell
                     $this->out('<info>' . sprintf('Script %s of %s completed.', $i + 1, $count) . '</info>' . PHP_EOL);
                 } else {
                     $this->out('<error>' . sprintf('Script %s of %s failed.', $i + 1, $count) . '</error>' . PHP_EOL);
-                    $this->out(PHP_EOL . '<error>' . __('Invalid script') . '</error>' . PHP_EOL);
-                    die();
+                    $this->error(__('Invalid script'));
                 }
             }
         } else {
-            $this->out(PHP_EOL . '<error>' . __('Invalid script') . '</error>' . PHP_EOL);
-            die();
+            $this->error(__('Invalid script'));
         }
         $this->Server->updateDatabase($script);
     }
@@ -890,7 +888,7 @@ class AdminShell extends AppShell
             $this->error('Advanced authkeys enabled, it is not possible to get user authkey.');
         }
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey']);
         } else {
             $user = $this->User->find('first', array(
                 'recursive' => -1,
@@ -954,7 +952,7 @@ class AdminShell extends AppShell
             }
             $roles = implode(PHP_EOL, $roles);
             echo "Roles:\n" . $roles . $this->separator();
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set default role'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set default role']);
         } else {
             $role = $this->Role->find('first', array(
                 'recursive' => -1,
@@ -982,8 +980,10 @@ class AdminShell extends AppShell
         $this->deprecated('cake user change_authkey [user_id]');
 
         if (empty($this->args[0])) {
-            echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
-            die();
+            $this->error(
+                'MISP apikey command line tool',
+                'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]'
+            );
         }
 
         if (!empty($this->args[1])) {
@@ -997,14 +997,12 @@ class AdminShell extends AppShell
             'fields' => array('User.id', 'User.email', 'User.authkey')
         ));
         if (empty($user)) {
-            echo 'Invalid e-mail, user not found.' . PHP_EOL;
-            die();
+            $this->error('Invalid e-mail, user not found.');
         }
         $user['User']['authkey'] = $authKey;
         $fields = array('id', 'email', 'authkey');
         if (!$this->User->save($user, true, $fields)) {
-            echo 'Could not update authkey, reason:' . PHP_EOL . json_encode($this->User->validationErrors) . PHP_EOL;
-            die();
+            $this->error('Could not update authkey, reason:', json_encode($this->User->validationErrors));
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
     }
@@ -1057,11 +1055,10 @@ class AdminShell extends AppShell
     public function resetSyncAuthkeys()
     {
         if (empty($this->args[0])) {
-            echo sprintf(
-                __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL),
-                APP
+            $this->error(
+                'MISP mass sync authkey reset command line tool',
+                sprintf(__('Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]'), APP)
             );
-            die();
         } else {
             $userId = $this->args[0];
             $user = $this->User->getAuthUser($userId);
@@ -1086,7 +1083,7 @@ class AdminShell extends AppShell
             (empty($this->args[0]) || !is_numeric($this->args[0])) ||
             (empty($this->args[1]) || !is_numeric($this->args[1]))
         ) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge feed events'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge feed events']);
         } else {
             $user_id = $this->args[0];
             $feed_id = $this->args[1];
@@ -1154,7 +1151,7 @@ class AdminShell extends AppShell
         $this->deprecated('cake user user_ips [user_id]');
 
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID']);
         }
 
         $user_id = trim($this->args[0]);
@@ -1182,7 +1179,7 @@ class AdminShell extends AppShell
         $this->deprecated('cake user ip_user [ip]');
 
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP']);
         }
 
         $ip = trim($this->args[0]);
@@ -1599,7 +1596,7 @@ class AdminShell extends AppShell
     public function truncateTable()
     {
         if (!isset($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
         }
         $userId = $this->args[0];
         if ($userId) {
@@ -1614,7 +1611,7 @@ class AdminShell extends AppShell
             ];
         }
         if (empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
         }
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];

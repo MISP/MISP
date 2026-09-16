@@ -134,7 +134,7 @@ class EventShell extends AppShell
     public function doPublish()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish']);
         }
 
         $id = $this->args[0];
@@ -193,7 +193,7 @@ class EventShell extends AppShell
     public function cache()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event']);
         }
 
         $timeStart = time();
@@ -250,7 +250,7 @@ class EventShell extends AppShell
     public function cachebro()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro']);
         }
 
         $timeStart = time();
@@ -290,7 +290,7 @@ class EventShell extends AppShell
     public function alertemail()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email']);
         }
 
         $userId = $this->args[0];
@@ -313,7 +313,7 @@ class EventShell extends AppShell
     public function aiSummarize()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: cake Event aiSummarize <user_id> <event|report|extract|extractReport> <id> [job_id]' . PHP_EOL);
+            $this->error('Usage: cake Event aiSummarize <user_id> <event|report|extract|extractReport> <id> [job_id]');
         }
         $user = $this->getUser($this->args[0]);
         // Rows the default audit engine writes from here carry the requesting
@@ -359,7 +359,7 @@ class EventShell extends AppShell
     {
         if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email']);
         }
 
         $id = $this->args[0];
@@ -379,7 +379,7 @@ class EventShell extends AppShell
             empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4])
         ) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email']);
         }
 
         $userId = intval($this->args[0]);
@@ -408,7 +408,7 @@ class EventShell extends AppShell
     public function enqueueCaching()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching']);
         }
 
         $timestamp = $this->args[0];
@@ -464,7 +464,7 @@ class EventShell extends AppShell
     public function publish()
     {
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event']);
         }
 
         $id = $this->args[0];
@@ -501,7 +501,7 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings']);
         }
 
         list($id, $passAlong, $jobId, $userId) = $this->args;
@@ -532,7 +532,7 @@ class EventShell extends AppShell
     public function publish_galaxy_clusters()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters']);
         }
 
         $clusterId = $this->args[0];
@@ -558,7 +558,7 @@ class EventShell extends AppShell
     public function attribute_enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment']);
         }
 
         $userId = $this->args[0];
@@ -568,7 +568,7 @@ class EventShell extends AppShell
         try {
             $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
-            die('Invalid module JSON');
+            $this->error('Invalid module JSON');
         }
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
@@ -609,7 +609,7 @@ class EventShell extends AppShell
     public function enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment']);
         }
 
         $userId = $this->args[0];
@@ -619,7 +619,7 @@ class EventShell extends AppShell
         try {
             $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
-            die('Invalid module JSON');
+            $this->error('Invalid module JSON');
         }
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
@@ -660,7 +660,7 @@ class EventShell extends AppShell
     public function processfreetext()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text']);
         }
 
         $inputFile = $this->args[0];
@@ -681,7 +681,7 @@ class EventShell extends AppShell
     public function processmoduleresult()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result']);
         }
 
         $inputFile = $this->args[0];
@@ -700,7 +700,7 @@ class EventShell extends AppShell
     public function recoverEvent()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event']);
         }
 
         $jobId = $this->args[0];
