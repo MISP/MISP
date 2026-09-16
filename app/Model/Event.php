@@ -4943,9 +4943,17 @@ class Event extends AppModel
 
         $userCount = count($usersWithAccess);
         $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
-        foreach ($usersWithAccess as $k => $user) {
-            // Fetch event for user that will receive alert e-mail to respect all ACLs
-            $eventForUser = $this->fetchEvent($user, [
+        // The fetched event only depends on the recipient's ACL context, so group the
+        // recipients by that context and fetch the event once per group
+        $usersByAcl = [];
+        foreach ($usersWithAccess as $user) {
+            $aclKey = "{$user['org_id']}-{$user['Role']['perm_site_admin']}-{$user['Role']['perm_audit']}";
+            $usersByAcl[$aclKey][] = $user;
+        }
+        $k = 0;
+        foreach ($usersByAcl as $usersWithSameAcl) {
+            // Fetch event for users that will receive alert e-mail to respect all ACLs
+            $eventForUser = $this->fetchEvent($usersWithSameAcl[0], [
                 'eventid' => $id,
                 'includeAllTags' => true,
                 'includeEventCorrelations' => true,
@@ -4953,18 +4961,23 @@ class Event extends AppModel
                 'noSightings' => true,
                 'metadata' => $metadataOnly,
             ]);
-            if (empty($eventForUser)) {
-                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
-                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
-                continue;
+            if (!empty($eventForUser)) {
+                $eventForUser = $eventForUser[0];
             }
-            $eventForUser = $eventForUser[0];
-            if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
-                $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(['User' => $user], $body, false, null);
-            }
-            if ($jobId) {
-                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+            foreach ($usersWithSameAcl as $user) {
+                $k++;
+                if (empty($eventForUser)) {
+                    $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                    $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                    continue;
+                }
+                if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
+                    $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
+                    $this->User->sendEmail(['User' => $user], $body, false, null);
+                }
+                if ($jobId) {
+                    $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                }
             }
         }
 
