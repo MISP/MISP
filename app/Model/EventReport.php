@@ -1579,6 +1579,14 @@ class EventReport extends AppModel
 
 
         if ($picture['size'] > 0 && $picture['error'] == 0) {
+            // The submitted tmp_name must be a genuine PHP upload. Reject any
+            // forged path before it reaches file_exists()/mime_content_type()/
+            // exif_imagetype(), which would otherwise leak filesystem state
+            // through the distinct validation error messages below.
+            if (empty($picture['tmp_name']) || !is_uploaded_file($picture['tmp_name'])) {
+                $saveResult['errors'][] = __('File was not uploaded correctly');
+                return $saveResult;
+            }
             $extension = pathinfo($picture['name'], PATHINFO_EXTENSION);
             $pictureUUID = CakeText::uuid();
             $filename = sprintf('%s.%s', $pictureUUID, $extension);
