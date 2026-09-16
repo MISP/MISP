@@ -629,20 +629,7 @@ class MispObject extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
-                'OR' => array(
-                    array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-                    ),
-                    array(
-                        'OR' => array(
-                            'Attribute.distribution' => array(1, 2, 3, 5),
-                            array(
-                                'Attribute.distribution' => 4,
-                                'Attribute.sharing_group_id' => $sgids,
-                            )
-                        )
-                    )
-                )
+                'OR' => $this->distributionAclConditions('Attribute', $user, $sgids)
             );
         }
         if ($this->checkDbSupport('reverseJoin')) {
