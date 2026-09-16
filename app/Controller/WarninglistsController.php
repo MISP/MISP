@@ -606,10 +606,9 @@ class WarninglistsController extends AppController
 
     private function _massToggleState($idList = null, $state = 1)
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'Warninglist');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Warninglists', 'massToggle', false, $message, $this->response->type());
@@ -649,7 +648,10 @@ class WarninglistsController extends AppController
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/warninglists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Warninglist.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Warninglist']['id'] = json_encode($ids);
+        $this->set('url', '/warninglists/' . ($state ? 'massEnable' : 'massDisable'));
         $this->render('ajax/warninglistToggleConfirmationForm');
     }
 }

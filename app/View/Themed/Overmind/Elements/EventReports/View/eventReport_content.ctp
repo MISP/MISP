@@ -147,6 +147,49 @@ $menuItems = array_merge($menuItems, [
     ],
 ]);
 
+// ── AI ─────────────────────────────────────────────────────────
+// A1 from the report page: the AI module puts its summary on top of the
+// report (a previous AI summary is replaced). Offered while the AI services
+// are on and the user may edit the report and run the tools.
+$aiSummarizeUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiSummarize'))
+    ? $baseurl . '/eventReports/aiSummarize/' . $reportId
+    : null;
+// A4 from the report page: only this report is sent, the answer is
+// reviewed in the modal before it is added to the event.
+$aiExtractUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiExtractIndicators'))
+    ? $baseurl . '/eventReports/aiExtractIndicators/' . $reportId
+    : null;
+if ($aiSummarizeUrl !== null || $aiExtractUrl !== null) {
+    $menuItems[] = ['type' => 'divider'];
+    $menuItems[] = ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('AI')];
+}
+if ($aiSummarizeUrl !== null) {
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiSummarizeUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiSummarizeUrl . "', 'md');",
+        'icon'    => 'fas fa-file-lines',
+        'label'   => __('Summarise report'),
+        'title'   => __('The AI module puts its summary on top of the report; a previous AI summary is replaced'),
+    ];
+}
+if ($aiExtractUrl !== null) {
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiExtractUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiExtractUrl . "', 'md');",
+        'icon'    => 'fas fa-magnifying-glass',
+        'label'   => __('Extract indicators'),
+        'title'   => __('The AI module reads this report and proposes attributes and objects, reviewed before they are added'),
+    ];
+}
+
 ?>
 
 <div class="card shadow-sm mb-3" id="er-content-card">
@@ -611,72 +654,6 @@ $menuItems = array_merge($menuItems, [
         } finally {
             btn.disabled  = false;
             btn.innerHTML = '<i class="fas fa-save me-1"></i><?= __('Save') ?>';
-        }
-    };
-
-    /* ── Send to LLM ─────────────────────────────────────────── */
-
-    /* Step 1 — open the BS5 confirmation modal */
-    window.erSendToLLM = function (e) {
-        if (e) { e.preventDefault(); }
-        var modal = new bootstrap.Modal(document.getElementById('er-llm-modal'));
-        modal.show();
-    };
-
-    /* Step 2 — user clicked "Confirm" inside the modal */
-    window.erConfirmLLM = async function () {
-        /* Close the confirmation modal */
-        var modalEl = document.getElementById('er-llm-modal');
-        var modal   = bootstrap.Modal.getInstance(modalEl);
-        if (modal) { modal.hide(); }
-
-        var confirmBtn = document.getElementById('er-llm-confirm-btn');
-        if (confirmBtn) {
-            confirmBtn.disabled  = true;
-            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span><?= __('Sending…') ?>';
-        }
-
-        showToast('<?= __('Sending to LLM… please wait.') ?>', 'primary');
-
-        var url = baseurl + '/eventReports/sendToLLM/' + erReportId;
-
-        try {
-            /* GET the Overmind sendToLLM view to obtain the CSRF token */
-            var formResp = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!formResp.ok) { throw new Error('HTTP ' + formResp.status); }
-
-            var formHtml = await formResp.text();
-            var parser   = new DOMParser();
-            var doc      = parser.parseFromString(formHtml, 'text/html');
-            var form     = doc.querySelector('form');
-            if (!form) { throw new Error('<?= __('CSRF form not found in response') ?>'); }
-
-            /* POST back with CSRF tokens */
-            var postResp = await fetch(form.action || url, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new URLSearchParams(new FormData(form))
-            });
-
-            var result = await postResp.json();
-
-            if (result.saved !== false) {
-                showToast(result.message || '<?= __('Report sent to LLM successfully') ?>', 'success');
-                setTimeout(function () { window.location.reload(); }, 1500);
-            } else {
-                var errDetail = result.errors || result.message || '<?= __('Failed to send to LLM') ?>';
-                showToast(errDetail, 'danger');
-            }
-
-        } catch (err) {
-            showToast('<?= __('Failed to send to LLM') ?>: ' + err.message, 'danger');
-        } finally {
-            if (confirmBtn) {
-                confirmBtn.disabled  = false;
-                confirmBtn.innerHTML = '<i class="fas fa-robot me-1"></i><?= __('Confirm') ?>';
-            }
         }
     };
 

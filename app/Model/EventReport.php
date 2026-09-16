@@ -336,6 +336,195 @@ class EventReport extends AppModel
         return $errors;
     }
 
+    /**
+     * The AI summary block of a report (AI UX PRD §3.3): a `# AI summary`
+     * heading at the very top, the summary, and a visible delineator line of
+     * equals signs after it; the original text follows. Both the heading and
+     * the delineator are required, so a report that merely contains a line
+     * of equals signs is never mistaken for one. The blank line before the
+     * delineator matters: Markdown reads an equals line right under a text
+     * line as a setext heading.
+     */
+    const AI_SUMMARY_HEADING = '# AI summary';
+    const AI_SUMMARY_DELINEATOR = '==================';
+    const AI_SUMMARY_BLOCK_REGEX = '/\A\s*#[ \t]*AI summary[ \t]*(?:\R|\z)(?:(?<body>.*?)\R)?[ \t]*={10,}[ \t]*(?:\R|\z)\R*/is';
+
+    /**
+     * The report content without its AI summary block: what the module is
+     * sent, so that it always sees the original text and a re-run replaces
+     * the previous summary instead of stacking on it.
+     *
+     * @param string|null $content
+     * @return string
+     */
+    public static function stripAiSummary($content)
+    {
+        if (!is_string($content) || $content === '') {
+            return '';
+        }
+        return preg_replace(self::AI_SUMMARY_BLOCK_REGEX, '', $content, 1);
+    }
+
+    /**
+     * The content to store once the module answered, always laid out the
+     * same way: heading, summary, blank line, delineator, blank line, the
+     * report. The contract says the module returns the full revised report
+     * with the summary block on top, and that report is what follows the
+     * delineator; two shortfalls are caught so that a summary run can never
+     * lose the analyst's text: an answer that is only the block is put on
+     * top of the original, and an answer without heading and delineator is
+     * taken as the summary itself.
+     *
+     * @param string|null $original the stored content (a previous block is
+     *                              dropped from it)
+     * @param string $returned      results.EventReport.content from the module
+     * @return string
+     */
+    public static function mergeAiSummary($original, $returned)
+    {
+        $original = self::stripAiSummary($original);
+        $returned = is_string($returned) ? $returned : '';
+        if (preg_match(self::AI_SUMMARY_BLOCK_REGEX, $returned, $matches)) {
+            $summary = isset($matches['body']) ? $matches['body'] : '';
+            $report = substr($returned, strlen($matches[0]));
+        } else {
+            // A bare heading on a summary-only answer would double up.
+            $summary = preg_replace('/\A\s*#[ \t]*AI summary[ \t]*(?:\R|\z)/i', '', $returned);
+            $report = '';
+        }
+        if (trim($report) === '') {
+            $report = $original;
+        }
+        $block = self::AI_SUMMARY_HEADING . "\n" . trim($summary) . "\n\n" . self::AI_SUMMARY_DELINEATOR . "\n";
+        if (trim($report) === '') {
+            return $block;
+        }
+        return $block . "\n" . ltrim($report, "\r\n");
+    }
+
+    /**
+     * A4 from one report (direct apply): extract indicators out of this
+     * report only and add them to its event as the requesting user — a job
+     * when MISP.background_jobs is on (cake Event aiSummarize <user>
+     * extractReport <report> <job>), inline otherwise. The report is only
+     * read; the review flow of the browser lives in the controller.
+     *
+     * @param array $user
+     * @param int $reportId
+     * @return array {job_id} or the result of Event::aiExtractAndApply()
+     * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception
+     */
+    public function aiExtractIndicatorsRouter(array $user, $reportId)
+    {
+        $report = $this->fetchIfAuthorized($user, $reportId, 'edit', true, true);
+        if (!empty($report['EventReport']['deleted'])) {
+            throw new MethodNotAllowedException(__('The report is deleted.'));
+        }
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_extract_indicators',
+                'Event report: ' . (int)$reportId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'extractReport', (int)$reportId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->Event->aiExtractAndApply($user, (int)$report['EventReport']['event_id'], [$report['EventReport']['uuid']]);
+    }
+
+    /**
+     * Summarise an event report with the AI module: queued as a background
+     * job, or run at once when background jobs are off.
+     *
+     * @param array $user
+     * @param int $reportId
+     * @return array ['job_id' => int] when queued, else what aiSummarize() returns
+     * @throws Exception see aiSummarize()
+     */
+    public function aiSummarizeRouter(array $user, $reportId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_summarize_report',
+                'Event report: ' . (int)$reportId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'report', (int)$reportId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->aiSummarize($user, $reportId);
+    }
+
+    /**
+     * Summarise an event report with the AI module and write the answer
+     * into the report, as the given user: the read and edit checks are
+     * applied here again so that a worker writes with the requesting user's
+     * rights. A previous summary block is stripped before the query and the
+     * module's revised content replaces the stored one (re-run replaces),
+     * through the same edit path as the UI, so the event is unpublished.
+     *
+     * @param array $user
+     * @param int $reportId
+     * @return array ['report_id' => int, 'name' => string]
+     * @throws NotFoundException|UnauthorizedException|ForbiddenException|Exception with a user-facing message
+     */
+    public function aiSummarize(array $user, $reportId)
+    {
+        $report = $this->fetchIfAuthorized($user, $reportId, 'edit', true, true);
+        if (!$this->Event->userCanModifyEvent($user, $report)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!empty($report['EventReport']['deleted'])) {
+            throw new MethodNotAllowedException(__('The report is deleted.'));
+        }
+        $original = (string)$report['EventReport']['content'];
+        // The report as /eventReports/view returns it, with its event for
+        // context; the module always sees the text without a summary block.
+        $data = [
+            'EventReport' => $report['EventReport'],
+            'Event' => $report['Event'],
+        ];
+        $data['EventReport']['content'] = self::stripAiSummary($original);
+        $this->Module = ClassRegistry::init('Module');
+        $results = $this->Module->queryAI('summarization_on_eventReport', $data);
+        $answer = isset($results['EventReport']) && is_array($results['EventReport']) ? $results['EventReport'] : [];
+        if (empty($answer['content']) || !is_string($answer['content'])) {
+            throw new Exception(__('The AI module returned no summary.'));
+        }
+        $errors = $this->editReport($user, ['EventReport' => [
+            'uuid' => $report['EventReport']['uuid'],
+            'name' => $report['EventReport']['name'],
+            'content' => self::mergeAiSummary($original, $answer['content']),
+            'distribution' => $report['EventReport']['distribution'],
+            'sharing_group_id' => $report['EventReport']['sharing_group_id'],
+        ]], $report['EventReport']['event_id']);
+        if (!empty($errors)) {
+            throw new Exception(__('The AI summary could not be saved into the report: %s', json_encode($errors)));
+        }
+        // The module marks what it produced (the two ai-computer-assisted
+        // tags for the event); the report edit above already unpublished.
+        $tags = $this->Event->aiAttachResultTags($user, (int)$report['EventReport']['event_id'], $results);
+        return ['report_id' => (int)$report['EventReport']['id'], 'name' => $report['EventReport']['name'], 'tags' => $tags];
+    }
+
     private function captureSG(array $user, array $report)
     {
         $this->Event = ClassRegistry::init('Event');
@@ -1658,92 +1847,6 @@ class EventReport extends AppModel
         $reportGenerator = new ReportFromEvent();
         $reportGenerator->construct($this->Event, $user, $options);
         $report = $reportGenerator->generate();
-        return $report;
-    }
-
-    public function sendToLLM($report, $user, &$errors, $options = [])
-    {
-        $defaultOptions = [
-            'insert_executive_summary' => true,
-            'tag_event_with_threat_actor' => true,
-            'tag_event_with_threat_actor_country' => true,
-            'tag_event_with_threat_actor_motivation' => true,
-        ];
-        $options = array_merge($defaultOptions, $options);
-        $syncTool = new SyncTool();
-        $config = [];
-        $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
-        $LLMFeatureEnabled = Configure::read('Plugin.CTIInfoExtractor_enable', false);
-        $url = Configure::read('Plugin.CTIInfoExtractor_url');
-        $apiKey = Configure::read('Plugin.CTIInfoExtractor_authentication');
-        if (!$LLMFeatureEnabled || empty($url)) {
-            $errors[] = __('LLM Feature disabled or no URL provided');
-            return false;
-        }
-        $reportContent = $report['EventReport']['content'];
-        $data = json_encode(['text' => $reportContent]);
-        $version = implode('.', $this->Event->checkMISPVersion());
-        $request = [
-            'header' => array_merge([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
-                'x-api-key' => $apiKey,
-            ])
-        ];
-
-        $response = $HttpSocket->post($url, $data, $request);
-        if (!$response->isOk()) {
-            $errors[] = __('LLM server failed to process the request, code: %s.', $response->code);
-            return false;
-        }
-        $data = json_decode($response->body, true);
-        if (!empty($data['error'])) {
-            $errors[] = $data['error'];
-            return false;
-        }
-        /*
-        debug($data);
-        
-        $data = array(
-	'AI_ThreatActor' => 'Sofacy',
-	'AI_AttributedCountry' => 'unknown',
-	'AI_Type' => 'Developments in IT Security',
-	'AI_Motivation' => 'Espionage',
-	'AI_ExecutiveSummary' => 'The Sofacy group, also known as APT28 or Fancy Bear, continues to target government and strategic organizations primarily in North America and Europe. They have recently been using a tool called Zebrocy, delivered via phishing attacks, to cast a wider net within target organizations. They have also been observed leveraging the Dynamic Data Exchange (DDE) exploit technique to deliver different payloads, including the Koadic toolkit. This report provides details on the campaigns and tactics used by the Sofacy group.',
-	'AI_CouldWeBeAffected' => true
-);
-*/
-        if ($options['insert_executive_summary']) {
-            if (!empty($data['AI_ExecutiveSummary'])) {
-                $report['EventReport']['content'] = '# Executive Summary' . PHP_EOL . $data['AI_ExecutiveSummary'] . PHP_EOL . PHP_EOL . '# Report' . PHP_EOL . $report['EventReport']['content'];
-            }
-            $this->save($report);
-        }
-        $event = $this->Event->find('first', [
-            'conditions' => ['Event.id' => $report['EventReport']['event_id']],
-            'recursive' => -1
-        ]);
-        if ($options['tag_event_with_threat_actor']) {
-            if (!empty($data['AI_ThreatActor'])) {
-                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor="' . $data['AI_ThreatActor'] . '"'], $user);
-                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
-            }
-        }
-
-        if ($options['tag_event_with_threat_actor_country']) {
-            if (!empty($data['AI_AttributedCountry'])) {
-                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-country="' . $data['AI_AttributedCountry'] . '"'], $user);
-                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
-            }
-        }
-
-        if ($options['tag_event_with_threat_actor_motivation']) {
-            if (!empty($data['AI_Motivation'])) {
-                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-motivation="' . $data['AI_Motivation'] . '"'], $user);
-                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
-            }
-        }
         return $report;
     }
 

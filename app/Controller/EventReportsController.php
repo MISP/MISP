@@ -619,6 +619,145 @@ class EventReportsController extends AppController
         $this->render('ajax/importReportFromUrl');
     }
 
+    /**
+     * A4 from one report — extract indicators out of this report only (the
+     * event-level action sends every report). Same modes as
+     * EventsController::aiExtractIndicators(): the browser reviews the
+     * module's answer on the import review screen before anything is saved
+     * (legacy: a page; Overmind: the modal body for an AJAX caller), REST
+     * applies directly (a job id when background jobs are on).
+     */
+    public function aiExtractIndicators($id)
+    {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true, true);
+        if (!$this->ACL->canModifyEvent($this->Auth->user(), $report)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        if (!empty($report['EventReport']['deleted'])) {
+            throw new MethodNotAllowedException(__('The report is deleted.'));
+        }
+        $reportId = (int)$report['EventReport']['id'];
+        $eventId = (int)$report['EventReport']['event_id'];
+        $redirectTarget = ['controller' => 'eventReports', 'action' => 'view', $reportId];
+        $this->loadModel('Module');
+        if (!$this->request->is('post')) {
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+            }
+            $this->set('report', $report);
+            $this->set('minConfidence', $this->Module->aiSetting('min_confidence'));
+            $this->set('timeout', (int)$this->Module->aiSetting('timeout') ?: 300);
+            $this->layout = false;
+            return $this->render('ajax/aiExtractIndicatorsConfirmationForm');
+        }
+        if ($this->_isRest()) {
+            try {
+                $result = $this->EventReport->aiExtractIndicatorsRouter($this->Auth->user(), $reportId);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('EventReports', 'aiExtractIndicators', $reportId, $e->getMessage(), $this->response->type());
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI extraction job #%s queued — refresh the event when it completes.', $result['job_id']);
+            } else {
+                $message = Event::aiExtractionMessage($result);
+            }
+            return $this->RestResponse->viewData(
+                array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                $this->response->type()
+            );
+        }
+        // Browser: review first; only this report goes to the module.
+        $isAjax = $this->request->is('ajax');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        $Event = $this->EventReport->Event;
+        try {
+            $resolved = $Event->aiExtractIndicators($this->Auth->user(), $eventId, [$report['EventReport']['uuid']]);
+        } catch (Exception $e) {
+            if ($isAjax) {
+                return $this->RestResponse->saveFailResponse('EventReports', 'aiExtractIndicators', $reportId, $e->getMessage(), 'json');
+            }
+            $this->Flash->error($e->getMessage());
+            return $this->redirect($redirectTarget);
+        }
+        $counts = Event::aiExtractionCounts($resolved);
+        $rejected = $resolved['rejected'];
+        unset($resolved['rejected'], $resolved['metadata']);
+        if ($counts['attributes'] === 0 && $counts['objects'] === 0 && !$isAjax) {
+            $this->Flash->info(Event::aiExtractionMessage($counts));
+            return $this->redirect($redirectTarget);
+        }
+        $distributionData = $Event->Attribute->fetchDistributionData($this->Auth->user());
+        $this->set('event', $resolved);
+        $this->set('distributions', $distributionData['levels']);
+        $this->set('sgs', $distributionData['sgs']);
+        $this->set('title', __('Extracted indicators'));
+        $this->set('title_for_layout', __('Extracted indicators'));
+        $this->set('importComment', 'extracted by ai_connector');
+        $this->set('menuItem', 'importResults');
+        $this->set('type', 'AI');
+        $this->set('model', 'Event');
+        $this->set('sourceId', $eventId);
+        $this->set('backUrl', $this->baseurl . '/eventReports/aiExtractIndicators/' . $reportId);
+        $this->set('aiRejected', $rejected);
+        $this->set('emptyMessage', Event::aiExtractionMessage($counts));
+        if ($isAjax) {
+            $this->layout = false;
+        }
+        $this->render('/Events/resolved_misp_format');
+    }
+
+    /**
+     * Summarise an event report with the AI module, in place. GET renders
+     * the confirmation; POST queues the job, or runs it at once when
+     * background jobs are off. REST answers with the job id.
+     *
+     * @param int|string $id
+     */
+    public function aiSummarize($id)
+    {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true, true);
+        if (!$this->ACL->canModifyEvent($this->Auth->user(), $report)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        if (!Configure::read('Plugin.AI_services_enable')) {
+            throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
+        }
+        $reportId = (int)$report['EventReport']['id'];
+        $redirectTarget = ['controller' => 'eventReports', 'action' => 'view', $reportId];
+        if ($this->request->is('post')) {
+            try {
+                $result = $this->EventReport->aiSummarizeRouter($this->Auth->user(), $reportId);
+            } catch (Exception $e) {
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('EventReports', 'aiSummarize', $reportId, $e->getMessage(), $this->response->type());
+                }
+                $this->Flash->error($e->getMessage());
+                return $this->redirect($redirectTarget);
+            }
+            if (isset($result['job_id'])) {
+                $message = __('AI summary job #%s queued — refresh the report when it completes.', $result['job_id']);
+            } else {
+                $message = __('AI summary written into the report "%s".', $result['name']);
+                $message .= Event::aiTagsNote($result);
+            }
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData(
+                    array_merge(['saved' => true, 'success' => $message, 'message' => $message], $result),
+                    $this->response->type()
+                );
+            }
+            $this->Flash->success($message);
+            return $this->redirect($redirectTarget);
+        }
+        $this->set('report', $report);
+        $this->layout = false;
+        $this->render('ajax/aiSummarizeConfirmationForm');
+    }
+
     public function reportFromEvent($eventId)
     {
         $event = $this->__canModifyReport($eventId);
@@ -659,28 +798,6 @@ class EventReportsController extends AppController
         $this->set('event_id', $eventId);
         $this->layout = false;
         $this->render('ajax/reportFromEvent');
-    }
-
-    public function sendToLLM($reportId)
-    {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-        } else {
-            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', true, false);
-            if ($this->request->is('post')) {
-                $errors = [];
-                $result = $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
-                if ($result !== false) {
-                    $successMessage = __('Successfully sent to Event Report %s to LLM', $reportId);
-                    return $this->__getSuccessResponseBasedOnContext($successMessage, $result, 'sendToLLM', $reportId);
-                } else {
-                    $errorMessage = __('Could not send Event Report %s to LLM.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
-                    return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'sendToLLM', $reportId);
-                }
-            }
-            $this->layout = false;
-            $this->render('ajax/sendToLLM');
-        }
     }
 
     public function uploadPicture($reportId)
