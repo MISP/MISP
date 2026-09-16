@@ -40,7 +40,10 @@ class CollectionsController extends AppController
         $attachElementUuid = !empty($attachElementUuids) ? $attachElementUuids[0] : null;
         $params = [];
         $this->loadModel('Event');
-        if ($this->request->is('post')) {
+        // Accept PUT as well as POST: CRUDComponent::add() persists on either verb, so the
+        // sharing-group authorisation check and element capture below must run for both -
+        // otherwise a PUT reaches the save with an empty $params and skips the SG guard.
+        if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data;
             $params = [
                 'beforeSave' => function (array $collection) use ($currentUser) {
