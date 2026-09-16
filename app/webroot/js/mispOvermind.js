@@ -1452,6 +1452,19 @@ function initPgpKeyLookup(container) {
         panel.classList.add('d-none');
     }
 
+    /* Show four keys and make the rest scroll to avoid pushing buttons off-screen. */
+    function capList() {
+        const list = panel.querySelector('[data-pgp-list]');
+        if (!list) return;
+        const rows = list.querySelectorAll('[data-pgp-fingerprint]');
+        if (rows.length <= 4) return;
+        const height = rows[4].getBoundingClientRect().top - list.getBoundingClientRect().top;
+        if (height > 0) {
+            list.style.maxHeight = Math.round(height) + 'px';
+            list.style.overflowY = 'auto';
+        }
+    }
+
     // The button is only ever as usable as the email field it searches on.
     email.addEventListener('input', function () { busy(false); });
     busy(false);
@@ -1479,6 +1492,7 @@ function initPgpKeyLookup(container) {
             } else {
                 panel.innerHTML = result.body;
                 panel.classList.remove('d-none');
+                capList(); // only measurable once the panel is shown
             }
         })
         .catch(function () {
