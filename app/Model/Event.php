@@ -7719,6 +7719,7 @@ class Event extends AppModel
     {
         $resultArray = array();
         $freetextResults = array();
+        $freetextToolsSet = false;
         App::uses('ComplexTypeTool', 'Tools');
         $complexTypeTool = new ComplexTypeTool();
         if (isset($result['results']) && !empty($result['results'])) {
@@ -7752,12 +7753,15 @@ class Event extends AppModel
                         if (is_array($value)) {
                             $value = json_encode($value);
                         }
-                        $this->Warninglist = ClassRegistry::init('Warninglist');
-                        $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-                        $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
-                        $freetextResults = array_merge($freetextResults, $complexTypeTool->checkFreeText($value));
-                        if (!empty($freetextResults)) {
-                            foreach ($freetextResults as &$ft) {
+                        if (!$freetextToolsSet) {
+                            $this->Warninglist = ClassRegistry::init('Warninglist');
+                            $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+                            $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
+                            $freetextToolsSet = true;
+                        }
+                        $newFreetextResults = $complexTypeTool->checkFreeText($value);
+                        if (!empty($newFreetextResults)) {
+                            foreach ($newFreetextResults as &$ft) {
                                 $temp = array();
                                 foreach ($ft['types'] as $type) {
                                     $temp[$type] = $type;
@@ -7767,6 +7771,7 @@ class Event extends AppModel
                                 $ft['comment'] = isset($r['comment']) ? $r['comment'] : false;
                             }
                         }
+                        $freetextResults = array_merge($freetextResults, $newFreetextResults);
                         $r['types'] = array_diff($r['types'], array('freetext'));
                         // if we just removed the only type in the result then more on to the next result
                         if (empty($r['types'])) {
