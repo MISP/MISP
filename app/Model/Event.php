@@ -3568,6 +3568,7 @@ class Event extends AppModel
             $this->__attachReferences($results);
         }
 
+        $galaxyClusterCache = []; // galaxy clusters are shared between the events of the result set
         foreach ($results as &$event) {
             /*
             // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
@@ -3594,7 +3595,7 @@ class Event extends AppModel
                 $event['warnings'] = $eventWarnings;
             }
             $this->__attachTags($event, $justExportableTags);
-            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship']);
+            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship'], $galaxyClusterCache);
             $this->__pruneUnknownClusters($event, $user);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
@@ -3778,8 +3779,10 @@ class Event extends AppModel
      * @param array $user
      * @param bool $excludeGalaxy
      * @param bool $fetchFullCluster
+     * @param bool $fetchFullRelationship
+     * @param array $clusterCache Clusters already fetched for the current result set, keyed by tag ID
      */
-    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship=false)
+    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship=false, array &$clusterCache=[])
     {
         $galaxyTags = [];
         $event['Galaxy'] = [];
@@ -3806,14 +3809,25 @@ class Event extends AppModel
             return;
         }
 
-        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
-        if (empty($clusters)) {
+        // The events of a result set share most of their galaxy tags, so only fetch the clusters
+        // that were not already resolved for one of the previous events.
+        $newGalaxyTags = array_diff_key($galaxyTags, $clusterCache);
+        if (!empty($newGalaxyTags)) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClustersByTags($newGalaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
+            $fetchedClusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+            unset($clusters);
+            foreach (array_keys($newGalaxyTags) as $tagId) {
+                // Tags without a cluster are cached as well, so that they are not fetched again.
+                $clusterCache[$tagId] = $fetchedClusters[$tagId] ?? null;
+            }
+        }
+
+        $clustersByTagIds = array_filter(array_intersect_key($clusterCache, $galaxyTags));
+        if (empty($clustersByTagIds)) {
             return;
         }
 
-        $clustersByTagIds = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
-        unset($clusters);
         if (isset($event['EventTag'])) {
             foreach ($event['EventTag'] as $eventTag) {
                 if (!$eventTag['Tag']['is_galaxy']) {
