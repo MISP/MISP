@@ -180,7 +180,7 @@ $expanded = !empty($ctx['expand']);
 
         <!-- ── Attributes, behind the header's click ───────────────── -->
         <div id="<?= $collapseId ?>"
-             class="accordion-collapse collapse<?= $expanded ? ' show' : '' ?>">
+             class="accordion-collapse obj-collapse collapse<?= $expanded ? ' show' : '' ?>">
             <?php if (!empty($attrs)): ?>
                 <div class="list-group list-group-flush border-top">
                     <?php foreach ($attrs as $attr): ?>

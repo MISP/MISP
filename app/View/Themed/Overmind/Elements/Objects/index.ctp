@@ -93,6 +93,27 @@ function _objDistBadge($dist) {
         h($c['bg']), h($c['color']), h($c['color']), h($c['icon'])
     );
 }
+
+// The fold controls only have something to act on once the page holds an
+// object, so an empty list gets no pair of dead buttons.
+$foldChildren = empty($objects) ? [] : [
+    [
+        'type'    => 'button_group',
+        'label'   => __('Expand or collapse every object'),
+        'buttons' => [
+            [
+                'class' => 'btn btn-outline-primary obj-expand-all',
+                'icon'  => 'fas fa-angles-down',
+                'label' => __('Expand all'),
+            ],
+            [
+                'class' => 'btn btn-outline-primary obj-collapse-all',
+                'icon'  => 'fas fa-angles-up',
+                'label' => __('Collapse all'),
+            ],
+        ],
+    ],
+];
 ?>
 
 <div id="objectListContainer" class="container-fluid px-0">
@@ -105,7 +126,7 @@ function _objDistBadge($dist) {
                 [
                     'scaffold_data' => [
                         'filter_bar' => [
-                            'children' => [
+                            'children' => array_merge([
                                 [
                                     'type'        => 'search',
                                     'button'      => __('Search'),
@@ -127,7 +148,7 @@ function _objDistBadge($dist) {
                                     'icon'  => 'fas fa-trash',
                                     'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
                                 ],
-                            ],
+                            ], $foldChildren),
                         ],
                     ],
                     'item_url' => $objectsUrl,
@@ -287,7 +308,7 @@ function _objDistBadge($dist) {
 
             <!-- Card body -->
             <div id="<?= $collapseId ?>"
-                 class="accordion-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
+                 class="accordion-collapse obj-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
                  aria-labelledby="<?= $headingId ?>">
 
                 <div class="accordion-body p-0">
@@ -819,6 +840,26 @@ function _objDistBadge($dist) {
     }
     wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
+
+    function setAllObjectsExpanded(expand) {
+        (container || document)
+            .querySelectorAll('.obj-collapse')
+            .forEach(function (panel) {
+                if (panel.classList.contains('show') === expand) return;
+                var collapse = bootstrap.Collapse.getOrCreateInstance(
+                    panel, { toggle: false }
+                );
+                if (expand) { collapse.show(); } else { collapse.hide(); }
+            });
+    }
+
+    [['.obj-expand-all', true], ['.obj-collapse-all', false]].forEach(function (pair) {
+        var btn = (container || document).querySelector(pair[0]);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            setAllObjectsExpanded(pair[1]);
+        });
+    });
 
     // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
     // the global selectedItems map, which the attribute toolbar deletes through

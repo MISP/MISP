@@ -279,7 +279,41 @@ $activeTotal = count(array_diff_key(
         ?>
     </div>
 
+    <?php if ($child['type'] === 'button_group'): ?>
+        <div class="btn-group flex-shrink-0" role="group"<?php
+            if (!empty($child['label'])): ?> aria-label="<?= h($child['label']) ?>"<?php
+            endif; ?>>
+            <?php foreach ($child['buttons'] as $groupButton): ?>
+                <?php
+                    $isLink = !empty($groupButton['url']);
+                    $tag = $isLink ? 'a' : 'button';
+                    $attributes = [
+                        'class' => $groupButton['class'] ?? 'btn btn-outline-primary',
+                    ];
+                    if ($isLink) {
+                        $attributes['href'] = $groupButton['url'];
+                    } else {
+                        $attributes['type'] = 'button';
+                    }
+                    foreach (['id', 'title', 'onclick'] as $optional) {
+                        if (!empty($groupButton[$optional])) {
+                            $attributes[$optional] = $groupButton[$optional];
+                        }
+                    }
+                    $renderedAttributes = '';
+                    foreach ($attributes as $name => $value) {
+                        $renderedAttributes .= sprintf(' %s="%s"', $name, h($value));
+                    }
+                ?>
+                <<?= $tag . $renderedAttributes ?>><?php
+                    if (!empty($groupButton['icon'])): ?><i class="<?= h($groupButton['icon']) ?> me-1"></i><?php
+                    endif; ?><?= h($groupButton['label'] ?? '') ?></<?= $tag ?>>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <div class="btn-group" role="group" data-tour="index-view">
+
         <?php if (!empty($filter_bar['view_switch'])): ?>
             <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->
             <?php foreach ($filter_bar['view_switch'] as $vs): ?>
