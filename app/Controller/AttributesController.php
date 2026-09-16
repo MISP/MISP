@@ -561,7 +561,7 @@ class AttributesController extends AppController
     public function download($id = null)
     {
         $conditions = $this->__idToConditions($id);
-        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $conditions['Attribute.type'] = MispAttribute::ATTACHMENT_TYPES;
         $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => $conditions, 'flatten' => true));
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
@@ -2118,7 +2118,7 @@ class AttributesController extends AppController
             throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
         }
         $conditions = $this->__idToConditions($id);
-        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $conditions['Attribute.type'] = MispAttribute::ATTACHMENT_TYPES;
         $attributes = $this->MispAttribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => true));
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
@@ -3655,7 +3655,7 @@ class AttributesController extends AppController
         $attributes = $this->MispAttribute->find(
                 'all',
                 array(
-                    'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
+                    'conditions' => array('Attribute.type' => MispAttribute::ATTACHMENT_TYPES),
                     'contain' => ['Event.orgc_id', 'Event.org_id'],
                     'recursive' => -1
                 )
