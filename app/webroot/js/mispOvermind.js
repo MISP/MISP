@@ -4839,7 +4839,11 @@ function initTopbarFilterSelects(scope) {
  * @param {Element} container carries data-url, gains data-loaded
  */
 function loadAjaxContainer(container) {
-    if (!container || container.dataset.loaded) return;
+    if (!container) return;
+
+    bindAjaxTabIndexNav(container);
+
+    if (container.dataset.loaded) return;
 
     const url = container.dataset.url;
     if (!url) return;
@@ -4877,9 +4881,110 @@ function loadAjaxContainer(container) {
 }
 
 /**
+ * Drop the paging/sorting segments from an index URL.
+ *
+ * @param {string} url
+ * @param {string[]} keys named segments to remove ('page', 'sort', ...)
+ * @returns {string} the URL without its query string or a trailing slash
+ */
+function stripIndexSegments(url, keys) {
+    let path = String(url || '').split('?')[0];
+    keys.forEach(function (key) {
+        path = path.replace(new RegExp('/' + key + ':[^/]+'), '');
+    });
+    return path.replace(/\/+$/, '');
+}
+
+/**
+ * An index URL's query string, kept as-is: a bar using `transport => 'query'`
+ * carries its filters there, and a named segment appended after them would
+ * take the whole lot with it into the query.
+ *
+ * @param {string} url
+ * @returns {string} '?...' or an empty string
+ */
+function indexUrlQuery(url) {
+    const query = String(url || '').split('?')[1];
+    return query ? '?' + query : '';
+}
+
+/**
+ * Keep an ajax tab's paging and sorting inside the tab.
+ *
+ * The Paginator draws ordinary links, so a page number or a column header
+ * rendered inside a lazily-loaded fragment is a full navigation to the
+ * fragment's own action — and that action answers with `layout = false`,
+ * i.e. a bare style-less table with no chrome and no way back to the tab it
+ * came from. This intercepts both and reloads the fragment instead.
+ *
+ * The new URL is rebuilt from the container's own URL rather than from the
+ * link, because the container carries the scope the fragment was opened with
+ * (an object template id, an event id, a `searchorg:`) while CakePHP renders
+ * the page-1 link without even a `/page:` segment. A sort link is only taken
+ * when it points back at that same action: a fragment is free to list links
+ * to other indexes, and those must navigate.
+ *
+ * Delegated on the container, which outlives every reload, and registered
+ * once — this used to live in IndexTable/filter_bar.ctp, where it reached
+ * only the fragments that happen to draw a filter bar and only recognised a
+ * tab whose URL was `<item_url>/index`.
+ *
+ * @param {Element} container an .ajax-tab-content carrying data-url
+ */
+function bindAjaxTabIndexNav(container) {
+    if (container.dataset.indexNavWired) return;
+    container.dataset.indexNavWired = '1';
+
+    container.addEventListener('click', function (event) {
+        // initIndexFilterDraft() binds the very same links directly, so it
+        // has already had its say by the time the click reaches us.
+        if (event.defaultPrevented) return;
+
+        const link = event.target.closest ? event.target.closest('a[href]') : null;
+        if (!link || !container.contains(link)) return;
+
+        const href = link.getAttribute('href') || '';
+        const current = container.dataset.url || '';
+        if (!current) return;
+
+        if (link.classList.contains('page-link')) {
+            const page = href.match(/[/?&]page[:=](\d+)/);
+            event.preventDefault();
+            reloadAjaxTabIndex(
+                container,
+                stripIndexSegments(current, ['page'])
+                    + '/page:' + (page ? page[1] : '1')
+                    + indexUrlQuery(current)
+            );
+            return;
+        }
+
+        const sort = href.match(/\/sort:([^/]+)/);
+        if (!sort) return;
+
+        const keys = ['page', 'sort', 'direction'];
+        const base = stripIndexSegments(current, keys);
+        // One of the two may carry the webroot prefix and the other not,
+        // hence the tail comparison rather than an equality.
+        const target = stripIndexSegments(href, keys);
+        if (!base || !target || (!target.endsWith(base) && !base.endsWith(target))) return;
+
+        event.preventDefault();
+        const direction = href.match(/\/direction:([^/]+)/);
+        reloadAjaxTabIndex(
+            container,
+            base + '/sort:' + sort[1]
+                + (direction ? '/direction:' + direction[1] : '')
+                + indexUrlQuery(current)
+        );
+    });
+}
+
+/**
  * Reload an already-loaded ajax index container against a new (filtered,
  * sorted or paginated) URL, keeping the user inside the current tab instead
- * of navigating the whole page. Called by IndexTable/filter_bar.
+ * of navigating the whole page. Called by bindAjaxTabIndexNav() above and by
+ * IndexTable/filter_bar.
  *
  * @param {Element} container
  * @param {string} url
