@@ -336,12 +336,11 @@ class NidsSuricataExport extends NidsExport
     // below overwrite functions from NidsExport
     protected function hostnameRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'dns.query; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'dns',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -359,7 +358,7 @@ class NidsSuricataExport extends NidsExport
         $content = 'flow:to_server,established; http.host; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'http',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -377,7 +376,7 @@ class NidsSuricataExport extends NidsExport
         $content = 'flow:to_server,established; tls.sni; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'tls',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -394,12 +393,11 @@ class NidsSuricataExport extends NidsExport
 
     protected function domainRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'dns.query; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'dns',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -417,7 +415,7 @@ class NidsSuricataExport extends NidsExport
         $content = 'flow:to_server,established; http.host; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'http',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -435,7 +433,7 @@ class NidsSuricataExport extends NidsExport
         $content = 'flow:to_server,established; tls.sni; content:"' . $attribute['value'] . '"; startswith; endswith;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'tls',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -453,7 +451,6 @@ class NidsSuricataExport extends NidsExport
     protected function urlRule($ruleFormat, $attribute, &$sid)
     {
         $createRule = true;
-        $overruled = $this->checkWhitelist($attribute['value']);
 
         $scheme = parse_url($attribute['value'], PHP_URL_SCHEME);
         $data = parse_url($attribute['value']);
@@ -552,7 +549,7 @@ class NidsSuricataExport extends NidsExport
             $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
             $this->rules[] = sprintf(
                 $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 $suricata_protocol, // proto
                 $suricata_src_ip,			// src_ip
                 $suricata_src_port,			// src_port
@@ -570,12 +567,11 @@ class NidsSuricataExport extends NidsExport
 
     protected function userAgentRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; http_user_agent;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'http',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -592,12 +588,11 @@ class NidsSuricataExport extends NidsExport
 
     protected function ja3Rule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'ja3.hash; content:"' . $attribute['value'] . '"; fast_pattern;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'tls',						// proto
                 'any',					// src_ip
                 'any',							// src_port
@@ -615,12 +610,11 @@ class NidsSuricataExport extends NidsExport
     // For Future use once JA3S Hash Attribute type is created
     protected function ja3sRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'ja3s.hash; content:"' . $attribute['value'] . '"; fast_pattern;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                '',
                 'tls',						// proto
                 'any',					// src_ip
                 'any',							// src_port
