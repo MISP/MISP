@@ -4628,6 +4628,48 @@ class AppModel extends Model
     }
 
     /**
+     * Builds the alternatives of the distribution level ACL OR block for a
+     * model that has a distribution / sharing_group_id pair and belongs to an
+     * event: the row is visible when it is distributed, when it belongs to one
+     * of the user's sharing groups, or when the user's organisation owns the
+     * event. The owning organisation is resolved with a subquery, which
+     * PostgreSQL only accepts schema qualified and quoted.
+     *
+     * @param string $alias Model alias used in the query, for example
+     *     Attribute, Object or EventReport
+     * @param array $user
+     * @param array $sgids Sharing group IDs the user is authorised to see
+     * @return array Alternatives to be assigned to an OR condition
+     */
+    protected function distributionAclConditions($alias, array $user, array $sgids)
+    {
+        $ownerOrgSelect = sprintf(
+            '(SELECT events.org_id FROM events WHERE events.id = %s.event_id)',
+            $alias
+        );
+        if (!$this->isMysql()) {
+            $schema = $this->getDataSource()->config['schema'];
+            $ownerOrgSelect = sprintf(
+                '(SELECT "%s"."events"."org_id"'
+                . ' FROM "%s"."events"'
+                . ' WHERE "%s"."events"."id" = "%s"."event_id")',
+                $schema, $schema, $schema, $alias
+            );
+        }
+        return [
+            ['AND' => [
+                $alias . '.distribution >' => 0,
+                $alias . '.distribution !=' => 4,
+            ]],
+            ['AND' => [
+                $alias . '.distribution' => 4,
+                $alias . '.sharing_group_id' => $sgids,
+            ]],
+            $ownerOrgSelect => $user['org_id'],
+        ];
+    }
+
+    /**
      * executeTrigger
      *
      * @param string $trigger_id

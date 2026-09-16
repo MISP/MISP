@@ -2003,31 +2003,8 @@ class Event extends AppModel
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (!$isSiteAdmin) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
-            $conditions['AND'][0]['OR'] = [
-                ['AND' => [
-                    'Attribute.distribution >' => 0,
-                    'Attribute.distribution !=' => 4,
-                ]],
-                ['AND' => [
-                    'Attribute.distribution' => 4,
-                    'Attribute.sharing_group_id' => $sgids,
-                ]],
-                $attributeCondSelect => $user['org_id'],
-            ];
+            $conditions['AND'][0]['OR'] =
+                $this->distributionAclConditions('Attribute', $user, $sgids);
         }
 
         // Warninglist filter. Kept last so the hit set is resolved against the
@@ -2613,31 +2590,8 @@ class Event extends AppModel
         // Object distribution ACL for non-site-admins
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
-            $objectCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Object.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $objectCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Object"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
-            $conditions['AND'][0]['OR'] = [
-                ['AND' => [
-                    'Object.distribution >' => 0,
-                    'Object.distribution !=' => 4,
-                ]],
-                ['AND' => [
-                    'Object.distribution' => 4,
-                    'Object.sharing_group_id' => $sgids,
-                ]],
-                $objectCondSelect => $user['org_id'],
-            ];
+            $conditions['AND'][0]['OR'] =
+                $this->distributionAclConditions('Object', $user, $sgids);
         }
 
         $objectFields = [
@@ -2721,31 +2675,8 @@ class Event extends AppModel
             'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
-            $attrConditions['AND'][0]['OR'] = [
-                ['AND' => [
-                    'Attribute.distribution >' => 0,
-                    'Attribute.distribution !=' => 4,
-                ]],
-                ['AND' => [
-                    'Attribute.distribution' => 4,
-                    'Attribute.sharing_group_id' => $sgids,
-                ]],
-                $attributeCondSelect => $user['org_id'],
-            ];
+            $attrConditions['AND'][0]['OR'] =
+                $this->distributionAclConditions('Attribute', $user, $sgids);
         }
 
         $attrFields = [
@@ -3283,50 +3214,12 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
-            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
-            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if (!$this->isMysql()) {
-                $schemaName = $this->getDataSource()->config['schema'];
-                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
-                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
-                $eventReportCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "EventReport"."event_id")', $schemaName, $schemaName, $schemaName);
-            }
-            $conditionsAttributes['AND'][0]['OR'] = array(
-                array('AND' => array(
-                    'Attribute.distribution >' => 0,
-                    'Attribute.distribution !=' => 4,
-                )),
-                array('AND' => array(
-                    'Attribute.distribution' => 4,
-                    'Attribute.sharing_group_id' => $sgids,
-                )),
-                $attributeCondSelect => $user['org_id']
-            );
-
-            $conditionsObjects['AND'][0]['OR'] = array(
-                array('AND' => array(
-                    'Object.distribution >' => 0,
-                    'Object.distribution !=' => 4,
-                )),
-                array('AND' => array(
-                    'Object.distribution' => 4,
-                    'Object.sharing_group_id' => $sgids,
-                )),
-                $objectCondSelect => $user['org_id']
-            );
-
-            $conditionsEventReport['AND'][0]['OR'] = array(
-                array('AND' => array(
-                    'EventReport.distribution >' => 0,
-                    'EventReport.distribution !=' => 4,
-                )),
-                array('AND' => array(
-                    'EventReport.distribution' => 4,
-                    'EventReport.sharing_group_id' => $sgids,
-                )),
-                $eventReportCondSelect => $user['org_id']
-            );
+            $conditionsAttributes['AND'][0]['OR'] =
+                $this->distributionAclConditions('Attribute', $user, $sgids);
+            $conditionsObjects['AND'][0]['OR'] =
+                $this->distributionAclConditions('Object', $user, $sgids);
+            $conditionsEventReport['AND'][0]['OR'] =
+                $this->distributionAclConditions('EventReport', $user, $sgids);
         }
         if (isset($options['distribution'])) {
             $conditions['AND'][] = array('Event.distribution' => $options['distribution']);
