@@ -125,6 +125,7 @@ abstract class NidsExport
 
     protected function export($items, $startSid)
     {
+        $attributeRules = $this->attributeRules();
         // generate the rules
         foreach ($items as $item) {
             // retrieve all tags for this item to add them to the msg
@@ -143,72 +144,17 @@ abstract class NidsExport
                     }
                 }
             }
-            $ruleFormatMsgTags = implode(",", $tagsArray);
-
-            # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-            $ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' [' . $ruleFormatMsgTags . '] %s"';
-            $ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-            $ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
+            list($ruleFormat, $ruleFormatMsg, $ruleFormatReference) = $this->buildRuleFormat($item, $tagsArray);
 
             $sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
             $sid++;
 
             if (!empty($item['Attribute']['type'])) { // item is an 'Attribute'
-                switch ($item['Attribute']['type']) {
-                    // LATER nids - test all the snort attributes
-                    // LATER nids - add the tag keyword in the rules to capture network traffic
-                    // LATER nids - sanitize every $attribute['value'] to not conflict with snort
-                    case 'ip-dst':
-                    case 'ip-dst|port':
-                        $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'ip-src':
-                    case 'ip-src|port':
-                        $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'email':
-                        $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-			            $sid++;
-                        $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'email-src':
-                        $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'email-dst':
-                        $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'email-subject':
-                        $this->emailSubjectRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'email-attachment':
-                        $this->emailAttachmentRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'domain':
-                        $this->domainRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'domain|ip':
-                        $this->domainIpRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'hostname':
-                        $this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'url':
-                        $this->urlRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'user-agent':
-                        $this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'ja3-fingerprint-md5':
-                        $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'ja3s-fingerprint-md5': // Attribute type doesn't exists yet (2020-12-10) but ready when created.
-                        $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'snort':
-                        $this->snortRule($item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
-                        // no break
-                    default:
-                        break;
+                if ($item['Attribute']['type'] === 'snort') {
+                    $this->snortRule($item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
+                } else if (isset($attributeRules[$item['Attribute']['type']])) {
+                    $rule = $attributeRules[$item['Attribute']['type']];
+                    $this->$rule($ruleFormat, $item['Attribute'], $sid);
                 }
 
             } else if (!empty($item['Attribute']['name'])) { // Item is an 'Object'
@@ -226,6 +172,56 @@ abstract class NidsExport
 
             }
         }
+    }
+
+    /**
+     * Builds the sprintf() formats used to render the rules of one item.
+     * Exports with a different rule layout override this method instead of
+     * the dispatch in export().
+     * @param array $item
+     * @param array $tagsArray tags of the attribute and of its event
+     * @return array the rule format, the msg format and the reference
+     */
+    protected function buildRuleFormat($item, $tagsArray)
+    {
+        $ruleFormatMsgTags = implode(",", $tagsArray);
+
+        # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
+        $ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' [' . $ruleFormatMsgTags . '] %s"';
+        $ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
+        $ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
+        return array($ruleFormat, $ruleFormatMsg, $ruleFormatReference);
+    }
+
+    /**
+     * Maps an attribute type to the method building its rules. Exports
+     * supporting more types extend this list instead of copying the dispatch.
+     * The 'snort' type is not listed, its rule is not built from $ruleFormat.
+     * @return array
+     */
+    protected function attributeRules()
+    {
+        // LATER nids - test all the snort attributes
+        // LATER nids - add the tag keyword in the rules to capture network traffic
+        // LATER nids - sanitize every $attribute['value'] to not conflict with snort
+        return array(
+            'ip-dst' => 'ipDstRule',
+            'ip-dst|port' => 'ipDstRule',
+            'ip-src' => 'ipSrcRule',
+            'ip-src|port' => 'ipSrcRule',
+            'email' => 'emailRule',
+            'email-src' => 'emailSrcRule',
+            'email-dst' => 'emailDstRule',
+            'email-subject' => 'emailSubjectRule',
+            'email-attachment' => 'emailAttachmentRule',
+            'domain' => 'domainRule',
+            'domain|ip' => 'domainIpRule',
+            'hostname' => 'hostnameRule',
+            'url' => 'urlRule',
+            'user-agent' => 'userAgentRule',
+            'ja3-fingerprint-md5' => 'ja3Rule',
+            'ja3s-fingerprint-md5' => 'ja3sRule', // Attribute type doesn't exists yet (2020-12-10) but ready when created.
+        );
     }
 
     protected function networkConnectionRule($ruleFormat, $object, &$sid)
@@ -366,6 +362,13 @@ abstract class NidsExport
                 $sid,                           // sid
                 1                               // rev
                 );
+    }
+
+    protected function emailRule($ruleFormat, $attribute, &$sid)
+    {
+        $this->emailSrcRule($ruleFormat, $attribute, $sid);
+        $sid++;
+        $this->emailDstRule($ruleFormat, $attribute, $sid);
     }
 
     protected function emailSrcRule($ruleFormat, $attribute, &$sid)
