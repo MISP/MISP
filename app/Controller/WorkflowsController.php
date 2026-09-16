@@ -110,17 +110,14 @@ class WorkflowsController extends AppController
         ]);
 
         $this->loadModel('WorkflowBlueprint');
-        $blueprints = $this->WorkflowBlueprint->find('first', [
-            'recursive' => -1,
-            'fields' => [
-                'COUNT(*) AS total',
-                'SUM(WorkflowBlueprint.default) AS shipped',
-            ],
-            'callbacks' => false,
-        ]);
+        // Two counts rather than SUM(flag): the flag is boolean on PostgreSQL,
+        // which has no SUM over booleans, and a typed condition renders on both.
         $this->set('hubBlueprints', [
-            'total' => (int)($blueprints[0]['total'] ?? 0),
-            'default' => (int)($blueprints[0]['shipped'] ?? 0),
+            'total' => (int)$this->WorkflowBlueprint->find('count', ['callbacks' => false]),
+            'default' => (int)$this->WorkflowBlueprint->find('count', [
+                'conditions' => ['WorkflowBlueprint.default' => true],
+                'callbacks' => false,
+            ]),
         ]);
 
         $totals = $this->Workflow->find('first', [
@@ -128,14 +125,17 @@ class WorkflowsController extends AppController
             'fields' => [
                 'COUNT(*) AS total',
                 'SUM(Workflow.counter) AS runs',
-                'SUM(Workflow.debug_enabled) AS debugging',
             ],
+            'callbacks' => false,
+        ]);
+        $debugging = $this->Workflow->find('count', [
+            'conditions' => ['Workflow.debug_enabled' => true],
             'callbacks' => false,
         ]);
         $this->set('hubWorkflows', [
             'total' => (int)($totals[0]['total'] ?? 0),
             'runs' => (int)($totals[0]['runs'] ?? 0),
-            'debugging' => (int)($totals[0]['debugging'] ?? 0),
+            'debugging' => (int)$debugging,
         ]);
     }
 

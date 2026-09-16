@@ -502,6 +502,8 @@ function _objDistBadge($dist) {
                                                     'add_tag'         => $objCanTag,
                                                     'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
                                                     'add_tag_id_path' => 'id',
+                                                    'add_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeTagRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>
@@ -519,6 +521,8 @@ function _objDistBadge($dist) {
                                                     'add_galaxy'         => $objCanTag,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',
+                                                    'add_galaxy_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeGalaxyRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>

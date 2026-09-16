@@ -63,9 +63,11 @@ $viewBase  = h($baseurl . '/collections/view/');
 
             if (total === 0) {
                 bodyEl.innerHTML =
-                    '<div class="text-center text-muted py-4 small">'
-                    + '<i class="fas fa-folder me-2"></i>'
+                    '<div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">'
+                    + '<i class="fas fa-folder fa-2x mb-2 opacity-50"></i>'
+                    + '<p class="mb-0 small fw-semibold">'
                     + <?= json_encode(__('This event is not part of any collection.')) ?>
+                    + '</p>'
                     + '</div>';
                 return;
             }

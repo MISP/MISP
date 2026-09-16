@@ -913,32 +913,33 @@ class Correlation extends AppModel
         return true;
     }
 
+    /**
+     * Count how often each value occurs, per value column, into
+     * attr_value_counts.
+     *
+     * The two statements differ only in which value column they count, and
+     * the upsert clause is the one part of them the engines spell
+     * differently, so it is rendered by the dialect: the table's primary key
+     * is `value`, which is the conflict column on both.
+     */
     public function generateTopOnDemand()
     {
         $this->query('TRUNCATE TABLE attr_value_counts');
 
-        $this->query(
-            "INSERT INTO attr_value_counts (value, cnt_v1)
-            SELECT LEFT(a.value1, 64) AS value, COUNT(*) AS c
-            FROM attributes a
-            WHERE a.deleted = 0
-            AND a.disable_correlation = 0
-            AND a.value1 <> ''
-            GROUP BY LEFT(a.value1, 64)
-            ON DUPLICATE KEY UPDATE cnt_v1 = VALUES(cnt_v1);"
-        );
-
-        $this->query(
-            "INSERT INTO attr_value_counts (value, cnt_v2)
-            SELECT LEFT(a.value2, 64) AS value, COUNT(*) AS c
-            FROM attributes a
-            WHERE a.deleted = 0
-            AND a.disable_correlation = 0
-            AND a.value2 <> ''
-            GROUP BY LEFT(a.value2, 64)
-            ON DUPLICATE KEY UPDATE cnt_v2 = VALUES(cnt_v2);"
-        );
-        
+        $dialect = $this->getSqlDialect();
+        foreach (['value1' => 'cnt_v1', 'value2' => 'cnt_v2'] as $column => $counter) {
+            $this->query($dialect->upsert(
+                "INSERT INTO attr_value_counts (value, $counter)
+                SELECT LEFT(a.$column, 64) AS value, COUNT(*) AS c
+                FROM attributes a
+                WHERE a.deleted = 0
+                AND a.disable_correlation = 0
+                AND a.$column <> ''
+                GROUP BY LEFT(a.$column, 64)",
+                ['value'],
+                [$counter]
+            ));
+        }
     }
 
     private function findTopOnDemand(array $query)
@@ -1277,23 +1278,20 @@ class Correlation extends AppModel
         ];
         $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
         $results['excluded_correlations'] = $this->CorrelationExclusion->find('count');
+        // One catalog read for every table; a table that is not there (the
+        // legacy one, on most instances) simply has no entry and gets no
+        // metrics, which is what the SHOW TABLE STATUS guard used to do.
+        $sizes = $this->getSchemaInspector()->tableSizes();
         foreach ($results['db'] as &$result) {
             foreach ($result['tables'] as $table_name => &$table_data) {
-                $size_metrics = $this->query(sprintf('show table status like \'%s\';', $table_name));
-                if (!empty($size_metrics)) {
-                    $table_data['size_on_disk'] = $this->query(
-                        //'select FILE_SIZE from information_schema.innodb_sys_tablespaces where FILENAME like \'%/' . $table_name . '.ibd\';'
-                        sprintf(
-                            'select TABLE_NAME, ROUND((DATA_LENGTH + INDEX_LENGTH)) AS size FROM information_schema.TABLES where TABLE_SCHEMA="%s" AND TABLE_NAME="%s"',
-                            $this->getDataSource()->config['database'],
-                            $table_name
-                        )
-                    )[0][0]['size'];
-                    $last_id = $this->query(sprintf('select max(id) as max_id from %s;', $table_name));
-                    $table_data['row_count'] = $size_metrics[0]['TABLES']['Rows'];
-                    $table_data['last_id'] = $last_id[0][0]['max_id'];
-                    $table_data['id_saturation'] = round(100 * $table_data['last_id'] / $table_data['id_limit'], 2);
+                if (!isset($sizes[$table_name])) {
+                    continue;
                 }
+                $last_id = $this->query(sprintf('select max(id) as max_id from %s;', $table_name));
+                $table_data['size_on_disk'] = $sizes[$table_name]['total_in_bytes'];
+                $table_data['row_count'] = $sizes[$table_name]['row_estimate'];
+                $table_data['last_id'] = $last_id[0][0]['max_id'];
+                $table_data['id_saturation'] = round(100 * $table_data['last_id'] / $table_data['id_limit'], 2);
             }
         }
         return $results;

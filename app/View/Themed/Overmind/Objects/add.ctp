@@ -107,7 +107,6 @@ $k = -1;
                             'label' => __('Template'),
                         ]) ?>
                         <select id="objectTemplateSelect" class="form-select">
-                            <option value=""><?= __('-- Select a template --') ?></option>
                             <?php foreach ($templateList as $t): ?>
                                 <option value="<?= h($t['ObjectTemplate']['id']) ?>"
                                         data-meta="<?= h($t['ObjectTemplate']['meta-category']) ?>"
@@ -909,6 +908,7 @@ $k = -1;
             placeholder:      <?= json_encode(__('-- Select a template --')) ?>,
             onChange:         onTemplateChange,
         });
+        tsInstance.clear(true);
         /* Restore pre-selected template when page reloads with templateId */
         <?php if ($hasTemplate): ?>
         tsInstance.setValue(<?= json_encode($templateId) ?>, true);

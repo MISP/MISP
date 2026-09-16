@@ -1,0 +1,89 @@
+<?php
+
+App::uses('AbstractMigration', 'Migration');
+
+/**
+ * {{description}}
+ */
+class {{class}} extends AbstractMigration
+{
+    public $description = '{{descriptionLiteral}}';
+
+    /**
+     * True if this touches a table the session data is built from, and every
+     * user therefore has to log in again.
+     *
+     * @var bool
+     */
+    public $requiresLogout = false;
+
+    /**
+     * Declare the schema changes. No raw SQL: the same declaration is rendered
+     * for every engine MISP supports.
+     *
+     * This runs once, in id order, and the ledger records that it did. Editing
+     * it after it has run somewhere changes nothing on that instance - write a
+     * new migration instead.
+     *
+     *     $schema->table('event_templates')
+     *         ->addColumn('exposed', 'boolean', array(
+     *             'null' => false, 'default' => 0, 'after' => 'misp_default'
+     *         ))
+     *         ->addIndex('exposed');
+     *
+     *     $schema->createTable('collection_shares', array(
+     *         'id' => array('type' => 'primary_key'),
+     *         'uuid' => array('type' => 'string', 'length' => 40, 'null' => false),
+     *     ), array(
+     *         'indexes' => array('uuid' => array('unique' => true)),
+     *         'engine' => 'InnoDB',
+     *         'charset' => 'utf8mb4',
+     *     ));
+     *
+     * See what it renders as, on both engines, without running anything:
+     *
+     *     Console/cake Admin migrationApply --dry-run --id {{id}}
+     *
+     * db_schema.json is not yours to update - it is regenerated from a clean
+     * build before a release, so schemaDiagnostics reporting this change as a
+     * difference until then is expected.
+     *
+     * @param SchemaBuilder $schema
+     * @return void
+     */
+    public function up(SchemaBuilder $schema)
+    {
+    }
+
+    /**
+     * Data work the DDL above cannot proceed without - rows that would violate
+     * a constraint up() is about to add, for instance. Same rules as afterUp();
+     * returning false halts the run before any statement has been issued.
+     *
+     * Delete this method unless the DDL depends on it.
+     *
+     * @return bool
+     */
+    public function beforeUp()
+    {
+        return true;
+    }
+
+    /**
+     * Data work, run once every statement up() declared has landed.
+     *
+     * Go through models - a save() or updateAll() is portable where
+     * hand-written DML is not - and call $Model->schema(true) on any table this
+     * migration altered before writing to it. Returning false marks the
+     * migration failed and halts the run, so a seeding step that could not
+     * finish is never recorded as done.
+     *
+     * Delete this method if the migration is schema-only.
+     *
+     * @return bool
+     */
+    public function afterUp()
+    {
+        return true;
+    }
+}

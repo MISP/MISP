@@ -176,6 +176,37 @@ class Tag extends AppModel
     }
 
     /**
+     * The condition matching tag names the way the unique index does.
+     *
+     * tags.name is case-insensitive. On MySQL that is the column's collation
+     * (utf8mb4_unicode_ci), so a plain equality matches every casing straight
+     * off the unique key, and wrapping the column in LOWER() would throw that
+     * key away and scan the table per lookup (#11114). PostgreSQL has no
+     * collation that does this; there the uniqueness is a unique index over
+     * lower(name), and the comparison is spelled through LOWER() so the
+     * planner takes that index instead.
+     *
+     * @param string|array $names One name, or a list of them for an IN.
+     * @param string|null $operator An operator to append CakePHP-style, such
+     *   as 'LIKE'; a pattern is lower-cased with the column on PostgreSQL.
+     * @return array One condition, keyed on the field expression.
+     */
+    public function nameCondition($names, $operator = null)
+    {
+        $field = 'Tag.name';
+        if (!$this->isMysql()) {
+            $field = 'LOWER(Tag.name)';
+            $names = is_array($names)
+                ? array_map('mb_strtolower', $names)
+                : mb_strtolower((string)$names);
+        }
+        if ($operator !== null) {
+            $field .= ' ' . $operator;
+        }
+        return array($field => $names);
+    }
+
+    /**
      * @param array $user
      * @param string $tagName
      * @return mixed|null
@@ -183,7 +214,7 @@ class Tag extends AppModel
     public function lookupTagIdForUser(array $user, $tagName)
     {
         $conditions = $this->createConditions($user);
-        $conditions['Tag.name'] = $tagName;
+        $conditions = array_merge($conditions, $this->nameCondition($tagName));
 
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
@@ -204,7 +235,7 @@ class Tag extends AppModel
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('Tag.name' => $tagName),
+            'conditions' => $this->nameCondition($tagName),
             'recursive' => -1,
             'fields' => array('Tag.id'),
             'callbacks' => false,
@@ -329,12 +360,11 @@ class Tag extends AppModel
      */
     public function captureTag(array $tag, array $user, $force=false)
     {
-        // tags.name is case-insensitive (utf8mb4_unicode_ci, update 160): the
-        // plain equality matches every casing straight off the unique index.
-        // Wrapping it in LOWER() forced a full table scan per capture (#11114).
+        // Every casing of the name matches, off the unique index - see
+        // nameCondition() for how each engine spells that.
         $existingTag = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('Tag.name' => $tag['name']),
+            'conditions' => $this->nameCondition($tag['name']),
             'fields' => ['id', 'org_id', 'user_id'],
             'callbacks' => false,
         ));
@@ -394,8 +424,9 @@ class Tag extends AppModel
     {
         App::uses('Module', 'Model');
         $names = Module::AI_PROVENANCE_TAGS;
+        // Every casing matches, off the unique index - see nameCondition().
         $existing = $this->find('list', array(
-            'conditions' => array('LOWER(Tag.name)' => array_map('mb_strtolower', $names)),
+            'conditions' => $this->nameCondition($names),
             'fields' => array('Tag.name', 'Tag.id'),
             'recursive' => -1,
         ));

@@ -27,7 +27,6 @@ $fields = [
         'name' => __('ID'),
         'sort' => 'id',
         'data_path' => 'ShadowAttribute.id',
-        'url' => $baseurl . '/events/view2/%id%',
         'element' => 'id',
         'card_section' => 'top',
         'display_in' => ['table', 'card'],

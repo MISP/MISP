@@ -1322,7 +1322,7 @@ class Server extends AppModel
                 $sgIds = array(-1);
             }
             $tableName = $this->Event->EventReport->table;
-            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
@@ -2052,9 +2052,24 @@ class Server extends AppModel
         $options = $defaults['MISP']['correlation_engine']['options'];
         if (!empty($value) && !in_array($value, array_keys($options))) {
             return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
-        } else {
-            return true;
         }
+        if ($value === 'OnDemand' && !$this->isMysql()) {
+            return $this->onDemandEngineUnsupportedMessage();
+        }
+        return true;
+    }
+
+    /**
+     * Why the On Demand correlation engine cannot be selected on anything but
+     * MySQL or MariaDB: its temporary tables and index hints are tuned
+     * against the MySQL planner, and porting it means re-tuning, not
+     * translating. The other two engines are portable.
+     *
+     * @return string
+     */
+    private function onDemandEngineUnsupportedMessage()
+    {
+        return __('The On Demand correlation engine is MySQL/MariaDB only: its MEMORY temporary tables and index hints are tuned against the MySQL planner. Use the Default or No ACL engine on this database.');
     }
 
     public function testLocalOrg($value)
@@ -3263,7 +3278,7 @@ class Server extends AppModel
                     $sgIds = [-1];
                 }
                 $tableName = $this->Event->EventReport->table;
-                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
                 $findParams = [
                     'conditions' => [
                         $eventid_conditions_key => $eventid_conditions_value,
@@ -3422,6 +3437,20 @@ class Server extends AppModel
         return $existingServer[$this->alias]['id'];
     }
 
+    /**
+     * How much disk every table costs, keyed by table name.
+     *
+     * `used` and `reclaimable` are the human-readable forms the diagnostics
+     * screen renders; the `_in_bytes` trio is what LogShell and the Overmind
+     * theme do arithmetic on.
+     *
+     * The two engines used to answer in different shapes as well as different
+     * SQL - MySQL keyed by table with the byte figures, PostgreSQL an unkeyed
+     * list without them, which meant `dbSpaceUsage()['logs']` simply did not
+     * work there. One shape now, out of SchemaInspector.
+     *
+     * @return array
+     */
     public function dbSpaceUsage()
     {
         $inMb = function ($value) {
@@ -3429,49 +3458,19 @@ class Server extends AppModel
         };
 
         $result = [];
-        if ($this->isMysql()) {
-            $sql = sprintf(
-                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-
-            foreach ($sqlResult as $temp) {
-                $result[$temp['tables']['TABLE_NAME']] = [
-                    'table' => $temp['tables']['TABLE_NAME'],
-                    'used' => $inMb($temp['tables']['DATA_LENGTH'] + $temp['tables']['INDEX_LENGTH']),
-                    'reclaimable' => $inMb($temp['tables']['DATA_FREE']),
-                    'data_in_bytes' => (int) $temp['tables']['DATA_LENGTH'],
-                    'index_in_bytes' => (int) $temp['tables']['INDEX_LENGTH'],
-                    'reclaimable_in_bytes' => (int) $temp['tables']['DATA_FREE'],
-                ];
-            }
-
-        } else {
-            $sql = sprintf(
-                'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
-                "'" . $this->getDataSource()->config['database'] . "'",
-                "'.'",
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-            foreach ($sqlResult as $temp) {
-                foreach ($temp[0] as $k => $v) {
-                    if ($k == "table") {
-                        continue;
-                    }
-                    $temp[0][$k] = $inMb($v);
-                }
-                $temp[0]['reclaimable'] = '0 MB';
-                $result[] = $temp[0];
-            }
+        foreach ($this->getSchemaInspector()->tableSizes() as $table => $size) {
+            $result[$table] = [
+                'table' => $table,
+                'used' => $inMb($size['total_in_bytes']),
+                'reclaimable' => $inMb($size['reclaimable_in_bytes']),
+                'data_in_bytes' => $size['data_in_bytes'],
+                'index_in_bytes' => $size['index_in_bytes'],
+                'reclaimable_in_bytes' => $size['reclaimable_in_bytes'],
+            ];
         }
         return $result;
     }
 
-    /**
-     * @return array
-     */
     public function redisInfo()
     {
         $output = [
@@ -3506,11 +3505,42 @@ class Server extends AppModel
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
-            'indexes' => array()
+            'indexes' => array(),
+            'warnings' => array(),
         );
+        // A setting that validates only on MySQL can still arrive on another
+        // engine with the rest of the configuration, for example through a
+        // pgloader migration. It is not an error - the engine simply is not
+        // usable here - but the instance should know.
+        if (!$this->isMysql() && Configure::read('MISP.correlation_engine') === 'OnDemand') {
+            $schemaDiagnostic['warnings'][] = $this->onDemandEngineUnsupportedMessage();
+        }
+        // db_version is frozen, so actual_db_version and expected_db_version are
+        // now the same number on every healthy *and* every stalled instance -
+        // the pair fleet monitoring has always alerted on can no longer differ.
+        // These replace it: migrations_pending > 0 is the direct successor to
+        // the version mismatch, migrations_failed > 0 is new signal the old
+        // scheme could not express at all, and the IDs name exactly which change
+        // an instance is behind on rather than just how far. A failed migration
+        // is still pending - it is retried first on the next run - so its id is
+        // in both lists.
+        // The expected version is the one db_schema.json was dumped at, on
+        // any engine - the file is JSON and reads the same everywhere. Only
+        // the column-by-column comparison below is MySQL-shaped.
+        $dbExpectedSchema = $this->getExpectedDBSchema();
+        if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
+            $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+        }
+        $migrationManager = $this->getMigrationManager();
+        $pendingMigrations = array_keys($migrationManager->pending());
+        $failedMigrations = $migrationManager->failed();
+        $schemaDiagnostic['migrations_pending'] = count($pendingMigrations);
+        $schemaDiagnostic['migrations_pending_ids'] = $pendingMigrations;
+        $schemaDiagnostic['migrations_failed'] = count($failedMigrations);
+        $schemaDiagnostic['migrations_failed_ids'] = $failedMigrations;
+        $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
-            $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
                 $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
@@ -3540,42 +3570,36 @@ class Server extends AppModel
         return $schemaDiagnostic;
     }
 
-    /*
-     * Get RDBMS configuration values
+    /**
+     * The engine settings MISP has a recommendation for, and what they are set
+     * to right now.
+     *
+     * No engine branch any more, and none needed: the recommendations are all
+     * MySQL tunable names, and an engine that has none of them simply matches
+     * nothing and gets an empty list - which is exactly what the isMysql()
+     * branch used to return by hand. The SESSION_VARIABLES / session_variables
+     * key-casing dance is gone too; that existed only because Model::query()
+     * nests a raw row under a driver-dependent table name.
+     *
+     * @return array
      */
     public function dbConfiguration(): array
     {
-        if ($this->isMysql()) {
-            $configuration = [];
-
-            $dbVariables = $this->query("SHOW VARIABLES;");
-            $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
-
-            foreach ($dbVariables as $dbVariable) {
-                // different rdbms have different casing
-                if (isset($dbVariable['SESSION_VARIABLES'])) {
-                    $dbVariable = $dbVariable['SESSION_VARIABLES'];
-                } elseif (isset($dbVariable['session_variables'])) {
-                    $dbVariable = $dbVariable['session_variables'];
-                } else {
-                    continue;
-                }
-
-                if (in_array($dbVariable['Variable_name'], $settings)) {
-                    $configuration[] = [
-                        'name' => $dbVariable['Variable_name'],
-                        'value' => $dbVariable['Value'],
-                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['default'],
-                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['recommended'],
-                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['explanation'],
-                    ];
-                }
+        $configuration = [];
+        $variables = $this->getSchemaInspector()->serverVariables();
+        foreach (self::MYSQL_RECOMMENDED_SETTINGS as $name => $recommendation) {
+            if (!isset($variables[$name])) {
+                continue;
             }
-
-            return $configuration;
-        } else {
-            return [];
+            $configuration[] = [
+                'name' => $name,
+                'value' => $variables[$name],
+                'default' => $recommendation['default'],
+                'recommended' => $recommendation['recommended'],
+                'explanation' => $recommendation['explanation'],
+            ];
         }
+        return $configuration;
     }
 
     /*
@@ -3844,7 +3868,7 @@ class Server extends AppModel
     {
         $db = $this->getDataSource();
         $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
+            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING COUNT(*) > 1;',
                 $db->name($columnName), $db->name($tableName), $db->name($columnName))
         );
         return empty($duplicates);
@@ -4241,6 +4265,24 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
+    /**
+     * How many rows of the database-backed session store have expired.
+     *
+     * Only meaningful while Session.defaults is 'database' - the table is not
+     * queried otherwise. The login path and the diagnostics page used to carry
+     * this query verbatim, each reading the result its own way.
+     *
+     * @return int|null Null when the query answered nothing usable.
+     */
+    public function expiredSessionCount()
+    {
+        $result = $this->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
+        if (!isset($result[0][0]['session_count'])) {
+            return null;
+        }
+        return (int)$result[0][0]['session_count'];
+    }
+
     public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
         $sessionCount = null;
@@ -4265,14 +4307,8 @@ class Server extends AppModel
                 break;
             case 'database':
                 $sessionHandler = 'database';
-                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-                $sqlResult = $this->query($sql);
-                if (isset($sqlResult[0][0])) {
-                    $sessionCount = $sqlResult[0][0]['session_count'];
-                    $errorCode = 0;
-                } else {
-                    $errorCode = 9;
-                }
+                $sessionCount = $this->expiredSessionCount();
+                $errorCode = $sessionCount === null ? 9 : 0;
                 if ($sessionCount > 1000) {
                     $diagnostic_errors++;
                     $errorCode = 1;
@@ -5902,7 +5938,7 @@ class Server extends AppModel
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
                         'NoAcl' => __('No ACL Engine'),
-                        'OnDemand' => __('On Demand Correlation Engine')
+                        'OnDemand' => __('On Demand Correlation Engine (MySQL/MariaDB only)')
                     ],
                 ],
                 'correlation_limit' => [

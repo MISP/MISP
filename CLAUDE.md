@@ -60,9 +60,15 @@ app/Console/cake Password resetPassword       # Reset password
 
 # Server configuration
 app/Console/cake Admin setSetting KEY VALUE   # Set configuration value
-app/Console/cake Admin runUpdates             # Run database migrations
+app/Console/cake Admin runUpdates             # Apply all outstanding DB updates
 app/Console/cake Admin schemaDiagnostics      # Check database schema
 app/Console/cake Admin live 1                 # Enable/disable MISP
+
+# Database migrations (see docs/dev/database-migrations.md)
+app/Console/cake Admin migrationStatus        # Applied / pending / failed
+app/Console/cake Admin migrationApply --dry-run   # Print the SQL, per engine
+app/Console/cake Admin migrationApply         # Apply pending migrations
+app/Console/cake Admin migrationCreate slug   # Scaffold a new migration
 
 # Event operations
 app/Console/cake Event publish                # Publish events
@@ -151,6 +157,20 @@ Recommended: gd, redis, openssl, apcu, ssdeep, bcmath
 ## MISP Development
 
 When working with CakePHP (MISP), always verify query result structures before assuming array shapes. CakePHP find() returns vary by type (first/all/list) and version.
+
+### Database schema changes — migrations, never `DB_CHANGES`
+
+Any change to the database schema is a **migration** under `app/Lib/Migration/Migrations/`. Never add a case to `AppModel::DB_CHANGES` or to `LegacyMigrationsTrait`: that corpus is frozen at `db_version` 159, the freeze is enforced at runtime and by `LegacyCorpusFreezeTest`, and an added case fails the build.
+
+`docs/dev/database-migrations.md` is the full reference. The load-bearing parts:
+
+1. Scaffold with `app/Console/cake Admin migrationCreate <slug>` — never hand-name the file. A migration's id *is* its file name (class name minus the `Migration_` prefix), so the two cannot be allowed to disagree.
+2. Declare DDL in `up(SchemaBuilder $schema)` against the flavour-agnostic DSL, not as raw SQL. Raw SQL in a migration is raw MySQL.
+3. Data work goes in `afterUp()`, through models (`save()`/`updateAll()`), never as hand-written DML — and call `$Model->schema(true)` on any table the migration just altered, or writes to a new column are silently dropped.
+4. Always read `app/Console/cake Admin migrationApply --dry-run --id <id>` before applying. It renders **both** engines; the PostgreSQL half is the one nothing else will check, since a MISP host cannot connect to PostgreSQL at all.
+5. `rawSql()` is the escape hatch for things with no portable spelling (FULLTEXT, enum, version-gated statements). It requires a statement for every engine — a missing one is a hard error, not a skip.
+6. **Do not touch `db_schema.json`.** It is regenerated wholesale from a clean build before a release, not maintained per migration, so `schemaDiagnostics` reporting your change as a difference in the meantime is expected. Never run `dumpCurrentDatabaseSchema` against a working development instance and commit the result — it promotes that box's accumulated drift to canonical.
+7. Regenerating `INSTALL/MYSQL.sql` now also has to seed `schema_migrations` with the ids already baked into the dump, or fresh installs re-run every migration. Checklist in the doc's final section.
 
 ### Dashboard v2 — widget render kinds
 
