@@ -44,6 +44,7 @@ class AuthKeysController extends AppController
                         $authKey['AuthKey']['last_used'] = $lastUsed;
                     }
                     unset($authKey['AuthKey']['authkey']);
+                    unset($authKey['AuthKey']['authkey_hmac']);
                 }
                 return $authKeys;
             }
@@ -169,6 +170,7 @@ class AuthKeysController extends AppController
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (array $authKey) {
                 unset($authKey['AuthKey']['authkey']);
+                unset($authKey['AuthKey']['authkey_hmac']);
                 if (is_array($authKey['AuthKey']['allowed_ips'])) {
                     $authKey['AuthKey']['allowed_ips'] = implode("\n", $authKey['AuthKey']['allowed_ips']);
                 }
@@ -223,6 +225,7 @@ class AuthKeysController extends AppController
             ],
             'afterFind' => function (array $authKey, array $savedData) { // remove hashed key from response
                 unset($authKey['AuthKey']['authkey']);
+                unset($authKey['AuthKey']['authkey_hmac']);
                 $authKey['AuthKey']['authkey_raw'] = $savedData['AuthKey']['authkey_raw'];
                 return $authKey;
             }
@@ -274,6 +277,7 @@ class AuthKeysController extends AppController
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (array $authKey) {
                 unset($authKey['AuthKey']['authkey']);
+                unset($authKey['AuthKey']['authkey_hmac']);
                 return $authKey;
             }
         ]);

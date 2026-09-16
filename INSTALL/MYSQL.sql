@@ -158,6 +158,7 @@ CREATE TABLE `auth_keys` (
   `authkey` varchar(72) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `authkey_start` varchar(4) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `authkey_end` varchar(4) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `authkey_hmac` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `created` int(10) unsigned NOT NULL,
   `expiration` int(10) unsigned NOT NULL,
   `read_only` tinyint(1) NOT NULL DEFAULT 0,
@@ -168,6 +169,7 @@ CREATE TABLE `auth_keys` (
   PRIMARY KEY (`id`),
   KEY `authkey_start` (`authkey_start`),
   KEY `authkey_end` (`authkey_end`),
+  KEY `authkey_hmac` (`authkey_hmac`),
   KEY `created` (`created`),
   KEY `expiration` (`expiration`),
   KEY `user_id` (`user_id`)

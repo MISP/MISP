@@ -98,7 +98,8 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false, 151 => false, 152 => false,
-        153 => false, 154 => false, 157 => false, 158 => false, 159 => false
+        153 => false, 154 => false, 157 => false, 158 => false, 159 => false,
+        160 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2725,6 +2726,15 @@ class AppModel extends Model
                 // Collection sync per-server toggles (T1.2).
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `pull_galaxy_clusters`;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_collections` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_collections`;";
+                break;
+            case 160:
+                // Indexed keyed-hash lookup column for advanced auth keys, so resolving an authkey
+                // no longer requires a bcrypt verify per candidate row on every REST request. Plain
+                // KEY rather than UNIQUE: beforeValidate accepts a caller supplied key, and the
+                // column is NULL for every pre-existing row until it is lazily backfilled on first
+                // use. The bcrypt column and its lookup path stay as the fallback.
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `authkey_hmac` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL AFTER `authkey_end`;";
+                $indexArray[] = array('auth_keys', 'authkey_hmac');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

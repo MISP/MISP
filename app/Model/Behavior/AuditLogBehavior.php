@@ -384,7 +384,7 @@ class AuditLogBehavior extends ModelBehavior
             if ($value == $old) {
                 continue;
             }
-            $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
+            $sanitiseFields = ['password', 'api_key', 'authkey', 'authkey_hmac', 'headers', 'api_token', 'token', 'key'];
             if (in_array($key, $sanitiseFields) || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
                 $value = '*****';
                 if ($old !== null) {

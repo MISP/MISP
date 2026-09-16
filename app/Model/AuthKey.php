@@ -10,6 +10,9 @@ class AuthKey extends AppModel
 {
     public $recursive = -1;
 
+    /** @var string|null|false Memoised HMAC key, false when not yet loaded */
+    private $hmacKey = false;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -52,6 +55,9 @@ class AuthKey extends AppModel
             $this->data['AuthKey']['authkey'] = $this->getHasher()->hash($authkey);
             $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
+            if ($this->hasField('authkey_hmac')) {
+                $this->data['AuthKey']['authkey_hmac'] = $this->hmacAuthKey($authkey);
+            }
             $this->data['AuthKey']['authkey_raw'] = $authkey;
         }
 
@@ -174,38 +180,109 @@ class AuthKey extends AppModel
      */
     public function getAuthUserByAuthKey($authkey, $includeExpired = false)
     {
-        $start = substr($authkey, 0, 4);
-        $end = substr($authkey, -4);
-
-        $conditions = [
-            'authkey_start' => $start,
-            'authkey_end' => $end,
-        ];
-
+        $expirationConditions = [];
         if (!$includeExpired) {
-            $conditions['OR'] = [
+            $expirationConditions['OR'] = [
                 'expiration >' => time(),
                 'expiration' => 0
             ];
         }
+        $fields = ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only', 'unique_ips'];
+
+        // Fast path: single indexed lookup on the keyed hash of the authkey. Rows created before this
+        // column existed have it empty and fall through to the bcrypt path below, which fills it in.
+        // hasField guards the window between deploying this code and running the db_version 160
+        // migration - without it the lookup would reference a column that does not exist yet.
+        $hmac = $this->hasField('authkey_hmac') ? $this->hmacAuthKey($authkey) : null;
+        if ($hmac !== null) {
+            $matchedAuthkey = $this->find('first', [
+                'recursive' => -1,
+                'fields' => $fields,
+                'conditions' => array_merge(['authkey_hmac' => $hmac], $expirationConditions),
+            ]);
+            if (!empty($matchedAuthkey)) {
+                return $this->authUserForAuthKey($matchedAuthkey);
+            }
+        }
+
+        $conditions = array_merge([
+            'authkey_start' => substr($authkey, 0, 4),
+            'authkey_end' => substr($authkey, -4),
+        ], $expirationConditions);
 
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only', 'unique_ips'],
+            'fields' => $fields,
             'conditions' => $conditions,
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {
             if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
-                $this->updateUniqueIp($possibleAuthkey);
-                $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
-                if ($user) {
-                    $user = $this->setUserData($user, $possibleAuthkey);
+                if ($hmac !== null) {
+                    // Lazy migration - the plaintext key is in hand exactly here. updateAll to avoid
+                    // firing the audit log behaviours for what is a pure lookup-index backfill.
+                    $this->updateAll(
+                        ['AuthKey.authkey_hmac' => $this->getDataSource()->value($hmac, 'string')],
+                        ['AuthKey.id' => $possibleAuthkey['AuthKey']['id']]
+                    );
                 }
-                return $user;
+                return $this->authUserForAuthKey($possibleAuthkey);
             }
         }
         return false;
+    }
+
+    /**
+     * Keyed hash of an authkey, used as an indexed lookup value. Uses the same secret as the
+     * `Security.api_key_quick_lookup` cache in AppController.
+     * @param string $authkey
+     * @return string|null Null when no HMAC key is available, in which case the caller must fall back.
+     */
+    private function hmacAuthKey($authkey)
+    {
+        $hmacKey = $this->getHmacKey();
+        if ($hmacKey === null) {
+            return null;
+        }
+        return hash_hmac('sha512', $authkey, $hmacKey);
+    }
+
+    /**
+     * @return string|null
+     */
+    private function getHmacKey()
+    {
+        if ($this->hmacKey !== false) {
+            return $this->hmacKey;
+        }
+        $this->hmacKey = null;
+        $hmacKeyFile = APP . 'Config/hmac_key.php';
+        if (file_exists($hmacKeyFile)) {
+            include $hmacKeyFile;
+        } elseif (is_writable(APP . 'Config')) {
+            App::uses('RandomTool', 'Tools');
+            $hmac_key = RandomTool::random_str(true, 40);
+            file_put_contents($hmacKeyFile, sprintf('<?php%s$hmac_key = \'%s\';', PHP_EOL, $hmac_key));
+        }
+        if (!empty($hmac_key) && is_string($hmac_key)) {
+            $this->hmacKey = $hmac_key;
+        }
+        return $this->hmacKey;
+    }
+
+    /**
+     * @param array $authkey Row as fetched by getAuthUserByAuthKey
+     * @return array|false
+     * @throws Exception
+     */
+    private function authUserForAuthKey(array $authkey)
+    {
+        $this->updateUniqueIp($authkey);
+        $user = $this->User->getAuthUser($authkey['AuthKey']['user_id']);
+        if ($user) {
+            $user = $this->setUserData($user, $authkey);
+        }
+        return $user;
     }
 
     /**
