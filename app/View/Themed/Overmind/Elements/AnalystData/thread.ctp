@@ -196,7 +196,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $opini
     <?php if ($total === 0): ?>
         <div class="text-center text-muted py-4">
             <i class="fas fa-comment-slash mb-2" style="font-size:1.5rem;"></i>
-            <div><?= __('No analyst data attached to this %s yet.', strtolower($objectType)) ?></div>
+            <div><?= __('No analyst data attached to this %s yet.', h(strtolower($objectType))) ?></div>
         </div>
     <?php else: ?>
     <div class="d-flex flex-column gap-4">
@@ -277,7 +277,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $opini
                                     <?= h($rel['relationship_type']) ?>
                                 </span>
                             <?php endif; ?>
-                            <span class="text-muted small"><?= __('this %s', strtolower($objectType)) ?></span>
+                            <span class="text-muted small"><?= __('this %s', h(strtolower($objectType))) ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('AnalystData', 'Model');
 
 class AnalystDataController extends AppController
 {
@@ -408,6 +409,12 @@ class AnalystDataController extends AppController
      */
     public function viewForObject($object_type, $object_uuid)
     {
+        // The type never selects a model here, it is only matched and rendered,
+        // so anything outside the parent types analyst data can hang off is a
+        // malformed request rather than a lookup that finds nothing.
+        if (!in_array($object_type, AnalystData::valid_targets, true)) {
+            throw new NotFoundException(__('Invalid object type.'));
+        }
         $user = $this->Auth->user();
         $analystData = ['Note' => [], 'Opinion' => [], 'Relationship' => [], 'RelationshipInbound' => []];
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
