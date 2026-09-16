@@ -3654,55 +3654,17 @@ class MispAttribute extends AppModel
         if (method_exists($exportTool, 'setDefaultFilters')) {
             $exportTool->setDefaultFilters($filters);
         }
-        if (empty($exportTool->non_restrictive_export)) {
-            if (!isset($filters['to_ids'])) {
-                $filters['to_ids'] = 1;
-            }
-            if (!isset($filters['published'])) {
-                $filters['published'] = 1;
-            }
-            $filters['allow_proposal_blocking'] = 1;
-        }
-        if (!empty($filters['quickFilter'])) {
-            $filters['searchall'] = $filters['quickFilter'];
-            if (!empty($filters['value'])) {
-                unset($filters['value']);
-            }
-        }
         if (!empty($exportTool->renderView)) {
             $renderView = $exportTool->renderView;
         }
-        if (isset($filters['searchall'])) {
-            if (!empty($filters['value'])) {
-                $filters['wildcard'] = $filters['value'];
-                unset($filters['value']);
-            } else {
-                $filters['wildcard'] = $filters['searchall'];
-            }
-        }
-        $subqueryElements = $this->Event->harvestSubqueryElements($filters);
-        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
-        $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
+        $non_restrictive_export = !empty($exportTool->non_restrictive_export);
+        $filters = $this->Event->restSearchFilterMassageAttributeLevel($filters, $non_restrictive_export, $user);
         $conditions = $this->buildFilterConditions($user, $filters, !$paramsOnly);
-        $params = array(
+        $params = array_merge(array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Event.publish_timestamp'),
-            'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
-            'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
-            'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
-            'flatten' => 1,
-            'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-            'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-            'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
-            'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
-            'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
-            'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
-            'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
-            'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
-            'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
-            'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
-            'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
-        );
+            'flatten' => 1
+        ), $this->Event->restSearchIncludeFlags($filters));
 
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
