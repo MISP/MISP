@@ -246,6 +246,17 @@ class EventReport extends AppModel
                 return $errors;
             }
         } else {
+            // A report UUID is globally unique to one event, so an existing row
+            // found by UUID must already belong to the event being edited. If it
+            // does not, refuse rather than adopt it: otherwise a nested event
+            // edit (or populate) could reparent - and thereby read and overwrite -
+            // any report by UUID under an event the caller controls. Genuine sync
+            // re-captures a report under the same event, so this only rejects a
+            // true cross-event collision.
+            if ((string)$existingReport['EventReport']['event_id'] !== (string)$eventId) {
+                $errors[] = __('Event Report %s already belongs to a different event.', $report['EventReport']['uuid']);
+                return $errors;
+            }
             $report['EventReport']['id'] = $existingReport['EventReport']['id'];
         }
 
