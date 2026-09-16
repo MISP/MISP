@@ -168,6 +168,47 @@ function openModal(url, size = 'xl') {
 }
 
 /**
+ * Reload whichever event-view index tab is currently shown.
+ *
+ * Where the tag, galaxy and relationship modals are opened from an attribute
+ * row there is no card to refresh: the change shows in the attribute or object
+ * index behind the modal. Each tab exposes { loadFn, buildFn } on
+ * window.mispView once rendered (view_attributes.ctp / Objects/index.ctp), and
+ * neither exists outside the event view - a global index gets nothing to do.
+ *
+ * @return {boolean} whether a tab was reloaded
+ */
+function reloadEventViewIndexTab() {
+    const view = window.mispView || {};
+    const tabs = [
+        { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: view.objects },
+        { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: view.attrs }
+    ];
+    const reload = function (api) {
+        if (api && typeof api.loadFn === 'function'
+                && typeof api.buildFn === 'function') {
+            api.loadFn(api.buildFn());
+            return true;
+        }
+        return false;
+    };
+    /* Prefer the tab whose container is currently visible. */
+    for (let i = 0; i < tabs.length; i++) {
+        const cont = document.querySelector(tabs[i].sel);
+        if (cont && cont.offsetParent !== null && reload(tabs[i].api)) {
+            return true;
+        }
+    }
+    /* Fallback: any exposed tab API. */
+    for (let j = 0; j < tabs.length; j++) {
+        if (reload(tabs[j].api)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Announce that page entity attributes may have changed so derived cards can update.
  *
  * Listeners use document.addEventListener('misp:attributes-changed').
@@ -1660,7 +1701,10 @@ function escapeHtml(unsafe) {
 
 function getCsrfToken() {
     const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : '';
+    if (match) {
+        return decodeURIComponent(match[1]);
+    }
+    return window.csrfToken || '';
 }
 
 /*******************************
@@ -2374,6 +2418,21 @@ function initSharingGroupForm(container) {
     const form = container.querySelector('#sharingGroupForm');
     if (!form) return;
 
+    let sgConfig = {};
+    const sgConfigNode = container.querySelector('#sharingGroupFormConfig');
+    if (sgConfigNode) {
+        try {
+            sgConfig = JSON.parse(sgConfigNode.textContent) || {};
+        } catch (e) {
+            console.error('Sharing group form: could not parse its configuration', e);
+        }
+    }
+    const sgInitData      = sgConfig.initData      || null;
+    const sgDefaultOrg    = sgConfig.defaultOrg    || null;
+    const sgDefaultServer = sgConfig.defaultServer || null;
+    const sgOrgMeta       = sgConfig.orgMeta       || {};
+    const sgServerMeta    = sgConfig.serverMeta    || {};
+
     const orgState    = new Map();  // organisations : Map<id|uuid, { id, name, type, uuid, extend, removable }>
     const serverState = new Map();  // servers       : Map<id,      { id, name, url,  all_orgs, removable }>
 
@@ -2497,7 +2556,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (orgState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgOrgMeta !== 'undefined') ? (sgOrgMeta[value] || {}) : {};
+            const meta = sgOrgMeta[value] || {};
             orgState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2516,7 +2575,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (orgState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgOrgMeta !== 'undefined') ? (sgOrgMeta[value] || {}) : {};
+            const meta = sgOrgMeta[value] || {};
             orgState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2535,7 +2594,7 @@ function initSharingGroupForm(container) {
             ts.removeItem(value, true);
             if (serverState.has(value)) return;
             const opt  = ts.options[value];
-            const meta = (typeof sgServerMeta !== 'undefined') ? (sgServerMeta[value] || {}) : {};
+            const meta = sgServerMeta[value] || {};
             serverState.set(value, {
                 id:        value,
                 name:      opt?.text || value,
@@ -2651,7 +2710,7 @@ function initSharingGroupForm(container) {
     // ── Initialization in edit mode ───────────────────────────────────────────
     // The controller passes $sharingGroup along with SharingGroupOrg and SharingGroupServer
     // We initialize the two Maps using the inline PHP data
-    if (typeof sgInitData !== 'undefined' && sgInitData) {
+    if (sgInitData) {
         (sgInitData.organisations || []).forEach(o => {
             const key = String(o.id);
             orgState.set(key, {
@@ -2692,11 +2751,11 @@ function initSharingGroupForm(container) {
         }
         _updateSummary();
     } else {
-        if (typeof sgDefaultOrg !== 'undefined' && sgDefaultOrg) {
+        if (sgDefaultOrg) {
             const key = String(sgDefaultOrg.id);
             orgState.set(key, { ...sgDefaultOrg, removable: false });
         }
-        if (typeof sgDefaultServer !== 'undefined' && sgDefaultServer) {
+        if (sgDefaultServer) {
             const key = String(sgDefaultServer.id);
             serverState.set(key, { ...sgDefaultServer, removable: false });
         }
@@ -5682,4 +5741,306 @@ window.initScaffoldFilterDraft = initScaffoldFilterDraft;
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
+});
+
+/*******************************
+ *  Collapsed report preview   *
+ *******************************/
+
+/**
+ * Expand / collapse a clipped event report preview.
+ *
+ * Collapsed, the wrapper is clamped and hidden: no scrollbar — the fade is
+ * what says there is more. Expanded, it grows to at most a screenful and
+ * scrolls inside, which is the one state where a scrollbar belongs, and it is
+ * given a track it always draws (`.er-preview-scroll`) so a reader can see
+ * there is more below rather than having to guess.
+ *
+ * The whole box is the control, so there is no link to aim at — but it only
+ * ever opens. Closing is a click anywhere else on the page, which is what
+ * leaves an open report entirely alone: every click inside it belongs to
+ * reading it, not to putting it away. The guards are what keep the opening
+ * click from firing on something that was never a click: a link inside the
+ * report keeps its own, and a drag is a text selection.
+ *
+ * The box names its parts in data attributes:
+ *   data-er-preview           id of the clipped wrapper            (required)
+ *   data-er-preview-overlay   id of the fade's wrapper
+ *   data-er-preview-collapsed clamped height          (default 300px)
+ *   data-er-preview-expanded  ceiling once open  (default a screenful)
+ *
+ * Idempotent, so a lazily-loaded fragment can call it on its own container.
+ */
+function initErPreviews(container) {
+    var scope = container || document;
+
+    scope.querySelectorAll('[data-er-preview]').forEach(function (box) {
+        if (box.dataset.erPreviewReady === '1') { return; }
+        box.dataset.erPreviewReady = '1';
+
+        var card = document.getElementById(box.dataset.erPreview);
+        if (!card) { return; }
+        var overlay = box.dataset.erPreviewOverlay
+            ? document.getElementById(box.dataset.erPreviewOverlay)
+            : null;
+
+        var collapsedMaxH = box.dataset.erPreviewCollapsed || '300px';
+        var expandedMaxH = box.dataset.erPreviewExpanded || 'calc(100vh - 5rem)';
+
+        var downX = 0;
+        var downY = 0;
+        box.addEventListener('mousedown', function (event) {
+            downX = event.clientX;
+            downY = event.clientY;
+        });
+
+        box.addEventListener('click', function (event) {
+            /* Open already: the click is the reader's, not ours. */
+            if (card.dataset.erExpanded === '1') { return; }
+
+            /* Anything that already does something on click keeps its click —
+               a link in the report body above all. */
+            if (event.target.closest(
+                'a, button, input, textarea, select, label, summary, [data-md-pop]'
+            )) { return; }
+
+            /* A pointer that travelled was dragging out a text selection. */
+            if (Math.abs(event.clientX - downX) > 4 ||
+                Math.abs(event.clientY - downY) > 4) { return; }
+
+            var selection = window.getSelection();
+            if (selection && selection.toString() !== '') { return; }
+
+            setExpanded(true);
+        });
+
+        /* Closing lives on the document rather than being armed when the box
+           opens: a listener added mid-dispatch still runs for the very click
+           that added it, so arming it on open would shut the report again
+           before the pointer came back up. Reading the state here instead
+           costs nothing and cannot race. */
+        document.addEventListener('click', function (event) {
+            if (card.dataset.erExpanded !== '1') { return; }
+            if (box.contains(event.target)) { return; }
+            setExpanded(false);
+        });
+
+        function setExpanded(expand) {
+            if (expand) {
+                card.style.maxHeight = expandedMaxH;
+                card.style.overflowY = 'auto';
+                card.classList.add('er-preview-scroll');
+            } else {
+                card.style.maxHeight = collapsedMaxH;
+                card.style.overflowY = 'hidden';
+                card.classList.remove('er-preview-scroll');
+                /* Collapsing has to come back to the top of the report: the box
+                   keeps whatever it was scrolled to, and clipping a scrolled
+                   box shows its middle. */
+                card.scrollTop = 0;
+            }
+            card.dataset.erExpanded = expand ? '1' : '0';
+            box.classList.toggle('is-expanded', expand);
+            if (overlay) { overlay.classList.toggle('is-expanded', expand); }
+        }
+    });
+}
+window.initErPreviews = initErPreviews;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initErPreviews();
+});
+
+/*******************************
+ *  "Show all" for a tall card *
+ *******************************/
+
+/**
+ * Keeps a card body from running long: past a height it is clipped, a fade
+ * says there is more, and a click on the body itself expands it — a clipped
+ * body opens on its own click and closes on a click anywhere else, the same
+ * bargain the event report preview makes (see initErPreviews). Declarative —
+ * a card opts in with one attribute and writes no script of its own:
+ *
+ *   <div id="…-body" data-collapse-tall="400">
+ *
+ * The fade is inserted AFTER the box, never inside it: inside a clipped box it
+ * is laid out against the scrollport, so it drifts into the middle of the
+ * content (which is exactly what the event report preview had to be fixed for).
+ *
+ * These bodies arrive from their card's own fetch and are re-filtered by its
+ * search box, so the height is watched rather than measured once: a card that
+ * loads late, filters down to three rows or grows a picture gets the bar, or
+ * loses it, on its own.
+ */
+function initCollapsibleSections(container) {
+    (container || document)
+        .querySelectorAll('[data-collapse-tall]')
+        .forEach(initCollapsibleSection);
+}
+window.initCollapsibleSections = initCollapsibleSections;
+
+function initCollapsibleSection(box) {
+    if (box.dataset.collapseReady === '1') { return; }
+    box.dataset.collapseReady = '1';
+
+    const threshold = parseInt(box.dataset.collapseTall, 10) || 400;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'er-preview-overlay d-none';
+    overlay.innerHTML = '<div class="er-preview-gradient"></div>';
+    const gradient = overlay.querySelector('.er-preview-gradient');
+    box.insertAdjacentElement('afterend', overlay);
+
+    let expanded = false;
+    let applying = false;
+    let scheduled = null;
+
+    function apply() {
+        applying = true;
+        const tall = box.scrollHeight > threshold + 8;
+
+        if (expanded || !tall) {
+            box.style.maxHeight = '';
+            box.style.overflow = '';
+        } else {
+            box.style.maxHeight = threshold + 'px';
+            box.style.overflow = 'hidden';
+            box.scrollTop = 0;
+        }
+        overlay.classList.toggle('d-none', !(expanded || tall));
+        gradient.classList.toggle('d-none', expanded);
+        /* Only a clipped body has something to give on a click, and it is the
+           only state that should offer a cursor saying so. */
+        box.classList.toggle('is-clipped', !expanded && tall);
+        applying = false;
+    }
+
+    function setExpanded(next) {
+        if (expanded === next) { return; }
+        expanded = next;
+        apply();
+    }
+
+    /* A timer rather than requestAnimationFrame: rAF is throttled to nothing
+       in a background tab, and a card that was filled while hidden would stay
+       unclamped. Reading scrollHeight forces the layout we need anyway. */
+    function schedule() {
+        if (applying || scheduled) { return; }
+        scheduled = window.setTimeout(function () {
+            scheduled = null;
+            apply();
+        }, 0);
+    }
+
+    let downX = 0;
+    let downY = 0;
+    box.addEventListener('mousedown', function (event) {
+        downX = event.clientX;
+        downY = event.clientY;
+    });
+
+    /* Opening: only while the body is actually clipped, so a card that fits
+       never swallows a click. These bodies are lists of tags, clusters and
+       files whose every row does something, hence the wider net than the
+       report preview casts — `[onclick]` above all, which is how the rows
+       arriving from the card's own fetch are wired. */
+    box.addEventListener('click', function (event) {
+        if (expanded || !box.classList.contains('is-clipped')) { return; }
+        if (event.target.closest(
+            'a, button, input, textarea, select, label, summary,'
+            /* A tooltip is not an action — excluding it would make whole rows
+               of these cards dead to the opening click. */
+            + ' [onclick], [data-bs-toggle]:not([data-bs-toggle="tooltip"]),'
+            + ' [data-md-pop]'
+        )) { return; }
+        if (Math.abs(event.clientX - downX) > 4 ||
+            Math.abs(event.clientY - downY) > 4) { return; }
+        const selection = window.getSelection();
+        if (selection && selection.toString() !== '') { return; }
+        setExpanded(true);
+    });
+
+    /* Closing: a click anywhere but the body and its fade. Registered once
+       rather than armed on opening — a listener added mid-dispatch still runs
+       for the very click that added it, which would shut the card again before
+       the pointer came back up. */
+    document.addEventListener('click', function (event) {
+        if (!expanded) { return; }
+        if (box.contains(event.target) || overlay.contains(event.target)) {
+            return;
+        }
+        setExpanded(false);
+    });
+
+    /* Content arriving, a search hiding rows, a class flipping — anything but
+       our own clamp, which is a style attribute on the box itself. */
+    const observer = new MutationObserver(function (records) {
+        for (const record of records) {
+            if (record.type === 'attributes' && record.target === box) { continue; }
+            schedule();
+            return;
+        }
+    });
+    observer.observe(box, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'hidden']
+    });
+
+    /* A picture that finishes loading changes the height without touching the
+       DOM; its load event does not bubble, so it is caught on the way down. */
+    box.addEventListener('load', schedule, true);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('load', schedule);
+
+    apply();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCollapsibleSections();
+});
+
+/*******************************
+ *  Click a card to centre it  *
+ *******************************/
+
+/**
+ * Brings an element into view, centred in the band the fixed navbar leaves
+ * usable. Centring in the whole viewport instead would slide the first
+ * ~16 pixels of a full-height card under the navbar; an element taller than
+ * the band lands right under it rather than half above the fold.
+ */
+function centerElementInView(el) {
+    const NAV_HEIGHT = 56;
+    const rect = el.getBoundingClientRect();
+    const usable = window.innerHeight - NAV_HEIGHT;
+    const offset = Math.max(0, (usable - rect.height) / 2);
+    const top = rect.top + window.pageYOffset - NAV_HEIGHT - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+window.centerElementInView = centerElementInView;
+
+
+function initCenterOnClick(container) {
+    (container || document)
+        .querySelectorAll('[data-center-on-click]')
+        .forEach(function (el) {
+            if (el.dataset.centerReady === '1') { return; }
+            el.dataset.centerReady = '1';
+            el.addEventListener('click', function (event) {
+                if (event.target.closest(
+                    'a, button, input, textarea, select, label, summary, [data-md-pop]'
+                )) { return; }
+                const selection = window.getSelection();
+                if (selection && selection.toString() !== '') { return; }
+                centerElementInView(el);
+            });
+        });
+}
+window.initCenterOnClick = initCenterOnClick;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCenterOnClick();
 });

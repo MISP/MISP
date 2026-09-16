@@ -4,6 +4,7 @@ $uid       = 'evt-tags-' . $eventId;
 $fetchUrl  = h($baseurl . '/events/viewEventTags/' . $eventId
     . ($extensionSuffix ?? ''));
 $editUrl   = h($baseurl . '/events/editEventTags/' . $eventId);
+$relUrl    = h($baseurl . '/events/editEventTagRelationships/' . $eventId);
 
 $mayModify = $this->Acl->canModifyTag($data);
 // AI tag recommendations (A3): anyone who may add at least a local tag may
@@ -61,9 +62,19 @@ if (Configure::read('Plugin.AI_services_enable')
             <?php endif; ?>
 
             <?php if ($mayModify): ?>
+            <!-- Relationship button -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-tag flex-shrink-0"
+                    data-tour="event-tags-relationships"
+                    onclick="openModal('<?= $relUrl ?>', 'xl')"
+                    title="<?= __('Set how this event relates to its tags') ?>">
+                <i class="fas fa-diagram-project me-1"></i>
+                <?= __('Relationships') ?>
+            </button>
+
             <!-- Edit button -->
             <button type="button"
-                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    class="btn btn-sm btn-tag flex-shrink-0"
                     data-tour="event-tags-edit"
                     onclick="openModal('<?= $editUrl ?>', 'xl')"
                     title="<?= __('Edit Tags') ?>">
@@ -76,7 +87,8 @@ if (Configure::read('Plugin.AI_services_enable')
     </div>
 
     <!-- BODY -->
-    <div id="<?= $uid ?>-body">
+    <div id="<?= $uid ?>-body"
+         data-collapse-tall="400">
         <div class="text-center py-4 text-muted">
             <div class="spinner-border spinner-border-sm" role="status"></div>
         </div>
