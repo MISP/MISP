@@ -1214,34 +1214,106 @@ class MispAttribute extends AppModel
             return;
         }
 
+        // The view shows 10 related attributes, the 11th one only tells it that there are more.
+        $limitPerResult = 11;
         $composeTypes = $this->getCompositeTypes();
+        $valuesPerResult = [];
         foreach ($resultArray as $key => $result) {
             if (in_array($result['default_type'], $composeTypes, true)) {
                 $pieces = explode('|', $result['value']);
                 if (in_array($result['default_type'], self::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
-                    $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
+                    $valuesPerResult[$key] = [$pieces[0]];
                 } else {
-                    $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
+                    $valuesPerResult[$key] = $pieces;
                 }
             } else {
-                $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
+                $valuesPerResult[$key] = [$result['value']];
             }
-            $options = array(
-                'conditions' => [
-                    'OR' => $or,
-                    'NOT' => [
-                        'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
-                    ],
-                    'Attribute.disable_correlation' => 0,
-                ],
-                'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
-                'order' => false,
-                'limit' => 11,
-                'flatten' => 1,
-                'contain' => ['AttributeTag' => false],
-            );
-            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }
+        // Fetch the related attributes for a whole chunk of results with one ACL scoped query
+        // instead of one query per result and distribute the rows afterwards.
+        foreach (array_chunk($valuesPerResult, 100, true) as $chunk) {
+            $values = [];
+            foreach ($chunk as $resultValues) {
+                foreach ($resultValues as $value) {
+                    $values[] = $value;
+                }
+            }
+            $values = array_values(array_unique($values));
+            // Attribute values are stored in a case insensitive collation, so index the fetched
+            // rows the same way. As one query can just cap the total amount of rows, over-fetch
+            // and apply the per result limit while distributing.
+            $wantedValues = [];
+            foreach ($values as $value) {
+                $wantedValues[mb_strtolower($value)] = true;
+            }
+            $limit = count($chunk) * $limitPerResult;
+            $related = $this->__fetchRelatedAttributes($user, $values, $limit);
+            $distributable = count($related) < $limit;
+            $relatedPerValue = [];
+            foreach ($related as $attribute) {
+                $value1 = mb_strtolower($attribute['Attribute']['value1']);
+                $value2 = mb_strtolower($attribute['Attribute']['value2']);
+                if (!isset($wantedValues[$value1]) && !isset($wantedValues[$value2])) {
+                    // The database matched this row with a collation that we cannot reproduce
+                    // here, so distributing would silently drop it.
+                    $distributable = false;
+                    break;
+                }
+                $relatedPerValue[$value1][] = $attribute;
+                if ($value2 !== $value1) {
+                    $relatedPerValue[$value2][] = $attribute;
+                }
+            }
+            foreach ($chunk as $key => $resultValues) {
+                if (!$distributable) {
+                    $resultArray[$key]['related'] = $this->__fetchRelatedAttributes($user, $resultValues, $limitPerResult);
+                    continue;
+                }
+                $resultRelated = [];
+                foreach ($resultValues as $value) {
+                    foreach ($relatedPerValue[mb_strtolower($value)] ?? [] as $attribute) {
+                        // A row can match both values of a composite type, keep it just once.
+                        $resultRelated[$attribute['Attribute']['id']] = $attribute;
+                        if (count($resultRelated) === $limitPerResult) {
+                            break 2;
+                        }
+                    }
+                }
+                $resultArray[$key]['related'] = array_values($resultRelated);
+            }
+        }
+    }
+
+    /**
+     * Fetch the attributes that correlate with any of the given values, ACL scoped for $user.
+     *
+     * @param array $user
+     * @param array $values
+     * @param int $limit
+     * @return array
+     * @throws Exception
+     */
+    private function __fetchRelatedAttributes(array $user, array $values, $limit)
+    {
+        $options = array(
+            'conditions' => [
+                'OR' => [
+                    'Attribute.value1' => $values,
+                    'Attribute.value2' => $values,
+                ],
+                'NOT' => [
+                    'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
+                ],
+                'Attribute.disable_correlation' => 0,
+            ],
+            'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
+            'order' => false,
+            'limit' => $limit,
+            'flatten' => 1,
+            'contain' => ['AttributeTag' => false],
+        );
+        return $this->fetchAttributes($user, $options);
     }
 
     public function checkComposites()
