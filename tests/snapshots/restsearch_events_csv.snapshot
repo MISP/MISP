@@ -1,0 +1,10 @@
+uuid,event_id,category,type,value,comment,to_ids,date,object_relation,attribute_tag,object_uuid,object_name,object_meta_category
+"<id:1>",<id:2>,"Network activity","ip-dst","8.8.8.8","",1,<time>,"","","","",""
+"<id:3>",<id:2>,"Network activity","ip-src","1.1.1.1","",1,<time>,"","","","",""
+"<id:4>",<id:2>,"Network activity","domain","example.com","",1,<time>,"","","","",""
+"<id:5>",<id:2>,"Network activity","url","http://example.com/x","",1,<time>,"","","","",""
+"<id:6>",<id:2>,"Payload delivery","md5","d41d8cd98f00b204e9800998ecf8427e","",1,<time>,"","","","",""
+"<id:7>",<id:2>,"Payload delivery","sha256","aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","",1,<time>,"","","","",""
+"<id:8>",<id:2>,"Payload delivery","filename","evil.exe","",1,<time>,"","","","",""
+"<id:9>",<id:2>,"Other","comment","a comment","",0,<time>,"","","","",""
+
