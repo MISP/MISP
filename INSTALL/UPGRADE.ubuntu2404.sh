@@ -32,7 +32,15 @@ INSTALL_SSDEEP=false
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
 logfile=/var/log/misp_upgrade.log
-mkfifo ${logfile}.pipe
+# Everything this script prints and every setting it writes ends up in here -
+# the generated supervisor password among them - so the log gets the same
+# treatment as the installer's settings file: root only, from the moment it
+# exists. The file is removed first so the mode is never applied through a
+# symlink left in /var/log, and the FIFO is created restricted too, since it
+# carries the same stream.
+rm -f "$logfile"
+install -m 0600 /dev/null "$logfile"
+mkfifo -m 0600 ${logfile}.pipe
 tee < ${logfile}.pipe $logfile &
 exec &> ${logfile}.pipe
 rm ${logfile}.pipe
