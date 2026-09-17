@@ -182,6 +182,29 @@ class UrlEgressValidatorTest extends TestCase
         $this->assertTrue(UrlEgressValidator::isRedirectAllowed('http://10.0.0.5/feed.json', 'http://10.0.0.5/feed/v2.json'));
     }
 
+    public function testResolveLocationHandlesTheFormsAServerActuallySends(): void
+    {
+        $base = 'http://feed.example.com/dir/list.json';
+        $this->assertSame('https://other.example.net/x', UrlEgressValidator::resolveLocation('https://other.example.net/x', $base));
+        $this->assertSame('http://feed.example.com/abs', UrlEgressValidator::resolveLocation('/abs', $base));
+        $this->assertSame('http://feed.example.com/dir/rel.json', UrlEgressValidator::resolveLocation('rel.json', $base));
+        $this->assertSame('http://other.example.net/x', UrlEgressValidator::resolveLocation('//other.example.net/x', $base));
+        $this->assertSame('http://feed.example.com:8080/abs', UrlEgressValidator::resolveLocation('/abs', 'http://feed.example.com:8080/dir/l'));
+        $this->assertNull(UrlEgressValidator::resolveLocation('', $base));
+        $this->assertNull(UrlEgressValidator::resolveLocation(null, $base));
+    }
+
+    /**
+     * A Location is parsed straight back into a URL, so a header carrying CR
+     * or LF must not survive into it.
+     */
+    public function testResolveLocationStripsCrlf(): void
+    {
+        $resolved = UrlEgressValidator::resolveLocation("/next\r\nX-Injected: 1", 'http://feed.example.com/l');
+        $this->assertStringNotContainsString("\r", $resolved);
+        $this->assertStringNotContainsString("\n", $resolved);
+    }
+
     public function testRefusedRangesGrowUnderTheStrictPolicy(): void
     {
         $loopback = UrlEgressValidator::refusedRanges(UrlEgressValidator::POLICY_DENY_LOOPBACK);

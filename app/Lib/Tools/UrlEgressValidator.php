@@ -28,6 +28,15 @@ class UrlEgressValidator
     const POLICY_DENY_LOOPBACK = 'deny_loopback';
 
     /**
+     * Refuse nothing; resolve and report the address so the caller can pin
+     * it. For a target already authorised by other means - a redirect that
+     * stays on the host the admin configured - where the value wanted is
+     * protection against the name answering differently on the second
+     * lookup, not an egress decision.
+     */
+    const POLICY_RESOLVE_ONLY = 'resolve_only';
+
+    /**
      * Loopback, unspecified, and the link-local metadata addresses used by
      * the major cloud providers. Refused under every policy.
      */
@@ -187,11 +196,50 @@ class UrlEgressValidator
     }
 
     /**
+     * Resolve a Location header against the URL it came from.
+     *
+     * CR and LF are stripped first: a header value is parsed straight back
+     * into a URL by the callers, and neither belongs in one.
+     *
+     * @param string $location
+     * @param string $base
+     * @return string|null null if there is nothing usable
+     */
+    public static function resolveLocation($location, $base)
+    {
+        $location = str_replace(["\r", "\n"], '', trim((string)$location));
+        if ($location === '') {
+            return null;
+        }
+        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $location)) {
+            return $location; // already absolute
+        }
+        $baseParts = parse_url($base);
+        if (empty($baseParts['scheme']) || empty($baseParts['host'])) {
+            return $location;
+        }
+        if (strpos($location, '//') === 0) {
+            return $baseParts['scheme'] . ':' . $location; // scheme-relative
+        }
+        $origin = $baseParts['scheme'] . '://' . $baseParts['host']
+            . (isset($baseParts['port']) ? ':' . $baseParts['port'] : '');
+        if ($location[0] === '/') {
+            return $origin . $location;
+        }
+        $basePath = isset($baseParts['path']) ? $baseParts['path'] : '/';
+        $dir = substr($basePath, 0, strrpos($basePath, '/') + 1);
+        return $origin . ($dir === '' ? '/' : $dir) . $location;
+    }
+
+    /**
      * @param string $policy
      * @return array
      */
     public static function refusedRanges($policy)
     {
+        if ($policy === self::POLICY_RESOLVE_ONLY) {
+            return [];
+        }
         if ($policy === self::POLICY_DENY_INTERNAL) {
             return array_merge(self::RANGES_LOOPBACK, self::RANGES_INTERNAL);
         }
