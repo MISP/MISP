@@ -250,6 +250,29 @@ class User extends AppModel
     /** @var CryptGpgExtended|null|false */
     private $gpg;
 
+    /**
+     * Whether $user may be shown other users' e-mail addresses.
+     *
+     * Site admins always may; everyone else only on an instance that has
+     * opted in with `Security.disclose_user_emails` (default off, and
+     * described as "allow for the user e-mail addresses to be shown to
+     * non site-admin users"). Static so the dashboard widgets, which hold
+     * an auth-user array rather than a model instance, can share it -
+     * NewUsersWidget and UserContributionToplistWidget each carried their
+     * own copy of this expression, and DashboardsController::listTemplates
+     * carried a fourth, different rule that was gated on the render mode.
+     *
+     * @param array $user An auth user array.
+     * @return bool
+     */
+    public static function canSeeEmails(array $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return !empty(Configure::read('Security.disclose_user_emails'));
+    }
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
