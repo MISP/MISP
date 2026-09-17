@@ -506,6 +506,35 @@ class AppController extends Controller
     }
 
     /**
+     * Require POST for a state-changing action reached from a browser session,
+     * while still accepting its historical GET form from an API-key caller.
+     *
+     * The GET forms of these actions are a CSRF problem only for a caller
+     * whose credential the browser attaches by itself - a session cookie. An
+     * API key travels in a header that a cross-origin page cannot set without
+     * a preflight this instance refuses (see __carriesApiKey()), so a GET that
+     * carries one cannot have been made on someone else's behalf, and
+     * refusing it would only break the API clients that still issue it -
+     * every PyMISP older than 2.5.34.2 fetches and caches feeds and pulls and
+     * pushes servers with GET. The 2.5 line requires POST unconditionally and
+     * ships the matching PyMISP; on 2.4 the verb requirement is scoped to the
+     * caller it protects.
+     *
+     * Public so that components can apply it on behalf of their controller;
+     * the leading underscore keeps it from being routable as an action.
+     *
+     * @return void
+     * @throws MethodNotAllowedException
+     */
+    public function _requirePostUnlessApiKey()
+    {
+        if ($this->__carriesApiKey()) {
+            return;
+        }
+        $this->request->allowMethod(['post']);
+    }
+
+    /**
      * Whether this request presents a MISP API key, as opposed to riding a
      * browser session.
      *

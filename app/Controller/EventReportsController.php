@@ -702,7 +702,7 @@ class EventReportsController extends AppController
 
     public function purgeUnusedPictures()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $this->EventReport->purgeUnusedPictures();
         $message = __('Purged all unused pictures');
         return $this->__getSuccessResponseBasedOnContext($message, null, 'purgeUnusedPictures');

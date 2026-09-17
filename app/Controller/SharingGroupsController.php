@@ -449,7 +449,7 @@ class SharingGroupsController extends AppController
     {
         // Guarded here rather than in each of the four callers - addOrg,
         // removeOrg, addServer and removeServer all funnel through this helper.
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         // allow passing the sg_id via a JSON object
         if (!$id) {
             $validParams = array('sg_id', 'sg_uuid', 'id', 'uuid');

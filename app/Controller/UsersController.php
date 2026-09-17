@@ -132,7 +132,7 @@ class UsersController extends AppController
 
     public function request_API()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (Configure::read('MISP.disable_emailing')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
         }

@@ -760,7 +760,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -843,7 +843,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -2070,7 +2070,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2114,7 +2114,7 @@ class ServersController extends AppController
 
     public function updateJSON()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $results = [];
         foreach ($this->Server->updateJSON() as $type => $result) {
             $results[$type] = $results['success'];
@@ -2361,7 +2361,7 @@ class ServersController extends AppController
 
     public function removeOrphanedCorrelations()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

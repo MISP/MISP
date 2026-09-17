@@ -150,7 +150,7 @@ class NoticelistsController extends AppController
 
     public function enableNoticelist($id, $enable = false)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $this->Noticelist->id = $id;
         if (!$this->Noticelist->exists()) {
             throw new NotFoundException(__('Noticelist not found.'));

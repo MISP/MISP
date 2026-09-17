@@ -335,7 +335,7 @@ class WarninglistsController extends AppController
 
     public function enableWarninglist($id, $enable = false)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $this->Warninglist->id = $id;
         if (!$this->Warninglist->exists()) {
             throw new NotFoundException(__('Invalid Warninglist.'));

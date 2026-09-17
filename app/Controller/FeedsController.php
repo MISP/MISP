@@ -524,7 +524,7 @@ class FeedsController extends AppController
 
     public function fetchFromFeed($feedId)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -600,7 +600,7 @@ class FeedsController extends AppController
 
     public function fetchFromAllFeeds()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $feeds = $this->Feed->find('all', array(
             'recursive' => -1,
             'fields' => array('id')
@@ -933,7 +933,7 @@ class FeedsController extends AppController
 
     public function enable($id)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $result = $this->__toggleEnable($id, true);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
@@ -948,7 +948,7 @@ class FeedsController extends AppController
 
     public function disable($id)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $result = $this->__toggleEnable($id, false);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
@@ -1011,7 +1011,7 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */

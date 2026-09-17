@@ -6402,7 +6402,7 @@ class EventsController extends AppController
         // already reach it by postButton/postLink; without this guard a bodyless
         // GET is never CSRF-validated (SecurityComponent::startup computes
         // $hasData false for one), so an <img src> was enough to fire it.
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $eventIds = $this->Event->find('list', array(
             'conditions' => array('Event.published' => 1),
             'fields' => array('Event.id', 'Event.uuid'),
