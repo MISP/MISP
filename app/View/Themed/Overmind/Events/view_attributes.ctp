@@ -18,6 +18,14 @@ if (!empty($extended)) {
 if (!empty($extending)) {
     $paginatorUrl['extending'] = 1;
 }
+/*
+ * Restore named filters to the paginator's base URL to maintain state across pages.
+ */
+foreach (($this->request->params['named'] ?? []) as $namedKey => $namedValue) {
+    if ($namedKey !== 'page') {
+        $paginatorUrl[$namedKey] = $namedValue;
+    }
+}
 $this->Paginator->options(['url' => $paginatorUrl]);
 
 ?>
@@ -156,6 +164,7 @@ echo $this->element('Attributes/index', [
     if (container && !container.__attrPaginationReady) {
         container.__attrPaginationReady = true;
         container.addEventListener('click', function (e) {
+            if (e.defaultPrevented) return;
             var link = e.target.closest('.pagination a');
             if (!link) return;
             e.preventDefault();

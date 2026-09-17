@@ -245,7 +245,7 @@ class Organisation extends AppModel
                 $existingOrg[$this->alias]['uuid'] = $org['uuid'];
                 $changed = true;
             }
-            if ($force) {
+            if ($force && (!empty($user['Role']['perm_site_admin']) || !empty($user['Role']['perm_sync']))) {
                 $fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts');
                 foreach ($fields as $field) {
                     if (isset($org[$field])) {
@@ -332,11 +332,20 @@ class Organisation extends AppModel
         if (!$backupFile->create()) {
             throw new MethodNotAllowedException('Merge halted because the backup script file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.sql) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
         }
-        if ($this->isMysql()) {
-            $sql = 'INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
-        } else {
-            $sql = 'INSERT INTO organisations ("' . implode('", "', array_keys($currentOrg['Organisation'])) . '") VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
-        }
+        // The four statements below used to be written twice each, differing
+        // only in backticks versus double quotes. name() and value() spell both
+        // engines, and value() also escapes - which the hand-rolled quoting did
+        // not, so an organisation whose name carried an apostrophe produced a
+        // rollback script that would not parse.
+        $db = $this->getDataSource();
+        $sql = sprintf(
+            'INSERT INTO %s (%s) VALUES (%s);',
+            $db->name('organisations'),
+            implode(', ', array_map([$db, 'name'], array_keys($currentOrg['Organisation']))),
+            implode(', ', array_map(function ($value) use ($db) {
+                return $db->value($value, 'string');
+            }, array_values($currentOrg['Organisation'])))
+        );
         $backupFile->append($sql . PHP_EOL);
         $this->Log->create();
         $this->Log->saveOrFailSilently(array(
@@ -353,28 +362,36 @@ class Organisation extends AppModel
         $success = true;
         foreach (self::ORGANISATION_ASSOCIATIONS as $model => $data) {
             foreach ($data['fields'] as $field) {
-                if ($this->isMysql()) {
-                    $sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
-                } else {
-                    $sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
-                }
+                $sql = sprintf(
+                    'SELECT %s FROM %s WHERE %s = %s',
+                    $db->name('id'),
+                    $db->name($data['table']),
+                    $db->name($field),
+                    $db->value($currentOrg['Organisation']['id'], 'integer')
+                );
                 $temp = $this->query($sql);
                 if (!empty($temp)) {
                     $dataMoved['values_changed'][$model][$field] = Set::extract('/' . $data['table'] . '/id', $temp);
                     if (!empty($dataMoved['values_changed'][$model][$field])) {
                         $this->Log->create();
                         try {
-                            if ($this->isMysql()) {
-                                $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
-                            } else {
-                                $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
-                            }
+                            $sql = sprintf(
+                                'UPDATE %s SET %s = %s WHERE %s = %s;',
+                                $db->name($data['table']),
+                                $db->name($field),
+                                $db->value($targetOrg['Organisation']['id'], 'integer'),
+                                $db->name($field),
+                                $db->value($currentOrg['Organisation']['id'], 'integer')
+                            );
                             $result = $this->query($sql);
-                            if ($this->isMysql()) {
-                                $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
-                            } else {
-                                $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
-                            }
+                            $sql = sprintf(
+                                'UPDATE %s SET %s = %s WHERE %s IN (%s);',
+                                $db->name($data['table']),
+                                $db->name($field),
+                                $db->value($currentOrg['Organisation']['id'], 'integer'),
+                                $db->name('id'),
+                                implode(',', array_map('intval', $dataMoved['values_changed'][$model][$field]))
+                            );
                             $backupFile->append($sql . PHP_EOL);
                             $this->Log->saveOrFailSilently(array(
                                     'org' => $user['Organisation']['name'],

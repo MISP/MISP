@@ -574,7 +574,10 @@ dd {
     bottom:0px;
     height:42px;
     min-width:1300px;
-    z-index: 2;
+    /* Above sticky table headers (10) so a fixed footer covers them when the
+       viewport is short; still below the spinner (15), the workflow editor
+       side panels (18) and #gray_out (20). */
+    z-index: 11;
 }
 
 .debugOff {
@@ -2996,7 +2999,10 @@ Query builder
 
 .table thead th {
     position: sticky;
-    top: 40px;
+    /* Offset for the fixed navbar. A container that scrolls on its own sets
+       --sticky-table-header-top to 0 so the header sticks to its own edge
+       instead of hovering 40px into it, over the first rows. */
+    top: var(--sticky-table-header-top, 40px);
     z-index: 10;
     background-color: #f9f9f9;
     vertical-align: top;
@@ -3010,4 +3016,9 @@ Query builder
     bottom: 0;
     width: 100%;
     border-bottom: 1px solid black;
+}
+
+/* Inside a modal the scroll container is .modal-body, not the page. */
+.modal {
+    --sticky-table-header-top: 0px;
 }

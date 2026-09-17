@@ -1303,7 +1303,11 @@ class ObjectsController extends AppController
                 }
             }
             file_put_contents(APP . 'files/scripts/tmp/object_recovery_' . time() . '.sql', implode("\n", $counterQueries));
-            $this->MispObject->query(implode("\n", $queries));
+            // One statement per call. MySQL's driver happens to accept several
+            // in one prepared string; PostgreSQL's refuses them outright.
+            foreach ($queries as $query) {
+                $this->MispObject->query($query);
+            }
             $message = '';
             $this->Flash->success(__('%s objects successfully reconstructed.', $success));
             $this->redirect('/objects/orphanedObjectDiagnostics');

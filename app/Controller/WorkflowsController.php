@@ -13,7 +13,12 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'checkGraph';
-        $this->Security->unlockedActions[] = 'moduleStatelessExecution';
+        // moduleStatelessExecution runs a module's exec() with caller-supplied
+        // input and parameters, so it keeps the CSRF check: unlockedActions
+        // would drop that as well as the field hash, and the module dialog
+        // posts a hand-built object that can never produce a field hash. The
+        // dialog sends the token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['moduleStatelessExecution']);
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
@@ -110,17 +115,14 @@ class WorkflowsController extends AppController
         ]);
 
         $this->loadModel('WorkflowBlueprint');
-        $blueprints = $this->WorkflowBlueprint->find('first', [
-            'recursive' => -1,
-            'fields' => [
-                'COUNT(*) AS total',
-                'SUM(WorkflowBlueprint.default) AS shipped',
-            ],
-            'callbacks' => false,
-        ]);
+        // Two counts rather than SUM(flag): the flag is boolean on PostgreSQL,
+        // which has no SUM over booleans, and a typed condition renders on both.
         $this->set('hubBlueprints', [
-            'total' => (int)($blueprints[0]['total'] ?? 0),
-            'default' => (int)($blueprints[0]['shipped'] ?? 0),
+            'total' => (int)$this->WorkflowBlueprint->find('count', ['callbacks' => false]),
+            'default' => (int)$this->WorkflowBlueprint->find('count', [
+                'conditions' => ['WorkflowBlueprint.default' => true],
+                'callbacks' => false,
+            ]),
         ]);
 
         $totals = $this->Workflow->find('first', [
@@ -128,14 +130,17 @@ class WorkflowsController extends AppController
             'fields' => [
                 'COUNT(*) AS total',
                 'SUM(Workflow.counter) AS runs',
-                'SUM(Workflow.debug_enabled) AS debugging',
             ],
+            'callbacks' => false,
+        ]);
+        $debugging = $this->Workflow->find('count', [
+            'conditions' => ['Workflow.debug_enabled' => true],
             'callbacks' => false,
         ]);
         $this->set('hubWorkflows', [
             'total' => (int)($totals[0]['total'] ?? 0),
             'runs' => (int)($totals[0]['runs'] ?? 0),
-            'debugging' => (int)($totals[0]['debugging'] ?? 0),
+            'debugging' => (int)$debugging,
         ]);
     }
 

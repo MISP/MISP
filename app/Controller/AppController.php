@@ -1,5 +1,7 @@
 <?php
 App::uses('ConnectionManager', 'Model');
+App::uses('Mysql', 'Model/Datasource/Database');
+App::uses('Postgres', 'Model/Datasource/Database');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
@@ -40,7 +42,7 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '219';
+    private $__queryVersion = '225';
     public $pyMispVersion = '2.5.34.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -243,6 +245,21 @@ class AppController extends Controller
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $userLoggedIn = $this->__customAuthentication($_SERVER);
         }
+        // A request body is a document, never a locator. RequestHandlerComponent
+        // decodes an XML body on every write request, and Xml::build() treats a
+        // body that is a bare URL as something to go and fetch: its readFile
+        // guard reads `$options['readFile'] && http || https`, and && binds
+        // tighter than ||, so the https branch is never gated by it. That turns
+        // every endpoint accepting an XML content type - including cspReport,
+        // which is unauthenticated by design - into a blind SSRF. Decode only
+        // what actually looks like a document.
+        $this->RequestHandler->addInputType('xml', [function ($body) {
+            if (!is_string($body) || strpos($body, '<') === false) {
+                return [];
+            }
+            return $this->RequestHandler->convertXml($body);
+        }]);
+
         if ($this->_isRest()) {
             $jsonDecode = function ($dataToDecode) {
                 if (empty($dataToDecode)) {
@@ -457,9 +474,7 @@ class AppController extends Controller
 
         if ($user && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') === 'database') {
-                $db = ConnectionManager::getDataSource('default');
-                $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
-                if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
+                if ($this->User->Server->expiredSessionCount() > 1000) {
                     $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
@@ -1233,9 +1248,12 @@ class AppController extends Controller
             $db->setConfig(array('encoding' => 'utf8'));
             ConnectionManager::create('default', $db->config);
         }
-        $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended', 'Database/MysqlObserverExtended'], true)) {
-            throw new Exception('Datasource not supported: ' . $dataSource);
+        // Any MySQL or PostgreSQL driver, including MISP's own subclasses of
+        // Cake's two - checked by class rather than by name, so a new subclass
+        // cannot be forgotten here the way the first PostgreSQL one was.
+        $db = ConnectionManager::getDataSource('default');
+        if (!($db instanceof Mysql) && !($db instanceof Postgres)) {
+            throw new Exception('Datasource not supported: ' . $dataSourceConfig['datasource']);
         }
     }
 
@@ -1957,6 +1975,216 @@ class AppController extends Controller
     protected function __canModifyTag(array $event, $isTagLocal = false)
     {
         return $this->ACL->canModifyTag($this->Auth->user(), $event, $isTagLocal);
+    }
+
+    /**
+     * What a relationship save says it did. Four sentences rather than two
+     * interpolated halves: a plural in another language does not divide the
+     * same way, so each one is its own translatable string.
+     *
+     * @param string $relationship The type written, '' for a removal
+     * @param int    $count        Rows the request named
+     * @param bool   $isGalaxy     Clusters rather than tags
+     * @return string
+     */
+    private function __relationshipSavedMessage($relationship, $count, $isGalaxy)
+    {
+        if ($relationship === '') {
+            return $isGalaxy
+                ? __n('Relationship removed from %s cluster.',
+                      'Relationship removed from %s clusters.', $count, $count)
+                : __n('Relationship removed from %s tag.',
+                      'Relationship removed from %s tags.', $count, $count);
+        }
+
+        return $isGalaxy
+            ? __n('Relationship applied to %s cluster.',
+                  'Relationship applied to %s clusters.', $count, $count)
+            : __n('Relationship applied to %s tag.',
+                  'Relationship applied to %s tags.', $count, $count);
+    }
+
+    /**
+     * The galaxy clusters behind a set of tag-connector rows, keyed by tag id.
+     *
+     * A galaxy tag missing from the result is an orphan - this instance holds
+     * no cluster for it - which is why the tags card draws it and the galaxies
+     * card cannot.
+     *
+     * @param array $tagRows Connector rows (EventTag/AttributeTag) with Tag
+     * @param array $user
+     * @return array tag id => GalaxyCluster row, its Galaxy included
+     */
+    protected function _clustersByTagId(array $tagRows, array $user)
+    {
+        $galaxyTagNames = [];
+        foreach ($tagRows as $row) {
+            if (!empty($row['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$row['Tag']['id']] = $row['Tag']['name'];
+            }
+        }
+        if (empty($galaxyTagNames)) {
+            return [];
+        }
+
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->getClustersByTags(
+            $galaxyTagNames, $user, true, false
+        );
+        if (empty($clusters)) {
+            return [];
+        }
+
+        return array_column(
+            array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
+        );
+    }
+
+    /**
+     * The vocabulary a tag-relationship picker offers: the object-relationship
+     * table, highlighted first, plus the values already in use on the rows at
+     * hand - a relationship typed by hand once (the stock modal's "custom"
+     * value) is in no table and must stay pickable.
+     *
+     * @param array $inUse Relationship types the rows currently carry
+     * @return array [['name' => , 'description' => , 'highlighted' => ], ...]
+     */
+    protected function _tagRelationshipVocabulary(array $inUse = [])
+    {
+        $this->loadModel('ObjectRelationship');
+        $rows = $this->ObjectRelationship->find('all', [
+            'recursive' => -1,
+            'fields'    => ['name', 'description', 'highlighted'],
+            'order'     => ['highlighted DESC', 'name ASC'],
+        ]);
+
+        $options = [];
+        foreach (Hash::extract($rows, '{n}.ObjectRelationship') as $relationship) {
+            $options[$relationship['name']] = [
+                'name'        => $relationship['name'],
+                'description' => $relationship['description'],
+                'highlighted' => !empty($relationship['highlighted']),
+            ];
+        }
+        foreach ($inUse as $relationship) {
+            $relationship = (string)$relationship;
+            if ($relationship !== '' && !isset($options[$relationship])) {
+                $options[$relationship] = [
+                    'name'        => $relationship,
+                    'description' => __('Already in use here'),
+                    'highlighted' => false,
+                ];
+            }
+        }
+
+        return array_values($options);
+    }
+
+    /**
+     * Write one relationship type onto a selection of tag-connector rows.
+     *
+     * The Overmind relationship modals - an event's tags, an event's clusters,
+     * an attribute's tags, an attribute's clusters - differ only in which rows
+     * they offer and how the permission is judged. The write itself, and the
+     * JSON dialect the modal speaks, is this method. The stock theme's
+     * counterpart is TagsController::modifyTagRelationship(), which does one
+     * row at a time from a pencil on every chip.
+     *
+     * @param Model    $connector EventTag or AttributeTag
+     * @param array    $rowsById  The rows this request may write, keyed by
+     *                            connector id, each a connector row with its
+     *                            Tag - anything else is a 404
+     * @param callable $mayModify Given one such row, whether the user may
+     *                            write it (tagging is granted per locality)
+     * @param string   $kind      'tag' (default) or 'galaxy', for the wording
+     *                            of the message the modal toasts
+     * @return CakeResponse JSON; 200 with the count on success
+     */
+    protected function _applyTagRelationships(
+        Model $connector,
+        array $rowsById,
+        callable $mayModify,
+        $kind = 'tag'
+    ) {
+        $isGalaxy = $kind === 'galaxy';
+        $fail = function ($message, $status) {
+            return new CakeResponse([
+                'body'   => json_encode(['saved' => false, 'errors' => $message]),
+                'status' => $status,
+                'type'   => 'json',
+            ]);
+        };
+
+        $relationship = trim((string)($this->request->data['relationship'] ?? ''));
+        $ids = array_values(array_unique(array_filter(array_map(
+            'intval',
+            (array)($this->request->data['tag_connector_ids'] ?? [])
+        ))));
+
+        /* EventTag.relationship_type and AttributeTag.relationship_type are
+           both varchar(191). */
+        if (mb_strlen($relationship) > 191) {
+            return $fail(
+                __('A relationship type cannot be longer than %s characters.', 191),
+                400
+            );
+        }
+        if (empty($ids)) {
+            return $fail(
+                $isGalaxy
+                    ? __('Select at least one cluster.')
+                    : __('Select at least one tag.'),
+                400
+            );
+        }
+
+        $changed = 0;
+        foreach ($ids as $connectorId) {
+            if (!isset($rowsById[$connectorId])) {
+                return $fail(
+                    $isGalaxy ? __('Invalid cluster.') : __('Invalid tag.'),
+                    404
+                );
+            }
+            $row = $rowsById[$connectorId];
+            if (!$mayModify($row)) {
+                return $fail(
+                    $isGalaxy
+                        ? __('You do not have permission to modify the cluster %s.',
+                             $row['Tag']['name'] ?? $connectorId)
+                        : __('You do not have permission to modify the tag %s.',
+                             $row['Tag']['name'] ?? $connectorId),
+                    403
+                );
+            }
+            if ((string)($row['relationship_type'] ?? '') === $relationship) {
+                continue;
+            }
+            /* The whole row goes back to save(): both connectors require their
+               two foreign keys to be present even when the field list is the
+               one column. */
+            unset($row['Tag']);
+            $row['relationship_type'] = $relationship;
+            $saved = $connector->save(
+                [$connector->alias => $row], true, ['relationship_type']
+            );
+            if (!$saved) {
+                return $fail(__('The relationship could not be saved.'), 500);
+            }
+            $changed++;
+        }
+
+        return new CakeResponse([
+            'body'   => json_encode([
+                'saved'   => true,
+                'changed' => $changed,
+                'success' => $this->__relationshipSavedMessage(
+                    $relationship, count($ids), $isGalaxy
+                ),
+            ]),
+            'status' => 200,
+            'type'   => 'json',
+        ]);
     }
 
     /**

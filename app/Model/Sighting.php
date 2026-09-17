@@ -1800,11 +1800,8 @@ class Sighting extends AppModel
 
     private function dateVirtualColumn()
     {
-        if ($this->isMysql()) {
-            return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
-        } else {
-            return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
-        }
+        $dialect = $this->getSqlDialect();
+        return $dialect->dateOf($dialect->fromUnixtime('Sighting.date_sighting'));
     }
 
     /**

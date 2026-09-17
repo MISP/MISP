@@ -14,12 +14,15 @@
  *   $objectType      — the parent object's type (e.g. 'Note', 'Event')
  *   $objectUuid      — the parent object's uuid
  *   $showModalHeader — bool, draw the modal header strip + close button (default false)
+ *   $bodyClass       — wrapper classes; a modal wants the container's gutters,
+ *                      a card body already has its own (default the modal's)
  *
  * Every item leads with its distribution, as the icon-only shared badge, and a
  * nested item carries a left rule in the accent of its own type so a thread
  * reads by colour as well as by indent.
  */
 $showModalHeader = !empty($showModalHeader);
+$bodyClass = $bodyClass ?? 'container-fluid px-4 py-4';
 
 $notes         = $analystData['Note'] ?? [];
 $opinions      = $analystData['Opinion'] ?? [];
@@ -103,9 +106,9 @@ $itemActions = function ($item, $type) use ($baseurl, $me) {
             '<div class="dropdown">'
             . '<button class="btn btn-sm btn-light p-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' . h(__('Add analyst data')) . '"><i class="fas fa-plus"></i></button>'
             . '<ul class="dropdown-menu dropdown-menu-end shadow-sm">'
-            . $addItem('Note', 'misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
-            . $addItem('Opinion', 'misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion'))
-            . $addItem('Relationship', 'fas fa-diagram-project', __('Add relationship'))
+            . $addItem('Note', 'text-primary misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
+            . $addItem('Opinion', 'text-success misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion'))
+            . $addItem('Relationship', 'text-correlation fas fa-diagram-project', __('Add relationship'))
             . '</ul></div>';
     }
 
@@ -188,12 +191,12 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $opini
 ]) ?>
 <?php endif; ?>
 
-<div class="container-fluid px-4 py-4">
+<div class="<?= h($bodyClass) ?>">
 
     <?php if ($total === 0): ?>
         <div class="text-center text-muted py-4">
             <i class="fas fa-comment-slash mb-2" style="font-size:1.5rem;"></i>
-            <div><?= __('No analyst data attached to this %s yet.', strtolower($objectType)) ?></div>
+            <div><?= __('No analyst data attached to this %s yet.', h(strtolower($objectType))) ?></div>
         </div>
     <?php else: ?>
     <div class="d-flex flex-column gap-4">
@@ -274,7 +277,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $opini
                                     <?= h($rel['relationship_type']) ?>
                                 </span>
                             <?php endif; ?>
-                            <span class="text-muted small"><?= __('this %s', strtolower($objectType)) ?></span>
+                            <span class="text-muted small"><?= __('this %s', h(strtolower($objectType))) ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>

@@ -1375,22 +1375,17 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This feature is only accessible via POST requests');
         }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $this->Auth->user('id'))
-        ));
         $this->User->id = $this->Auth->user('id');
         $this->User->saveField('last_login', time());
         $this->User->saveField('current_login', time());
-        $user = $this->User->getAuthUser($user['User']['id']);
-        $this->Auth->login($user);
+        $this->_refreshAuth();
         $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
     }
 
     public function login()
     {
         $oldHash = false;
-        if ($this->request->is(['post', 'put'])) {
+        if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlocklisted($this->request->data['User']['email'])) {
@@ -1400,7 +1395,7 @@ class UsersController extends AppController
             }
             $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password', 'User.totp', 'User.hotp_counter'],
+                'fields' => ['User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
                 'recursive' => -1,
             ]);
             if ($unauth_user) {
@@ -1424,7 +1419,7 @@ class UsersController extends AppController
             }
         }
         // if instance requires email OTP
-        if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
+        if (!$this->request->is(['get']) && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
@@ -1450,7 +1445,7 @@ class UsersController extends AppController
             }
             // Login was failed, do everything that is needed such as blocklisting, logging and more
             // Also don't display "invalid user" before first login attempt
-            if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->request->is('get')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     // increase bruteforce attempt and log
@@ -2483,7 +2478,7 @@ class UsersController extends AppController
         $orgs = $this->User->Organisation->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+            'fields' => array('id', 'name', 'uuid', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
         ));
         $orgs = array_column(array_column($orgs, 'Organisation'), null, 'id');
         $users = $this->User->find('all', array(
@@ -2511,9 +2506,25 @@ class UsersController extends AppController
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
         // f*** php
         uksort($orgs, 'strcasecmp');
+        // Flag orgs that have a logo. Logos live under files/img/orgs (moved out of
+        // webroot long ago) and are named by id, name or uuid, so mirror the lookup
+        // getOrgLogo() serves from. realpath() + the prefix check reject a value that
+        // escapes the directory - e.g. an org name of '../../../../AI-marketing' - so
+        // reviving this flag does not reintroduce the org-name path traversal.
+        $logoPath = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
+        $logoBase = realpath($logoPath);
         foreach ($orgs as $k => $value) {
-            if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
-                $orgs[$k]['logo'] = true;
+            foreach (['id', 'name', 'uuid'] as $field) {
+                if (empty($value[$field])) {
+                    continue;
+                }
+                foreach (['png', 'svg'] as $extension) {
+                    $candidate = realpath($logoPath . $value[$field] . '.' . $extension);
+                    if ($candidate !== false && $logoBase !== false && str_starts_with($candidate, $logoBase . DS)) {
+                        $orgs[$k]['logo'] = true;
+                        break 2;
+                    }
+                }
             }
         }
         if ($this->_isRest()) {

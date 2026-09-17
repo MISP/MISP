@@ -279,7 +279,41 @@ $activeTotal = count(array_diff_key(
         ?>
     </div>
 
+    <?php if ($child['type'] === 'button_group'): ?>
+        <div class="btn-group flex-shrink-0" role="group"<?php
+            if (!empty($child['label'])): ?> aria-label="<?= h($child['label']) ?>"<?php
+            endif; ?>>
+            <?php foreach ($child['buttons'] as $groupButton): ?>
+                <?php
+                    $isLink = !empty($groupButton['url']);
+                    $tag = $isLink ? 'a' : 'button';
+                    $attributes = [
+                        'class' => $groupButton['class'] ?? 'btn btn-outline-primary',
+                    ];
+                    if ($isLink) {
+                        $attributes['href'] = $groupButton['url'];
+                    } else {
+                        $attributes['type'] = 'button';
+                    }
+                    foreach (['id', 'title', 'onclick'] as $optional) {
+                        if (!empty($groupButton[$optional])) {
+                            $attributes[$optional] = $groupButton[$optional];
+                        }
+                    }
+                    $renderedAttributes = '';
+                    foreach ($attributes as $name => $value) {
+                        $renderedAttributes .= sprintf(' %s="%s"', $name, h($value));
+                    }
+                ?>
+                <<?= $tag . $renderedAttributes ?>><?php
+                    if (!empty($groupButton['icon'])): ?><i class="<?= h($groupButton['icon']) ?> me-1"></i><?php
+                    endif; ?><?= h($groupButton['label'] ?? '') ?></<?= $tag ?>>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <div class="btn-group" role="group" data-tour="index-view">
+
         <?php if (!empty($filter_bar['view_switch'])): ?>
             <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->
             <?php foreach ($filter_bar['view_switch'] as $vs): ?>
@@ -630,38 +664,6 @@ var filterBarConfig = <?= json_encode([
             go(buildScopedUrl());
         });
 
-        // Pagination + sort links. Rebuild the target from the container's current
-        // (scoped) URL so the scope is always kept — including the page-1 link,
-        // which CakePHP renders without a /page: segment. Registered once on the
-        // persistent container so reloads don't stack duplicate listeners.
-        if (!ajaxContainer.dataset.indexWired) {
-            ajaxContainer.dataset.indexWired = '1';
-            ajaxContainer.addEventListener('click', function(e) {
-                const a = e.target.closest('a[href]');
-                if (!a || !ajaxContainer.contains(a)) return;
-                const href = a.getAttribute('href') || '';
-                const curr = ajaxContainer.dataset.url || '';
-
-                if (a.classList.contains('page-link')) {
-                    e.preventDefault();
-                    const pm = href.match(/[/?&]page[:=](\d+)/);
-                    const page = pm ? pm[1] : '1';
-                    reloadAjaxTabIndex(ajaxContainer, curr.replace(/\/page:\d+/, '') + '/page:' + page);
-                    return;
-                }
-
-                const sm = href.match(/\/sort:([^\/]+)/);
-                if (sm && href.indexOf(itemIndexPath) !== -1) {
-                    e.preventDefault();
-                    const dm = href.match(/\/direction:([^\/]+)/);
-                    let url = curr.replace(/\/page:\d+/, '').replace(/\/sort:[^\/]+/, '').replace(/\/direction:[^\/]+/, '');
-                    url += '/sort:' + sm[1];
-                    if (dm) url += '/direction:' + dm[1];
-                    reloadAjaxTabIndex(ajaxContainer, url);
-                    return;
-                }
-            });
-        }
     } else {
         scope.querySelector('#filterButton')?.addEventListener('click', () => {
             if (draft) { draft.apply(); return; }

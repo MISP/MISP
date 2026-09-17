@@ -939,6 +939,12 @@ class ShadowAttributesController extends AppController
                 $params['order'] = array('ShadowAttribute.' . $sortField => $sortDirection);
             }
         }
+        if (empty($params['order'])) {
+            // Insertion order, stated. MySQL returns it off the primary key
+            // without being asked; PostgreSQL returns physical order, which
+            // stops being insertion order as soon as a proposal is edited.
+            $params['order'] = array('ShadowAttribute.id' => 'ASC');
+        }
         if ($this->_isRest()) {
             $results = $this->ShadowAttribute->find('all', $params);
             foreach ($results as $k => $result) {

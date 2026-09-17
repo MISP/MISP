@@ -1302,7 +1302,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $server, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -1322,7 +1322,7 @@ class Server extends AppModel
                 $sgIds = array(-1);
             }
             $tableName = $this->Event->EventReport->table;
-            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
@@ -1380,13 +1380,14 @@ class Server extends AppModel
 
                     // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
                     // server
+                    $reason = null;
                     $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
                         $server['Server']['push_galaxy_clusters'] &&
                         "full" !== $technique &&
-                        $this->Event->shouldBePushedToServer($event, $server);
+                        $this->Event->shouldBePushedToServer($event, $server, $reason);
 
                     if ($pushGalaxyClustersForEvent) {
-                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $this->syncGalaxyClusters($serverSync, $server, $user, $technique=$event['Event']['id'], $event=$event);
                     }
 
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
@@ -1738,6 +1739,10 @@ class Server extends AppModel
                         }
                         if (strpos($branchKey, 'Secur') === 0) {
                             $leafValue['tab'] = 'Security';
+                        } elseif ($branchKey === 'Plugin' && $leafValue['subGroup'] === 'AI') {
+                            // The AI family has a settings tab of its own; the names keep
+                            // the Plugin. prefix the module-family plumbing reads.
+                            $leafValue['tab'] = 'AI';
                         } else {
                             $leafValue['tab'] = $branchKey;
                         }
@@ -1939,6 +1944,62 @@ class Server extends AppModel
         return true;
     }
 
+    /**
+     * Validator for a `float` setting with optional bounds (either may be
+     * null). Returns a closure usable as a setting's `test`.
+     *
+     * @param float|null $min
+     * @param float|null $max
+     * @return Closure
+     */
+    public function floatInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value)) {
+                return __('This setting has to be a number.');
+            }
+            $value = (float)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a number lower or equal %s.', $max);
+            }
+            return true;
+        };
+    }
+
+    /**
+     * Validator for a whole-number setting with optional bounds (either may
+     * be null). Returns a closure usable as a setting's `test`.
+     *
+     * @param int|null $min
+     * @param int|null $max
+     * @return Closure
+     */
+    public function integerInRange($min = null, $max = null)
+    {
+        return function ($value) use ($min, $max) {
+            if (!is_numeric($value) || (float)$value != (int)$value) {
+                return __('The value has to be a whole number.');
+            }
+            $value = (int)$value;
+            if ($min !== null && $max !== null && ($value < $min || $value > $max)) {
+                return __('The value has to be a whole number between %s and %s.', $min, $max);
+            }
+            if ($min !== null && $value < $min) {
+                return __('The value has to be a whole number greater or equal %s.', $min);
+            }
+            if ($max !== null && $value > $max) {
+                return __('The value has to be a whole number lower or equal %s.', $max);
+            }
+            return true;
+        };
+    }
+
     public function testTheme($value)
     {
         $themes = $this->loadAvailableThemes();
@@ -1991,9 +2052,24 @@ class Server extends AppModel
         $options = $defaults['MISP']['correlation_engine']['options'];
         if (!empty($value) && !in_array($value, array_keys($options))) {
             return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
-        } else {
-            return true;
         }
+        if ($value === 'OnDemand' && !$this->isMysql()) {
+            return $this->onDemandEngineUnsupportedMessage();
+        }
+        return true;
+    }
+
+    /**
+     * Why the On Demand correlation engine cannot be selected on anything but
+     * MySQL or MariaDB: its temporary tables and index hints are tuned
+     * against the MySQL planner, and porting it means re-tuning, not
+     * translating. The other two engines are portable.
+     *
+     * @return string
+     */
+    private function onDemandEngineUnsupportedMessage()
+    {
+        return __('The On Demand correlation engine is MySQL/MariaDB only: its MEMORY temporary tables and index hints are tuned against the MySQL planner. Use the Default or No ACL engine on this database.');
     }
 
     public function testLocalOrg($value)
@@ -2745,13 +2821,25 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value)
+    /**
+     * Cast a raw setting value to the PHP type its definition declares. Every
+     * save path (web, REST, CLI) goes through here. A non-numeric value for a
+     * `float` setting is left untouched so that the setting's test rejects it
+     * instead of it silently becoming 0.
+     *
+     * @param array $setting Setting definition, only `type` is read
+     * @param mixed $value
+     * @return mixed
+     */
+    public static function normaliseSettingValue(array $setting, $value)
     {
-        if (!empty($data['type'])) {
-            if ($data['type'] === 'boolean') {
+        if (!empty($setting['type'])) {
+            if ($setting['type'] === 'boolean') {
                 $value = (bool)$value;
-            } elseif ($data['type'] === 'numeric') {
+            } elseif ($setting['type'] === 'numeric') {
                 $value = (int)$value;
+            } elseif ($setting['type'] === 'float' && is_numeric($value)) {
+                $value = (float)$value;
             }
         }
         return $value;
@@ -2811,12 +2899,7 @@ class Server extends AppModel
             }
         }
         if ($value !== null) {
-            $value = trim($value);
-            if ($setting['type'] === 'boolean') {
-                $value = (bool)$value;
-            } else if ($setting['type'] === 'numeric') {
-                $value = (int)$value;
-            }
+            $value = self::normaliseSettingValue($setting, trim($value));
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
                     $testResult = $setting['test']($value);
@@ -2915,7 +2998,7 @@ class Server extends AppModel
 
         $settingObject = $this->getSettingData($setting, false);
         if ($settingObject) {
-            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
+            $value = self::normaliseSettingValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -3195,7 +3278,7 @@ class Server extends AppModel
                     $sgIds = [-1];
                 }
                 $tableName = $this->Event->EventReport->table;
-                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = FALSE)', $tableName, $tableName, $tableName);
                 $findParams = [
                     'conditions' => [
                         $eventid_conditions_key => $eventid_conditions_value,
@@ -3354,6 +3437,20 @@ class Server extends AppModel
         return $existingServer[$this->alias]['id'];
     }
 
+    /**
+     * How much disk every table costs, keyed by table name.
+     *
+     * `used` and `reclaimable` are the human-readable forms the diagnostics
+     * screen renders; the `_in_bytes` trio is what LogShell and the Overmind
+     * theme do arithmetic on.
+     *
+     * The two engines used to answer in different shapes as well as different
+     * SQL - MySQL keyed by table with the byte figures, PostgreSQL an unkeyed
+     * list without them, which meant `dbSpaceUsage()['logs']` simply did not
+     * work there. One shape now, out of SchemaInspector.
+     *
+     * @return array
+     */
     public function dbSpaceUsage()
     {
         $inMb = function ($value) {
@@ -3361,49 +3458,19 @@ class Server extends AppModel
         };
 
         $result = [];
-        if ($this->isMysql()) {
-            $sql = sprintf(
-                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-
-            foreach ($sqlResult as $temp) {
-                $result[$temp['tables']['TABLE_NAME']] = [
-                    'table' => $temp['tables']['TABLE_NAME'],
-                    'used' => $inMb($temp['tables']['DATA_LENGTH'] + $temp['tables']['INDEX_LENGTH']),
-                    'reclaimable' => $inMb($temp['tables']['DATA_FREE']),
-                    'data_in_bytes' => (int) $temp['tables']['DATA_LENGTH'],
-                    'index_in_bytes' => (int) $temp['tables']['INDEX_LENGTH'],
-                    'reclaimable_in_bytes' => (int) $temp['tables']['DATA_FREE'],
-                ];
-            }
-
-        } else {
-            $sql = sprintf(
-                'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
-                "'" . $this->getDataSource()->config['database'] . "'",
-                "'.'",
-                "'" . $this->getDataSource()->config['database'] . "'"
-            );
-            $sqlResult = $this->query($sql);
-            foreach ($sqlResult as $temp) {
-                foreach ($temp[0] as $k => $v) {
-                    if ($k == "table") {
-                        continue;
-                    }
-                    $temp[0][$k] = $inMb($v);
-                }
-                $temp[0]['reclaimable'] = '0 MB';
-                $result[] = $temp[0];
-            }
+        foreach ($this->getSchemaInspector()->tableSizes() as $table => $size) {
+            $result[$table] = [
+                'table' => $table,
+                'used' => $inMb($size['total_in_bytes']),
+                'reclaimable' => $inMb($size['reclaimable_in_bytes']),
+                'data_in_bytes' => $size['data_in_bytes'],
+                'index_in_bytes' => $size['index_in_bytes'],
+                'reclaimable_in_bytes' => $size['reclaimable_in_bytes'],
+            ];
         }
         return $result;
     }
 
-    /**
-     * @return array
-     */
     public function redisInfo()
     {
         $output = [
@@ -3438,11 +3505,42 @@ class Server extends AppModel
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
-            'indexes' => array()
+            'indexes' => array(),
+            'warnings' => array(),
         );
+        // A setting that validates only on MySQL can still arrive on another
+        // engine with the rest of the configuration, for example through a
+        // pgloader migration. It is not an error - the engine simply is not
+        // usable here - but the instance should know.
+        if (!$this->isMysql() && Configure::read('MISP.correlation_engine') === 'OnDemand') {
+            $schemaDiagnostic['warnings'][] = $this->onDemandEngineUnsupportedMessage();
+        }
+        // db_version is frozen, so actual_db_version and expected_db_version are
+        // now the same number on every healthy *and* every stalled instance -
+        // the pair fleet monitoring has always alerted on can no longer differ.
+        // These replace it: migrations_pending > 0 is the direct successor to
+        // the version mismatch, migrations_failed > 0 is new signal the old
+        // scheme could not express at all, and the IDs name exactly which change
+        // an instance is behind on rather than just how far. A failed migration
+        // is still pending - it is retried first on the next run - so its id is
+        // in both lists.
+        // The expected version is the one db_schema.json was dumped at, on
+        // any engine - the file is JSON and reads the same everywhere. Only
+        // the column-by-column comparison below is MySQL-shaped.
+        $dbExpectedSchema = $this->getExpectedDBSchema();
+        if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
+            $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
+        }
+        $migrationManager = $this->getMigrationManager();
+        $pendingMigrations = array_keys($migrationManager->pending());
+        $failedMigrations = $migrationManager->failed();
+        $schemaDiagnostic['migrations_pending'] = count($pendingMigrations);
+        $schemaDiagnostic['migrations_pending_ids'] = $pendingMigrations;
+        $schemaDiagnostic['migrations_failed'] = count($failedMigrations);
+        $schemaDiagnostic['migrations_failed_ids'] = $failedMigrations;
+        $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
-            $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
                 $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
                 $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
@@ -3472,42 +3570,36 @@ class Server extends AppModel
         return $schemaDiagnostic;
     }
 
-    /*
-     * Get RDBMS configuration values
+    /**
+     * The engine settings MISP has a recommendation for, and what they are set
+     * to right now.
+     *
+     * No engine branch any more, and none needed: the recommendations are all
+     * MySQL tunable names, and an engine that has none of them simply matches
+     * nothing and gets an empty list - which is exactly what the isMysql()
+     * branch used to return by hand. The SESSION_VARIABLES / session_variables
+     * key-casing dance is gone too; that existed only because Model::query()
+     * nests a raw row under a driver-dependent table name.
+     *
+     * @return array
      */
     public function dbConfiguration(): array
     {
-        if ($this->isMysql()) {
-            $configuration = [];
-
-            $dbVariables = $this->query("SHOW VARIABLES;");
-            $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
-
-            foreach ($dbVariables as $dbVariable) {
-                // different rdbms have different casing
-                if (isset($dbVariable['SESSION_VARIABLES'])) {
-                    $dbVariable = $dbVariable['SESSION_VARIABLES'];
-                } elseif (isset($dbVariable['session_variables'])) {
-                    $dbVariable = $dbVariable['session_variables'];
-                } else {
-                    continue;
-                }
-
-                if (in_array($dbVariable['Variable_name'], $settings)) {
-                    $configuration[] = [
-                        'name' => $dbVariable['Variable_name'],
-                        'value' => $dbVariable['Value'],
-                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['default'],
-                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['recommended'],
-                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['explanation'],
-                    ];
-                }
+        $configuration = [];
+        $variables = $this->getSchemaInspector()->serverVariables();
+        foreach (self::MYSQL_RECOMMENDED_SETTINGS as $name => $recommendation) {
+            if (!isset($variables[$name])) {
+                continue;
             }
-
-            return $configuration;
-        } else {
-            return [];
+            $configuration[] = [
+                'name' => $name,
+                'value' => $variables[$name],
+                'default' => $recommendation['default'],
+                'recommended' => $recommendation['recommended'],
+                'explanation' => $recommendation['explanation'],
+            ];
         }
+        return $configuration;
     }
 
     /*
@@ -3776,7 +3868,7 @@ class Server extends AppModel
     {
         $db = $this->getDataSource();
         $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
+            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING COUNT(*) > 1;',
                 $db->name($columnName), $db->name($tableName), $db->name($columnName))
         );
         return empty($duplicates);
@@ -3996,7 +4088,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.8'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.16'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
@@ -4173,6 +4265,24 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
+    /**
+     * How many rows of the database-backed session store have expired.
+     *
+     * Only meaningful while Session.defaults is 'database' - the table is not
+     * queried otherwise. The login path and the diagnostics page used to carry
+     * this query verbatim, each reading the result its own way.
+     *
+     * @return int|null Null when the query answered nothing usable.
+     */
+    public function expiredSessionCount()
+    {
+        $result = $this->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
+        if (!isset($result[0][0]['session_count'])) {
+            return null;
+        }
+        return (int)$result[0][0]['session_count'];
+    }
+
     public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
         $sessionCount = null;
@@ -4197,14 +4307,8 @@ class Server extends AppModel
                 break;
             case 'database':
                 $sessionHandler = 'database';
-                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-                $sqlResult = $this->query($sql);
-                if (isset($sqlResult[0][0])) {
-                    $sessionCount = $sqlResult[0][0]['session_count'];
-                    $errorCode = 0;
-                } else {
-                    $errorCode = 9;
-                }
+                $sessionCount = $this->expiredSessionCount();
+                $errorCode = $sessionCount === null ? 9 : 0;
                 if ($sessionCount > 1000) {
                     $diagnostic_errors++;
                     $errorCode = 1;
@@ -5834,7 +5938,7 @@ class Server extends AppModel
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
                         'NoAcl' => __('No ACL Engine'),
-                        'OnDemand' => __('On Demand Correlation Engine')
+                        'OnDemand' => __('On Demand Correlation Engine (MySQL/MariaDB only)')
                     ],
                 ],
                 'correlation_limit' => [
@@ -8763,6 +8867,129 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ),
+                'AI_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the AI services (the ai_connector misp-module). While disabled, no AI action is offered anywhere in the UI.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'AI_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the AI services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the AI services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'AI_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Timeout in seconds for a request from MISP to the AI services. It is also passed to the module as its overall time budget for the request.'),
+                    'value' => 300,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ),
+                'AI_ssl_verify_peer' => array(
+                    'level' => 1,
+                    'description' => __('Set to false to disable SSL verification when reaching the AI services. This is not recommended.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_verify_host' => array(
+                    'level' => 1,
+                    'description' => __('Set to false if you wish to ignore hostname match errors when validating the certificate of the AI services.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_allow_self_signed' => array(
+                    'level' => 1,
+                    'description' => __('Set to true to accept a self-signed certificate from the AI services. This requires AI_ssl_verify_peer to be enabled.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'AI_ssl_cafile' => array(
+                    'level' => 1,
+                    'description' => __('Set to the absolute path of the Certificate Authority file that you wish to use for verifying the SSL certificate of the AI services.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'AI_openai_api_base' => array(
+                    'level' => 1,
+                    'description' => __('Base URL of the OpenAI-compatible LLM endpoint the AI module talks to (Ollama, vLLM, OpenAI, ...). Passed to the module with every request.'),
+                    'value' => 'http://127.0.0.1:11434/v1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_api_key' => array(
+                    'level' => 2,
+                    'description' => __('API key for the LLM endpoint, if it requires one. Passed to the module with every request and never shown once set.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                    'redacted' => true
+                ),
+                'AI_model_id' => array(
+                    'level' => 1,
+                    'description' => __('Identifier of the model to use at the LLM endpoint, for example gemma4:12b.'),
+                    'value' => 'gemma4:12b',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'AI_temperature' => array(
+                    'level' => 2,
+                    'description' => __('Sampling temperature for the model. 0 gives the most deterministic output.'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'float',
+                    'null' => true
+                ),
+                'AI_request_timeout' => array(
+                    'level' => 2,
+                    'description' => __('Timeout in seconds the AI module applies to each call it makes to the LLM endpoint.'),
+                    'value' => 120,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'AI_suggest_limit' => array(
+                    'level' => 2,
+                    'description' => __('Maximum number of tags the AI module may recommend for an event, between 1 and 10.'),
+                    'value' => 5,
+                    'test' => $this->integerInRange(1, 10),
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'AI_suggest_min_score' => array(
+                    'level' => 2,
+                    'description' => __('Recommended tags whose confidence score is below this value (0 to 1) are dropped.'),
+                    'value' => 0,
+                    'test' => $this->floatInRange(0, 1),
+                    'type' => 'float',
+                    'null' => true
+                ),
+                'AI_min_confidence' => array(
+                    'level' => 2,
+                    'description' => __('Indicators the AI module extracts from event reports with a confidence below this value (0 to 1) are dropped. Fewer, certain indicators beat many doubtful ones.'),
+                    'value' => 0.9,
+                    'test' => $this->floatInRange(0, 1),
+                    'type' => 'float',
+                    'null' => true
+                ),
                 'CustomAuth_custom_password_reset' => array(
                     'level' => 2,
                     'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
@@ -8795,29 +9022,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ],
-                'CTIInfoExtractor_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
-                'CTIInfoExtractor_url' => [
-                    'level' => 1,
-                    'description' => __('The url of the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ],
-                'CTIInfoExtractor_authentication' => [
-                    'level' => 1,
-                    'description' => __('The authentication key for the LLM REST service.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => 'true'
-                ]
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,

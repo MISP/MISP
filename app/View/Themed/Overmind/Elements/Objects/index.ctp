@@ -2,11 +2,6 @@
 App::uses('DistributionLevel', 'Tools');
 
 $eventId   = $event['Event']['id'];
-$total     = (int)($total ?? 0);
-$page      = (int)($page  ?? 1);
-$limit     = (int)($limit ?? 60);
-$totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
-$window     = 2;
 // The extended / extending mode rides along on every URL this list builds,
 // so a filter, a toggle or a page change never falls back to the atomic view.
 $objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
@@ -93,6 +88,27 @@ function _objDistBadge($dist) {
         h($c['bg']), h($c['color']), h($c['color']), h($c['icon'])
     );
 }
+
+// The fold controls only have something to act on once the page holds an
+// object, so an empty list gets no pair of dead buttons.
+$foldChildren = empty($objects) ? [] : [
+    [
+        'type'    => 'button_group',
+        'label'   => __('Expand or collapse every object'),
+        'buttons' => [
+            [
+                'class' => 'btn btn-outline-primary obj-expand-all',
+                'icon'  => 'fas fa-angles-down',
+                'label' => __('Expand all'),
+            ],
+            [
+                'class' => 'btn btn-outline-primary obj-collapse-all',
+                'icon'  => 'fas fa-angles-up',
+                'label' => __('Collapse all'),
+            ],
+        ],
+    ],
+];
 ?>
 
 <div id="objectListContainer" class="container-fluid px-0">
@@ -105,7 +121,7 @@ function _objDistBadge($dist) {
                 [
                     'scaffold_data' => [
                         'filter_bar' => [
-                            'children' => [
+                            'children' => array_merge([
                                 [
                                     'type'        => 'search',
                                     'button'      => __('Search'),
@@ -127,7 +143,7 @@ function _objDistBadge($dist) {
                                     'icon'  => 'fas fa-trash',
                                     'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
                                 ],
-                            ],
+                            ], $foldChildren),
                         ],
                     ],
                     'item_url' => $objectsUrl,
@@ -287,7 +303,7 @@ function _objDistBadge($dist) {
 
             <!-- Card body -->
             <div id="<?= $collapseId ?>"
-                 class="accordion-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
+                 class="accordion-collapse obj-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
                  aria-labelledby="<?= $headingId ?>">
 
                 <div class="accordion-body p-0">
@@ -502,6 +518,8 @@ function _objDistBadge($dist) {
                                                     'add_tag'         => $objCanTag,
                                                     'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
                                                     'add_tag_id_path' => 'id',
+                                                    'add_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeTagRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>
@@ -519,6 +537,8 @@ function _objDistBadge($dist) {
                                                     'add_galaxy'         => $objCanTag,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',
+                                                    'add_galaxy_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeGalaxyRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>
@@ -639,52 +659,11 @@ function _objDistBadge($dist) {
         </div>
     <?php endif; ?>
 
-    <!-- ── Bottom pagination ───────────────────────────────── -->
-    <?php if ($totalPages > 1): ?>
+    <!-- ── Bottom pagination ───────────────────────────── -->
+    <?php if (!empty($objects)): ?>
     <div class="card shadow-sm mt-3">
-        <div class="card-body py-2 d-flex justify-content-center">
-            <nav aria-label="<?= __('Objects pagination') ?>">
-                <ul class="pagination pagination-sm mb-0">
-                    <?php if ($page > 1): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page - 1 ?>">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-
-                    <?php for ($p = 1; $p <= $totalPages; $p++):
-                        if (
-                            $p === 1
-                            || $p === $totalPages
-                            || abs($p - $page) <= $window
-                        ):
-                    ?>
-                        <li class="page-item <?= $p === $page ? 'active' : '' ?>">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $p ?>">
-                                <?= $p ?>
-                            </a>
-                        </li>
-                    <?php
-                        elseif (abs($p - $page) === $window + 1):
-                    ?>
-                        <li class="page-item disabled">
-                            <span class="page-link">&hellip;</span>
-                        </li>
-                    <?php endif; endfor; ?>
-
-                    <?php if ($page < $totalPages): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page + 1 ?>">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </nav>
+        <div class="card-body py-2">
+            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
         </div>
     </div>
     <?php endif; ?>
@@ -733,6 +712,7 @@ function _objDistBadge($dist) {
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 container.innerHTML       = html;
+                container.dataset.url        = url;
                 container.style.opacity      = '';
                 container.style.pointerEvents = '';
                 container.querySelectorAll('script').forEach(function (oldScript) {
@@ -815,6 +795,26 @@ function _objDistBadge($dist) {
     }
     wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
+
+    function setAllObjectsExpanded(expand) {
+        (container || document)
+            .querySelectorAll('.obj-collapse')
+            .forEach(function (panel) {
+                if (panel.classList.contains('show') === expand) return;
+                var collapse = bootstrap.Collapse.getOrCreateInstance(
+                    panel, { toggle: false }
+                );
+                if (expand) { collapse.show(); } else { collapse.hide(); }
+            });
+    }
+
+    [['.obj-expand-all', true], ['.obj-collapse-all', false]].forEach(function (pair) {
+        var btn = (container || document).querySelector(pair[0]);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            setAllObjectsExpanded(pair[1]);
+        });
+    });
 
     // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
     // the global selectedItems map, which the attribute toolbar deletes through
@@ -925,16 +925,5 @@ function _objDistBadge($dist) {
         });
     });
 
-    // Pagination link clicks
-    document.addEventListener('click', function (e) {
-        var link = e.target.closest('.obj-page-link');
-        if (!link) return;
-        e.preventDefault();
-        var p = link.dataset.page;
-        if (!p) return;
-        loadObjects(
-            baseurl + <?= json_encode($objectsUrl) ?> + '/page:' + encodeURIComponent(p)
-        );
-    });
 })();
 </script>

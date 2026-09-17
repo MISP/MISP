@@ -178,9 +178,12 @@ $fields = array_merge($fields, [
         'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card'],
+        // Cell actions are handled by the tag_list element
         'add_tag' => $_rowMayTag,
         'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
         'add_tag_id_path' => $path('id'),
+        'add_relationship_url' => $baseurl
+            . '/attributes/editAttributeTagRelationships/%id%',
     ],
     [
         'name' => __('Galaxy'),
@@ -188,9 +191,12 @@ $fields = array_merge($fields, [
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card'],
+        // Cell actions are handled by the galaxy element
         'add_galaxy' => $_rowMayTag,
         'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
         'add_galaxy_id_path' => $path('id'),
+        'add_galaxy_relationship_url' => $baseurl
+            . '/attributes/editAttributeGalaxyRelationships/%id%',
     ],
     [
         'name' => __('IDS'),
@@ -268,7 +274,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
@@ -278,7 +284,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add opinion'),
-                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
+                'icon' => 'text-success misp-icon misp-icon-analyst-opinion misp-simple',
                 'url' => $baseurl . '/analystData/add/Opinion/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
@@ -288,7 +294,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add relationship'),
-                'icon' => 'diagram-project',
+                'icon' => 'text-correlation fas fa-diagram-project',
                 'url' => $baseurl . '/analystData/add/Relationship/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
