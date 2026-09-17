@@ -31,7 +31,12 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
+        // eventIndexColumnToggle is only ever reached by hand-built same-origin
+        // AJAX from the event index, so it cannot produce the field hash
+        // _validatePost() wants - but it can and does carry the page's CSRF
+        // token in the X-CSRF-Token header, so keep that check rather than
+        // unlocking both. It takes a column name and nothing else worth hashing.
+        $this->_csrfTokenHeaderOnly(['eventIndexColumnToggle']);
     }
 
     public function index()

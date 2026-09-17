@@ -3912,6 +3912,7 @@ function eventIndexColumnsToggle(columnName) {
     xhr({
         url: "/userSettings/eventIndexColumnToggle/" + columnName,
         method: "post",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         success: function () {
             window.location.reload(); // update page
         }
@@ -5681,6 +5682,7 @@ function setHomePage() {
             $.ajax({
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 data: $tmp.serialize(),
                 success: function () {
                     showMessage('success', 'Homepage set.');
