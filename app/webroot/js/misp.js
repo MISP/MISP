@@ -5806,7 +5806,8 @@ $(document.body).on('click', '.populateActionTrigger', function() {
         data: JSON.stringify(populate_script['body']),
         headers: {
             "Accept": "application/json",
-            "Content-type": "application/json"
+            "Content-type": "application/json",
+            "X-CSRF-Token": (window.csrfToken || '')
         },
         success: function (data) {
             if (typeof(data) != 'object') {
