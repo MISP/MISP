@@ -76,10 +76,10 @@ class EventsController extends AppController
         // CSRF token as a header. None of them take body fields a form hash
         // would protect - they post a JSON document
         $this->_csrfTokenHeaderOnly([
-            'publish', 'unpublish', 'restSearch',
+            'publish', 'unpublish', 'restSearch', 'getEventTimeline',
             'editEventTags', 'editEventGalaxies',
             'editEventTagRelationships', 'editEventGalaxyRelationships',
-            'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric'
+            'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric',
         ]);
 
         // if not admin or own org, check private as well..
