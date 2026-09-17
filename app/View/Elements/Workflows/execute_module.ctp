@@ -171,6 +171,7 @@ $type_mapper = [
         var start = new Date().getTime();
         $.ajax({
             data: data,
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             beforeSend: function() {
                 toggleLoading($runModuleBtn, true)
             },

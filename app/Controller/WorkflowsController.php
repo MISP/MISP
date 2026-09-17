@@ -13,7 +13,12 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'checkGraph';
-        $this->Security->unlockedActions[] = 'moduleStatelessExecution';
+        // moduleStatelessExecution runs a module's exec() with caller-supplied
+        // input and parameters, so it keeps the CSRF check: unlockedActions
+        // would drop that as well as the field hash, and the module dialog
+        // posts a hand-built object that can never produce a field hash. The
+        // dialog sends the token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['moduleStatelessExecution']);
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
