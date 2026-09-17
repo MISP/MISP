@@ -239,6 +239,21 @@ class AppController extends Controller
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $userLoggedIn = $this->__customAuthentication($_SERVER);
         }
+        // A request body is a document, never a locator. RequestHandlerComponent
+        // decodes an XML body on every write request, and Xml::build() treats a
+        // body that is a bare URL as something to go and fetch: its readFile
+        // guard reads `$options['readFile'] && http || https`, and && binds
+        // tighter than ||, so the https branch is never gated by it. That turns
+        // every endpoint accepting an XML content type - including cspReport,
+        // which is unauthenticated by design - into a blind SSRF. Decode only
+        // what actually looks like a document.
+        $this->RequestHandler->addInputType('xml', [function ($body) {
+            if (!is_string($body) || strpos($body, '<') === false) {
+                return [];
+            }
+            return $this->RequestHandler->convertXml($body);
+        }]);
+
         if ($this->_isRest()) {
             $jsonDecode = function ($dataToDecode) {
                 if (empty($dataToDecode)) {
