@@ -41,9 +41,16 @@ class AttributesController extends AppController
         // document, which is exactly why _validatePost() can never pass:
         // Security starts up before the component that decodes it, so it sees
         // no _Token at all.
+        // editField is reached two ways, and neither can satisfy _validatePost():
+        // the Overmind index posts a form-encoded body from fetch() with the
+        // token in the X-CSRF-Token header, and the legacy inline forms post a
+        // serialised Cake form whose field hash does not survive the AJAX
+        // submit. Both carry a token - header and body respectively - so keep
+        // the CSRF check and drop only the field-hash check.
         $this->_csrfTokenHeaderOnly([
             'editAttributeTags', 'editAttributeGalaxies',
             'editAttributeTagRelationships', 'editAttributeGalaxyRelationships',
+            'editField',
         ]);
 
         // permit reuse of CSRF tokens on the search page.
@@ -53,7 +60,6 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
-        $this->Security->unlockedActions[] = 'editField';
         $this->Security->unlockedActions[] = 'validateValue';
 
         if ($this->request->action === 'add_attachment') {
