@@ -3810,7 +3810,15 @@ class Event extends AppModel
 
         if ($isXml) {
             App::uses('Xml', 'Utility');
-            $dataArray = Xml::toArray(Xml::build($data));
+            // The uploaded file's *content* is a document, never a locator.
+            // Xml::build() would otherwise treat a body of `/etc/passwd` or
+            // `http://10.0.0.1/` as something to read or fetch and then import,
+            // and its readFile guard does not cover the https branch (operator
+            // precedence). Refuse anything that is not a document first.
+            if (strpos($data, '<') === false) {
+                throw new Exception("File does not contain an XML document");
+            }
+            $dataArray = Xml::toArray(Xml::build($data, ['readFile' => false]));
         } else {
             $dataArray = $this->jsonDecode($data);
             if (isset($dataArray['response'][0])) {
