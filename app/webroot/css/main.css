@@ -2999,7 +2999,10 @@ Query builder
 
 .table thead th {
     position: sticky;
-    top: 40px;
+    /* Offset for the fixed navbar. A container that scrolls on its own sets
+       --sticky-table-header-top to 0 so the header sticks to its own edge
+       instead of hovering 40px into it, over the first rows. */
+    top: var(--sticky-table-header-top, 40px);
     z-index: 10;
     background-color: #f9f9f9;
     vertical-align: top;
@@ -3015,8 +3018,7 @@ Query builder
     border-bottom: 1px solid black;
 }
 
-/* Inside a modal the scroll container is .modal-body, not the page, so the
-   40px navbar offset above would push the header over the first body row. */
-.modal .table thead th {
-    top: 0;
+/* Inside a modal the scroll container is .modal-body, not the page. */
+.modal {
+    --sticky-table-header-top: 0px;
 }
