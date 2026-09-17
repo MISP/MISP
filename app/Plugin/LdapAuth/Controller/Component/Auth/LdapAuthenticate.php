@@ -244,6 +244,16 @@ class LdapAuthenticate extends BaseAuthenticate
             throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
         }
 
+        // Without a username there is nothing to link the MISP account to,
+        // and continuing would create a row with an empty email that no
+        // later login can find again.
+        if (empty($mispUsername)) {
+            CakeLog::error(
+                "[LdapAuth] No ldapEmailField attribute present on the LDAP entry, cannot identify the user."
+            );
+            throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+        }
+
         // Find user with real username (mail)
         $user = $this->_findUser($mispUsername);
 
