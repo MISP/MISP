@@ -76,10 +76,10 @@ class EventsController extends AppController
         // CSRF token as a header. None of them take body fields a form hash
         // would protect - they post a JSON document
         $this->_csrfTokenHeaderOnly([
-            'publish', 'unpublish', 'restSearch',
+            'publish', 'unpublish', 'restSearch', 'getEventTimeline',
             'editEventTags', 'editEventGalaxies',
             'editEventTagRelationships', 'editEventGalaxyRelationships',
-            'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric'
+            'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric',
         ]);
 
         // if not admin or own org, check private as well..
@@ -1132,7 +1132,15 @@ class EventsController extends AppController
         }
 
         if (in_array('correlations', $columns, true)) {
-            $events = $this->Event->attachCorrelationCountToEvents($user, $events);
+            // Overmind's column links straight to the Correlation tab, so it has
+            // to count what that tab lists: correlations on an excluded or
+            // over-correlating value are dropped there. The legacy theme and the
+            // API keep the unfiltered count.
+            $events = $this->Event->attachCorrelationCountToEvents(
+                $user,
+                $events,
+                $this->theme === 'Overmind'
+            );
         }
 
         if (in_array('sightings', $columns, true)) {
@@ -2046,7 +2054,10 @@ class EventsController extends AppController
         )));
 
         $sgids = $this->Event->SharingGroup->authorizedIds($user);
-        $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids));
+        // The tab is filled by correlations/eventCorrelations, which goes
+        // through getAttributesRelatedToEvent() - count the same set or the tab
+        // header promises rows the tab does not have.
+        $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
 
         $this->set('event', $event);
         $this->set('analysisLevels',
@@ -2646,10 +2657,27 @@ class EventsController extends AppController
                 'json'
             );
         }
+        $page      = (int)$result['page'];
+        $limit     = (int)$result['limit'];
+        $total     = (int)$result['total'];
+        $pageCount = $limit > 0 ? (int)ceil($total / $limit) : 0;
+        $this->request->params['paging']['Object'] = [
+            'page'      => $page,
+            'current'   => count($result['Object']),
+            'count'     => $total,
+            'prevPage'  => $page > 1,
+            'nextPage'  => $page < $pageCount,
+            'pageCount' => $pageCount,
+            'order'     => null,
+            'limit'     => $limit,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
         $this->set('objects', $result['Object']);
-        $this->set('total', $result['total']);
-        $this->set('page', $result['page']);
-        $this->set('limit', $result['limit']);
+        $this->set('total', $total);
+        $this->set('page', $page);
+        $this->set('limit', $limit);
         $this->set('event', $event);
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('proposal', !empty($options['proposal']));
@@ -3860,7 +3888,7 @@ class EventsController extends AppController
         );
         $relatedEventIds = $this->Event->Attribute
             ->Correlation->getRelatedEventIds(
-                $user, $eventId, $sgids
+                $user, $eventId, $sgids, true
             );
         if (empty($relatedEventIds)) {
             if ($this->_isRest()) {
@@ -3930,13 +3958,16 @@ class EventsController extends AppController
             $correlationCounts[$reId] = count($values);
         }
 
-        // Attach counts to related events
-        foreach ($relatedEvents as &$re) {
+        foreach ($relatedEvents as $k => $re) {
             $reId = $re['Event']['id'];
-            $re['Event']['correlation_count'] =
-                $correlationCounts[$reId] ?? 0;
+            $count = $correlationCounts[$reId] ?? 0;
+            if ($count === 0) {
+                unset($relatedEvents[$k]);
+                continue;
+            }
+            $relatedEvents[$k]['Event']['correlation_count'] = $count;
         }
-        unset($re);
+        $relatedEvents = array_values($relatedEvents);
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(

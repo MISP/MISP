@@ -8,7 +8,7 @@ App::uses('AppModel', 'Model');
  * @method saveCorrelations(array $correlations)
  * @method createCorrelationEntry(string $value, array $a, array $b)
  * @method runBeforeSaveCorrelation(array $attribute)
- * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
+ * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
  * @method getFieldRules
  * @method getContainRules($filter = null)
  * @method updateContainedCorrelations(array $data, string $type, array $options = [])
@@ -1136,11 +1136,17 @@ class Correlation extends AppModel
      * @param array $user User array
      * @param int $eventId Event ID
      * @param array $sgids List of sharing group IDs
+     * @param bool $excludeNonCorrelating Drop the correlations that are never
+     *      rendered anywhere - those whose value sits in correlation_exclusions
+     *      or in over_correlating_values. getAttributesRelatedToEvent() always
+     *      drops them, so a caller that shows both a list of related events and
+     *      their correlations has to ask for the same set here, or it announces
+     *      a relation it then has nothing to show for.
      * @return array
      */
-    public function getRelatedEventIds(array $user, int $eventId, array $sgids)
+    public function getRelatedEventIds(array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
-        $relatedEventIds = $this->fetchRelatedEventIds($user, $eventId, $sgids);
+        $relatedEventIds = $this->fetchRelatedEventIds($user, $eventId, $sgids, $excludeNonCorrelating);
         if (empty($relatedEventIds)) {
             return [];
         }

@@ -679,13 +679,15 @@ class Event extends AppModel
      * Gets the logged in user + an array of events, attaches the correlation count to each
      * @param array $user
      * @param array $events
+     * @param bool $excludeNonCorrelating Count only the related events that the
+     *      event view can actually show a correlation for
      * @return array
      */
-    public function attachCorrelationCountToEvents(array $user, array $events)
+    public function attachCorrelationCountToEvents(array $user, array $events, bool $excludeNonCorrelating = false)
     {
         $sgids = $this->SharingGroup->authorizedIds($user);
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids);
+            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids, $excludeNonCorrelating);
         }
         return $events;
     }
@@ -790,12 +792,21 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount(array $user, $eventId, $sgids)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param bool $excludeNonCorrelating Count only the related events that
+     *      getRelatedAttributes() can actually return a correlation for - see
+     *      Correlation::getRelatedEventIds()
+     * @return int
+     */
+    public function getRelatedEventCount(array $user, $eventId, $sgids, bool $excludeNonCorrelating = false)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        return count($this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids));
+        return count($this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids, $excludeNonCorrelating));
     }
 
     private function getRelatedEvents($user, $eventId, $sgids)
@@ -2693,6 +2704,10 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
+        $fieldOrder = $this->Object->fieldOrderByTemplate(
+            array_column($flat, 'template_uuid')
+        );
+
         // Fetch attributes for these objects with ACL, in the deleted scope
         // settled above.
         $attrConditions = [
@@ -2843,6 +2858,17 @@ class Event extends AppModel
                         $proposalsByAttr[$attr['id']] ?? [];
                 }
                 unset($attr);
+                // Highest ui-priority first else keeps the alphabetical order
+                $rank = $fieldOrder[$obj['template_uuid']] ?? [];
+                if (!empty($rank)) {
+                    usort(
+                        $attrsByObject[$objId],
+                        function ($a, $b) use ($rank) {
+                            return ($rank[$a['object_relation']] ?? PHP_INT_MAX)
+                                <=> ($rank[$b['object_relation']] ?? PHP_INT_MAX);
+                        }
+                    );
+                }
                 $obj['Attribute'] = $attrsByObject[$objId];
             }
         }

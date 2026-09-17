@@ -5795,6 +5795,9 @@
             }
         });
     };
-    window.loadEventCollections();
+    // The layout assigns csrfToken after rendering this view.
+    $(function () {
+        window.loadEventCollections();
+    });
     // ─────────────────────────────────────────────────────────────────────────
 </script>
