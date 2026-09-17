@@ -196,17 +196,17 @@ foreach ($servers as $server):
             <?php
                 echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/previewIndex/' . h($server['Server']['id']), __('Explore'), __('Explore'), 'fa fa-search');
                 if ($server['Server']['pull']) {
-                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', __('Pull updates to events that already exist locally'), __('Pull updates'), 'fa fa-sync');
-                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), __('Pull all'), 'fa fa-arrow-circle-down');
+                    echo $this->Form->postLink('', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', array('class' => 'fa fa-sync', 'title' => __('Pull updates to events that already exist locally'), 'aria-label' => __('Pull updates')), __('Are you sure you want to pull updates to events that already exist locally from this server?'));
+                    echo $this->Form->postLink('', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', array('class' => 'fa fa-arrow-circle-down', 'title' => __('Pull all'), 'aria-label' => __('Pull all')), __('Are you sure you want to pull all events from this server?'));
                 }
                 if ($server['Server']['pull'] && $server['Server']['pull_galaxy_clusters']) {
-                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/pull_relevant_clusters', __('Pull known relevant custom clusters'), __('Pull relevant clusters'), 'fa fa-tags');
+                    echo $this->Form->postLink('', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/pull_relevant_clusters', array('class' => 'fa fa-tags', 'title' => __('Pull known relevant custom clusters'), 'aria-label' => __('Pull relevant clusters')), __('Are you sure you want to pull the known relevant custom clusters from this server?'));
                 }
                 if ($server['Server']['push'] || $server['Server']['push_sightings']) {
-                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), __('Push all'), 'fa fa-arrow-circle-up');
+                    echo $this->Form->postLink('', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', array('class' => 'fa fa-arrow-circle-up', 'title' => __('Push all'), 'aria-label' => __('Push all')), __('Are you sure you want to push all events to this server?'));
                 }
                 if ($server['Server']['caching_enabled']) {
-                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/cache/' . h($server['Server']['id']), __('Cache instance'), __('Cache instance'), 'fa fa-memory');
+                    echo $this->Form->postLink('', $baseurl . '/servers/cache/' . h($server['Server']['id']), array('class' => 'fa fa-memory', 'title' => __('Cache instance'), 'aria-label' => __('Cache instance')), __('Are you sure you want to cache the contents of this server?'));
                 }
                 if ($isSiteAdmin) {
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/edit/' . h($server['Server']['id']), __('Edit'), __('Edit'), 'fa fa-edit');
