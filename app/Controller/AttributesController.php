@@ -1185,6 +1185,7 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
         }
+        $this->__assertCanModifyEvents([$attribute['Attribute']['event_id']]);
         $this->set('id', $attribute['Attribute']['id']);
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
@@ -1299,19 +1300,7 @@ class AttributesController extends AppController
         if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            $event = $this->Attribute->Event->find('first', [
-                'conditions' => ['id' => $eventId],
-                'recursive' => -1,
-                'fields' => ['id', 'orgc_id', 'user_id'],
-            ]);
-            if (!$event) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            if (!$this->__canModifyEvent($event)) {
-                throw new ForbiddenException(__('You do not have permission to do that.'));
-            }
-        }
+        $this->__assertCanModifyEvents([$eventId]);
         $conditions = ['id' => $ids, 'event_id' => $eventId];
         if ($ids === 'all') {
             unset($conditions['id']);
@@ -3074,6 +3063,44 @@ class AttributesController extends AppController
     private function __canUseSharingGroup($sharingGroupId)
     {
         return $this->Attribute->Event->SharingGroup->canUse($this->Auth->user(), $sharingGroupId);
+    }
+
+    /**
+     * Assert that the current user may modify the events the given attributes belong to.
+     *
+     * Every delete path ends in Attribute::deleteAttribute(), whose only check
+     * for a non-site-admin on an unlocked event is an organisation comparison - it
+     * never looks at perm_modify or perm_modify_org. Those live in
+     * ACL::canModifyEvent(), which edit() already calls, so without this the delete
+     * actions disagreed with edit() about the very same attribute.
+     *
+     * @param array $eventIds
+     * @return void
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
+    private function __assertCanModifyEvents(array $eventIds)
+    {
+        if ($this->_isSiteAdmin()) {
+            return;
+        }
+        $eventIds = array_unique($eventIds);
+        if (empty($eventIds)) {
+            return;
+        }
+        $events = $this->Attribute->Event->find('all', [
+            'conditions' => ['id' => $eventIds],
+            'recursive' => -1,
+            'fields' => ['id', 'orgc_id', 'user_id'],
+        ]);
+        if (count($events) !== count($eventIds)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        foreach ($events as $event) {
+            if (!$this->__canModifyEvent($event)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+        }
     }
 
     private function __setIndexFilterConditions($filters = [])
