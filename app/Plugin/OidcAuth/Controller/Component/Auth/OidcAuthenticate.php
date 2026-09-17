@@ -19,6 +19,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.offline_access (boolean, default: false)
  *  - OidcAuth.check_user_validity (integer, default `0`)
  *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
+ *  - OidcAuth.update_user_organization (boolean, default: true) - if disabled, manually modified organisation in MISP admin interface will be not changed from OIDC
  *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
  *  - OidcAuth.disable_request_object (boolean, default: false) Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers.
  *  - OidcAuth.disable_pushed_authorization_request (boolean, default: false) Disable the use of Pushed Authorization Requests (PAR) and send authorization request parameters directly to the authorization endpoint instead. This can be used for compatibility with OpenID Connect providers where PAR should not be used.
