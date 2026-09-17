@@ -442,9 +442,9 @@ class AppController extends Controller
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
-            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
-            if (!empty($homepage)) {
-                $this->set('homepage', $homepage);
+            $homepagePath = $this->User->UserSetting->getHomepagePath($user['id']);
+            if ($homepagePath !== '') {
+                $this->set('homepage', array('path' => $homepagePath));
             }
             if (PHP_MAJOR_VERSION >= 8) {
                 $this->Flash->error(__('WARNING: MISP is currently running under PHP 8.0, which is unsupported. Background jobs will fail, so please contact your administrator to run a supported PHP version (such as 7.4)'));
