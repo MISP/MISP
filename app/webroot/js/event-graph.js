@@ -1482,6 +1482,7 @@ class DataHandler {
                 type: 'post',
                 contentType: 'application/json',
                 data: JSON.stringify( payload ),
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
                     if (updateOnly === undefined || updateOnly === false) {
@@ -2602,4 +2603,3 @@ function isPicture(filename) {
     var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
     return validExtensions.includes(extension)
 }
-

@@ -725,11 +725,24 @@ document.addEventListener('DOMContentLoaded', function() {
             starIcon.classList.toggle('fas');
             starIcon.classList.toggle('far');
 
-            const formData = new URLSearchParams();
-            formData.append('data[FavouriteTag][data]', tagId);
-
             try {
-                const url = (typeof baseurl !== 'undefined' ? baseurl : '') + '/favourite_tags/toggle';
+                const root = typeof baseurl !== 'undefined' ? baseurl : '';
+                const formResponse = await fetch(root + '/favourite_tags/getToggleField', {
+                    credentials: 'same-origin',
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                });
+                if (!formResponse.ok) {
+                    throw new Error('Could not load favourite-tag form');
+                }
+                const form = new DOMParser()
+                    .parseFromString(await formResponse.text(), 'text/html')
+                    .querySelector('form');
+                if (!form) {
+                    throw new Error('No favourite-tag form in response');
+                }
+                const formData = new FormData(form);
+                formData.set('data[FavouriteTag][data]', tagId);
+                const url = form.getAttribute('action') || root + '/favourite_tags/toggle';
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -737,7 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json'
                     },
-                    body: formData
+                    body: new URLSearchParams(formData)
                 });
 
                 const result = await response.json();
