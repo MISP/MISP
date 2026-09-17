@@ -3,6 +3,9 @@ $eventUuid = h($data['Event']['uuid'] ?? '');
 $uid       = 'evt-collections-' . h($data['Event']['id'] ?? '');
 $fetchUrl  = h($baseurl . '/collections/getCollectionsForElement/Event/' . $eventUuid . '.json');
 $viewBase  = h($baseurl . '/collections/view/');
+// The picker modal — an existing collection, or a new one carrying this event as its attach target.
+$addUrl    = h($baseurl . '/collectionElements/addElementToCollection/Event/' . $eventUuid);
+$mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 ?>
 
 <div class="card shadow-sm mb-3" id="collections-card">
@@ -19,6 +22,16 @@ $viewBase  = h($baseurl . '/collections/view/');
                 <div class="small text-muted mt-1"
                      id="<?= $uid ?>-count">…</div>
             </div>
+
+            <?php if ($mayAdd): ?>
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-collections-add"
+                    onclick="openModal('<?= $addUrl ?>', 'xl')"
+                    title="<?= __('Add this event to a collection') ?>">
+                <i class="fas fa-plus"></i>
+            </button>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -269,6 +269,13 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'misp-icon misp-icon-tag misp-simple',
                 'children' => [
                     [
+                        'label' => __('List Taxonomies'),
+                        'url' => $baseurl . '/taxonomies/index',
+                        'controller' => 'taxonomies',
+                        'action' => 'index',
+                        'icon' => 'misp-icon misp-icon-taxonomy misp-simple'
+                    ],
+                    [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',
@@ -281,13 +288,6 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'tagCollections',
                         'action' => 'index',
                         'icon' => 'fas fa-tags'
-                    ],
-                    [
-                        'label' => __('List Taxonomies'),
-                        'url' => $baseurl . '/taxonomies/index',
-                        'controller' => 'taxonomies',
-                        'action' => 'index',
-                        'icon' => 'misp-icon misp-icon-taxonomy misp-simple'
                     ]
                 ]
             ],

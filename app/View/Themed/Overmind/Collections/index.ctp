@@ -21,6 +21,14 @@ $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);
 
 
+// The collection types, as offered by the add/edit form, turned into filter
+// options. The bar posts the bare key `type:` — CRUD qualifies it back to
+// Collection.type.
+$typeOptions = ['' => __('All')];
+foreach (($dropdownData['types'] ?? []) as $value => $label) {
+    $typeOptions[$value] = ucfirst(str_replace('_', ' ', (string)$label));
+}
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -142,6 +150,18 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'placeholder' => __('Search by collection name'),
                         'name'          => 'quickFilter',
                         'mode'      => 'quickFilter',
+                    ],
+                    [
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Type'),
+                                'name' => 'type',
+                                'options' => $typeOptions,
+                            ],
+                        ]
                     ],
                 ],
                 'delete' => '/deleteSelection'
