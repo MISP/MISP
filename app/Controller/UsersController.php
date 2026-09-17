@@ -1259,7 +1259,7 @@ class UsersController extends AppController
     public function login()
     {
         $oldHash = false;
-        if ($this->request->is(['post', 'put'])) {
+        if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlocklisted($this->request->data['User']['email'])) {
@@ -1292,8 +1292,8 @@ class UsersController extends AppController
                 }
             }
         }
-        // if instance requires email OTP 
-        if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
+        // if instance requires email OTP
+        if (!$this->request->is(['get']) && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
@@ -1319,7 +1319,7 @@ class UsersController extends AppController
             }
             // Login was failed, do everything that is needed such as blocklisting, logging and more
             // Also don't display "invalid user" before first login attempt
-            if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->request->is('get')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     // increase bruteforce attempt and log
