@@ -67,6 +67,13 @@ class EventsController extends AppController
         parent::beforeFilter();
 
         $this->Security->unlockedActions[] = 'viewEventAttributes';
+        // Posted by hand-built AJAX (the event graphs, the timeline and the
+        // ATT&CK matrix in the report editor), which sends the CSRF token as a
+        // header. None of these take body fields a form hash would protect.
+        $this->_csrfTokenHeaderOnly([
+            'restSearch', 'getEventTimeline',
+            'getEventGraphReferences', 'getEventGraphTags', 'getEventGraphGeneric',
+        ]);
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
