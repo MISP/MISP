@@ -681,7 +681,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "64",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
+                "collation_name": "utf8mb4_general_ci",
                 "column_type": "varchar(64)",
                 "column_default": null,
                 "extra": ""
@@ -4003,7 +4003,7 @@
                 "numeric_precision": "3",
                 "collation_name": null,
                 "column_type": "tinyint(4)",
-                "column_default": "0",
+                "column_default": null,
                 "extra": ""
             }
         ],
