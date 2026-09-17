@@ -1035,6 +1035,13 @@ class User extends AppModel
                 'fields' => array('User.id', 'User.email', 'User.org_id')
             ));
         }
+        // With neither an org admin nor a site admin on the instance both finds
+        // come back empty, and the caller tests isset($admin['email']) - so
+        // return the shape it expects rather than reading a key off an empty
+        // array.
+        if (empty($admin['User'])) {
+            return array();
+        }
 
         return $admin['User'];
     }
