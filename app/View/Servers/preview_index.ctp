@@ -138,7 +138,7 @@
                 <?php echo $event['Event']['attribute_count']; ?>
             </td>
             <td class="short dblclickElement">
-                <?php echo $event['Event']['date']; ?>
+                <?php echo h($event['Event']['date']); ?>
             </td>
             <td class="short dblclickElement">
                 <?= h($threatLevels[$event['Event']['threat_level_id']]); ?>

@@ -8,14 +8,11 @@ class TaxiiServersController extends AppController
 
     public function beforeFilter()
     {
-        // No need for CSRF tokens for a search
-        if ('getRoot' == $this->request->params['action'] || 'getCollections' == $this->request->params['action']) {
-            $this->Security->csrfCheck = false;
-        }
         if ($this->request->params['action'] === 'add' || $this->request->params['action'] === 'edit') {
             $this->Security->unlockedFields = ['api_root', 'collection'];
         }
         parent::beforeFilter();
+        $this->_csrfTokenHeaderOnly(['getRoot', 'getCollections']);
     }
 
     public $paginate = array(
@@ -110,6 +107,29 @@ class TaxiiServersController extends AppController
         }
     }
 
+    /**
+     * Refuse a TAXII base URL that points at loopback or the cloud metadata
+     * address before anything connects to it. RFC1918 stays reachable: a TAXII
+     * server on an internal host is an ordinary site-admin deployment rather
+     * than an attack. Returns a fail response to hand back, or null when the
+     * URL passed.
+     *
+     * @param string $action
+     * @return CakeResponse|null
+     */
+    private function __refuseUnsafeBaseurl($action)
+    {
+        App::uses('UrlEgressValidator', 'Tools');
+        try {
+            UrlEgressValidator::validate($this->request->data['baseurl'], UrlEgressValidator::POLICY_DENY_LOOPBACK);
+        } catch (InvalidArgumentException $e) {
+            return $this->RestResponse->saveFailResponse('TaxiiServers', $action, null, $e->getMessage(), $this->response->type());
+        } catch (ForbiddenException $e) {
+            return $this->RestResponse->saveFailResponse('TaxiiServers', $action, null, $e->getMessage(), $this->response->type());
+        }
+        return null;
+    }
+
     public function getRoot()
     {
         if (empty($this->request->data['baseurl'])) {
@@ -117,6 +137,10 @@ class TaxiiServersController extends AppController
                 'TaxiiServers', 'getRoot', null, __('No baseurl set.'), $this->response->type()
             );
         } else {
+            $refused = $this->__refuseUnsafeBaseurl('getRoot');
+            if ($refused !== null) {
+                return $refused;
+            }
             $this->request->data['uri'] = '/taxii2/';
             $result = $this->TaxiiServer->queryInstance(
                 [
@@ -151,6 +175,10 @@ class TaxiiServersController extends AppController
             return $this->RestResponse->saveFailResponse(
                 'TaxiiServers', 'getCollections', null, __('No api_root set.'), $this->response->type()
             );
+        }
+        $refused = $this->__refuseUnsafeBaseurl('getCollections');
+        if ($refused !== null) {
+            return $refused;
         }
         $this->request->data['uri'] = '/' . $this->request->data['api_root'] . '/collections/';
         $result = $this->TaxiiServer->queryInstance(

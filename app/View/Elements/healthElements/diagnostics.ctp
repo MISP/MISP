@@ -649,7 +649,8 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     function updateAllJson() {
         $.ajax({
             url: '<?php echo $baseurl . '/servers/updateJSON/'; ?>',
-            type: "get",
+            type: "post",
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             beforeSend: function() {
                 $('#submoduleGitResultDiv').show();
                 $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');

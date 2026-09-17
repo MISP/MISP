@@ -245,7 +245,7 @@ class Organisation extends AppModel
                 $existingOrg[$this->alias]['uuid'] = $org['uuid'];
                 $changed = true;
             }
-            if ($force) {
+            if ($force && (!empty($user['Role']['perm_site_admin']) || !empty($user['Role']['perm_sync']))) {
                 $fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts');
                 foreach ($fields as $field) {
                     if (isset($org[$field])) {

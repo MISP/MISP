@@ -67,6 +67,13 @@ class EventsController extends AppController
         parent::beforeFilter();
 
         $this->Security->unlockedActions[] = 'viewEventAttributes';
+        // Posted by hand-built AJAX (the event graphs, the timeline and the
+        // ATT&CK matrix in the report editor), which sends the CSRF token as a
+        // header. None of these take body fields a form hash would protect.
+        $this->_csrfTokenHeaderOnly([
+            'restSearch', 'getEventTimeline',
+            'getEventGraphReferences', 'getEventGraphTags', 'getEventGraphGeneric',
+        ]);
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
@@ -2951,6 +2958,17 @@ class EventsController extends AppController
             } else if (isset($this->request->data['Event']['distribution'])) {
                 // A non-sharing-group distribution must not carry a sharing group id.
                 $this->request->data['Event']['sharing_group_id'] = 0;
+            } else if (
+                !empty($this->request->data['Event']['sharing_group_id']) &&
+                $this->request->data['Event']['sharing_group_id'] != $event['Event']['sharing_group_id']
+            ) {
+                // No distribution submitted at all, so the event keeps its stored one - and
+                // an event already at distribution 4 will persist this id. Gating solely on
+                // the submitted distribution let a form omit that field and skip the check.
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
 
             // always force the org, but do not force it for admins
@@ -3372,7 +3390,10 @@ class EventsController extends AppController
 
             $creator_only = false;
             if (isset($this->request->data['Event']['person'])) {
-                $creator_only = $this->request->data['Event']['person'];
+                // Cast: this reaches the background job as an argv element next
+                // to the free-text message, and two adjacent caller-controlled
+                // elements are all the console's path switches need.
+                $creator_only = (bool)$this->request->data['Event']['person'];
             }
             $user = $this->Auth->user();
             $user = $this->Event->User->fillKeysToUser($user);
@@ -5466,8 +5487,10 @@ class EventsController extends AppController
         } else {
             $options = [];
             $format = 'simplified';
+            $moduleFound = false;
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
+                    $moduleFound = true;
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
@@ -5476,6 +5499,9 @@ class EventsController extends AppController
                     }
                     break;
                 }
+            }
+            if (!$moduleFound) {
+                throw new MethodNotAllowedException(__('Module not found or not available.'));
             }
             $distributions = $this->Event->Attribute->distributionLevels;
             $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -5696,7 +5722,7 @@ class EventsController extends AppController
         $eventId = $event['Event']['id'];
 
         $this->loadModel('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'Import');
+        $module = $this->Module->getEnabledModule($moduleName, 'Import', $this->Auth->user());
         if (!is_array($module)) {
             throw new MethodNotAllowedException($module);
         }
@@ -5807,6 +5833,10 @@ class EventsController extends AppController
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
+                        // TODO: route non-modifiers through proposals to match __pushFreetext().
+                        if (!$mayModify) {
+                            throw new ForbiddenException(__('You don\'t have permission to do that.'));
+                        }
                         $resolvedEvent = $this->Event->handleMispFormatFromModuleResult($result);
                         $resolvedEvent['Event'] = $event['Event'];
                         if ($this->_isRest()) {
@@ -6367,6 +6397,12 @@ class EventsController extends AppController
 
     public function cullEmptyEvents()
     {
+        // Irreversible mass delete, and it runs with skipBlocklist set, so the
+        // deleted events leave no trace to re-sync against. Both shipped themes
+        // already reach it by postButton/postLink; without this guard a bodyless
+        // GET is never CSRF-validated (SecurityComponent::startup computes
+        // $hasData false for one), so an <img src> was enough to fire it.
+        $this->request->allowMethod(['post']);
         $eventIds = $this->Event->find('list', array(
             'conditions' => array('Event.published' => 1),
             'fields' => array('Event.id', 'Event.uuid'),

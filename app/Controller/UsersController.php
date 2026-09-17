@@ -6,6 +6,11 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController
 {
+    /**
+     * Seconds one user must wait between API-access request mails.
+     */
+    const REQUEST_API_COOLDOWN = 900;
+
     public $newkey;
 
     public $components = array(
@@ -41,6 +46,11 @@ class UsersController extends AppController
         $this->Auth->allow($allowedActions);
 
         parent::beforeFilter();
+        // request_API is reached only by requestAPIAccess() in misp.js, hand-built
+        // AJAX with no rendered form behind it, so it cannot produce the field
+        // hash _validatePost() compares against. It sends the page's CSRF token in
+        // the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['request_API']);
     }
 
     public function view($id = null)
@@ -106,8 +116,16 @@ class UsersController extends AppController
 
     public function request_API()
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.disable_emailing')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
+        }
+        // One mail per user per cooldown window. The ACL on this action is ['*']
+        // while the link that reaches it renders only for users without
+        // perm_auth, so without a cooldown any account can mail its org admin as
+        // fast as it can issue requests.
+        if (!$this->__claimRequestApiCooldown($this->Auth->user('id'))) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access requests are rate limited to one every ' . (self::REQUEST_API_COOLDOWN / 60) . ' minutes. Please try again later.')), 'status'=>200, 'type' => 'json'));
         }
         $responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
         if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
@@ -121,6 +139,31 @@ class UsersController extends AppController
             }
         }
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
+    }
+
+    /**
+     * Claim this user's API-access-request slot for the cooldown window.
+     *
+     * SET NX EX is atomic, so parallel requests cannot both claim it. Fails open
+     * when Redis is unavailable, matching how every other optional Redis-backed
+     * control in the request path behaves - the cooldown is a courtesy limit on
+     * an authenticated action, not an authorisation decision.
+     *
+     * @param int $userId
+     * @return bool True when the caller may send, false when still in cooldown.
+     */
+    private function __claimRequestApiCooldown($userId)
+    {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return true;
+        }
+        return (bool)$redis->set(
+            'misp:request_api_cooldown:' . $userId,
+            time(),
+            ['nx', 'ex' => self::REQUEST_API_COOLDOWN]
+        );
     }
 
     public function unsubscribe($code, $type = null)
@@ -1201,22 +1244,17 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This feature is only accessible via POST requests');
         }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $this->Auth->user('id'))
-        ));
         $this->User->id = $this->Auth->user('id');
         $this->User->saveField('last_login', time());
         $this->User->saveField('current_login', time());
-        $user = $this->User->getAuthUser($user['User']['id']);
-        $this->Auth->login($user);
+        $this->_refreshAuth();
         $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
     }
 
     public function login()
     {
         $oldHash = false;
-        if ($this->request->is(['post', 'put'])) {
+        if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlocklisted($this->request->data['User']['email'])) {
@@ -1249,8 +1287,8 @@ class UsersController extends AppController
                 }
             }
         }
-        // if instance requires email OTP 
-        if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
+        // if instance requires email OTP
+        if (!$this->request->is(['get']) && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
@@ -1276,7 +1314,7 @@ class UsersController extends AppController
             }
             // Login was failed, do everything that is needed such as blocklisting, logging and more
             // Also don't display "invalid user" before first login attempt
-            if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->request->is('get')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     // increase bruteforce attempt and log
@@ -1350,26 +1388,10 @@ class UsersController extends AppController
         // Events list
         $url = $this->Session->consume('pre_login_requested_url') ?? '';
 
-        $url = rawurldecode($url);
-        $parts = parse_url($url);
-
-        if (
-            $url === '' ||
-            $parts === false ||
-            isset($parts['host']) ||
-            isset($parts['scheme']) ||
-            isset($parts['user']) ||
-            !isset($parts['path']) ||
-            $parts['path'][0] !== '/' ||
-            // reject "//x" and "/\x" - both resolve to a protocol-relative (off-site) URL
-            (isset($parts['path'][1]) && ($parts['path'][1] === '/' || $parts['path'][1] === '\\'))
-        ) {
-            $url = '';
-        } else {
-            $url = $parts['path']
-                . (isset($parts['query']) ? '?' . $parts['query'] : '')
-                . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
-        }
+        // Decode before validating and redirect what comes back: '/%2f%2fevil'
+        // must not become '//evil' after the check has run.
+        App::uses('InternalRedirectValidator', 'Tools');
+        $url = InternalRedirectValidator::sanitize(rawurldecode($url));
         
         if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
             if (substr($url, 0, 7) === "http://") {
@@ -1377,10 +1399,11 @@ class UsersController extends AppController
             }
         }
         if (empty($url)) {
-            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
-            if (!empty($homepage)) {
-                $url = $homepage['path'];
-            } else {
+            // The stored homepage is the same kind of value as the session URL
+            // above and gets the same check - a leading '/' alone let
+            // '//attacker.example' through to the Location header verbatim.
+            $url = $this->User->UserSetting->getHomepagePath($this->Auth->user('id'));
+            if ($url === '') {
                 $url = array('controller' => 'events', 'action' => 'index');
             }
         }
@@ -1992,12 +2015,20 @@ class UsersController extends AppController
         if (empty($user)) {
             $this->redirect('login');
         }
+        $this->Bruteforce = ClassRegistry::init('Bruteforce');
+        // Guards both branches on purpose: a blocked source must neither submit
+        // another guess nor have a fresh OTP generated and mailed on its behalf.
+        if ($this->Bruteforce->isBlocklisted($user['email'])) {
+            $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+            throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
+        }
         $redis = RedisTool::init();
         $user_id = $user['id'];
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
+            if (!empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp))) {
                 // we invalidate the previously generated OTP
                 $redis->del('misp:otp:' . $user_id);
                 // We login the user with CakePHP
@@ -2007,6 +2038,15 @@ class UsersController extends AppController
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
                 $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong email OTP token';
                 $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
+                $this->Bruteforce->insert($user['email']);
+                if ($this->Bruteforce->isBlocklisted($user['email'])) {
+                    // The OTP is keyed on the user rather than on the pending login,
+                    // so every parallel session of that user shares this one value.
+                    // Burn it as soon as the attempt budget is spent, otherwise the
+                    // sessions can outrun the counter against a still valid code.
+                    $redis->del('misp:otp:' . $user_id);
+                }
+                $this->request->data['User']['otp'] = '';
             }
         } else {
             // GET Request
@@ -3291,9 +3331,30 @@ class UsersController extends AppController
             if (empty($this->request->data['User']['email'])) {
                 throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
             }
+            $email = $this->request->data['User']['email'];
+            // Bound and format-check the address before anything is written. The
+            // log entry below and the job forgotRouter() queues are both derived
+            // from this string and both persist it, so unvalidated it is an
+            // unauthenticated write of arbitrary length into two tables. The
+            // format rule is the one that governs account creation - register()
+            // applies the same validator - and the byte cap sits well above the
+            // 255 character users.email column, so neither test can refuse an
+            // address that could name a real user.
+            //
+            // Both tests read only the submitted string, never the database, so
+            // the response stays uniform for every well formed address whether or
+            // not it belongs to an account. That is deliberate: resolving the user
+            // first would make the reply time depend on the answer.
+            if (
+                !is_string($email) ||
+                strlen($email) > 1024 ||
+                !$this->User->validateEmail(['email' => $email])
+            ) {
+                throw new BadRequestException(__('Invalid email address supplied, cannot generate password reset message.'));
+            }
             $this->loadModel('Log');
-            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
-            $this->User->forgotRouter($this->request->data['User']['email'], $this->User->_remoteIp());
+            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $email);
+            $this->User->forgotRouter($email, $this->User->_remoteIp());
             $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);

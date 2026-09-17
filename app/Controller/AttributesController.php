@@ -275,7 +275,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -462,7 +462,7 @@ class AttributesController extends AppController
         }
 
         if ($this->request->is('post')) {
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -874,7 +874,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1185,6 +1185,7 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
         }
+        $this->__assertCanModifyEvents([$attribute['Attribute']['event_id']]);
         $this->set('id', $attribute['Attribute']['id']);
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
@@ -1299,19 +1300,7 @@ class AttributesController extends AppController
         if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            $event = $this->Attribute->Event->find('first', [
-                'conditions' => ['id' => $eventId],
-                'recursive' => -1,
-                'fields' => ['id', 'orgc_id', 'user_id'],
-            ]);
-            if (!$event) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            if (!$this->__canModifyEvent($event)) {
-                throw new ForbiddenException(__('You do not have permission to do that.'));
-            }
-        }
+        $this->__assertCanModifyEvents([$eventId]);
         $conditions = ['id' => $ids, 'event_id' => $eventId];
         if ($ids === 'all') {
             unset($conditions['id']);
@@ -1534,7 +1523,7 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['distribution'] = $requestData['distribution'];
             }
             if ($requestData['distribution'] == 4) {
-                $sharingGroupId = $requestData['sharing_group_id'];
+                $sharingGroupId = isset($requestData['sharing_group_id']) ? $requestData['sharing_group_id'] : null;
                 if (!$this->__canUseSharingGroup($sharingGroupId)) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -3073,8 +3062,45 @@ class AttributesController extends AppController
      */
     private function __canUseSharingGroup($sharingGroupId)
     {
-        $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
-        return !empty($sg);
+        return $this->Attribute->Event->SharingGroup->canUse($this->Auth->user(), $sharingGroupId);
+    }
+
+    /**
+     * Assert that the current user may modify the events the given attributes belong to.
+     *
+     * Every delete path ends in Attribute::deleteAttribute(), whose only check
+     * for a non-site-admin on an unlocked event is an organisation comparison - it
+     * never looks at perm_modify or perm_modify_org. Those live in
+     * ACL::canModifyEvent(), which edit() already calls, so without this the delete
+     * actions disagreed with edit() about the very same attribute.
+     *
+     * @param array $eventIds
+     * @return void
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
+    private function __assertCanModifyEvents(array $eventIds)
+    {
+        if ($this->_isSiteAdmin()) {
+            return;
+        }
+        $eventIds = array_unique($eventIds);
+        if (empty($eventIds)) {
+            return;
+        }
+        $events = $this->Attribute->Event->find('all', [
+            'conditions' => ['id' => $eventIds],
+            'recursive' => -1,
+            'fields' => ['id', 'orgc_id', 'user_id'],
+        ]);
+        if (count($events) !== count($eventIds)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        foreach ($events as $event) {
+            if (!$this->__canModifyEvent($event)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+        }
     }
 
     private function __setIndexFilterConditions($filters = [])
@@ -3141,6 +3167,18 @@ class AttributesController extends AppController
         $attribute = $attributes[0];
         if (!$this->request->is('post') || !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
+        }
+        // Enrichment persists module-derived attributes into the parent event, so it is a
+        // write on that event, not on the attribute alone. Being able to *view* the attribute
+        // (fetchAttributes uses read scope) is not sufficient; require modify rights on the
+        // event, mirroring EventsController::enrichEvent(). Otherwise any user who can merely
+        // see a cross-org/"all communities" event could inject attributes into it.
+        $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $attribute['Attribute']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $modules = [];
         foreach ($this->request->data as $module => $enabled) {

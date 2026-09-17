@@ -524,6 +524,7 @@ class FeedsController extends AppController
 
     public function fetchFromFeed($feedId)
     {
+        $this->request->allowMethod(['post']);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -599,6 +600,7 @@ class FeedsController extends AppController
 
     public function fetchFromAllFeeds()
     {
+        $this->request->allowMethod(['post']);
         $feeds = $this->Feed->find('all', array(
             'recursive' => -1,
             'fields' => array('id')
@@ -835,7 +837,7 @@ class FeedsController extends AppController
         }
 
         $this->params->params['paging'] = array($this->modelClass => $params);
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id'], $this->Auth->user());
         // remove all duplicates
         $correlatingEvents = array();
         foreach ($resultArray as $k => $v) {
@@ -931,6 +933,7 @@ class FeedsController extends AppController
 
     public function enable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, true);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
@@ -945,6 +948,7 @@ class FeedsController extends AppController
 
     public function disable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, false);
         $this->set('name', $result['message']);
         $this->set('message', $result['message']);
@@ -1007,6 +1011,7 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */

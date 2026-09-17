@@ -31,6 +31,16 @@ class EventReportsController extends AppController
         )
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // purgeUnusedPictures is only ever reached by the picture management
+        // page's hand-built AJAX, which has no rendered form behind it to
+        // produce the field hash _validatePost() compares against. It sends
+        // the page's CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['purgeUnusedPictures']);
+    }
+
     public function add($eventId = false)
     {
         if ($this->request->is('get') && $this->_isRest()) {
@@ -372,7 +382,7 @@ class EventReportsController extends AppController
                 $this->set('mayModify', $canModify);
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $this->set('extendingEvent', !empty($filters['extending_event']));
-                $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
+                $fetcherModule = $this->EventReport->isFetchURLModuleEnabled($this->Auth->user());
                 $this->set('importModuleEnabled', is_array($fetcherModule));
                 $this->set('unsafeUrlSettingEnabled', !empty(Configure::read('Security.eventreport_enable_arbitrary_urls')));
                 $this->render('ajax/indexForEvent');
@@ -510,16 +520,28 @@ class EventReportsController extends AppController
                 throw new InvalidArgumentException('Invalid URL: must start with http:// or https://');
             }
             $format = 'html';
-            
+
+            // Match against the path only. Testing the whole URL let a query
+            // string supply the suffix, so `http://host/anything?x=.pdf`
+            // selected pdf and picked which host performed the fetch.
+            $path = parse_url($url, PHP_URL_PATH);
             $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
             foreach ($parsed_formats as $parsed_format) {
-                if (substr($url, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
+                if (!empty($path) && substr($path, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
                     $format = $parsed_format;
                 }
             }
             $content = null;
             if (empty($errors)) {
-                $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                try {
+                    $content = $this->EventReport->downloadMarkdownFromURL($this->Auth->user(), $event_id, $url, $format);
+                } catch (Exception $e) {
+                    // A refused target, an oversized document or a failed
+                    // fetch all report through the normal error path rather
+                    // than surfacing as an unhandled exception.
+                    $content = null;
+                    $errors[] = $e->getMessage();
+                }
                 if (!empty($content)) {
                     $report = [
                         'name' => __('Report from - %s (%s)', $url, time()),
@@ -534,7 +556,10 @@ class EventReportsController extends AppController
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
             if (!empty($errors)) {
                 $event_report_id = empty($this->EventReport->id) ? 0 : $this->EventReport->id;
-                return $this->__getFailResponseBasedOnContext($errors, array(), 'addFromURL', $event_report_id, $redirectTarget);
+                // null, not array(): __getFailResponseBasedOnContext returns
+                // viewData($data) whenever $data is not null, which discarded
+                // the message and answered REST callers with a bare [].
+                return $this->__getFailResponseBasedOnContext($errors, null, 'addFromURL', $event_report_id, $redirectTarget);
             } else {
                 $successMessage = __('Report downloaded and created');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
@@ -677,6 +702,7 @@ class EventReportsController extends AppController
 
     public function purgeUnusedPictures()
     {
+        $this->request->allowMethod(['post']);
         $this->EventReport->purgeUnusedPictures();
         $message = __('Purged all unused pictures');
         return $this->__getSuccessResponseBasedOnContext($message, null, 'purgeUnusedPictures');
@@ -726,11 +752,8 @@ class EventReportsController extends AppController
     {
         $moduleName = 'convert_markdown_to_pdf';
         $this->loadModel('Module');
-        $module = $this->Module->getEnabledModule($moduleName, 'expansion');
-        if (!Configure::read('Plugin.Enrichment_' . $moduleName . '_enabled')) {
-            throw new MethodNotAllowedException('Module not found or not available.');
-        }
-        if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', ['name' => $module])) {
+        $module = $this->Module->getEnabledModule($moduleName, 'expansion', $this->Auth->user());
+        if (!Configure::read('Plugin.Enrichment_' . $moduleName . '_enabled') || !is_array($module)) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
         return true;

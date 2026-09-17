@@ -154,11 +154,8 @@ class NewUsersWidget
         }
         
         // redact e-mails for non site admins unless specifically allowed
-        if (
-            empty($user['Role']['perm_site_admin']) &&
-            !Configure::read('Security.disclose_user_emails')
-        ) {
-                unset($field_options['email']);
+        if (!User::canSeeEmails($user)) {
+            unset($field_options['email']);
         }
 
         $fields = [];

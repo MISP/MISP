@@ -55,7 +55,7 @@
             </td>
             <?php endif; ?>
             <td class="short dblclickElement">
-                <?php echo $event['Event']['date']; ?>
+                <?php echo h($event['Event']['date']); ?>
             </td>
             <td class="dblclickElement">
                 <?php echo nl2br(h($event['Event']['info'])); ?>

@@ -15,7 +15,7 @@
             if (empty(Configure::read('Security.advanced_authkeys'))) {
                 echo __(
                     'Your current key is: <code>%s</code>. You can %s this key.',
-                    $api_key,
+                    h($api_key),
                     $this->Form->postLink(
                         __('reset'),
                         array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
@@ -90,7 +90,7 @@
         $headers = array(
             'Accept: application/json',
             'Content-type: application/json',
-            'Authorization: ' . $api_key
+            'Authorization: ' . h($api_key)
         );
         $headers = implode("\n", $headers);
         $body = json_encode(
@@ -358,7 +358,7 @@
     <b>URL</b>: <?php echo $baseurl.'/events/index'; ?><br />
     <b>Headers</b>:<br />
     <pre><?php
-        echo 'Authorization: ' . $api_key . PHP_EOL;
+        echo 'Authorization: ' . h($api_key) . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>

@@ -9,7 +9,7 @@
             if (!empty($missingTaxonomies)) {
                 echo __(
                     'Missing taxonomies: <span class="red bold">%s</span><br>',
-                    implode(', ', $missingTaxonomies)
+                    h(implode(', ', $missingTaxonomies))
                 );
             }
             break;
@@ -85,7 +85,7 @@
 
             $highlightedTagsString .= sprintf(
                 '<tr><td style="font-weight: bold;text-transform: uppercase;">%s</td></td><td>%s</td><td>%s</td></tr>',
-                $hTaxonomy['taxonomy']['Taxonomy']['namespace'],
+                h($hTaxonomy['taxonomy']['Taxonomy']['namespace']),
                 $hTags,
                 $hButtonData ? '<span style="white-space:nowrap">' . implode('', $hButtonData) . '</span>' : ''
             );

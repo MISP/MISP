@@ -153,7 +153,7 @@
         </td>
         <?php endif; ?>
         <td class="short dblclickElement">
-            <time><?= $event['Event']['date'] ?></time>
+            <time><?= h($event['Event']['date']) ?></time>
         </td>
         <?php if (in_array('timestamp', $columns, true)): ?>
         <td class="short dblclickElement">

@@ -40,6 +40,11 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
+        // updateJSON is only ever reached by the diagnostics page's hand-built
+        // AJAX, which has no rendered form behind it to produce the field hash
+        // _validatePost() compares against. It sends the page's CSRF token in
+        // the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['updateJSON']);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -755,6 +760,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
+        $this->request->allowMethod(['post']);
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -837,6 +843,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
+        $this->request->allowMethod(['post']);
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -2063,6 +2070,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2106,6 +2114,7 @@ class ServersController extends AppController
 
     public function updateJSON()
     {
+        $this->request->allowMethod(['post']);
         $results = [];
         foreach ($this->Server->updateJSON() as $type => $result) {
             $results[$type] = $results['success'];
@@ -2352,6 +2361,7 @@ class ServersController extends AppController
 
     public function removeOrphanedCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

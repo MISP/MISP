@@ -3810,7 +3810,15 @@ class Event extends AppModel
 
         if ($isXml) {
             App::uses('Xml', 'Utility');
-            $dataArray = Xml::toArray(Xml::build($data));
+            // The uploaded file's *content* is a document, never a locator.
+            // Xml::build() would otherwise treat a body of `/etc/passwd` or
+            // `http://10.0.0.1/` as something to read or fetch and then import,
+            // and its readFile guard does not cover the https branch (operator
+            // precedence). Refuse anything that is not a document first.
+            if (strpos($data, '<') === false) {
+                throw new Exception("File does not contain an XML document");
+            }
+            $dataArray = Xml::toArray(Xml::build($data, ['readFile' => false]));
         } else {
             $dataArray = $this->jsonDecode($data);
             if (isset($dataArray['response'][0])) {
@@ -4402,6 +4410,20 @@ class Event extends AppModel
                         if ($data['Event']['sharing_group_id'] === false) {
                             return array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.');
                         }
+                    }
+                } elseif (!isset($data['Event']['distribution']) && !empty($data['Event']['sharing_group_id'])) {
+                    // A sharing group submitted with no distribution at all still reaches
+                    // the save: the recoverFields loop below restores distribution from the
+                    // stored event, so an event already at distribution 4 keeps that value
+                    // and this id is persisted. Authorise it rather than leaving the gate
+                    // keyed on a field the caller can simply omit.
+                    // Deliberately narrow. A payload that *states* a non-4 distribution is
+                    // left alone: beforeValidate() zeroes the id for it, so there is no hole
+                    // to close, and rejecting it instead would turn a silent normalisation
+                    // into a failed pull for any peer that sends a stale id alongside a
+                    // non-sharing-group distribution.
+                    if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+                        return array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.');
                     }
                 }
                 // If the above is true, we have two more options:
@@ -6231,12 +6253,9 @@ class Event extends AppModel
             throw new InvalidArgumentException('Invalid module.');
         }
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->Module->getEnabledModule($module, 'Export');
+        $module = $this->Module->getEnabledModule($module, 'Export', $user);
         if (!is_array($module)) {
             throw new NotFoundException('Invalid module.');
-        }
-        if (!$this->Module->canUse($user, 'Enrichment', ['name' => $module])) {
-            throw new MethodNotAllowedException('That export module is restricted.');
         }
         // Export module can specify additional options for event fetch
         if (isset($module['meta']['fetch_options'])) {
@@ -7283,6 +7302,11 @@ class Event extends AppModel
             $total_reports = count($resolved_data['EventReport']);
             foreach ($resolved_data['EventReport'] as $i => $report) {
                 $this->EventReport->create();
+                // Module-result import only creates reports; strip any client id so a
+                // supplied existing report id cannot redirect save() onto another event's
+                // report row and reparent/overwrite it (no fieldList here, create() does
+                // not strip it) - matching the attribute and object loops above.
+                unset($report['id']);
                 $report['event_id'] = $id;
                 if ($this->EventReport->save($report)) {
                     $saved_reports++;
