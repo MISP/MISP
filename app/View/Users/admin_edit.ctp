@@ -111,6 +111,14 @@
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
         echo '</div>';
+        echo $this->Form->input('expiration', array(
+            'type' => 'text',
+            'div' => 'input clear',
+            'class' => 'datepicker',
+            'placeholder' => 'YYYY-MM-DD',
+            'value' => empty($this->request->data['User']['expiration']) ? '' : substr($this->request->data['User']['expiration'], 0, 10),
+            'label' => __('Account expiration (keep empty for no expiration)')
+        ));
     ?>
     <h5><?= __('Subscribe to the following notification:') ?></h5>
     <div class="user-edit-checkboxes">
