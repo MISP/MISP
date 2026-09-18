@@ -91,7 +91,8 @@ class ComplexTypeTool
         }
     }
 
-    // checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)
+    // checks if the passed input matches a valid file description attribute's pattern (filename, any of the hash types in
+    // self::HEX_HASH_TYPES and their filename| composite counterparts)
     public function checkComplexFile($input)
     {
         $original = $input;
@@ -107,14 +108,13 @@ class ComplexTypeTool
             }
             $input = $result[1];
         }
-        if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) {
-            $type .= 'md5';
-        }
-        if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) {
-            $type .= 'sha1';
-        }
-        if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) {
-            $type .= 'sha256';
+        $hash = $this->__resolveHash($input);
+        if ($hash) {
+            if ($type === 'filename|') {
+                $type = $hash['composite'][0];
+            } elseif ($type === '') {
+                $type = $hash['single'][0];
+            }
         }
         if ($type == '' && !$composite && preg_match("#^.+#", $input)) {
             $type = 'filename';
