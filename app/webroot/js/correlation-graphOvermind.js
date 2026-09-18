@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var root;
+    var toIdsOnly = false;
     var highlighted;
     var hovered;
 
@@ -129,8 +130,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     d3.json(baseurl + "/events/updateGraph/" + scope_id + "/" + scope + ".json", function(error, json) {
         root = json;
+        resolveLinkEnds(root);
         update();
     });
+
+    const toIdsBtn = document.getElementById('correlation-toids-btn');
+
+    if (toIdsBtn) {
+        toIdsBtn.addEventListener('click', function() {
+            toIdsOnly = !toIdsOnly;
+            toIdsBtn.classList.toggle('active', toIdsOnly);
+            toIdsBtn.setAttribute('aria-pressed', toIdsOnly ? 'true' : 'false');
+            update();
+        });
+    }
 
     var graphElementScale = 1;
     var graphElementTranslate = [0, 0];
@@ -143,8 +156,44 @@ document.addEventListener('DOMContentLoaded', function() {
         graphElementTranslate = d3.event.translate;
     }
 
+    // The graph JSON ships the to_ids flag of every attribute node as att_ids.
+    // CakePHP casts the tinyint(1) to_ids column to a boolean, so the value on
+    // the wire is true/false - 1 and "1" are accepted defensively.
+    function isToIdsNode(d) {
+        return d.att_ids === true || d.att_ids === 1 || d.att_ids === '1';
+    }
+
+    // The server sends link endpoints as node indexes; d3 replaces them with
+    // node references on force.start(). Resolve them up front so that the filter
+    // can always look at the node objects, including before the first render.
+    function resolveLinkEnds(graph) {
+        graph['links'].forEach(function(l) {
+            if (typeof l.source === 'number') l.source = graph['nodes'][l.source];
+            if (typeof l.target === 'number') l.target = graph['nodes'][l.target];
+        });
+    }
+
+    // Never mutate root: it is posted back to the server on expand() so that the
+    // already known part of the graph can be deduplicated there.
+    function visibleGraph() {
+        if (!toIdsOnly) {
+            return root;
+        }
+        var kept = {};
+        var nodes = root['nodes'].filter(function(d) {
+            var keep = d.type !== 'attribute' || isToIdsNode(d);
+            if (keep) kept[d.unique_id] = true;
+            return keep;
+        });
+        var links = root['links'].filter(function(l) {
+            return kept[l.source.unique_id] && kept[l.target.unique_id];
+        });
+        return {'nodes': nodes, 'links': links};
+    }
+
     function update() {
-        var nodes = root['nodes'], links = root['links'];
+        var graph = visibleGraph();
+        var nodes = graph['nodes'], links = graph['links'];
 
         force.nodes(nodes).links(links).start();
 
@@ -152,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
         link.exit().remove();
         link.enter().insert("line", ".node").attr("class", "link");
 
-        node = node.data(nodes);
+        node = node.data(nodes, function(d) { return d.unique_id; });
         node.exit().remove();
 
         var nodeEnter = node.enter().append("g").attr("class", "node").call(drag1);
@@ -380,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     JSON.stringify(root),
                     function(err, rawData) {
                         root = JSON.parse(rawData.response);
+                        resolveLinkEnds(root);
                         update();
                     }
                 );
