@@ -128,6 +128,25 @@ class DecayingModel extends AppModel
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        $this->flushModelCache();
+    }
+
+    public function afterDelete()
+    {
+        $this->flushModelCache();
+    }
+
+    // The caches below are read-through caches for the request lifetime only,
+    // so any write to a model or to its type mapping has to drop them.
+    public function flushModelCache()
+    {
+        $this->modelCache = [];
+        $this->modelCacheForType = [];
+        $this->defaultModelsCache = null;
+    }
+
     /*
     * May be improved at some point.
     * For now, limit the number of digits for the parameters
@@ -266,7 +285,18 @@ class DecayingModel extends AppModel
     // - full attach Attribute types associated to the requested model
     public function fetchModel($user, $id, $full=true, $conditions=array(), $attach_editable=0)
     {
-        $cacheKey = sprintf('%s', $id);
+        // The key has to cover everything that changes the returned model, not
+        // just the ID: `$full` decides whether attribute_types is attached,
+        // `$conditions` can filter the model out entirely (`enabled`), and the
+        // ACL below is evaluated per user.
+        $cacheKey = sprintf(
+            '%s_%s_%s_%s_%s',
+            $id,
+            $user['org_id'] ?? ($user['Organisation']['id'] ?? 0),
+            empty($user['Role']['perm_site_admin']) ? 0 : 1,
+            $full ? 1 : 0,
+            md5(json_encode($conditions))
+        );
         if (isset($this->modelCache[$cacheKey])) {
             return $this->modelCache[$cacheKey];
         }
@@ -625,18 +655,27 @@ class DecayingModel extends AppModel
     public function attachScoresToAttribute($user, $attribute, $model_id=false, $model_overrides=array(), $include_full_model=0)
     {
         $models = array();
+        // An explicitly requested model is not the same result set as "every
+        // model associated with this type", so it must not share a cache slot.
+        $cacheKey = sprintf(
+            '%s_%s',
+            $attribute['type'],
+            $model_id === false ? '' : $model_id
+        );
         if ($model_id === false) { // fetch all allowed and associated models
-            $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type'], true);
+            $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type']);
             $associated_model_ids = isset($associated_model_ids[$attribute['type']]) ? array_values($associated_model_ids[$attribute['type']]) : array();
-            if (isset($this->modelCacheForType[$attribute['type']])) {
-                $models = $this->modelCacheForType[$attribute['type']];
+            if (isset($this->modelCacheForType[$cacheKey])) {
+                $models = $this->modelCacheForType[$cacheKey];
             } else if (!empty($associated_model_ids)) {
                 $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
-                $this->modelCacheForType[$attribute['type']] = $models;
+                $this->modelCacheForType[$cacheKey] = $models;
             }
+        } else if (isset($this->modelCacheForType[$cacheKey])) {
+            $models = $this->modelCacheForType[$cacheKey];
         } else {
             $models = $this->fetchModels($user, $model_id, false, array());
-            $this->modelCacheForType[$attribute['type']] = $models;
+            $this->modelCacheForType[$cacheKey] = $models;
         }
         foreach ($models as $model) {
             if (!empty($model_overrides)) {
