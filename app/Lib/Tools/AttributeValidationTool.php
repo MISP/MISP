@@ -183,7 +183,9 @@ class AttributeValidationTool
             case 'x509-fingerprint-md5':
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
-                $value = str_replace(':', '', $value);
+                // Fingerprints are commonly copied from tools that group the bytes: openssl
+                // separates them with colons, Windows certutil with spaces or newlines.
+                $value = preg_replace('/[\s:]+/', '', $value);
                 return strtolower($value);
             case 'ip-dst|port':
             case 'ip-src|port':
