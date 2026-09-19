@@ -134,26 +134,46 @@ class APIActivityWidget
         // chars of the live key, authkey_end the last 4 — both stored
         // for legacy-auth bookkeeping.
         $this->AuthKey->Behaviors->load('Containable');
+        // Resolve every key seen in the window with a single query instead of
+        // one find('first') per key. The match is a composite (start, end) pair
+        // rather than a single column, so the condition is an OR of AND blocks.
+        $keyConditions = [];
+        foreach (array_keys($counts) as $apikey) {
+            $keyConditions[] = [
+                'AuthKey.authkey_start' => substr($apikey, 0, 4),
+                'AuthKey.authkey_end' => substr($apikey, 4),
+            ];
+        }
+        $found = $this->AuthKey->find('all', [
+            'recursive' => -1,
+            'conditions' => ['OR' => $keyConditions],
+            'fields' => [
+                'AuthKey.id', 'AuthKey.authkey_start', 'AuthKey.authkey_end',
+                'AuthKey.user_id',
+            ],
+            'contain' => [
+                'User' => [
+                    'fields' => ['User.id', 'User.email'],
+                    'Organisation' => ['fields' => ['id', 'name', 'uuid']],
+                    'Role' => ['fields' => ['name']],
+                ],
+            ],
+        ]);
+        $byKey = [];
+        foreach ($found as $authKey) {
+            // start is the first 4 chars of the live key, end the rest, so the
+            // concatenation reproduces the redis log key exactly. Keep the first
+            // row for a duplicate pair, mirroring the previous find('first').
+            $composite = $authKey['AuthKey']['authkey_start'] . $authKey['AuthKey']['authkey_end'];
+            if (!isset($byKey[$composite])) {
+                $byKey[$composite] = $authKey;
+            }
+        }
+        // Every key gets an entry, misses included - the unknown-key counting
+        // below relies on empty entries being present.
         $resolved = [];
         foreach (array_keys($counts) as $apikey) {
-            $resolved[$apikey] = $this->AuthKey->find('first', [
-                'recursive' => -1,
-                'conditions' => [
-                    'AuthKey.authkey_start' => substr($apikey, 0, 4),
-                    'AuthKey.authkey_end' => substr($apikey, 4),
-                ],
-                'fields' => [
-                    'AuthKey.id', 'AuthKey.authkey_start', 'AuthKey.authkey_end',
-                    'AuthKey.user_id',
-                ],
-                'contain' => [
-                    'User' => [
-                        'fields' => ['User.id', 'User.email'],
-                        'Organisation' => ['fields' => ['id', 'name', 'uuid']],
-                        'Role' => ['fields' => ['name']],
-                    ],
-                ],
-            ]);
+            $resolved[$apikey] = isset($byKey[$apikey]) ? $byKey[$apikey] : [];
         }
 
         $unknownCount = 0;
