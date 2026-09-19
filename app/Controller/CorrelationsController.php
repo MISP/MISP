@@ -163,9 +163,9 @@ class CorrelationsController extends AppController
                 $message = $result ? __('Table truncated.') : __('Could not truncate table');
                 if ($this->_isRest()) {
                     if ($result) {
-                        $this->RestResponse->saveSuccessResponse('Correlations', 'truncate', false, $this->response->type(), $message);
+                        return $this->RestResponse->saveSuccessResponse('Correlations', 'truncate', false, $this->response->type(), $message);
                     } else {
-                        $this->RestResponse->saveFailResponse('Correlations', 'truncate', false, $message, $this->response->type());
+                        return $this->RestResponse->saveFailResponse('Correlations', 'truncate', false, $message, $this->response->type());
                     }
                 } else {
                     $this->Flash->{$result ? 'success' : 'error'}($message);
