@@ -1352,6 +1352,60 @@ class AppController extends Controller
         return $ids;
     }
 
+    /**
+     * Translate the orgc_name OR/NOT pull-rules a sync peer sends to an
+     * indexMinimal endpoint into find() conditions.
+     *
+     * A NOT-rule naming an organisation that does not exist locally imposes no
+     * restriction, so it is simply dropped. "The caller asked for specific
+     * organisations and none of them exist" is a different answer - it is
+     * reported back as false so the endpoint can return an empty result set
+     * instead of an unfiltered one.
+     *
+     * @param array|string $orgcNames Org names, '!' prefixed for a NOT-rule
+     * @param Model $orgModel Model exposing fetchOrg() - Organisation, or an
+     *     association canonically aliased as Organisation
+     * @param string $filterName Column the conditions are built on
+     * @param string $orgField Field of the resolved org to compare against
+     * @return array|false Conditions, or false when an allow-list was supplied
+     *     and nothing in it resolved
+     */
+    protected function _orgcNamePullRuleConditions($orgcNames, $orgModel, $filterName, $orgField)
+    {
+        if (!is_array($orgcNames)) {
+            $orgcNames = [$orgcNames];
+        }
+        $options = [];
+        // Track whether an OR-rule (allow-list) was supplied separately from
+        // whether it resolved: a NOT-rule against an org that doesn't exist
+        // locally should impose no restriction, not exclude everything. Only
+        // "caller asked for specific orgs, none exist" should return nothing.
+        $hasOrRule = false;
+        foreach ($orgcNames as $orgcName) {
+            if (!is_string($orgcName) || $orgcName === '') {
+                continue;
+            }
+            if ($orgcName[0] === '!') {
+                $orgc = $orgModel->fetchOrg(substr($orgcName, 1));
+                if ($orgc === false) {
+                    continue;
+                }
+                $options[]['AND'][] = ["{$filterName} !=" => $orgc[$orgField]];
+            } else {
+                $hasOrRule = true;
+                $orgc = $orgModel->fetchOrg($orgcName);
+                if ($orgc === false) {
+                    continue;
+                }
+                $options['OR'][] = [$filterName => $orgc[$orgField]];
+            }
+        }
+        if ($hasOrRule && empty($options['OR'])) {
+            return false;
+        }
+        return $options;
+    }
+
     // checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
     protected function _isAdmin()
     {
