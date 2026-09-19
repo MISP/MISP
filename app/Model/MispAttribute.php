@@ -2305,8 +2305,12 @@ class MispAttribute extends AppModel
                 $this->Warninglist = ClassRegistry::init('Warninglist');
             }
 
-            if (!empty($options['includeSightings']) && !isset($this->Sighting)) {
+            if ((!empty($options['includeSightings']) || !empty($options['includeDecayScore'])) && !isset($this->Sighting)) {
                 $this->Sighting = ClassRegistry::init('Sighting');
+            }
+
+            if (!empty($options['includeDecayScore'])) {
+                $this->DecayingModel = ClassRegistry::init('DecayingModel');
             }
             
             if (!empty($options['includeCorrelations']) && !isset($this->Correlation)) {
@@ -2350,6 +2354,17 @@ class MispAttribute extends AppModel
                     // Fetch sightings for the whole batch at once instead of two queries per attribute.
                     // Conditions are built from the raw joined Event fields, before the context substitution below.
                     $sightingsByAttributeId = $this->Sighting->attachToAttributes($batch, $user);
+                }
+
+                $lastSightings = false;
+                if (!empty($options['includeDecayScore'])) {
+                    // Fetch the last sighting of the whole batch with a single query instead of one query per attribute
+                    $attributeIds = [];
+                    foreach ($batch as $r) {
+                        $attributeIds[] = $r['Attribute']['id'];
+                    }
+                    $lastSightings = $this->Sighting->getLastSightingsForAttributes($user, $attributeIds);
+                    unset($attributeIds);
                 }
         
                 // per-attribute pipeline
@@ -2402,8 +2417,12 @@ class MispAttribute extends AppModel
                             $this->base64EncodeAttachment($attr['Attribute']);
                     }
                     if (!empty($options['includeDecayScore'])) {
-                        $this->DecayingModel = ClassRegistry::init('DecayingModel');
                         $full = !empty($options['includeFullModel']) ? 1 : 0;
+                        if (is_array($lastSightings)) {
+                            $lastSighting = $lastSightings[$attr['Attribute']['id']] ?? null;
+                        } else {
+                            $lastSighting = false; // sightings policy that has to be resolved per attribute
+                        }
                         if (empty($attr['Attribute']['AttributeTag'])) {
                             $attr['Attribute']['AttributeTag'] =
                                 $attr['AttributeTag'] ?? [];
@@ -2411,7 +2430,7 @@ class MispAttribute extends AppModel
                                 $attr['EventTag'] ?? [];
                         }
                         $attr['Attribute'] = $this->DecayingModel
-                            ->attachScoresToAttribute($user, $attr['Attribute'], $options['decayingModel'], $options['modelOverrides'], $full);
+                            ->attachScoresToAttribute($user, $attr['Attribute'], $options['decayingModel'], $options['modelOverrides'], $full, $lastSighting);
                         unset($attr['Attribute']['AttributeTag'], $attr['Attribute']['EventTag']);
                         if (!empty($options['excludeDecayed']) && isset($attr['Attribute']['decay_score'])) {
                             $allDecayed = true;
