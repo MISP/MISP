@@ -68,10 +68,11 @@ App::uses('AppHelper', 'View/Helper');
             $htmlStyleTag = "<style widget-scoped>";
             $styleClosingTag = "</style>";
             $styleTagIndex = strpos($html, $htmlStyleTag);
-            $closingStyleTagIndex = strpos($html, $styleClosingTag, $styleTagIndex) + strlen($styleClosingTag);
-            if ($styleTagIndex !== false && $closingStyleTagIndex !== false && $closingStyleTagIndex > $styleTagIndex) { // enforced scoped css
+            $closingStyleTagIndex = $styleTagIndex === false ? false : strpos($html, $styleClosingTag, $styleTagIndex);
+            if ($styleTagIndex !== false && $closingStyleTagIndex !== false) { // enforced scoped css
                 $seed = mt_rand();
-                $css = substr($html, $styleTagIndex, $closingStyleTagIndex);
+                $closingStyleTagEnd = $closingStyleTagIndex + strlen($styleClosingTag);
+                $css = substr($html, $styleTagIndex, $closingStyleTagEnd - $styleTagIndex);
                 $html = str_replace($css, "", $html); // remove CSS part
                 $css = str_replace($htmlStyleTag, "", $css); // remove the style node
                 $css = str_replace($styleClosingTag, "", $css); // remove closing style node
