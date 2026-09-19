@@ -499,10 +499,8 @@ class Workflow extends AppModel
         $workflow = $this->fetchWorkflow($workflow_id, true);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $startNode = $this->workflowGraphTool->extractTriggerFromWorkflow($graphData, true);
-        $startNodeID = $startNode['id'];
-        $trigger_id = $startNode['data']['id'];
-        if ($startNode  == -1) {
-            $message = __('Invalid start node `%s`', $startNodeID);
+        if (empty($startNode) || !isset($startNode['id']) || !isset($startNode['data']['id'])) {
+            $message = __('Invalid start node for workflow `%s`', $workflow_id);
             $blockingErrors[] = $message;
             return [
                 'outcomeText' => 'failure' . sprintf(' %s', $message),
@@ -510,6 +508,8 @@ class Workflow extends AppModel
                 'success' => false,
             ];
         }
+        $startNodeID = $startNode['id'];
+        $trigger_id = $startNode['data']['id'];
 
         $triggerModule = $this->getModuleClassByType('trigger', $trigger_id, true);
         if (!empty($triggerModule->disabled)) {
