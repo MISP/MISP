@@ -127,7 +127,7 @@ class Warninglist extends AppModel
             foreach ($attributes as $pos => $attribute) {
                 $attributes[$pos] = $this->checkForWarning($attribute, $enabledWarninglists);
                 if (isset($attributes[$pos]['warnings'])) {
-                    foreach ($attribute['warnings'] as $match) {
+                    foreach ($attributes[$pos]['warnings'] as $match) {
                         $eventWarnings[$match['warninglist_id']] = $match['warninglist_name'];
                     }
                 }
