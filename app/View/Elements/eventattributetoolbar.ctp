@@ -76,6 +76,14 @@
                         'onClickParams' => array($eventId)
                     ),
                     array(
+                        'id' => 'multi-enrich-button',
+                        'title' => __('Enrich selected Attributes'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'magic',
+                        'onClick' => 'enrichSelectedAttributes',
+                        'onClickParams' => array($eventId)
+                    ),
+                    array(
                         'id' => 'multi-tag-button',
                         'title' => __('Tag selected Attributes'),
                         'class' => 'mass-select hidden',

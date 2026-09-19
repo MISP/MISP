@@ -2458,6 +2458,9 @@
                                      <button type="button" class="btn btn-default btn-sm" onclick="editSelectedAttributes(<?php echo h($event['Event']['id']); ?>); return false;" title="<?php echo __('Edit selected attributes'); ?>" aria-label="<?php echo __('Edit selected attributes'); ?>">
                                          <i class="fa fa-edit"></i> <?php echo __('Bulk Edit'); ?>
                                      </button>
+                                     <button type="button" class="btn btn-default btn-sm" onclick="enrichSelectedAttributes(<?php echo h($event['Event']['id']); ?>); return false;" title="<?php echo __('Enrich selected attributes'); ?>" aria-label="<?php echo __('Enrich selected attributes'); ?>">
+                                         <i class="fa fa-magic"></i> <?php echo __('Enrich'); ?>
+                                     </button>
                                     <?php endif; ?>
                                     <?php if ($bulkAttributePermissions['tagGlobal'] || $bulkAttributePermissions['tagLocal']): ?>
                                      <div class="beta-bulk-menu-wrap" data-beta-bulk-menu>
