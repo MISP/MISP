@@ -52,6 +52,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/noticelists/*
 !/app/files/misp-galaxy
 !/app/files/misp-galaxy/*
+!/app/files/lite
+!/app/files/lite/*
 !/app/files/misp-objects
 !/app/files/misp-objects/*
 !/app/files/misp-iconify

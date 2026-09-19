@@ -1,0 +1,9 @@
+{
+  "description": "ATT&CK Tactic",
+  "icon": "map",
+  "name": "Mobile Attack - Attack Pattern",
+  "namespace": "deprecated",
+  "type": "mitre-mobile-attack-attack-pattern",
+  "uuid": "1c6d1332-1708-11e8-847c-e3c5643c41a5",
+  "version": 5
+}

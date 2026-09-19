@@ -37,9 +37,13 @@ class Noticelist extends AppModel
         return true;
     }
 
-    public function update()
+    /**
+     * @param string|null $baseDir Base directory to load the noticelists from, defaults to APP/files
+     * @return array|string
+     */
+    public function update($baseDir = null)
     {
-        $directories = glob(APP . 'files' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob(($baseDir ?: APP . 'files') . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
             $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
