@@ -630,9 +630,7 @@ class MispObject extends AppModel
             $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
-                    array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-                    ),
+                    $this->correlatedLookup('events', 'org_id', 'Attribute', 'event_id') . ' = ' . (int)$user['org_id'],
                     array(
                         'OR' => array(
                             'Attribute.distribution' => array(1, 2, 3, 5),
@@ -676,6 +674,11 @@ class MispObject extends AppModel
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        // MySQL hands an object's attributes back in
+                        // primary-key order off the object_id index without
+                        // being asked; PostgreSQL must be asked, or an edited
+                        // attribute moves to the end of the list.
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -699,6 +702,7 @@ class MispObject extends AppModel
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -803,6 +807,93 @@ class MispObject extends AppModel
             }
         }
         return $results;
+    }
+
+    /**
+     * The display order an object's fields are meant to be read in, per
+     * template.
+     *
+     * A template gives every field a `ui-priority`, and the highest is what
+     * the object leads with — a file object opens on its hashes and its
+     * filename, not on `access-time` because "a" sorts first. Ties keep the
+     * order the definition file lists them in (the order they were imported
+     * in), which is more faithful than falling back to the alphabet.
+     *
+     * The object's own `template_version` is deliberately not matched
+     * against: objects routinely predate the installed revision (a v7 `file`
+     * object against the v25 template), and insisting on the exact revision
+     * would mean no order at all rather than a slightly dated one. Where an
+     * instance holds several revisions of one uuid, the newest wins.
+     *
+     * @param array $templateUuids Object.template_uuid values
+     * @return array template_uuid => [object_relation => rank], lowest first
+     */
+    public function fieldOrderByTemplate(array $templateUuids)
+    {
+        $templateUuids = array_values(array_unique(array_filter($templateUuids)));
+        if (empty($templateUuids)) {
+            return array();
+        }
+
+        $templates = $this->ObjectTemplate->find('all', array(
+            'conditions' => array('ObjectTemplate.uuid' => $templateUuids),
+            'fields' => array(
+                'ObjectTemplate.id',
+                'ObjectTemplate.uuid',
+                'ObjectTemplate.version',
+            ),
+            'recursive' => -1,
+            // Ascending, so the last row written into the map is the newest.
+            'order' => array('ObjectTemplate.version' => 'ASC'),
+        ));
+        if (empty($templates)) {
+            return array();
+        }
+
+        $templateIdByUuid = array();
+        foreach ($templates as $template) {
+            $templateIdByUuid[$template['ObjectTemplate']['uuid']] =
+                $template['ObjectTemplate']['id'];
+        }
+        $uuidByTemplateId = array_flip($templateIdByUuid);
+
+        $elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
+            'conditions' => array(
+                'ObjectTemplateElement.object_template_id' =>
+                    array_values($templateIdByUuid),
+            ),
+            'fields' => array(
+                'ObjectTemplateElement.object_template_id',
+                'ObjectTemplateElement.object_relation',
+                'ObjectTemplateElement.ui-priority',
+            ),
+            'recursive' => -1,
+            'order' => array(
+                'ObjectTemplateElement.ui-priority' => 'DESC',
+                'ObjectTemplateElement.id' => 'ASC',
+            ),
+        ));
+
+        $order = array();
+        foreach ($elements as $element) {
+            $row = $element['ObjectTemplateElement'];
+            $uuid = isset($uuidByTemplateId[$row['object_template_id']])
+                ? $uuidByTemplateId[$row['object_template_id']] : null;
+            if ($uuid === null || $row['object_relation'] === null) {
+                continue;
+            }
+            if (!isset($order[$uuid])) {
+                $order[$uuid] = array();
+            }
+            // A relation is listed once per template; the guard is for the
+            // rare template that repeats one, where the first (highest
+            // priority) mention is the one that decides.
+            if (!isset($order[$uuid][$row['object_relation']])) {
+                $order[$uuid][$row['object_relation']] = count($order[$uuid]);
+            }
+        }
+
+        return $order;
     }
 
     /**

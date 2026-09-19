@@ -28,6 +28,7 @@ trait CLIObjectsTrait
                     'comment', 'distribution',
                     'sharing_group_id',
                 ],
+                'filters' => ['object_name'],
             ],
         ];
     }
@@ -101,69 +102,36 @@ trait CLIObjectsTrait
                 $filters['object_name'];
         }
 
-        $isSiteAdmin = !empty(
-            $this->__user['Role']
-                ['perm_site_admin']
-        );
-
-        if (!$isSiteAdmin) {
-            $conditions[] =
-                $this->__objectAclConditions();
-        }
-
-        $findParams = [
-            'conditions' => $conditions,
-            'fields' => [
-                'Object.id',
-                'Object.event_id',
-                'Object.name',
-                'Object.meta-category',
-                'Object.description',
-                'Object.template_version',
-            ],
-            'recursive' => -1,
-            'limit' => $limit,
-            'page' => $page,
-            'order' => [
-                'Object.id' => isset(
-                    $filters['sort_order']
-                )
-                ? $filters['sort_order'] : 'DESC',
-            ],
-        ];
-
-        if (!$isSiteAdmin) {
-            $findParams['joins'] = [
-                [
-                    'table' => 'events',
-                    'alias' => 'Event',
-                    'type' => 'INNER',
-                    'conditions' => [
-                        'Event.id = '
-                        . 'Object.event_id',
+        // fetchObjects() applies the same event +
+        // object visibility rule as the web;
+        // metadata skips the attribute payload.
+        $objects = $this->MispObject->fetchObjects(
+            $this->__user,
+            [
+                'conditions' => $conditions,
+                'metadata' => true,
+                'contain' => [
+                    'Event' => [
+                        'fields' => ['id', 'info'],
                     ],
                 ],
-            ];
-        }
-
-        $objects = $this->MispObject->find(
-            'all', $findParams
+                'limit' => $limit,
+                'page' => $page,
+                'order' => 'Object.id '
+                    . (isset($filters['sort_order'])
+                        ? $filters['sort_order']
+                        : 'DESC'),
+            ]
         );
-
-        $eventIds = array_column(
-            array_column($objects, 'Object'),
-            'event_id'
-        );
-        $this->__prefetchFK('event', $eventIds);
 
         $results = [];
         foreach ($objects as $obj) {
             $o = $obj['Object'];
             $results[] = [
                 'id' => $o['id'],
-                'event_id' => $this->__resolveFK(
-                    'event', $o['event_id']
-                ),
+                'event_id' => '[' . $o['event_id']
+                    . '] '
+                    . ($obj['Event']['info'] ?? ''),
                 'name' => $o['name'],
                 'meta-category' =>
                     isset($o['meta-category'])
@@ -181,82 +149,38 @@ trait CLIObjectsTrait
     }
 
     /**
-     * Build ACL conditions for object queries.
-     *
-     * Non-admin users may not see objects with
-     * distribution 0 on events they don't own, or
-     * distribution 4 with unauthorised sharing groups.
-     *
-     * @return array CakePHP conditions array
-     */
-    private function __objectAclConditions()
-    {
-        $userOrgId = $this->__user['org_id'];
-        $sgIds = $this->SharingGroup->authorizedIds(
-            $this->__user
-        );
-
-        return [
-            'OR' => [
-                'Event.org_id' => $userOrgId,
-                [
-                    'Object.distribution >'
-                        => 0,
-                    'Object.distribution !='
-                        => 4,
-                ],
-                [
-                    'Object.distribution'
-                        => 4,
-                    'Object.sharing_group_id'
-                        => $sgIds,
-                ],
-            ],
-        ];
-    }
-
-    /**
      * Fetch full detail for a single object.
+     *
+     * Same accessor as the delete path and the
+     * web: the parent event's visibility and the
+     * object's own distribution both apply, and
+     * the child attributes come back filtered.
      *
      * @param int $id Object ID.
      * @return array|null Object data or null.
      */
     private function __fetchObjectDetail($id)
     {
-        $objects = $this->MispObject->find(
-            'first',
+        $objects = $this->MispObject->fetchObjects(
+            $this->__user,
             [
                 'conditions' => [
                     'Object.id' => $id,
+                    'Object.deleted' => 0,
                 ],
                 'contain' => [
                     'Event' => [
                         'fields' => [
-                            'Event.id',
-                            'Event.info',
-                            'Event.org_id',
-                        ],
-                    ],
-                    'Attribute' => [
-                        'fields' => [
-                            'Attribute.id',
-                            'Attribute.type',
-                            'Attribute.category',
-                            'Attribute.value',
-                            'Attribute.to_ids',
-                            'Attribute.object_relation',
-                        ],
-                    ],
-                    'SharingGroup' => [
-                        'fields' => [
-                            'SharingGroup.id',
-                            'SharingGroup.name',
+                            'id', 'info', 'org_id',
+                            'orgc_id', 'user_id',
+                            'distribution',
                         ],
                     ],
                 ],
             ]
         );
-        return !empty($objects) ? $objects : null;
+        return !empty($objects[0])
+            ? $objects[0] : null;
     }
 
     /**
@@ -475,7 +399,7 @@ trait CLIObjectsTrait
      * @param int $id Object ID to edit.
      * @return void
      */
-    private function __editObject($id)
+    private function __editObject($id, $fields = null)
     {
         $existing = $this->__fetchDetail(
             'object', $id
@@ -484,7 +408,7 @@ trait CLIObjectsTrait
             $this->err(
                 'Object #' . $id . ' not found.'
             );
-            return;
+            return false;
         }
         $eventId =
             $existing['Object']['event_id'];
@@ -496,25 +420,32 @@ trait CLIObjectsTrait
                 'Parent event #' . $eventId
                 . ' not found.'
             );
-            return;
+            return false;
         }
         if (!$this->__canModifyEvent($event)) {
             $this->err(
                 'Permission denied: cannot modify '
                 . 'the parent event.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['object']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'object',
             $existing['Object'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -523,10 +454,13 @@ trait CLIObjectsTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
+        // Keyed by the model alias: keyed by the
+        // class name the values were silently
+        // ignored and only the timestamp saved.
         $data = [
-            'MispObject' => array_merge(
+            'Object' => array_merge(
                 [
                     'id' => $id,
                     'uuid' =>
@@ -555,6 +489,7 @@ trait CLIObjectsTrait
             $this->Event->unpublishEvent(
                 $eventId
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update object #'
@@ -581,6 +516,7 @@ trait CLIObjectsTrait
                 }
             }
         }
+        return false;
     }
 
     /**

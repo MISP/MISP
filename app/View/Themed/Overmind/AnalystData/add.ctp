@@ -52,29 +52,21 @@ echo $this->Form->create($m, [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-<?= $color ?> bg-opacity-10"
-     style="border-bottom:2px solid var(--bs-<?= $color ?>);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-<?= $color ?>"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Analyst Data') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="<?= $isEdit ? 'fas fa-pen-to-square' : 'fas fa-circle-plus' ?> text-<?= $color ?>"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit %s', $s['label']) : __('Add %s', $s['label']) ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;"><?= h($s['desc']) ?></p>
-    </div>
-    <i class="<?= h($s['icon']) ?> text-<?= $color ?>" style="font-size:2rem; opacity:.4;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => $color,
+    'eyebrow' => __('Analyst Data'),
+    'title' => $isEdit ? __('Edit %s', $s['label']) : __('Add %s', $s['label']),
+    'description' => $s['desc'],
+    'icon' => $s['icon'],
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex flex-column gap-4">
+
+    <div class="d-flex flex-column gap-4 px-2">
 
         <!-- ── TARGET ──────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center gap-2 text-<?= $color ?> fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Target object') ?>
@@ -113,33 +105,22 @@ echo $this->Form->create($m, [
             <?php endif; ?>
         </div>
 
-        <!-- ── DISTRIBUTION / SHARING GROUP ────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
-            <div class="d-flex gap-3">
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $dropdownData['distributionLevels'], [
-                        'class' => 'form-select',
-                        'id'    => 'distribution-select',
-                        'value' => $currentDistribution,
-                    ]) ?>
-                </div>
-                <div class="flex-fill<?= $currentDistribution === 4 ? '' : ' d-none' ?>" id="sg-container">
-                    <?= $this->Form->select('sharing_group_id', $dropdownData['sgs'], [
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select tom-select',
-                        'default' => $data['sharing_group_id'] ?? null,
-                    ]) ?>
-                </div>
-            </div>
+        <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'accent' => $color,
+                'levels' => $dropdownData['distributionLevels'] ?? [],
+                'sharingGroups' => $dropdownData['sgs'] ?? [],
+                'value' => $currentDistribution,
+                'showSg' => true,
+                'id' => 'distribution-select',
+                'sgEmpty' => __('Select a sharing group…'),
+            ]) ?>
         </div>
 
         <?php if ($m === 'Note'): ?>
             <!-- ── NOTE ────────────────────────────────────────── -->
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="d-flex align-items-center gap-2 text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Note') ?>
@@ -153,7 +134,7 @@ echo $this->Form->create($m, [
                     'placeholder' => __('Write your analysis note…'),
                 ]) ?>
             </div>
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Language') ?>
@@ -167,7 +148,7 @@ echo $this->Form->create($m, [
         <?php elseif ($m === 'Opinion'): ?>
             <!-- ── OPINION ─────────────────────────────────────── -->
             <?php $opVal = isset($data['opinion']) ? (int)$data['opinion'] : 50; ?>
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="d-flex align-items-center justify-content-between text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="letter-spacing:.1em;">
                     <span style="font-size:.65rem;"><?= __('Opinion') ?></span>
@@ -182,7 +163,7 @@ echo $this->Form->create($m, [
                     <span><?= __('Strongly agree') ?></span>
                 </div>
             </div>
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Comment') ?>
@@ -196,7 +177,7 @@ echo $this->Form->create($m, [
 
         <?php elseif ($m === 'Relationship'): ?>
             <!-- ── RELATIONSHIP ────────────────────────────────── -->
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Relationship type') ?>
@@ -213,7 +194,7 @@ echo $this->Form->create($m, [
                     <?php endforeach; ?>
                 </datalist>
             </div>
-            <div class="w-100 px-2">
+            <div class="w-100 ">
                 <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Related object') ?>
@@ -241,7 +222,7 @@ echo $this->Form->create($m, [
         <?php endif; ?>
 
         <!-- ── AUTHORS ─────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="text-<?= $color ?> fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Authors') ?>
@@ -254,31 +235,21 @@ echo $this->Form->create($m, [
 
     </div>
 
-    <!-- ── FOOTER ──────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if (!empty($me['email'])): ?>
-                <?= __('Analyst') ?>: <strong class="text-body"><?= h($me['email']) ?></strong>
-                <?php if (!empty($me['Organisation']['name'])): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($me['Organisation']['name']) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save changes') : __('Create %s', $s['label'])),
-                [
-                    'class'       => 'btn btn-' . $color . ' btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if (!empty($me['email'])) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $me['email']];
+        if (!empty($me['Organisation']['name'])) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $me['Organisation']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => $color,
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => ['label' => $isEdit ? __('Save changes') : __('Create %s', $s['label'])],
+    ]);
+    ?>
 
 </div>
 

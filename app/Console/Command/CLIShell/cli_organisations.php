@@ -31,6 +31,10 @@ trait CLIOrganisationsTrait
                     'contacts', 'local',
                 ],
                 'writeAdminOnly' => true,
+                'filters' => [
+                    'searchall', 'nationality',
+                    'sector', 'local',
+                ],
             ],
         ];
     }
@@ -118,6 +122,14 @@ trait CLIOrganisationsTrait
                 $filters['local'];
         }
 
+        // Honour hide_organisation_index_from_users
+        // exactly as OrganisationsController::index.
+        $aclConditions = $this->Organisation
+            ->createConditions($this->__user);
+        if (!empty($aclConditions)) {
+            $conditions[] = $aclConditions;
+        }
+
         $orgs = $this->Organisation->find('all', [
             'conditions' => $conditions,
             'fields' => [
@@ -159,18 +171,50 @@ trait CLIOrganisationsTrait
     /**
      * Fetch full detail for a single organisation.
      *
+     * Mirrors OrganisationsController::view():
+     * canSee() enforces
+     * hide_organisation_index_from_users, the
+     * field list is the web's, and created_by is
+     * only read for site admins and for the org's
+     * own org admins.
+     *
      * @param int $id Organisation ID.
      * @return array|null Organisation data or null.
      */
     private function __fetchOrganisationDetail(
         $id
     ) {
-        return $this->Organisation->find('first', [
+        if (
+            !$this->Organisation->canSee(
+                $this->__user, $id
+            )
+        ) {
+            return null;
+        }
+        $role = $this->__user['Role'];
+        $fullAccess = !empty($role['perm_site_admin'])
+            || (
+                !empty($role['perm_admin'])
+                && (int)$this->__user['org_id']
+                    === (int)$id
+            );
+        $fields = [
+            'id', 'name', 'date_created',
+            'date_modified', 'type', 'nationality',
+            'sector', 'contacts', 'description',
+            'local', 'uuid', 'restricted_to_domain',
+        ];
+        if ($fullAccess) {
+            $fields[] = 'created_by';
+        }
+        $org = $this->Organisation->find('first', [
             'conditions' => [
                 'Organisation.id' => $id,
             ],
+            'fields' => $fields,
             'recursive' => -1,
         ]);
+        return !empty($org) ? $org : null;
     }
 
     /**
@@ -240,7 +284,7 @@ trait CLIOrganisationsTrait
      * @param int $id Organisation ID.
      * @return void
      */
-    private function __editOrganisation($id)
+    private function __editOrganisation($id, $fields = null)
     {
         $existing =
             $this->__fetchOrganisationDetail($id);
@@ -249,18 +293,25 @@ trait CLIOrganisationsTrait
                 'Organisation #' . $id
                 . ' not found.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['organisation']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'organisation',
             $existing['Organisation'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -269,7 +320,7 @@ trait CLIOrganisationsTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
         $data = [
             'Organisation' => array_merge(
@@ -286,6 +337,7 @@ trait CLIOrganisationsTrait
                 'Organisation #' . $id
                 . ' updated successfully.'
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update organisation #'
@@ -312,6 +364,7 @@ trait CLIOrganisationsTrait
                 }
             }
         }
+        return false;
     }
 
     /**

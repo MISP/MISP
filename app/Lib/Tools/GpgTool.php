@@ -111,12 +111,19 @@ class GpgTool
     }
 
     /**
+     * Parses the machine readable index of a HKP key server (`op=index&options=mr`),
+     * which is one `pub` line per key followed by one `uid` line per identity
+     * that key carries.
+     *
      * @param string $body
-     * @return array
+     * @return array Each key as ['fingerprint', 'key_id', 'date', 'address'],
+     *               'address' holding every identity, one per line.
      */
     private function extractKeySearch($body)
     {
         $final = array();
+        $temp = array();
+        $now = time();
         $lines = explode("\n", $body);
         foreach ($lines as $line) {
             $parts = explode(":", $line);
@@ -127,24 +134,41 @@ class GpgTool
                     $temp = array();
                 }
 
-                if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
+                $flags = isset($parts[6]) ? $parts[6] : '';
+                if (strpos($flags, 'r') !== false || strpos($flags, 'd') !== false || strpos($flags, 'e') !== false) {
                     continue; // skip if key is expired, revoked or disabled
+                }
+
+                $expiration = isset($parts[5]) ? $parts[5] : '';
+                if ($expiration !== '' && (int)$expiration < $now) {
+                    continue;
                 }
 
                 $temp = array(
                     'fingerprint' => $parts[1],
                     'key_id' => substr($parts[1], -8),
-                    'date' => date('Y-m-d', $parts[4]),
+                    'date' => date('Y-m-d', (int)$parts[4]),
+                    'address' => array(),
                 );
 
             } else if ($parts[0] === 'uid' && !empty($temp)) {
-                $temp['address'] = urldecode($parts[1]);
+                // A key usually carries several identities - keep them all, the
+                // one the search matched is not necessarily the last one listed.
+                $address = urldecode($parts[1]);
+                if (!in_array($address, $temp['address'], true)) {
+                    $temp['address'][] = $address;
+                }
             }
         }
 
         if (!empty($temp)) {
             $final[] = $temp;
         }
+
+        foreach ($final as &$key) {
+            $key['address'] = implode("\n", $key['address']);
+        }
+        unset($key);
 
         return $final;
     }

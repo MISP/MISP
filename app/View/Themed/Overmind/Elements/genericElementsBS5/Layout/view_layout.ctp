@@ -8,11 +8,12 @@ foreach ($tabs as $i => $tab) {
 }
 ?>
 <div class="container-fluid">
-    <ul class="nav nav-tabs mb-3 fs-5" role="tablist">
+    <ul class="nav nav-tabs mb-3 fs-5" role="tablist" data-tour="view-tabs">
         <?php foreach ($tabs as $i => $tab): ?>
             <?php $isActive = $i === $activeTabIndex; ?>
             <li class="nav-item"  role="presentation">
                 <a class="nav-view nav-link d-flex align-items-center gap-2 bg-light text-dark <?= $isActive ? 'active' : '' ?>"
+                    data-tour="view-tab-<?= h($tab['id']) ?>"
                     data-bs-toggle="tab"
                     href="#tab-<?= h($tab['id']) ?>"
                     role="tab"

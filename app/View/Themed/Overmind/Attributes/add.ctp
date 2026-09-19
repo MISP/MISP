@@ -42,31 +42,22 @@ $correlIconStyle = $disableCorrelChecked
 echo $this->Form->create('Attribute', ['novalidate' => true]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:#97CC040f;
-            border-bottom:2px solid var(--attribute);">
-    <div>
-        <div class="text-attribute text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Attributes') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-attribute"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Attribute') : __('Add Attribute') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-attribute misp-simple text-attribute" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'attribute',
+    'eyebrow' => __('Attributes'),
+    'title' => $isEdit ? __('Edit Attribute') : __('Add Attribute'),
+    'icon' => 'misp-icon misp-icon-attribute misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex flex-column gap-4">
+
+    <div class="d-flex flex-column gap-4 px-2">
 
         <!-- ── CATEGORY + TYPE ─────────────────────────────────── -->
         <div class="row g-3">
 
-            <div class="col-md-6">
+            <div class="col-md-6" data-tour="attribute-category">
                 <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Category') ?>
@@ -85,7 +76,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                      style="display:none;overflow:hidden;"></div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-6" data-tour="attribute-type">
                 <div class="text-attribute fw-bold text-uppercase mb-2"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Type') ?>
@@ -108,7 +99,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
 
         <!-- ── VALUE ───────────────────────────────────────────── -->
-        <div class="w-100">
+        <div class="w-100" data-tour="attribute-value">
             <div class="text-attribute fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Value') ?>
@@ -134,10 +125,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── COMMENT ─────────────────────────────────────────── -->
         <div class="w-100">
-            <div class="text-attribute fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Contextual Comment') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'attribute',
+                'label' => __('Contextual Comment'),
+            ]) ?>
             <?= $this->Form->text('comment', [
                 'id'          => 'AttributeComment',
                 'class'       => 'w-100 border-0 bg-transparent py-1',
@@ -147,44 +138,26 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             ]) ?>
         </div>
 
-
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100">
-            <div class="text-attribute fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution') ?>
-            </div>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $distributionLevels, [
-                        'id'    => 'AttributeDistribution',
-                        'class' => 'form-select',
-                        'value' => $currentDist,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill"
-                     id="attr-sg-container"
-                     style="<?= $currentDist !== 4 ? 'display:none;' : '' ?>">
-                    <?= $this->Form->select('sharing_group_id', $sharingGroups, [
-                        'id'    => 'AttributeSharingGroupId',
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select',
-                    ]) ?>
-                </div>
-
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'accent' => 'attribute',
+                'value' => $currentDistribution,
+                'id' => 'AttributeDistribution',
+                'showSg' => true,
+                'sgId' => 'AttributeSharingGroupId',
+                'sgEmpty' => __('Select a sharing group…'),
+            ]) ?>
         </div>
 
 
         <!-- ── ATTRIBUTE SETTINGS ──────────────────────────────── -->
         <div class="w-100">
 
-            <div class="text-attribute fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Settings') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'attribute',
+                'label' => __('Settings'),
+            ]) ?>
 
             <div class="row g-2 mb-3">
 
@@ -294,10 +267,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="row g-3">
 
             <div class="col-md-6">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('First Seen (UTC)') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('First Seen (UTC)'),
+                ]) ?>
                 <div class="input-group">
                     <span class="input-group-text bg-transparent border-end-0"
                           style="border-color:#d8dde3;">
@@ -314,10 +287,10 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             </div>
 
             <div class="col-md-6">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Last Seen (UTC)') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Last Seen (UTC)'),
+                ]) ?>
                 <div class="input-group">
                     <span class="input-group-text bg-transparent border-end-0"
                           style="border-color:#d8dde3;">
@@ -347,27 +320,15 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
     </div>
 
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>:
-            <strong class="text-body">#<?= h($event['Event']['id'] ?? '') ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-circle-plus me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Attribute')),
-                [
-                    'class'       => 'btn btn-attribute btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'attribute',
+        'isEdit' => $isEdit,
+        'meta' => [['label' => __('Event'), 'id' => $event['Event']['id'] ?? '']],
+        'submit' => [
+            'label' => $isEdit ? __('Save Changes') : __('Add Attribute'),
+            'icon' => 'fas fa-circle-plus',
+        ],
+    ]) ?>
 
 </div>
 

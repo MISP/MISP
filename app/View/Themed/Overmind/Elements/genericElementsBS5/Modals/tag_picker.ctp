@@ -61,27 +61,13 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(219,106,71,.06);
-            border-bottom:2px solid var(--tag);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-tag"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($headerEyebrow) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <span class="fas fa-pen-to-square text-tag"
-                  style="font-size:1.25rem;"></span>
-            <?= __('Edit Tags') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Pick a category, search the input, and the selected tags appear below.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-tag misp-simple text-tag"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'tag',
+    'eyebrow' => $headerEyebrow,
+    'title' => __('Edit Tags'),
+    'titleIcon' => 'fas fa-pen-to-square',
+    'icon' => 'misp-icon misp-icon-tag misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -99,22 +85,16 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?php if ($mayModify): ?>
-        <button type="button"
-                id="edit-tags-save-btn"
-                class="btn btn-tag btn-sm text-white">
-            <i class="fas fa-save me-1"></i>
-            <?= __('Save Tags') ?>
-        </button>
-        <?php endif; ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'tag',
+        'align' => 'end',
+        'submit' => $mayModify ? [
+            'label' => __('Save Tags'),
+            'icon' => 'fas fa-save',
+            'id' => 'edit-tags-save-btn',
+            'type' => 'button',
+        ] : false,
+    ]) ?>
 
 </div>
 
@@ -150,40 +130,27 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
     var localSection  = makeSection('local',  initSelected.local);
 
     /*
+     * A tag collection can carry galaxy clusters - they live in the collection as
+     * `misp-galaxy:` tags - so a save here can change the galaxies card too.
+     */
+    function reloadGalaxiesCard() {
+        var fn = window['reloadGalaxiesCard_' + uid.replace('-tags-', '-galaxies-')];
+        if (typeof fn === 'function') { fn(); }
+    }
+
+    /*
      * After a successful save: prefer an event-view card reload hook
      * (window['<reloadHook>' + uid]); otherwise fall back to refreshing the
      * attribute index table (set by view_attributes.ctp).
      */
     function afterSave() {
+        reloadGalaxiesCard();
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
-        /*
-         * No card hook (attribute context): reload whichever event-view index
-         * tab is currently shown. Each tab exposes { loadFn, buildFn } on window
-         * once rendered (view_attributes.ctp / Objects/index.ctp).
-         */
-        var tabs = [
-            { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: window.mispView.objects },
-            { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: window.mispView.attrs }
-        ];
-        function reload(api) {
-            if (api && typeof api.loadFn === 'function'
-                    && typeof api.buildFn === 'function') {
-                api.loadFn(api.buildFn());
-                return true;
-            }
-            return false;
-        }
-        /* Prefer the tab whose container is currently visible. */
-        for (var i = 0; i < tabs.length; i++) {
-            var cont = document.querySelector(tabs[i].sel);
-            if (cont && cont.offsetParent !== null && reload(tabs[i].api)) { return; }
-        }
-        /* Fallback: any exposed tab API. */
-        for (var j = 0; j < tabs.length; j++) {
-            if (reload(tabs[j].api)) { return; }
-        }
+        /* No card hook (attribute context): the change shows in the index
+           behind the modal. */
+        reloadEventViewIndexTab();
     }
 
     /* ─── Save ─── */

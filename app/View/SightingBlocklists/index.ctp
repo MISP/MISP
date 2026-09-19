@@ -57,10 +57,12 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     'title' => 'Edit Blocklist',
                 ],
                 [
-                    'url' => $baseurl . '/org_blocklists/delete',
+                    'url' => $baseurl . '/sighting_blocklists/delete',
                     'url_params_data_paths' => array(
                         'SightingBlocklist.id'
                     ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
                     'icon' => 'trash',
                     'title' => 'Delete Blocklist',
                 ]

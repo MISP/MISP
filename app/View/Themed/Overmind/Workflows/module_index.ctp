@@ -137,9 +137,9 @@ $filterBar = [
                     'label' => __('Type'),
                     'name' => 'type',
                     'options' => [
+                        '' => __('All'),
                         'action' => __('Action'),
                         'logic' => __('Logic'),
-                        'all' => __('All'),
                         'custom' => __('Custom only'),
                     ],
                 ],
@@ -217,7 +217,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'id',
-            'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
+            //'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
         ]
     ],
     'item_url' => '/workflows'

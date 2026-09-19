@@ -29,12 +29,21 @@ foreach ($data['data'] as $k => $data_row) {
         $rowClass = call_user_func($data['row_class_callable'], $data_row);
     }
 
+    // For extending/extended View
+    $rowStyle = '';
+    if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable'])) {
+        $rowStyle = call_user_func($data['row_style_callable'], $data_row);
+    }
+
     $row = '<tr data-row-id="' . h($k) . '"';
     if (!empty($primary)) {
         $row .= ' data-primary-id="' . h($primary) . '"';
     }
     if ($rowClass !== '') {
         $row .= ' class="' . h($rowClass) . '"';
+    }
+    if ($rowStyle !== '') {
+        $row .= ' style="' . h($rowStyle) . '"';
     }
     $row .= '>';
 

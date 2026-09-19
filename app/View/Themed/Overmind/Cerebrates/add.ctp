@@ -31,26 +31,13 @@ echo $this->Form->create('Cerebrate', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Cerebrates') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Cerebrate') : __('Add Cerebrate') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A Cerebrate node this instance queries for organisation and sharing-group metadata.') ?>
-        </p>
-    </div>
-    <i class="fas fa-network-wired text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Cerebrates'),
+    'title' => $isEdit ? __('Edit Cerebrate') : __('Add Cerebrate'),
+    'description' => __('A Cerebrate node this instance queries for organisation and sharing-group metadata.'),
+    'icon' => 'fas fa-network-wired',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -130,37 +117,33 @@ echo $this->Form->create('Cerebrate', [
                     <i class="fas fa-eye"></i>
                 </button>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Used for every request this instance makes to the node.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Used for every request this instance makes to the node.'),
+            ]) ?>
         </div>
 
         <!-- ── OWNER ───────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Owner Organisation') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Owner Organisation'),
+            ]) ?>
             <?= $this->Form->select('org_id', $dropdownData['org_id'] ?? [], [
                 'id' => 'CerebrateOrgId',
                 'class' => 'form-select tom-select',
                 'empty' => false,
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('The organisation this node is attributed to locally.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('The organisation this node is attributed to locally.'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
@@ -171,10 +154,10 @@ echo $this->Form->create('Cerebrate', [
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $option): ?>
                     <div class="col-md-4">
@@ -212,33 +195,12 @@ echo $this->Form->create('Cerebrate', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Cerebrate') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Organisations and sharing groups are previewed before anything is pulled.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Cerebrate')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('Cerebrate'), 'id' => $id]] : [],
+        'hint' => __('Organisations and sharing groups are previewed before anything is pulled.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Cerebrate')],
+    ]) ?>
 
 </div>
 

@@ -1,5 +1,28 @@
 <?php
 
+// Extended / extending event view: a report can belong to any event of the
+// merged set, so a foreign one wears its origin event's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
+$reportOrigin = function ($row) use ($extensionEvents) {
+    $originId = (int)Hash::get($row, 'EventReport.event_id');
+    $origin = $extensionEvents[$originId] ?? null;
+    return ($origin === null || $origin['role'] === 'self') ? null : $origin;
+};
+
+// A1 per report row: the AI module writes its summary on top of the report.
+// Offered while the AI services are on and the user may run them; the
+// action itself checks the report's edit rights.
+$aiSummarizeReport = Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiSummarize');
+$hasActiveReport = false;
+foreach ($reports as $row) {
+    if (empty($row['EventReport']['deleted'])) {
+        $hasActiveReport = true;
+        break;
+    }
+}
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -43,7 +66,7 @@ $fields = [
     [
         'name' => __('Last Modified'),
         'data_path' => 'EventReport.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'card_section' => 'meta',
         'display_in' => ['card']
     ],
@@ -81,6 +104,15 @@ $fields = [
             ],
             [
                 'type' => 'modal',
+                'label' => __('Summarise with AI'),
+                'icon' => 'robot',
+                'url' => $baseurl . '/event_reports/aiSummarize/%id%',
+                'requirement' => function (array $row) use ($aiSummarizeReport) {
+                    return $aiSummarizeReport && empty($row['EventReport']['deleted']);
+                },
+            ],
+            [
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/event_reports/deleteSelection/%id%',
@@ -94,7 +126,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])
@@ -102,7 +134,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add opinion'),
-                'icon' => 'misp-icon misp-icon-analyst-opinion misp-simple',
+                'icon' => 'text-success misp-icon misp-icon-analyst-opinion misp-simple',
                 'url' => $baseurl . '/analystData/add/Opinion/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])
@@ -110,7 +142,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add relationship'),
-                'icon' => 'diagram-project',
+                'icon' => 'text-correlation fas fa-diagram-project',
                 'url' => $baseurl . '/analystData/add/Relationship/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])
@@ -123,9 +155,41 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $reports,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
-                'children' => [
+                'children' => array_values(array_filter([
+                    // A2 from the reports tab of an event: the AI module writes its
+                    // summary into a new report. Only on an event's reports, only
+                    // while the AI services are on and the user may run them.
+                    (!empty($event['Event']['id'])
+                        && Configure::read('Plugin.AI_services_enable')
+                        && $this->Acl->canAccess('events', 'aiSummarize')
+                        && $this->Acl->canModifyEvent($event)) ? [
+                        'type' => 'button',
+                        'url' => $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'],
+                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'] . "', 'md');",
+                        'class' => 'btn btn-outline-primary',
+                        'icon' => 'fas fa-robot me-1',
+                        'label' => __('Summarise with AI'),
+                        'title' => __('The AI module writes a summary of the event into a new report'),
+                    ] : null,
+                    // A4: the module reads the reports and proposes attributes
+                    // and objects, reviewed in the modal before they are added.
+                    // Offered only with a non-deleted report to read.
+                    (!empty($event['Event']['id'])
+                        && $hasActiveReport
+                        && Configure::read('Plugin.AI_services_enable')
+                        && $this->Acl->canAccess('events', 'aiExtractIndicators')
+                        && $this->Acl->canModifyEvent($event)) ? [
+                        'type' => 'button',
+                        'url' => $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'],
+                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'] . "', 'md');",
+                        'class' => 'btn btn-outline-primary',
+                        'icon' => 'fas fa-magnifying-glass me-1',
+                        'label' => __('Extract indicators with AI'),
+                        'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
+                    ] : null,
                     [
                         'type' => 'search',
                         'button' => 'Search',
@@ -133,11 +197,27 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],
-                ],
+                ])),
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
             'primary_id_path' => 'EventReport.id',
+            'row_class_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
+                return ($inExtensionView && $reportOrigin($row) !== null)
+                    ? 'evt-extension-row'
+                    : '';
+            },
+            'row_style_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
+                $origin = $inExtensionView ? $reportOrigin($row) : null;
+                if ($origin === null) {
+                    return '';
+                }
+                return sprintf(
+                    '--extension-tint:%s;--extension-accent:%s;',
+                    $origin['palette']['sectionBg'],
+                    $origin['palette']['badgeBorder']
+                );
+            },
             'row_dblclick_url' => $baseurl . '/event_reports/view/%id%',
         ]
     ],

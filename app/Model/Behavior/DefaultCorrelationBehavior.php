@@ -590,8 +590,24 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return $result;
     }
 
-    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
+        if ($excludeNonCorrelating) {
+            // Run the very collector getAttributesRelatedToEvent() runs, so the
+            // list of related events and the correlations rendered for them are
+            // one set: __collectCorrelations() drops the values held in
+            // correlation_exclusions and over_correlating_values, which the
+            // plain path below does not, and an event related only through such
+            // a value has no correlation anyone can be shown.
+            $eventIds = [];
+            foreach ($this->__collectCorrelations($user, $eventId, $sgids, false) as $correlation) {
+                $eventIds[$correlation['Correlation']['event_id']] = true;
+            }
+            foreach ($this->__collectCorrelations($user, $eventId, $sgids, true) as $correlation) {
+                $eventIds[$correlation['Correlation']['1_event_id']] = true;
+            }
+            return array_keys($eventIds);
+        }
         // search the correlation table for the event ids of the related events
         // Rules:
         // 1. Event is owned by the user (org_id matches)
@@ -788,8 +804,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'recursive' => -1,
             'conditions' => [
                 'OR' => [
-                    'CorrelationValue.value LIKE' => '%' . $value,
-                    'CorrelationValue.value LIKE' => $value . '%'
+                    ['CorrelationValue.value LIKE' => '%' . $value],
+                    ['CorrelationValue.value LIKE' => $value . '%'],
                 ]
             ],
             'fields' => [

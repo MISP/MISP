@@ -13,26 +13,13 @@ echo $this->Form->create('Regexp', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Import Regular Expressions') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Regexp') : __('Add Regexp') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Every attribute value entered through the UI or an import is run through these expressions and rewritten with the replacement.') ?>
-        </p>
-    </div>
-    <i class="fas fa-code text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Import Regular Expressions'),
+    'title' => $isEdit ? __('Edit Regexp') : __('Add Regexp'),
+    'description' => __('Every attribute value entered through the UI or an import is run through these expressions and rewritten with the replacement.'),
+    'icon' => 'fas fa-code',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -58,19 +45,17 @@ echo $this->Form->create('Regexp', [
                 'placeholder' => '/^127\.0\.0\.1$/',
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('A PHP pattern, delimiters included — e.g. /^10\.0\.0\.\d+$/i.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('A PHP pattern, delimiters included — e.g. /^10\.0\.0\.\d+$/i.'),
+            ]) ?>
         </div>
 
         <!-- ── REPLACEMENT ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Replacement') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Replacement'),
+            ]) ?>
             <?= $this->Form->text('replacement', [
                 'id' => 'RegexpReplacement',
                 'class' => 'form-control font-monospace',
@@ -83,10 +68,10 @@ echo $this->Form->create('Regexp', [
 
         <!-- ── AFFECTED TYPES ──────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Affected Attribute Types') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Affected Attribute Types'),
+            ]) ?>
 
             <label class="d-flex align-items-center gap-3 rounded-2 p-3 w-100
                           user-select-none mb-2"
@@ -125,40 +110,19 @@ echo $this->Form->create('Regexp', [
                     'value' => $selectedTypes,
                     'data-placeholder' => __('Pick the types this expression applies to…'),
                 ]) ?>
-                <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                     style="font-size:.75rem;">
-                    <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                    <?= __('One entry is created per selected type.') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('One entry is created per selected type.'),
+                ]) ?>
             </div>
         </div>
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit): ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Saving replaces the entries of this expression.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Regexp')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'hint' => $isEdit ? __('Saving replaces the entries of this expression.') : '',
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Regexp')],
+    ]) ?>
 
 </div>
 

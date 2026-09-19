@@ -11,8 +11,9 @@ class OvermindPages
         // Events and their content
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view2',
-            'importChoice', 'automation', 'export', 'getEventInfoById',
-            'freeTextImport', 'proposalEventIndex'
+            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
+            'freeTextImport', 'proposalEventIndex',
+            'merge'
         ),
         'attributes' => array(
             'index', 'add', 'edit', 'delete', 'add_attachment'
@@ -24,7 +25,7 @@ class OvermindPages
         'event_reports' => array('index', 'view', 'add', 'edit'),
         'EventReportTemplateVariables' => array('index', 'add', 'edit'),
         'collections' => array('index', 'view', 'add', 'edit'),
-        'CollectionElements' => array('add', 'index'),
+        'CollectionElements' => array('add', 'index', 'addElementToCollection'),
         'analystData' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'
         ),
@@ -36,7 +37,8 @@ class OvermindPages
             'index', 'delete', 'view', 'addTag', 'disableTag'
         ),
         'galaxies' => array(
-            'index', 'view', 'add', 'edit', 'delete', 'viewGraph', 'export'
+            'index', 'view', 'add', 'edit', 'delete', 'viewGraph', 'export',
+            'import'
         ),
         'galaxy_clusters' => array(
             'index', 'view', 'add', 'edit', 'delete',
@@ -68,7 +70,7 @@ class OvermindPages
         // Workflows
         'workflows' => array(
             'index', 'triggers', 'adhoc', 'add', 'edit', 'executeWorkflow',
-            'moduleIndex', 'editor', 'massToggleTrigger',
+            'moduleIndex', 'massToggleTrigger',
             'massToggleModule', 'toggleDebugMode'
         ),
         'workflowBlueprints' => array(

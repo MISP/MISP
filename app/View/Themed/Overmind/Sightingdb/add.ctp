@@ -30,27 +30,14 @@ echo $this->Form->create('Sightingdb', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(137,0,150,.06);
-            border-bottom:2px solid var(--sighting);">
-    <div>
-        <div class="text-sighting text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Sighting Databases') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-sighting"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit SightingDB') : __('Add SightingDB') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('An external SightingDB queried for how often a value has been seen elsewhere.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-sighting misp-simple text-sighting"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'sighting',
+    'eyebrow' => __('Sighting Databases'),
+    'title' => $isEdit ? __('Edit SightingDB') : __('Add SightingDB'),
+    'description' => __('An external SightingDB queried for how often a value has been seen elsewhere.'),
+    'icon' => 'misp-icon misp-icon-sighting misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -80,10 +67,11 @@ echo $this->Form->create('Sightingdb', [
         <!-- ── ENDPOINT ────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="text-sighting fw-bold text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Endpoint') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'sighting',
+                    'label' => __('Endpoint'),
+                    'class' => '',
+                ]) ?>
                 <code class="text-muted" id="SightingdbEndpointPreview"
                       style="font-size:.72rem;"></code>
             </div>
@@ -146,28 +134,26 @@ echo $this->Form->create('Sightingdb', [
 
         <!-- ── VISIBILITY ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Organisation Restrictions') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Organisation Restrictions'),
+            ]) ?>
             <?= $this->Form->select('org_id', $orgs ?? [], [
                 'multiple' => true,
                 'class' => 'form-select tom-select',
                 'data-placeholder' => __('Every organisation'),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Left empty, the results are visible to every organisation.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Left empty, the results are visible to every organisation.'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
@@ -178,10 +164,10 @@ echo $this->Form->create('Sightingdb', [
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $option): ?>
                     <div class="col-md-4">
@@ -219,33 +205,13 @@ echo $this->Form->create('Sightingdb', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('SightingDB') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Nothing is queried until the database is enabled.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add SightingDB')),
-                [
-                    'class' => 'btn btn-sighting btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'sighting',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('SightingDB'), 'id' => $id]] : [],
+        'hint' => __('Nothing is queried until the database is enabled.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add SightingDB')],
+    ]) ?>
 
 </div>
 
