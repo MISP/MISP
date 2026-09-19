@@ -8,7 +8,7 @@ class Module_splunk_hec_export extends Module_webhook
 {
     public $id = 'splunk-hec-export';
     public $name = 'Splunk HEC export';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Export Event Data to Splunk HTTP Event Collector. Due to the potential high amount of requests, it\'s recommended to put this module after a `concurrent_task` logic module.';
     public $icon_path = 'Splunk.png';
     public $support_filters = false;
@@ -118,10 +118,10 @@ class Module_splunk_hec_export extends Module_webhook
             $splunk_events = $extracted_events;
         }
 
-        return $this->sendToSplunk($splunk_events, $params['hec_token']['value'], $params['url']['value'], $params['source_type']['value']);
+        return $this->sendToSplunk($splunk_events, $params['hec_token']['value'], $params['url']['value'], $params['source_type']['value'], !empty($params['verify_tls']['value']), $errors);
     }
 
-    protected function sendToSplunk(array $splunk_events, $token, $url, $source_type): bool
+    protected function sendToSplunk(array $splunk_events, $token, $url, $source_type, bool $verify_tls = true, array &$errors = []): bool
     {
         foreach ($splunk_events as $splunk_event) {
             try {
@@ -129,7 +129,7 @@ class Module_splunk_hec_export extends Module_webhook
                     'Authorization' => "Splunk {$token}",
                 ];
                 $serverConfig = [
-                    'Server' => ['self_signed' => empty($params['verify_tls']['value'])]
+                    'Server' => ['self_signed' => !$verify_tls]
                 ];
 
                 $hec_event = [
@@ -144,6 +144,7 @@ class Module_splunk_hec_export extends Module_webhook
                     'json',
                     $hec_event,
                     $headers,
+                    'post',
                     $serverConfig
                 );
                 if (!$response->isOk()) {
