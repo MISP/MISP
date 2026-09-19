@@ -3651,7 +3651,7 @@ class EventsController extends AppController
             'conditions' => [
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted'  => 0,
-                'Attribute.type'     => ['attachment', 'malware-sample'],
+                'Attribute.type'     => MispAttribute::ATTACHMENT_TYPES,
             ],
             'recursive' => -1,
         ]);
@@ -3697,7 +3697,7 @@ class EventsController extends AppController
         $rows = $this->MispAttribute->fetchAttributes($user, [
             'conditions' => [
                 'Attribute.event_id' => $event['Event']['id'],
-                'Attribute.type'     => ['attachment', 'malware-sample'],
+                'Attribute.type'     => MispAttribute::ATTACHMENT_TYPES,
                 'Attribute.deleted'  => 0,
             ],
             'fields' => [

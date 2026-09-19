@@ -121,6 +121,13 @@ class MispAttribute extends AppModel
     // if these then a category may have upload
     const UPLOAD_DEFINITIONS = ['attachment'];
 
+    // types whose value is backed by an uploaded file; keep in sync with
+    // ZIPPED_DEFINITION and UPLOAD_DEFINITIONS above (the invariant is pinned
+    // by MispAttributeAttachmentTypesTest). This is the single list that both
+    // typeIsAttachment() and the database conditions selecting attachment
+    // attributes have to agree on.
+    const ATTACHMENT_TYPES = ['attachment', 'malware-sample'];
+
     // Curated list of MISP object templates that can be used as the target
     // container for an upload via /attributes/add_attachment. Split into two
     // pools depending on whether the "is a malware sample" checkbox is set.
@@ -1072,7 +1079,7 @@ class MispAttribute extends AppModel
 
     public function typeIsAttachment($type)
     {
-        return in_array($type, self::ZIPPED_DEFINITION, true) || in_array($type, self::UPLOAD_DEFINITIONS, true);
+        return in_array($type, self::ATTACHMENT_TYPES, true);
     }
 
     public function getAttachment($attribute)
