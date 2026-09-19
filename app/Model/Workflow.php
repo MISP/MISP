@@ -1355,9 +1355,15 @@ class Workflow extends AppModel
 
     private function __incrementWorkflowExecutionCount(array $workflow): array
     {
+        // Atomic, callback-free counter bump. Using save() here would run the model and behavior
+        // callbacks (re-fetch of the row, graph JSON encode/decode, audit log entry) and would
+        // require an additional fetchWorkflow() to get the updated row.
+        $this->updateAll(
+            ['Workflow.counter' => 'Workflow.counter + 1'],
+            ['Workflow.id' => (int)$workflow['Workflow']['id']]
+        );
         $workflow['Workflow']['counter'] = intval($workflow['Workflow']['counter']) + 1;
-        $this->save($workflow, ['fieldList' => ['counter']]);
-        return $this->fetchWorkflow($workflow['Workflow']['id']);
+        return $workflow;
     }
 
     /**
