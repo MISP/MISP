@@ -463,7 +463,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, 'application/json');
                 } elseif ($this->_isRest()) {
-                    $response = array('errors' => $array(__('Error while enabling decaying model')), 'action' => 'enable');
+                    $response = array('errors' => array(__('Error while enabling decaying model')), 'action' => 'enable');
                     return $this->RestResponse->viewData($response, 'application/json');
                 }
                 $this->Flash->error(__('Error while enabling decaying model'));
@@ -511,7 +511,7 @@ class DecayingModelController extends AppController
                     $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, 'application/json');
                 } elseif ($this->_isRest()) {
-                    $response = array('errors' => $array(__('Error while enabling decaying model')), 'action' => 'disable');
+                    $response = array('errors' => array(__('Error while disabling decaying model')), 'action' => 'disable');
                     return $this->RestResponse->viewData($response, 'application/json');
                 }
                 $this->Flash->error(__('Error while disabling decaying model'));
