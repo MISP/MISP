@@ -22,7 +22,7 @@ class UserNameHelper extends AppHelper
     {
         $lower_email = strtolower($email);
         if (
-            (strpos($lower_email, 'saad') !== false && strpos($lower_email, 'thehive-project')) ||
+            (strpos($lower_email, 'saad') !== false && strpos($lower_email, 'thehive-project') !== false) ||
             strpos($lower_email, 'saad.kadhi') !== false
         ) {
             return '<i class="fas fa-smile white"></i>&nbsp;';
