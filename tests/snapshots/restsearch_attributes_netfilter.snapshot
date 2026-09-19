@@ -1,0 +1,2 @@
+iptables -A INPUT -s 8.8.8.8 -j DROP
+iptables -A INPUT -s 1.1.1.1 -j DROP
