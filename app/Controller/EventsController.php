@@ -6374,6 +6374,28 @@ class EventsController extends AppController
                     $effectiveLocal = $local;
                 }
                 $eventId = $event['Event']['id'];
+                // Fetch the tags already attached to this event once, rather than
+                // re-querying them for every entry of $tag_id_list. $attachedTagIds mirrors
+                // the previous EventTag::hasAny() check, which was not scoped by `local`
+                // (a local and a non-local attachment both count as already attached), while
+                // $tagsOnEvent mirrors the local-scoped tag name list that the taxonomy
+                // exclusivity check consumes. Both are kept up to date below as tags are
+                // attached, so tags added earlier in this same request are still taken into
+                // account exactly as the per-pair queries did.
+                $attachedTagIds = array();
+                $tagsOnEvent = array();
+                $eventTags = $this->Event->EventTag->find('all', array(
+                    'conditions' => array('EventTag.event_id' => $eventId),
+                    'contain' => 'Tag',
+                    'fields' => array('EventTag.tag_id', 'EventTag.local', 'Tag.name'),
+                    'recursive' => -1
+                ));
+                foreach ($eventTags as $eventTag) {
+                    $attachedTagIds[$eventTag['EventTag']['tag_id']] = true;
+                    if ((int)$eventTag['EventTag']['local'] === (int)$effectiveLocal && isset($eventTag['Tag']['name'])) {
+                        $tagsOnEvent[] = $eventTag['Tag']['name'];
+                    }
+                }
                 $savedAny = false;
                 $savedGlobal = false;
                 foreach ($tag_id_list as $tag_id) {
@@ -6386,11 +6408,7 @@ class EventsController extends AppController
                         continue;
                     }
                     $tag = $tags[$tag_id];
-                    $found = $this->Event->EventTag->hasAny([
-                        'event_id' => $eventId,
-                        'tag_id' => $tag_id
-                    ]);
-                    if ($found) {
+                    if (isset($attachedTagIds[$tag_id])) {
                         if ($isBulk) {
                             $skipped++;
                         } else {
@@ -6398,15 +6416,6 @@ class EventsController extends AppController
                         }
                         continue;
                     }
-                    $tagsOnEvent = $this->Event->EventTag->find('column', array(
-                        'conditions' => array(
-                            'EventTag.event_id' => $eventId,
-                            'EventTag.local' => $effectiveLocal
-                        ),
-                        'contain' => 'Tag',
-                        'fields' => array('Tag.name'),
-                        'recursive' => -1
-                    ));
                     $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['name'], $tagsOnEvent);
                     if (!$exclusiveTestPassed) {
                         if ($isBulk) {
@@ -6426,6 +6435,8 @@ class EventsController extends AppController
                     }
                     $this->Event->EventTag->create();
                     if ($this->Event->EventTag->save(array('event_id' => $eventId, 'tag_id' => $tag_id, 'local' => $effectiveLocal))) {
+                        $attachedTagIds[$tag_id] = true;
+                        $tagsOnEvent[] = $tag['name'];
                         $savedAny = true;
                         if (!$effectiveLocal) {
                             $savedGlobal = true;
