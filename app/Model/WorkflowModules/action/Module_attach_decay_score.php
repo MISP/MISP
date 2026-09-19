@@ -57,16 +57,30 @@ class Module_attach_decay_score extends WorkflowBaseActionModule
             	return true;
         }
 		
+        $uuids = array_values(array_unique(array_column($matchingItems, 'uuid')));
+        if (empty($uuids)) {
+            // An empty uuid filter would be dropped by restSearch and match every
+            // attribute on the instance, so bail out the same way the per-attribute
+            // loop used to: without touching the data.
+            $roamingData->setData($rData);
+            return true;
+        }
+
+        $filters = [];
+        $filters['uuid'] = $uuids;
+        $filters['includeDecayScore'] = '1';
+        $filters['decayingModel'] = $params['decayingmodels']['value'];
+        $rParams = $this->Attribute->restSearch($user, 'json', $filters, true);
+        $attributesWithScore = $this->Attribute->fetchAttributes($user, $rParams);
+        $attributesWithScoreByUuid = [];
+        foreach ($attributesWithScore as $attributeWithScore) {
+            $attributesWithScoreByUuid[$attributeWithScore['Attribute']['uuid']] = $attributeWithScore['Attribute'];
+        }
+        unset($attributesWithScore);
+
         foreach ($matchingItems as $attribute) {
-            $filters = [];
-            $filters['uuid'] = $attribute['uuid'];
-            $filters['includeDecayScore'] = '1';
-            $filters['decayingModel'] = $params['decayingmodels']['value'];
-            $rParams = $this->Attribute->restSearch($user, 'json', $filters, true);
-            $attributeWithScore = $this->Attribute->fetchAttributes($user, $rParams);
-            if (!empty($attributeWithScore)) {
-                $attributeWithScore = $attributeWithScore[0]['Attribute'];
-                $rData = $this->_overrideAttribute($attribute, $attributeWithScore, $rData);
+            if (!empty($attributesWithScoreByUuid[$attribute['uuid']])) {
+                $rData = $this->_overrideAttribute($attribute, $attributesWithScoreByUuid[$attribute['uuid']], $rData);
             }
         }
         $roamingData->setData($rData);
