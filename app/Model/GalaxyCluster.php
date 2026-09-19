@@ -1175,43 +1175,37 @@ class GalaxyCluster extends AppModel
 
         // moved the galaxyClusterRelation to a separate part of the function
         if ($full && empty($options['count']) && empty($options['list'])) {
-            // we'll build a lookup table for faster processing
-            $gCRLookupTable = [];
+            // one relation query for the whole result set, grouped by the
+            // cluster each relation belongs to
+            $clusterIds = array_column(array_column($clusters, 'GalaxyCluster'), 'id');
             $gCR = ClassRegistry::init('GalaxyClusterRelation');
-            foreach ($clusters as $k => $cluster) {
-                if (isset($gCRLookupTable[$cluster['GalaxyCluster']['id']])) {
-                    $clusters[$k]['GalaxyClusterRelation'] = $gCRLookupTable[$cluster['GalaxyCluster']['id']];
-                    continue;
-                }
-                $galaxyClusterRelationParams = [
-                    'conditions' => [
-                        'GalaxyClusterRelation.galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
-                    ],
-                    'recursive' => -1,
-                    'contain' => [
-                        'GalaxyClusterRelationTag',
-                        'SharingGroup',
-                        'SourceCluster'
-                    ]
-                ];
-                $temp = $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster');
-                if ($temp) {
-                    $galaxyClusterRelationParams['conditions'][] = $temp;
-                }
-        
-                if (!empty($includeFullClusterRelationship)) {
-                    $galaxyClusterRelationParams['contain'][] = 'TargetCluster';
-                }
-                $gCRData = $gCR->find('all', $galaxyClusterRelationParams);
-                $gCRData = array_map(function ($element) {
-                    $temp = $element['GalaxyClusterRelation'];
-                    unset($element['GalaxyClusterRelation']);
-                    $element = array_merge($element, $temp);
-                    return $element;
-                }, $gCRData);
+            $galaxyClusterRelationParams = [
+                'conditions' => [
+                    'GalaxyClusterRelation.galaxy_cluster_id' => $clusterIds
+                ],
+                'recursive' => -1,
+                'contain' => [
+                    'GalaxyClusterRelationTag',
+                    'SharingGroup',
+                    'SourceCluster'
+                ]
+            ];
+            $temp = $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster');
+            if ($temp) {
+                $galaxyClusterRelationParams['conditions'][] = $temp;
+            }
 
-                $gCRLookupTable[$cluster['GalaxyCluster']['id']] = $gCRData;
-                $clusters[$k]['GalaxyClusterRelation'] = $gCRLookupTable[$cluster['GalaxyCluster']['id']];
+            if (!empty($includeFullClusterRelationship)) {
+                $galaxyClusterRelationParams['contain'][] = 'TargetCluster';
+            }
+            $gCRLookupTable = [];
+            foreach ($gCR->find('all', $galaxyClusterRelationParams) as $element) {
+                $relation = $element['GalaxyClusterRelation'];
+                unset($element['GalaxyClusterRelation']);
+                $gCRLookupTable[$relation['galaxy_cluster_id']][] = array_merge($element, $relation);
+            }
+            foreach ($clusters as $k => $cluster) {
+                $clusters[$k]['GalaxyClusterRelation'] = $gCRLookupTable[$cluster['GalaxyCluster']['id']] ?? [];
             }
             unset($gCRLookupTable);
         }
