@@ -192,13 +192,40 @@ class SightingsController extends AppController
             if (!isset($id)) {
                 return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => __('Invalid request.'))), 'status' => 200, 'type' => 'json'));
             } else {
+                $publish_sighting = !empty(Configure::read('Sightings_enable_realtime_publish'));
                 if ($onvalue) {
-                    $result = $this->Sighting->add();
+                    $this->loadModel('MispAttribute');
+                    $attribute = $this->MispAttribute->fetchAttributes(
+                        $this->Auth->user(),
+                        array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1)
+                    );
+                    if (empty($attribute)) {
+                        throw new MethodNotAllowedException(__('Attribute not found'));
+                    }
+                    $result = $this->Sighting->saveSightings(
+                        false,
+                        array($attribute[0]['Attribute']['value']),
+                        time(),
+                        $this->Auth->user(),
+                        $type,
+                        '',
+                        false,
+                        $publish_sighting
+                    );
                 } else {
-                    $result = $this->Sighting->add($id);
+                    $result = $this->Sighting->saveSightings(
+                        $id,
+                        false,
+                        time(),
+                        $this->Auth->user(),
+                        $type,
+                        '',
+                        false,
+                        $publish_sighting
+                    );
                 }
 
-                if ($result) {
+                if (is_numeric($result) && $result > 0) {
                     return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => __('Sighting added.'))), 'status' => 200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => __('Sighting could not be added'))), 'status' => 200, 'type' => 'json'));
