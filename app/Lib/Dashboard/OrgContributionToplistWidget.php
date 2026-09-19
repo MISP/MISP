@@ -155,4 +155,35 @@ class OrgContributionToplistWidget
         }
         return ['data' => $results];
     }
+
+    /**
+     * Naming organisations is this widget's whole purpose, so it is not
+     * scoped - it is withdrawn. `handler()` never reads $user: it counts
+     * `Event.orgc_id` across the entire events table and maps the ids back
+     * to names, so every organisation with any event is named whether or
+     * not the caller can see a single one of them. On an instance running
+     * `Security.hide_organisation_index_from_users` that is the directory
+     * the setting exists to withhold, and `limit` has no upper bound, so
+     * one request returns all of it.
+     *
+     * Refusing rather than filtering is the maintainer's call (2026-08-28):
+     * a leaderboard scoped per viewer is no longer the leaderboard. The
+     * hook is the right lever for that - `Dashboard::loadAllWidgets` drops
+     * the widget from the Add Widget gallery, and `loadWidget` throws for
+     * `renderWidget` / `renderWrapper`, so a board that already carries one
+     * keeps its layout and simply renders nothing in that cell.
+     *
+     * Same predicate as the `organisation_index` dynamic check in
+     * ACLComponent.php:1171, and as the copies in NewOrgsWidget and
+     * OrgsContributorsGeneric. The structural twin
+     * UserContributionToplistWidget has carried the equivalent gate
+     * (`User::canSeeEmails`) for the identities *it* names all along.
+     */
+    public function checkPermissions($user)
+    {
+        if (Configure::read('Security.hide_organisation_index_from_users')) {
+            return !empty($user['Role']['perm_sharing_group']);
+        }
+        return true;
+    }
 }

@@ -53,10 +53,9 @@ $defaultTags = is_array($defaults['tags'] ?? null) ? $defaults['tags'] : [];
                     <div class="bg-light border rounded px-3 py-2 font-monospace" style="font-size:.85rem;">
                         <?= h($infoTemplate) ?>
                     </div>
-                    <div class="d-flex align-items-center gap-1 mt-1 text-muted" style="font-size:.75rem;">
-                        <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                        <?= __('%s placeholders are replaced with what the reporter fills in.', '<code>{{…}}</code>') ?>
-                    </div>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('%s placeholders are replaced with what the reporter fills in.', '<code>{{…}}</code>'),
+                    ]) ?>
                 <?php else: ?>
                     <div class="text-muted">&mdash;</div>
                 <?php endif; ?>

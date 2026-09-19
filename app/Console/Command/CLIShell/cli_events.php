@@ -29,6 +29,15 @@ trait CLIEventsTrait
                     'threat_level_id', 'analysis',
                     'sharing_group_id',
                 ],
+                'filters' => [
+                    'value', 'type', 'category', 'org',
+                    'orgc_id', 'tags', 'searchall',
+                    'from', 'to', 'last', 'eventid',
+                    'uuid', 'published',
+                    'threat_level_id', 'analysis',
+                    'timestamp', 'publish_timestamp',
+                    'order',
+                ],
             ],
         ];
     }
@@ -322,7 +331,7 @@ trait CLIEventsTrait
      * @param int $id Event ID to edit.
      * @return void
      */
-    private function __editEvent($id)
+    private function __editEvent($id, $fields = null)
     {
         $existing = $this->__fetchDetail(
             'event', $id
@@ -331,25 +340,32 @@ trait CLIEventsTrait
             $this->err(
                 'Event #' . $id . ' not found.'
             );
-            return;
+            return false;
         }
         if (!$this->__canModifyEvent($existing)) {
             $this->err(
                 'Permission denied: cannot modify '
                 . 'this event.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['event']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'event',
             $existing['Event'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -358,7 +374,7 @@ trait CLIEventsTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
         $data = [
             'Event' => array_merge(
@@ -387,6 +403,7 @@ trait CLIEventsTrait
                 'Event #' . $id
                 . ' updated successfully.'
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update event #'
@@ -413,6 +430,7 @@ trait CLIEventsTrait
                 }
             }
         }
+        return false;
     }
 
     /**
@@ -426,10 +444,9 @@ trait CLIEventsTrait
      */
     private function __deleteEvent($id)
     {
-        $event = $this->Event->find('first', [
-            'conditions' => ['Event.id' => $id],
-            'recursive' => -1,
-        ]);
+        $event = $this->Event->fetchSimpleEvent(
+            $this->__user, $id
+        );
         if (empty($event)) {
             $this->err(
                 'Event #' . $id . ' not found.'

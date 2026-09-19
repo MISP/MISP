@@ -1,74 +1,116 @@
 <?php
-$edit = $this->request->params['action'] === 'edit' ? true : false;
+$isEdit = $this->request->params['action'] === 'edit';
+$bookmark = $this->request->data['Bookmark'] ?? [];
 
 echo $this->Form->create('Bookmark', [
-    'class' => 'needs-validation',
-    'novalidate' => true
+    'id' => 'bookmarkForm',
+    'novalidate' => true,
+]);
+
+echo $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Bookmarks'),
+    'title' => $isEdit ? __('Edit Bookmark') : __('Add Bookmark'),
+    'description' => __('Bookmarks sit in the navigation top bar. One can optionally be exposed to every user of your organisation.'),
+    'icon' => 'fas fa-bookmark',
+    'isEdit' => $isEdit,
 ]);
 ?>
 
-<div class="container me-5">
+<div class="container-fluid px-4 py-4">
 
-    <div class="row justify-content-center">
+    <div class="d-flex flex-column gap-4">
 
-        <div class="card shadow-sm">
+        <!-- ── NAME ────────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('Name'),
+                'required' => true,
+            ]) ?>
+            <?= $this->Form->text('name', [
+                'id' => 'BookmarkName',
+                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
+                'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none;',
+                'placeholder' => __('e.g. My org\'s open events'),
+                'autocomplete' => 'off',
+                'required' => true,
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('This is the label shown in the top bar.'),
+            ]) ?>
+        </div>
 
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?= $edit ? __('Edit bookmark') : __('Add bookmark') ?>
-                </h3>
-
-                <div class="form-text mb-3">
-                    <?= __('Bookmarks are added to the navigation top bar. Each bookmark can optionally be exposed to all users belonging to your organisation.') ?>
-                </div>
-
-                <!-- NAME -->
-                <div class="mb-3">
-                    <?= $this->Form->label('name', __('Name'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('name', ['class' => 'form-control', 'required' => true, 'placeholder' => __('Name of the bookmark')]) ?>
-                </div>
-
-                <!-- URL -->
-                <div class="mb-3">
-                    <?= $this->Form->label('url', __('URL'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->textarea('url', ['class' => 'form-control', 'rows' => 2, 'required' => true]) ?>
-                </div>
-
-                <!-- COMMENT -->
-                <div class="mb-3">
-                    <?= $this->Form->label('comment', __('Comment'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->textarea('comment', ['class' => 'form-control', 'rows' => 3]) ?>
-                </div>
-
-                <!-- EXPOSED TO ORG -->
-                <div class="mb-4 form-check">
-                    <?= $this->Form->checkbox('exposed_to_org', ['class' => 'form-check-input', 'id' => 'BookmarkExposedToOrg']) ?>
-                    <?= $this->Form->label('exposed_to_org', __('Expose to all users from the organisation'), ['class' => 'form-check-label', 'for' => 'BookmarkExposedToOrg']) ?>
-                </div>
-
-                <!-- ACTIONS -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-                    <?= $this->Form->button(
-                        '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Save changes') : __('Add bookmark')),
-                        [
-                            'class' => 'btn btn-primary',
-                            'escapeTitle' => false,
-                            'title' => $edit ? __('Save changes') : __('Add bookmark'),
-                            'aria-label' => $edit ? __('Save changes') : __('Add bookmark'),
-                        ]
-                    ) ?>
-                </div>
-
+        <!-- ── TARGET ──────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('URL'),
+                'required' => true,
+            ]) ?>
+            <div class="input-group">
+                <span class="input-group-text bg-transparent"
+                      style="border-color:#d8dde3;">
+                    <i class="fas fa-link text-muted" style="font-size:.8rem;"></i>
+                </span>
+                <?= $this->Form->textarea('url', [
+                    'id' => 'BookmarkUrl',
+                    'class' => 'form-control font-monospace',
+                    'style' => 'border-color:#d8dde3; resize:vertical;',
+                    'rows' => 2,
+                    'spellcheck' => 'false',
+                    'placeholder' => '/events/index/searchpublished:0',
+                    'required' => true,
+                ]) ?>
             </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('An instance-relative path or a full URL.'),
+            ]) ?>
+        </div>
 
+        <!-- ── COMMENT ─────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('Comment'),
+            ]) ?>
+            <?= $this->Form->textarea('comment', [
+                'id' => 'BookmarkComment',
+                'class' => 'form-control',
+                'style' => 'border-color:#d8dde3;',
+                'rows' => 3,
+                'placeholder' => __('What this bookmark is for'),
+            ]) ?>
+        </div>
+
+        <!-- ── VISIBILITY ──────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('Visibility'),
+            ]) ?>
+            <div class="form-check form-switch">
+                <?= $this->Form->checkbox('exposed_to_org', [
+                    'class' => 'form-check-input',
+                    'id' => 'BookmarkExposedToOrg',
+                    'hiddenField' => true,
+                ]) ?>
+                <?= $this->Form->label(
+                    'BookmarkExposedToOrg',
+                    __('Expose to every user of my organisation'),
+                    ['class' => 'form-check-label']
+                ) ?>
+            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Left off, the bookmark stays in your own top bar.'),
+            ]) ?>
         </div>
 
     </div>
 
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($bookmark['id'])
+            ? [['label' => __('Bookmark'), 'id' => $bookmark['id']]]
+            : [],
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Bookmark')],
+    ]) ?>
+
 </div>
 
-<?= $this->Form->end(); ?>
+<?= $this->Form->end() ?>

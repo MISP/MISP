@@ -47,35 +47,21 @@ $orgName     = !empty($me['Organisation']['name'])
     ? $me['Organisation']['name']
     : '';
 
-echo $this->Form->create('Event', ['novalidate' => true]);
+echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-event"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Events') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-event"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Event') : __('Add Event') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= !$isEdit
-                ? __('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.')
-                : __('') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-event misp-simple text-event" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Events'),
+    'title' => $isEdit ? __('Edit Event') : __('Add Event'),
+    'description' => $isEdit ? '' : __('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'),
+    'icon' => 'misp-icon misp-icon-event misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-4 px-2">
 
         <?php if ($offerTemplateAlternative): ?>
             <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
@@ -97,199 +83,145 @@ echo $this->Form->create('Event', ['novalidate' => true]);
             </div>
         <?php endif; ?>
 
-        <!-- ── EVENT INFO ──────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Event Info') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('info', [
-                'class'             => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style'             => 'border-bottom:1px solid #d8dde3 !important;'
-                    . ' resize:none; outline:none;',
-                'rows'              => 2,
-                'placeholder'       => __('Describe the threat event in precise terms…'),
-                'id'                => 'EventInfo',
-                'data-required-msg' => __('Please provide a name for the event.'),
-            ]) ?>
-        </div>
-
-        <!-- ── EXTENDS UUID ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Extends Event') ?>
-            </div>
-            <div class="border rounded px-2 py-2"
-                 style="border-color:#d8dde3;">
-                <?= $this->Form->control('extends_uuid', [
-                    'class'       => 'w-100 border-0 bg-transparent p-0',
-                    'style'       => 'outline:none; font-size:.925rem;',
-                    'id'          => 'EventExtendsUuid',
-                    'placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
+        <!-- ── EVENT INFO (+ EXTENDS, ITS SUB-FIELD) ─────────── -->
+        <div class="w-100">
+            <div class="ov-form-group">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Event Info'),
+                    'required' => true,
+                    'for' => 'EventInfo',
+                ]) ?>
+                <?= $this->Form->textarea('info', [
+                    'class'             => 'ov-form-line fs-5',
+                    'rows'              => 2,
+                    'placeholder'       => __('Describe the threat event in precise terms…'),
+                    'id'                => 'EventInfo',
+                    'data-required-msg' => __('Please provide a name for the event.'),
                 ]) ?>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('If this event references another event, enter its ID or UUID here.') ?>
+
+            <div class="ov-subfield ms-2">
+                <div class="ov-subfield-row">
+                    <label class="ov-subfield-label" for="EventExtendsUuid"
+                           title="<?= h(__('If this event references another event, enter its ID or UUID here.')) ?>">
+                        <i class="fas fa-code-branch"></i>
+                        <?= __('Extends') ?>
+                    </label>
+                    <div class="ov-form-box ov-subfield-box">
+                        <?= $this->Form->text('extends_uuid', [
+                            'class'       => 'ov-form-bare',
+                            'id'          => 'EventExtendsUuid',
+                            'placeholder' => __('ID or UUID of the event this one extends'),
+                        ]) ?>
+                    </div>
+                </div>
+                <div id="event_preview" class="mt-2 d-none"></div>
             </div>
-            <div id="event_preview" class="mt-2" style="display:none;"></div>
         </div>
 
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $distributionLevels, [
-                        'class' => 'form-select',
-                        'id'    => 'distribution-select',
-                        'value' => $currentDistribution,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill<?= $currentDistribution === 4 ? '' : ' d-none' ?>"
-                     id="sg-container">
-                    <?= $this->Form->select('sharing_group_id', $sharingGroups, [
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select tom-select',
-                    ]) ?>
-                </div>
-
-            </div>
+        <div class="w-100" data-tour="event-distribution">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'value' => $currentDistribution,
+                'id' => 'distribution-select',
+                'sgEmpty' => __('Select a sharing group…'),
+            ]) ?>
         </div>
 
 
-        <!-- ── ANALYSIS LEVEL ──────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Analysis Level') ?>
-            </div>
-            <?= $this->Form->select('analysis', $analysisLevels, [
-                'id'    => 'EventAnalysisInput',
+        <!-- ── ANALYSIS + THREAT ───────────────────────────────
+             Side by side  and each one a slider -->
+        <div class="row g-4 w-100 mx-0">
+
+        <div class="col-md-6 ps-0" data-tour="event-analysis">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Analysis Level'),
+            ]) ?>
+            <?php
+            $analysisMeta = [
+                0 => ['tone' => '#0d6efd', 'sub' => __('Raw intelligence')],
+                1 => ['tone' => '#fd7e14', 'sub' => __('Under investigation')],
+                2 => ['tone' => '#198754', 'sub' => __('Verified & closed')],
+            ];
+            $analysisOptions = [];
+            foreach ($analysisLevels as $analysisId => $analysisName) {
+                $analysisOptions[] = ($analysisMeta[$analysisId] ?? [
+                    'tone' => '#6c757d',
+                ]) + ['value' => $analysisId, 'title' => $analysisName];
+            }
+            ?>
+            <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                'field' => 'analysis',
+                'id' => 'EventAnalysisInput',
                 'value' => $currentAnalysis,
-                'style' => 'display:none',
+                'ariaLabel' => __('Analysis level'),
+                'options' => $analysisOptions,
             ]) ?>
-            <div class="row g-2">
-
-                <?php
-                $analysisCards = [
-                    ['value' => 0, 'dot' => '#0d6efd',
-                     'title' => __('Initial'),  'sub' => __('Raw Intelligence')],
-                    ['value' => 1, 'dot' => '#fd7e14',
-                     'title' => __('Ongoing'),  'sub' => __('Under Investigation')],
-                    ['value' => 2, 'dot' => '#198754',
-                     'title' => __('Complete'), 'sub' => __('Verified &amp; Closed')],
-                ];
-                foreach ($analysisCards as $card):
-                    $checked   = $currentAnalysis === $card['value'];
-                    $cardStyle = $checked
-                        ? 'border-color:var(--primary) !important;'
-                            . ' background:rgba(24,146,177,.08);'
-                        : 'border-color:#d8dde3;';
-                ?>
-                <div class="col event-card"
-                     style="cursor:pointer;"
-                     data-group="analysis"
-                     data-value="<?= $card['value'] ?>">
-                    <div class="border rounded p-2 d-flex flex-column gap-1 h-100"
-                         style="transition:border-color .15s, background .15s;
-                                <?= $cardStyle ?>">
-                        <span class="rounded-circle d-inline-block mb-1"
-                              style="width:.55rem; height:.55rem;
-                                     background:<?= $card['dot'] ?>;"></span>
-                        <span class="fw-bold" style="font-size:.875rem; line-height:1.2;">
-                            <?= $card['title'] ?>
-                        </span>
-                        <span class="text-muted" style="font-size:.7rem; line-height:1.2;">
-                            <?= $card['sub'] ?>
-                        </span>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-
-            </div>
         </div>
 
 
 
-        <!-- ── THREAT LEVEL ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Threat Level') ?>
-            </div>
-            <?= $this->Form->select('threat_level_id', $threatLevels, [
-                'id'    => 'EventThreatLevelInput',
+        <div class="col-md-6" data-tour="event-threat">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Threat Level'),
+            ]) ?>
+            <?php
+            $threatMeta = [
+                4 => ['tone' => '#41464b', 'sub' => __('No risk')],
+                3 => ['tone' => '#ffc107', 'sub' => __('Opportunistic')],
+                2 => ['tone' => '#fd7e14', 'sub' => __('Targeted campaign')],
+                1 => ['tone' => '#dc3545', 'sub' => __('Active exploitation')],
+            ];
+            $threatOptions = [];
+            foreach ($threatMeta as $threatId => $meta) {
+                if (isset($threatLevels[$threatId])) {
+                    $threatOptions[] = $meta + [
+                        'value' => $threatId,
+                        'title' => $threatLevels[$threatId],
+                    ];
+                }
+            }
+            foreach ($threatLevels as $threatId => $threatName) {
+                if (!isset($threatMeta[$threatId])) {
+                    $threatOptions[] = [
+                        'value' => $threatId,
+                        'title' => $threatName,
+                        'tone' => '#6c757d',
+                    ];
+                }
+            }
+            ?>
+            <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                'field' => 'threat_level_id',
+                'id' => 'EventThreatLevelInput',
                 'value' => $currentThreatLevel,
-                'style' => 'display:none',
+                'ariaLabel' => __('Threat level'),
+                'options' => $threatOptions,
             ]) ?>
-            <div class="row g-2">
-
-                <?php
-                $threatCards = [
-                    ['value' => 3, 'dot' => '#ffc107',
-                     'title' => __('Low'),    'sub' => __('Opportunistic')],
-                    ['value' => 2, 'dot' => '#fd7e14',
-                     'title' => __('Medium'), 'sub' => __('Targeted Campaign')],
-                    ['value' => 1, 'dot' => '#dc3545',
-                     'title' => __('High'),   'sub' => __('Active Exploitation')],
-                ];
-                foreach ($threatCards as $card):
-                    $checked   = $currentThreatLevel === $card['value'];
-                    $cardStyle = $checked
-                        ? 'border-color:var(--primary) !important;'
-                            . ' background:rgba(24,146,177,.08);'
-                        : 'border-color:#d8dde3;';
-                ?>
-                <div class="col event-card"
-                     style="cursor:pointer;"
-                     data-group="threat"
-                     data-value="<?= $card['value'] ?>">
-                    <div class="border rounded p-2 d-flex flex-column gap-1 h-100"
-                         style="transition:border-color .15s, background .15s;
-                                <?= $cardStyle ?>">
-                        <span class="rounded-circle d-inline-block mb-1"
-                              style="width:.55rem; height:.55rem;
-                                     background:<?= $card['dot'] ?>;"></span>
-                        <span class="fw-bold" style="font-size:.875rem; line-height:1.2;">
-                            <?= $card['title'] ?>
-                        </span>
-                        <span class="text-muted" style="font-size:.7rem; line-height:1.2;">
-                            <?= $card['sub'] ?>
-                        </span>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-
-            </div>
         </div>
+
+        </div><!-- /row: analysis + threat -->
 
         <!-- ── DATE ───────────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Event Date (UTC)') ?>
-            </div>
-            <div class="border rounded px-2 py-2"
-                 style="border-color:#d8dde3;">
+        <div class="w-100 ov-form-group" data-tour="event-date">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Event Date (UTC)'),
+                'required' => true,
+                'for' => 'EventDateDisplay',
+            ]) ?>
+            <div class="ov-form-box">
                 <input type="text"
                        id="EventDateDisplay"
-                       class="w-100 border-0 bg-transparent p-0"
-                       style="outline:none; font-size:.925rem;"
+                       class="ov-form-bare"
+                       inputmode="numeric"
+                       autocomplete="off"
                        placeholder="DD/MM/YYYY"
+                       data-invalid-msg="<?= h(__('Enter the event date as DD/MM/YYYY.')) ?>"
                        value="<?= h(date('d/m/Y', strtotime($currentDate))) ?>">
                 <?= $this->Form->hidden('date', [
                     'id'    => 'EventDate',
@@ -300,33 +232,25 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($analystName): ?>
-                <?= __('Analyst') ?>: <strong class="text-body"><?= h($analystName) ?></strong>
-                <?php if ($orgName): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($orgName) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-circle-plus me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Create Event Entry')),
-                [
-                    'class'       => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    $footerMeta = [];
+    if ($analystName) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $analystName];
+        if ($orgName) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $orgName];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => [
+            'label' => $isEdit ? __('Save Changes') : __('Create Event Entry'),
+            'icon' => 'fas fa-circle-plus',
+            'id' => 'EventSubmitButton',
+            'class' => 'btn-primary',
+        ],
+    ]);
+    ?>
 
 </div>
 
@@ -337,13 +261,14 @@ echo $this->Form->create('Event', ['novalidate' => true]);
 <?php endif; ?>
 
 <script>
-var _base = <?= json_encode($baseurl,
-    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-if (document.readyState !== 'loading') {
-    initEventForm(_base);
-} else {
-    document.addEventListener('DOMContentLoaded', function () {
-        initEventForm(_base);
-    });
-}
+/* A modal body runs its scripts after the document is ready; a full page load
+ * gets here first. initEventForm() is a no-op the second time either way. */
+(function () {
+    var start = function () { initEventForm(document.getElementById('EventForm')); };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
+    }
+})();
 </script>

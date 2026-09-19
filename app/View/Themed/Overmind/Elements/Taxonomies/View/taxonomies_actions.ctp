@@ -72,7 +72,7 @@ if ($isSiteAdmin) {
 
     $actions[] = [
         'url' => "$baseurl/taxonomies/delete/$taxonomyId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/taxonomies/deleteSelection/$taxonomyId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/taxonomies/deleteSelection/$taxonomyId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Taxonomy'),
         'danger' => true

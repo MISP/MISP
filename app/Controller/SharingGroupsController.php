@@ -171,20 +171,20 @@ class SharingGroupsController extends AppController
         $this->set('user', $this->Auth->user());
         $this->set('canModifyUuid', $canModifyUuid);
     }
-    
+
     public function edit($id = false)
     {
         if (empty($id)) {
             throw new NotFoundException('Invalid sharing group.');
         }
-        
+
         // check if the user is eligible to edit the SG (original creator or extend)
         $sharingGroup = $this->SharingGroup->find('first', array(
             'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
             'recursive' => -1,
             'contain' => array(
                 'SharingGroupOrg' => array(
-                    'Organisation' => array('name', 'local', 'id')
+                    'Organisation' => array('name', 'local', 'id', 'uuid')
                 ),
                 'SharingGroupServer' => array(
                     'Server' => array(
@@ -567,9 +567,9 @@ class SharingGroupsController extends AppController
 
     private function __initialiseSGQuickEdit($id, $request)
     {
-        if (!$this->request->is('post') || !$this->_isRest()) {
-            //throw new MethodNotAllowedException('This action only accepts POST requests coming from the API.');
-        }
+        // Guarded here rather than in each of the four callers - addOrg,
+        // removeOrg, addServer and removeServer all funnel through this helper.
+        $this->request->allowMethod(['post']);
         // allow passing the sg_id via a JSON object
         if (!$id) {
             $validParams = array('sg_id', 'sg_uuid', 'id', 'uuid');

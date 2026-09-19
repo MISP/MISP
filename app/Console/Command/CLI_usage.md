@@ -9,7 +9,9 @@ cd /var/www/MISP
 app/Console/cake CLI <user_id>
 ```
 
-All operations are ACL-scoped to the specified user. The prompt displays the current user, organisation, and navigation context:
+The shell runs as the MISP user whose ID you pass: that account's ACL applies to every read and write, and audit-log entries are written in its name. **This is impersonation, not authentication** — no password or auth key is checked. Read [Security model](#security-model) before exposing the command to anyone.
+
+The prompt displays the current user, organisation, and navigation context:
 
 ```
 MISP [admin@ORGNAME] >
@@ -164,22 +166,53 @@ Object detail views show their attributes inline under an `[Attributes]` section
 
 ## ACL and Permissions
 
+### Security model
+
+The shell does not authenticate the user it runs as. `cake CLI <user_id>` selects the account; nothing verifies that the person at the keyboard is that user. This is the convention every MISP console shell follows — `cake Event`, `cake Admin` and `cake Server` all take a user ID the same way.
+
+It is safe only because running `app/Console/cake` at all requires reading `app/Config/database.php`, so anyone who can launch the shell already holds the database credentials and could promote any account directly. The ACL checks inside the shell scope what a session sees and changes; they are **not a privilege boundary**.
+
+Consequently, **do not expose the shell to anyone who must not have site-admin-equivalent access** — not through a `sudoers` rule that pins the user ID, not through a forced SSH command, and not through an automation bridge. Whoever can run the command can pass any ID, including a site admin's.
+
+### Audit trail
+
+Every write the shell performs is logged in the impersonated user's name, in whichever audit engine the instance runs, and marked as made from the CLI:
+
+- With `MISP.log_new_audit` on, `audit_logs` rows carry the user's id and organisation with `request_type = CLI` - the terminal icon in the audit log index - exactly as rows written by `cake Event`, `cake Server` and the background workers do.
+- With the default engine, `logs` rows carry the user's id, e-mail and organisation and the description ends `by User "<email>" (<id>) via CLI`, so a shell write never reads as that user's own web activity. The legacy `logs` table has no request-type column, so the sentence is the marker; it travels with the row to syslog and ECS.
+- User edits, disables and deletions write the same explicit row the web's user administration writes.
+
+The identity in these rows is the id given on the command line. Nothing verifies that the person at the keyboard is that user (see above), so an audit row saying a user made a change from the CLI means an operator with shell access did so in that user's name.
+
 ### General
 
-- All operations respect the authenticated user's ACL
-- `user`, `server`, and `role` entities require site admin access
-- Write operations (add/edit/delete) require event modify permissions:
-  - Site admins can modify any event
-  - Org admins can modify events from their organisation
-  - Regular users can modify events they created
+- All read and write operations are scoped to the impersonated user's ACL (see [Security model](#security-model)), through the same model accessors the web uses — `Event::fetchEvent`, `MispAttribute::fetchAttributes`, `MispObject::fetchObjects`, `SharingGroup::checkIfAuthorised`, `Organisation::canSee` — rather than any ACL logic of the shell's own.
+- `user`, `server`, and `role` entities require site admin access.
+- `feed` reads require host-org membership, matching the web; `Feed.headers` (feed credentials) and `Server.authkey` are never shown, and `feed`/`server`/`organisation`/`user` detail views never fetch credential columns.
+- Event, attribute and object writes require modify rights on the parent event:
+  - Site admins can modify any event.
+  - Org admins can modify events from their organisation.
+  - Regular users can modify events they created.
+  - The inline field editor in the detail browser enforces the same check as the `edit` command — there is no unguarded write path.
+- `tag` writes follow the web tag policy: adding needs `perm_tag_editor`; editing and deleting are site-admin only.
+- `organisation` reads honour `Security.hide_organisation_index_from_users`, so `list`/`view organisation` and tab-completion never reveal an org the user could not otherwise see. Tag tab-completion likewise omits hidden tags.
 
 ### List View ACL
 
-Attribute and object list queries enforce distribution-based ACL for non-admin users:
+Attribute and object listings go through the model's authorized fetch path, so both halves of the visibility rule apply — the parent event **and** the attribute or object:
 
-- Attributes/objects with distribution 0 (org only) are only visible if the user's organisation owns the parent event
-- Attributes/objects with distribution 4 (sharing group) are only visible if the user is authorised for that sharing group
-- All other distribution levels (1-3, 5) are visible to all users
+- The parent event must be visible to the user (owned by their org, or at a community/sharing-group distribution they are authorised for, plus published when `MISP.unpublishedprivate` is set), **and**
+- the attribute/object must itself be visible (distribution 1-3 or 5, or a sharing group the user is authorised for; distribution 0 only when their org owns the event).
+
+An event the user cannot see hides its attributes and objects even in listings, exactly as `view event` does.
+
+### Pagination limits
+
+`limit` is clamped to 1-1000 (a missing, zero, negative or non-numeric value falls back to the default page size of 20), and `page` to at least 1, so a listing can never be coerced into loading a whole table into memory. Filter keys an entity does not implement are reported rather than silently ignored.
+
+### Terminal safety
+
+Every value the shell prints is database content and may be attacker-supplied. Control bytes are neutralised before display: ANSI/OSC escape sequences and other C0/C1 controls are shown in `cat -v` caret notation, tabs and newlines become spaces, and Unicode bidirectional overrides are spelled out — so a crafted attribute value cannot forge output, retitle the window, or make one indicator read as another in the analyst's terminal.
 
 ## Navigation Context
 

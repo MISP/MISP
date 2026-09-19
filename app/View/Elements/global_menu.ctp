@@ -732,6 +732,7 @@ $(document).ready(function() {
         $.ajax({
             type: 'POST',
             url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             success: function(data) {
                 location.reload();
             },

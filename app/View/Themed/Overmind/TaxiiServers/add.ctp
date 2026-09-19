@@ -7,14 +7,8 @@ $currentAuthType = $server['auth_type'] ?? 'basic';
 $currentApiRoot = $server['api_root'] ?? '';
 $currentCollection = $server['collection'] ?? '';
 
-/* Pretty-print the restsearch filters for editing */
+/* Stored minified; json_field pretty-prints it for editing. */
 $filters = $server['filters'] ?? '';
-if ($filters !== '') {
-    $decodedFilters = json_decode($filters);
-    if ($decodedFilters !== null) {
-        $filters = json_encode($decodedFilters, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-}
 
 $authTypes = ['basic' => __('Basic'), 'bearer' => __('Bearer')];
 
@@ -41,26 +35,13 @@ echo $this->Form->create('TaxiiServer', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('TAXII Servers') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit TAXII Server') : __('Add TAXII Server') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A TAXII 2.1 collection this instance can push STIX to — the discovery URL leads to the API roots.') ?>
-        </p>
-    </div>
-    <i class="fas fa-cloud text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('TAXII Servers'),
+    'title' => $isEdit ? __('Edit TAXII Server') : __('Add TAXII Server'),
+    'description' => __('A TAXII 2.1 collection this instance can push STIX to — the discovery URL leads to the API roots.'),
+    'icon' => 'fas fa-cloud',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -198,10 +179,11 @@ echo $this->Form->create('TaxiiServer', [
         <!-- ── TARGET COLLECTION ───────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="text-primary fw-bold text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Target Collection') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Target Collection'),
+                    'class' => '',
+                ]) ?>
                 <div class="d-flex align-items-center gap-2">
                     <span id="taxiiProbeStatus" class="badge bg-secondary d-none"
                           style="font-size:.65rem;"></span>
@@ -245,59 +227,33 @@ echo $this->Form->create('TaxiiServer', [
                     </select>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Discover asks the server for its API roots, then for the collections you may write to.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Discover asks the server for its API roots, then for the collections you may write to.'),
+            ]) ?>
         </div>
 
         <!-- ── FILTERS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="text-primary fw-bold text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Filter Rules') ?>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="taxiiFiltersStatus" class="badge bg-secondary"
-                          style="font-size:.65rem;"></span>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            id="taxiiFiltersFormatBtn"
-                            style="font-size:.7rem; padding:.15rem .5rem;">
-                        <i class="fas fa-wand-magic-sparkles me-1"></i><?= __('Format') ?>
-                    </button>
-                </div>
-            </div>
-            <?= $this->Form->textarea('filters', [
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'filters',
+                'label' => __('Filter Rules'),
+                'shape' => 'object',
                 'id' => 'TaxiiServerFilters',
-                'class' => 'w-100 rounded-2 p-3',
-                'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
-                    . ' outline:none; font-size:.85rem; min-height:120px;'
-                    . ' color:inherit; font-family:monospace;'
-                    . ' white-space:pre; overflow-x:auto;',
-                'rows' => 5,
-                'spellcheck' => 'false',
                 'value' => $filters,
+                'rows' => 5,
+                'minHeight' => '120px',
+                'emptyLabel' => __('No filter'),
                 'placeholder' => "{\n    \"tags\": [\"tlp:white\"],\n    \"published\": 1\n}",
+                'hint' => __('A restsearch filter object — it decides which events are pushed.'),
             ]) ?>
-            <div id="taxiiFiltersError" class="d-none text-danger
-                        d-flex align-items-center gap-1 mt-1"
-                 style="font-size:.75rem;"></div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('A restsearch filter object — it decides which events are pushed.') ?>
-            </div>
         </div>
 
         <!-- ── OWNER / DESCRIPTION ─────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Bookkeeping') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Bookkeeping'),
+            ]) ?>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label text-muted mb-1" for="TaxiiServerOwner"
@@ -330,10 +286,10 @@ echo $this->Form->create('TaxiiServer', [
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $option): ?>
                     <div class="col-md-6">
@@ -374,33 +330,12 @@ echo $this->Form->create('TaxiiServer', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Server') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Basic credentials are stored as the encoded API key.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Server')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('Server'), 'id' => $id]] : [],
+        'hint' => __('Basic credentials are stored as the encoded API key.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Server')],
+    ]) ?>
 
 </div>
 
@@ -422,11 +357,7 @@ echo $this->Form->create('TaxiiServer', [
         urlNeeded: <?= json_encode(__('Fill the discovery URL first.')) ?>,
         nameRequired: <?= json_encode(__('Please provide a name for the server.')) ?>,
         urlRequired: <?= json_encode(__('Please provide the discovery URL.')) ?>,
-        urlScheme: <?= json_encode(__('The URL has to start with http:// or https://')) ?>,
-        filtersEmpty: <?= json_encode(__('No filter')) ?>,
-        filtersValid: <?= json_encode(__('Valid')) ?>,
-        filtersInvalid: <?= json_encode(__('Invalid JSON')) ?>,
-        objectExpected: <?= json_encode(__('The filters have to be a JSON object.')) ?>
+        urlScheme: <?= json_encode(__('The URL has to start with http:// or https://')) ?>
     };
 
     function el(id) { return document.getElementById(id); }
@@ -590,69 +521,8 @@ echo $this->Form->create('TaxiiServer', [
         });
     }
 
-    /* ── Filters ── */
-    var filtersEl = el('TaxiiServerFilters');
-    var filtersStatusEl = el('taxiiFiltersStatus');
-    var filtersErrorEl = el('taxiiFiltersError');
-
-    function setFiltersStatus(kind, text) {
-        if (!filtersStatusEl) { return; }
-        filtersStatusEl.className = 'badge bg-' + kind;
-        filtersStatusEl.style.fontSize = '.65rem';
-        filtersStatusEl.textContent = text;
-    }
-
-    function setFiltersError(message) {
-        if (!filtersErrorEl) { return; }
-        if (!message) {
-            filtersErrorEl.classList.add('d-none');
-            filtersErrorEl.textContent = '';
-            return;
-        }
-        filtersErrorEl.classList.remove('d-none');
-        filtersErrorEl.innerHTML = '';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        filtersErrorEl.appendChild(icon);
-        filtersErrorEl.appendChild(document.createTextNode(message));
-    }
-
-    function refreshFilters() {
-        if (!filtersEl) { return; }
-        var raw = filtersEl.value.trim();
-        if (!raw) {
-            setFiltersStatus('secondary', L.filtersEmpty);
-            setFiltersError(null);
-            return;
-        }
-        var parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch (e) {
-            setFiltersStatus('danger', L.filtersInvalid);
-            setFiltersError(e.message);
-            return;
-        }
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            setFiltersStatus('danger', L.filtersInvalid);
-            setFiltersError(L.objectExpected);
-            return;
-        }
-        setFiltersStatus('success', L.filtersValid);
-        setFiltersError(null);
-    }
-
-    if (filtersEl) { filtersEl.addEventListener('input', refreshFilters); }
-    var filtersFormatBtn = el('taxiiFiltersFormatBtn');
-    if (filtersFormatBtn) {
-        filtersFormatBtn.addEventListener('click', function () {
-            try {
-                filtersEl.value = JSON.stringify(JSON.parse(filtersEl.value), null, 4);
-            } catch (e) { /* refreshFilters() reports it */ }
-            refreshFilters();
-        });
-    }
-
+    /* The filters are a json_field: it reports and refuses a broken
+       document, and re-indents it, on its own. */
     /* ── Required fields ── */
     var nameEl = el('TaxiiServerName');
     var urlEl = el('TaxiiServerDiscoveryUrl');
@@ -718,6 +588,5 @@ echo $this->Form->create('TaxiiServer', [
     }
 
     refreshAuth();
-    refreshFilters();
 })();
 </script>

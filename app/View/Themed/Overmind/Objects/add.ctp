@@ -41,27 +41,17 @@ echo $this->Form->create('Object', [
 $k = -1;
 ?>
 
-<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(82,73,72,.06);
-            border-bottom:2px solid var(--bs-object);">
-    <div>
-        <div class="text-object text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Objects') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-object" style="font-size:1.25rem;"></i>
-            <?= __('Add Object') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-object misp-simple text-object"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'object',
+    'eyebrow' => __('Objects'),
+    'title' => __('Add Object'),
+    'icon' => 'misp-icon misp-icon-object misp-simple',
+]) ?>
 
 <!-- ── ACCORDION WIZARD ─────────────────────────────────────── -->
-<div class="container-fluid px-4 py-3">
-    <div class="accordion" id="objectAccordion">
+<div class="container-fluid px-4 py-4">
+
+    <div class="accordion px-2" id="objectAccordion">
 
         <!-- ===== STEP 1 : TEMPLATE SELECTION ===== -->
         <div class="accordion-item border mb-2 rounded shadow-sm">
@@ -90,10 +80,10 @@ $k = -1;
 
                     <!-- Meta-category badges -->
                     <div class="mb-3">
-                        <div class="text-object fw-bold text-uppercase mb-2"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('Meta-category') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'object',
+                            'label' => __('Meta-category'),
+                        ]) ?>
                         <div class="d-flex flex-wrap gap-2" id="metaCategoryList">
                             <button type="button"
                                     class="btn btn-sm btn-outline-object meta-cat-btn <?= !$hasTemplate ? 'active' : '' ?>"
@@ -112,12 +102,11 @@ $k = -1;
 
                     <!-- Template picker (TomSelect) -->
                     <div class="mb-3">
-                        <div class="text-object fw-bold text-uppercase mb-2"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('Template') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'object',
+                            'label' => __('Template'),
+                        ]) ?>
                         <select id="objectTemplateSelect" class="form-select">
-                            <option value=""><?= __('-- Select a template --') ?></option>
                             <?php foreach ($templateList as $t): ?>
                                 <option value="<?= h($t['ObjectTemplate']['id']) ?>"
                                         data-meta="<?= h($t['ObjectTemplate']['meta-category']) ?>"
@@ -194,10 +183,11 @@ $k = -1;
                         <div class="row g-3 mb-4 pb-3"
                              style="border-bottom:1px solid var(--bs-border-color);">
                             <div class="col-md-6">
-                                <div class="text-object fw-bold text-uppercase mb-1"
-                                     style="font-size:.65rem; letter-spacing:.1em;">
-                                    <?= __('Template') ?>
-                                </div>
+                                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                    'accent' => 'object',
+                                    'label' => __('Template'),
+                                    'class' => 'mb-1',
+                                ]) ?>
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <strong>
                                         <?= h(Inflector::humanize($template['ObjectTemplate']['name'])) ?>
@@ -219,10 +209,11 @@ $k = -1;
                                 !empty($template['ObjectTemplate']['requirements']['requiredOneOf'])
                             ): ?>
                                 <div class="col-md-6">
-                                    <div class="text-object fw-bold text-uppercase mb-1"
-                                         style="font-size:.65rem; letter-spacing:.1em;">
-                                        <?= __('Requirements') ?>
-                                    </div>
+                                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                        'accent' => 'object',
+                                        'label' => __('Requirements'),
+                                        'class' => 'mb-1',
+                                    ]) ?>
                                     <?php if (!empty($template['ObjectTemplate']['requirements']['required'])): ?>
                                         <div class="small">
                                             <strong><?= __('Required') ?>:</strong>
@@ -239,85 +230,29 @@ $k = -1;
                             <?php endif; ?>
                         </div>
 
-                        <!-- Distribution cards -->
-                        <?php
-                        $distIconMap = $this->DistributionLevel->all();
-                        $initDist = (int)$distributionData['initial'];
-                        ?>
+                        <!-- Distribution + sharing group -->
                         <div class="mb-3">
-                            <div class="text-object fw-bold text-uppercase mb-2"
-                                 style="font-size:.65rem; letter-spacing:.1em;">
-                                <?= __('Distribution') ?>
-                            </div>
-                            <?= $this->Form->select(
-                                'Object.distribution',
-                                $distributionData['levels'],
-                                [
-                                    'id'      => 'ObjectDistribution',
-                                    'class'   => 'Object_distribution_select',
-                                    'default' => $distributionData['initial'],
-                                    'style'   => 'display:none;',
-                                ]
-                            ) ?>
-                            <div class="row g-2" id="distCardRow">
-                                <?php foreach ($distributionData['levels'] as $level => $label):
-                                    $level = (int)$level;
-                                    $ic = $distIconMap[$level]
-                                        ?? ['bg' => '#f1f1f1', 'color' => '#333',
-                                            'icon' => 'fas fa-question'];
-                                    $sel = ($level === $initDist);
-                                    $bdr = $sel
-                                        ? 'border-color:var(--bs-object) !important;background:rgba(82,73,72,.08);'
-                                        : 'border-color:#d8dde3;';
-                                ?>
-                                <div class="col dist-card-col"
-                                     style="cursor:pointer;"
-                                     data-dist-value="<?= $level ?>">
-                                    <div class="border rounded p-2 d-flex flex-column align-items-center gap-1 h-100 text-center"
-                                         style="transition:border-color .15s,background .15s;
-                                                <?= $bdr ?>">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-1"
-                                              style="width:1.8rem;height:1.8rem;
-                                                     background:<?= h($ic['bg']) ?>;
-                                                     border:1px solid <?= h($ic['color']) ?>30;">
-                                            <i class="<?= h($ic['icon']) ?>"
-                                               style="color:<?= h($ic['color']) ?>;font-size:.7rem;"></i>
-                                        </span>
-                                        <span class="fw-bold lh-sm"
-                                              style="font-size:.68rem;color:var(--bs-body-color);">
-                                            <?= h($label) ?>
-                                        </span>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-
-                        <!-- Sharing Group (conditional) -->
-                        <div class="mb-3"
-                             id="objectSGWrapper"
-                             style="<?= ($initDist == 4) ? '' : 'display:none;' ?>">
-                            <div class="text-object fw-bold text-uppercase mb-2"
-                                 style="font-size:.65rem; letter-spacing:.1em;">
-                                <?= __('Sharing Group') ?>
-                            </div>
-                            <?= $this->Form->select(
-                                'Object.sharing_group_id',
-                                $distributionData['sgs'],
-                                [
-                                    'id'    => 'ObjectSharingGroup',
-                                    'class' => 'form-select',
-                                ]
-                            ) ?>
+                            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                                'accent' => 'object',
+                                'field' => 'Object.distribution',
+                                'id' => 'ObjectDistribution',
+                                'value' => $object['Object']['distribution']
+                                    ?? $distributionData['initial'],
+                                'selectAttrs' => [
+                                    'class' => 'Object_distribution_select',
+                                ],
+                                'sgId' => 'ObjectSharingGroup',
+                                'showSg' => true,
+                            ]) ?>
                         </div>
 
                         <!-- First Seen / Last Seen -->
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <div class="text-object fw-bold text-uppercase mb-2"
-                                     style="font-size:.65rem; letter-spacing:.1em;">
-                                    <?= __('First Seen (UTC)') ?>
-                                </div>
+                                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                    'accent' => 'object',
+                                    'label' => __('First Seen (UTC)'),
+                                ]) ?>
                                 <div class="input-group">
                                     <span class="input-group-text bg-transparent border-end-0"
                                           style="border-color:#d8dde3;">
@@ -332,10 +267,10 @@ $k = -1;
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="text-object fw-bold text-uppercase mb-2"
-                                     style="font-size:.65rem; letter-spacing:.1em;">
-                                    <?= __('Last Seen (UTC)') ?>
-                                </div>
+                                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                    'accent' => 'object',
+                                    'label' => __('Last Seen (UTC)'),
+                                ]) ?>
                                 <div class="input-group">
                                     <span class="input-group-text bg-transparent border-end-0"
                                           style="border-color:#d8dde3;">
@@ -359,10 +294,10 @@ $k = -1;
 
                         <!-- Comment -->
                         <div class="mb-4">
-                            <div class="text-object fw-bold text-uppercase mb-2"
-                                 style="font-size:.65rem; letter-spacing:.1em;">
-                                <?= __('Comment') ?>
-                            </div>
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Comment'),
+                            ]) ?>
                             <?= $this->Form->textarea(
                                 'Object.comment',
                                 [
@@ -390,10 +325,10 @@ $k = -1;
                         <?php endif; ?>
 
                         <!-- Attributes table -->
-                        <div class="text-object fw-bold text-uppercase mb-2"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('Attributes') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'object',
+                            'label' => __('Attributes'),
+                        ]) ?>
 
                         <div id="editTable" class="mb-4">
                             <?php
@@ -629,27 +564,6 @@ $k = -1;
     /* ── Row enable/disable for initial rows ─────────────────── */
     var rows = <?= json_encode($row_list) ?>;
     rows.forEach(function (k) { window.overmindEnableObjectRow(k); });
-
-    /* ── Distribution cards ──────────────────────────────────── */
-    var objDistSel = document.getElementById('ObjectDistribution');
-    var sgWrapper  = document.getElementById('objectSGWrapper');
-
-    document.querySelectorAll('.dist-card-col').forEach(function (card) {
-        card.addEventListener('click', function () {
-            var val = card.dataset.distValue;
-            document.querySelectorAll('.dist-card-col > div').forEach(function (d) {
-                d.style.borderColor = '#d8dde3';
-                d.style.background  = '';
-            });
-            var inner = card.querySelector('div');
-            if (inner) {
-                inner.style.borderColor = 'var(--bs-object)';
-                inner.style.background  = 'rgba(82,73,72,.08)';
-            }
-            if (objDistSel) objDistSel.value = val;
-            if (sgWrapper) sgWrapper.style.display = (val == 4) ? '' : 'none';
-        });
-    });
 
     /* ── First / Last Seen picker → hidden input sync ─────────── */
     var firstPicker = document.getElementById('obj-first-seen-picker');
@@ -994,6 +908,7 @@ $k = -1;
             placeholder:      <?= json_encode(__('-- Select a template --')) ?>,
             onChange:         onTemplateChange,
         });
+        tsInstance.clear(true);
         /* Restore pre-selected template when page reloads with templateId */
         <?php if ($hasTemplate): ?>
         tsInstance.setValue(<?= json_encode($templateId) ?>, true);

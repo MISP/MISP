@@ -13,27 +13,17 @@
 $eventId = (int)$eventId;
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--event);">
-    <div>
-        <div class="text-event text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Forensic analysis · Mactime') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-event" style="font-size:1.25rem;"></i>
-            <?= __('Select timeline entries') ?>
-            <?php if (!empty($file_name)): ?>
-                <span class="badge rounded-pill text-bg-light border fw-normal">
-                    <i class="fas fa-file me-1"></i><?= h($file_name) ?>
-                </span>
-            <?php endif; ?>
-        </h4>
-    </div>
-    <span class="fas fa-microscope text-event" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'event',
+    'eyebrow' => __('Forensic analysis · Mactime'),
+    'title' => __('Select timeline entries'),
+    'titleBadge' => empty($file_name) ? '' : sprintf(
+        '<span class="badge rounded-pill text-bg-light border fw-normal">'
+            . '<i class="fas fa-file me-1"></i>%s</span>',
+        h($file_name)
+    ),
+    'icon' => 'fas fa-microscope',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4" style="background:var(--bs-tertiary-bg, #f8f9fa);">
@@ -102,25 +92,22 @@ $eventId = (int)$eventId;
         </div>
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>: <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="openModalChained('<?= $baseurl ?>/events/populateFrom/<?= $eventId ?>');">
-                <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <button type="button" class="btn btn-event btn-sm text-white" id="mactimeCreate" disabled>
-                <i class="fas fa-cubes me-1"></i><?= __('Create objects') ?>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'event',
+        'meta' => [['label' => __('Event'), 'id' => $eventId]],
+        'buttons' => [[
+            'label' => __('Back'),
+            'icon' => 'fas fa-arrow-left',
+            'attrs' => ['onclick' => sprintf("openModalChained('%s/events/populateFrom/%s');", $baseurl, $eventId)],
+        ]],
+        'submit' => [
+            'label' => __('Create objects'),
+            'icon' => 'fas fa-cubes',
+            'id' => 'mactimeCreate',
+            'type' => 'button',
+            'disabled' => true,
+        ],
+    ]) ?>
 </div>
 
 <script>

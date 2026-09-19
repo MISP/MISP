@@ -41,6 +41,11 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
+        // updateJSON and aiDryRun are only ever reached by the settings page's
+        // hand-built AJAX, which has no rendered form behind it to produce the
+        // field hash _validatePost() compares against. They send the page's
+        // CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['updateJSON', 'aiDryRun']);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -58,12 +63,18 @@ class ServersController extends AppController
         unset($fields['authkey']);
         $fields = array_keys($fields);
 
-        $filters = $this->IndexFilter->harvestParameters(['search']);
+        $filters = $this->IndexFilter->harvestParameters(['search', 'internal', 'push', 'pull']);
         $conditions = [];
         if (!empty($filters['search'])) {
             $strSearch = '%' . trim(strtolower($filters['search'])) . '%';
             $conditions['OR'][]['LOWER(Server.name) LIKE'] = $strSearch;
             $conditions['OR'][]['LOWER(Server.url) LIKE'] = $strSearch;
+        }
+        // For index's "More filters" panel
+        foreach (['internal', 'push', 'pull'] as $flag) {
+            if (isset($filters[$flag]) && $filters[$flag] !== '') {
+                $conditions['Server.' . $flag] = (int)$filters[$flag];
+            }
         }
 
         if ($this->_isRest()) {
@@ -1007,6 +1018,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
+        $this->request->allowMethod(['post']);
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -1090,6 +1102,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
+        $this->request->allowMethod(['post']);
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -1305,6 +1318,7 @@ class ServersController extends AppController
             'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'AI' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
         );
 
@@ -1393,6 +1407,9 @@ class ServersController extends AppController
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
+        } else if ($tab === 'AI') {
+            $this->loadModel('Module');
+            $this->set('aiModuleStatus', $this->Module->aiStatus());
         }
 
         // Only run this check on the diagnostics tab
@@ -1476,7 +1493,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1572,6 +1589,103 @@ class ServersController extends AppController
             $this->layout = false;
             return $this->render('/Servers/ajax/server_settings_tab');
         }
+    }
+
+    /**
+     * Dry run of the AI module from the AI settings tab: run a use-case and
+     * hand the module's answer back. An event is only read, never modified.
+     *
+     * POST {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}
+     * Answer: {"success": true, "event_id", "event_info", "use_case",
+     *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour, provenance}]}}
+     *
+     * POST {"use_case": "ping"} — no event: the module checks that the LLM
+     * endpoint is reachable and serves the configured model (the Test LLM
+     * button of the status card). A dead endpoint fails only after the
+     * module's own request timeout.
+     * Answer: {"success": true, "use_case": "ping",
+     *          "result": {ok, endpoint, model: {name, server, digest, quantization}, latency_ms, models_listed, tag_suggest: {url, reachable}}}
+     */
+    public function aiDryRun()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+        }
+        $data = isset($this->request->data['Server']) ? $this->request->data['Server'] : $this->request->data;
+        $eventId = isset($data['event_id']) ? (int)$data['event_id'] : 0;
+        $useCase = isset($data['use_case']) ? (string)$data['use_case'] : '';
+        $useCases = ['summarization_on_event', 'tag_suggest', 'ping'];
+        if (!in_array($useCase, $useCases, true) || ($useCase !== 'ping' && $eventId < 1)) {
+            return $this->RestResponse->saveFailResponse(
+                'Servers',
+                'aiDryRun',
+                false,
+                __('Expected {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"} or {"use_case": "ping"}.'),
+                $this->response->type()
+            );
+        }
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        if ($useCase === 'ping') {
+            try {
+                $results = $this->Module->queryAI('ping', [], $timeout);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+            }
+            return $this->RestResponse->viewData([
+                'success' => true,
+                'use_case' => 'ping',
+                'result' => $results,
+            ], $this->response->type());
+        }
+        $this->loadModel('Event');
+        $event = $this->Event->fetchEventForAi($this->Auth->user(), $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        try {
+            $results = $this->Module->queryAI($useCase, $event, $timeout);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+        }
+        $answer = [];
+        if ($useCase === 'tag_suggest') {
+            $names = [];
+            foreach ($results['Tag'] ?? [] as $tag) {
+                if (!empty($tag['name']) && is_string($tag['name'])) {
+                    $names[] = $tag['name'];
+                }
+            }
+            $existing = empty($names) ? [] : $this->Event->EventTag->Tag->find('list', [
+                'conditions' => ['Tag.name' => $names],
+                'fields' => ['Tag.name', 'Tag.colour'],
+            ]);
+            $provenance = array_map('mb_strtolower', Event::splitAiTagNames($names)['provenance']);
+            $answer['Tag'] = [];
+            foreach ($names as $name) {
+                $answer['Tag'][] = [
+                    'name' => $name,
+                    'exists' => isset($existing[$name]),
+                    'colour' => $existing[$name] ?? null,
+                    // the ai-computer-assisted names are provenance, not a suggestion
+                    'provenance' => in_array(mb_strtolower($name), $provenance, true),
+                ];
+            }
+        } else {
+            $report = $results['EventReport'] ?? [];
+            $answer['EventReport'] = [
+                'name' => (string)($report['name'] ?? ''),
+                'content' => (string)($report['content'] ?? ''),
+            ];
+        }
+        return $this->RestResponse->viewData([
+            'success' => true,
+            'event_id' => $eventId,
+            'event_info' => (string)($event['Event']['info'] ?? ''),
+            'use_case' => $useCase,
+            'result' => $answer,
+        ], $this->response->type());
     }
 
     public function startWorker($type)
@@ -1936,6 +2050,15 @@ class ServersController extends AppController
                 throw new NotFoundException(__('Invalid type.'));
             }
             App::uses('File', 'Utility');
+            // $filename is a raw route parameter. Strip any path component
+            // before joining, exactly as uploadFile() below already does, so
+            // the target cannot leave the type's own directory. basename()
+            // leaves '.' and '..' as-is and both resolve to a directory, so
+            // reject them rather than handing a directory to File::delete().
+            $filename = basename($filename);
+            if ($filename === '' || $filename === '.' || $filename === '..') {
+                throw new NotFoundException(__('Invalid filename.'));
+            }
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
                 $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
@@ -2301,22 +2424,27 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
-        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        // Not max(array_keys(Server::DB_CHANGES)) - $dbVersion any more: that
+        // counted version numbers rather than updates, and after the freeze
+        // db_version cannot move at all, so it would count nothing while ledger
+        // migrations were still pending.
+        $updateProgress['complete_update_remaining'] = $this->Server->countPendingUpdates($dbVersion);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
         $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
         $currentIndex = $updateProgress['current'];
         $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
         $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        // Empty on an engine with no process list of its own, which degrades the
+        // screen to no live DDL state rather than erroring.
+        $sqlInfo = $this->Server->getSchemaInspector()->runningQueries();
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sqlInfo as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
-                    $sqlInfo = $row['PROCESSLIST'];
+            foreach ($sqlInfo as $row) {
+                if (isset($row['INFO']) && preg_replace('/\s{2,}/', '', $row['INFO']) == $lookupString) {
+                    $sqlInfo = $row;
                     break;
                 }
             }
@@ -2362,6 +2490,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2405,6 +2534,7 @@ class ServersController extends AppController
 
 public function updateJSON()
     {
+        $this->request->allowMethod(['post']);
         $results = [];
 
         $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
@@ -2619,6 +2749,11 @@ public function updateJSON()
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
+            $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
+            $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
+            $this->set('migrationsFailedIds', $dbSchemaDiagnostics['migrations_failed_ids']);
+            $this->set('migrationsApplied', $dbSchemaDiagnostics['migrations_applied']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
     }
@@ -2681,6 +2816,7 @@ public function updateJSON()
 
     public function removeOrphanedCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

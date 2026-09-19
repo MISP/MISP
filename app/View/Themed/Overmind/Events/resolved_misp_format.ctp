@@ -127,32 +127,41 @@ $attrTableHead = function () use ($idsToggle) {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(72,67,92,.06);
-            border-bottom:2px solid var(--enrichment);">
-    <div>
-        <div class="text-enrichment text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($type === 'Cortex' ? __('Cortex') : __('Enrichment')) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-enrichment" style="font-size:1.2rem;"></i>
-            <?= __('Enrichment results') ?>
-        </h4>
-        <div class="text-muted small mt-1">
-            <?= __('Event') ?>: <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-</div>
+<?php
+// The AI indicator extraction (A4) lands here too: same review, its own
+// wording, the module's rejected candidates on top.
+$isAi = $type === 'AI';
+$accent = $isAi ? 'primary' : 'enrichment';
+?>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => $accent,
+    'eyebrow' => $isAi ? __('AI actions') : ($type === 'Cortex' ? __('Cortex') : __('Enrichment')),
+    'title' => $isAi ? __('Extracted indicators') : __('Enrichment results'),
+    'description' => $isAi
+        ? __('Event #%s — what the AI module read out of the event reports; remove anything wrong, then import.', h($eventId))
+        : __('Event') . ': #' . h($eventId),
+    'titleIcon' => $isAi ? 'fas fa-robot' : 'fas fa-wand-magic-sparkles',
+    'close' => true,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4 pb-3" id="omResolveRoot" style="background:var(--bs-tertiary-bg, #f8f9fa);">
+<?php if (!empty($aiRejected)): ?>
+    <div class="alert alert-info py-2 small mb-3" id="omAiRejected">
+        <i class="fas fa-filter me-1"></i>
+        <strong><?= __n('%s candidate rejected by the AI module', '%s candidates rejected by the AI module', count($aiRejected), count($aiRejected)) ?></strong>
+        <span class="text-muted"><?= __('(not in the source text, below the confidence threshold, or already on the event)') ?></span>
+        <ul class="mb-0 mt-1">
+        <?php foreach ($aiRejected as $candidate): ?>
+            <li><code><?= h(isset($candidate['type']) ? $candidate['type'] : '') ?></code> <?= h(isset($candidate['value']) ? $candidate['value'] : '') ?> — <?= h(isset($candidate['reason']) ? $candidate['reason'] : '') ?></li>
+        <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
 <?php if (empty($event['Attribute']) && empty($event['Object']) && empty($event['EventReport'])): ?>
     <div class="alert alert-light border mb-0 d-flex align-items-center gap-2">
         <i class="fas fa-circle-info text-muted"></i>
-        <?= __('The module returned no attributes, objects or reports for this data.') ?>
+        <?= !empty($emptyMessage) ? h($emptyMessage) : __('The module returned no attributes, objects or reports for this data.') ?>
     </div>
 <?php else: ?>
 
@@ -385,25 +394,28 @@ $attrTableHead = function () use ($idsToggle) {
 
     </div>
 
-    <!-- ── FOOTER ───────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid var(--bs-border-color, #dee2e6);">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Review and remove anything you don\'t want, then import into event') ?> #<?= h($eventId) ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="openModal('<?= $baseurl ?>/events/queryEnrichment/<?= h($sourceId) ?>/0/<?= h($backType) ?>/<?= h($backModel) ?>');">
-                <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <button type="button" class="btn btn-event btn-sm text-white" id="omResolveSubmit">
-                <i class="fas fa-circle-plus me-1"></i><?= __('Import') ?>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => $accent,
+        'hint' => $isAi
+            ? __('Remove anything wrong, then import into event #%s; every element carries the ai-computer-assisted tags', $eventId)
+            : __('Review and remove anything you don\'t want, then import into event #%s', $eventId),
+        'buttons' => [[
+            'label' => __('Back'),
+            'icon' => 'fas fa-arrow-left',
+            'attrs' => ['onclick' => $isAi
+                ? sprintf("openModal('%s', 'md');", h(!empty($backUrl) ? $backUrl : $baseurl . '/events/aiExtractIndicators/' . $eventId))
+                : sprintf(
+                    "openModal('%s/events/queryEnrichment/%s/0/%s/%s');",
+                    $baseurl, h($sourceId), h($backType), h($backModel)
+                )],
+        ]],
+        'submit' => [
+            'label' => __('Import'),
+            'id' => 'omResolveSubmit',
+            'type' => 'button',
+            'class' => 'btn-event text-white',
+        ],
+    ]) ?>
 <?php endif; ?>
 </div>
 

@@ -15,6 +15,9 @@
  * success path (event creation, transactional rollback, post-hoc drop
  * detection) is covered by the Phase 1.6 integration tests against a
  * live MISP.
+ *
+ * The galaxy tag-name resolver is covered here too, with the cluster
+ * lookup stood in by EventTemplateInstantiatorWithFakeClusters below.
  */
 
 require_once __DIR__ . '/../Vendor/autoload.php';
@@ -268,8 +271,132 @@ class EventTemplateInstantiatorTest extends TestCase
     }
 
     // -----------------------------------------------------------------
+    // Galaxy tag-name resolution
+    // -----------------------------------------------------------------
+
+    public function testGalaxyValueResolvesToTheClustersOwnTagName(): void
+    {
+        $uuidTag = 'misp-galaxy:threat-actor="2ef58a58-0d68-4d1a-9b5f-2c0b6f30ee9c"';
+        $i = $this->withClusters(array(
+            'GalaxyCluster.value|apt28' => 'misp-galaxy:threat-actor="APT28"',
+            'GalaxyCluster.value|custom actor' => $uuidTag,
+        ));
+        // Library cluster: named by value.
+        $this->assertSame(
+            'misp-galaxy:threat-actor="APT28"',
+            $this->resolve($i, 'APT28', array('threat-actor'))
+        );
+        // Custom cluster: named by uuid, whatever the value says.
+        $this->assertSame(
+            $uuidTag,
+            $this->resolve($i, 'Custom Actor', array('threat-actor'))
+        );
+        // Value lookups are restricted to the field's galaxy types.
+        $this->assertSame(
+            array('GalaxyCluster.value', 'APT28', array('threat-actor')),
+            $i->lookups[0]
+        );
+    }
+
+    public function testUuidAndTagNameInputsPinTheClusterWithoutTypeRestriction(): void
+    {
+        $uuid = '2ef58a58-0d68-4d1a-9b5f-2c0b6f30ee9c';
+        $tag = 'misp-galaxy:threat-actor="' . $uuid . '"';
+        $i = $this->withClusters(array(
+            'GalaxyCluster.uuid|' . $uuid => $tag,
+            'GalaxyCluster.tag_name|' . mb_strtolower($tag) => $tag,
+        ));
+        $this->assertSame($tag, $this->resolve($i, strtoupper($uuid), array('threat-actor')));
+        $this->assertSame($tag, $this->resolve($i, $tag, array('threat-actor')));
+        $this->assertCount(2, $i->lookups);
+        $this->assertSame('GalaxyCluster.uuid', $i->lookups[0][0]);
+        $this->assertSame('GalaxyCluster.tag_name', $i->lookups[1][0]);
+        foreach ($i->lookups as $lookup) {
+            $this->assertSame(array(), $lookup[2], 'uuid / tag-name lookups carry no type restriction');
+        }
+    }
+
+    public function testCompleteTagNameIsNeverWrappedASecondTime(): void
+    {
+        // The Overmind picker submits the full tag name. Wrapping it again
+        // used to yield misp-galaxy:threat-actor="misp-galaxy:threat-actor=…".
+        $i = $this->withClusters(array());
+        $tag = 'misp-galaxy:threat-actor="APT28"';
+        $this->assertSame($tag, $this->resolve($i, $tag, array('threat-actor')));
+    }
+
+    public function testUnmatchedValueFallsBackToTheSynthesisedName(): void
+    {
+        $i = $this->withClusters(array());
+        $this->assertSame(
+            'misp-galaxy:threat-actor="Nobody"',
+            $this->resolve($i, 'Nobody', array('threat-actor', 'tool'))
+        );
+        $this->assertSame(
+            'misp-galaxy:unknown="Nobody"',
+            $this->resolve($i, 'Nobody', array())
+        );
+    }
+
+    public function testResolutionIsCachedPerInput(): void
+    {
+        $i = $this->withClusters(array(
+            'GalaxyCluster.value|apt28' => 'misp-galaxy:threat-actor="APT28"',
+        ));
+        $this->resolve($i, 'APT28', array('threat-actor'));
+        $this->resolve($i, ' APT28 ', array('threat-actor'));
+        $this->assertCount(1, $i->lookups);
+    }
+
+    public function testEventTagNamesUseResolvedGalaxyTagNames(): void
+    {
+        $uuidTag = 'misp-galaxy:threat-actor="2ef58a58-0d68-4d1a-9b5f-2c0b6f30ee9c"';
+        $i = $this->withClusters(array(
+            'GalaxyCluster.value|apt28' => 'misp-galaxy:threat-actor="APT28"',
+            'GalaxyCluster.value|custom actor' => $uuidTag,
+        ));
+        $def = $this->minimalValid();
+        $def['event_defaults']['tags'] = array(array('name' => 'tlp:amber'));
+        $def['event_defaults']['galaxy_clusters'] = array(
+            array('galaxy_type' => 'threat-actor', 'value' => 'Custom Actor'),
+        );
+        $def['structure'] = array(
+            array(
+                'type' => 'galaxy_field',
+                'id' => 'gal',
+                'label' => 'Actor',
+                'restrict_galaxy_types' => array('threat-actor'),
+                'multiple' => true,
+            ),
+        );
+        $m = new ReflectionMethod(EventTemplateInstantiator::class, 'collectEventTagNames');
+        $m->setAccessible(true);
+        $names = $m->invoke($i, $def, array('gal' => array('APT28', 'Custom Actor')), $this->user);
+        // The default entry and the picked value name the same cluster,
+        // so it is attached once, under the tag the cluster owns.
+        $this->assertSame(
+            array('tlp:amber', $uuidTag, 'misp-galaxy:threat-actor="APT28"'),
+            $names
+        );
+    }
+
+    // -----------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------
+
+    private function withClusters(array $clusters): EventTemplateInstantiatorWithFakeClusters
+    {
+        $i = new EventTemplateInstantiatorWithFakeClusters();
+        $i->clusters = $clusters;
+        return $i;
+    }
+
+    private function resolve(EventTemplateInstantiator $i, string $value, array $types): string
+    {
+        $m = new ReflectionMethod(EventTemplateInstantiator::class, 'resolveGalaxyTagName');
+        $m->setAccessible(true);
+        return $m->invoke($i, $value, $types, $this->user);
+    }
 
     private function minimalValid(): array
     {
@@ -298,5 +425,25 @@ class EventTemplateInstantiatorTest extends TestCase
                 json_encode($errors)
             )
         );
+    }
+}
+
+/**
+ * Stands in for the galaxy_clusters lookup so the resolver's
+ * classification, fallback and caching run without a database.
+ */
+class EventTemplateInstantiatorWithFakeClusters extends EventTemplateInstantiator
+{
+    /** @var array<string,string> "<field>|<lowercased value>" -> tag_name */
+    public $clusters = array();
+
+    /** @var array list of [field, value, galaxyTypes] as received */
+    public $lookups = array();
+
+    protected function findGalaxyClusterTagName($field, $value, array $galaxyTypes, array $user)
+    {
+        $this->lookups[] = array($field, $value, $galaxyTypes);
+        $key = $field . '|' . mb_strtolower($value);
+        return isset($this->clusters[$key]) ? $this->clusters[$key] : null;
     }
 }

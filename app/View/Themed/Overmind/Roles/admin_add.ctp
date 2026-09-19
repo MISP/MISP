@@ -16,26 +16,13 @@ echo $this->Form->create('Role', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary, #1892b1);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Roles') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $edit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $edit ? __('Edit Role') : __('Add Role') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Define what users assigned to this role are allowed to do on this instance.') ?>
-        </p>
-    </div>
-    <i class="fas fa-user-shield text-primary" style="font-size:2rem; opacity:.4;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Roles'),
+    'title' => $edit ? __('Edit Role') : __('Add Role'),
+    'description' => __('Define what users assigned to this role are allowed to do on this instance.'),
+    'icon' => 'fas fa-user-shield',
+    'isEdit' => $edit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
     <div class="d-flex flex-column gap-4">
@@ -160,28 +147,15 @@ echo $this->Form->create('Role', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid #e9ecef;">
-        <div class="text-muted d-flex align-items-center gap-1" style="font-size:.75rem;">
-            <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-            <?= __('Permissions can be fine-tuned at any time from the role view.') ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Save Changes') : __('Add Role')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                    'title' => $edit ? __('Save Changes') : __('Add Role'),
-                    'aria-label' => $edit ? __('Save Changes') : __('Add Role'),
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'hint' => __('Permissions can be fine-tuned at any time from the role view.'),
+        'cancel' => ['label' => __('Cancel')],
+        'submit' => [
+            'label' => $edit ? __('Save Changes') : __('Add Role'),
+            'icon' => 'fas fa-check',
+        ],
+    ]) ?>
 
 </div>
 

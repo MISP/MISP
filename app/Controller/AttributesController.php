@@ -36,6 +36,23 @@ class AttributesController extends AppController
     {
         parent::beforeFilter();
 
+        // Posted by hand-built AJAX (the Overmind tag/galaxy/relationship
+        // modals), which sends the CSRF token as a header. They post a JSON
+        // document, which is exactly why _validatePost() can never pass:
+        // Security starts up before the component that decodes it, so it sees
+        // no _Token at all.
+        // editField is reached two ways, and neither can satisfy _validatePost():
+        // the Overmind index posts a form-encoded body from fetch() with the
+        // token in the X-CSRF-Token header, and the legacy inline forms post a
+        // serialised Cake form whose field hash does not survive the AJAX
+        // submit. Both carry a token - header and body respectively - so keep
+        // the CSRF check and drop only the field-hash check.
+        $this->_csrfTokenHeaderOnly([
+            'editAttributeTags', 'editAttributeGalaxies',
+            'editAttributeTagRelationships', 'editAttributeGalaxyRelationships',
+            'editField',
+        ]);
+
         // permit reuse of CSRF tokens on the search page.
         if ('search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
@@ -43,7 +60,6 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
-        $this->Security->unlockedActions[] = 'editField';
         $this->Security->unlockedActions[] = 'validateValue';
 
         if ($this->request->action === 'add_attachment') {
@@ -57,7 +73,7 @@ class AttributesController extends AppController
     {
         $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
         foreach ($multiLineFields as $field) {
-            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+            if (isset($filters[$field]) && is_string($filters[$field]) && strstr($filters[$field], "\n")) {
                 $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
             }
         }
@@ -101,7 +117,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation', 'email', 'galaxy'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -111,6 +127,23 @@ class AttributesController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
+        $filters = $this->__massageGalaxyFilter($filters);
+        // The index filter bar searches for a substring.
+        // Only a value that came in through the URL gets the implicit wildcards - 
+        // the search form (POST) and the API keep matching the value they were handed.
+        $urlValue = $this->request->params['named']['value']
+            ?? ($this->request->query['value'] ?? null);
+        if (
+            !$this->_isRest() &&
+            $urlValue !== null &&
+            isset($filters['value']) &&
+            is_string($filters['value']) &&
+            $filters['value'] !== '' &&
+            !str_contains($filters['value'], '%')
+        ) {
+            $filters['value'] = '%' . $filters['value'] . '%';
+        }
         if (!$this->_isRest()) {
             $search_filters = $this->request->data;
             if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
@@ -152,6 +185,9 @@ class AttributesController extends AppController
         }
         $this->set('params', $params);
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        if (!empty($filters['email'])) {
+            $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
+        }
         $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
         if (!empty($filters['direction'])) {
             $params['direction'] = $filters['direction'];
@@ -261,7 +297,92 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->__setIndexFilterOptions($orgTable);
         $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
+    }
+
+    /**
+     * A galaxy has no filter of its own: narrowing down to one means asking for
+     * the tags its clusters carry (`misp-galaxy:<type>="<uuid>"`).
+     *
+     * @param array $filters
+     * @return array
+     */
+    private function __massageGalaxyFilter(array $filters): array
+    {
+        if (empty($filters['galaxy'])) {
+            unset($filters['galaxy']);
+            return $filters;
+        }
+        $tags = [];
+        foreach ((array)$filters['galaxy'] as $galaxyType) {
+            $tags[] = 'misp-galaxy:' . $galaxyType . '="%"';
+        }
+        if (!empty($filters['tags'])) {
+            $tags = array_merge((array)$filters['tags'], $tags);
+        }
+        $filters['tags'] = $tags;
+        unset($filters['galaxy']);
+        return $filters;
+    }
+
+    /**
+     * Attributes have no creator of their own, so filtering on one lands on the
+     * event they belong to. Only a site admin may look up somebody else's.
+     *
+     * @param array $conditions
+     * @param string $email
+     * @return array
+     */
+    private function __addCreatorConditions(array $conditions, $email): array
+    {
+        $email = trim($email);
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = [
+                'Event.user_id' => strtolower($this->Auth->user('email')) === strtolower($email)
+                    ? $this->Auth->user('id')
+                    : -1
+            ];
+            return $conditions;
+        }
+        $userIds = $this->User->find('column', [
+            'fields' => ['User.id'],
+            'conditions' => ['User.email LIKE' => '%' . strtolower($email) . '%'],
+        ]);
+        $conditions['AND'][] = ['Event.user_id' => empty($userIds) ? [-1] : $userIds];
+        return $conditions;
+    }
+
+    /**
+     * Option lists for the index filter bar. Galaxy tags are left out of the
+     * tag list, the galaxy dropdown covers them and there are thousands.
+     *
+     * @param array $orgTable Orgc rows keyed by id, as fetched by index()
+     * @return void
+     */
+    private function __setIndexFilterOptions(array $orgTable)
+    {
+        $categoryKeys = array_keys($this->MispAttribute->categoryDefinitions);
+        $this->set('categoryOptions', ['' => ''] + array_combine($categoryKeys, $categoryKeys));
+        $typeKeys = array_keys($this->MispAttribute->typeDefinitions);
+        sort($typeKeys);
+        $this->set('typeOptions', ['' => ''] + array_combine($typeKeys, $typeKeys));
+
+        $orgNames = array_column($orgTable, 'name');
+        sort($orgNames);
+        $this->set('orgOptions', ['' => ''] + array_combine($orgNames, $orgNames));
+
+        $this->set('tagOptions', ['' => ''] + $this->MispAttribute->AttributeTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'conditions' => ['Tag.is_galaxy' => 0],
+            'order' => ['Tag.name' => 'ASC'],
+        ]));
+
+        $this->loadModel('Galaxy');
+        $this->set('galaxyOptions', ['' => ''] + $this->Galaxy->find('list', [
+            'fields' => ['Galaxy.type', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC'],
+        ]));
     }
 
     public function add($eventId = false)
@@ -417,7 +538,7 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $this->Flash->success($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     }
                 } else {
                     $this->Flash->error($message);
@@ -427,7 +548,7 @@ class AttributesController extends AppController
                 }
                 if ($successes > 0) {
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '?' => ['tab' => 'attributes']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }
@@ -495,7 +616,7 @@ class AttributesController extends AppController
         }
 
         if ($this->request->is('post')) {
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -920,7 +1041,7 @@ class AttributesController extends AppController
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
-            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+            if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
                 if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -1241,6 +1362,7 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
         }
+        $this->__assertCanModifyEvents([$attribute['Attribute']['event_id']]);
         $this->set('id', $attribute['Attribute']['id']);
         if ($this->request->is('ajax') || $this->theme === 'Overmind') {
             if ($this->request->is('post')) {
@@ -1299,6 +1421,13 @@ class AttributesController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('No matching attributes found.'));
             }
+            // Unlike deleteSelected() this takes a bare id list with no event scope,
+            // so the events it spans have to be resolved before they can be checked.
+            $this->__assertCanModifyEvents($this->MispAttribute->find('column', [
+                'conditions' => ['Attribute.id' => $idList],
+                'fields' => ['Attribute.event_id'],
+                'unique' => true,
+            ]));
             $user      = $this->_closeSession();
             $successes = [];
             $fails     = [];
@@ -1431,19 +1560,7 @@ class AttributesController extends AppController
         if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            $event = $this->MispAttribute->Event->find('first', [
-                'conditions' => ['id' => $eventId],
-                'recursive' => -1,
-                'fields' => ['id', 'orgc_id', 'user_id'],
-            ]);
-            if (!$event) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            if (!$this->__canModifyEvent($event)) {
-                throw new ForbiddenException(__('You do not have permission to do that.'));
-            }
-        }
+        $this->__assertCanModifyEvents([$eventId]);
         $conditions = ['id' => $ids, 'event_id' => $eventId];
         if ($ids === 'all') {
             unset($conditions['id']);
@@ -1666,7 +1783,7 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['distribution'] = $requestData['distribution'];
             }
             if ($requestData['distribution'] == 4) {
-                $sharingGroupId = $requestData['sharing_group_id'];
+                $sharingGroupId = isset($requestData['sharing_group_id']) ? $requestData['sharing_group_id'] : null;
                 if (!$this->__canUseSharingGroup($sharingGroupId)) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
@@ -3062,48 +3179,34 @@ class AttributesController extends AppController
         $attributeId = (int)$attribute['Attribute']['id'];
 
         /* Current galaxy clusters attached to the attribute, split by locality */
-        $galaxyTagNames = [];
-        foreach ($attribute['AttributeTag'] as $at) {
-            if (!empty($at['Tag']['is_galaxy'])) {
-                $galaxyTagNames[$at['Tag']['id']] = $at['Tag']['name'];
-            }
-        }
-        $this->loadModel('GalaxyCluster');
+        $clustersByTagId = $this->_clustersByTagId(
+            $attribute['AttributeTag'], $user
+        );
         $currentGlobalClusters = [];
         $currentLocalClusters  = [];
         $currentGlobalIds      = [];
         $currentLocalIds       = [];
-        if (!empty($galaxyTagNames)) {
-            $clusters = $this->GalaxyCluster->getClustersByTags(
-                $galaxyTagNames, $user, true, false
-            );
-            $clustersByTagId = array_column(
-                array_column($clusters, 'GalaxyCluster'), null, 'tag_id'
-            );
-            foreach ($attribute['AttributeTag'] as $at) {
-                if (empty($at['Tag']['is_galaxy'])) {
-                    continue;
-                }
-                $tagId = $at['Tag']['id'];
-                if (!isset($clustersByTagId[$tagId])) {
-                    continue;
-                }
-                $gc         = $clustersByTagId[$tagId];
-                $cid        = (int)$gc['id'];
-                $galaxyName = $gc['Galaxy']['name'] ?? '';
-                $entry = [
-                    'id'     => $cid,
-                    'name'   => $gc['value'],
-                    'galaxy' => $galaxyName,
-                    'hue'    => GalaxyColour::hue($galaxyName),
-                ];
-                if (!empty($at['local'])) {
-                    $currentLocalClusters[] = $entry;
-                    $currentLocalIds[]      = $cid;
-                } else {
-                    $currentGlobalClusters[] = $entry;
-                    $currentGlobalIds[]      = $cid;
-                }
+        foreach ($attribute['AttributeTag'] as $at) {
+            $tagId = $at['Tag']['id'] ?? null;
+            if (empty($at['Tag']['is_galaxy'])
+                || !isset($clustersByTagId[$tagId])) {
+                continue;
+            }
+            $gc         = $clustersByTagId[$tagId];
+            $cid        = (int)$gc['id'];
+            $galaxyName = $gc['Galaxy']['name'] ?? '';
+            $entry = [
+                'id'     => $cid,
+                'name'   => $gc['value'],
+                'galaxy' => $galaxyName,
+                'hue'    => GalaxyColour::hue($galaxyName),
+            ];
+            if (!empty($at['local'])) {
+                $currentLocalClusters[] = $entry;
+                $currentLocalIds[]      = $cid;
+            } else {
+                $currentGlobalClusters[] = $entry;
+                $currentGlobalIds[]      = $cid;
             }
         }
 
@@ -3201,6 +3304,143 @@ class AttributesController extends AppController
         $this->set('galaxyList',            $galaxyList);
         $this->set('attributeId',           $attributeId);
         $this->set('mayModify',             $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind modal that puts one relationship type on a selection of an
+     * attribute's tags - the "+"-sibling button in the tag column of the
+     * attribute and object indexes.
+     *
+     * Mirrors EventsController::editEventTagRelationships(), scoped to one
+     * attribute: AttributeTag.relationship_type is the same column, and the
+     * stock theme reaches it through the same
+     * /tags/modifyTagRelationship/attribute/<attributeTagId>.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeTagRelationships($id = null)
+    {
+        return $this->__attributeTagRelationships($id, false);
+    }
+
+    /**
+     * The same, for an attribute's galaxy clusters - the sibling of the "+"
+     * button in the galaxy column. A cluster rides on an AttributeTag row like
+     * any tag, so it is the same write.
+     *
+     * @param int|string $id Attribute ID or UUID
+     */
+    public function editAttributeGalaxyRelationships($id = null)
+    {
+        return $this->__attributeTagRelationships($id, true);
+    }
+
+    /**
+     * Both of the above. The two differ only in which rows they offer, which
+     * is what each column draws: a galaxy tag whose cluster this instance can
+     * resolve belongs to the galaxy column, and everything else - a plain tag,
+     * or a galaxy tag with no cluster here - to the tag column. Nothing is in
+     * both, and nothing in neither.
+     *
+     * @param int|string $id       Attribute ID or UUID
+     * @param bool       $galaxies Offer the resolved clusters rather than the tags
+     * @return CakeResponse|void
+     */
+    private function __attributeTagRelationships($id, $galaxies)
+    {
+        $user = $this->Auth->user();
+        if ($id === null) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+            'conditions' => $this->__idToConditions($id),
+            'contain' => [
+                'Event',
+                'AttributeTag' => [
+                    'Tag'   => ['order' => false],
+                    'order' => false,
+                ],
+            ],
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+        $attributeId = (int)$attribute['Attribute']['id'];
+
+        /* Tagging is granted per locality: a host-org user who cannot touch
+           the attribute at all may still own its local tags. */
+        $mayModify = [
+            0 => $this->__canModifyTag($attribute, false),
+            1 => $this->__canModifyTag($attribute, true),
+        ];
+
+        $clustersByTagId = $this->_clustersByTagId(
+            $attribute['AttributeTag'], $user
+        );
+        $rows = [];
+        $clusterByRow = [];
+        foreach ($attribute['AttributeTag'] as $at) {
+            $tagId = $at['Tag']['id'] ?? null;
+            $isCluster = !empty($at['Tag']['is_galaxy'])
+                && isset($clustersByTagId[$tagId]);
+            if ($isCluster !== (bool)$galaxies) {
+                continue;
+            }
+            $connectorId = (int)$at['id'];
+            $rows[$connectorId] = $at;
+            if ($isCluster) {
+                $clusterByRow[$connectorId] = $clustersByTagId[$tagId];
+            }
+        }
+
+        /* ── POST: one relationship onto the selected rows ── */
+        if ($this->request->is('post')) {
+            return $this->_applyTagRelationships(
+                $this->MispAttribute->AttributeTag,
+                $rows,
+                function (array $row) use ($mayModify) {
+                    return !empty($mayModify[empty($row['local']) ? 0 : 1]);
+                },
+                $galaxies ? 'galaxy' : 'tag'
+            );
+        }
+
+        /* ── GET: the rows to apply a relationship to ── */
+        $items = [];
+        foreach ($rows as $connectorId => $at) {
+            $cluster = $clusterByRow[$connectorId] ?? null;
+            $items[] = [
+                'connector_id' => $connectorId,
+                'id'           => (int)($cluster
+                    ? $cluster['id'] : $at['Tag']['id']),
+                'name'         => $cluster
+                    ? $cluster['value'] : $at['Tag']['name'],
+                'galaxy'       => $cluster
+                    ? ($cluster['Galaxy']['name'] ?? '') : null,
+                'colour'       => !empty($at['Tag']['colour'])
+                    ? $at['Tag']['colour'] : '#0088cc',
+                'local'        => !empty($at['local']),
+                'relationship' => (string)($at['relationship_type'] ?? ''),
+                'editable'     => !empty($mayModify[empty($at['local']) ? 0 : 1]),
+            ];
+        }
+        usort($items, function ($a, $b) use ($galaxies) {
+            if ($galaxies) {
+                /* Grouped the way the galaxy column groups them. */
+                return strnatcasecmp($a['galaxy'], $b['galaxy'])
+                    ?: strnatcasecmp($a['name'], $b['name']);
+            }
+            return strnatcasecmp($a['name'], $b['name']);
+        });
+
+        $this->set($galaxies ? 'attributeClusters' : 'attributeTags', $items);
+        $this->set(
+            'relationshipOptions',
+            $this->_tagRelationshipVocabulary(array_column($items, 'relationship'))
+        );
+        $this->set('attributeId', $attributeId);
+        $this->set('mayModify',   $mayModify[0] || $mayModify[1]);
         $this->layout = false;
     }
 
@@ -3656,8 +3896,45 @@ class AttributesController extends AppController
      */
     private function __canUseSharingGroup($sharingGroupId)
     {
-        $sg = $this->MispAttribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
-        return !empty($sg);
+        return $this->MispAttribute->Event->SharingGroup->canUse($this->Auth->user(), $sharingGroupId);
+    }
+
+    /**
+     * Assert that the current user may modify the events the given attributes belong to.
+     *
+     * Every delete path ends in MispAttribute::deleteAttribute(), whose only check
+     * for a non-site-admin on an unlocked event is an organisation comparison - it
+     * never looks at perm_modify or perm_modify_org. Those live in
+     * ACL::canModifyEvent(), which edit() already calls, so without this the delete
+     * actions disagreed with edit() about the very same attribute.
+     *
+     * @param array $eventIds
+     * @return void
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
+    private function __assertCanModifyEvents(array $eventIds)
+    {
+        if ($this->_isSiteAdmin()) {
+            return;
+        }
+        $eventIds = array_unique($eventIds);
+        if (empty($eventIds)) {
+            return;
+        }
+        $events = $this->MispAttribute->Event->find('all', [
+            'conditions' => ['id' => $eventIds],
+            'recursive' => -1,
+            'fields' => ['id', 'orgc_id', 'user_id'],
+        ]);
+        if (count($events) !== count($eventIds)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        foreach ($events as $event) {
+            if (!$this->__canModifyEvent($event)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
+            }
+        }
     }
 
     private function __setIndexFilterConditions($filters = [])

@@ -169,34 +169,7 @@ $workflowFields = [
     [
         'name' => __('Listening triggers'),
         'data_path' => 'Workflow.listening_triggers',
-        'element' => 'custom',
-        'function' => function ($row) use ($baseurl) {
-            $triggers = Hash::get($row, 'Workflow.listening_triggers');
-            if (empty($triggers) || !is_array($triggers)) {
-                return sprintf('<span class="text-muted small">%s</span>', __('none'));
-            }
-            $chips = '';
-            foreach ($triggers as $trigger) {
-                $disabled = !empty($trigger['disabled']);
-                $isAdhoc = !empty($trigger['is_adhoc'])
-                    || strpos((string)$trigger['id'], 'adhoc_') === 0;
-                $title = $disabled
-                    ? __('Trigger disabled')
-                    : ($isAdhoc ? __('Ad-hoc trigger — run manually') : ($trigger['name'] ?? $trigger['id']));
-                $chips .= sprintf(
-                    '<a class="wf-chip wf-chip-%s text-decoration-none%s" href="%s/workflows/moduleView/%s" title="%s">'
-                        . '<i class="fa-fw %s"></i>%s</a>',
-                    $isAdhoc ? 'manual' : 'auto',
-                    $disabled ? ' opacity-50 text-decoration-line-through' : '',
-                    h($baseurl),
-                    h($trigger['id']),
-                    h($title),
-                    $this->FontAwesome->getClass($trigger['icon'] ?? 'flag'),
-                    h($trigger['id'])
-                );
-            }
-            return '<div class="d-flex flex-wrap gap-1">' . $chips . '</div>';
-        },
+        'element' => 'listening_triggers',
         'card_section' => 'tag',
         'display_in' => ['table', 'card'],
     ],
@@ -361,6 +334,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => $workflowFilterBar,
             'fields' => $workflowFields,
         ]

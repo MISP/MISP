@@ -1,15 +1,47 @@
 <?php
-
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
+
+    $canEdit = $isSiteAdmin || $this->Acl->canModifyEvent($event);
+    if ($canEdit) {
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'attributes',
+            'label' => __('Add attribute'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/attributes/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
+
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'objects',
+            'label' => __('Add object'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/objects/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
+
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'reports',
+            'label' => __('Add report'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/event_reports/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
+    }
+
     $this->set('headerTitle', $headerTitle);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'Chart.min']
+        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min']
     ]);
+
+    // Extended / extending view: say so, and carry the mode into every lazy
+    // tab so a tab load never drops back to the atomic view.
+    echo $this->element('Events/View/extension_banner');
+    $extensionSuffix = $extensionSuffix ?? '';
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
@@ -24,14 +56,14 @@
                 // Content
                 'left' => [
                     'Events/View/event_general',
-                    'EventReports/View/eventReport_preview',
+                    //'EventReports/View/eventReport_preview',
                     'Events/View/event_tags',
                     'Events/View/event_galaxies',
                     'Events/View/event_attachments',
+                    'Events/View/event_analyst_data',
                 ],
                 'right' => [
                     'Events/View/event_actions',
-                    'Events/View/event_analyst_data',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
                     'Events/View/event_warninglists',
@@ -47,7 +79,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s',h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],
@@ -60,7 +92,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewAttributes/%s',h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],
@@ -73,7 +105,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewEventReports/%s', h($event['Event']['id']))
+                        'ajax' => sprintf('/events/viewEventReports/%s%s', h($event['Event']['id']), $extensionSuffix)
                     ]
                 ],
             ],

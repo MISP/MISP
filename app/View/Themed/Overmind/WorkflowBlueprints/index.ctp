@@ -68,7 +68,7 @@ $fields = [
         'sort' => 'WorkflowBlueprint.id',
         'data_path' => 'WorkflowBlueprint.id',
         'element' => 'id',
-        'url' => $baseurl . '/workflowBlueprints/view/%id%',
+        'url' => '#', // $baseurl . '/workflowBlueprints/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -160,6 +160,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => $filterBar,
             'fields' => $fields,
         ]
