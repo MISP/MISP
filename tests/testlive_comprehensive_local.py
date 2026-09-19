@@ -600,6 +600,62 @@ class TestComprehensive(unittest.TestCase):
                 for event in (first, second):
                     check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_advanced_host_correlations(self):
+        identifier = gen_random_id()
+        domain = f"advanced-{identifier}.example.com"
+        hostname = f"c2.{domain}"
+        ip = f"192.0.2.{int(identifier[:2], 16) % 254 + 1}"
+        events = []
+
+        with MISPSetting(
+            self.admin_misp_connector,
+            {"MISP.enable_advanced_correlations": True},
+        ):
+            values = (
+                (
+                    "url",
+                    f"https://unrelated.invalid/{domain}?address={ip}",
+                ),
+                ("domain", domain),
+                ("hostname", hostname),
+                ("url", f"https://{hostname}:8443/download"),
+                ("ip-dst", ip),
+                ("url", f"https://{ip}/payload"),
+            )
+            try:
+                for attribute_type, value in values:
+                    event = create_simple_event()
+                    event.add_attribute(attribute_type, value)
+                    events.append(
+                        check_response(
+                            self.admin_misp_connector.add_event(event)
+                        )
+                    )
+
+                events = [
+                    check_response(
+                        self.admin_misp_connector.get_event(event)
+                    )
+                    for event in events
+                ]
+                related_counts = [
+                    len(getattr(event, "RelatedEvent", []))
+                    for event in events
+                ]
+                self.assertEqual([0, 2, 2, 2, 1, 1], related_counts)
+            finally:
+                for event in events:
+                    check_response(
+                        self.admin_misp_connector.delete_event(event)
+                    )
+
+    def test_advanced_host_correlations_noacl(self):
+        with MISPSetting(
+            self.admin_misp_connector,
+            {"MISP.correlation_engine": "NoAcl"},
+        ):
+            self.test_advanced_host_correlations()
+
     def test_remove_orphaned_correlations(self):
         result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('POST', 'servers/removeOrphanedCorrelations'))
         check_response(result)
