@@ -139,7 +139,7 @@ class MispObject extends AppModel
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_object_distribution') ?? 5;
     }
 
-    public function buildFilterConditions(&$params)
+    public function buildFilterConditions($params)
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
