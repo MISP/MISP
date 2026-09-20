@@ -258,33 +258,40 @@ class AuthKey extends AppModel
         }
         $this->hmacKey = null;
         $hmacKeyFile = APP . 'Config/hmac_key.php';
-        if (file_exists($hmacKeyFile)) {
+        // is_readable rather than file_exists: this runs on every authenticated REST request, and
+        // include() on an existing but unreadable file emits a warning per request, which with
+        // debug on lands in the response body. An unreadable key is not an error here - it means
+        // no fast path, and the bcrypt fallback below still resolves the key correctly.
+        if (is_readable($hmacKeyFile)) {
             include $hmacKeyFile;
-        } elseif (is_writable(APP . 'Config')) {
+        } elseif (!file_exists($hmacKeyFile) && is_writable(APP . 'Config')) {
             App::uses('RandomTool', 'Tools');
             $hmac_key = RandomTool::random_str(true, 40);
             // Written through a temporary file in the same directory and renamed into place:
             // rename() is atomic, so two concurrent first-requests cannot interleave a partial
             // file or leave one of them reading a key the other has half-written - the loser's
-            // key is simply discarded. Created 0600 before it holds anything, rather than at
-            // the umask's discretion after: this is a secret, and the process that writes it is
-            // the process that reads it. If the rename loses, the existing file is re-read.
+            // key is simply discarded, and the winner's is re-read below.
+            //
+            // 0644, deliberately, matching what AppController's writer produces under the usual
+            // umask. The CLI and the web server commonly run as different users, and whichever
+            // creates the file first, the other has to be able to read it. tempnam() creates at
+            // 0600, so this has to be set rather than left alone. Tightening it is a real
+            // improvement, but it has to be done to both writers at once and with the two-user
+            // case handled, so it does not belong in this change.
             $temporaryFile = tempnam(APP . 'Config', 'hmac_key');
             if ($temporaryFile === false) {
                 return $this->hmacKey;
             }
-            chmod($temporaryFile, 0600);
             $written = file_put_contents(
                 $temporaryFile,
                 sprintf('<?php%s$hmac_key = \'%s\';', PHP_EOL, $hmac_key)
             );
-            if ($written === false || !rename($temporaryFile, $hmacKeyFile)) {
+            if ($written === false || !chmod($temporaryFile, 0644) || !rename($temporaryFile, $hmacKeyFile)) {
                 unlink($temporaryFile);
-                if (!file_exists($hmacKeyFile)) {
-                    return $this->hmacKey;
-                }
                 unset($hmac_key);
-                include $hmacKeyFile;
+                if (is_readable($hmacKeyFile)) {
+                    include $hmacKeyFile;
+                }
             }
         }
         if (!empty($hmac_key) && is_string($hmac_key)) {
