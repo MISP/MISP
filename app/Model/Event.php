@@ -1195,14 +1195,14 @@ class Event extends AppModel
                 $data['EventReport'][$key] = $this->__updateEventReportForSync($report, $server);
                 if (empty($data['EventReport'][$key])) {
                     unset($data['EventReport'][$key]);
+                } else {
+                    $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
                 }
             }
             $data['EventReport'] = array_values($data['EventReport']);
         }
         if (isset($data['EventReport']) && empty($data['EventReport'])) {
             unset($data['EventReport']);
-        } else {
-            $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
         }
         return $data;
     }
