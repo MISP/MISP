@@ -2971,7 +2971,8 @@ function freetextSerializeAttributes() {
                 sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
                 data:$('#Attribute' + i + 'Data').val(),
                 data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
-                tags:$('#Attribute' + i + 'Tags').val()
+                tags:$('#Attribute' + i + 'Tags').val(),
+                remove_tags:$('#Attribute' + i + 'RemoveTags').val()
             })
         }
     });
@@ -3004,6 +3005,11 @@ function freetextRemoveRow(id, event_id) {
 
 function freetextCreateObject(objectId) {
     var attributeArray = freetextSerializeAttributes();
+    // Tag removals only apply to attributes already in the event, they have no
+    // meaning for the object that is about to be created.
+    attributeArray.forEach(function (attribute) {
+        delete attribute.remove_tags;
+    });
     $('#ObjectSelectedTemplateId').val(objectId);
     $('#ObjectAttributes').val(JSON.stringify(attributeArray));
     $('#ObjectFreeTextImportForm').submit();

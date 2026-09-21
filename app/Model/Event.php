@@ -8747,6 +8747,11 @@ class Event extends AppModel
                 if (isset($r['tags']) && !is_array($r['tags'])) {
                     $r['tags'] = array($r['tags']);
                 }
+                // Tags the module asks to strip from the attributes already in the
+                // event that carry the same type/value as this result row.
+                if (isset($r['remove_tags']) && !is_array($r['remove_tags'])) {
+                    $r['remove_tags'] = array($r['remove_tags']);
+                }
                 foreach ($r['values'] as &$value) {
                     if (!is_array($r['values']) || !isset($r['values'][0])) {
                         $r['values'] = array($r['values']);
@@ -8792,7 +8797,8 @@ class Event extends AppModel
                             'comment' => isset($r['comment']) ? $r['comment'] : false,
                             'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
                             'value' => $value,
-                            'tags' => isset($r['tags']) ? $r['tags'] : false
+                            'tags' => isset($r['tags']) ? $r['tags'] : false,
+                            'remove_tags' => isset($r['remove_tags']) ? $r['remove_tags'] : false
                     );
                     if (isset($r['categories'])) {
                         $temp['categories'] = $r['categories'];
@@ -9342,12 +9348,17 @@ class Event extends AppModel
 
             return true;
         } else {
-            $result = $this->enrichment($options);
-            return __('#' . $result . ' attributes have been created during the enrichment process.');
+            $tagsRemoved = 0;
+            $result = $this->enrichment($options, $tagsRemoved);
+            $message = __('#' . $result . ' attributes have been created during the enrichment process.');
+            if ($tagsRemoved) {
+                $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $tagsRemoved, $tagsRemoved);
+            }
+            return $message;
         }
     }
 
-    public function enrichment(array $params)
+    public function enrichment(array $params, &$tagsRemoved = 0)
     {
         $option_fields = array('user', 'event_id', 'modules');
         foreach ($option_fields as $option_field) {
@@ -9395,6 +9406,7 @@ class Event extends AppModel
         }
 
         $attributes_added = 0;
+        $tagsRemoved = 0;
         $initial_objects = array();
         $event_id = $event[0]['Event']['id'];
         foreach ($event[0]['Attribute'] as $attribute) {
@@ -9437,6 +9449,18 @@ class Event extends AppModel
                         } else {
                             $attributes = $this->handleModuleResult($result, $event_id);
                             foreach ($attributes as $a) {
+                                $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                                // The row may ask for tags to come off the attribute the
+                                // event already holds for this value. When it does hold
+                                // one, the row changes that attribute's tags instead of
+                                // creating anything.
+                                if (!empty($a['remove_tags'])) {
+                                    $removal = $this->applyModuleTagChanges($params['user'], $event_id, $a['type'], $a['value'], $a['remove_tags'], empty($a['tags']) ? array() : $a['tags']);
+                                    $tagsRemoved += $removal['removed'];
+                                    if ($removal['matched']) {
+                                        continue;
+                                    }
+                                }
                                 $this->Attribute->create();
                                 $a['distribution'] = $attribute['distribution'];
                                 $a['sharing_group_id'] = $attribute['sharing_group_id'];
@@ -9446,7 +9470,6 @@ class Event extends AppModel
                                 } else {
                                     $a['comment'] = $comment;
                                 }
-                                $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
                                 $result = $this->Attribute->save($a);
                                 if ($result) {
                                     $attributes_added++;
@@ -9573,6 +9596,8 @@ class Event extends AppModel
         }
         $saved = 0;
         $failed = 0;
+        $removedTags = 0;
+        $removedGlobalTag = false;
         $attributeSources = array('attributes', 'ontheflyattributes');
         $ontheflyattributes = array();
         $i = 0;
@@ -9614,6 +9639,18 @@ class Event extends AppModel
                     $types = array($attribute['type']);
                 }
                 foreach ($types as $type) {
+                    // A result row can carry tags to strip from the attribute it points
+                    // at (`remove_tags` in a module result). When that attribute is
+                    // already in the event the row only changes its tags - creating it
+                    // again would just fail as a duplicate.
+                    if ($objectType === 'Attribute' && !empty($attribute['remove_tags'])) {
+                        $removal = $this->applyModuleTagChanges($user, $event['Event']['id'], $type, $attribute['value'], $attribute['remove_tags'], isset($attribute['tags']) ? $attribute['tags'] : array());
+                        $removedTags += $removal['removed'];
+                        $removedGlobalTag = $removedGlobalTag || $removal['global'];
+                        if ($removal['matched']) {
+                            continue;
+                        }
+                    }
                     $model->create();
                     // Freetext import only ever creates new attributes. A client-supplied id
                     // (this data can be raw JSON via saveFreeText) would redirect save() onto
@@ -9672,7 +9709,7 @@ class Event extends AppModel
         }
         $emailResult = '';
         $messageScope = $objectType === 'ShadowAttribute' ? 'proposals' : 'attributes';
-        if ($saved > 0) {
+        if ($saved > 0 || $removedGlobalTag) {
             if ($objectType !== 'ShadowAttribute') {
                 $this->unpublishEvent($id);
             } else {
@@ -9692,6 +9729,9 @@ class Event extends AppModel
         } else {
             $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
+        if ($removedTags > 0) {
+            $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $removedTags, $removedTags);
+        }
         if ($jobId) {
             $eventLock->deleteBackgroundJobLock($event['Event']['id'], $jobId);
             $this->Job->saveStatus($jobId, true, __('Processing complete. %s', $message));
@@ -9700,6 +9740,131 @@ class Event extends AppModel
             return $results;
         }
         return $message;
+    }
+
+    /**
+     * Apply the tag changes a module result asks for to the attributes of an event
+     * that carry a type/value.
+     *
+     * This is how an enrichment module retracts a verdict: a result row carrying
+     * `remove_tags` names tags that should no longer sit on the attribute the row
+     * points at. Only tags that are actually attached are taken off, and the tag has
+     * to exist already - a removal never creates one. The row's own `tags` are
+     * attached to the same attribute, so that one row can swap one verdict for
+     * another on an attribute the event already holds.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param string $type Attribute type of the row
+     * @param string $value Attribute value of the row
+     * @param array|string $removeTags Tag names to detach, as a list or a comma separated string
+     * @param array|string $addTags Tag names to attach, in the same two spellings
+     * @return array ['matched' => bool, 'removed' => int, 'global' => bool] - whether the
+     *      event holds a matching attribute, how many tags came off, and whether any
+     *      global (that is, synchronised) tag was touched.
+     */
+    public function applyModuleTagChanges(array $user, $eventId, $type, $value, $removeTags, $addTags = array())
+    {
+        $result = array('matched' => false, 'removed' => 0, 'global' => false);
+        if (empty($user['Role']['perm_site_admin']) && empty($user['Role']['perm_tagger'])) {
+            return $result;
+        }
+        $removeTagNames = $this->__moduleResultTagNames($removeTags);
+        $addTagNames = $this->__moduleResultTagNames($addTags);
+        $removeTagIds = array();
+        foreach ($removeTagNames as $tagName) {
+            $tagId = $this->Attribute->AttributeTag->Tag->lookupTagIdFromName($tagName);
+            if ($tagId != -1) {
+                $removeTagIds[$tagName] = $tagId;
+            }
+        }
+        $attributes = $this->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.id'),
+            'conditions' => array(
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted' => 0,
+                'Attribute.type' => $type,
+                'Attribute.value' => $value,
+            ),
+        ));
+        if (empty($attributes)) {
+            return $result;
+        }
+        // The row describes an attribute the event already holds, whether or not any
+        // of the named tags turn out to be attached to it.
+        $result['matched'] = true;
+        $log = $this->loadLog();
+        foreach ($attributes as $attribute) {
+            $attributeId = $attribute['Attribute']['id'];
+            foreach ($removeTagIds as $tagName => $tagId) {
+                $attributeTag = $this->Attribute->AttributeTag->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('AttributeTag.id', 'AttributeTag.local'),
+                    'conditions' => array(
+                        'AttributeTag.attribute_id' => $attributeId,
+                        'AttributeTag.tag_id' => $tagId,
+                    ),
+                ));
+                if (empty($attributeTag)) {
+                    continue;
+                }
+                if (!$this->Attribute->AttributeTag->detachTagFromAttribute($attributeId, $eventId, $tagId, null)) {
+                    continue;
+                }
+                $result['removed']++;
+                if (empty($attributeTag['AttributeTag']['local'])) {
+                    $result['global'] = true;
+                    $this->Attribute->touch($attributeId);
+                }
+                $log->createLogEntry(
+                    $user,
+                    'tag',
+                    'Attribute',
+                    $attributeId,
+                    'Removed tag (' . $tagId . ') "' . $tagName . '" from attribute (' . $attributeId . ')',
+                    'Attribute (' . $attributeId . ') untagged of Tag (' . $tagId . ')'
+                );
+            }
+            foreach ($addTagNames as $tagName) {
+                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => $tagName), $user);
+                if ($tagId === false) {
+                    continue; // the user is not allowed to use that tag
+                }
+                $nothingToChange = false;
+                $this->Attribute->AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false, false, $nothingToChange);
+                if (!$nothingToChange) {
+                    $result['global'] = true;
+                    $this->Attribute->touch($attributeId);
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * The tag names of a module result key, which a module may spell as a list and the
+     * resolution screen posts back as one comma separated string.
+     *
+     * @param array|string|false $tagNames
+     * @return array
+     */
+    private function __moduleResultTagNames($tagNames)
+    {
+        if (empty($tagNames)) {
+            return array();
+        }
+        if (!is_array($tagNames)) {
+            $tagNames = explode(',', (string)$tagNames);
+        }
+        $names = array();
+        foreach ($tagNames as $tagName) {
+            $tagName = trim($tagName);
+            if ($tagName !== '') {
+                $names[] = $tagName;
+            }
+        }
+        return $names;
     }
 
     /**
