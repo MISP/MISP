@@ -819,12 +819,14 @@ class Event extends AppModel
             return [];
         }
         // now look up the event data for these attributes
+        // the correlation row's distribution columns are a snapshot and carry no
+        // published flag, so scope the events themselves
+        $conditions = $this->createEventConditions($user);
+        $conditions['Event.id'] = $relatedEventIds;
         $relatedEvents =  $this->find(
             'all',
             [
-                'conditions' => [
-                    'Event.id' => $relatedEventIds
-                ],
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'order' => 'date DESC',
                 'fields' => [

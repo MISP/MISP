@@ -3864,9 +3864,6 @@ class EventsController extends AppController
      * metadata and a count of unique correlating values per
      * related event.
      *
-     * ACL is enforced via the correlation table itself —
-     * all distribution / sharing group checks happen there.
-     *
      * @param int|string $id Event ID or UUID
      */
     public function viewRelatedEvents($id = null)
@@ -3904,10 +3901,10 @@ class EventsController extends AppController
         }
 
         // Fetch event metadata for related events
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['Event.id'] = $relatedEventIds;
         $relatedEvents = $this->Event->find('all', [
-            'conditions' => [
-                'Event.id' => $relatedEventIds,
-            ],
+            'conditions' => $conditions,
             'recursive' => -1,
             'order' => 'Event.date DESC',
             'fields' => [
