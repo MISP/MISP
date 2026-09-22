@@ -115,6 +115,16 @@ app/Console/cake StartWorker                  # Start background workers
 - **Python files**: Lowercase with underscores (`load_warninglists.py`)
 - **JavaScript files**: Lowercase with dashes (`bootstrap-colorpicker.js`)
 
+## Code Comments
+
+Keep comments minimal. Add one only where the code would be genuinely confusing in a vacuum, and
+keep it to a line or two — no large explanatory blocks justifying a change.
+
+**Never reference tracker or planning artefacts in code comments**: no finding ids (`V01`, `A01`),
+no task or phase numbers (`TaskA1`), no pointers to a PRD, handoff or progress tracker. That
+context belongs in the internal records, not in the tree. If a stale or misleading comment is what
+led someone astray, delete it rather than replacing it with a longer one.
+
 ## Commit Message Format
 
 Use gitchangelog prefixes for automatic changelog generation:
