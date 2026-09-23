@@ -2019,7 +2019,8 @@ class UsersController extends AppController
             }
             $secret = $user['totp'];
             $totp = \OTPHP\TOTP::create($secret);
-            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+            $now = time();
+            if ($totp->verify(trim($this->request->data['User']['otp']), $now) && $this->__claimTotpStep($user['id'], $totp, $now)) {
                 // OTP is correct, we login the user with CakePHP
                 $this->Session->delete('otp_user');
                 $this->Auth->login($user);
@@ -2039,6 +2040,17 @@ class UsersController extends AppController
         // GET Request or wrong OTP, just show the form
         $this->set('totp', $user['totp']? true : false);
         $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    /**
+     * A TOTP code is valid for its whole period; remember the period it was spent
+     * in so the same code cannot log in a second time.
+     */
+    private function __claimTotpStep($userId, \OTPHP\TOTP $totp, $timestamp)
+    {
+        $step = intdiv($timestamp - $totp->getEpoch(), $totp->getPeriod());
+        $key = 'misp:otp:totp_used:' . $userId . ':' . $step;
+        return (bool)RedisTool::init()->set($key, 1, ['nx', 'ex' => 3 * $totp->getPeriod()]);
     }
 
     /**
