@@ -639,7 +639,7 @@ class EventGraph {
                     btn_plot.data('network-preview', preview);
                     btn_plot.popover({
                         container: 'body',
-                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                        content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                         placement: 'right',
                         trigger: 'hover',
                         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -2006,7 +2006,7 @@ function reset_graph_history() {
                 btn_plot.data('network-preview', preview);
                 btn_plot.popover({
                     container: 'body',
-                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                    content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                     placement: 'right',
                     trigger: 'hover',
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
