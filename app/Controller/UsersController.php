@@ -1864,15 +1864,13 @@ class UsersController extends AppController
             }
             $secret = $user['totp'];
             $totp = \OTPHP\TOTP::create($secret);
-            $hotp = \OTPHP\HOTP::create($secret);
             if ($totp->verify(trim($this->request->data['User']['otp']))) {
                 // OTP is correct, we login the user with CakePHP
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
-            } elseif (isset($user['hotp_counter']) && $hotp->verify(trim($this->request->data['User']['otp']), $user['hotp_counter'])) {
-                // HOTP is correct, update the counter and login
-                $this->User->id = $user['id'];
-                $this->User->saveField('hotp_counter', $user['hotp_counter']+1);
+            } elseif (isset($user['hotp_counter']) && $this->__consumeHotp($user['id'], trim($this->request->data['User']['otp']))) {
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
             } else {
@@ -1886,6 +1884,39 @@ class UsersController extends AppController
         // GET Request or wrong OTP, just show the form
         $this->set('totp', $user['totp']? true : false);
         $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    /**
+     * Verify a paper token against the stored counter, not the one cached in the
+     * session at password time, and burn it under a lock so it works only once.
+     */
+    private function __consumeHotp($userId, $otp)
+    {
+        $redis = RedisTool::init();
+        $lock = 'misp:otp:hotp_lock:' . $userId;
+        if (!$redis->set($lock, 1, ['nx', 'ex' => 10])) {
+            return false;
+        }
+        try {
+            $stored = $this->User->find('first', [
+                'conditions' => ['User.id' => $userId],
+                'fields' => ['User.totp', 'User.hotp_counter'],
+                'recursive' => -1,
+            ]);
+            if (empty($stored['User']['totp']) || !isset($stored['User']['hotp_counter'])) {
+                return false;
+            }
+            $counter = (int)$stored['User']['hotp_counter'];
+            $hotp = \OTPHP\HOTP::create($stored['User']['totp']);
+            if (!$hotp->verify($otp, $counter)) {
+                return false;
+            }
+            $this->User->id = $userId;
+            $this->User->saveField('hotp_counter', $counter + 1);
+            return true;
+        } finally {
+            $redis->del($lock);
+        }
     }
 
     public function hotp()
