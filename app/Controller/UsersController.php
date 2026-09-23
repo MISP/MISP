@@ -2246,9 +2246,12 @@ class UsersController extends AppController
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp))) {
-                // we invalidate the previously generated OTP
-                $redis->del('misp:otp:' . $user_id);
+            if (
+                !empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp)) &&
+                // only the request whose delete removed the code may use it
+                $redis->del('misp:otp:' . $user_id) === 1
+            ) {
+                $this->Session->delete('email_otp_user');
                 // We login the user with CakePHP
                 $this->Auth->login($user);
                 $this->_postlogin();
