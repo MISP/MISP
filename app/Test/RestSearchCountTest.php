@@ -1,7 +1,10 @@
 <?php
-require_once __DIR__ . '/RestSearchExportStubs.php';
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class RestSearchCountTest extends TestCase
 {
     private $user = ['org_id' => 1, 'Role' => [
@@ -10,6 +13,7 @@ class RestSearchCountTest extends TestCase
 
     protected function setUp(): void
     {
+        require_once __DIR__ . '/RestSearchExportStubs.php';
         Configure::$values = [];
         $allowedlist = new Allowedlist();
         $allowedlist->allowedlistedItems = [];

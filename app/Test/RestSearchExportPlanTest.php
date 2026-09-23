@@ -1,12 +1,20 @@
 <?php
-require_once __DIR__ . '/RestSearchExportStubs.php';
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class RestSearchExportPlanTest extends TestCase
 {
     private $user = ['org_id' => 1, 'Role' => [
         'perm_sync' => false, 'perm_site_admin' => false,
     ]];
+
+    protected function setUp(): void
+    {
+        require_once __DIR__ . '/RestSearchExportStubs.php';
+    }
 
     public function testLeanFetchProjectsOnlyConsumedFieldsAndSkipsEnrichment()
     {
