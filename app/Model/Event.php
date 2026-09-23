@@ -514,7 +514,19 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
-        $this->__beforeSaveData = $this->data['Event'];
+        // remember the stored distribution/SG so afterSave can tell whether
+        // this save actually changed them and refresh the correlations if so
+        $this->__beforeSaveData = null;
+        if (!empty($this->data['Event']['id'])) {
+            $stored = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Event.id' => $this->data['Event']['id']],
+                'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+            ]);
+            if (!empty($stored)) {
+                $this->__beforeSaveData = $stored['Event'];
+            }
+        }
 
         $trigger_id = 'event-before-save';
         if ($this->isTriggerCallable($trigger_id)) {
