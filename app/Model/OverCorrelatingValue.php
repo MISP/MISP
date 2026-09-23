@@ -143,28 +143,69 @@ class OverCorrelatingValue extends AppModel
             'recursive' => -1
         ]);
         $this->Attribute = ClassRegistry::init('MispAttribute');
-        foreach ($overCorrelations as &$overCorrelation) {
-            $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
-            $count = $this->Attribute->find('count', [
-                'recursive' => -1,
-                'conditions' => [
-                    'OR' => [
-                        'Attribute.value1 LIKE' => $value,
-                        'AND' => [
-                            'Attribute.value2 LIKE' => $value,
-                            'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
-                        ],
-                    ],
-                    'NOT' => ['Attribute.type' => MispAttribute::NON_CORRELATING_TYPES],
-                    'Attribute.disable_correlation' => 0,
-                    'Event.disable_correlation' => 0,
-                    'Attribute.deleted' => 0,
-                ],
-                'contain' => ['Event'],
-            ]);
-            $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
+        foreach (array_chunk($overCorrelations, 100, true) as $chunk) {
+            foreach ($this->__countOccurrences($chunk) as $k => $occurrence) {
+                $overCorrelations[$k]['OverCorrelatingValue']['occurrence'] = $occurrence;
+            }
         }
         $this->saveMany($overCorrelations);
+    }
+
+    /**
+     * Count the attributes matching each of the given over correlating values in a single query.
+     *
+     * Values are stored truncated, so they are matched as a prefix of the attribute values and the
+     * conditions of two values can overlap, which rules out collapsing them into a GROUP BY. Summing
+     * one match expression per value over a single pass however counts exactly what one count query
+     * per value counted.
+     *
+     * @param array $overCorrelations
+     * @return array Occurrence count, keyed like the given over correlating values
+     */
+    private function __countOccurrences(array $overCorrelations)
+    {
+        $db = $this->Attribute->getDataSource();
+        $primaryOnlyTypes = [];
+        foreach (MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES as $type) {
+            $primaryOnlyTypes[] = $db->value($type, 'string');
+        }
+        $nonCorrelatingTypes = [];
+        foreach (MispAttribute::NON_CORRELATING_TYPES as $type) {
+            $nonCorrelatingTypes[] = $db->value($type, 'string');
+        }
+        $matches = $fields = [];
+        foreach ($overCorrelations as $k => $overCorrelation) {
+            $value = $db->value($overCorrelation['OverCorrelatingValue']['value'] . '%', 'string');
+            $match = sprintf(
+                'Attribute.value1 LIKE %s OR (Attribute.value2 LIKE %s AND Attribute.type NOT IN (%s))',
+                $value,
+                $value,
+                implode(', ', $primaryOnlyTypes)
+            );
+            $matches[] = '(' . $match . ')';
+            $fields[] = sprintf('SUM(%s) AS occurrence_%d', $match, $k);
+        }
+        $sql = sprintf(
+            'SELECT %s FROM %s AS Attribute' .
+            ' INNER JOIN %s AS Event ON Event.id = Attribute.event_id' .
+            ' WHERE (%s)' .
+            ' AND Attribute.type NOT IN (%s)' .
+            ' AND Attribute.disable_correlation = 0' .
+            ' AND Event.disable_correlation = 0' .
+            ' AND Attribute.deleted = 0',
+            implode(', ', $fields),
+            $db->fullTableName($this->Attribute),
+            $db->fullTableName($this->Attribute->Event),
+            implode(' OR ', $matches),
+            implode(', ', $nonCorrelatingTypes)
+        );
+        // the second parameter keeps these statements out of the query cache, they are large and never repeated
+        $result = $this->Attribute->query($sql, false);
+        $occurrences = [];
+        foreach ($overCorrelations as $k => $overCorrelation) {
+            $occurrences[$k] = (int)($result[0][0]['occurrence_' . $k] ?? 0);
+        }
+        return $occurrences;
     }
 
     public function truncateTable()
