@@ -8998,16 +8998,17 @@ class Event extends AppModel
 
     private function __cachedelegatedEventIDs($user, $useCache = false)
     {
-        if ($useCache && isset($this->assetCache['delegatedEventIDs'])) {
-            return $this->assetCache['delegatedEventIDs'];
+        $orgId = $user['org_id'];
+        if ($useCache && isset($this->assetCache['delegatedEventIDs'][$orgId])) {
+            return $this->assetCache['delegatedEventIDs'][$orgId];
         } else {
             $this->EventDelegation = ClassRegistry::init('EventDelegation');
             $delegatedEventIDs = $this->EventDelegation->find('list', array(
-                'conditions' => array('EventDelegation.org_id' => $user['org_id']),
+                'conditions' => array('EventDelegation.org_id' => $orgId),
                 'fields' => array('event_id')
             ));
             if ($useCache) {
-                $this->assetCache['delegationEventIDs'] = $delegatedEventIDs;
+                $this->assetCache['delegatedEventIDs'][$orgId] = $delegatedEventIDs;
             }
             return $delegatedEventIDs;
         }
