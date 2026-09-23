@@ -65,28 +65,24 @@ class PostsController extends AppController
             case 'thread':
                 $target_thread_id = $target_id;
                 if ($target_id != null) {
-                    $thread = $this->Thread->read(null, $target_thread_id);
-                    if ($thread == null) {
+                    if (!$this->Thread->checkIfAuthorised($this->Auth->user(), $target_thread_id)) {
                         throw new NotFoundException(__('Invalid thread'));
                     }
-                    if (!$this->_isSiteAdmin()) {
-                        if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
-                            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-                        }
-                    }
+                    $this->Thread->read(null, $target_thread_id);
                     $title = $this->Thread->data['Thread']['title'];
                     $event_id = $this->Thread->data['Thread']['event_id'];
                 }
             break;
             case 'post':
                 $this->Post->read(null, $target_id);
-                $target_thread_id = $this->Post->data['Post']['thread_id'];
-                $thread = $this->Thread->read(null, $target_thread_id);
-                if (!$this->_isSiteAdmin()) {
-                    if ($thread['Thread']['distribution'] == 0 && $this->Auth->user('org_id') != $thread['Thread']['org_id']) {
-                        throw new MethodNotAllowedException(('You don\'t have permission to do that.'));
-                    }
+                if (empty($this->Post->data['Post']['thread_id'])) {
+                    throw new NotFoundException(__('Invalid post'));
                 }
+                $target_thread_id = $this->Post->data['Post']['thread_id'];
+                if (!$this->Thread->checkIfAuthorised($this->Auth->user(), $target_thread_id)) {
+                    throw new NotFoundException(__('Invalid post'));
+                }
+                $this->Thread->read(null, $target_thread_id);
                 $title = $this->Thread->data['Thread']['title'];
                 $previousPost = $this->_grabPreviousPost($target_id);
                 $distribution = $previousPost['Thread']['distribution'];
