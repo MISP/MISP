@@ -141,7 +141,7 @@ and attribute-search role rate limits apply.
 Send `Accept: application/json` and `Content-Type: application/json`:
 
 ```json
-{"value":["example.org","192.0.2.1","missing.example"],"maxAge":60}
+{"value":["example.org","192.0.2.1","missing.example"]}
 ```
 
 Example response:
@@ -158,7 +158,7 @@ strings. Each event ID is a decimal string; IDs are distinct and sorted numerica
 | Parameter | Type | Description |
 | -- | -- | -- |
 | `value` | array of strings, required | At most 1000 nonempty valid UTF-8 strings without NUL characters. Each string is at most 4096 bytes; combined strings are at most 1 MiB (1048576 bytes). |
-| `maxAge` | integer, optional | Maximum candidate-cache age in seconds, from 0 through 60; defaults to 60. Zero bypasses Redis reads and writes. |
+| `maxAge` | integer, optional | Maximum candidate-cache age in seconds, from 0 through the configured `MISP.fast_lookup_cache_ttl`; defaults to that setting. Zero bypasses Redis reads and writes. |
 
 Matching uses SQL equality against either stored attribute component, `value1` or
 `value2`. For example, either component of a `domain|ip` attribute can match;
@@ -171,10 +171,17 @@ options. Standard visibility rules still govern unpublished events and event,
 attribute and object sharing groups. Deleted attributes and attributes without an
 existing event are excluded.
 
+Administrators configure the cache duration with `MISP.fast_lookup_cache_ttl`,
+a nonnegative integer in seconds that defaults to **10800 (180 minutes / 3 hours)**.
+Set it to `0` to disable caching. Omitting `maxAge` uses the configured duration;
+callers can request a shorter age, for example `"maxAge":60`, or use
+`"maxAge":0` for a fresh lookup. A value above the configured duration is rejected.
+
 Redis stores complete candidate attribute ID sets, including negative results,
-for at most 60 seconds from the start of SQL discovery; reads do not refresh
-expiry. New attributes, or edits that newly match an IOC, may therefore take up
-to 60 seconds to appear. Every request rechecks current sharing permissions,
+for at most the configured duration from the start of SQL discovery; reads do not
+refresh expiry. New attributes, or edits that newly match an IOC, may therefore
+take up to that duration to appear unless the caller requests a shorter `maxAge`.
+Every request rechecks current sharing permissions,
 values, deletion and event existence before returning event IDs. Redis failure
 or invalid cached data falls back to SQL. HTTP responses use
 `Cache-Control: no-store`; final permission-filtered results are never cached.

@@ -295,11 +295,15 @@ paths:
         deduplicated. Missing or invisible IOCs are omitted. Empty inputs or no matches return
         `{}`, and numeric-looking IOC keys remain object properties.
 
-        Redis caches complete candidate attribute IDs, including negative matches, for at
-        most 60 seconds from the start of SQL discovery. Cache hits never extend expiry.
+        Administrators configure `MISP.fast_lookup_cache_ttl` as a nonnegative integer in
+        seconds, defaulting to 10800 (180 minutes / 3 hours); 0 disables caching. Redis caches
+        complete candidate attribute IDs, including negative matches, for at most that
+        duration from the start of SQL discovery. Cache hits never extend expiry.
         Newly added or newly matching attributes can be absent until that cache expires.
         Every response rechecks current values, deletion, event existence and sharing
-        permissions. `maxAge: 0` bypasses cache reads and writes. Redis failure or corrupt
+        permissions. Omitted `maxAge` uses the configured duration; callers can request a
+        shorter age, and `maxAge: 0` bypasses cache reads and writes. A `maxAge` above the
+        configured duration is rejected with HTTP 400. Redis failure or corrupt
         entries fall back to SQL. Responses carry `Cache-Control: no-store`.
 
         Supply at most 1000 nonempty UTF-8 strings without NUL characters, each at most 4096
@@ -329,12 +333,9 @@ paths:
                 maxAge:
                   type: integer
                   minimum: 0
-                  maximum: 60
-                  default: 60
-                  description: "Maximum candidate cache age in seconds. Zero bypasses Redis."
+                  description: "Maximum candidate cache age in seconds, bounded by and defaulting to the deployment's MISP.fast_lookup_cache_ttl setting (10800 seconds / 180 minutes by default). Zero bypasses Redis."
             example:
               value: ["example.org", "192.0.2.1", "missing.example"]
-              maxAge: 60
       responses:
         "200":
           description: "Every matching input IOC mapped to all visible event IDs."

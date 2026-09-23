@@ -49,6 +49,10 @@ class FastLookupCacheRedisFake
     public function exec() { return []; }
 }
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class FastLookupCacheTest extends TestCase
 {
     private $redis;
@@ -57,6 +61,7 @@ class FastLookupCacheTest extends TestCase
 
     protected function setUp(): void
     {
+        require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
         $this->redis = new FastLookupCacheRedisFake();
         $this->now = 1000.0;
         if (is_file(__DIR__ . '/../Lib/Tools/FastLookupCache.php')) {
@@ -68,6 +73,65 @@ class FastLookupCacheTest extends TestCase
     {
         $this->assertTrue(class_exists('FastLookupCache'), 'The fast lookup cache adapter exists');
         return new FastLookupCache($namespace, $this->redis, function () { return $this->now; });
+    }
+
+    public function testDefaultCacheDurationIs180MinutesForPositiveAndNegativeResults()
+    {
+        $cache = $this->cache();
+        $values = ['present', 'absent'];
+        $cache->storeMany($values, [['12'], []], 1000.0);
+        $this->assertSame(10800, $this->redis->writes[0][1]);
+        $this->assertSame(10800, $this->redis->writes[1][1]);
+        $this->now = 11799.0;
+        $this->assertSame([['12'], []], $cache->getMany($values, 10800));
+        $this->now = 11800.0;
+        $this->assertSame([], $cache->getMany($values, 10800));
+        $this->assertCount(2, $this->redis->writes);
+    }
+
+    public function testShorteningConfigurationImmediatelyExpiresOldPositiveAndNegativeEntries()
+    {
+        $cache = $this->cache();
+        $values = ['present', 'absent'];
+        $cache->storeMany($values, [['12'], []], 1000.0);
+        $this->now = 1060.0;
+        Configure::write('MISP.fast_lookup_cache_ttl', 60);
+        $this->assertSame([], $cache->getMany($values, 10800));
+        $cache->storeMany($values, [['13'], []], 1060.0);
+        $this->assertSame([['13'], []], $cache->getMany($values, 10800));
+        $this->assertSame(60, $this->redis->writes[2][1]);
+        Configure::write('MISP.fast_lookup_cache_ttl', 0);
+        $readCount = count($this->redis->reads);
+        $this->assertSame([], $cache->getMany($values, 10800));
+        $cache->storeMany($values, [['14'], []], 1060.0);
+        $this->assertSame($readCount, count($this->redis->reads));
+        $this->assertCount(4, $this->redis->writes);
+    }
+
+    /** @dataProvider configuredDurations */
+    public function testConfiguredDurationControlsCacheStorageAndReads($configured, $duration)
+    {
+        Configure::write('MISP.fast_lookup_cache_ttl', $configured);
+        $cache = $this->cache();
+        $cache->storeMany(['present', 'absent'], [['12'], []], 1000.0);
+        if ($duration === 0) {
+            $this->assertSame([], $this->redis->writes);
+            $this->assertSame([], $cache->getMany(['present', 'absent'], 10800));
+            $this->assertSame([], $this->redis->reads);
+        } else {
+            $this->assertSame($duration, $this->redis->writes[0][1]);
+            $this->assertSame([['12'], []], $cache->getMany(['present', 'absent'], $duration));
+            $this->now += $duration;
+            $this->assertSame([], $cache->getMany(['present', 'absent'], $duration));
+        }
+    }
+
+    public static function configuredDurations()
+    {
+        return [[120, 120], ['000120', 120], ['21600', 21600], [0, 0], ['0', 0],
+            [-1, 0], ['-1', 0], ['bad', 0], [false, 0], [true, 0], [1.5, 0],
+            ['1.5', 0], ['1e3', 0], ['', 0], [' 120', 0], [[], 0],
+            [str_repeat('9', 30), 0]];
     }
 
     public function testBulkPositiveAndNegativeEntriesPreserveInputPositions()
@@ -84,6 +148,7 @@ class FastLookupCacheTest extends TestCase
 
     public function testAgeStartsBeforeDiscoveryAndHitsDoNotRefreshIt()
     {
+        Configure::write('MISP.fast_lookup_cache_ttl', 60);
         $cache = $this->cache();
         $this->now = 1012.1;
         $cache->storeMany(['example.org'], [['12']], 1000.0);
@@ -110,7 +175,7 @@ class FastLookupCacheTest extends TestCase
     public function testExpiredOrFutureDiscoveriesAreNotStored()
     {
         $cache = $this->cache();
-        $cache->storeMany(['old'], [['12']], 940.0);
+        $cache->storeMany(['old'], [['12']], -9800.0);
         $cache->storeMany(['future'], [['12']], 1001.0);
         $this->assertSame([], $this->redis->writes);
     }

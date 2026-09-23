@@ -7023,11 +7023,19 @@ class Server extends AppModel
                 ),
                 'fast_lookup_enabled' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Enable POST /attributes/fastLookup for authenticated users to map literal IOCs to visible event IDs. Redis candidate caching can delay newly matching attributes by up to 60 seconds; current values, deletion and sharing permissions are checked on every request.'),
+                    'description' => __('Enable POST /attributes/fastLookup for authenticated users to map literal IOCs to visible event IDs. Redis candidate caching can delay newly matching attributes by MISP.fast_lookup_cache_ttl seconds; current values, deletion and sharing permissions are checked on every request.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
+                ),
+                'fast_lookup_cache_ttl' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Maximum lifetime in seconds for fastLookup candidate caches, including negative results. Defaults to 10800 seconds (180 minutes); 0 disables candidate caching. Newly matching attributes can be delayed by this duration. Current values, deletion and sharing permissions are checked on every request. Requests may use maxAge to require fresher results.'),
+                    'value' => 10800,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => false,
                 ),
                 'redis_host' => array(
                     'level' => 0,

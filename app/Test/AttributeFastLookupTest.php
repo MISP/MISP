@@ -87,14 +87,66 @@ class FastLookupRecordingCache
     }
 }
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
 {
+    protected function setUp(): void
+    {
+        require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
+        require_once __DIR__ . '/../Lib/Tools/FastLookupCache.php';
+    }
+
     private function tool(&$attribute, &$cache)
     {
         $this->assertTrue(class_exists('AttributeFastLookupTool'), 'The lookup module must exist.');
         $attribute = new FastLookupSqlAttribute();
         $cache = new FastLookupRecordingCache();
         return new AttributeFastLookupTool($attribute, $cache);
+    }
+
+    public function testCustomConfiguredDurationBecomesTheRequestDefault()
+    {
+        Configure::write('MISP.fast_lookup_cache_ttl', '21600');
+        $tool = $this->tool($attribute, $cache);
+        $cache->hits = [0 => []];
+        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing']])));
+        $this->assertSame(21600, $cache->reads[0][1]);
+        $this->assertSame([], $attribute->db->queries);
+    }
+
+    public function testCallerCanUseConfiguredMaximumOrRequestFresherData()
+    {
+        Configure::write('MISP.fast_lookup_cache_ttl', 120);
+        $tool = $this->tool($attribute, $cache);
+        $cache->hits = [0 => []];
+        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing'], 'maxAge' => 120])));
+        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing'], 'maxAge' => 30])));
+        $this->assertSame([[['missing'], 120], [['missing'], 30]], $cache->reads);
+        $this->expectException(InvalidArgumentException::class);
+        $tool->lookup([], ['value' => ['missing'], 'maxAge' => 121]);
+    }
+
+    /** @dataProvider disabledDurations */
+    public function testDisabledOrInvalidConfigurationAlwaysUsesFreshSql($configured)
+    {
+        Configure::write('MISP.fast_lookup_cache_ttl', $configured);
+        $tool = $this->tool($attribute, $cache);
+        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']]];
+        $this->assertSame('{"example.org":["7"]}', json_encode($tool->lookup([], ['value' => ['example.org']])));
+        $this->assertSame([], $cache->reads);
+        $this->assertSame([], $cache->writes);
+        $this->assertCount(1, $attribute->db->queries);
+        $this->assertStringContainsString('`Event`.`org_id` = 7', $attribute->db->queries[0]);
+        $this->expectException(InvalidArgumentException::class);
+        $tool->lookup([], ['value' => ['example.org'], 'maxAge' => 1]);
+    }
+
+    public static function disabledDurations()
+    {
+        return [[0], ['0'], ['invalid'], [-1], [false]];
     }
 
     public function testFreshLookupPreservesKeysAndAllDistinctSortedEvents()
@@ -142,7 +194,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $started = microtime(true);
         $result = $tool->lookup([], ['value' => ['example.org', 'missing']]);
         $this->assertSame('{"example.org":["7"]}', json_encode($result));
-        $this->assertSame([[['example.org', 'missing'], 60]], $cache->reads);
+        $this->assertSame([[['example.org', 'missing'], 10800]], $cache->reads);
         $this->assertSame([0 => ['11', '12'], 1 => []], $cache->writes[0][1]);
         $this->assertGreaterThanOrEqual($started, $cache->writes[0][2]);
         $this->assertStringNotContainsString('deleted', $attribute->db->queries[0]);
@@ -195,7 +247,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
             [['value' => [1 => 'x']]], [['value' => [1]]], [['value' => ['']]],
             [['value' => ["\xff"]]], [['value' => ["\0x"]]], [['value' => ["x\0y"]]],
             [['value' => ['x'], 'other' => true]],
-            [['value' => ['x'], 'maxAge' => -1]], [['value' => ['x'], 'maxAge' => 61]],
+            [['value' => ['x'], 'maxAge' => -1]], [['value' => ['x'], 'maxAge' => 10801]],
             [['value' => ['x'], 'maxAge' => '60']], [['value' => ['x'], 'maxAge' => 1.0]],
             [['value' => ['x'], 'maxAge' => null]], [['value' => ['x'], 'maxAge' => true]],
             [['value' => array_fill(0, 1001, 'x')]], [['value' => [str_repeat('x', 4097)]]],

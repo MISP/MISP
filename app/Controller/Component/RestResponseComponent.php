@@ -60,7 +60,7 @@ class RestResponseComponent extends Component
                 'params' => array()
             ),
             'fastLookup' => array(
-                'description' => 'POST a JSON object containing a value array of literal IOCs to return each matching IOC mapped to all visible event IDs. Matches use SQL equality on value1 or value2, with IPv6 normalization and no restSearch operators or implicit to_ids filter. Missing or invisible values are omitted. Requires MISP.fast_lookup_enabled. maxAge defaults to 60 seconds (0 bypasses Redis); current permissions, values and deletion are always checked. Accepts at most 1000 values, 4096 bytes each, 1 MiB combined; exceeding the 100000-row request budget returns HTTP 413 without partial results.',
+                'description' => 'POST a JSON object containing a value array of literal IOCs to return each matching IOC mapped to all visible event IDs. Matches use SQL equality on value1 or value2, with IPv6 normalization and no restSearch operators or implicit to_ids filter. Missing or invisible values are omitted. Requires MISP.fast_lookup_enabled. maxAge defaults to, and cannot exceed, MISP.fast_lookup_cache_ttl in seconds (default 10800, or 180 minutes); 0 bypasses Redis. Setting MISP.fast_lookup_cache_ttl to 0 disables caching. Current permissions, values and deletion are always checked. Accepts at most 1000 values, 4096 bytes each, 1 MiB combined; exceeding the 100000-row request budget returns HTTP 413 without partial results.',
                 'operationId' => 'fastLookupAttributes',
                 'method' => 'POST',
                 'mandatory' => array('value'),
@@ -2025,8 +2025,8 @@ class RestResponseComponent extends Component
                 'input' => 'number',
                 'type' => 'integer',
                 'operators' => array('equal'),
-                'validation' => array('min' => 0, 'max' => 60, 'step' => 1),
-                'help' => __('Maximum candidate cache age in seconds. Defaults to 60; 0 bypasses Redis.'),
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __('Maximum candidate cache age in seconds. Defaults to, and cannot exceed, MISP.fast_lookup_cache_ttl (default 10800, or 180 minutes). Zero bypasses Redis.'),
             ),
             'value' => array(
                 'input' => 'text',

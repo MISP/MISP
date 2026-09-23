@@ -2,8 +2,9 @@
 
 `POST /attributes/fastLookup` maps literal submitted IOC strings to all distinct
 visible event IDs. Enable `MISP.fast_lookup_enabled` explicitly to expose the
-endpoint. The request is `{"value":["example.org"],"maxAge":60}`; `maxAge` is an
-optional integer from 0 through 60. An empty result is `{}`. Event IDs are decimal
+endpoint. The request is `{"value":["example.org"]}`; `maxAge` is an optional
+integer from 0 through the configured `MISP.fast_lookup_cache_ttl`. Omitting it
+uses that setting. An empty result is `{}`. Event IDs are decimal
 strings sorted numerically, and output keys preserve the original input spelling.
 
 The lookup compares either stored component (`value1` or `value2`) using SQL
@@ -22,10 +23,16 @@ event/attribute/object visibility. A permission revocation or changed/deleted
 attribute therefore cannot remain visible because of a cache hit. Sharing-group
 membership is evaluated for the current request.
 
-New matching attributes can take up to 60 seconds to enter the cached candidate
-set. This applies to both previous misses and additional matches for an existing
-IOC. Expiry is measured from the start of discovery, not from the last hit.
-`maxAge` can narrow that age; `maxAge:0` bypasses cache reads and writes entirely.
+`MISP.fast_lookup_cache_ttl` configures the cache duration in seconds. Its default
+is **10800 seconds (180 minutes / 3 hours)**; administrators can set a nonnegative
+integer, with `0` disabling caching. New matching attributes can take up to this
+duration to enter the cached candidate set. This applies to both previous misses
+and additional matches for an existing IOC. Expiry is measured from the start of
+discovery, not from the last hit. The optional request `maxAge` defaults to the
+configured duration and can narrow that age: for example, `maxAge:60` accepts
+candidates younger than one minute when the configured duration is at least 60
+seconds. `maxAge:0` bypasses cache reads and writes entirely, and values above the
+configured duration are rejected.
 Unavailable, unsupported, or malformed Redis entries fall back to SQL. Redis
 contains no final, authorized response cache.
 
@@ -98,11 +105,23 @@ data. These measurements describe this local fixture, not production throughput
 or concurrency. A cache miss can cost more than a fresh lookup; judge deployment
 benefit using the actual hit ratio, data distribution, latency and concurrency.
 
-## Observed local run (2026-09-23)
+## Configurable-duration validation
 
-The full runner passed **158 assertions** with PHP 8.3.33, MariaDB
-10.11.19-MariaDB-ubu2204, Redis 7.4.11, and 110,151 attribute rows. All eight user
-categories used two lookup SQL statements when cold and one when warm. The warm
+The updated isolated runner passed **208 checks** with the configurable duration.
+Real Redis tests verify the default 10800-second lifetime, custom 120- and
+300-second lifetimes, and rejection of older positive and negative entries when
+the setting is reduced. A zero setting performs fresh SQL without updating or
+creating cache entries; request ages above the configured limit are rejected.
+The existing eight-user visibility matrix still uses two cold lookup statements
+and one warm lookup statement. The model-level limitations below still apply.
+
+## Observed local run (2026-09-23, original 60-second cache duration)
+
+The following measurements were taken before cache duration became configurable,
+using the original 60-second duration. The full runner passed **158 assertions**
+with PHP 8.3.33, MariaDB 10.11.19-MariaDB-ubu2204, Redis 7.4.11, and 110,151 attribute
+rows. All eight user categories used two lookup SQL statements when cold and one
+when warm. The warm
 statement was checked for its candidate-ID restriction and event-ID projection;
 the global value-discovery query was absent. Repeated cached misses needed no
 lookup SQL. These counts exclude model/schema metadata queries.
@@ -136,8 +155,8 @@ nor their absolute values establish performance for a production dataset.
 
 The run also verified the Unicode regression against the original utf8mb3 value
 columns, a stored match with only `value2` migrated to utf8mb4, and cache namespace
-separation across the schema change. The TTL test observes an initial expiry no
-longer than 60 seconds, then shortens it to exercise real expiry without waiting
-a full minute. HTTP authentication, endpoint routing, rate limiting, real
-sharing-group membership queries, concurrent traffic, and production table
+separation across the schema change. In that run, the TTL test observed an initial
+expiry no longer than 60 seconds, then shortened it to exercise real expiry
+without waiting a full minute. HTTP authentication, endpoint routing, rate limiting,
+real sharing-group membership queries, concurrent traffic, and production table
 statistics are outside this model-level harness.

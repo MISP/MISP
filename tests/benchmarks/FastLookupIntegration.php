@@ -106,6 +106,7 @@ $redis = RedisTool::init();
 $redis->flushDB();
 $checks = 0;
 $queryMeasurements = [];
+$defaultCacheTtl = 10800;
 
 function same($expected, $actual, $label)
 {
@@ -134,12 +135,16 @@ function addAttribute($value, $event = 2, array $overrides = [])
     ]);
 }
 
-function lookup(array $user, array $values, $maxAge = 60, $cache = null)
+function lookup(array $user, array $values, $maxAge = null, $cache = null)
 {
     // One instance per simulated request, as in the HTTP application.
     $model = new FastLookupIntegrationAttribute();
-    return $cache === null ? $model->fastLookup($user, ['value' => $values, 'maxAge' => $maxAge]) :
-        (new AttributeFastLookupTool($model, $cache))->lookup($user, ['value' => $values, 'maxAge' => $maxAge]);
+    $request = ['value' => $values];
+    if ($maxAge !== null) {
+        $request['maxAge'] = $maxAge;
+    }
+    return $cache === null ? $model->fastLookup($user, $request) :
+        (new AttributeFastLookupTool($model, $cache))->lookup($user, $request);
 }
 
 function jsonSame(array $expected, $actual, $label)
@@ -304,7 +309,8 @@ foreach ([false, true] as $positive) {
     jsonSame($before, lookup($user, [$value]), "$value prime");
     $key = onlyKey();
     $ttl = $redis->pttl($key);
-    same(true, $ttl > 0 && $ttl <= 60000, "$value TTL bounded to 60 seconds");
+    same(true, $ttl > ($defaultCacheTtl - 5) * 1000 && $ttl <= $defaultCacheTtl * 1000,
+        "$value default TTL is approximately 180 minutes and never exceeds it");
     $payload = $redis->get($key);
     usleep(120000);
     jsonSame($before, lookup($user, [$value]), "$value cache hit");
@@ -325,16 +331,90 @@ addAttribute('max-age-new', 2);
 usleep(1100000);
 jsonSame(['max-age-new' => ['2']], lookup($user, ['max-age-new'], 1), 'maxAge narrows permitted candidate staleness');
 
+// Admin-configured durations govern new writes and reuse of existing entries.
+// Age cached payloads directly so a duration decrease is tested without waiting.
+foreach ([120, 300] as $configuredTtl) {
+    foreach ([false, true] as $positive) {
+        Configure::write('MISP.fast_lookup_cache_ttl', $configuredTtl);
+        $redis->flushDB();
+        $value = 'configured-' . $configuredTtl . '-' . ($positive ? 'positive' : 'negative');
+        if ($positive) {
+            addAttribute($value, 2);
+        }
+        $before = $positive ? [$value => ['2']] : [];
+        jsonSame($before, lookup($user, [$value]), "$value prime using omitted maxAge");
+        $key = onlyKey();
+        $ttl = $redis->pttl($key);
+        same(true, $ttl > ($configuredTtl - 5) * 1000 && $ttl <= $configuredTtl * 1000,
+            "$value Redis TTL follows the configured duration");
+        addAttribute($value, 8);
+        jsonSame($before, lookup($user, [$value]), "$value warm candidate set is reused");
+
+        if ($configuredTtl === 300) {
+            $entry = json_decode($redis->get($key), true);
+            $entry['created'] = microtime(true) - 180;
+            $redis->setex($key, 300, json_encode($entry));
+            jsonSame($before, lookup($user, [$value]), "$value aged entry remains valid under 300 seconds");
+            Configure::write('MISP.fast_lookup_cache_ttl', 120);
+            $after = [$value => $positive ? ['2', '8'] : ['8']];
+            jsonSame($after, lookup($user, [$value]), "$value shortened duration rejects the old entry immediately");
+            $ttl = $redis->pttl($key);
+            same(true, $ttl > 115000 && $ttl <= 120000,
+                "$value refreshed entry receives the shortened duration");
+        }
+    }
+}
+
+Configure::write('MISP.fast_lookup_cache_ttl', 120);
+$db->getLog(false, true);
+try {
+    lookup($user, ['shared'], 121);
+    throw new RuntimeException('Expected maxAge above configured TTL to be rejected');
+} catch (InvalidArgumentException $e) {
+    ++$checks;
+}
+same([], lookupQueries(), 'maxAge above configured duration is rejected before SQL');
+
+// Disabling caching must bypass already populated positive and negative entries.
+foreach ([false, true] as $positive) {
+    Configure::write('MISP.fast_lookup_cache_ttl', 300);
+    $redis->flushDB();
+    $value = 'cache-disabled-' . ($positive ? 'positive' : 'negative');
+    if ($positive) {
+        addAttribute($value, 2);
+    }
+    lookup($user, [$value]);
+    $key = onlyKey();
+    $payload = $redis->get($key);
+    addAttribute($value, 8);
+    Configure::write('MISP.fast_lookup_cache_ttl', 0);
+    $db->getLog(false, true);
+    jsonSame([$value => $positive ? ['2', '8'] : ['8']], lookup($user, [$value]),
+        "$value omitted maxAge bypasses the old cache after disabling");
+    same(1, count(lookupQueries()), "$value disabled caching performs the direct live SQL query");
+    same($payload, $redis->get($key), "$value disabled caching leaves old cache entries untouched");
+}
+$redis->flushDB();
+jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared']), 'disabled caching returns fresh matches');
+same([], $redis->keys('misp:fast_lookup:*'), 'disabled caching writes no new Redis entries');
+try {
+    lookup($user, ['shared'], 1);
+    throw new RuntimeException('Expected positive maxAge to be rejected while caching is disabled');
+} catch (InvalidArgumentException $e) {
+    ++$checks;
+}
+Configure::delete('MISP.fast_lookup_cache_ttl');
+
 // Actual corrupted Redis payload and a disconnected phpredis connection.
 $redis->flushDB();
 lookup($user, ['shared']);
-$redis->setex(onlyKey(), 60, '{broken-json');
+$redis->setex(onlyKey(), $defaultCacheTtl, '{broken-json');
 jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared']), 'corrupt Redis payload falls back to SQL');
 $failedRedis = new Redis();
 $failedRedis->connect($argv[3]);
 $failedRedis->close();
 $failedCache = new FastLookupCache('integration-failed-redis', $failedRedis);
-jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared'], 60, $failedCache), 'disconnected real Redis falls back to SQL');
+jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared'], null, $failedCache), 'disconnected real Redis falls back to SQL');
 
 // A migrated utf8mb4 component can store supplementary characters even when
 // its companion column still uses utf8mb3. Ignore only impossible branches.
@@ -344,7 +424,7 @@ jsonSame([], lookup($user, [$emoji]), 'utf8mb3 cannot contain four-byte IOC');
 $pdo->exec('ALTER TABLE attributes MODIFY value2 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL');
 $db->cacheSources = false; // Read the changed schema, not Cake's old description.
 $emojiId = addAttribute('emoji-carrier', 2, ['value2' => $emoji]);
-foreach ([0, 60, 60] as $maxAge) {
+foreach ([0, null, null] as $maxAge) {
     jsonSame([$emoji => ['2']], lookup($user, [$emoji], $maxAge), 'mixed-charset schema retains utf8mb4 component match');
 }
 $pdo->exec('DELETE FROM attributes WHERE id=' . $emojiId);
@@ -396,7 +476,7 @@ jsonSame(['over-cache-cap' => ['2', '9001']], lookup($user, ['over-cache-cap']),
 
 // Resource limits fail explicitly and never publish partial cache entries.
 insertRepeated('over-row-cap', 100001, true);
-foreach ([0, 60] as $maxAge) {
+foreach ([0, null] as $maxAge) {
     $redis->flushDB();
     try {
         lookup($user, ['over-row-cap'], $maxAge);
@@ -439,23 +519,25 @@ $redis->flushDB();
 $repeatValues = array_slice($batchValues, 0, 100);
 lookup($user, $repeatValues);
 $benchmarks = [];
-$benchmarks[] = benchmark('repeat-100-warm', $user, function () use ($repeatValues) { return $repeatValues; }, 60);
+$benchmarks[] = benchmark('repeat-100-warm', $user, function () use ($repeatValues) { return $repeatValues; }, null);
 $benchmarks[] = benchmark('repeat-100-fresh', $user, function () use ($repeatValues) { return $repeatValues; }, 0);
 $newMisses = function ($i) {
     return array_map(function ($j) use ($i) { return 'new-miss-' . $i . '-' . $j; }, range(0, 99));
 };
 $redis->flushDB();
-$benchmarks[] = benchmark('new-misses-100-cache-enabled', $user, $newMisses, 60);
+$benchmarks[] = benchmark('new-misses-100-cache-enabled', $user, $newMisses, null);
 $benchmarks[] = benchmark('new-misses-100-fresh', $user, $newMisses, 0);
 $repeatMisses = $newMisses(0);
 lookup($user, $repeatMisses);
-$benchmarks[] = benchmark('repeat-misses-100-warm', $user, function () use ($repeatMisses) { return $repeatMisses; }, 60);
+$benchmarks[] = benchmark('repeat-misses-100-warm', $user, function () use ($repeatMisses) { return $repeatMisses; }, null);
 $report = ['checks' => $checks, 'versions' => ['php' => PHP_VERSION,
     'mariadb' => $pdo->query('SELECT VERSION()')->fetchColumn(), 'redis' => $redis->info('server')['redis_version']],
     'fixture_attribute_rows' => (int)$pdo->query('SELECT COUNT(*) FROM attributes')->fetchColumn(),
+    'default_cache_ttl_seconds' => $defaultCacheTtl,
     'collation' => 'utf8mb3_unicode_ci (value1/value2, matching INSTALL/MYSQL.sql)', 'query_counts' => $queryMeasurements, 'benchmarks' => $benchmarks,
     'limitations' => ['Direct model invocation, not HTTP authentication/rate limiting.',
         'Sharing-group membership is supplied by fixture; standard buildConditions and database joins execute.',
         'Synthetic indexed local data, no concurrent load or production throughput claims.',
-        'Expiry is exercised by shortening a real Redis TTL; the initial TTL is asserted <=60s.']];
+        'Expiry uses shortened real Redis TTLs; duration reductions use controlled payload ages.',
+        'Initial Redis TTLs are asserted near the 10800-second default and configured 120/300-second values.']];
 echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";

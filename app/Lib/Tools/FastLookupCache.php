@@ -7,7 +7,7 @@ App::uses('RedisTool', 'Tools');
  */
 class FastLookupCache
 {
-    const MAX_AGE = 60;
+    const DEFAULT_TTL = 10800;
     const MAX_IDS = 10000;
     const READ_BATCH_SIZE = 100;
     const MAX_RETURN_IDS = 100000;
@@ -24,6 +24,30 @@ class FastLookupCache
         $this->clock = $clock ?: function () { return microtime(true); };
     }
 
+    /** The configured candidate lifetime in seconds; invalid values disable caching. */
+    public static function configuredTtl()
+    {
+        $value = Configure::read('MISP.fast_lookup_cache_ttl');
+        if ($value === null) {
+            return self::DEFAULT_TTL;
+        }
+        if (is_int($value)) {
+            return max(0, $value);
+        }
+        if (!is_string($value) || !ctype_digit($value)) {
+            return 0;
+        }
+        // Settings saved through the administration UI can be decimal strings.
+        // Reject overflow rather than silently turning it into a longer lifetime.
+        $value = ltrim($value, '0');
+        $maximum = (string)PHP_INT_MAX;
+        if (strlen($value) > strlen($maximum) ||
+            (strlen($value) === strlen($maximum) && strcmp($value, $maximum) > 0)) {
+            return 0;
+        }
+        return (int)$value;
+    }
+
     /**
      * @param array $values Input index => normalized literal value
      * @param int $maxAge Maximum age in seconds; zero bypasses Redis
@@ -31,9 +55,13 @@ class FastLookupCache
      */
     public function getMany(array $values, $maxAge)
     {
-        if (!$values || !is_int($maxAge) || $maxAge < 1 || $maxAge > self::MAX_AGE) {
+        $configuredTtl = self::configuredTtl();
+        if (!$values || !is_int($maxAge) || $maxAge < 1 || $configuredTtl === 0) {
             return [];
         }
+        // Re-evaluate the setting on every read, including entries written while
+        // a longer lifetime was configured. Reads never extend Redis expiry.
+        $maxAge = min($maxAge, $configuredTtl);
         try {
             $hits = [];
             $idCount = 0;
@@ -87,9 +115,14 @@ class FastLookupCache
         if ((!is_int($queriedAt) && !is_float($queriedAt)) || !is_finite((float)$queriedAt)) {
             return;
         }
+        $configuredTtl = self::configuredTtl();
         $now = ($this->clock)();
-        $ttl = (int)floor(self::MAX_AGE - ($now - $queriedAt));
-        if ($queriedAt > $now || $ttl < 1) {
+        $elapsed = $now - $queriedAt;
+        if ($configuredTtl === 0 || $elapsed < 0 || $elapsed >= $configuredTtl) {
+            return;
+        }
+        $ttl = $configuredTtl - (int)ceil($elapsed);
+        if ($ttl < 1) {
             return;
         }
         $entries = [];

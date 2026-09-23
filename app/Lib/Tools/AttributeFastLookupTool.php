@@ -101,9 +101,10 @@ class AttributeFastLookupTool
         ) {
             throw new InvalidArgumentException('value must be a list of at most 1000 IOC strings.');
         }
-        $maxAge = array_key_exists('maxAge', $request) ? $request['maxAge'] : 60;
-        if (!is_int($maxAge) || $maxAge < 0 || $maxAge > 60) {
-            throw new InvalidArgumentException('maxAge must be an integer between 0 and 60.');
+        $configuredTtl = FastLookupCache::configuredTtl();
+        $maxAge = array_key_exists('maxAge', $request) ? $request['maxAge'] : $configuredTtl;
+        if (!is_int($maxAge) || $maxAge < 0 || $maxAge > $configuredTtl) {
+            throw new InvalidArgumentException("maxAge must be an integer between 0 and $configuredTtl.");
         }
         $bytes = 0;
         $originals = [];
