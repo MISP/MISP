@@ -592,13 +592,17 @@ class EventShell extends AppShell
             'id' => $id,
             'modules' => $modules
         );
-        $result = $this->MispAttribute->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->MispAttribute->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
@@ -643,13 +647,17 @@ class EventShell extends AppShell
             'event_id' => $eventId,
             'modules' => $modules
         );
-        $result = $this->Event->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->Event->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);

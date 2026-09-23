@@ -4535,12 +4535,17 @@ class MispAttribute extends AppModel
             );
             return __('Job queued (job ID: %s).', $jobId);
         } else {
-            $result = $this->enrichment($options);
-            return __('#' . $result . ' attributes have been created during the enrichment process.');
+            $tagsRemoved = 0;
+            $result = $this->enrichment($options, $tagsRemoved);
+            $message = __('#' . $result . ' attributes have been created during the enrichment process.');
+            if ($tagsRemoved) {
+                $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $tagsRemoved, $tagsRemoved);
+            }
+            return $message;
         }
     }
 
-    public function enrichment($params)
+    public function enrichment($params, &$tagsRemoved = 0)
     {
         $option_fields = ['user', 'id', 'modules'];
         foreach ($option_fields as $option_field) {
@@ -4575,6 +4580,7 @@ class MispAttribute extends AppModel
             }
         }
         $attributes_added = 0;
+        $tagsRemoved = 0;
         $initial_objects = array();
         $event_id = $attribute['event_id'];
         $event = $this->Event->find('first', ['conditions' => ['Event.id' => $event_id], 'recursive' => -1]);
@@ -4617,6 +4623,17 @@ class MispAttribute extends AppModel
                     } else {
                         $attributes = $this->Event->handleModuleResult($result, $event_id);
                         foreach ($attributes as $a) {
+                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                            // The row may ask for tags to come off the attribute the event
+                            // already holds for this value. When it does hold one, the row
+                            // changes that attribute's tags instead of creating anything.
+                            if (!empty($a['remove_tags'])) {
+                                $removal = $this->Event->applyModuleTagChanges($params['user'], $event_id, $a['type'], $a['value'], $a['remove_tags'], empty($a['tags']) ? array() : $a['tags']);
+                                $tagsRemoved += $removal['removed'];
+                                if ($removal['matched']) {
+                                    continue;
+                                }
+                            }
                             $this->create();
                             $a['distribution'] = $attribute['distribution'];
                             $a['sharing_group_id'] = $attribute['sharing_group_id'];
@@ -4626,7 +4643,6 @@ class MispAttribute extends AppModel
                             } else {
                                 $a['comment'] = $comment;
                             }
-                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
                             $result = $this->save($a);
                             if ($result) {
                                 $attributes_added++;
