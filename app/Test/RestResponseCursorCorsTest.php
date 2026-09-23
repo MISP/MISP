@@ -2,45 +2,17 @@
 /** Exercise actual response preparation with a recording CakeResponse. */
 use PHPUnit\Framework\TestCase;
 
-class Component {}
-class App
-{
-    public static function uses($class, $package) {}
-}
-class Configure
-{
-    public static $cors = false;
-
-    public static function read($key)
-    {
-        if ($key === 'Security.allow_cors') {
-            return self::$cors;
-        }
-        if ($key === 'Security.cors_origins') {
-            return 'https://client.example';
-        }
-        return false;
-    }
-}
-class CakeResponse
-{
-    public $headers = [];
-    public $options;
-
-    public function __construct($options)
-    {
-        $this->options = $options;
-    }
-
-    public function header($headers)
-    {
-        $this->headers = array_merge($this->headers, $headers);
-    }
-}
-require_once __DIR__ . '/../Controller/Component/RestResponseComponent.php';
-
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class RestResponseCursorCorsTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        require_once __DIR__ . '/RestResponseCursorCorsFixtures.php';
+    }
+
     protected function tearDown(): void
     {
         Configure::$cors = false;
