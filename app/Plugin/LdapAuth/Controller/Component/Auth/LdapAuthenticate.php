@@ -150,6 +150,7 @@ class LdapAuthenticate extends BaseAuthenticate
     private function getLdapUserData($ldapconn, $email)
     {
         // LDAP search filter
+        $email = ldap_escape($email, '', LDAP_ESCAPE_FILTER);
         $filter = '(' . self::$conf['ldapSearchAttribute'] . '=' . $email . ')';
         if (!empty(self::$conf['ldapSearchFilter'])) {
             $filter =  '(&' . self::$conf['ldapSearchFilter'] . $filter . ')';
