@@ -2062,6 +2062,27 @@ class Event extends AppModel
             );
         }
         if ($flatten) {
+            if (!$isSiteAdmin) {
+                // flattened object attributes still have to pass the object ACL
+                // that the dropped Object contain would have enforced
+                $objectAclConditions = $conditionsObjects;
+                $objectAclConditions[] = 'Object.event_id = Attribute.event_id';
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    array(
+                        'fields' => array('Object.id'),
+                        'recursive' => -1,
+                        'conditions' => $objectAclConditions,
+                    ),
+                    'Attribute.object_id'
+                );
+                $params['contain']['Attribute']['conditions']['AND'][] = array(
+                    'OR' => array(
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ),
+                );
+            }
             unset($params['contain']['Object']);
         }
         if ($options['noEventReports']) {
