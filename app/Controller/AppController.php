@@ -1426,7 +1426,10 @@ class AppController extends Controller
                                     break;
                                 }
                             }
-                        } else if (isset($temp[$param])) {
+                        } else if (isset($temp[$param])
+                            || ($param === 'after_id'
+                                && array_key_exists($param, $temp))
+                        ) {
                             $data[$param] = $temp[$param];
                         }
                     }
@@ -1869,6 +1872,9 @@ class AppController extends Controller
         $elementCounter = 0;
         $renderView = false;
         $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
+        if ($scope === 'Attribute') {
+            $model->validateRestSearchCursor($filters, $returnFormat);
+        }
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
         if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $modelName, $scope)) {
@@ -1888,7 +1894,18 @@ class AppController extends Controller
 
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
-        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+        $pagination = null;
+        if ($scope === 'Attribute') {
+            $final = $model->restSearch(
+                $user, $returnFormat, $filters, false, false, $elementCounter,
+                $renderView, $skippedElementsCounter, $pagination
+            );
+        } else {
+            $final = $model->restSearch(
+                $user, $returnFormat, $filters, false, false, $elementCounter,
+                $renderView, $skippedElementsCounter
+            );
+        }
         $responseTypeMapping = [
             'json' => 'application/json',
             'html' => 'text/html',
@@ -1916,6 +1933,9 @@ class AppController extends Controller
                 'X-Skipped-Elements-Count' => $skippedElementsCounter,
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"'
             ];
+            if ($pagination !== null) {
+                $headers += $this->RestSearch->getCursorHeaders($pagination);
+            }
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }

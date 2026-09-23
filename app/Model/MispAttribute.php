@@ -2085,11 +2085,20 @@ class MispAttribute extends AppModel
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
      * @param bool $real_count
+     * @param array|null $scanMetadata Raw SQL count and last ID, before PHP filters
      * @return array
      * @throws Exception
      */
-        public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
+        public function fetchAttributes(
+            array $user,
+            array $options = [],
+            &$result_count = false,
+            $real_count = false,
+            &$skipped_item_count = false,
+            &$scanMetadata = null
+        )
         {
+            $scanMetadata = ['count' => 0, 'last_id' => null];
             if (!empty($options['list'])) {
                 $conditions = $this->buildConditions($user);
                 if (!empty($options['conditions'])) {
@@ -2324,6 +2333,12 @@ class MispAttribute extends AppModel
 
             do {
                 $batch = $this->find('all', $params);
+                // Measure SQL progress before any PHP filtering or enrichment.
+                $scanMetadata['count'] += count($batch);
+                if (!empty($batch)) {
+                    $lastRow = end($batch);
+                    $scanMetadata['last_id'] = $lastRow['Attribute']['id'];
+                }
                 if (empty($batch)) {
                     break;
                 }
@@ -3639,11 +3654,24 @@ class MispAttribute extends AppModel
      * @param int $jobId Not used
      * @param int $elementCounter
      * @param bool $renderView
+     * @param array|null $pagination Cursor continuation metadata when requested
      * @return array|TmpFileTool Array when $paramsOnly is true
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0)
+    public function restSearch(
+        array $user,
+        $returnFormat,
+        $filters,
+        $paramsOnly = false,
+        $jobId = false,
+        &$elementCounter = 0,
+        &$renderView = false,
+        &$skippedElementsCounter = 0,
+        &$pagination = null
+    )
     {
+        $pagination = null;
+        $afterId = $this->validateRestSearchCursor($filters, $returnFormat);
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -3744,7 +3772,15 @@ class MispAttribute extends AppModel
                 )
             );
         }
+        if ($afterId !== null) {
+            $params['after_id'] = $afterId;
+            $params['order'] = 'Attribute.id ASC';
+        }
         if ($paramsOnly) {
+            if ($afterId !== null) {
+                // Direct fetch callers do not pass through the export iterator.
+                $params['conditions']['AND'][] = ['Attribute.id >' => $afterId];
+            }
             return $params;
         }
         if (method_exists($exportTool, 'modify_params')) {
@@ -3781,7 +3817,10 @@ class MispAttribute extends AppModel
             }
         }
         if (empty($exportTool->mock_query_only)) {
-            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit, $skippedElementsCounter);
+            $elementCounter = $this->__iteratedFetch(
+                $user, $params, $loop, $tmpfile, $exportTool, $exportToolParams,
+                $maxLimit, $skippedElementsCounter, $pagination
+            );
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile;
@@ -3797,75 +3836,146 @@ class MispAttribute extends AppModel
      * @return int Number of all attributes that matches given conditions
      * @throws Exception
      */
-    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
+    private function __iteratedFetch(
+        array $user,
+        array $params,
+        $loop,
+        TmpFileTool $tmpfile,
+        $exportTool,
+        array $exportToolParams,
+        $maxLimit = null,
+        &$skippedElementsCounter = 0,
+        &$pagination = null
+    )
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
-        $elementCounter = 0;
-        $offset = ($params['limit'] * ($params['page'] - 1));
-        if ($params['page'] > 1) {
-            $params['offset'] = $offset;
+        $requestedLimit = $loop ? null : (int) $params['limit'];
+        $offset = $params['limit'] * (($params['page'] ?? 1) - 1);
+        $chunkLimit = max(1, (int) $params['limit']);
+        if ($maxLimit !== null) {
+            $chunkLimit = min($chunkLimit, max(1, (int) $maxLimit));
         }
-        $requestedLimit = $params['limit'];
-        if ($maxLimit < $params['limit']) {
-            $params['limit'] = $maxLimit;
-            $loop = true;
-        }
-        unset($params['page']);
-        // Use cursor-based (ID sliding window) pagination
-        // when looping internally and no explicit sort order
-        // was requested.  Instead of OFFSET N (which must scan
-        // and discard N rows on every page), we filter on
-        // Attribute.id > last_seen_id.  This gives O(1) page
-        // cost regardless of depth.
-        // When the user requested a specific order, fall back
-        // to offset pagination to honour their sort.
-        $useCursor = $loop && empty($params['order']);
+        $publicCursor = array_key_exists('after_id', $params);
+        // Explicit pages keep their original offset, even when split into chunks.
+        $useCursor = $publicCursor || ($offset === 0
+            && empty($params['order'])
+            && ($loop || $chunkLimit < $requestedLimit));
+        $lastId = $publicCursor ? $params['after_id'] : 0;
+        $baseConditions = $params['conditions'];
+        unset($params['page'], $params['after_id']);
         if ($useCursor) {
             $params['order'] = 'Attribute.id ASC';
             unset($params['offset']);
+        } else {
+            $params['offset'] = $offset;
         }
-        $lastId = 0;
         $totalCount = 0;
+        $skippedElementsCounter = 0;
+        $hasMore = false;
         do {
-            if (($totalCount + $params['limit']) > $requestedLimit) {
-                $params['limit'] = $requestedLimit - $totalCount;
-                $loop = false;
+            $params['limit'] = $requestedLimit === null ? $chunkLimit
+                : min($chunkLimit, $requestedLimit - $totalCount);
+            if ($params['limit'] <= 0) {
+                break;
             }
-            if ($useCursor && $lastId > 0) {
-                $params['conditions']['Attribute.id >'] = $lastId;
+            $params['conditions'] = $baseConditions;
+            if ($useCursor) {
+                $params['conditions']['AND'][] = ['Attribute.id >' => $lastId];
             }
-            $incrementTotalBy = $loop ? 0 : 1;
-            $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
-            $resultCount = count($results);
-            $totalCount = $totalCount + $elementCounter;
-            $elementCounter = false; // do not call `count` again
-            if (empty($results)) {
-                break; // nothing found, skip rest
+            $count = false;
+            $skipped = 0;
+            $scan = null;
+            $results = $this->fetchAttributes(
+                $user, $params, $count, false, $skipped, $scan
+            );
+            $totalCount += $scan['count'];
+            $skippedElementsCounter += $skipped;
+            if ($scan['last_id'] !== null) {
+                $lastId = $scan['last_id'];
             }
-            if ($params['includeSightingdb']) {
+            $hasMore = $scan['count'] === $params['limit'];
+            if (!empty($results) && !empty($params['includeSightingdb'])) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
-            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            $results = $this->Allowedlist->removeAllowedlistedFromArray(
+                $results, true
+            );
             foreach ($results as $attribute) {
-                $lastId = $attribute['Attribute']['id'];
-                $handlerResult = $exportTool->handler($attribute, $exportToolParams);
+                $handlerResult = $exportTool->handler(
+                    $attribute, $exportToolParams
+                );
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($resultCount < $params['limit']) {
-                $incrementTotalBy = 0;
-                if ($loop) {
-                    break; // do not continue if we received fewer results than limit
-                }
-            }
             if (!$useCursor) {
-                $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];
+                $params['offset'] += $scan['count'];
             }
-        } while ($loop);
-        return $totalCount + $incrementTotalBy;
+        } while ($hasMore
+            && ($requestedLimit === null || $totalCount < $requestedLimit));
+        if ($publicCursor) {
+            $pagination = ['next_cursor' => $lastId, 'has_more' => $hasMore];
+        }
+        // Keep the legacy full-page continuation sentinel for offset clients.
+        if (!$publicCursor && $requestedLimit !== null && $hasMore) {
+            return $totalCount + 1;
+        }
+        return $totalCount;
+    }
+
+    /**
+     * Validate before internal pagination defaults or role limits are applied.
+     * Cursor limits bound SQL rows; PHP filters may produce a shorter response.
+     *
+     * @return int|null Starting ID, or null for ordinary offset pagination
+     */
+    public function validateRestSearchCursor(array $filters, $returnFormat)
+    {
+        if (!array_key_exists('after_id', $filters)) {
+            return null;
+        }
+        foreach (['after_id' => 0, 'limit' => 1] as $name => $minimum) {
+            $value = $filters[$name] ?? null;
+            if ((!is_int($value) && !is_string($value))
+                || !preg_match('/^[0-9]+$/D', (string) $value)
+                || filter_var($value, FILTER_VALIDATE_INT,
+                    ['options' => ['min_range' => $minimum]]) === false
+            ) {
+                throw new BadRequestException(
+                    "Cursor pagination requires integer $name >= $minimum."
+                );
+            }
+        }
+        if (array_key_exists('page', $filters)) {
+            throw new BadRequestException(
+                'after_id cannot be combined with page.'
+            );
+        }
+        if (isset($filters['order'])) {
+            $order = $filters['order'];
+            if (is_array($order) && count($order) === 1) {
+                $order = reset($order);
+            }
+            if (!is_string($order)
+                || !preg_match('/^(?:Attribute\.)?id(?: +ASC)?$/iD', trim($order))
+            ) {
+                throw new BadRequestException(
+                    'Cursor pagination requires Attribute.id ASC ordering.'
+                );
+            }
+        }
+        $formats = ['json', 'text', 'cache', 'hashes', 'count'];
+        if (!in_array($returnFormat, $formats, true)
+            || !empty($filters['list']) || !empty($filters['event_ids'])
+        ) {
+            throw new BadRequestException(
+                'Cursor pagination supports json, text, cache, hashes '
+                . 'and count attribute exports.'
+            );
+        }
+        return (int) $filters['after_id'];
     }
 
     public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $skipHeader = false)
