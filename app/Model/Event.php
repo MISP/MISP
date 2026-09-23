@@ -2029,6 +2029,39 @@ class Event extends AppModel
                 ]],
                 $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
+            if (!empty($options['flatten'])) {
+                // object attributes are only in the list when flattening, and
+                // they still have to pass the object's own distribution ACL
+                $objectCondSelect = $this->eventOwnerSubquery('Object');
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    [
+                        'fields' => ['Object.id'],
+                        'recursive' => -1,
+                        'conditions' => [
+                            'Object.event_id' => $eventIds,
+                            'OR' => [
+                                ['AND' => [
+                                    'Object.distribution >' => 0,
+                                    'Object.distribution !=' => 4,
+                                ]],
+                                ['AND' => [
+                                    'Object.distribution' => 4,
+                                    'Object.sharing_group_id' => $sgids,
+                                ]],
+                                $objectCondSelect . ' = ' . (int)$user['org_id'],
+                            ],
+                        ],
+                    ],
+                    'Attribute.object_id'
+                );
+                $conditions['AND'][] = [
+                    'OR' => [
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ],
+                ];
+            }
         }
 
         // Warninglist filter. Kept last so the hit set is resolved against the
@@ -4470,6 +4503,27 @@ class Event extends AppModel
             );
         }
         if ($flatten) {
+            if (!$isSiteAdmin) {
+                // flattened object attributes still have to pass the object ACL
+                // that the dropped Object contain would have enforced
+                $objectAclConditions = $conditionsObjects;
+                $objectAclConditions[] = 'Object.event_id = Attribute.event_id';
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    array(
+                        'fields' => array('Object.id'),
+                        'recursive' => -1,
+                        'conditions' => $objectAclConditions,
+                    ),
+                    'Attribute.object_id'
+                );
+                $params['contain']['Attribute']['conditions']['AND'][] = array(
+                    'OR' => array(
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ),
+                );
+            }
             unset($params['contain']['Object']);
         }
         if ($options['noEventReports']) {
