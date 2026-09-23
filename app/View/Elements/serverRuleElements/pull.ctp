@@ -75,7 +75,18 @@
         <div class="bold green">
             <?= __('Additional sync parameters (based on the event index filters)'); ?>
         </div>
-        <div style="display: flex;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label for="cachePeriodPreset" style="font-weight: bold; margin: 0;"><?= __('Attribute cache period'); ?></label>
+            <select id="cachePeriodPreset" style="max-width: 340px;">
+                <option value=""><?= __('No period filter'); ?></option>
+                <option value="30d"><?= __('Last 30 days'); ?></option>
+                <option value="90d"><?= __('Last 90 days'); ?></option>
+                <option value="180d"><?= __('Last 6 months'); ?></option>
+                <option value="365d"><?= __('Last year'); ?></option>
+                <option value="730d"><?= __('Last 2 years'); ?></option>
+                <option value="custom"><?= __('Custom / keep manual JSON'); ?></option>
+            </select>
+            <small><?= __('This sets url_params.timestamp in the JSON below, used for cache retrieval when supported.'); ?></small>
             <textarea style="width:100%;" placeholder='{"timestamp": "30d"}' type="text" value="" id="urlParams" data-original-title="" title="" rows="3"><?= !empty($ruleUrlParams) ? json_encode(h($ruleUrlParams), JSON_PRETTY_PRINT) : '' ?></textarea>
         </div>
     </div>
@@ -124,6 +135,10 @@ echo $this->element('genericElements/assetLoader', array(
             addPullFilteringRulesToPicker()
         <?php endif; ?>
         setupCodeMirror()
+        syncCachePeriodPresetFromJson()
+        $('#cachePeriodPreset').on('change', function() {
+            applyCachePeriodPreset($(this).val())
+        })
         <?php if (empty($attributeTypeBlockRules) && empty($objectTypeBlockRules)) : ?>
             $('div.server-rule-container-pull .type-filtering-subcontainer').hide()
         <?php else : ?>
@@ -224,6 +239,44 @@ echo $this->element('genericElements/assetLoader', array(
                 from: CodeMirror.Pos(cur.line, token.start + 1),
                 to: CodeMirror.Pos(cur.line, token.end)
             }
+        }
+
+        function syncCachePeriodPresetFromJson() {
+            var knownPresets = ['30d', '90d', '180d', '365d', '730d']
+            var raw = $('#urlParams').val().trim()
+            if (!raw) {
+                $('#cachePeriodPreset').val('')
+                return
+            }
+            try {
+                var parsed = JSON.parse(raw)
+                if (parsed.timestamp && knownPresets.indexOf(parsed.timestamp) !== -1) {
+                    $('#cachePeriodPreset').val(parsed.timestamp)
+                } else {
+                    $('#cachePeriodPreset').val('custom')
+                }
+            } catch (e) {
+                $('#cachePeriodPreset').val('custom')
+            }
+        }
+
+        function applyCachePeriodPreset(period) {
+            if (!period || period === 'custom') {
+                return
+            }
+            var raw = $('#urlParams').val().trim()
+            var params = {}
+            if (raw) {
+                try {
+                    params = JSON.parse(raw)
+                } catch (e) {
+                    params = {}
+                }
+            }
+            params.timestamp = period
+            var value = JSON.stringify(params, null, 4)
+            cm.setValue(value)
+            $('#urlParams').val(value)
         }
 
         function setupCodeMirror() {
