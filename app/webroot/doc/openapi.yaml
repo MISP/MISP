@@ -270,6 +270,110 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /attributes/fastLookup:
+    post:
+      summary: "Map literal IOCs to all visible event IDs"
+      operationId: fastLookupAttributes
+      tags:
+        - Attributes
+      description: |
+        Requires `MISP.fast_lookup_enabled` (disabled by default), normal API authentication,
+        and the same role rate limits as attribute searches. Send `Accept: application/json`
+        and `Content-Type: application/json`.
+
+        Each value is compared using SQL equality against either stored attribute component,
+        `value1` or `value2`; database collation controls case and accent equivalence. IPv6
+        values are normalized as in MISP attribute value searches, but response keys retain
+        the original input spelling. `%`, `_` and `!` are literal characters, not wildcard or
+        negation operators. This endpoint does not accept restSearch filters and adds no
+        implicit `to_ids`, publication, tag, warninglist or allowedlist filters. Standard
+        event, attribute and object sharing rules still apply, including unpublished-event
+        visibility; deleted attributes and attributes without an existing event are omitted.
+
+        Returns a bare JSON object mapping each matching input IOC to distinct visible event
+        IDs, sorted numerically and encoded as decimal strings. Duplicate input values are
+        deduplicated. Missing or invisible IOCs are omitted. Empty inputs or no matches return
+        `{}`, and numeric-looking IOC keys remain object properties.
+
+        Redis caches complete candidate attribute IDs, including negative matches, for at
+        most 60 seconds from the start of SQL discovery. Cache hits never extend expiry.
+        Newly added or newly matching attributes can be absent until that cache expires.
+        Every response rechecks current values, deletion, event existence and sharing
+        permissions. `maxAge: 0` bypasses cache reads and writes. Redis failure or corrupt
+        entries fall back to SQL. Responses carry `Cache-Control: no-store`.
+
+        Supply at most 1000 nonempty UTF-8 strings without NUL characters, each at most 4096
+        bytes and at most 1048576 bytes combined. The total candidate and visible-result
+        budget is 100000 rows per request; exceeding it returns HTTP 413 without partial
+        results. A value with more than 10000 candidates is queried without caching, subject
+        to that request budget. Unknown options and invalid request shapes return HTTP 400.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - value
+              properties:
+                value:
+                  type: array
+                  maxItems: 1000
+                  description: "Literal IOC strings; at most 1048576 UTF-8 bytes combined."
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 4096
+                    description: "Nonempty valid UTF-8 without NUL characters; maximum 4096 bytes."
+                maxAge:
+                  type: integer
+                  minimum: 0
+                  maximum: 60
+                  default: 60
+                  description: "Maximum candidate cache age in seconds. Zero bypasses Redis."
+            example:
+              value: ["example.org", "192.0.2.1", "missing.example"]
+              maxAge: 60
+      responses:
+        "200":
+          description: "Every matching input IOC mapped to all visible event IDs."
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum: [no-store]
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: string
+                    pattern: '^[1-9][0-9]*$'
+              examples:
+                matches:
+                  value:
+                    example.org: ["2", "11"]
+                    192.0.2.1: ["11"]
+                noMatches:
+                  value: {}
+        "400":
+          description: "Invalid JSON, request shape, IOC value or input size, maxAge, option or content type."
+        "403":
+          description: "API authorization failed or MISP.fast_lookup_enabled is disabled."
+        "405":
+          description: "Only POST is supported, or API searches are disabled for the user's role."
+        "413":
+          description: "The total candidate/result row limit was exceeded; no partial result is returned."
+        "429":
+          description: "The normal API search rate limit was exceeded."
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /attributes/add/{eventId}:
     post:
       summary: "Add an attribute"

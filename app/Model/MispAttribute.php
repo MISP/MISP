@@ -1901,6 +1901,13 @@ class MispAttribute extends AppModel
         return $attribute;
     }
 
+    /** @return stdClass IOC literals mapped to all distinct visible event IDs. */
+    public function fastLookup(array $user, array $request)
+    {
+        App::uses('AttributeFastLookupTool', 'Tools');
+        return (new AttributeFastLookupTool($this))->lookup($user, $request);
+    }
+
     public function buildConditions($user)
     {
         $cacheKey = ($user['Role']['perm_site_admin']

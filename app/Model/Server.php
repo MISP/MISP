@@ -7021,6 +7021,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'fast_lookup_enabled' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enable POST /attributes/fastLookup for authenticated users to map literal IOCs to visible event IDs. Redis candidate caching can delay newly matching attributes by up to 60 seconds; current values, deletion and sharing permissions are checked on every request.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
                 'redis_host' => array(
                     'level' => 0,
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),

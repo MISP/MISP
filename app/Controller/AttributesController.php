@@ -36,6 +36,22 @@ class AttributesController extends AppController
     {
         parent::beforeFilter();
 
+        if (strtolower($this->request->action) === 'fastlookup') {
+            // RequestHandler decodes after beforeFilter. Preserve JSON objects
+            // inside value so a keyed object cannot become a valid value list.
+            $this->RequestHandler->addInputType('json', [function ($body) {
+                try {
+                    $data = json_decode($body, false, 512, JSON_THROW_ON_ERROR);
+                } catch (JsonException $e) {
+                    throw new BadRequestException(__('fastLookup requires a valid JSON object.'));
+                }
+                if (!$data instanceof stdClass) {
+                    throw new BadRequestException(__('fastLookup requires a JSON object.'));
+                }
+                return (array)$data;
+            }]);
+        }
+
         // Posted by hand-built AJAX (the Overmind tag/galaxy/relationship
         // modals), which sends the CSRF token as a header. They post a JSON
         // document, which is exactly why _validatePost() can never pass:
@@ -67,6 +83,46 @@ class AttributesController extends AppController
         } elseif ($this->request->action === 'viewPicture') {
             $this->Security->doNotGenerateToken = true;
         }
+    }
+
+    /**
+     * Return all visible event IDs for each literal IOC, without attribute data.
+     * Authentication, ACL dispatch and rate limits run in the normal lifecycle.
+     */
+    public function fastLookup()
+    {
+        $this->request->allowMethod(['post']);
+        if (!Configure::read('MISP.fast_lookup_enabled')) {
+            throw new ForbiddenException(__('fastLookup is disabled. Enable MISP.fast_lookup_enabled to use this endpoint.'));
+        }
+        $contentType = strtolower(trim(explode(';', (string)$this->request->header('Content-Type'), 2)[0]));
+        if (!$this->_isRest() || $contentType !== 'application/json') {
+            throw new BadRequestException(__('fastLookup requires a REST request with Content-Type: application/json.'));
+        }
+        if (!is_array($this->request->data)) {
+            throw new BadRequestException(__('fastLookup requires a JSON object.'));
+        }
+        try {
+            $result = $this->MispAttribute->fastLookup($this->Auth->user(), $this->request->data);
+        } catch (InvalidArgumentException $e) {
+            throw new BadRequestException($e->getMessage());
+        } catch (OverflowException $e) {
+            throw new HttpException($e->getMessage(), 413);
+        }
+
+        // Keep the response a bare object even with numeric IOC keys, SQL debug
+        // parameters or If-None-Match. Every request has just rechecked visibility.
+        $response = new CakeResponse(['body' => JsonTool::encode($result), 'status' => 200, 'type' => 'json']);
+        $headers = $this->RestResponse->headers;
+        if (Configure::read('Security.allow_cors')) {
+            $headers['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization, Accept';
+            $headers['Access-Control-Allow-Methods'] = '*';
+            $headers['Access-Control-Allow-Origin'] = explode(',', Configure::read('Security.cors_origins'));
+            $headers['Access-Control-Expose-Headers'] = ['X-Result-Count'];
+        }
+        $headers['Cache-Control'] = 'no-store';
+        $response->header($headers);
+        return $response;
     }
 
     private function __massageSearchFilters(array $filters): array

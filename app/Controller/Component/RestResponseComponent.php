@@ -59,6 +59,14 @@ class RestResponseComponent extends Component
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
             ),
+            'fastLookup' => array(
+                'description' => 'POST a JSON object containing a value array of literal IOCs to return each matching IOC mapped to all visible event IDs. Matches use SQL equality on value1 or value2, with IPv6 normalization and no restSearch operators or implicit to_ids filter. Missing or invisible values are omitted. Requires MISP.fast_lookup_enabled. maxAge defaults to 60 seconds (0 bypasses Redis); current permissions, values and deletion are always checked. Accepts at most 1000 values, 4096 bytes each, 1 MiB combined; exceeding the 100000-row request budget returns HTTP 413 without partial results.',
+                'operationId' => 'fastLookupAttributes',
+                'method' => 'POST',
+                'mandatory' => array('value'),
+                'optional' => array('maxAge'),
+                'params' => array(),
+            ),
             'addTag' => array(
                 'description' => "Add a tag or a tag collection to an attribute.",
                 'operationId' => 'tagAttribute',
@@ -2012,6 +2020,13 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => array('equal', 'not_equal')
+            ),
+            'maxAge' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal'),
+                'validation' => array('min' => 0, 'max' => 60, 'step' => 1),
+                'help' => __('Maximum candidate cache age in seconds. Defaults to 60; 0 bypasses Redis.'),
             ),
             'value' => array(
                 'input' => 'text',

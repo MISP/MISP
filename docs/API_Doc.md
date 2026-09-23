@@ -131,6 +131,69 @@ Search MISP using a list of filter parameters and return the data in the selecte
 | first_seen |string |Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m) |
 | last_seen |string |Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m) |
 
+## FastLookup
+
+`POST /attributes/fastLookup` maps each literal IOC to **all** matching event IDs
+visible to the authenticated caller. A site administrator must enable
+`MISP.fast_lookup_enabled`, which defaults to `false`. Normal API authentication
+and attribute-search role rate limits apply.
+
+Send `Accept: application/json` and `Content-Type: application/json`:
+
+```json
+{"value":["example.org","192.0.2.1","missing.example"],"maxAge":60}
+```
+
+Example response:
+
+```json
+{"example.org":["2","11"],"192.0.2.1":["11"]}
+```
+
+The response is a bare JSON object. Missing or invisible IOCs are omitted;
+`{"value":[]}` and searches without visible matches return `{}`. Duplicate inputs
+are deduplicated. Keys retain the submitted spelling, including numeric-looking
+strings. Each event ID is a decimal string; IDs are distinct and sorted numerically.
+
+| Parameter | Type | Description |
+| -- | -- | -- |
+| `value` | array of strings, required | At most 1000 nonempty valid UTF-8 strings without NUL characters. Each string is at most 4096 bytes; combined strings are at most 1 MiB (1048576 bytes). |
+| `maxAge` | integer, optional | Maximum candidate-cache age in seconds, from 0 through 60; defaults to 60. Zero bypasses Redis reads and writes. |
+
+Matching uses SQL equality against either stored attribute component, `value1` or
+`value2`. For example, either component of a `domain|ip` attribute can match;
+the endpoint does not concatenate components. Database collation determines case
+and accent equivalence. IPv6 inputs receive the same normalization as MISP value
+searches. `%`, `_` and `!` are literal characters, with no wildcard or negation
+syntax. Only `value` and `maxAge` are accepted: there are no implicit `to_ids`,
+publication, tag, warninglist or allowedlist filters, and no other restSearch
+options. Standard visibility rules still govern unpublished events and event,
+attribute and object sharing groups. Deleted attributes and attributes without an
+existing event are excluded.
+
+Redis stores complete candidate attribute ID sets, including negative results,
+for at most 60 seconds from the start of SQL discovery; reads do not refresh
+expiry. New attributes, or edits that newly match an IOC, may therefore take up
+to 60 seconds to appear. Every request rechecks current sharing permissions,
+values, deletion and event existence before returning event IDs. Redis failure
+or invalid cached data falls back to SQL. HTTP responses use
+`Cache-Control: no-store`; final permission-filtered results are never cached.
+
+SQL discovery operates in batches of 100 IOCs. Each IOC can cache at most 10000
+candidate IDs; larger complete sets are queried without caching. A request has a
+total budget of 100000 candidate and visible-result rows, including candidates
+loaded from Redis. Exceeding a resource limit returns an error, never a truncated
+mapping or partially cached candidate set. Split a large request into smaller
+batches if necessary.
+
+| HTTP status | Meaning |
+| -- | -- |
+| 400 | Invalid JSON, body shape, unknown option, IOC string or input count/byte limit, `maxAge`, or content type. |
+| 403 | Authentication/authorization failed or `MISP.fast_lookup_enabled` is disabled. |
+| 405 | Method is not POST, or API searches are disabled for this user's role. |
+| 413 | Total candidate/result row budget exceeded. No partial mapping is returned. |
+| 429 | API search rate limit exceeded. |
+
 ## AddTag
 Add a tag or a tag collection to an attribute.
 ```
