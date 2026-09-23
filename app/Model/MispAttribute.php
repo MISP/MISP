@@ -2352,6 +2352,24 @@ class MispAttribute extends AppModel
                     $sightingsByAttributeId = $this->Sighting->attachToAttributes($batch, $user);
                 }
         
+                if (!empty($options['includeCorrelations'])) {
+                    $fields = [
+                        'id', 'event_id', 'object_id', 'object_relation',
+                        'category', 'type', 'value', 'uuid', 'timestamp',
+                        'distribution', 'sharing_group_id', 'to_ids', 'comment',
+                    ];
+                    $correlationsByAttributeId = $this->Correlation
+                        ->getRelatedAttributesBatch(
+                            $user, $sgids, array_column($batch, 'Attribute'),
+                            $fields, true
+                        );
+                }
+                if (!empty($options['includeEventTags'])) {
+                    $this->__fetchEventTagsForAttributes(
+                        $eventTags, $batch, $options
+                    );
+                }
+
                 // per-attribute pipeline
                 foreach ($batch as $attr) {
                     if (!empty($options['includeContext'])) {
@@ -2373,9 +2391,8 @@ class MispAttribute extends AppModel
                             $sightingsByAttributeId[$attr['Attribute']['id']] ?? [];
                     }
                     if (!empty($options['includeCorrelations'])) {
-                        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
                         $attr['Attribute']['RelatedAttribute'] =
-                            $this->Correlation->getRelatedAttributes($user, $sgids, $attr['Attribute'], $fields, true);
+                            $correlationsByAttributeId[$attr['Attribute']['id']];
                     }
                     if (!empty($options['enforceWarninglist'])
                         && !$this->Warninglist->filterWarninglistAttribute($attr['Attribute'])
@@ -2546,6 +2563,42 @@ class MispAttribute extends AppModel
             }
             if ($tagCulled) {
                 $attributes[$k]['AttributeTag'] = array_values($attributes[$k]['AttributeTag']);
+            }
+        }
+    }
+
+    /** Prefetch missing event tags, retaining negative entries across pages. */
+    private function __fetchEventTagsForAttributes(
+        array &$eventTags,
+        array $attributes,
+        array $options
+    ) {
+        $missing = [];
+        foreach ($attributes as $attribute) {
+            $eventId = $attribute['Event']['id'];
+            if (!isset($eventTags[$eventId])) {
+                $missing[$eventId] = true;
+            }
+        }
+        foreach (array_chunk(array_keys($missing), 100) as $eventIds) {
+            $conditions = ['EventTag.event_id' => $eventIds];
+            if (empty($options['includeAllTags'])) {
+                $conditions['Tag.exportable'] = 1;
+            }
+            $tags = $this->Event->EventTag->find('all', [
+                'recursive' => -1,
+                'contain' => ['Tag' => ['fields' => [
+                    'id', 'name', 'colour', 'numerical_value',
+                ]]],
+                'conditions' => $conditions,
+            ]);
+            foreach ($eventIds as $eventId) {
+                $eventTags[$eventId] = [];
+            }
+            foreach ($tags as $tag) {
+                $tag['Tag']['inherited'] = true;
+                $tag['EventTag']['Tag'] = $tag['Tag'];
+                $eventTags[$tag['EventTag']['event_id']][] = $tag['EventTag'];
             }
         }
     }
