@@ -841,6 +841,19 @@ class AppController extends Controller
         }
 
         $isUserRequest = !$this->_isRest() && !$this->request->is('ajax') && !$this->_isAutomation();
+        // An unenrolled user on an otp_required instance must not slip past the
+        // TOTP setup with an AJAX request; refuse it, since an XHR cannot follow
+        // the redirect the browser path takes. API keys are unaffected.
+        if (
+            !$isUserRequest &&
+            $this->request->is('ajax') &&
+            empty($user['totp']) &&
+            Configure::read('Security.otp_required') &&
+            empty($user['Role']['perm_skip_otp']) &&
+            !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])
+        ) {
+            throw new ForbiddenException(__('You must configure TOTP before continuing.'));
+        }
         // Next checks makes sense just for user direct HTTP request, so skip REST and AJAX calls
         if (!$isUserRequest) {
             return true;
