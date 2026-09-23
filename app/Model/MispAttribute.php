@@ -2214,12 +2214,21 @@ class MispAttribute extends AppModel
             } else {
                 $fields = $default_fields;
             }
+            $requirements = $this->attributeExportRequirements($options);
+            if ($requirements !== null) {
+                // ID drives iteration; value is required by the allowedlist.
+                $fields = array_values(array_unique(array_merge(
+                    ['Attribute.id', 'Attribute.event_id', 'Attribute.value'],
+                    $requirements['fields']
+                )));
+            }
             $sgids     = $this->SharingGroup->authorizedIds($user);
             $params = [
                 'fields'     => $fields,
                 'conditions' => $conditions,
                 'recursive'  => -1,
-                'contain'    => ['AttributeTag'],
+                'contain'    => $requirements === null ||
+                    !empty($requirements['attributeTags']) ? ['AttributeTag'] : [],
                 'joins'      => [
                     [
                         'table'      => 'events',
@@ -2286,6 +2295,17 @@ class MispAttribute extends AppModel
                 $params['ignoreIndexHint'] = 'deleted';
             }
         
+            if (!empty($options['countOnly'])) {
+                // Built from exactly the same joins, deletion rules and ACLs
+                // as the hydrated fetch. Only restSearch's guarded path opts in.
+                unset($params['fields'], $params['order'], $params['limit'],
+                    $params['page'], $params['offset']);
+                $params['contain'] = [];
+                $params['callbacks'] = false;
+                $result_count = (int)$this->find('count', $params);
+                return $result_count;
+            }
+
             $loop = empty($params['limit']);
             if ($loop) {
                 $params['limit'] = 50000;
@@ -2317,10 +2337,13 @@ class MispAttribute extends AppModel
             $all    = [];
             $skipped = 0;
             $eventTags = [];
-            $threat_levels = $this->Event->ThreatLevel->find('all', [
-                'fields' => ['id', 'name'],
-                'recursive' => -1
-            ]);
+            $threat_levels = [];
+            if ($requirements === null || !empty($requirements['threatLevels'])) {
+                $threat_levels = $this->Event->ThreatLevel->find('all', [
+                    'fields' => ['id', 'name'],
+                    'recursive' => -1
+                ]);
+            }
 
             do {
                 $batch = $this->find('all', $params);
@@ -2344,7 +2367,9 @@ class MispAttribute extends AppModel
                     unset($eventIds);
                 }
 
-                $this->attachTagsToAttributes($batch, $options);
+                if ($requirements === null || !empty($requirements['attributeTags'])) {
+                    $this->attachTagsToAttributes($batch, $options);
+                }
 
                 if (!empty($options['includeSightings'])) {
                     // Fetch sightings for the whole batch at once instead of two queries per attribute.
@@ -2357,17 +2382,21 @@ class MispAttribute extends AppModel
                     if (!empty($options['includeContext'])) {
                         $attr['Event'] = $eventsById[$attr['Attribute']['event_id']];
                     }
-                    foreach (['Org' => 'org_id', 'Orgc' => 'orgc_id'] as $event_org_field => $org_field) {
-                        if (empty($this->orgs_cache[$attr['Event'][$org_field]])) {
-                            $this->orgs_cache[$attr['Event'][$org_field]] = $this->Event->Org->find('first', [
-                                'conditions' => ['Org.id' => $attr['Event'][$org_field]],
-                                'fields' => ['id', 'name', 'uuid'],
-                                'recursive' => -1
-                            ]);
+                    if ($requirements === null || !empty($requirements['organisations'])) {
+                        foreach (['Org' => 'org_id', 'Orgc' => 'orgc_id'] as $event_org_field => $org_field) {
+                            if (empty($this->orgs_cache[$attr['Event'][$org_field]])) {
+                                $this->orgs_cache[$attr['Event'][$org_field]] = $this->Event->Org->find('first', [
+                                    'conditions' => ['Org.id' => $attr['Event'][$org_field]],
+                                    'fields' => ['id', 'name', 'uuid'],
+                                    'recursive' => -1
+                                ]);
+                            }
+                            $attr['Event'][$event_org_field] = $this->orgs_cache[$attr['Event'][$org_field]]['Org'];
                         }
-                        $attr['Event'][$event_org_field] = $this->orgs_cache[$attr['Event'][$org_field]]['Org'];
                     }
-                    $attr['Event']['ThreatLevel'] = $threat_levels[$attr['Event']['threat_level_id']]['ThreatLevel'] ?? '';
+                    if ($requirements === null || !empty($requirements['threatLevels'])) {
+                        $attr['Event']['ThreatLevel'] = $threat_levels[$attr['Event']['threat_level_id']]['ThreatLevel'] ?? '';
+                    }
                     if (!empty($options['includeSightings'])) {
                         $attr['Attribute']['Sighting'] =
                             $sightingsByAttributeId[$attr['Attribute']['id']] ?? [];
@@ -2454,6 +2483,63 @@ class MispAttribute extends AppModel
         }
 
     
+    /**
+     * SQL count is equivalent only without PHP exclusions or pagination.
+     * In particular, allowedlist regular expressions cannot be moved to SQL.
+     */
+    private function canCountAttributeExport(array $params, array $filters)
+    {
+        foreach (['offset', 'group', 'after_id'] as $option) {
+            if (array_key_exists($option, $params) ||
+                array_key_exists($option, $filters)) {
+                return false;
+            }
+        }
+        // The controller injects limit=0 for an unrestricted role, and
+        // restSearch normalises that to page=1. This is an unbounded count.
+        foreach ([$params, $filters] as $options) {
+            if (!empty($options['limit']) ||
+                (isset($options['page']) && (string)$options['page'] !== '1')) {
+                return false;
+            }
+        }
+        if ($this->attributeExportRequirements($params) === null) {
+            return false;
+        }
+        $this->Allowedlist = ClassRegistry::init('Allowedlist');
+        return empty($this->Allowedlist->getBlockedValues());
+    }
+
+    /**
+     * Internal opt-in projection and enrichment contract. Complex processing
+     * keeps the full legacy row until its dependencies are declared explicitly.
+     * SQL filter/ACL fields remain available through the unchanged joins.
+     */
+    private function attributeExportRequirements(array $options)
+    {
+        if (empty($options['exportRequirements'])) {
+            return null;
+        }
+        $fullRowOptions = [
+            'withAttachments', 'includeSightings', 'includeSightingdb',
+            'includeCorrelations', 'includeContext', 'includeEventTags',
+            'includeWarninglistHits', 'enforceWarninglist', 'includeDecayScore',
+            'excludeDecayed', 'decayingModel', 'includeFullModel',
+            'includeAttributeUuid', 'includeEventUuid', 'includeGalaxy',
+            'includeProposals', 'attackGalaxy', 'modelOverrides', 'score',
+        ];
+        foreach ($fullRowOptions as $option) {
+            if (!empty($options[$option])) {
+                return null;
+            }
+        }
+        if (!empty($options['allow_proposal_blocking']) &&
+            Configure::read('MISP.proposals_block_attributes')) {
+            return null;
+        }
+        return $options['exportRequirements'];
+    }
+
     /**
      * @param array $user
      * @param array $eventIds
@@ -3764,8 +3850,20 @@ class MispAttribute extends AppModel
             );
         }
 
+        if (isset($exportTool->fetch_requirements)) {
+            $params['exportRequirements'] = $exportTool->fetch_requirements;
+        }
+
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
+        if ($exportTool instanceof CountExport &&
+            $this->canCountAttributeExport($params, $filters)) {
+            $params['countOnly'] = true;
+            $elementCounter = $this->fetchAttributes($user, $params);
+            $skippedElementsCounter = 0;
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
         $loop = false;
         $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
         $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 50;
