@@ -1,11 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('RelatedAttributeBatchTrait', 'Model/Behavior');
 
 /**
  * Default correlation behaviour
  */
 class DefaultCorrelationBehavior extends ModelBehavior
 {
+    use RelatedAttributeBatchTrait;
+
     const TABLE_NAME = 'default_correlations';
 
     const CONFIG = [
@@ -323,6 +326,20 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $relatedAttributes[$parentId][] = $correlation;
         }
         return $relatedAttributes;
+    }
+
+    public function runGetRelatedAttributesBatch(
+        Model $Model,
+        array $user,
+        array $sgids,
+        array $attributes,
+        array $fields = [],
+        $includeEventData = false
+    ) {
+        return $this->fetchRelatedAttributesBatch(
+            $Model, $user, $sgids, $attributes, $fields,
+            $includeEventData, true
+        );
     }
 
     public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
