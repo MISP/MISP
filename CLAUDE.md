@@ -189,6 +189,27 @@ When adding a new widget render kind (any new value for `public $render` on a cl
 2. Register it in the `REGISTRY` object at the bottom of the file under the exact `$render` string.
 3. The glyph should visually evoke the widget's output shape, not its data domain — a bar chart is bars regardless of whether it's counting events or orgs.
 
+## Performance — data scale and hardware spread
+
+When tuning a query or a hot path, reason about two independent axes and extrapolate; do **not**
+trust absolute timings from one machine.
+
+- **Event size.** Most events are small, **but not all** — a single event can exceed **1,000,000
+  attributes/objects** on operational instances, and that is more common in some communities than
+  rare. Judge any per-event work (per-row probes, PHP loops over the attribute/object set) at ~10^6
+  rows, not at a handful.
+- **Hardware spread.** MISP runs on everything from an **8 GB dual-core** box to **512 GB / 64-core**
+  community servers. Development often happens on a resource-constrained laptop, so extrapolation is
+  unavoidable — favour approaches whose cost scales predictably.
+- **The two axes can cross over.** A cost that scales with *event* size (e.g. a correlated per-row
+  subquery) and one that scales with *instance* size (e.g. an un-scoped `IN (SELECT …)` that the
+  planner materialises over the whole table) behave differently at the extremes and on different
+  hardware. Prefer the plan that stays bounded on the constrained end (event-scoped, O(1) extra
+  memory) over one that is faster only on a big box.
+- **Measure with portable signals, not wall-clock ms:** `EXPLAIN` / MariaDB `ANALYZE FORMAT=JSON`
+  (access type, actual rows, `MATERIALIZED` vs `unique_subquery`), rows examined, and temp-table
+  creation. These extrapolate across hardware; laptop milliseconds do not.
+
 ## Debugging
 
 When fixing bugs, always verify the root cause by comparing git blame/diff of the specific change before proposing a fix. Do not conclude old and new code are equivalent without tracing actual execution paths.
