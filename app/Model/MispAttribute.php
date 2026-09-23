@@ -2850,7 +2850,7 @@ class MispAttribute extends AppModel
         }
         $attribute = $this->find('first', array('conditions' => array('Attribute.id' => $id), 'recursive' => -1, 'contain' => array('Event')));
         if (!$user['Role']['perm_site_admin']) {
-            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] == $user['id']) || $user['Role']['perm_modify_org']))) {
                 return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
             }
         }
