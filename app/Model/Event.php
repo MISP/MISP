@@ -1401,6 +1401,21 @@ class Event extends AppModel
                 'table' => 'event_reports',
                 'foreign_key' => 'event_id',
                 'value' => $id
+            ),
+            array(
+                'table' => 'event_graph',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => '1_event_id',
+                'value' => $id
             )
         );
         if ($thread_id) {
@@ -1427,8 +1442,36 @@ class Event extends AppModel
             );
         }
 
+        // rows keyed by the event's reports or attributes rather than the event itself,
+        // looked up before the raw deletes below remove their parents
+        $reportIds = $this->EventReport->find('column', [
+            'conditions' => ['EventReport.event_id' => $id],
+            'fields' => ['EventReport.id'],
+        ]);
+        $AttachmentScan = $this->loadAttachmentScan();
+        $scanTypes = ['attachment', 'malware-sample'];
+        $scannedIds = [
+            AttachmentScan::TYPE_ATTRIBUTE => $this->Attribute->find('column', [
+                'conditions' => ['Attribute.event_id' => $id, 'Attribute.type' => $scanTypes],
+                'fields' => ['Attribute.id'],
+            ]),
+            AttachmentScan::TYPE_SHADOW_ATTRIBUTE => $this->ShadowAttribute->find('column', [
+                'conditions' => ['ShadowAttribute.event_id' => $id, 'ShadowAttribute.type' => $scanTypes],
+                'fields' => ['ShadowAttribute.id'],
+            ]),
+        ];
+
         $db = $this->getDataSource();
         $db->begin();
+        if (!empty($reportIds)) {
+            $this->EventReport->EventReportTag->deleteAll(['EventReportTag.event_report_id' => $reportIds], false);
+        }
+        foreach ($scannedIds as $type => $ids) {
+            if (!empty($ids)) {
+                $AttachmentScan->deleteAll(['AttachmentScan.type' => $type, 'AttachmentScan.attribute_id' => $ids], false);
+            }
+        }
+        ClassRegistry::init('FuzzyCorrelateSsdeep')->purge($id);
         $connection = $db->getConnection();
         foreach ($relations as $relation) {
             $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
