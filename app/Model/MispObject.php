@@ -111,6 +111,7 @@ class MispObject extends AppModel
         'description' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
+                'allowEmpty' => true,
                 'on' => 'create'
             ),
         ),
