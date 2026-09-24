@@ -766,9 +766,15 @@ class ShadowAttribute extends AppModel
                 $this->correlatedLookup('objects', 'distribution', 'Attribute', 'object_id') . ' IN (1, 2, 3, 5)',
             );
             if (!empty($sgids) && (!isset($sgids[0]) || $sgids[0] != -1)) {
-                $objectDistribution[] = $this->correlatedLookup('objects', 'sharing_group_id', 'Attribute', 'object_id')
-                    . ' IN (' . implode(', ', array_map('intval', $sgids)) . ')';
-                $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
+                $objectDistribution[] = ['AND' => [
+                    $this->correlatedLookup('objects', 'distribution', 'Attribute', 'object_id') . ' = 4',
+                    $this->correlatedLookup('objects', 'sharing_group_id', 'Attribute', 'object_id')
+                        . ' IN (' . implode(', ', array_map('intval', $sgids)) . ')',
+                ]];
+                $attributeDistribution[] = ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]];
             }
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions = array(
@@ -788,6 +794,7 @@ class ShadowAttribute extends AppModel
                     array(
                         'OR' => array(
                             'ShadowAttribute.old_id' => '0',
+                            'Event.org_id' => $user['org_id'],
                             'AND' => array(
                                 array(
                                     'OR' => array(
