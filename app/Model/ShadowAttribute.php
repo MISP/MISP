@@ -766,8 +766,14 @@ class ShadowAttribute extends AppModel
                 '(SELECT distribution FROM objects WHERE objects.id = Attribute.object_id)' => array(1,2,3,5)
             );
             if (!empty($sgids) && (!isset($sgids[0]) || $sgids[0] != -1)) {
-                $objectDistribution['(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)'] = $sgids;
-                $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
+                $objectDistribution[] = ['AND' => [
+                    '(SELECT distribution FROM objects WHERE objects.id = Attribute.object_id)' => 4,
+                    '(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)' => $sgids,
+                ]];
+                $attributeDistribution[] = ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]];
             }
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions = array(
@@ -787,6 +793,7 @@ class ShadowAttribute extends AppModel
                     array(
                         'OR' => array(
                             'ShadowAttribute.old_id' => '0',
+                            'Event.org_id' => $user['org_id'],
                             'AND' => array(
                                 array(
                                     'OR' => array(
