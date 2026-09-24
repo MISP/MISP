@@ -3154,7 +3154,7 @@ class AttributesController extends AppController
         $this->layout = null;
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('object', $attribute[0]['Attribute']);
-        $this->set('seed', $seed);
+        $this->set('seed', (int)$seed ?: mt_rand());
     }
 
     public function enrich($id)

@@ -1486,6 +1486,6 @@ class ObjectsController extends AppController
         $this->layout = null;
         $this->set('shortDist', $this->MispObject->Attribute->shortDist);
         $this->set('object', $object[0]['Object']);
-        $this->set('seed', $seed);
+        $this->set('seed', (int)$seed ?: mt_rand());
     }
 }
