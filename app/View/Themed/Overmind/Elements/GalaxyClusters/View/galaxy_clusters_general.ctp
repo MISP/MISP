@@ -9,7 +9,7 @@ $isDefault = !empty($data['default']);
 
 $sourceHtml = '';
 if (!empty($data['source'])) {
-    $sourceHtml = filter_var($data['source'], FILTER_VALIDATE_URL)
+    $sourceHtml = filter_var($data['source'], FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $data['source'])
         ? '<a href="' . h($data['source']) . '" rel="noreferrer noopener" target="_blank">' . h($data['source']) . '</a>'
         : h($data['source']);
 }
