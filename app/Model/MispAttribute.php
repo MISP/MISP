@@ -2141,6 +2141,10 @@ class MispAttribute extends AppModel
             // 1. Deletion status - still not convinced by this one, but let's try. May move this further down the line, perhaps after 2.
             if (isset($options['deleted']) && $options['deleted'] === 'only') {
                 $conditions['AND'][] = ['Attribute.deleted' => 1];
+                if (!$user['Role']['perm_sync']) {
+                    // soft-deleted data is only shown to the event owner, as in fetchEvent()
+                    $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+                }
             } elseif (!$user['Role']['perm_sync'] || empty($options['deleted'])) {
                 $conditions['AND'][] = ['Attribute.deleted' => 0];
             }

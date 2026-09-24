@@ -1998,6 +1998,17 @@ class Event extends AppModel
         } else {
             $conditions['Attribute.deleted'] = 0;
         }
+        if ($deleted !== 0 && !$user['Role']['perm_sync']) {
+            // soft-deleted data is only shown to the event owner, as in fetchEvent()
+            $ownDeleted = [
+                'Attribute.deleted' => 1,
+                $this->eventOwnerSubquery('Attribute') . ' = ' . (int)$user['org_id'],
+            ];
+            unset($conditions['Attribute.deleted']);
+            $conditions[] = $deleted === 1
+                ? ['OR' => ['Attribute.deleted' => 0, 'AND' => $ownDeleted]]
+                : $ownDeleted;
+        }
 
         // Optional filters
         if (!empty($options['category'])) {
