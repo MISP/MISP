@@ -407,6 +407,11 @@ if (!empty($me)) {
                     'url' => $baseurl . '/servers/serverSettings',
                     'requirement' => $isSiteAdmin
                 ),
+                [
+                    'html' => '<i class="fas fa-search fa-fw"></i> ' . __('Fast lookup index'),
+                    'url' => $baseurl . '/servers/fastLookup',
+                    'requirement' => $isSiteAdmin
+                ],
                 array(
                     'type' => 'separator',
                     'requirement' => $isSiteAdmin
