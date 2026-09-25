@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 App::uses('GitTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
 
@@ -2011,7 +2012,6 @@ class Server extends AppModel
 
     public function testFastLookupTypes($value)
     {
-        App::uses('FastLookupConfig', 'Tools');
         return FastLookupConfig::validateTypeSetting($value);
     }
 
@@ -2022,8 +2022,7 @@ class Server extends AppModel
 
     public function testFastLookupLimit($value)
     {
-        return filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
-            ? true : __('A positive integer is required.');
+        return FastLookupConfig::validateMaxValuesSetting($value);
     }
 
     public function testForPositiveInteger($value)
@@ -7049,7 +7048,7 @@ class Server extends AppModel
                 'fast_lookup_attribute_types' => array(
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Comma-separated attribute types included in the fast lookup index. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
-                    'value' => 'ip-src,ip-dst,domain,hostname,domain|ip,ip-src|port,ip-dst|port,hostname|port,md5,sha1,sha256,sha512,filename|md5,filename|sha1,filename|sha256,filename|sha512,malware-sample',
+                    'value' => implode(',', FastLookupConfig::DEFAULT_TYPES),
                     'test' => 'testFastLookupTypes',
                     'type' => 'string',
                     'null' => false,
@@ -7065,7 +7064,7 @@ class Server extends AppModel
                 'fast_lookup_max_values' => array(
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input and candidate-result safety limits still apply.'),
-                    'value' => 10000,
+                    'value' => FastLookupConfig::DEFAULT_MAX_VALUES,
                     'test' => 'testFastLookupLimit',
                     'beforeHook' => 'fastLookupLimitBeforeHook',
                     'type' => 'numeric',

@@ -11,25 +11,18 @@ class FastLookupConfig
         'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha512',
         'malware-sample',
     ];
+    const MATCHING = ['exact', 'ip_cidr', 'parent_domain'];
 
     public static function scope($attribute = null)
     {
         $setting = Configure::read('MISP.fast_lookup_attribute_types');
         $types = $setting === null ? self::DEFAULT_TYPES : self::parseTypes($setting, $attribute);
         sort($types, SORT_STRING);
-        $published = Configure::read('MISP.fast_lookup_published_only');
-        if ($published === null) {
-            $published = true;
-        } elseif (!in_array($published, [true, false, 0, 1, '0', '1'], true)) {
-            throw new InvalidArgumentException('MISP.fast_lookup_published_only must be a boolean.');
-        }
-        $maximum = Configure::read('MISP.fast_lookup_max_values');
-        $maximum = $maximum === null ? self::DEFAULT_MAX_VALUES : self::positiveInteger($maximum);
         return [
             'attribute_types' => $types,
-            'published_only' => (bool)$published,
-            'max_values' => $maximum,
-            'matching' => ['exact', 'ip_cidr', 'parent_domain'],
+            'published_only' => self::readPublishedOnly(),
+            'max_values' => self::readMaxValues(),
+            'matching' => self::MATCHING,
         ];
     }
 
@@ -50,20 +43,11 @@ class FastLookupConfig
             if ($types !== null) {
                 sort($types, SORT_STRING);
             }
-            $published = Configure::read('MISP.fast_lookup_published_only');
-            $published = $published === null ? true
-                : (in_array($published, [true, false, 0, 1, '0', '1'], true) ? (bool)$published : null);
-            $maximum = Configure::read('MISP.fast_lookup_max_values');
-            try {
-                $maximum = $maximum === null ? self::DEFAULT_MAX_VALUES : self::positiveInteger($maximum);
-            } catch (InvalidArgumentException $e) {
-                $maximum = null;
-            }
             return [
                 'attribute_types' => $types,
-                'published_only' => $published,
-                'max_values' => $maximum,
-                'matching' => ['exact', 'ip_cidr', 'parent_domain'],
+                'published_only' => self::orNull([self::class, 'readPublishedOnly']),
+                'max_values' => self::orNull([self::class, 'readMaxValues']),
+                'matching' => self::MATCHING,
                 'configuration_valid' => false,
             ];
         }
@@ -74,6 +58,16 @@ class FastLookupConfig
     {
         try {
             self::parseTypes($value);
+            return true;
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public static function validateMaxValuesSetting($value)
+    {
+        try {
+            self::positiveInteger($value);
             return true;
         } catch (InvalidArgumentException $e) {
             return $e->getMessage();
@@ -150,6 +144,33 @@ class FastLookupConfig
             $types[$type] = true;
         }
         return array_keys($types);
+    }
+
+    private static function readPublishedOnly(): bool
+    {
+        $published = Configure::read('MISP.fast_lookup_published_only');
+        if ($published === null) {
+            return true;
+        }
+        if (!in_array($published, [true, false, 0, 1, '0', '1'], true)) {
+            throw new InvalidArgumentException('MISP.fast_lookup_published_only must be a boolean.');
+        }
+        return (bool)$published;
+    }
+
+    private static function readMaxValues(): int
+    {
+        $maximum = Configure::read('MISP.fast_lookup_max_values');
+        return $maximum === null ? self::DEFAULT_MAX_VALUES : self::positiveInteger($maximum);
+    }
+
+    private static function orNull(callable $reader)
+    {
+        try {
+            return $reader();
+        } catch (InvalidArgumentException $e) {
+            return null;
+        }
     }
 
     private static function positiveInteger($value)

@@ -115,15 +115,10 @@ LUA
         return $meta;
     }
 
+    /** Opens the event with its previous memberships removed. */
     public function beginEvent(string $generation, string $eventId): void
     {
-        $this->removeEvent($generation, $eventId);
-        $this->evaluate($this->fenceScript() . <<<'LUA'
-redis.call('HSET', KEYS[1], 'ready', '0')
-redis.call('HSET', KEYS[2], ARGV[2], '1')
-return 1
-LUA
-            , [$this->metaKey(), $this->inflightKey($generation)], [$generation, $eventId]);
+        $this->clearEvent($generation, $eventId);
     }
 
     /** A caller streams SQL rows; this method never materializes the entire event. */
@@ -227,16 +222,14 @@ LUA
             , [$this->metaKey(), $this->inflightKey($generation)], [$generation, $eventId]);
     }
 
-    public function replaceEvent(string $generation, string $eventId, array $preparedAttributes): void
+    public function removeEvent(string $generation, string $eventId): void
     {
-        $this->beginEvent($generation, $eventId);
-        foreach (array_chunk($preparedAttributes, self::MAX_ATTRIBUTES_PER_BATCH) as $batch) {
-            $this->addAttributes($generation, $eventId, $batch);
-        }
+        $this->clearEvent($generation, $eventId);
         $this->endEvent($generation, $eventId);
     }
 
-    public function removeEvent(string $generation, string $eventId): void
+    /** Leaves the event open (in flight) and empty. */
+    private function clearEvent(string $generation, string $eventId): void
     {
         $this->identifier($generation);
         $this->decimalId($eventId);
@@ -290,7 +283,6 @@ return 1
 LUA
                 , [$this->metaKey(), $this->inflightKey($generation), $registry, $reverse], [$generation, $eventId]);
         }
-        $this->endEvent($generation, $eventId);
     }
 
     public function checkpoint(string $generation, string $revision, array $progress, bool $ready): void

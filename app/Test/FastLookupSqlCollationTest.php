@@ -47,8 +47,7 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
             $right = 'CONVERT(' . $this->pdo->quote($query) . ' USING ' . $charset . ') COLLATE ' . $collation;
             $equal = (bool)$this->pdo->query('SELECT ' . $left . ' = ' . $right)->fetchColumn();
             $prepared = $tool->prepareAttributes([['id' => '1', 'type' => 'domain', 'value1' => $stored, 'value2' => '']]);
-            $queries = $tool->queryTokens([$query], ['domain']);
-            $fallback = $tool->exactFallbackComponents();
+            $queries = $tool->queryTokens([$query], ['domain'], $fallback);
             $candidate = !empty($fallback[0]['value1']) || (bool)array_intersect($prepared[0]['tokens'], array_column($queries[0], 'token'));
             if ($equal) {
                 $this->assertTrue($candidate, $collation . ' lost a SQL-equal pair: ' . json_encode([$stored, $query]));

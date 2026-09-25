@@ -14,7 +14,6 @@ class AttributeFastLookupTool
     private $attribute;
     private $db;
     private $manager;
-    private $valueTool;
 
     public function __construct($attribute, $manager = null)
     {
@@ -41,24 +40,23 @@ class AttributeFastLookupTool
             unset($snapshot['results']);
             return $snapshot;
         }
-        $this->valueTool = new FastLookupValueTool($this->attribute);
+        $valueTool = new FastLookupValueTool($this->attribute);
         $acl = $this->db->conditions($this->attribute->buildConditions($user), true, false, $this->attribute);
+        $from = $this->fromClause();
+        $common = $this->commonConditions($scope, $acl);
         $rowCount = 0;
         $matches = [];
         foreach (array_chunk($values, self::BATCH_SIZE, true) as $batch) {
             if ($rowCount === self::MAX_ROWS) {
                 throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
             }
-            $tokens = $this->valueTool->queryTokens($batch, $scope['attribute_types']);
-            $fallback = $this->valueTool->exactFallbackComponents();
+            $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback);
             $candidates = $this->manager->index()->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount);
             $this->validateCandidates($candidates, $batch, $rowCount);
-            $from = $this->fromClause();
-            $common = $this->commonConditions($scope, $acl);
             $branches = [];
             foreach ($batch as $index => $value) {
                 foreach (['value1', 'value2'] as $component) {
-                    if (!$this->valueTool->representable($value, $component)) {
+                    if (!$valueTool->representable($value, $component)) {
                         continue;
                     }
                     $restriction = '';
@@ -98,7 +96,7 @@ class AttributeFastLookupTool
                     . ' WHERE ' . $this->db->name('Attribute.id') . ' IN (' . implode(',', $ids) . ')' . $common;
                 foreach ($this->query([$sql], $rowCount) as $row) {
                     foreach ($expanded[$row['id']] ?? [] as $index => $kinds) {
-                        $live = $this->valueTool->expandedMatches($batch[$index], $row);
+                        $live = $valueTool->expandedMatches($batch[$index], $row);
                         foreach (['ip_range' => 'ip_ranges', 'domain' => 'domains'] as $kind => $group) {
                             if (!isset($kinds[$kind])) {
                                 continue;

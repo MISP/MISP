@@ -7,7 +7,6 @@ class FastLookupValueTool
     private $attribute;
     private $db;
     private $columns;
-    private $fallback = [];
 
     public function __construct($attribute)
     {
@@ -72,10 +71,11 @@ class FastLookupValueTool
     }
 
     /** Input ordinals are retained through tokenization and Redis batching. */
-    public function queryTokens(array $values, array $types)
+    /** @param array|null $fallback Receives [input index][component] => true for SQL-only discovery. */
+    public function queryTokens(array $values, array $types, &$fallback = null)
     {
         $requests = [];
-        $this->fallback = [];
+        $fallback = [];
         foreach ($values as $index => $value) {
             foreach (['value1', 'value2'] as $component) {
                 if (!$this->representable($value, $component)) {
@@ -84,7 +84,7 @@ class FastLookupValueTool
                 if ($this->supportsWeights($component)) {
                     $requests[$index][$component] = $value;
                 } else {
-                    $this->fallback[$index][$component] = true;
+                    $fallback[$index][$component] = true;
                 }
             }
         }
@@ -100,7 +100,7 @@ class FastLookupValueTool
             $tokens = [];
             foreach ($weights[$index] ?? [] as $component => $weight) {
                 if ($weight === '') {
-                    $this->fallback[$index][$component] = true;
+                    $fallback[$index][$component] = true;
                     continue;
                 }
                 $tokens[$this->exactToken($component, $weight)] = 'exact';
@@ -137,12 +137,6 @@ class FastLookupValueTool
             }
         }
         return $queries;
-    }
-
-    /** Components requiring SQL discovery after the most recent queryTokens. */
-    public function exactFallbackComponents()
-    {
-        return $this->fallback;
     }
 
     public function expandedMatches(string $input, array $attribute)

@@ -12,6 +12,8 @@ class AppShell
     public $output = [];
     public function out($message) { $this->output[] = $message; }
     public function error($message) { throw new RuntimeException($message); }
+    protected function json($data) { return json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR); }
+    protected function getBackgroundJobsTool() { return $this->Job->getBackgroundJobsTool(); }
 }
 class Job
 {

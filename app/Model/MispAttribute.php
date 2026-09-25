@@ -10,6 +10,8 @@ App::uses('TmpFileTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('FastLookupIndexManager', 'Tools');
+App::uses('AttributeFastLookupTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -552,7 +554,7 @@ class MispAttribute extends AppModel
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
-                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
+                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id', 'event_id'],
             ));
         } else {
             $this->old = null;
@@ -634,8 +636,8 @@ class MispAttribute extends AppModel
 
         $attribute = $this->data['Attribute'];
 
-        App::uses('FastLookupIndexManager', 'Tools');
-        $fastLookupEventId = $attribute['event_id'] ?? $this->field('event_id', ['id' => $this->id]);
+        $fastLookupEventId = $attribute['event_id'] ?? $this->old['Attribute']['event_id']
+            ?? $this->field('event_id', ['id' => $this->id]);
         FastLookupIndexManager::recordChange($this, $fastLookupEventId);
         if (!empty($this->old['Attribute']['event_id']) && $this->old['Attribute']['event_id'] != $fastLookupEventId) {
             FastLookupIndexManager::recordChange($this, $this->old['Attribute']['event_id']);
@@ -780,7 +782,6 @@ class MispAttribute extends AppModel
 
     public function delete($id = null, $cascade = true)
     {
-        App::uses('FastLookupIndexManager', 'Tools');
         return FastLookupIndexManager::withMutationTransaction($this, function () use ($id, $cascade) {
             return parent::delete($id, $cascade);
         });
@@ -818,7 +819,6 @@ class MispAttribute extends AppModel
 
     public function afterDelete()
     {
-        App::uses('FastLookupIndexManager', 'Tools');
         $fastLookupEventId = $this->fastLookupDeletedEventId ?? $this->data['Attribute']['event_id'] ?? null;
         $this->fastLookupDeletedEventId = null;
         FastLookupIndexManager::recordChange($this, $fastLookupEventId);
@@ -1930,7 +1930,6 @@ class MispAttribute extends AppModel
     /** @return array Scoped readiness status and visible event IDs/ranges/domains. */
     public function fastLookup(array $user, array $request)
     {
-        App::uses('AttributeFastLookupTool', 'Tools');
         return (new AttributeFastLookupTool($this))->lookup($user, $request);
     }
 

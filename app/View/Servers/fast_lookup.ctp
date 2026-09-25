@@ -1,9 +1,10 @@
 <?php
+App::uses('CakeNumber', 'Utility');
 $scope = $lookupStatus['scope'] ?? [];
 $progress = $lookupStatus['progress'] ?? [];
 $statistics = $lookupStatus['statistics'] ?? [];
 $bytes = function ($value) {
-    return $value === null ? __('Unavailable') : number_format($value) . ' B';
+    return $value === null ? __('Unavailable') : CakeNumber::toReadableSize($value);
 };
 ?>
 <?= $this->Html->css('fast-lookup') ?>

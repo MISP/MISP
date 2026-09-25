@@ -139,9 +139,9 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
             ['input_index' => 0, 'component' => 'value1', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
             ['input_index' => 0, 'component' => 'value2', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
         ]];
-        $query = $this->tool->queryTokens(['c'], ['domain']);
+        $query = $this->tool->queryTokens(['c'], ['domain'], $fallback);
         $this->assertCount(1, $query[0]);
-        $this->assertSame([], $this->tool->exactFallbackComponents());
+        $this->assertSame([], $fallback);
         $this->assertSame(1, substr_count($this->attribute->db->queries[0], ' AS weight,'), 'Equivalent component collations must not duplicate weight work.');
     }
 }

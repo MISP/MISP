@@ -6,6 +6,7 @@ App::uses('JsonTool', 'Tools');
 App::uses('AbstractMigration', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('FastLookupIndexManager', 'Tools');
 
 /**
  * @property Server $Server
@@ -341,14 +342,17 @@ class AdminShell extends AppShell
 
     private function runFastLookupCommand(bool $rebuild, bool $pendingOnly): void
     {
-        App::uses('FastLookupIndexManager', 'Tools');
         $jobId = isset($this->args[0]) ? (int)$this->args[0] : 0;
-        $batchSize = $this->args[1] ?? ($pendingOnly ? 25 : 100);
-        if (!ctype_digit((string)$batchSize) || (int)$batchSize < 1 || (int)$batchSize > 1000) {
-            $this->error('The IOC index batch size must be between 1 and 1000 events.');
+        $batchSize = $this->args[1] ?? ($pendingOnly ? FastLookupIndexManager::PENDING_BATCH_SIZE : FastLookupIndexManager::SCAN_BATCH_SIZE);
+        try {
+            if (!ctype_digit((string)$batchSize)) {
+                throw new InvalidArgumentException('The IOC index batch size must be a whole number.');
+            }
+            $batchSize = FastLookupIndexManager::boundedLimit((int)$batchSize);
+        } catch (InvalidArgumentException $e) {
+            $this->error($e->getMessage());
             return;
         }
-        $batchSize = (int)$batchSize;
         if (!$jobId) {
             $jobId = $this->Job->createJob('SYSTEM', Job::WORKER_DEFAULT, 'fast_lookup_index', '', 'Updating the persistent IOC index.');
         }
@@ -364,20 +368,20 @@ class AdminShell extends AppShell
                 $status = $pendingOnly ? $manager->processPending($batchSize) : $manager->runBatch($batchSize);
                 $this->Job->saveProgress($jobId, 'IOC index: ' . $status['status'], min(99, $status['progress']['percent']));
                 if ($pendingOnly && $status['status'] === 'updating' && Configure::read('MISP.background_jobs')) {
-                    $this->Job->getBackgroundJobsTool()->enqueue(
+                    $this->getBackgroundJobsTool()->enqueue(
                         BackgroundJobsTool::DEFAULT_QUEUE,
                         BackgroundJobsTool::CMD_ADMIN,
                         ['processFastLookup', $jobId, $batchSize],
                         true,
                         $jobId
                     );
-                    $this->out(json_encode($status, JSON_THROW_ON_ERROR));
+                    $this->out($this->json($status));
                     return;
                 }
             } while ($status['status'] === 'updating' || (!$pendingOnly && $status['status'] === 'warming'));
             $success = $status['status'] === 'ready' || ($pendingOnly && $status['status'] === 'warming');
             $this->Job->saveStatus($jobId, $success, $status['message'] ?? ('IOC index: ' . $status['status']));
-            $this->out(json_encode($status, JSON_THROW_ON_ERROR));
+            $this->out($this->json($status));
             if (!$success) {
                 $this->error($status['message'] ?? 'The persistent IOC index requires a rebuild.');
             }

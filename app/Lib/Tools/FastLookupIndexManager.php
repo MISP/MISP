@@ -19,6 +19,8 @@ class FastLookupIndexManager
     const STATE_SETTING = 'fastLookupIndex:state:v2';
     const DIRTY_PREFIX = 'fastLookupIndex:dirty:v2:';
     const ATTRIBUTE_BATCH_SIZE = 500;
+    const SCAN_BATCH_SIZE = 100;
+    const PENDING_BATCH_SIZE = 25;
 
     private $attribute;
     private $db;
@@ -115,7 +117,7 @@ class FastLookupIndexManager
         $fingerprint = FastLookupConfig::fingerprint($this->attribute);
         $this->connection->beginTransaction();
         try {
-            $this->insertStateIfAbsent();
+            self::insertStateIfAbsent($this->connection, $this->settingsTable);
             $this->readState(true);
             $events = $this->db->fullTableName($this->attribute->Event);
             $filter = $scope['published_only'] ? ' WHERE published = TRUE' : '';
@@ -146,14 +148,14 @@ class FastLookupIndexManager
         return $this->runBatchInternal(0, false);
     }
 
-    public function runBatch(int $eventLimit = 100): array
+    public function runBatch(int $eventLimit = self::SCAN_BATCH_SIZE): array
     {
-        return $this->runBatchInternal($this->boundedLimit($eventLimit), false);
+        return $this->runBatchInternal(self::boundedLimit($eventLimit), false);
     }
 
-    public function processPending(int $eventLimit = 25): array
+    public function processPending(int $eventLimit = self::PENDING_BATCH_SIZE): array
     {
-        return $this->runBatchInternal($this->boundedLimit($eventLimit), true);
+        return $this->runBatchInternal(self::boundedLimit($eventLimit), true);
     }
 
     private function runBatchInternal(int $eventLimit, bool $pendingOnly): array
@@ -233,7 +235,7 @@ class FastLookupIndexManager
             $ready = !empty($state['scan_complete']) && $this->dirtyCount() === 0;
             // Never publish the in-progress revision as committed: a Redis
             // snapshot from mid-batch still carries it and must stay stale.
-            $committed = $state['next_revision'] ?? $revision;
+            $committed = $state['next_revision'];
             $state['revision'] = $committed;
             $state['pending_revision'] = null;
             $state['next_revision'] = null;
@@ -266,19 +268,18 @@ class FastLookupIndexManager
         }
         $this->index()->beginEvent($generation, $eventId);
         $table = $this->db->fullTableName($this->attribute);
+        // The configured scope always names at least one type.
         $types = $scope['attribute_types'];
-        if ($types) {
-            $typePlaceholders = implode(',', array_fill(0, count($types), '?'));
-            $valueTool = new FastLookupValueTool($this->attribute);
-            $lastId = '0';
-            do {
-                $rows = $this->query("SELECT id, type, value1, value2 FROM $table WHERE event_id = ? AND id > ? AND deleted = FALSE AND type IN ($typePlaceholders) ORDER BY id LIMIT " . self::ATTRIBUTE_BATCH_SIZE, array_merge([$eventId, $lastId], $types))->fetchAll(PDO::FETCH_ASSOC);
-                if ($rows) {
-                    $this->index()->addAttributes($generation, $eventId, $valueTool->prepareAttributes($rows));
-                    $lastId = (string)$rows[count($rows) - 1]['id'];
-                }
-            } while (count($rows) === self::ATTRIBUTE_BATCH_SIZE);
-        }
+        $typePlaceholders = implode(',', array_fill(0, count($types), '?'));
+        $valueTool = new FastLookupValueTool($this->attribute);
+        $lastId = '0';
+        do {
+            $rows = $this->query("SELECT id, type, value1, value2 FROM $table WHERE event_id = ? AND id > ? AND deleted = FALSE AND type IN ($typePlaceholders) ORDER BY id LIMIT " . self::ATTRIBUTE_BATCH_SIZE, array_merge([$eventId, $lastId], $types))->fetchAll(PDO::FETCH_ASSOC);
+            if ($rows) {
+                $this->index()->addAttributes($generation, $eventId, $valueTool->prepareAttributes($rows));
+                $lastId = (string)$rows[count($rows) - 1]['id'];
+            }
+        } while (count($rows) === self::ATTRIBUTE_BATCH_SIZE);
         $this->index()->endEvent($generation, $eventId);
     }
 
@@ -332,12 +333,7 @@ class FastLookupIndexManager
             if ($stateId === false) {
                 // Materialise the lock row even before the first build. Locking
                 // an absent row is not portable across SQL isolation levels.
-                $insert = "INSERT INTO $table (setting, value) VALUES (?, ?)";
-                $insert .= $postgres ? ' ON CONFLICT (setting) DO NOTHING' : ' ON DUPLICATE KEY UPDATE setting = setting';
-                $statement = $connection->prepare($insert);
-                if (!$statement->execute([self::STATE_SETTING, '{}'])) {
-                    throw new RuntimeException('Could not initialise the IOC index mutation lock.');
-                }
+                self::insertStateIfAbsent($connection, $table);
                 $statement = $connection->prepare("SELECT id FROM $table WHERE setting = ? FOR UPDATE");
                 $statement->execute([self::STATE_SETTING]);
                 $stateId = $statement->fetchColumn();
@@ -357,7 +353,7 @@ class FastLookupIndexManager
                 $key = self::DIRTY_PREFIX . (string)$eventId;
                 $revision = bin2hex(random_bytes(16));
                 $sql = "INSERT INTO $table (setting, value) VALUES (?, ?)";
-                $sql .= $connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+                $sql .= $postgres
                     ? ' ON CONFLICT (setting) DO UPDATE SET value = EXCLUDED.value'
                     : ' ON DUPLICATE KEY UPDATE value = VALUES(value)';
                 $statement = $connection->prepare($sql);
@@ -394,10 +390,10 @@ class FastLookupIndexManager
                 if (Configure::read('MISP.background_jobs')) {
                     $job = ClassRegistry::init('Job');
                     $jobId = $job->createJob('SYSTEM', Job::WORKER_DEFAULT, 'fast_lookup_pending', '', 'Updating the IOC index.');
-                    $job->getBackgroundJobsTool()->enqueue(BackgroundJobsTool::DEFAULT_QUEUE, BackgroundJobsTool::CMD_ADMIN, ['processFastLookup', $jobId, 25], true, $jobId);
+                    $job->getBackgroundJobsTool()->enqueue(BackgroundJobsTool::DEFAULT_QUEUE, BackgroundJobsTool::CMD_ADMIN, ['processFastLookup', $jobId, self::PENDING_BATCH_SIZE], true, $jobId);
                 } else {
                     $attribute = $model->alias === 'Attribute' ? $model : $model->Attribute;
-                    (new self($attribute))->processPending(25);
+                    (new self($attribute))->processPending();
                 }
             } catch (Throwable $e) {
                 // SQL dirty rows survive failed Redis enqueue and worker outages.
@@ -406,13 +402,16 @@ class FastLookupIndexManager
         }
     }
 
-    private function insertStateIfAbsent(): void
+    private static function insertStateIfAbsent($connection, string $table): void
     {
-        $sql = "INSERT INTO {$this->settingsTable} (setting, value) VALUES (?, ?)";
-        $sql .= $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        $sql = "INSERT INTO $table (setting, value) VALUES (?, ?)";
+        $sql .= $connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
             ? ' ON CONFLICT (setting) DO NOTHING'
             : ' ON DUPLICATE KEY UPDATE setting = setting';
-        $this->query($sql, [self::STATE_SETTING, '{}']);
+        $statement = $connection->prepare($sql);
+        if (!$statement || !$statement->execute([self::STATE_SETTING, '{}'])) {
+            throw new RuntimeException('Could not initialise the IOC index state.');
+        }
     }
 
     private function readState(bool $lock = false): ?array
@@ -531,7 +530,7 @@ class FastLookupIndexManager
         }
     }
 
-    private function boundedLimit(int $limit): int
+    public static function boundedLimit(int $limit): int
     {
         if ($limit < 1 || $limit > 1000) {
             throw new InvalidArgumentException('The IOC index batch size must be between 1 and 1000 events.');

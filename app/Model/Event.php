@@ -5,6 +5,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('FastLookupIndexManager', 'Tools');
 
 /**
  * @property User $User
@@ -366,7 +367,6 @@ class Event extends AppModel
 
     public function delete($id = null, $cascade = true)
     {
-        App::uses('FastLookupIndexManager', 'Tools');
         return FastLookupIndexManager::withMutationTransaction($this, function () use ($id, $cascade) {
             return parent::delete($id, $cascade);
         });
@@ -547,7 +547,6 @@ class Event extends AppModel
     public function afterSave($created, $options = array())
     {
         $event = $this->data['Event'];
-        App::uses('FastLookupIndexManager', 'Tools');
         FastLookupIndexManager::recordChange($this, $event['id'] ?? $this->id);
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             if (
@@ -591,7 +590,6 @@ class Event extends AppModel
     public function afterDelete()
     {
         // quickDelete() removes children with raw SQL, bypassing their callbacks.
-        App::uses('FastLookupIndexManager', 'Tools');
         FastLookupIndexManager::recordChange($this, $this->data['Event']['id'] ?? $this->id);
     }
 
@@ -1504,7 +1502,6 @@ class Event extends AppModel
         }
 
         $db = $this->getDataSource();
-        App::uses('FastLookupIndexManager', 'Tools');
         return FastLookupIndexManager::withMutationTransaction($this, function () use ($db, $relations, $event) {
             $connection = $db->getConnection();
             foreach ($relations as $relation) {

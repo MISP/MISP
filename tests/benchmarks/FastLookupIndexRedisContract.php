@@ -13,6 +13,16 @@ if (!class_exists('Redis') || empty($argv[1])) {
     throw new RuntimeException('Usage: php FastLookupIndexRedisContract.php /disposable/redis.sock (phpredis required)');
 }
 
+/** Streams an event the way FastLookupIndexManager::refreshEvent does. */
+function replaceEvent(FastLookupIndex $index, string $generation, string $eventId, array $attributes): void
+{
+    $index->beginEvent($generation, $eventId);
+    foreach (array_chunk($attributes, FastLookupIndex::MAX_ATTRIBUTES_PER_BATCH) as $batch) {
+        $index->addAttributes($generation, $eventId, $batch);
+    }
+    $index->endEvent($generation, $eventId);
+}
+
 class FastLookupContractRedisProxy
 {
     public $redis;
@@ -121,7 +131,7 @@ try {
     $index->initialise('first', str_repeat('a', 64), ['processed_events' => 0, 'total_events' => 2]);
     $assert($index->metadata()['ready'] === false, 'Initial index must be warming');
     $throws(static function () use ($index, $query) { $index->candidates('first', $query); }, FastLookupIndexUnavailableException::class, 'Warming index cannot return empty answers');
-    $index->replaceEvent('first', '2', [
+    replaceEvent($index, 'first', '2', [
         ['id' => '12', 'type' => 'domain', 'tokens' => [$exact, $domain, $domain]],
         ['id' => '13', 'type' => 'domain', 'tokens' => [$exact]],
         ['id' => '14', 'type' => 'ip-src', 'tokens' => [$ip]],
@@ -172,10 +182,10 @@ try {
 
     $proxy->failAfterAdd = true;
     $throws(static function () use ($index, $domain) {
-        $index->replaceEvent('first', '2', [['id' => '25', 'type' => 'domain', 'tokens' => [$domain]]]);
+        replaceEvent($index, 'first', '2', [['id' => '25', 'type' => 'domain', 'tokens' => [$domain]]]);
     }, FastLookupIndexUnavailableException::class, 'Lost write acknowledgement reports unavailable');
     $assert($index->metadata()['ready'] === false, 'Partial event replacement disables ready flag');
-    $index->replaceEvent('first', '2', [['id' => '30', 'type' => 'domain', 'tokens' => [$exact]]]);
+    replaceEvent($index, 'first', '2', [['id' => '30', 'type' => 'domain', 'tokens' => [$exact]]]);
     $index->checkpoint('first', 'r2', [], true);
     $result = $index->candidates('first', $query);
     $assert($result[7]['exact'] === ['30'] && $result[11]['domain'] === [] && $result[13]['ip_range'] === [], 'Retry removes every partial old posting');
@@ -194,7 +204,7 @@ try {
 
     $large = [];
     for ($id = 1000; $id < 1600; ++$id) { $large[] = ['id' => (string)$id, 'type' => 'domain', 'tokens' => [$exact]]; }
-    $index->replaceEvent('first', '8', $large);
+    replaceEvent($index, 'first', '8', $large);
     $index->checkpoint('first', 'large', [], true);
     $assert(count($index->candidates('first', $query)[7]['exact']) === 600, 'Streaming event writes keep all shared-token candidates');
     $removalsBefore = $proxy->postingRemovalCalls;
@@ -207,7 +217,7 @@ try {
     $throws(static function () use ($index) { $index->checkpoint('first', 'r5', [], true); }, FastLookupIndexUnavailableException::class, 'Open event cannot become ready');
     $index->endEvent('first', '4');
     $index->checkpoint('first', 'r6', [], true);
-    $index->replaceEvent('first', '5', [['id' => '40', 'type' => 'domain', 'tokens' => [$exact]]]);
+    replaceEvent($index, 'first', '5', [['id' => '40', 'type' => 'domain', 'tokens' => [$exact]]]);
     $index->checkpoint('first', 'r7', [], true);
     $postingKey = null;
     foreach ($keys() as $key) {
@@ -228,7 +238,7 @@ try {
     foreach ($keys() as $key) { $assert(strpos($key, ':g:first:') === false, 'Previous generation keys are reclaimed'); }
     $assert(!$redis->exists($prefix . 'g:older-interrupted:inflight'), 'Cleanup also reclaims generations left by an interrupted older rebuild');
     $throws(static function () use ($index) { $index->removeEvent('first', '5'); }, FastLookupIndexUnavailableException::class, 'Stale writer cannot change new generation');
-    $index->replaceEvent('second', '99', [['id' => '41', 'type' => 'domain', 'tokens' => [$exact]]]);
+    replaceEvent($index, 'second', '99', [['id' => '41', 'type' => 'domain', 'tokens' => [$exact]]]);
     foreach ($keys() as $key) {
         if ($redis->type($key) === Redis::REDIS_HASH && $redis->hExists($key, $exact)) { $postingKey = $key; break; }
     }
