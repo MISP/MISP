@@ -116,7 +116,8 @@ class FastLookupLifecycleIndex
         $this->meta = ['generation' => $generation, 'fingerprint' => $fingerprint, 'revision' => '0', 'ready' => false, 'progress' => $progress];
         if ($this->failInitialise) { $this->failInitialise = false; throw new RuntimeException('Interrupted initialisation'); }
     }
-    public function checkpoint($generation, $revision, $progress, $ready) { $this->metadata(); $this->meta = array_merge($this->meta, compact('generation', 'revision', 'progress', 'ready')); }
+    public $afterCheckpoint;
+    public function checkpoint($generation, $revision, $progress, $ready) { $this->metadata(); $this->meta = array_merge($this->meta, compact('generation', 'revision', 'progress', 'ready')); if ($this->afterCheckpoint) { ($this->afterCheckpoint)(); } }
     public function beginEvent($generation, $eventId) { $this->events[$eventId] = []; }
     public function addAttributes($generation, $eventId, $rows) { if ($this->failNextWrite) { $this->failNextWrite = false; throw new RuntimeException('Interrupted write'); } $this->events[$eventId] = array_merge($this->events[$eventId], $rows); }
     public function endEvent($generation, $eventId) { if ($this->afterWrite) { ($this->afterWrite)(); } }

@@ -10,6 +10,9 @@ App::uses('FastLookupValueTool', 'Tools');
  * A worker owns its transactions and locks the singleton SQL state row while
  * touching Redis. A durable pending revision distinguishes an interrupted batch
  * from an old Redis backup: only the committed or pending checkpoint can resume.
+ * Redis carries the pending revision while a batch writes and a distinct,
+ * pre-committed next revision once it completes, so a Redis snapshot taken
+ * between two events of a batch never matches the committed SQL checkpoint.
  */
 class FastLookupIndexManager
 {
@@ -122,6 +125,7 @@ class FastLookupIndexManager
                 'fingerprint' => $fingerprint,
                 'revision' => '0',
                 'pending_revision' => bin2hex(random_bytes(16)),
+                'next_revision' => bin2hex(random_bytes(16)),
                 'needs_initialise' => true,
                 'cursor' => '0',
                 'high_water' => (string)($totals['high_water'] ?? '0'),
@@ -169,13 +173,13 @@ class FastLookupIndexManager
                 // fixed shards. Retry in a fresh generation; Redis can then
                 // safely discard its incomplete predecessor.
                 $state['generation'] = bin2hex(random_bytes(16));
-                $state['pending_revision'] = bin2hex(random_bytes(16));
+                $this->stageRevisions($state);
                 $this->writeState($state);
             } elseif (empty($state['pending_revision'])) {
                 if (!$this->checkpointMatches($state, $this->index()->metadata())) {
                     throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
                 }
-                $state['pending_revision'] = bin2hex(random_bytes(16));
+                $this->stageRevisions($state);
                 $this->writeState($state);
             }
             $this->connection->commit();
@@ -227,10 +231,14 @@ class FastLookupIndexManager
                 }
             }
             $ready = !empty($state['scan_complete']) && $this->dirtyCount() === 0;
-            $state['revision'] = $revision;
+            // Never publish the in-progress revision as committed: a Redis
+            // snapshot from mid-batch still carries it and must stay stale.
+            $committed = $state['next_revision'] ?? $revision;
+            $state['revision'] = $committed;
             $state['pending_revision'] = null;
+            $state['next_revision'] = null;
             $state['error'] = null;
-            $this->index()->checkpoint($state['generation'], $revision, $this->progress($state), $ready);
+            $this->index()->checkpoint($state['generation'], $committed, $this->progress($state), $ready);
             $this->writeState($state);
             $this->connection->commit();
         } catch (Throwable $e) {
@@ -439,12 +447,27 @@ class FastLookupIndexManager
         return $statement;
     }
 
+    /** Both revisions are committed before Redis is touched, so a crash can resume. */
+    private function stageRevisions(array &$state): void
+    {
+        $state['pending_revision'] = bin2hex(random_bytes(16));
+        $state['next_revision'] = bin2hex(random_bytes(16));
+    }
+
     private function checkpointMatches(array $state, array $metadata, bool $allowPending = false): bool
     {
-        return ($metadata['generation'] ?? null) === $state['generation']
-            && ($metadata['fingerprint'] ?? null) === $state['fingerprint']
-            && (($metadata['revision'] ?? null) === $state['revision']
-                || ($allowPending && !empty($state['pending_revision']) && ($metadata['revision'] ?? null) === $state['pending_revision']));
+        $revision = $metadata['revision'] ?? null;
+        if (($metadata['generation'] ?? null) !== $state['generation']
+            || ($metadata['fingerprint'] ?? null) !== $state['fingerprint']) {
+            return false;
+        }
+        if ($revision === $state['revision']) {
+            return true;
+        }
+        // A crash after the final Redis checkpoint but before the SQL commit
+        // leaves Redis on next_revision; the staged batch can still resume.
+        return $allowPending && !empty($state['pending_revision'])
+            && in_array($revision, array_filter([$state['pending_revision'], $state['next_revision'] ?? null]), true);
     }
 
     private function progress(array $state): array

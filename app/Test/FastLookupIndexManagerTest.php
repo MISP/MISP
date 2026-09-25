@@ -108,6 +108,39 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertNotSame('ready', $manager->processPending()['status']);
     }
 
+    public function testRedisSnapshotFromBetweenBatchEventsNeverBecomesReady()
+    {
+        $manager = $this->ready();
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        FastLookupIndexManager::recordChange($this->attribute, '4');
+        $snapshot = null;
+        $this->index->afterWrite = function () use (&$snapshot) {
+            $this->index->afterWrite = null;
+            $snapshot = [$this->index->meta, $this->index->events];
+        };
+        $this->assertSame('ready', $manager->processPending(2)['status']);
+        // Restore the Redis state from after the first of the two events.
+        [$this->index->meta, $this->index->events] = $snapshot;
+        $this->assertNotSame('ready', $manager->status()['status']);
+        $this->assertNotSame('ready', $manager->processPending()['status']);
+        $this->assertNotSame('ready', $manager->status()['status']);
+    }
+
+    public function testCrashAfterFinalRedisCheckpointResumesStagedBatch()
+    {
+        $manager = $this->ready();
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $calls = 0;
+        $this->index->afterCheckpoint = function () use (&$calls) {
+            if (++$calls === 2) {
+                $this->index->afterCheckpoint = null;
+                throw new RuntimeException('Interrupted before the SQL commit');
+            }
+        };
+        $this->assertSame('error', $manager->processPending()['status']);
+        $this->assertSame('ready', $manager->processPending()['status']);
+    }
+
     public function testInterruptedBatchCanResumeWithoutLosingCompletedBackfillProgress()
     {
         $this->seed();
