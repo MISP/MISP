@@ -4,6 +4,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('GalaxyColour', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -13,6 +14,8 @@ class AttributesController extends AppController
     public $uses = 'MispAttribute';
 
     public $components = array('RequestHandler');
+
+    private $fastLookupInputError;
 
     public $paginate = [
         'limit' => 60,
@@ -43,10 +46,12 @@ class AttributesController extends AppController
                 try {
                     $data = json_decode($body, false, 512, JSON_THROW_ON_ERROR);
                 } catch (JsonException $e) {
-                    throw new BadRequestException(__('fastLookup requires a valid JSON object.'));
+                    $this->fastLookupInputError = __('fastLookup requires a valid JSON object.');
+                    return [];
                 }
                 if (!$data instanceof stdClass) {
-                    throw new BadRequestException(__('fastLookup requires a JSON object.'));
+                    $this->fastLookupInputError = __('fastLookup requires a JSON object.');
+                    return [];
                 }
                 return (array)$data;
             }]);
@@ -91,28 +96,46 @@ class AttributesController extends AppController
      */
     public function fastLookup()
     {
-        $this->request->allowMethod(['post']);
+        try {
+            $scope = FastLookupConfig::scope($this->MispAttribute);
+        } catch (InvalidArgumentException $e) {
+            return $this->fastLookupResponse([
+                'status' => 'error',
+                'scope' => FastLookupConfig::diagnosticScope($this->MispAttribute),
+                'message' => $e->getMessage(),
+            ], 503);
+        }
+        $error = ['status' => 'error', 'scope' => $scope];
+        if (!$this->request->is('post')) {
+            return $this->fastLookupResponse($error + ['message' => __('fastLookup requires POST.')], 405);
+        }
         if (!Configure::read('MISP.fast_lookup_enabled')) {
-            throw new ForbiddenException(__('fastLookup is disabled. Enable MISP.fast_lookup_enabled to use this endpoint.'));
+            return $this->fastLookupResponse($error + ['message' => __('fastLookup is disabled.')], 403);
         }
         $contentType = strtolower(trim(explode(';', (string)$this->request->header('Content-Type'), 2)[0]));
         if (!$this->_isRest() || $contentType !== 'application/json') {
-            throw new BadRequestException(__('fastLookup requires a REST request with Content-Type: application/json.'));
+            return $this->fastLookupResponse($error + ['message' => __('fastLookup requires a REST request with Content-Type: application/json.')], 400);
         }
-        if (!is_array($this->request->data)) {
-            throw new BadRequestException(__('fastLookup requires a JSON object.'));
+        if ($this->fastLookupInputError || !is_array($this->request->data)) {
+            return $this->fastLookupResponse($error + ['message' => $this->fastLookupInputError ?: __('fastLookup requires a JSON object.')], 400);
         }
         try {
             $result = $this->MispAttribute->fastLookup($this->Auth->user(), $this->request->data);
         } catch (InvalidArgumentException $e) {
-            throw new BadRequestException($e->getMessage());
+            return $this->fastLookupResponse($error + ['message' => $e->getMessage()], 400);
         } catch (OverflowException $e) {
-            throw new HttpException($e->getMessage(), 413);
+            return $this->fastLookupResponse($error + ['message' => $e->getMessage()], 413);
+        } catch (RuntimeException $e) {
+            $this->log('fastLookup failed: ' . $e->getMessage(), 'error');
+            return $this->fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
         }
+        return $this->fastLookupResponse($result, $result['status'] === 'ready' ? 200 : 503);
+    }
 
-        // Keep the response a bare object even with numeric IOC keys, SQL debug
-        // parameters or If-None-Match. Every request has just rechecked visibility.
-        $response = new CakeResponse(['body' => JsonTool::encode($result), 'status' => 200, 'type' => 'json']);
+    private function fastLookupResponse(array $result, $status)
+    {
+        // Never reuse a response whose visibility was checked for another request.
+        $response = new CakeResponse(['body' => JsonTool::encode($result), 'status' => $status, 'type' => 'json']);
         $headers = $this->RestResponse->headers;
         if (Configure::read('Security.allow_cors')) {
             $headers['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization, Accept';
@@ -121,6 +144,12 @@ class AttributesController extends AppController
             $headers['Access-Control-Expose-Headers'] = ['X-Result-Count'];
         }
         $headers['Cache-Control'] = 'no-store';
+        if ($status === 405) {
+            $headers['Allow'] = 'POST';
+        }
+        if ($status === 503) {
+            $headers['Retry-After'] = '5';
+        }
         $response->header($headers);
         return $response;
     }
@@ -4195,4 +4224,3 @@ class AttributesController extends AppController
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 }
-

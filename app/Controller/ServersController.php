@@ -5,6 +5,8 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 App::uses('SystemSetting', 'Model');
+App::uses('FastLookupIndexManager', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 
 /**
  * @property Server $Server
@@ -54,6 +56,77 @@ class ServersController extends AppController
             case 'testConnection':
                 $this->Security->csrfUseOnce = false;
         }
+    }
+
+    /** Site-admin view and inexpensive JSON progress polling. */
+    public function fastLookup()
+    {
+        $this->request->allowMethod(['get']);
+        if (!$this->_isSiteAdmin()) {
+            throw new ForbiddenException(__('Site administrator access required.'));
+        }
+        $metrics = !$this->_isRest() || (isset($this->request->query['metrics']) && $this->request->query['metrics'] === '1');
+        try {
+            $status = (new FastLookupIndexManager())->status($metrics);
+        } catch (InvalidArgumentException $e) {
+            $status = [
+                'status' => 'error',
+                'scope' => FastLookupConfig::diagnosticScope(),
+                'progress' => ['processed_events' => 0, 'total_events' => 0, 'percent' => 0, 'eta_seconds' => null],
+                'message' => $e->getMessage(),
+            ];
+        }
+        if ($this->_isRest()) {
+            return $this->fastLookupAdminResponse($status);
+        }
+        $this->set('lookupStatus', $status);
+        $this->set('backgroundJobs', (bool)Configure::read('MISP.background_jobs'));
+        $this->set('lookupEnabled', (bool)Configure::read('MISP.fast_lookup_enabled'));
+        $this->set('title_for_layout', __('Fast lookup index'));
+        $this->response->header('Cache-Control', 'no-store');
+    }
+
+    /** Queue a new backfill or resume an interrupted one; never scan in HTTP. */
+    public function rebuildFastLookup()
+    {
+        $this->request->allowMethod(['post']);
+        if (!$this->_isSiteAdmin()) {
+            throw new ForbiddenException(__('Site administrator access required.'));
+        }
+        $data = $this->request->data['Server'] ?? $this->request->data;
+        $mode = $data['mode'] ?? 'rebuild';
+        if (!in_array($mode, ['rebuild', 'resume'], true)) {
+            throw new BadRequestException(__('Choose rebuild or resume.'));
+        }
+        $command = $mode === 'resume' ? 'resumeFastLookup' : 'rebuildFastLookup';
+        if (!Configure::read('MISP.background_jobs')) {
+            $message = __('Background jobs are disabled. Run app/Console/cake Admin %s as the MISP service user.', $command);
+            if ($this->_isRest()) {
+                return $this->fastLookupAdminResponse(['message' => $message], 409);
+            }
+            $this->Flash->info($message);
+            return $this->redirect(['action' => 'fastLookup']);
+        }
+        $this->loadModel('Job');
+        $jobId = $this->Job->createJob($this->Auth->user(), Job::WORKER_DEFAULT, 'fast_lookup', 'IOC index', __('Fast lookup backfill queued.'));
+        try {
+            $this->Server->getBackgroundJobsTool()->enqueue(BackgroundJobsTool::DEFAULT_QUEUE, BackgroundJobsTool::CMD_ADMIN, [$command, $jobId], true, $jobId);
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('Could not queue fast lookup backfill.'));
+            throw $e;
+        }
+        if ($this->_isRest()) {
+            return $this->fastLookupAdminResponse(['job_id' => $jobId, 'message' => __('Fast lookup backfill queued.')], 202);
+        }
+        $this->Flash->success(__('Fast lookup backfill queued.'));
+        return $this->redirect(['action' => 'fastLookup']);
+    }
+
+    private function fastLookupAdminResponse(array $body, $status = 200)
+    {
+        $response = new CakeResponse(['body' => JsonTool::encode($body), 'status' => $status, 'type' => 'json']);
+        $response->header('Cache-Control', 'no-store');
+        return $response;
     }
 
     public function index()

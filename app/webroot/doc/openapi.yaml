@@ -272,45 +272,31 @@ paths:
 
   /attributes/fastLookup:
     post:
-      summary: "Map literal IOCs to all visible event IDs"
+      summary: "Bulk IOC lookup with visible event IDs, ranges and parent domains"
       operationId: fastLookupAttributes
-      tags:
-        - Attributes
+      tags: [Attributes]
       description: |
-        Requires `MISP.fast_lookup_enabled` (disabled by default), normal API authentication,
-        and the same role rate limits as attribute searches. Send `Accept: application/json`
-        and `Content-Type: application/json`.
+        Requires MISP.fast_lookup_enabled and a completed persistent Redis backfill.
+        Uses normal API authentication and attribute-search role rate limits.
+        Default maximum 10000 values is configurable with MISP.fast_lookup_max_values.
+        Every feature response includes the configured attribute types and publication scope.
+        The index defaults to published events and common IP/domain/hostname/hash types.
+        Configure MISP.fast_lookup_attribute_types and MISP.fast_lookup_published_only;
+        changes require a new backfill. There is no cache expiry or maxAge option.
 
-        Each value is compared using SQL equality against either stored attribute component,
-        `value1` or `value2`; database collation controls case and accent equivalence. IPv6
-        values are normalized as in MISP attribute value searches, but response keys retain
-        the original input spelling. `%`, `_` and `!` are literal characters, not wildcard or
-        negation operators. This endpoint does not accept restSearch filters and adds no
-        implicit `to_ids`, publication, tag, warninglist or allowedlist filters. Standard
-        event, attribute and object sharing rules still apply, including unpublished-event
-        visibility; deleted attributes and attributes without an existing event are omitted.
+        Exact values match either stored component using SQL equality and database
+        collation; IPv6 is normalized. IP inputs also match containing IPv4/IPv6 CIDRs.
+        Hostnames match parent domain/domain|ip IOCs at label boundaries. No DNS queries,
+        wildcard/restSearch syntax or implicit to_ids filter. Every response checks current
+        values, deletion, event existence, scope and caller permissions in SQL.
+        Redis stores compact candidate postings, never cached authorization decisions.
 
-        Returns a bare JSON object mapping each matching input IOC to distinct visible event
-        IDs, sorted numerically and encoded as decimal strings. Duplicate input values are
-        deduplicated. Missing or invisible IOCs are omitted. Empty inputs or no matches return
-        `{}`, and numeric-looking IOC keys remain object properties.
-
-        Administrators configure `MISP.fast_lookup_cache_ttl` as a nonnegative integer in
-        seconds, defaulting to 10800 (180 minutes / 3 hours); 0 disables caching. Redis caches
-        complete candidate attribute IDs, including negative matches, for at most that
-        duration from the start of SQL discovery. Cache hits never extend expiry.
-        Newly added or newly matching attributes can be absent until that cache expires.
-        Every response rechecks current values, deletion, event existence and sharing
-        permissions. Omitted `maxAge` uses the configured duration; callers can request a
-        shorter age, and `maxAge: 0` bypasses cache reads and writes. A `maxAge` above the
-        configured duration is rejected with HTTP 400. Redis failure or corrupt
-        entries fall back to SQL. Responses carry `Cache-Control: no-store`.
-
-        Supply at most 1000 nonempty UTF-8 strings without NUL characters, each at most 4096
-        bytes and at most 1048576 bytes combined. The total candidate and visible-result
-        budget is 100000 rows per request; exceeding it returns HTTP 413 without partial
-        results. A value with more than 10000 candidates is queried without caching, subject
-        to that request budget. Unknown options and invalid request shapes return HTTP 400.
+        Missing/invisible inputs are omitted from results. Original spelling is retained;
+        event IDs are distinct, numerically sorted decimal strings. A ready index with
+        no matches returns an empty results object. Warming, updating, missing/stale Redis
+        state or failed builds return 503 with scope and progress but no results field.
+        Candidate/result processing is bounded to 100000 rows; overflow returns 413
+        without partial results. Responses use Cache-Control: no-store.
       requestBody:
         required: true
         content:
@@ -318,62 +304,88 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required:
-                - value
+              required: [value]
               properties:
                 value:
                   type: array
-                  maxItems: 1000
-                  description: "Literal IOC strings; at most 1048576 UTF-8 bytes combined."
+                  description: "At most MISP.fast_lookup_max_values strings (default 10000), 16 MiB combined UTF-8 bytes."
                   items:
                     type: string
                     minLength: 1
                     maxLength: 4096
-                    description: "Nonempty valid UTF-8 without NUL characters; maximum 4096 bytes."
-                maxAge:
-                  type: integer
-                  minimum: 0
-                  description: "Maximum candidate cache age in seconds, bounded by and defaulting to the deployment's MISP.fast_lookup_cache_ttl setting (10800 seconds / 180 minutes by default). Zero bypasses Redis."
+                    description: "Valid UTF-8 without NUL; at most 4096 bytes."
             example:
-              value: ["example.org", "192.0.2.1", "missing.example"]
+              value: ["www.evil.com", "192.0.2.7", "missing.example"]
       responses:
         "200":
-          description: "Every matching input IOC mapped to all visible event IDs."
+          description: "Complete visible matches within the reported scope."
           headers:
             Cache-Control:
-              schema:
-                type: string
-                enum: [no-store]
+              schema: {type: string, enum: [no-store]}
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties:
-                  type: array
-                  minItems: 1
-                  uniqueItems: true
-                  items:
-                    type: string
-                    pattern: '^[1-9][0-9]*$'
-              examples:
-                matches:
-                  value:
-                    example.org: ["2", "11"]
-                    192.0.2.1: ["11"]
-                noMatches:
-                  value: {}
+                $ref: "#/components/schemas/FastLookupReadyResponse"
         "400":
-          description: "Invalid JSON, request shape, IOC value or input size, maxAge, option or content type."
+          description: "Invalid JSON, body, option, input limit or content type; includes scope."
         "403":
-          description: "API authorization failed or MISP.fast_lookup_enabled is disabled."
+          description: "API authorization failed or feature disabled."
         "405":
-          description: "Only POST is supported, or API searches are disabled for the user's role."
+          description: "Only POST supported, or API searches disabled for the role."
         "413":
-          description: "The total candidate/result row limit was exceeded; no partial result is returned."
+          description: "Candidate/result budget exceeded; includes scope and no results."
         "429":
-          description: "The normal API search rate limit was exceeded."
+          description: "Normal API search rate limit exceeded."
+        "503":
+          description: "Warming, updating or unavailable. No partial results."
+          headers:
+            Retry-After:
+              schema: {type: integer, example: 5}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FastLookupStatusResponse"
         default:
           $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/fastLookup:
+    get:
+      summary: "Inspect the persistent IOC index (site administrator only)"
+      operationId: fastLookupIndexStatus
+      tags: [Servers]
+      parameters:
+        - in: query
+          name: metrics
+          schema: {type: integer, enum: [0, 1], default: 0}
+          description: "Include measured per-type Redis memory and entry counts."
+      responses:
+        "200":
+          description: "Index status, scope, progress and optionally statistics."
+          content:
+            application/json:
+              schema: {type: object}
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+
+  /servers/rebuildFastLookup:
+    post:
+      summary: "Queue IOC index backfill (site administrator only)"
+      operationId: rebuildFastLookupIndex
+      tags: [Servers]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode: {type: string, enum: [rebuild, resume], default: rebuild}
+      responses:
+        "202":
+          description: "Backfill queued; response contains job_id."
+        "409":
+          description: "Background jobs disabled; response contains the CLI command."
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
 
   /attributes/add/{eventId}:
     post:
@@ -3243,6 +3255,83 @@ paths:
 
 components:
   schemas:
+    FastLookupScope:
+      type: object
+      required: [attribute_types, published_only, max_values, matching]
+      properties:
+        attribute_types:
+          type: array
+          items: {type: string}
+          example: [domain, ip-dst]
+        published_only: {type: boolean, example: true}
+        max_values: {type: integer, minimum: 1, example: 10000}
+        matching:
+          type: array
+          items: {type: string}
+          example: [exact, ip_cidr, parent_domain]
+    FastLookupEventIds:
+      type: array
+      uniqueItems: true
+      items: {type: string, pattern: '^[1-9][0-9]*$'}
+    FastLookupDiagnosticScope:
+      type: object
+      description: |
+        Invalid configuration cannot describe a usable index. The configured type names
+        are retained, including unknown names; a non-string type setting is null.
+        Invalid publication policy or request limit is null. Results are never returned.
+      required: [attribute_types, published_only, max_values, matching, configuration_valid]
+      properties:
+        attribute_types:
+          type: array
+          nullable: true
+          items: {type: string}
+        published_only: {type: boolean, nullable: true}
+        max_values: {type: integer, minimum: 1, nullable: true}
+        matching:
+          type: array
+          items: {type: string}
+          example: [exact, ip_cidr, parent_domain]
+        configuration_valid: {type: boolean, enum: [false]}
+    FastLookupReadyResponse:
+      type: object
+      required: [status, scope, results]
+      properties:
+        status: {type: string, enum: [ready]}
+        scope:
+          $ref: "#/components/schemas/FastLookupScope"
+        results:
+          type: object
+          additionalProperties:
+            type: object
+            required: [event_ids, ip_ranges, domains]
+            properties:
+              event_ids:
+                $ref: "#/components/schemas/FastLookupEventIds"
+              ip_ranges:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/FastLookupEventIds"
+              domains:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/FastLookupEventIds"
+    FastLookupStatusResponse:
+      type: object
+      required: [status, scope]
+      properties:
+        status: {type: string, enum: [warming, updating, unavailable, error]}
+        scope:
+          anyOf:
+            - $ref: "#/components/schemas/FastLookupScope"
+            - $ref: "#/components/schemas/FastLookupDiagnosticScope"
+        message: {type: string}
+        progress:
+          type: object
+          properties:
+            processed_events: {type: integer, minimum: 0, example: 1100}
+            total_events: {type: integer, minimum: 0, example: 1300}
+            percent: {type: integer, minimum: 0, maximum: 100, example: 84}
+            eta_seconds: {type: integer, minimum: 0, nullable: true, example: 24}
     # Analyst Data
     AnalystDataID:
       type: string

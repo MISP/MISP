@@ -43,10 +43,17 @@ if (!class_exists('AppController', false)) {
         public $RestResponse;
         public $Security;
         public $RequestHandler;
+        public $Job;
+        public $Server;
+        public $viewVars = [];
         public $rest = true;
+        public $admin = true;
+        protected function _isSiteAdmin() { return $this->admin; }
         public function beforeFilter() {}
         protected function _csrfTokenHeaderOnly(array $actions) {}
         protected function _isRest() { return $this->rest; }
+        public function set($name, $value) { $this->viewVars[$name] = $value; }
+        public function loadModel($name) { $this->{$name} = new $name(); }
     }
 }
 if (!class_exists('CakeResponse', false)) {
@@ -89,6 +96,7 @@ class FastLookupControllerRequest
     public $method = 'POST';
     public $contentType = 'application/json';
     public $action = 'fastLookup';
+    public $query = [];
     public $params = ['action' => 'fastLookup', 'named' => []];
     public function is($method) { return strtolower($this->method) === strtolower($method); }
     public function allowMethod(array $methods)
@@ -108,15 +116,23 @@ class FastLookupControllerRequestHandler
 
 class FastLookupControllerModel
 {
+    public $typeDefinitions;
     public $calls = [];
     public $result;
     public $exception;
-    public function fastLookup(array $user, array $request): stdClass
+    public function __construct() { $this->typeDefinitions = array_fill_keys(FastLookupConfig::DEFAULT_TYPES, []); }
+    public function fastLookup(array $user, array $request): array
     {
         $this->calls[] = [$user, $request];
         if ($this->exception) {
             throw $this->exception;
         }
-        return $this->result ?? new stdClass();
+        return $this->result ?? ['status' => 'ready', 'scope' => FastLookupConfig::scope($this), 'results' => new stdClass()];
     }
 }
+
+class ClassRegistry
+{
+    public static function init($name) { return new FastLookupControllerModel(); }
+}
+require_once __DIR__ . '/../../Lib/Tools/FastLookupConfig.php';

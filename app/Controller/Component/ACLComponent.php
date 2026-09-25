@@ -720,6 +720,8 @@ class ACLComponent extends Component
             'view' => array('*'),
         ),
         'servers' => array(
+            'fastLookup' => [],
+            'rebuildFastLookup' => [],
             'add' => array(),
             'aiDryRun' => array(),
             'dbSchemaDiagnostic' => array(),

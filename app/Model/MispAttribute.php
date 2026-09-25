@@ -634,6 +634,13 @@ class MispAttribute extends AppModel
 
         $attribute = $this->data['Attribute'];
 
+        App::uses('FastLookupIndexManager', 'Tools');
+        $fastLookupEventId = $attribute['event_id'] ?? $this->field('event_id', ['id' => $this->id]);
+        FastLookupIndexManager::recordChange($this, $fastLookupEventId);
+        if (!empty($this->old['Attribute']['event_id']) && $this->old['Attribute']['event_id'] != $fastLookupEventId) {
+            FastLookupIndexManager::recordChange($this, $this->old['Attribute']['event_id']);
+        }
+
         // add attributeTags via the shorthand ID list
         if (!empty($attribute['tag_ids'])) {
             foreach ($attribute['tag_ids'] as $tagId) {
@@ -768,6 +775,14 @@ class MispAttribute extends AppModel
         return $result;
     }
 
+    public function delete($id = null, $cascade = true)
+    {
+        App::uses('FastLookupIndexManager', 'Tools');
+        return FastLookupIndexManager::withMutationTransaction($this, function () use ($id, $cascade) {
+            return parent::delete($id, $cascade);
+        });
+    }
+
     public function beforeDelete($cascade = true)
     {
         // delete attachments from the disk
@@ -777,6 +792,9 @@ class MispAttribute extends AppModel
                 'id' => $this->id,
             ]
         ]);
+        // Preserve the owner for the post-delete outbox callback, including when
+        // delete() was called with only an attribute ID.
+        $this->data['Attribute']['event_id'] = $attribute['Attribute']['event_id'];
         if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
             $this->loadAttachmentTool()->delete($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
         }
@@ -796,6 +814,8 @@ class MispAttribute extends AppModel
 
     public function afterDelete()
     {
+        App::uses('FastLookupIndexManager', 'Tools');
+        FastLookupIndexManager::recordChange($this, $this->data['Attribute']['event_id'] ?? null);
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
             $this->Correlation->updateCidrList();
         }
@@ -1901,7 +1921,7 @@ class MispAttribute extends AppModel
         return $attribute;
     }
 
-    /** @return stdClass IOC literals mapped to all distinct visible event IDs. */
+    /** @return array Scoped readiness status and visible event IDs/ranges/domains. */
     public function fastLookup(array $user, array $request)
     {
         App::uses('AttributeFastLookupTool', 'Tools');

@@ -46,5 +46,5 @@ fi
 podman run --rm --pull=never --name "$php_container" --network=none --entrypoint php \
     -v "$test_checkout:/work:ro" -v "$cake_source:/cake:ro" \
     -v "$test_dir/mysql:/mysql" -v "$test_dir/redis:/redis" -w /work "$php_image" \
-    -d auto_prepend_file= -d memory_limit=512M \
+    -d auto_prepend_file= -d pcov.enabled=0 -d memory_limit=512M \
     tests/benchmarks/FastLookupIntegration.php /cake /mysql/mysql.sock /redis/redis.sock

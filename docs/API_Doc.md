@@ -133,73 +133,130 @@ Search MISP using a list of filter parameters and return the data in the selecte
 
 ## FastLookup
 
-`POST /attributes/fastLookup` maps each literal IOC to **all** matching event IDs
-visible to the authenticated caller. A site administrator must enable
-`MISP.fast_lookup_enabled`, which defaults to `false`. Normal API authentication
-and attribute-search role rate limits apply.
+`POST /attributes/fastLookup` performs bulk IOC lookup using a persistent Redis
+index and returns matching event IDs visible to the authenticated caller. A site
+administrator must enable `MISP.fast_lookup_enabled` and complete the backfill.
+Normal API authentication and attribute-search role rate limits apply.
 
 Send `Accept: application/json` and `Content-Type: application/json`:
 
 ```json
-{"value":["example.org","192.0.2.1","missing.example"]}
+{"value":["www.evil.com","192.0.2.7","missing.example"]}
 ```
 
-Example response:
+Example response for a deployment scoped to domains and destination IPs:
 
 ```json
-{"example.org":["2","11"],"192.0.2.1":["11"]}
+{
+  "status": "ready",
+  "scope": {
+    "attribute_types": ["domain", "ip-dst"],
+    "published_only": true,
+    "max_values": 10000,
+    "matching": ["exact", "ip_cidr", "parent_domain"]
+  },
+  "results": {
+    "www.evil.com": {
+      "event_ids": ["2"],
+      "ip_ranges": {},
+      "domains": {"evil.com": ["2"]}
+    },
+    "192.0.2.7": {
+      "event_ids": ["11"],
+      "ip_ranges": {"192.0.2.0/24": ["11"]},
+      "domains": {}
+    }
+  }
+}
 ```
 
-The response is a bare JSON object. Missing or invisible IOCs are omitted;
-`{"value":[]}` and searches without visible matches return `{}`. Duplicate inputs
-are deduplicated. Keys retain the submitted spelling, including numeric-looking
-strings. Each event ID is a decimal string; IDs are distinct and sorted numerically.
+Unmatched or invisible IOCs are omitted. A ready index with no visible matches
+returns `"results": {}`. Duplicate inputs are deduplicated. Keys retain submitted
+spelling; event IDs are distinct, numerically sorted decimal strings. The range
+and domain maps contain only matches visible to the caller, with the original
+stored IOC component as the key.
 
-| Parameter | Type | Description |
-| -- | -- | -- |
-| `value` | array of strings, required | At most 1000 nonempty valid UTF-8 strings without NUL characters. Each string is at most 4096 bytes; combined strings are at most 1 MiB (1048576 bytes). |
-| `maxAge` | integer, optional | Maximum candidate-cache age in seconds, from 0 through the configured `MISP.fast_lookup_cache_ttl`; defaults to that setting. Zero bypasses Redis reads and writes. |
+Only `value`, an array of strings, is accepted. `maxAge` has been removed. Each
+string must be nonempty valid UTF-8 without NUL characters, at most 4096 bytes;
+combined strings must not exceed 16 MiB. The default limit is **10,000 submitted
+values**, configurable through `MISP.fast_lookup_max_values`.
 
-Matching uses SQL equality against either stored attribute component, `value1` or
-`value2`. For example, either component of a `domain|ip` attribute can match;
-the endpoint does not concatenate components. Database collation determines case
-and accent equivalence. IPv6 inputs receive the same normalization as MISP value
-searches. `%`, `_` and `!` are literal characters, with no wildcard or negation
-syntax. Only `value` and `maxAge` are accepted: there are no implicit `to_ids`,
-publication, tag, warninglist or allowedlist filters, and no other restSearch
-options. Standard visibility rules still govern unpublished events and event,
-attribute and object sharing groups. Deleted attributes and attributes without an
-existing event are excluded.
+Exact matching compares either stored component (`value1` or `value2`) using
+SQL equality and database collation. Composite values are not concatenated.
+Percent signs, underscores and exclamation marks are literal characters.
+IPv6 inputs are normalized. An IP also matches every containing IPv4/IPv6 CIDR
+in an IP-bearing type, including overlapping ranges. A hostname also matches
+parent `domain`/`domain|ip` IOCs at label boundaries: `www.evil.com` matches
+`evil.com`, while `notevil.com` does not. Hostname attributes themselves are exact
+matches; there is no DNS resolution or wildcard expansion.
 
-Administrators configure the cache duration with `MISP.fast_lookup_cache_ttl`,
-a nonnegative integer in seconds that defaults to **10800 (180 minutes / 3 hours)**.
-Set it to `0` to disable caching. Omitting `maxAge` uses the configured duration;
-callers can request a shorter age, for example `"maxAge":60`, or use
-`"maxAge":0` for a fresh lookup. A value above the configured duration is rejected.
+The index defaults to published events and common IP, domain, hostname and hash
+types. Administrators configure the exact type list with
+`MISP.fast_lookup_attribute_types` and publication policy with
+`MISP.fast_lookup_published_only`. Changing either requires a fresh backfill.
+Every API response produced by this feature includes its configured scope.
+Normal platform authentication errors retain MISP's standard format. Invalid server
+configuration returns a diagnostic scope with `configuration_valid: false`; fields
+that cannot be interpreted are `null`, and no results are returned.
 
-Redis stores complete candidate attribute ID sets, including negative results,
-for at most the configured duration from the start of SQL discovery; reads do not
-refresh expiry. New attributes, or edits that newly match an IOC, may therefore
-take up to that duration to appear unless the caller requests a shorter `maxAge`.
-Every request rechecks current sharing permissions,
-values, deletion and event existence before returning event IDs. Redis failure
-or invalid cached data falls back to SQL. HTTP responses use
-`Cache-Control: no-store`; final permission-filtered results are never cached.
+Index entries have **no expiry**. Event publications and attribute/event changes
+record durable updates which refresh Redis. Every lookup rechecks current values,
+deleted status, publication policy, type scope, event existence and the caller's
+event/attribute/object/sharing-group permissions in SQL. There is no implicit
+`to_ids`, tag, warninglist or allowedlist filter and no restSearch filter syntax.
+Permission-filtered responses are never cached; HTTP responses use
+`Cache-Control: no-store`.
 
-SQL discovery operates in batches of 100 IOCs. Each IOC can cache at most 10000
-candidate IDs; larger complete sets are queried without caching. A request has a
-total budget of 100000 candidate and visible-result rows, including candidates
-loaded from Redis. Exceeding a resource limit returns an error, never a truncated
-mapping or partially cached candidate set. Split a large request into smaller
-batches if necessary.
+Until backfill is complete, requests return HTTP **503** and `Retry-After: 5`,
+with scope and progress but **no `results` field**:
+
+```json
+{
+  "status": "warming",
+  "scope": {
+    "attribute_types": ["domain", "ip-dst"],
+    "published_only": true,
+    "max_values": 10000,
+    "matching": ["exact", "ip_cidr", "parent_domain"]
+  },
+  "progress": {
+    "processed_events": 1100,
+    "total_events": 1300,
+    "percent": 84,
+    "eta_seconds": 24
+  }
+}
+```
+
+The estimate is based on completed work and elapsed time; it is `null` before
+there is enough progress. Pending updates (`updating`), missing/stale Redis state,
+failed builds and changed scope also refuse results. Retry once the index is ready.
+
+Site administrators can monitor progress, entries and measured Redis memory per
+attribute type at **Administration → Fast lookup index** (`/servers/fastLookup`).
+Use its rebuild/resume controls when background jobs are enabled, or run as the
+MISP service user:
+
+```bash
+app/Console/cake Admin rebuildFastLookup
+app/Console/cake Admin resumeFastLookup
+app/Console/cake Admin processFastLookup
+```
+
+`GET /servers/fastLookup` with `Accept: application/json` returns status;
+`?metrics=1` also measures per-type memory. `POST /servers/rebuildFastLookup`
+accepts `{"mode":"rebuild"}` or `{"mode":"resume"}` and queues a job. Both are
+site-admin only. See [operational details](development/fastlookup.md).
 
 | HTTP status | Meaning |
 | -- | -- |
-| 400 | Invalid JSON, body shape, unknown option, IOC string or input count/byte limit, `maxAge`, or content type. |
-| 403 | Authentication/authorization failed or `MISP.fast_lookup_enabled` is disabled. |
-| 405 | Method is not POST, or API searches are disabled for this user's role. |
-| 413 | Total candidate/result row budget exceeded. No partial mapping is returned. |
-| 429 | API search rate limit exceeded. |
+| 200 | Ready; complete visible matches within the reported scope. |
+| 400 | Invalid JSON, option, request shape, input limit or content type. |
+| 403 | Authentication/authorization failed or feature disabled. |
+| 405 | Non-POST lookup, or API searches disabled for this role. |
+| 413 | Candidate/result safety budget exceeded; no partial results. |
+| 429 | Normal API search rate limit exceeded. |
+| 503 | Warming, updating or unavailable; no results. |
 
 ## AddTag
 Add a tag or a tag collection to an attribute.

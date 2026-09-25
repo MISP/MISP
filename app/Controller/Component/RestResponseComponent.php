@@ -60,11 +60,11 @@ class RestResponseComponent extends Component
                 'params' => array()
             ),
             'fastLookup' => array(
-                'description' => 'POST a JSON object containing a value array of literal IOCs to return each matching IOC mapped to all visible event IDs. Matches use SQL equality on value1 or value2, with IPv6 normalization and no restSearch operators or implicit to_ids filter. Missing or invisible values are omitted. Requires MISP.fast_lookup_enabled. maxAge defaults to, and cannot exceed, MISP.fast_lookup_cache_ttl in seconds (default 10800, or 180 minutes); 0 bypasses Redis. Setting MISP.fast_lookup_cache_ttl to 0 disables caching. Current permissions, values and deletion are always checked. Accepts at most 1000 values, 4096 bytes each, 1 MiB combined; exceeding the 100000-row request budget returns HTTP 413 without partial results.',
+                'description' => 'Bulk IOC lookup using the persistent Redis index. POST a value array (default maximum 10000, configured by MISP.fast_lookup_max_values). Each visible match contains event_ids and matched ip_ranges/domains. IPs also match containing CIDRs; hostnames match parent domain IOCs. Every response includes scope. Requires MISP.fast_lookup_enabled and a completed backfill. Warming, pending updates or unavailable indexes return HTTP 503 with progress and no results. Index entries do not expire; publications and attribute changes update them. Permissions and current values are checked for every request. No maxAge option. Each value is at most 4096 bytes, combined 16 MiB; resource overflow returns 413 without partial results.',
                 'operationId' => 'fastLookupAttributes',
                 'method' => 'POST',
                 'mandatory' => array('value'),
-                'optional' => array('maxAge'),
+                'optional' => array(),
                 'params' => array(),
             ),
             'addTag' => array(
@@ -2020,13 +2020,6 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => array('equal', 'not_equal')
-            ),
-            'maxAge' => array(
-                'input' => 'number',
-                'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-                'help' => __('Maximum candidate cache age in seconds. Defaults to, and cannot exceed, MISP.fast_lookup_cache_ttl (default 10800, or 180 minutes). Zero bypasses Redis.'),
             ),
             'value' => array(
                 'input' => 'text',

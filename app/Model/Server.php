@@ -2009,6 +2009,23 @@ class Server extends AppModel
         return true;
     }
 
+    public function testFastLookupTypes($value)
+    {
+        App::uses('FastLookupConfig', 'Tools');
+        return FastLookupConfig::validateTypeSetting($value);
+    }
+
+    public function fastLookupLimitBeforeHook($setting, $value)
+    {
+        return $this->testFastLookupLimit($value);
+    }
+
+    public function testFastLookupLimit($value)
+    {
+        return filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
+            ? true : __('A positive integer is required.');
+    }
+
     public function testForPositiveInteger($value)
     {
         if ((is_int($value) && $value >= 0) || ctype_digit($value)) {
@@ -7023,17 +7040,34 @@ class Server extends AppModel
                 ),
                 'fast_lookup_enabled' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Enable POST /attributes/fastLookup for authenticated users to map literal IOCs to visible event IDs. Redis candidate caching can delay newly matching attributes by MISP.fast_lookup_cache_ttl seconds; current values, deletion and sharing permissions are checked on every request.'),
+                    'description' => __('Enable POST /attributes/fastLookup. Requires Redis and a completed backfill from Administration > Fast lookup index. Current values and caller permissions are checked on every request. Index entries do not expire.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
                 ),
-                'fast_lookup_cache_ttl' => array(
+                'fast_lookup_attribute_types' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Maximum lifetime in seconds for fastLookup candidate caches, including negative results. Defaults to 10800 seconds (180 minutes); 0 disables candidate caching. Newly matching attributes can be delayed by this duration. Current values, deletion and sharing permissions are checked on every request. Requests may use maxAge to require fresher results.'),
-                    'value' => 10800,
-                    'test' => 'testForPositiveInteger',
+                    'description' => __('Comma-separated attribute types included in the fast lookup index. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
+                    'value' => 'ip-src,ip-dst,domain,hostname,domain|ip,ip-src|port,ip-dst|port,hostname|port,md5,sha1,sha256,sha512,filename|md5,filename|sha1,filename|sha256,filename|sha512,malware-sample',
+                    'test' => 'testFastLookupTypes',
+                    'type' => 'string',
+                    'null' => false,
+                ),
+                'fast_lookup_published_only' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Limit fast lookup to published events. Disable to include unpublished events subject to normal caller permissions. Changing this policy requires a new backfill.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'fast_lookup_max_values' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input and candidate-result safety limits still apply.'),
+                    'value' => 10000,
+                    'test' => 'testFastLookupLimit',
+                    'beforeHook' => 'fastLookupLimitBeforeHook',
                     'type' => 'numeric',
                     'null' => false,
                 ),

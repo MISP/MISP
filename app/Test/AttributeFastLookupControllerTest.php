@@ -38,14 +38,14 @@ class AttributeFastLookupControllerTest extends TestCase
 
     public function testReturnsOnlyTheMappingAndForwardsTheCurrentUserAndRequest(): void
     {
-        $request = ['value' => ['example.org', 'missing.example'], 'maxAge' => 0];
+        $request = ['value' => ['example.org', 'missing.example']];
         $this->controller->request->data = $request;
-        $this->controller->MispAttribute->result = (object)['example.org' => ['2', '11']];
+        $this->controller->MispAttribute->result = ['status' => 'ready', 'scope' => FastLookupConfig::scope(), 'results' => (object)['example.org' => ['event_ids' => ['2', '11']]]];
         $this->controller->RestResponse->headers = ['X-Rate-Limit-Remaining' => 4];
         $response = $this->controller->fastLookup();
         $this->assertSame(200, $response->statusCode());
         $this->assertSame('json', $response->type());
-        $this->assertSame('{"example.org":["2","11"]}', $response->body());
+        $this->assertSame(JsonTool::encode($this->controller->MispAttribute->result), $response->body());
         $this->assertSame('no-store', $response->headers['Cache-Control']);
         $this->assertSame(4, $response->headers['X-Rate-Limit-Remaining']);
         $this->assertSame([[$this->controller->Auth->user(), $request]], $this->controller->MispAttribute->calls);
@@ -53,11 +53,11 @@ class AttributeFastLookupControllerTest extends TestCase
 
     public function testNumericIocKeysAndEmptyResultsRemainJsonObjects(): void
     {
-        $this->controller->MispAttribute->result = (object)['0' => ['9'], '1' => ['12']];
-        $this->assertSame('{"0":["9"],"1":["12"]}', $this->controller->fastLookup()->body());
-        $this->controller->MispAttribute->result = new stdClass();
+        $this->controller->MispAttribute->result = ['status' => 'ready', 'scope' => FastLookupConfig::scope(), 'results' => (object)['0' => ['9'], '1' => ['12']]];
+        $this->assertInstanceOf(stdClass::class, json_decode($this->controller->fastLookup()->body())->results);
+        $this->controller->MispAttribute->result = null;
         $this->controller->request->data = ['value' => []];
-        $this->assertSame('{}', $this->controller->fastLookup()->body());
+        $this->assertInstanceOf(stdClass::class, json_decode($this->controller->fastLookup()->body())->results);
     }
 
     public function testConfiguredCorsHeadersRemainAvailable(): void
@@ -78,7 +78,7 @@ class AttributeFastLookupControllerTest extends TestCase
         try {
             $response = $this->controller->fastLookup();
             $this->assertSame(200, $response->statusCode());
-            $this->assertSame('{}', $response->body());
+            $this->assertInstanceOf(stdClass::class, json_decode($response->body())->results);
             $this->assertSame('no-store', $response->headers['Cache-Control']);
         } finally {
             unset($_SERVER['HTTP_IF_NONE_MATCH']);
@@ -126,7 +126,7 @@ class AttributeFastLookupControllerTest extends TestCase
     public function testJsonContentTypeAllowsCharsetParameter(): void
     {
         $this->controller->request->contentType = 'application/json; charset=UTF-8';
-        $this->assertSame('{}', $this->controller->fastLookup()->body());
+        $this->assertInstanceOf(stdClass::class, json_decode($this->controller->fastLookup()->body())->results);
     }
 
     public function testMalformedBodyCannotReachArrayTypedModel(): void
@@ -141,9 +141,8 @@ class AttributeFastLookupControllerTest extends TestCase
         $this->controller->beforeFilter();
         $this->assertArrayHasKey('json', $this->controller->RequestHandler->callbacks);
         $decode = $this->controller->RequestHandler->callbacks['json'][0];
-        $this->expectException(BadRequestException::class);
-        $this->expectExceptionCode(400);
-        $decode($body);
+        $this->controller->request->data = $decode($body);
+        $this->assertRejected(400);
     }
 
     public function malformedJsonBodies(): array
@@ -189,13 +188,44 @@ class AttributeFastLookupControllerTest extends TestCase
         $limiter->check(['Role' => ['enforce_rate_limit' => true, 'rate_limit_count' => 0]], 'attributes', $action);
     }
 
+    public function testWarmingReturns503WithScopeAndProgressWithoutResults(): void
+    {
+        $this->controller->MispAttribute->result = ['status' => 'warming', 'scope' => FastLookupConfig::scope(), 'progress' => ['processed_events' => 1100, 'total_events' => 1300, 'eta_seconds' => 20]];
+        $response = $this->controller->fastLookup();
+        $this->assertSame(503, $response->statusCode());
+        $this->assertSame('5', $response->headers['Retry-After']);
+        $this->assertSame(1100, json_decode($response->body(), true)['progress']['processed_events']);
+        $this->assertArrayNotHasKey('results', json_decode($response->body(), true));
+    }
+
+    public function testInvalidConfigurationReportsConfiguredTypesWithoutPretendingScopeIsValid(): void
+    {
+        Configure::write('MISP.fast_lookup_attribute_types', 'domain,unknown-type');
+        Configure::write('MISP.fast_lookup_max_values', 0);
+        $response = $this->controller->fastLookup();
+        $body = json_decode($response->body(), true);
+        $this->assertSame(503, $response->statusCode());
+        $this->assertIsArray($body['scope']);
+        $this->assertSame(['domain', 'unknown-type'], $body['scope']['attribute_types']);
+        $this->assertFalse($body['scope']['configuration_valid']);
+        $this->assertNull($body['scope']['max_values']);
+        $this->assertArrayNotHasKey('results', $body);
+        $this->assertSame([], $this->controller->MispAttribute->calls);
+    }
+
     private function assertRejected($status): void
     {
         try {
-            $this->controller->fastLookup();
-            $this->fail('Request should have been rejected.');
+            $response = $this->controller->fastLookup();
+            $this->assertSame($status, $response->statusCode());
+            if ($status === 405) {
+                $this->assertSame('POST', $response->headers['Allow']);
+            }
+            $body = json_decode($response->body(), true);
+            $this->assertSame(FastLookupConfig::scope(), $body['scope']);
+            $this->assertArrayNotHasKey('results', $body);
         } catch (HttpException $e) {
-            $this->assertSame($status, $e->getCode());
+            $this->fail('Feature errors must include a scoped JSON envelope; received exception ' . $e->getCode());
         }
     }
 }

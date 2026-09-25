@@ -1,92 +1,4 @@
 <?php
-
-if (!class_exists('App', false)) {
-    class App
-    {
-        public static function uses($class, $package) {}
-    }
-}
-
-if (is_file(__DIR__ . '/../Lib/Tools/AttributeFastLookupTool.php')) {
-    require_once __DIR__ . '/../Lib/Tools/AttributeFastLookupTool.php';
-}
-
-class FastLookupSqlStatement
-{
-    private $rows;
-    private $offset = 0;
-    public $closed = false;
-    public function __construct(array $rows) { $this->rows = $rows; }
-    public function fetch($mode) { return $this->rows[$this->offset++] ?? false; }
-    public function closeCursor() { $this->closed = true; }
-}
-
-class FastLookupSqlDatasource
-{
-    public $config = ['host' => 'db', 'database' => 'misp', 'password' => 'secret'];
-    public $queries = [];
-    public $responses = [];
-    public $aclConditions;
-    public function name($name) { return '`' . str_replace('.', '`.`', $name) . '`'; }
-    public function value($value, $type = null) { return "'" . str_replace("'", "''", $value) . "'"; }
-    public function fullTableName($model) { return $this->name($model->useTable); }
-    public function conditions($conditions, $quote, $where, $model)
-    {
-        $this->aclConditions = $conditions;
-        return '`Event`.`org_id` = 7 AND (`Attribute`.`object_id` = 0 OR `Object`.`distribution` = 5)';
-    }
-    public function rawQuery($sql)
-    {
-        $this->queries[] = $sql;
-        if (!$this->responses) {
-            throw new RuntimeException('Unexpected SQL query.');
-        }
-        return new FastLookupSqlStatement(array_shift($this->responses));
-    }
-}
-
-class FastLookupSqlAttribute
-{
-    public $useTable = 'attributes';
-    public $Event;
-    public $Object;
-    public $db;
-    public $users = [];
-    public $columns = [
-        'value1' => ['charset' => 'utf8mb3', 'collate' => 'utf8mb3_unicode_ci'],
-        'value2' => ['charset' => 'utf8mb3', 'collate' => 'utf8mb3_unicode_ci'],
-    ];
-    public function __construct()
-    {
-        $this->db = new FastLookupSqlDatasource();
-        $this->Event = (object)['useTable' => 'events'];
-        $this->Object = (object)['useTable' => 'objects'];
-    }
-    public function getDataSource() { return $this->db; }
-    public function schema($field) { return $this->columns[$field]; }
-    public function buildConditions($user)
-    {
-        $this->users[] = $user;
-        return ['Event.org_id' => 7];
-    }
-}
-
-class FastLookupRecordingCache
-{
-    public $hits = [];
-    public $reads = [];
-    public $writes = [];
-    public function getMany(array $values, $maxAge)
-    {
-        $this->reads[] = [$values, $maxAge];
-        return $this->hits;
-    }
-    public function storeMany(array $values, array $candidates, $queriedAt)
-    {
-        $this->writes[] = [$values, $candidates, $queriedAt];
-    }
-}
-
 /**
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
@@ -96,256 +8,240 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
-        require_once __DIR__ . '/../Lib/Tools/FastLookupCache.php';
+        foreach (['FastLookupConfig', 'FastLookupValueTool', 'AttributeFastLookupTool'] as $class) {
+            $path = __DIR__ . '/../Lib/Tools/' . $class . '.php';
+            if (is_file($path)) { require_once $path; }
+        }
+        Configure::clear();
     }
 
-    private function tool(&$attribute, &$cache)
+    private function tool(&$attribute, &$manager)
     {
-        $this->assertTrue(class_exists('AttributeFastLookupTool'), 'The lookup module must exist.');
-        $attribute = new FastLookupSqlAttribute();
-        $cache = new FastLookupRecordingCache();
-        return new AttributeFastLookupTool($attribute, $cache);
+        $attribute = new FastLookupTestAttribute();
+        $manager = new FastLookupTestManager();
+        return new AttributeFastLookupTool($attribute, $manager);
     }
 
-    public function testCustomConfiguredDurationBecomesTheRequestDefault()
+    public function testWarmingReturnsScopeAndProgressWithoutQuerying(): void
     {
-        Configure::write('MISP.fast_lookup_cache_ttl', '21600');
-        $tool = $this->tool($attribute, $cache);
-        $cache->hits = [0 => []];
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing']])));
-        $this->assertSame(21600, $cache->reads[0][1]);
+        $tool = $this->tool($attribute, $manager);
+        $manager->snapshot = ['status' => 'warming', 'progress' => ['percent' => 40]];
+        $result = $tool->lookup([], ['value' => ['example.org']]);
+        $this->assertSame('warming', $result['status']);
+        $this->assertSame(10000, $result['scope']['max_values']);
+        $this->assertSame(40, $result['progress']['percent']);
+        $this->assertArrayNotHasKey('results', $result);
         $this->assertSame([], $attribute->db->queries);
+        $this->assertSame([], $manager->index->reads);
     }
 
-    public function testCallerCanUseConfiguredMaximumOrRequestFresherData()
+    public function testFallbackSqlPreservesCollationScopeAndSortedOriginalKeys(): void
     {
-        Configure::write('MISP.fast_lookup_cache_ttl', 120);
-        $tool = $this->tool($attribute, $cache);
-        $cache->hits = [0 => []];
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing'], 'maxAge' => 120])));
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['missing'], 'maxAge' => 30])));
-        $this->assertSame([[['missing'], 120], [['missing'], 30]], $cache->reads);
-        $this->expectException(InvalidArgumentException::class);
-        $tool->lookup([], ['value' => ['missing'], 'maxAge' => 121]);
-    }
-
-    /** @dataProvider disabledDurations */
-    public function testDisabledOrInvalidConfigurationAlwaysUsesFreshSql($configured)
-    {
-        Configure::write('MISP.fast_lookup_cache_ttl', $configured);
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']]];
-        $this->assertSame('{"example.org":["7"]}', json_encode($tool->lookup([], ['value' => ['example.org']])));
-        $this->assertSame([], $cache->reads);
-        $this->assertSame([], $cache->writes);
-        $this->assertCount(1, $attribute->db->queries);
-        $this->assertStringContainsString('`Event`.`org_id` = 7', $attribute->db->queries[0]);
-        $this->expectException(InvalidArgumentException::class);
-        $tool->lookup([], ['value' => ['example.org'], 'maxAge' => 1]);
-    }
-
-    public static function disabledDurations()
-    {
-        return [[0], ['0'], ['invalid'], [-1], [false]];
-    }
-
-    public function testFreshLookupPreservesKeysAndAllDistinctSortedEvents()
-    {
-        $tool = $this->tool($attribute, $cache);
+        $tool = $this->tool($attribute, $manager);
         $attribute->db->responses = [[
-            ['input_index' => '0', 'event_id' => '10'],
-            ['input_index' => '0', 'event_id' => '2'],
-            ['input_index' => '0', 'event_id' => '10'],
-            ['input_index' => '1', 'event_id' => '1'],
+            ['input_index' => '0', 'event_id' => '10'], ['input_index' => '0', 'event_id' => '2'],
+            ['input_index' => '0', 'event_id' => '10'], ['input_index' => '1', 'event_id' => '1'],
         ]];
-        $result = $tool->lookup(['id' => 17], ['value' => ['ÉXAMPLE', '0', 'ÉXAMPLE', 'missing'], 'maxAge' => 0]);
-        $this->assertSame('{"ÉXAMPLE":["2","10"],"0":["1"]}', json_encode($result, JSON_UNESCAPED_UNICODE));
-        $this->assertSame([], $cache->reads);
-        $this->assertSame([], $cache->writes);
-        $this->assertCount(1, $attribute->db->queries);
+        $result = $tool->lookup(['id' => 17], ['value' => ['cafe', '0', 'cafe', 'missing']]);
+        $this->assertSame('{"cafe":{"event_ids":["2","10"],"ip_ranges":{},"domains":{}},"0":{"event_ids":["1"],"ip_ranges":{},"domains":{}}}', json_encode($result['results']));
         $sql = $attribute->db->queries[0];
-        $this->assertStringContainsString('INNER JOIN `events`', $sql);
-        $this->assertStringContainsString('LEFT JOIN `objects`', $sql);
-        $this->assertStringContainsString('`Attribute`.`deleted` = 0', $sql);
-        $this->assertStringContainsString('`Event`.`org_id` = 7', $sql);
-        $this->assertStringContainsString('`Object`.`distribution` = 5', $sql);
+        foreach (["`Attribute`.`value1` = 'cafe'", "`Attribute`.`value2` = 'cafe'", 'INNER JOIN `events`', 'LEFT JOIN `objects`',
+            '`Attribute`.`deleted` = 0', '`Event`.`published` = 1', '`Attribute`.`type` IN (', '`Event`.`org_id` = 7', '`Object`.`distribution` = 5'] as $part) {
+            $this->assertStringContainsString($part, $sql);
+        }
+        $this->assertStringNotContainsString('BINARY ', $sql);
         $this->assertSame([['id' => 17]], $attribute->users);
     }
 
-    public function testLiteralOperatorsAreQuotedAndIpv6NormalizationPreservesOriginalKey()
+    public function testSupportedCollationUsesRedisExactCandidatesAndLiveEquality(): void
     {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [[['input_index' => 1, 'event_id' => '9']]];
-        $result = $tool->lookup([], ['value' => ["!%' OR 1=1 --", '2001:0DB8:0:0::1'], 'maxAge' => 0]);
-        $this->assertSame('{"2001:0DB8:0:0::1":["9"]}', json_encode($result));
-        $sql = $attribute->db->queries[0];
-        $this->assertStringContainsString("= '!%'' OR 1=1 --'", $sql);
-        $this->assertStringContainsString("= '2001:db8::1'", $sql);
-        $this->assertStringNotContainsString(' LIKE ', $sql);
-    }
-
-    public function testColdLookupCachesCompleteGlobalCandidatesAfterLiveChecks()
-    {
-        $tool = $this->tool($attribute, $cache);
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => ['11', '12'], 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [['input_index' => 0, 'attribute_id' => '11'], ['input_index' => 0, 'attribute_id' => '12']],
-            [['input_index' => 0, 'event_id' => '7']],
+            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "],
+             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "]],
+            [['input_index' => '0', 'event_id' => '7']],
         ];
-        $started = microtime(true);
-        $result = $tool->lookup([], ['value' => ['example.org', 'missing']]);
-        $this->assertSame('{"example.org":["7"]}', json_encode($result));
-        $this->assertSame([[['example.org', 'missing'], 10800]], $cache->reads);
-        $this->assertSame([0 => ['11', '12'], 1 => []], $cache->writes[0][1]);
-        $this->assertGreaterThanOrEqual($started, $cache->writes[0][2]);
-        $this->assertStringNotContainsString('deleted', $attribute->db->queries[0]);
-        $this->assertStringNotContainsString(' JOIN ', $attribute->db->queries[0]);
+        $result = $tool->lookup([], ['value' => ['cafe']]);
+        $this->assertSame(['7'], $result['results']->cafe['event_ids']);
+        $this->assertStringContainsString('WEIGHT_STRING', $attribute->db->queries[0]);
         $this->assertStringContainsString('`Attribute`.`id` IN (11,12)', $attribute->db->queries[1]);
-        $this->assertStringContainsString("`Attribute`.`value1` = 'example.org'", $attribute->db->queries[1]);
-        $this->assertStringContainsString("`Attribute`.`value2` = 'example.org'", $attribute->db->queries[1]);
+        $this->assertStringContainsString("`Attribute`.`value1` = 'cafe'", $attribute->db->queries[1]);
+        $this->assertNotEmpty($manager->index->reads[0][1][0]);
     }
 
-    public function testWarmPositiveAndNegativeHitsOnlyRunLiveChecksWithoutRefreshingCache()
+    public function testConfigurablePublicationAndTypeScopeApplyToLiveSql(): void
     {
-        $tool = $this->tool($attribute, $cache);
-        $cache->hits = [0 => ['11', '12'], 1 => []];
-        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '8']]];
-        $result = $tool->lookup([], ['value' => ['example.org', 'missing'], 'maxAge' => 3]);
-        $this->assertSame('{"example.org":["8"]}', json_encode($result));
-        $this->assertCount(1, $attribute->db->queries);
-        $this->assertSame([], $cache->writes);
-        $this->assertSame(3, $cache->reads[0][1]);
+        Configure::write('MISP.fast_lookup_published_only', false);
+        Configure::write('MISP.fast_lookup_attribute_types', 'domain');
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[]];
+        $result = $tool->lookup([], ['value' => ['example.org']]);
+        $this->assertSame(['domain'], $result['scope']['attribute_types']);
+        $this->assertStringNotContainsString('`Event`.`published` = 1', $attribute->db->queries[0]);
+        $this->assertStringContainsString("`Attribute`.`type` IN ('domain')", $attribute->db->queries[0]);
     }
 
-    public function testEmptyAndInvisibleResultsAreObjects()
+    public function testExpandedMatchesAreRecheckedAgainstCurrentSqlValues(): void
     {
-        $tool = $this->tool($attribute, $cache);
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => []])));
-        $this->assertSame([], $attribute->db->queries);
-        $cache->hits = [0 => []];
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['0']])));
-        $this->assertSame([], $attribute->db->queries);
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->hits = [
+            0 => ['exact' => [], 'ip_range' => ['11', '12', '13'], 'domain' => []],
+            1 => ['exact' => [], 'ip_range' => [], 'domain' => ['14', '15']],
+        ];
+        $attribute->db->responses = [[], [
+            ['id' => '11', 'event_id' => '10', 'type' => 'ip-src', 'value1' => '192.0.2.199/24', 'value2' => ''],
+            ['id' => '12', 'event_id' => '2', 'type' => 'ip-dst', 'value1' => '192.0.2.0/25', 'value2' => ''],
+            ['id' => '13', 'event_id' => '3', 'type' => 'ip-src', 'value1' => '192.0.3.0/24', 'value2' => ''],
+            ['id' => '14', 'event_id' => '9', 'type' => 'domain', 'value1' => 'example.org', 'value2' => ''],
+            ['id' => '15', 'event_id' => '5', 'type' => 'hostname', 'value1' => 'example.org', 'value2' => ''],
+        ]];
+        $result = $tool->lookup([], ['value' => ['192.0.2.1', 'www.example.org']]);
+        $this->assertSame(['2', '10'], $result['results']->{'192.0.2.1'}['event_ids']);
+        $this->assertSame(['10'], $result['results']->{'192.0.2.1'}['ip_ranges']->{'192.0.2.199/24'});
+        $this->assertSame(['9'], $result['results']->{'www.example.org'}['domains']->{'example.org'});
+        $this->assertStringContainsString('`Attribute`.`id` IN (11,12,13,14,15)', $attribute->db->queries[1]);
+        $this->assertStringContainsString('`Event`.`org_id` = 7', $attribute->db->queries[1]);
+        $this->assertStringNotContainsString("= '192.0.2.1'", $attribute->db->queries[1]);
+    }
+
+    public function testGenerationFenceDiscardsAllResults(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']]];
+        $manager->current = false;
+        $result = $tool->lookup([], ['value' => ['example.org']]);
+        $this->assertNotSame('ready', $result['status']);
+        $this->assertArrayNotHasKey('results', $result);
+        $this->assertArrayHasKey('scope', $result);
+    }
+
+    public function testDefaultAdmitsTenThousandSha512Values(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->snapshot = ['status' => 'warming'];
+        $values = array_map(function ($i) { return hash('sha512', (string)$i); }, range(1, 10000));
+        $this->assertSame('warming', $tool->lookup([], ['value' => $values])['status']);
+        $this->expectException(InvalidArgumentException::class);
+        $tool->lookup([], ['value' => array_merge($values, ['extra'])]);
+    }
+
+    public function testConfiguredMaximumIsValidatedBeforeIndexAccess(): void
+    {
+        Configure::write('MISP.fast_lookup_max_values', 2);
+        $tool = $this->tool($attribute, $manager);
+        try {
+            $tool->lookup([], ['value' => ['a', 'b', 'c']]);
+            $this->fail('Expected request maximum rejection.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame(0, $manager->reads);
+        }
     }
 
     /** @dataProvider invalidRequests */
-    public function testRejectsMalformedRequestsBeforeSqlOrRedis(array $request)
+    public function testMalformedRequestsNeverReadIndexOrSql(array $request): void
     {
-        $tool = $this->tool($attribute, $cache);
+        $tool = $this->tool($attribute, $manager);
         try {
             $tool->lookup([], $request);
             $this->fail('Expected InvalidArgumentException.');
-        } catch (Throwable $e) {
-            $this->assertInstanceOf(InvalidArgumentException::class, $e);
+        } catch (InvalidArgumentException $e) {
             $this->assertSame([], $attribute->db->queries);
-            $this->assertSame([], $cache->reads);
+            $this->assertSame(0, $manager->reads);
         }
     }
 
-    public static function invalidRequests()
+    public static function invalidRequests(): array
     {
-        return [
-            [[]], [['value' => 'x']], [['value' => ['a' => 'x']]],
-            [['value' => [1 => 'x']]], [['value' => [1]]], [['value' => ['']]],
-            [['value' => ["\xff"]]], [['value' => ["\0x"]]], [['value' => ["x\0y"]]],
-            [['value' => ['x'], 'other' => true]],
-            [['value' => ['x'], 'maxAge' => -1]], [['value' => ['x'], 'maxAge' => 10801]],
-            [['value' => ['x'], 'maxAge' => '60']], [['value' => ['x'], 'maxAge' => 1.0]],
-            [['value' => ['x'], 'maxAge' => null]], [['value' => ['x'], 'maxAge' => true]],
-            [['value' => array_fill(0, 1001, 'x')]], [['value' => [str_repeat('x', 4097)]]],
-            [['value' => array_fill(0, 257, str_repeat('x', 4096))]],
-        ];
+        return [[[]], [['value' => 'x']], [['value' => ['a' => 'x']]], [['value' => [1]]],
+            [['value' => ['']]], [['value' => ["\xff"]]], [['value' => ["x\0y"]]],
+            [['value' => ['x'], 'maxAge' => 0]], [['value' => ['x'], 'maxAge' => 1]],
+            [['value' => ['x'], 'other' => true]], [['value' => [str_repeat('x', 4097)]]],
+            [['value' => array_fill(0, 4097, str_repeat('x', 4096))]]];
     }
 
-    public function testBatchesInputsWithoutDroppingLaterMatches()
+    public function testEmptyReadyResultsAreAnObject(): void
     {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [[], [['input_index' => 100, 'event_id' => '1']]];
-        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 100));
-        $result = $tool->lookup([], ['value' => $values, 'maxAge' => 0]);
-        $this->assertSame('{"ioc-100":["1"]}', json_encode($result));
-        $this->assertCount(2, $attribute->db->queries);
-    }
-
-    public function testResourceLimitThrowsInsteadOfCachingPartialCandidates()
-    {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [array_fill(0, 100001, ['input_index' => 0, 'attribute_id' => '1'])];
-        try {
-            $tool->lookup([], ['value' => ['example.org']]);
-            $this->fail('Expected OverflowException.');
-        } catch (OverflowException $e) {
-            $this->assertSame([], $cache->writes);
-        }
-    }
-
-    public function testMixedCacheHitsDiscoverOnlyMissingInputsAndRetainTheirOrdinals()
-    {
-        $tool = $this->tool($attribute, $cache);
-        $cache->hits = [0 => ['11'], 1 => []];
-        $attribute->db->responses = [
-            [['input_index' => 2, 'attribute_id' => '21']],
-            [['input_index' => 2, 'event_id' => '8']],
-        ];
-        $result = $tool->lookup([], ['value' => ['old', 'negative', 'new']]);
-        $this->assertSame('{"new":["8"]}', json_encode($result));
-        $this->assertStringContainsString('SELECT 2 AS `input_index`', $attribute->db->queries[0]);
-        $this->assertStringNotContainsString("= 'old'", $attribute->db->queries[0]);
-        $this->assertSame([2 => ['21']], $cache->writes[0][1]);
-    }
-
-    public function testLiveQueryOverflowDoesNotPublishAnyCandidateEntries()
-    {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [
-            [['input_index' => 0, 'attribute_id' => '11']],
-            array_fill(0, 100000, ['input_index' => 0, 'event_id' => '1']),
-        ];
-        try {
-            $tool->lookup([], ['value' => ['example.org']]);
-            $this->fail('Expected OverflowException.');
-        } catch (OverflowException $e) {
-            $this->assertSame([], $cache->writes);
-        }
-    }
-
-    public function testOversizedWarmCandidatesFailBeforeIssuingUnboundedSql()
-    {
-        $tool = $this->tool($attribute, $cache);
-        $cache->hits = [0 => array_fill(0, 100001, '1')];
-        try {
-            $tool->lookup([], ['value' => ['example.org']]);
-            $this->fail('Expected OverflowException.');
-        } catch (OverflowException $e) {
-            $this->assertSame([], $attribute->db->queries);
-            $this->assertSame([], $cache->writes);
-        }
-    }
-
-    public function testFourByteUtf8HasNoMatchInThreeByteColumnsWithoutSqlErrors()
-    {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->db->responses = [[]];
-        $result = $tool->lookup([], ['value' => ['absent-😀'], 'maxAge' => 0]);
-        $this->assertSame('{}', json_encode($result));
+        $tool = $this->tool($attribute, $manager);
+        $result = $tool->lookup([], ['value' => []]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertSame('{}', json_encode($result['results']));
         $this->assertSame([], $attribute->db->queries);
     }
 
-    public function testFourByteUtf8StillMatchesAComponentThatSupportsIt()
+    public function testLiteralQuotingAndIpv6Normalization(): void
     {
-        $tool = $this->tool($attribute, $cache);
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[['input_index' => 1, 'event_id' => '9']]];
+        $result = $tool->lookup([], ['value' => ["!%' OR 1=1 --", '2001:0DB8:0:0::1']]);
+        $this->assertSame(['9'], $result['results']->{'2001:0DB8:0:0::1'}['event_ids']);
+        $this->assertStringContainsString("= '!%'' OR 1=1 --'", $attribute->db->queries[0]);
+        $this->assertStringContainsString("= '2001:db8::1'", $attribute->db->queries[0]);
+    }
+
+    public function testFourByteUnicodeSkipsOnlyIncompatibleComponent(): void
+    {
+        $tool = $this->tool($attribute, $manager);
         $attribute->columns['value2'] = ['charset' => 'utf8mb4', 'collate' => 'utf8mb4_unicode_ci'];
         $attribute->db->responses = [[['input_index' => 0, 'event_id' => '9']]];
-        $result = $tool->lookup([], ['value' => ['stored-😀'], 'maxAge' => 0]);
-        $this->assertSame('{"stored-😀":["9"]}', json_encode($result, JSON_UNESCAPED_UNICODE));
+        $result = $tool->lookup([], ['value' => ['stored-😀']]);
+        $this->assertSame(['9'], $result['results']->{'stored-😀'}['event_ids']);
         $this->assertStringContainsString("`Attribute`.`value2` = 'stored-😀'", $attribute->db->queries[0]);
         $this->assertStringNotContainsString('`Attribute`.`value1`', $attribute->db->queries[0]);
     }
 
-    public function testLegacyUtf8CollationMetadataAlsoSkipsUnsupportedLiterals()
+    public function testLaterBatchesKeepTheirInputOrdinals(): void
     {
-        $tool = $this->tool($attribute, $cache);
-        $attribute->columns = ['value1' => ['collate' => 'utf8_unicode_ci'], 'value2' => ['charset' => 'utf8']];
-        $attribute->db->responses = [[]];
-        $this->assertSame('{}', json_encode($tool->lookup([], ['value' => ['😀'], 'maxAge' => 0])));
-        $this->assertSame([], $attribute->db->queries);
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[], [['input_index' => 100, 'event_id' => '1']]];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 100));
+        $result = $tool->lookup([], ['value' => $values]);
+        $this->assertSame(['1'], $result['results']->{'ioc-100'}['event_ids']);
+        $this->assertCount(2, $attribute->db->queries);
+    }
+
+    public function testSqlResourceLimitDoesNotReturnPartialResults(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [array_fill(0, 100001, ['input_index' => 0, 'event_id' => '1'])];
+        $this->expectException(OverflowException::class);
+        $tool->lookup([], ['value' => ['example.org']]);
+    }
+
+    public function testExhaustedBudgetStopsBeforeAnotherCandidateBatch(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [array_fill(0, 100000, ['input_index' => 0, 'event_id' => '1']), []];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 100));
+        $this->expectException(OverflowException::class);
+        $tool->lookup([], ['value' => $values]);
+    }
+
+    public function testMalformedCandidateIdsNeverEnterSql(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->hits = [0 => ['exact' => [], 'ip_range' => ['1) OR 1=1'], 'domain' => []]];
+        try {
+            $tool->lookup([], ['value' => ['192.0.2.1']]);
+            $this->fail('Invalid candidate IDs must fail closed.');
+        } catch (RuntimeException $e) {
+            $this->assertSame([], $attribute->db->queries);
+        }
+    }
+
+    public function testIgnorableWeightsUseSqlToIncludeEmptyComponents(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $attribute->db->responses = [
+            [['input_index' => '0', 'component' => 'value1', 'weight' => '', 'pad_weight' => "\x02\x09"],
+             ['input_index' => '0', 'component' => 'value2', 'weight' => '', 'pad_weight' => "\x02\x09"]],
+            [['input_index' => '0', 'event_id' => '7']],
+        ];
+        $result = $tool->lookup([], ['value' => ["\u{200b}"]]);
+        $this->assertSame(['7'], $result['results']->{"\u{200b}"}['event_ids']);
+        $this->assertStringNotContainsString('`Attribute`.`id` IN (', $attribute->db->queries[1]);
+        $this->assertStringContainsString('`Attribute`.`value2` = ', $attribute->db->queries[1]);
     }
 }
