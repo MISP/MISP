@@ -54,10 +54,11 @@ def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool
     return response
 
 
-def ordinary_role_id(admin: PyMISP) -> int:
-    """The least privileged non-admin, non-sync role that can still add attributes.
+def least_privileged_role(admin: PyMISP, *required) -> int:
+    """The least privileged non-admin, non-sync role holding every named permission.
 
-    Looked up rather than hard-coded, so the suite does not assume a particular role table.
+    Looked up rather than hard-coded, so the suite does not assume a particular role table,
+    and so each test runs as the weakest identity that can reach the endpoint at all.
     """
     roles = send(admin, 'GET', 'roles')
     candidates = []
@@ -65,13 +66,46 @@ def ordinary_role_id(admin: PyMISP) -> int:
         role = entry['Role'] if 'Role' in entry else entry
         if int(role.get('perm_site_admin', 0)) or int(role.get('perm_sync', 0)):
             continue
-        if not int(role.get('perm_add', 0)):
+        if any(not int(role.get(p, 0) or 0) for p in required):
             continue
         weight = sum(1 for k, v in role.items() if k.startswith('perm_') and int(v or 0))
         candidates.append((weight, int(role['id'])))
     if not candidates:
-        raise unittest.SkipTest('no non-admin role with perm_add on this instance')
+        raise unittest.SkipTest('no non-admin role with %s on this instance' % ', '.join(required))
     return sorted(candidates)[0][1]
+
+
+def make_org(admin: PyMISP, label: str):
+    org = MISPOrganisation()
+    org.name = '%s %s' % (label, random())
+    return check_response(admin.add_organisation(org))
+
+
+def make_user(admin: PyMISP, org_id, role_id):
+    user = MISPUser()
+    user.email = 'regression-%s@test.local' % random()
+    user.org_id = org_id
+    user.role_id = role_id
+    return check_response(admin.add_user(user))
+
+
+def make_event(connector: PyMISP, label: str):
+    event = MISPEvent()
+    event.info = '%s %s' % (label, random())
+    event.distribution = 0        # organisation only
+    return check_response(connector.add_event(event))
+
+
+def drop_fixtures(admin: PyMISP, orgs, users):
+    """Events first: an organisation that still owns one cannot be deleted."""
+    for org in orgs:
+        for event in admin.search(controller='events', org=int(org.id),
+                                  metadata=True, pythonify=True):
+            admin.delete_event(event)
+    for user in users:
+        admin.delete_user(user)
+    for org in orgs:
+        admin.delete_organisation(org)
 
 
 class NestedAliasMassAssignment(unittest.TestCase):
@@ -88,14 +122,13 @@ class NestedAliasMassAssignment(unittest.TestCase):
         warnings.simplefilter("ignore", ResourceWarning)
         cls.admin = PyMISP(url, key)
         cls.admin.global_pythonify = True
-        cls.role_id = ordinary_role_id(cls.admin)
-        cls.created_users = []
-        cls.created_orgs = []
-
-        cls.victim_org = cls._org('regression victim org')
-        cls.attacker_org = cls._org('regression attacker org')
-        cls.victim_user = cls._user(cls.victim_org.id)
-        cls.attacker_user = cls._user(cls.attacker_org.id)
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.victim_org = make_org(cls.admin, 'regression victim org')
+        cls.attacker_org = make_org(cls.admin, 'regression attacker org')
+        cls.created_orgs = [cls.victim_org, cls.attacker_org]
+        cls.victim_user = make_user(cls.admin, cls.victim_org.id, cls.role_id)
+        cls.attacker_user = make_user(cls.admin, cls.attacker_org.id, cls.role_id)
+        cls.created_users = [cls.victim_user, cls.attacker_user]
         cls.victim = PyMISP(url, cls.victim_user.authkey)
         cls.victim.global_pythonify = True
         cls.attacker = PyMISP(url, cls.attacker_user.authkey)
@@ -103,43 +136,11 @@ class NestedAliasMassAssignment(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # events first: an organisation that still owns one cannot be deleted
-        for org in cls.created_orgs:
-            for event in cls.admin.search(controller='events', org=int(org.id),
-                                          metadata=True, pythonify=True):
-                cls.admin.delete_event(event)
-        for user in cls.created_users:
-            cls.admin.delete_user(user)
-        for org in cls.created_orgs:
-            cls.admin.delete_organisation(org)
-
-    @classmethod
-    def _org(cls, label):
-        org = MISPOrganisation()
-        org.name = '%s %s' % (label, random())
-        org = check_response(cls.admin.add_organisation(org))
-        cls.created_orgs.append(org)
-        return org
-
-    @classmethod
-    def _user(cls, org_id):
-        user = MISPUser()
-        user.email = 'regression-%s@test.local' % random()
-        user.org_id = org_id
-        user.role_id = cls.role_id
-        user = check_response(cls.admin.add_user(user))
-        cls.created_users.append(user)
-        return user
-
-    def _event(self, connector, label):
-        event = MISPEvent()
-        event.info = '%s %s' % (label, random())
-        event.distribution = 0        # organisation only
-        return check_response(connector.add_event(event))
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
 
     def _victim_attribute(self):
         """An attribute in an organisation-only event of an organisation the attacker is not in."""
-        event = self._event(self.victim, 'regression victim event')
+        event = make_event(self.victim, 'regression victim event')
         attribute = check_response(self.victim.add_attribute(
             event.id, {'type': 'text', 'category': 'Other',
                        'value': 'victim-value-' + random()}))
@@ -170,7 +171,7 @@ class NestedAliasMassAssignment(unittest.TestCase):
 
     def test_freetext_import(self):
         victim_event, victim = self._victim_attribute()
-        own = self._event(self.attacker, 'regression attacker event')
+        own = make_event(self.attacker, 'regression attacker event')
         payload = [{'type': 'text', 'category': 'Other', 'value': 'outer-decoy',
                     'Attribute': {'id': victim.id, 'event_id': own.id, 'type': 'text',
                                   'category': 'Other', 'value': 'stolen',
@@ -183,7 +184,7 @@ class NestedAliasMassAssignment(unittest.TestCase):
 
     def test_event_edit(self):
         victim_event, victim = self._victim_attribute()
-        own = self._event(self.attacker, 'regression attacker event')
+        own = make_event(self.attacker, 'regression attacker event')
         own_attribute = check_response(self.attacker.add_attribute(
             own.id, {'type': 'text', 'category': 'Other', 'value': 'own-' + random()}))
         future = int(time.time()) + 600
@@ -208,7 +209,7 @@ class NestedAliasMassAssignment(unittest.TestCase):
         sighting_id = before[0]['id']
         original = before[0]
 
-        own = self._event(self.attacker, 'regression attacker event')
+        own = make_event(self.attacker, 'regression attacker event')
         send(self.attacker, 'POST', 'attributes/add/%s' % own.id, data={'Attribute': {
             'type': 'text', 'category': 'Other', 'value': 'parent-' + random(),
             'distribution': 0,
@@ -237,6 +238,76 @@ class NestedAliasMassAssignment(unittest.TestCase):
                        data={'Event': {'info': 'regression wrapped form ' + random(),
                                        'distribution': 0}})
         self.assertIn('Event', wrapped)
+
+
+
+class DelegationRequestRetargeting(unittest.TestCase):
+    """A delegation request must stay bound to the event it was authorised against.
+
+    delegateEvent() authorises only the event named in the URL, and a delegation row also grants
+    its organisation read access to the event it names (Event::fetchEvent ORs delegated event ids
+    into the read ACL). A row whose event_id or primary key can be chosen by the requester is
+    therefore a read grant over any event on the instance, and accepting it transfers ownership
+    and deletes the original.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        if not cls.admin.get_server_setting('MISP.delegation')['value']:
+            raise unittest.SkipTest('MISP.delegation is disabled on this instance')
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add', 'perm_delegate')
+        cls.victim_org = make_org(cls.admin, 'delegation victim org')
+        cls.attacker_org = make_org(cls.admin, 'delegation attacker org')
+        cls.created_orgs = [cls.victim_org, cls.attacker_org]
+        cls.victim_user = make_user(cls.admin, cls.victim_org.id, cls.role_id)
+        cls.attacker_user = make_user(cls.admin, cls.attacker_org.id, cls.role_id)
+        cls.created_users = [cls.victim_user, cls.attacker_user]
+        cls.victim = PyMISP(url, cls.victim_user.authkey)
+        cls.victim.global_pythonify = True
+        cls.attacker = PyMISP(url, cls.attacker_user.authkey)
+        cls.attacker.global_pythonify = True
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def test_delegation_cannot_be_retargeted(self):
+        victim_event = make_event(self.victim, 'delegation victim event')
+
+        probe = self.attacker._prepare_request('GET', 'events/view/%s' % victim_event.id)
+        self.assertIn(probe.status_code, (403, 404),
+                      'the attacker can already read the victim event, so this proves nothing')
+
+        own = make_event(self.attacker, 'delegation attacker event')
+        route = make_event(self.attacker, 'delegation route event')
+        created = send(self.attacker, 'POST', 'eventDelegations/delegateEvent/%s' % own.id,
+                       data={'EventDelegation': {'org_id': self.attacker_org.id,
+                                                 'distribution': 0,
+                                                 'message': 'legitimate delegation'}})
+        # the create returns the stored row; a missing one means the feature itself broke,
+        # which must fail loudly rather than let the assertion below pass vacuously
+        self.assertIn('EventDelegation', created,
+                      'the legitimate delegation was not created, so the feature is broken')
+        delegation_id = created['EventDelegation']['id']
+        self.assertEqual(str(own.id), str(created['EventDelegation']['event_id']),
+                         'the delegation was not bound to the event it was requested for')
+
+        send(self.attacker, 'POST', 'eventDelegations/delegateEvent/%s' % route.id, data={
+            'EventDelegation': {
+                'org_id': self.attacker_org.id, 'distribution': 0, 'message': 'outer-decoy',
+                'EventDelegation': {'id': delegation_id, 'event_id': victim_event.id,
+                                    'org_id': self.attacker_org.id,
+                                    'requester_org_id': self.attacker_org.id,
+                                    'distribution': 0, 'sharing_group_id': 0,
+                                    'message': 'retargeted'}}}, check_errors=False)
+
+        after = self.attacker._prepare_request('GET', 'events/view/%s' % victim_event.id)
+        self.assertIn(after.status_code, (403, 404),
+                      'a delegation request was retargeted at an event the requester could '
+                      'not read, granting their organisation access to it')
 
 
 if __name__ == '__main__':
