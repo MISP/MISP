@@ -5,6 +5,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('FastLookupIndexManager', 'Tools');
 
 /**
  * @property User $User
@@ -364,6 +365,13 @@ class Event extends AppModel
 
     public $fast_update = false;
 
+    public function delete($id = null, $cascade = true)
+    {
+        return FastLookupIndexManager::withMutationTransaction($this, function () use ($id, $cascade) {
+            return parent::delete($id, $cascade);
+        });
+    }
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled
@@ -539,6 +547,7 @@ class Event extends AppModel
     public function afterSave($created, $options = array())
     {
         $event = $this->data['Event'];
+        FastLookupIndexManager::recordChange($this, $event['id'] ?? $this->id);
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             if (
                 empty($this->__beforeSaveData) ||
@@ -576,6 +585,12 @@ class Event extends AppModel
             $triggerData = $event;
             $this->executeTrigger('event-after-save', $triggerData, $workflowErrors, $logging);
         }
+    }
+
+    public function afterDelete()
+    {
+        // quickDelete() removes children with raw SQL, bypassing their callbacks.
+        FastLookupIndexManager::recordChange($this, $this->data['Event']['id'] ?? $this->id);
     }
 
     public function attachTagsToEvents(array $events)
@@ -1487,18 +1502,16 @@ class Event extends AppModel
         }
 
         $db = $this->getDataSource();
-        $db->begin();
-        $connection = $db->getConnection();
-        foreach ($relations as $relation) {
-            $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
-            $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
-            $query->execute();
-        }
-        if (!$db->commit()) {
-            return false;
-        }
-        $this->set($event);
-        return $this->delete(null, false);
+        return FastLookupIndexManager::withMutationTransaction($this, function () use ($db, $relations, $event) {
+            $connection = $db->getConnection();
+            foreach ($relations as $relation) {
+                $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
+                $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
+                $query->execute();
+            }
+            $this->set($event);
+            return $this->delete(null, false);
+        });
     }
 
     public function createEventConditions($user, $skip_own_event_rule = false)

@@ -494,6 +494,11 @@ if (!empty($me)) {
                     'requirement' => $isSiteAdmin
                 ),
                 [
+                    'text' => __('Fast lookup index'),
+                    'url' => $baseurl . '/servers/fastLookup',
+                    'requirement' => $isSiteAdmin
+                ],
+                [
                     'text' => __('Benchmarking'),
                     'url' => $baseurl . '/benchmarks/index',
                     'requirement' => $isSiteAdmin && Configure::read('Plugin.Benchmarking_enable')

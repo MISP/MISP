@@ -131,6 +131,133 @@ Search MISP using a list of filter parameters and return the data in the selecte
 | first_seen |string |Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m) |
 | last_seen |string |Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m) |
 
+## FastLookup
+
+`POST /attributes/fastLookup` performs bulk IOC lookup using a persistent Redis
+index and returns matching event IDs visible to the authenticated caller. A site
+administrator must enable `MISP.fast_lookup_enabled` and complete the backfill.
+Normal API authentication and attribute-search role rate limits apply.
+
+Send `Accept: application/json` and `Content-Type: application/json`:
+
+```json
+{"value":["www.evil.com","192.0.2.7","missing.example"]}
+```
+
+Example response for a deployment scoped to domains and destination IPs:
+
+```json
+{
+  "status": "ready",
+  "scope": {
+    "attribute_types": ["domain", "ip-dst"],
+    "published_only": true,
+    "max_values": 10000,
+    "matching": ["exact", "ip_cidr", "parent_domain"]
+  },
+  "results": {
+    "www.evil.com": {
+      "event_ids": ["2"],
+      "ip_ranges": {},
+      "domains": {"evil.com": ["2"]}
+    },
+    "192.0.2.7": {
+      "event_ids": ["11"],
+      "ip_ranges": {"192.0.2.0/24": ["11"]},
+      "domains": {}
+    }
+  }
+}
+```
+
+Unmatched or invisible IOCs are omitted. A ready index with no visible matches
+returns `"results": {}`. Duplicate inputs are deduplicated. Keys retain submitted
+spelling; event IDs are distinct, numerically sorted decimal strings. The range
+and domain maps contain only matches visible to the caller, with the original
+stored IOC component as the key.
+
+Only `value`, an array of strings, is accepted. `maxAge` has been removed. Each
+string must be nonempty valid UTF-8 without NUL characters, at most 4096 bytes;
+combined strings must not exceed 16 MiB. The default limit is **10,000 submitted
+values**, configurable through `MISP.fast_lookup_max_values`.
+
+Exact matching compares either stored component (`value1` or `value2`) using
+SQL equality and database collation. Composite values are not concatenated.
+Percent signs, underscores and exclamation marks are literal characters.
+IPv6 inputs are normalized. An IP also matches every containing IPv4/IPv6 CIDR
+in an IP-bearing type, including overlapping ranges. A hostname also matches
+parent `domain`/`domain|ip` IOCs at label boundaries: `www.evil.com` matches
+`evil.com`, while `notevil.com` does not. Hostname attributes themselves are exact
+matches; there is no DNS resolution or wildcard expansion.
+
+The index defaults to published events and common IP, domain, hostname and hash
+types. Administrators configure the exact type list with
+`MISP.fast_lookup_attribute_types` and publication policy with
+`MISP.fast_lookup_published_only`. Changing either requires a fresh backfill.
+Every API response produced by this feature includes its configured scope.
+Normal platform authentication errors retain MISP's standard format. Invalid server
+configuration returns a diagnostic scope with `configuration_valid: false`; fields
+that cannot be interpreted are `null`, and no results are returned.
+
+Index entries have **no expiry**. Event publications and attribute/event changes
+record durable updates which refresh Redis. Every lookup rechecks current values,
+deleted status, publication policy, type scope, event existence and the caller's
+event/attribute/object/sharing-group permissions in SQL. There is no implicit
+`to_ids`, tag, warninglist or allowedlist filter and no restSearch filter syntax.
+Permission-filtered responses are never cached; HTTP responses use
+`Cache-Control: no-store`.
+
+Until backfill is complete, requests return HTTP **503** and `Retry-After: 5`,
+with scope and progress but **no `results` field**:
+
+```json
+{
+  "status": "warming",
+  "scope": {
+    "attribute_types": ["domain", "ip-dst"],
+    "published_only": true,
+    "max_values": 10000,
+    "matching": ["exact", "ip_cidr", "parent_domain"]
+  },
+  "progress": {
+    "processed_events": 1100,
+    "total_events": 1300,
+    "percent": 84,
+    "eta_seconds": 24
+  }
+}
+```
+
+The estimate is based on completed work and elapsed time; it is `null` before
+there is enough progress. Pending updates (`updating`), missing/stale Redis state,
+failed builds and changed scope also refuse results. Retry once the index is ready.
+
+Site administrators can monitor progress, entries and measured Redis memory per
+attribute type at **Administration → Fast lookup index** (`/servers/fastLookup`).
+Use its rebuild/resume controls when background jobs are enabled, or run as the
+MISP service user:
+
+```bash
+app/Console/cake Admin rebuildFastLookup
+app/Console/cake Admin resumeFastLookup
+app/Console/cake Admin processFastLookup
+```
+
+`GET /servers/fastLookup` with `Accept: application/json` returns status;
+`?metrics=1` also measures per-type memory. `POST /servers/rebuildFastLookup`
+accepts `{"mode":"rebuild"}` or `{"mode":"resume"}` and queues a job. Both are
+site-admin only. See [operational details](development/fastlookup.md).
+
+| HTTP status | Meaning |
+| -- | -- |
+| 200 | Ready; complete visible matches within the reported scope. |
+| 400 | Invalid JSON, option, request shape, input limit or content type. |
+| 403 | Authentication/authorization failed or feature disabled. |
+| 405 | Non-POST lookup, or API searches disabled for this role. |
+| 413 | Candidate/result safety budget exceeded; no partial results. |
+| 429 | Normal API search rate limit exceeded. |
+| 503 | Warming, updating or unavailable; no results. |
+
 ## AddTag
 Add a tag or a tag collection to an attribute.
 ```

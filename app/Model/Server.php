@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 App::uses('GitTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
 
@@ -2007,6 +2008,21 @@ class Server extends AppModel
             return __('Invalid theme.');
         }
         return true;
+    }
+
+    public function testFastLookupTypes($value)
+    {
+        return FastLookupConfig::validateTypeSetting($value);
+    }
+
+    public function fastLookupLimitBeforeHook($setting, $value)
+    {
+        return $this->testFastLookupLimit($value);
+    }
+
+    public function testFastLookupLimit($value)
+    {
+        return FastLookupConfig::validateMaxValuesSetting($value);
     }
 
     public function testForPositiveInteger($value)
@@ -7020,6 +7036,39 @@ class Server extends AppModel
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
+                ),
+                'fast_lookup_enabled' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enable POST /attributes/fastLookup. Requires Redis and a completed backfill from Administration > Fast lookup index. Current values and caller permissions are checked on every request. Index entries do not expire.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'fast_lookup_attribute_types' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Comma-separated attribute types included in the fast lookup index. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
+                    'value' => implode(',', FastLookupConfig::DEFAULT_TYPES),
+                    'test' => 'testFastLookupTypes',
+                    'type' => 'string',
+                    'null' => false,
+                ),
+                'fast_lookup_published_only' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Limit fast lookup to published events. Disable to include unpublished events subject to normal caller permissions. Changing this policy requires a new backfill.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'fast_lookup_max_values' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input and candidate-result safety limits still apply.'),
+                    'value' => FastLookupConfig::DEFAULT_MAX_VALUES,
+                    'test' => 'testFastLookupLimit',
+                    'beforeHook' => 'fastLookupLimitBeforeHook',
+                    'type' => 'numeric',
+                    'null' => false,
                 ),
                 'redis_host' => array(
                     'level' => 0,

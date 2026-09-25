@@ -4,6 +4,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('GalaxyColour', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -13,6 +14,8 @@ class AttributesController extends AppController
     public $uses = 'MispAttribute';
 
     public $components = array('RequestHandler');
+
+    private $fastLookupInputError;
 
     public $paginate = [
         'limit' => 60,
@@ -35,6 +38,24 @@ class AttributesController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
+
+        if (strtolower($this->request->action) === 'fastlookup') {
+            // RequestHandler decodes after beforeFilter. Preserve JSON objects
+            // inside value so a keyed object cannot become a valid value list.
+            $this->RequestHandler->addInputType('json', [function ($body) {
+                try {
+                    $data = json_decode($body, false, 512, JSON_THROW_ON_ERROR);
+                } catch (JsonException $e) {
+                    $this->fastLookupInputError = __('fastLookup requires a valid JSON object.');
+                    return [];
+                }
+                if (!$data instanceof stdClass) {
+                    $this->fastLookupInputError = __('fastLookup requires a JSON object.');
+                    return [];
+                }
+                return (array)$data;
+            }]);
+        }
 
         // Posted by hand-built AJAX (the Overmind tag/galaxy/relationship
         // modals), which sends the CSRF token as a header. They post a JSON
@@ -67,6 +88,70 @@ class AttributesController extends AppController
         } elseif ($this->request->action === 'viewPicture') {
             $this->Security->doNotGenerateToken = true;
         }
+    }
+
+    /**
+     * Return all visible event IDs for each literal IOC, without attribute data.
+     * Authentication, ACL dispatch and rate limits run in the normal lifecycle.
+     */
+    public function fastLookup()
+    {
+        try {
+            $scope = FastLookupConfig::scope($this->MispAttribute);
+        } catch (InvalidArgumentException $e) {
+            return $this->__fastLookupResponse([
+                'status' => 'error',
+                'scope' => FastLookupConfig::diagnosticScope($this->MispAttribute),
+                'message' => $e->getMessage(),
+            ], 503);
+        }
+        $error = ['status' => 'error', 'scope' => $scope];
+        if (!$this->request->is('post')) {
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup requires POST.')], 405);
+        }
+        if (!Configure::read('MISP.fast_lookup_enabled')) {
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup is disabled.')], 403);
+        }
+        $contentType = strtolower(trim(explode(';', (string)$this->request->header('Content-Type'), 2)[0]));
+        if (!$this->_isRest() || $contentType !== 'application/json') {
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup requires a REST request with Content-Type: application/json.')], 400);
+        }
+        if ($this->fastLookupInputError || !is_array($this->request->data)) {
+            return $this->__fastLookupResponse($error + ['message' => $this->fastLookupInputError ?: __('fastLookup requires a JSON object.')], 400);
+        }
+        try {
+            $result = $this->MispAttribute->fastLookup($this->Auth->user(), $this->request->data);
+        } catch (InvalidArgumentException $e) {
+            return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 400);
+        } catch (OverflowException $e) {
+            return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 413);
+        } catch (RuntimeException $e) {
+            $this->log('fastLookup failed: ' . $e->getMessage(), 'error');
+            return $this->__fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
+        }
+        return $this->__fastLookupResponse($result, $result['status'] === 'ready' ? 200 : 503);
+    }
+
+    private function __fastLookupResponse(array $result, $status)
+    {
+        // Never reuse a response whose visibility was checked for another request.
+        $response = new CakeResponse(['body' => JsonTool::encode($result), 'status' => $status, 'type' => 'json']);
+        $headers = $this->RestResponse->headers;
+        if (Configure::read('Security.allow_cors')) {
+            $headers['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization, Accept';
+            $headers['Access-Control-Allow-Methods'] = '*';
+            $headers['Access-Control-Allow-Origin'] = explode(',', Configure::read('Security.cors_origins'));
+            $headers['Access-Control-Expose-Headers'] = ['X-Result-Count'];
+        }
+        $headers['Cache-Control'] = 'no-store';
+        if ($status === 405) {
+            $headers['Allow'] = 'POST';
+        }
+        if ($status === 503) {
+            $headers['Retry-After'] = '5';
+        }
+        $response->header($headers);
+        return $response;
     }
 
     private function __massageSearchFilters(array $filters): array
@@ -4139,4 +4224,3 @@ class AttributesController extends AppController
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 }
-

@@ -1091,6 +1091,11 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/serverSettings',
                             'text' => __('Server Settings & Maintenance')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                            'element_id' => 'fastLookup',
+                            'url' => $baseurl . '/servers/fastLookup',
+                            'text' => __('Fast lookup index')
+                        ]);
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/updateProgress',
                             'text' => __('Update Progress')

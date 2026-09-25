@@ -10,6 +10,8 @@ App::uses('TmpFileTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('FastLookupIndexManager', 'Tools');
+App::uses('AttributeFastLookupTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -552,7 +554,7 @@ class MispAttribute extends AppModel
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
-                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
+                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id', 'event_id'],
             ));
         } else {
             $this->old = null;
@@ -633,6 +635,13 @@ class MispAttribute extends AppModel
         $passedEvent = $options['parentEvent'] ?? false;
 
         $attribute = $this->data['Attribute'];
+
+        $fastLookupEventId = $attribute['event_id'] ?? $this->old['Attribute']['event_id']
+            ?? $this->field('event_id', ['id' => $this->id]);
+        FastLookupIndexManager::recordChange($this, $fastLookupEventId);
+        if (!empty($this->old['Attribute']['event_id']) && $this->old['Attribute']['event_id'] != $fastLookupEventId) {
+            FastLookupIndexManager::recordChange($this, $this->old['Attribute']['event_id']);
+        }
 
         // add attributeTags via the shorthand ID list
         if (!empty($attribute['tag_ids'])) {
@@ -768,6 +777,16 @@ class MispAttribute extends AppModel
         return $result;
     }
 
+    /** @var int|string|null Owner of the attribute being deleted, for the IOC index outbox. */
+    private $fastLookupDeletedEventId;
+
+    public function delete($id = null, $cascade = true)
+    {
+        return FastLookupIndexManager::withMutationTransaction($this, function () use ($id, $cascade) {
+            return parent::delete($id, $cascade);
+        });
+    }
+
     public function beforeDelete($cascade = true)
     {
         // delete attachments from the disk
@@ -777,6 +796,10 @@ class MispAttribute extends AppModel
                 'id' => $this->id,
             ]
         ]);
+        // Preserve the owner for the post-delete outbox callback, including when
+        // delete() was called with only an attribute ID. Keep it out of
+        // $this->data so afterDelete's attribute_count bookkeeping is unchanged.
+        $this->fastLookupDeletedEventId = $attribute['Attribute']['event_id'];
         if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
             $this->loadAttachmentTool()->delete($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
         }
@@ -796,6 +819,9 @@ class MispAttribute extends AppModel
 
     public function afterDelete()
     {
+        $fastLookupEventId = $this->fastLookupDeletedEventId ?? $this->data['Attribute']['event_id'] ?? null;
+        $this->fastLookupDeletedEventId = null;
+        FastLookupIndexManager::recordChange($this, $fastLookupEventId);
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
             $this->Correlation->updateCidrList();
         }
@@ -1899,6 +1925,12 @@ class MispAttribute extends AppModel
             $attribute['type'] = $element['type'];
         }
         return $attribute;
+    }
+
+    /** @return array Scoped readiness status and visible event IDs/ranges/domains. */
+    public function fastLookup(array $user, array $request)
+    {
+        return (new AttributeFastLookupTool($this))->lookup($user, $request);
     }
 
     public function buildConditions($user)
