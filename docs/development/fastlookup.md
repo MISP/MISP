@@ -77,10 +77,11 @@ transactions and lock the checkpoint while changing Redis. Dirty acknowledgement
 are conditional on the observed revision, preserving concurrent changes.
 
 Every mutation callback takes a shared lock on the checkpoint row, and a worker
-holds the exclusive lock for its whole batch. This keeps a writer from missing a
-new generation, and it avoids a deadlock between a writer's dirty-marker upsert
-and the worker's final checkpoint. As a result, attribute and event writes wait
-for at most one worker batch. Size that wait with the `batchSize` argument, and
+holds the exclusive lock for its whole batch. A writer therefore never reads an
+empty generation while a rebuild is committing, so it never skips its dirty
+marker. No writer holds an uncommitted dirty marker while the worker decides
+readiness, so the scan-complete and empty-queue check is authoritative. As a
+result, attribute and event writes wait for at most one worker batch. Size that wait with the `batchSize` argument, and
 run large backfills with a small batch size or outside peak hours.
 
 The durable pending revision is recorded before a Redis batch begins. It is
