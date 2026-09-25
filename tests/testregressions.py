@@ -18,6 +18,7 @@ import uuid as uuidlib
 import unittest
 import warnings
 
+import requests
 import urllib3  # type: ignore
 
 try:
@@ -308,6 +309,82 @@ class DelegationRequestRetargeting(unittest.TestCase):
         self.assertIn(after.status_code, (403, 404),
                       'a delegation request was retargeted at an event the requester could '
                       'not read, granting their organisation access to it')
+
+
+
+class DecayingModelImportOwnership(unittest.TestCase):
+    """An imported decaying model belongs to the importer and is never a default model.
+
+    import() strips the id and pins org_id/default on the submitted array and then saves it flat,
+    so a nested DecayingModel key supplied its own primary key, organisation and default flag --
+    letting any perm_decaying user overwrite another organisation's model in place.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_decaying')
+        cls.attacker_org = make_org(cls.admin, 'decaying attacker org')
+        cls.created_orgs = [cls.attacker_org]
+        cls.attacker_user = make_user(cls.admin, cls.attacker_org.id, cls.role_id)
+        cls.created_users = [cls.attacker_user]
+        cls.attacker = PyMISP(url, cls.attacker_user.authkey)
+        cls.attacker.global_pythonify = True
+        cls.created_models = []
+
+    @classmethod
+    def tearDownClass(cls):
+        for model_id in cls.created_models:
+            send(cls.admin, 'POST', 'decayingModel/delete/%s' % model_id, check_errors=False)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _models(self):
+        rows = send(self.admin, 'GET', 'decayingModel/index', check_errors=False)
+        out = {}
+        for row in (rows if isinstance(rows, list) else []):
+            entry = row.get('DecayingModel', row)
+            out[str(entry['id'])] = entry
+        return out
+
+    def _import(self, payload):
+        """import() reads a multipart form field, not a JSON body."""
+        return requests.post(
+            url + '/decayingModel/import',
+            headers={'Authorization': self.attacker.key, 'Accept': 'application/json'},
+            files={'data[DecayingModel][json]': (None, json.dumps(payload)),
+                   'data[DecayingModel][submittedjson]': ('', b'')},
+            allow_redirects=False)
+
+    def test_import_cannot_overwrite_another_orgs_model(self):
+        victim = self._models()
+        self.assertTrue(victim, 'no decaying model exists to use as a victim')
+        target_id, target = sorted(victim.items())[0]
+        before = dict(target)
+
+        self._import({
+            'name': 'outer-decoy', 'formula': 'polynomial', 'version': '1',
+            'parameters': {'threshold': 30, 'lifetime': 30, 'decay_speed': 0.5},
+            'DecayingModel': {
+                'id': int(target_id), 'name': 'retargeted', 'org_id': int(self.attacker_org.id),
+                'default': 1, 'enabled': 1, 'formula': 'polynomial',
+                'parameters': {'threshold': 30, 'lifetime': 30, 'decay_speed': 0.5}},
+        })
+
+        after = self._models()
+        self.assertIn(target_id, after, 'the victim decaying model disappeared')
+        self.assertEqual(before['name'], after[target_id]['name'],
+                         'an existing decaying model was overwritten by a nested alias key')
+        self.assertEqual(str(before['org_id']), str(after[target_id]['org_id']),
+                         'an existing decaying model was reassigned to another organisation')
+        for model_id, entry in after.items():
+            if model_id not in victim:
+                self.created_models.append(model_id)
+                self.assertEqual(str(self.attacker_org.id), str(entry['org_id']),
+                                 'an imported model was created for another organisation')
+                self.assertIn(str(entry.get('default', 0)), ('0', 'False', 'None'),
+                              'an imported model was flagged as a default model')
 
 
 if __name__ == '__main__':
