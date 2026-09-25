@@ -99,7 +99,7 @@ class AttributesController extends AppController
         try {
             $scope = FastLookupConfig::scope($this->MispAttribute);
         } catch (InvalidArgumentException $e) {
-            return $this->fastLookupResponse([
+            return $this->__fastLookupResponse([
                 'status' => 'error',
                 'scope' => FastLookupConfig::diagnosticScope($this->MispAttribute),
                 'message' => $e->getMessage(),
@@ -107,32 +107,32 @@ class AttributesController extends AppController
         }
         $error = ['status' => 'error', 'scope' => $scope];
         if (!$this->request->is('post')) {
-            return $this->fastLookupResponse($error + ['message' => __('fastLookup requires POST.')], 405);
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup requires POST.')], 405);
         }
         if (!Configure::read('MISP.fast_lookup_enabled')) {
-            return $this->fastLookupResponse($error + ['message' => __('fastLookup is disabled.')], 403);
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup is disabled.')], 403);
         }
         $contentType = strtolower(trim(explode(';', (string)$this->request->header('Content-Type'), 2)[0]));
         if (!$this->_isRest() || $contentType !== 'application/json') {
-            return $this->fastLookupResponse($error + ['message' => __('fastLookup requires a REST request with Content-Type: application/json.')], 400);
+            return $this->__fastLookupResponse($error + ['message' => __('fastLookup requires a REST request with Content-Type: application/json.')], 400);
         }
         if ($this->fastLookupInputError || !is_array($this->request->data)) {
-            return $this->fastLookupResponse($error + ['message' => $this->fastLookupInputError ?: __('fastLookup requires a JSON object.')], 400);
+            return $this->__fastLookupResponse($error + ['message' => $this->fastLookupInputError ?: __('fastLookup requires a JSON object.')], 400);
         }
         try {
             $result = $this->MispAttribute->fastLookup($this->Auth->user(), $this->request->data);
         } catch (InvalidArgumentException $e) {
-            return $this->fastLookupResponse($error + ['message' => $e->getMessage()], 400);
+            return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 400);
         } catch (OverflowException $e) {
-            return $this->fastLookupResponse($error + ['message' => $e->getMessage()], 413);
+            return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 413);
         } catch (RuntimeException $e) {
             $this->log('fastLookup failed: ' . $e->getMessage(), 'error');
-            return $this->fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
+            return $this->__fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
         }
-        return $this->fastLookupResponse($result, $result['status'] === 'ready' ? 200 : 503);
+        return $this->__fastLookupResponse($result, $result['status'] === 'ready' ? 200 : 503);
     }
 
-    private function fastLookupResponse(array $result, $status)
+    private function __fastLookupResponse(array $result, $status)
     {
         // Never reuse a response whose visibility was checked for another request.
         $response = new CakeResponse(['body' => JsonTool::encode($result), 'status' => $status, 'type' => 'json']);

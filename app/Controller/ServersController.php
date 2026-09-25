@@ -77,7 +77,7 @@ class ServersController extends AppController
             ];
         }
         if ($this->_isRest()) {
-            return $this->fastLookupAdminResponse($status);
+            return $this->__fastLookupAdminResponse($status);
         }
         $this->set('lookupStatus', $status);
         $this->set('backgroundJobs', (bool)Configure::read('MISP.background_jobs'));
@@ -102,7 +102,7 @@ class ServersController extends AppController
         if (!Configure::read('MISP.background_jobs')) {
             $message = __('Background jobs are disabled. Run app/Console/cake Admin %s as the MISP service user.', $command);
             if ($this->_isRest()) {
-                return $this->fastLookupAdminResponse(['message' => $message], 409);
+                return $this->__fastLookupAdminResponse(['message' => $message], 409);
             }
             $this->Flash->info($message);
             return $this->redirect(['action' => 'fastLookup']);
@@ -116,13 +116,13 @@ class ServersController extends AppController
             throw $e;
         }
         if ($this->_isRest()) {
-            return $this->fastLookupAdminResponse(['job_id' => $jobId, 'message' => __('Fast lookup backfill queued.')], 202);
+            return $this->__fastLookupAdminResponse(['job_id' => $jobId, 'message' => __('Fast lookup backfill queued.')], 202);
         }
         $this->Flash->success(__('Fast lookup backfill queued.'));
         return $this->redirect(['action' => 'fastLookup']);
     }
 
-    private function fastLookupAdminResponse(array $body, $status = 200)
+    private function __fastLookupAdminResponse(array $body, $status = 200)
     {
         $response = new CakeResponse(['body' => JsonTool::encode($body), 'status' => $status, 'type' => 'json']);
         $response->header('Cache-Control', 'no-store');
