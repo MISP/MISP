@@ -6788,6 +6788,7 @@ class Event extends AppModel
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
                 foreach ($data['Event']['EventTag'] as $et) {
+                    unset($et['id'], $et[$this->EventTag->alias]);
                     $et['event_id'] = $this->id;
                     $toSave[] = $et;
                 }
@@ -9764,6 +9765,7 @@ class Event extends AppModel
                             }
                         }
                     }
+                    unset($attribute[$model->alias]);
                     $saved_attribute = $model->save($attribute, ['parentEvent' => $event]);
                     if ($saved_attribute) {
                         $results[] = $saved_attribute;
@@ -9894,6 +9896,7 @@ class Event extends AppModel
                     $attribute = $this->Attribute->onDemandEncrypt($attribute);
                 }
                 $attribute['event_id'] = $id;
+                unset($attribute[$this->Attribute->alias]);
                 if ($this->Attribute->save($attribute)) {
                     $saved_attributes++;
                     if (!empty($attribute['Tag'])) {
@@ -10010,6 +10013,7 @@ class Event extends AppModel
                             // initialObject matching, never to target this save) so it cannot
                             // redirect save() onto an arbitrary object row in another event.
                             unset($object['id']);
+                            unset($object[$this->Object->alias]);
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
@@ -10033,6 +10037,7 @@ class Event extends AppModel
                         // New object only; strip any client id so it cannot redirect save()
                         // onto an arbitrary object row (no fieldList here).
                         unset($object['id']);
+                        unset($object[$this->Object->alias]);
                         if ($this->Object->save($object)) {
                             $object_id = $this->Object->id;
                             $saved_objects++;
@@ -10115,6 +10120,7 @@ class Event extends AppModel
                 // not strip it) - matching the attribute and object loops above.
                 unset($report['id']);
                 $report['event_id'] = $id;
+                unset($report[$this->EventReport->alias]);
                 if ($this->EventReport->save($report)) {
                     $saved_reports++;
                 } else {
@@ -10308,6 +10314,7 @@ class Event extends AppModel
         // cannot redirect save() onto an arbitrary attribute (object_id/event_id are forced
         // above, but the primary key is not, and there is no fieldList here).
         unset($attribute['id']);
+        unset($attribute[$this->Attribute->alias]);
         $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {

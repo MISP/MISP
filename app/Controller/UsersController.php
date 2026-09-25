@@ -1025,7 +1025,7 @@ class UsersController extends AppController
         $this->set('currentId', $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             $abortPost = false;
             $isOvermindAjax = !$this->_isRest() && $this->request->is('ajax') && $this->theme === 'Overmind';
@@ -1805,7 +1805,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             if (empty($this->request->data['User']['subject']) || empty($this->request->data['User']['body'])) {
                 $message = 'Both the subject and the body have to be set.';

@@ -55,7 +55,7 @@ class ObjectReferencesController extends AppController
         $this->set('objectId', $object['Object']['id']);
         if ($this->request->is('post')) {
             if (!isset($this->request->data['ObjectReference'])) {
-                $this->request->data['ObjectReference'] = $this->request->data;
+                $this->request->data = array('ObjectReference' => $this->request->data);
             }
             list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo(trim($this->request->data['ObjectReference']['referenced_uuid']), $object, true, $this->Auth->user());
             $relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];

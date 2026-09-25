@@ -4525,7 +4525,7 @@ class EventsController extends AppController
             $fingerprint = null;
             if (!empty($this->request->data)) {
                 if (empty($this->request->data['Event'])) {
-                    $this->request->data['Event'] = $this->request->data;
+                    $this->request->data = array('Event' => $this->request->data);
                 }
                 if (!empty($this->request->data['Event']['filecontent'])) {
                     $data = $this->request->data['Event']['filecontent'];
@@ -5275,7 +5275,7 @@ class EventsController extends AppController
     {
         if ($this->request->is(['post', 'put', 'delete'])) {
             if (isset($this->request->data['id'])) {
-                $this->request->data['Event'] = $this->request->data;
+                $this->request->data = array('Event' => $this->request->data);
             }
             if (!isset($id) && isset($this->request->data['Event']['id'])) {
                 $idList = $this->request->data['Event']['id'];

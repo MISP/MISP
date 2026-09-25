@@ -1232,6 +1232,7 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
                     $this->Event->Attribute->create();
+                    unset($newAttribute[$this->Event->Attribute->alias]);
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
@@ -1423,6 +1424,7 @@ class MispObject extends AppModel
         $object['id'] = $existingObject['Object']['id'];
         $object['uuid'] = $existingObject['Object']['uuid'];
         $object['event_id'] = $eventId;
+        unset($object[$this->alias]);
         if ($object['distribution'] == 4) {
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
