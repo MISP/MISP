@@ -2473,7 +2473,7 @@ class Attribute extends AppModel
             if (!isset($attribute['distribution'])) {
                 $attribute['distribution'] = $defaultDistribution;
             }
-            unset($attribute['Attachment']);
+            unset($attribute['Attachment'], $attribute[$this->alias]);
             $this->create();
             $currentSave = $this->save($attribute);
             $saveResult = $saveResult && $currentSave;
@@ -2749,7 +2749,7 @@ class Attribute extends AppModel
             if (!empty($attribute['AttributeTag'])) {
                 $toSave = [];
                 foreach ($attribute['AttributeTag'] as $at) {
-                    unset($at['id']);
+                    unset($at['id'], $at[$this->AttributeTag->alias]);
                     $at['attribute_id'] = $this->id;
                     $at['event_id'] = $eventId;
                     $toSave[] = $at;
@@ -2891,6 +2891,7 @@ class Attribute extends AppModel
 
         // run the beforevalidation massage at this point so we can skip validation in round 2
         foreach ($attributes as $k => $attribute) {
+            unset($attribute[$this->alias]);
             $attributes[$k] = $this->beforeValidateMassage($attribute);
         }
 

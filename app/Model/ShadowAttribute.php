@@ -658,6 +658,7 @@ class ShadowAttribute extends AppModel
         if (isset($proposal['id'])) {
             unset($proposal['id']);
         }
+        unset($proposal[$this->alias]);
         $event = $this->Event->find('first', array(
             'recursive' => -1,
             'conditions' => array('Event.uuid' => $proposal['event_uuid']),

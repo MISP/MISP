@@ -1281,7 +1281,7 @@ class AttributesController extends AppController
         // check each of them and return a json object with the successful deletes and the failed ones.
         if ($this->_isRest()) {
             if (empty($this->request->data['Attribute'])) {
-                $this->request->data['Attribute'] = $this->request->data;
+                $this->request->data = array('Attribute' => $this->request->data);
             }
             if (isset($this->request->data['Attribute']['id'])) {
                 $ids = $this->request->data['Attribute']['id'];

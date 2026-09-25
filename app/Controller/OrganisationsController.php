@@ -112,7 +112,9 @@ class OrganisationsController extends AppController
                     $this->request->data = $this->request->data['request'];
                 }
                 if (!isset($this->request->data['Organisation'])) {
-                    $this->request->data['Organisation'] = $this->request->data;
+                    // wrap rather than nest: a flat body left beside its own copy is
+                    // refused by AppModel::save()
+                    $this->request->data = array('Organisation' => $this->request->data);
                 }
                 if (isset($this->request->data['Organisation']['id'])) {
                     unset($this->request->data['Organisation']['id']);
