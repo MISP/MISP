@@ -76,7 +76,17 @@ Workers own their
 transactions and lock the checkpoint while changing Redis. Dirty acknowledgements
 are conditional on the observed revision, preserving concurrent changes.
 
-The durable pending revision is recorded before a Redis batch begins. Readiness
+Every mutation callback takes a shared lock on the checkpoint row, and a worker
+holds the exclusive lock for its whole batch. This keeps a writer from missing a
+new generation, and it avoids a deadlock between a writer's dirty-marker upsert
+and the worker's final checkpoint. As a result, attribute and event writes wait
+for at most one worker batch. Size that wait with the `batchSize` argument, and
+run large backfills with a small batch size or outside peak hours.
+
+The durable pending revision is recorded before a Redis batch begins. It is
+committed together with a distinct next revision. Redis only receives the next
+revision after the batch completes, so a Redis snapshot taken partway through a
+batch never matches the SQL checkpoint. Readiness
 requires agreement between the SQL and Redis generation/revision, no incomplete
 write and no dirty events. This detects interrupted writes and a Redis instance
 restored from an older backup. Backfill traverses event IDs with a high-water mark,
