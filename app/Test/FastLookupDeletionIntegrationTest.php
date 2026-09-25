@@ -142,6 +142,21 @@ class FastLookupDeletionIntegrationTest extends TestCase
         $this->assertSame(1, (int)$this->observer->query('SELECT COUNT(*) FROM attributes')->fetchColumn());
     }
 
+    public function testHardDeletingSoftDeletedAttributeKeepsAttributeCount(): void
+    {
+        // A soft delete already decremented attribute_count; the hard delete by
+        // ID must still record the IOC index change without decrementing again.
+        $this->pdo->exec("ALTER TABLE attributes ADD type VARCHAR(100) NOT NULL DEFAULT 'ip-src', ADD value1 TEXT NOT NULL DEFAULT '192.0.2.1', ADD value2 TEXT NOT NULL DEFAULT '', ADD deleted BOOLEAN NOT NULL DEFAULT FALSE");
+        $this->pdo->exec('UPDATE attributes SET deleted = TRUE WHERE id = 10');
+        $this->pdo->exec('UPDATE events SET attribute_count = 0 WHERE id = 1');
+        $this->pdo->exec('INSERT INTO attributes (id, event_id) VALUES (11, 1)');
+        $this->pdo->exec('UPDATE events SET attribute_count = 1 WHERE id = 1');
+        $this->assertTrue((new FastLookupRealCallbackAttribute())->delete(10, false));
+        $this->assertSame(1, (int)$this->observer->query('SELECT attribute_count FROM events WHERE id = 1')->fetchColumn());
+        $this->assertSame(1, (int)$this->observer->query("SELECT COUNT(*) FROM admin_settings WHERE setting LIKE 'fastLookupIndex:dirty:%1'")->fetchColumn());
+        $this->assertSame(1, (int)$this->observer->query('SELECT COUNT(*) FROM attributes')->fetchColumn());
+    }
+
     public function testQuickDeleteVetoRollsBackPreviouslyDeletedChildren(): void
     {
         $model = $this->model('quick');

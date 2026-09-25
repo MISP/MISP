@@ -86,3 +86,25 @@ class FastLookupDeletionAttribute extends MispAttribute
         Model::__construct(false, 'attributes', 'default');
     }
 }
+
+/** Runs MispAttribute's own delete callbacks; only external services are stubbed. */
+class FastLookupRealCallbackAttribute extends MispAttribute
+{
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    protected function _mergeVars($properties, $class, $normalize = true)
+    {
+        parent::_mergeVars(array_values(array_diff($properties, ['actsAs', 'belongsTo', 'hasMany'])), $class, $normalize);
+    }
+
+    public function __construct()
+    {
+        Model::__construct(false, 'attributes', 'default');
+        $this->Event = new FastLookupDeletionEvent();
+        $this->Correlation = new class {
+            public function beforeSaveCorrelation($attribute) {}
+        };
+    }
+}

@@ -775,6 +775,9 @@ class MispAttribute extends AppModel
         return $result;
     }
 
+    /** @var int|string|null Owner of the attribute being deleted, for the IOC index outbox. */
+    private $fastLookupDeletedEventId;
+
     public function delete($id = null, $cascade = true)
     {
         App::uses('FastLookupIndexManager', 'Tools');
@@ -793,8 +796,9 @@ class MispAttribute extends AppModel
             ]
         ]);
         // Preserve the owner for the post-delete outbox callback, including when
-        // delete() was called with only an attribute ID.
-        $this->data['Attribute']['event_id'] = $attribute['Attribute']['event_id'];
+        // delete() was called with only an attribute ID. Keep it out of
+        // $this->data so afterDelete's attribute_count bookkeeping is unchanged.
+        $this->fastLookupDeletedEventId = $attribute['Attribute']['event_id'];
         if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
             $this->loadAttachmentTool()->delete($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
         }
@@ -815,7 +819,9 @@ class MispAttribute extends AppModel
     public function afterDelete()
     {
         App::uses('FastLookupIndexManager', 'Tools');
-        FastLookupIndexManager::recordChange($this, $this->data['Attribute']['event_id'] ?? null);
+        $fastLookupEventId = $this->fastLookupDeletedEventId ?? $this->data['Attribute']['event_id'] ?? null;
+        $this->fastLookupDeletedEventId = null;
+        FastLookupIndexManager::recordChange($this, $fastLookupEventId);
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
             $this->Correlation->updateCidrList();
         }
