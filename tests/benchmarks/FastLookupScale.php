@@ -303,11 +303,16 @@ $lookup = function (array $values) use ($user) {
     return [microtime(true) - $t, count((array)$response['results'])];
 };
 $candidatePhase = function (array $values) use ($valueTool, $index, $generation, $types) {
-    $t = microtime(true);
+    $tokenSeconds = 0; $candidateSeconds = 0;
     foreach (array_chunk($values, AttributeFastLookupTool::BATCH_SIZE, true) as $batch) {
-        $index->candidates($generation, $valueTool->queryTokens($batch, $types));
+        $t = microtime(true);
+        $tokens = $valueTool->queryTokens($batch, $types);
+        $tokenSeconds += microtime(true) - $t;
+        $t = microtime(true);
+        $index->candidates($generation, $tokens);
+        $candidateSeconds += microtime(true) - $t;
     }
-    return microtime(true) - $t;
+    return [$tokenSeconds, $candidateSeconds];
 };
 foreach ($types as $type) {
     $hits = []; $expansions = [];
@@ -326,11 +331,13 @@ foreach ($types as $type) {
     foreach (['hits' => $hits, 'misses' => $misses, 'expansions' => array_slice(array_values(array_unique($expansions)), 0, $lookupSize)] as $label => $values) {
         if (!$values) { continue; }
         [$seconds, $matched] = $lookup($values);
-        $redisSeconds = $candidatePhase($values);
+        [$tokenSeconds, $candidateSeconds] = $candidatePhase($values);
         $results[$label] = [
             'values' => count($values), 'matched' => $matched,
             'seconds' => round($seconds, 3), 'values_per_second' => (int)round(count($values) / $seconds),
-            'redis_candidate_seconds' => round($redisSeconds, 3),
+            'redis_candidate_seconds' => round($tokenSeconds + $candidateSeconds, 3),
+            'tokenize_seconds' => round($tokenSeconds, 3),
+            'candidates_seconds' => round($candidateSeconds, 3),
         ];
     }
     $report['types'][$type]['lookups'] = $results;
