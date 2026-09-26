@@ -48,7 +48,7 @@ app/Console/cake Admin processFastLookup</pre>
     <h3><?= __('Entries and memory by attribute type') ?></h3>
     <p><?= __('Memory includes postings and reverse event manifests. Lookup entries count attribute-to-token memberships, including range and domain tokens; they are not a count of unique IOC strings.') ?></p>
     <p><?= __('Measured at') ?>: <?= h($statistics['measured_at'] ?? __('Not yet measured')) ?>.
-        <a class="btn" href="<?= h($baseurl) ?>/servers/fastLookup"><?= __('Refresh memory statistics') ?></a></p>
+        <a class="btn" href="<?= h($baseurl) ?>/servers/fastLookup?metrics=1"><?= __('Measure memory statistics') ?></a></p>
     <?php if (!empty($statistics['memory_unavailable_reason'])): ?>
         <p class="alert"><?= h($statistics['memory_unavailable_reason']) ?></p>
     <?php endif; ?>

@@ -65,7 +65,8 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new ForbiddenException(__('Site administrator access required.'));
         }
-        $metrics = !$this->_isRest() || (isset($this->request->query['metrics']) && $this->request->query['metrics'] === '1');
+        // Memory statistics scan the whole index, so both views measure only on request.
+        $metrics = ($this->request->query['metrics'] ?? null) === '1';
         try {
             $status = (new FastLookupIndexManager())->status($metrics);
         } catch (InvalidArgumentException $e) {
