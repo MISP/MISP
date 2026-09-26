@@ -70,8 +70,10 @@ class FastLookupValueTool
         return $prepared;
     }
 
-    /** Input ordinals are retained through tokenization and Redis batching. */
-    /** @param array|null $fallback Receives [input index][component] => true for SQL-only discovery. */
+    /**
+     * Input ordinals are retained through tokenization and Redis batching.
+     * @param array|null $fallback Receives [input index][component] => true for SQL-only discovery.
+     */
     public function queryTokens(array $values, array $types, &$fallback = null)
     {
         $requests = [];
