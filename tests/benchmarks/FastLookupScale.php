@@ -285,7 +285,9 @@ do {
 } while ($cursor !== 0);
 ksort($classes);
 $report['key_classes'] = $classes;
+$t = microtime(true);
 $report['statistics'] = $manager->status(true)['statistics'] ?? null;
+$report['statistics_seconds'] = round(microtime(true) - $t, 2);
 
 // Lookups: 10,000-value requests per type through the full model path, and the
 // Redis candidate phase alone for the same values.
