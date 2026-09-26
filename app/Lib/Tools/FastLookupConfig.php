@@ -3,7 +3,7 @@
 /** Membership settings and database identity shared by writers and readers. */
 class FastLookupConfig
 {
-    const NORMALIZATION_VERSION = 1;
+    const NORMALIZATION_VERSION = 2;
     const DEFAULT_MAX_VALUES = 10000;
     const DEFAULT_TYPES = [
         'domain', 'domain|ip', 'hostname', 'hostname|port', 'ip-src', 'ip-dst',

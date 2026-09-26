@@ -48,13 +48,13 @@ class FastLookupIndexTest extends TestCase
 
     public function invalidAttributes(): array
     {
-        $token = 'E' . str_repeat('x', 16);
+        $token = 'E' . str_repeat('x', 8);
         return [[[]], [['id' => '0', 'type' => 'domain', 'tokens' => [$token]]],
             [['id' => '01', 'type' => 'domain', 'tokens' => [$token]]],
             [['id' => 1, 'type' => 'domain', 'tokens' => [$token]]],
             [['id' => '1', 'type' => 'ip-src', 'tokens' => [$token]]],
             [['id' => '1', 'type' => 'domain', 'tokens' => ['example.org']]],
-            [['id' => '1', 'type' => 'domain', 'tokens' => ['X' . str_repeat('x', 16)]]],
+            [['id' => '1', 'type' => 'domain', 'tokens' => ['X' . str_repeat('x', 8)]]],
             [['id' => '1', 'type' => 'domain', 'tokens' => [str_repeat('E', 18)]]]];
     }
 
@@ -68,7 +68,7 @@ class FastLookupIndexTest extends TestCase
     {
         $this->expectException(OverflowException::class);
         $this->index()->addAttributes('generation', '1', [['id' => '1', 'type' => 'domain',
-            'tokens' => array_fill(0, 1025, 'E' . str_repeat('x', 16))]]);
+            'tokens' => array_fill(0, 1025, 'E' . str_repeat('x', 8))]]);
     }
 
     /** @dataProvider invalidQueries */
@@ -81,8 +81,8 @@ class FastLookupIndexTest extends TestCase
     public function invalidQueries(): array
     {
         return [[[null]], [[[[]]]],
-            [[[['type' => 'domain', 'token' => 'E' . str_repeat('x', 16), 'kind' => 'domain']]]],
-            [[[['type' => 'ip-src', 'token' => 'I' . str_repeat('x', 16), 'kind' => 'ip_range']]]]];
+            [[[['type' => 'domain', 'token' => 'E' . str_repeat('x', 8), 'kind' => 'domain']]]],
+            [[[['type' => 'ip-src', 'token' => 'I' . str_repeat('x', 8), 'kind' => 'ip_range']]]]];
     }
 
     public function testMalformedStoredMetadataFailsClosed(): void
@@ -90,7 +90,7 @@ class FastLookupIndexTest extends TestCase
         $redis = new class {
             public function hGetAll($key)
             {
-                return ['schema' => '2', 'generation' => 'generation', 'fingerprint' => 'fingerprint',
+                return ['schema' => '3', 'generation' => 'generation', 'fingerprint' => 'fingerprint',
                     'revision' => '1', 'ready' => '1', 'scope' => '{}', 'progress' => '{'];
             }
         };

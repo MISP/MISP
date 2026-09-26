@@ -78,7 +78,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $queries = $this->tool->queryTokens(['192.0.2.3', '2001:db8:abcd::5'], ['ip-src', 'ip-dst']);
         foreach ($prepared as $i => $row) {
             foreach ($row['tokens'] as $token) {
-                $this->assertSame(17, strlen($token));
+                $this->assertSame(1 + FastLookupValueTool::DIGEST_BYTES, strlen($token));
                 $this->assertStringNotContainsString($rows[$i]['value1'], $token);
             }
             $network = array_values(array_filter($row['tokens'], function ($token) { return $token[0] === 'I'; }));

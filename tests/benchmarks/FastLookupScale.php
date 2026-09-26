@@ -122,7 +122,7 @@ ConnectionManager::create('default', ['datasource' => 'Database/MysqlExtended', 
     'prefix' => '', 'encoding' => 'utf8mb4', 'persistent' => false]);
 $redis = RedisTool::init();
 $model = new FastLookupScaleAttribute();
-$namespace = 'misp:fast_lookup:v2:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
+$namespace = 'misp:fast_lookup:v3:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
 register_shutdown_function(function () use ($redis, $namespace) {
     $cursor = null;
     do {

@@ -95,7 +95,7 @@ $redis = new Redis();
 $redis->connect($argv[1]);
 $proxy = new FastLookupContractRedisProxy($redis);
 $namespace = 'contract-' . bin2hex(random_bytes(16));
-$prefix = 'misp:fast_lookup:v2:' . hash('sha256', $namespace) . ':';
+$prefix = 'misp:fast_lookup:v3:' . hash('sha256', $namespace) . ':';
 $scope = ['attribute_types' => ['domain', 'ip-src'], 'published_only' => true, 'max_values' => 10000];
 $index = new FastLookupIndex($namespace, $scope, $proxy);
 $assertions = 0;
@@ -110,7 +110,7 @@ $throws = static function ($call, $class, $message) use ($assert) {
     }
     $assert(false, $message . ': no exception');
 };
-$token = static function ($kind, $value) { return $kind . substr(hash('sha256', $value, true), 0, 16); };
+$token = static function ($kind, $value) { return $kind . substr(hash('sha256', $value, true), 0, 8); };
 $exact = $token('E', 'example.org');
 $domain = $token('D', 'example.org');
 $ip = $token('I', '192.0.2.0/24');

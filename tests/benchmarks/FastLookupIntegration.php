@@ -112,7 +112,7 @@ $checks = 0;
 $queryMeasurements = [];
 $benchmarks = [];
 $model = new FastLookupIntegrationAttribute();
-$namespace = 'misp:fast_lookup:v2:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
+$namespace = 'misp:fast_lookup:v3:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
 register_shutdown_function(function () use ($redis, $namespace) {
     // Only this test's namespace, including generations left by failed assertions.
     $cursor = null;

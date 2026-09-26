@@ -4,6 +4,14 @@ App::uses('FastLookupConfig', 'Tools');
 /** Fixed-size postings and the corresponding live containment predicates. */
 class FastLookupValueTool
 {
+    /**
+     * Tokens only select candidates; every candidate is re-verified against
+     * live SQL values. A 64-bit digest therefore trades a negligible collision
+     * rate (about 3e-4 expected collisions among 1e8 tokens) for 8 bytes saved
+     * in every posting field and reverse-manifest entry.
+     */
+    const DIGEST_BYTES = 8;
+
     private $attribute;
     private $db;
     private $columns;
@@ -255,7 +263,7 @@ class FastLookupValueTool
 
     private static function token($kind, $value)
     {
-        return $kind . substr(hash('sha256', $value, true), 0, 16);
+        return $kind . substr(hash('sha256', $value, true), 0, self::DIGEST_BYTES);
     }
 
     private static function ipComponent($type)

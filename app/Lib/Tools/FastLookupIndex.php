@@ -24,6 +24,8 @@ class FastLookupIndex
     const MAX_POSTING_IDS = 500000;
     const MAX_ATTRIBUTES_PER_BATCH = 500;
     const MAX_TOKENS_PER_ATTRIBUTE = 1024;
+    /** One kind byte followed by FastLookupValueTool::DIGEST_BYTES. */
+    const TOKEN_BYTES = 9;
 
     private $prefix;
     private $scope;
@@ -51,7 +53,7 @@ class FastLookupIndex
             throw new InvalidArgumentException('The fastLookup publication scope must be boolean.');
         }
         $this->scope = $scope;
-        $this->prefix = 'misp:fast_lookup:v2:' . hash('sha256', $namespace) . ':';
+        $this->prefix = 'misp:fast_lookup:v3:' . hash('sha256', $namespace) . ':';
         $this->redis = $redis;
     }
 
@@ -67,7 +69,7 @@ class FastLookupIndex
         // either the old data or the incomplete new generation apparently ready.
         $this->call('del', [$this->metaKey()]);
         $this->call('hMSet', [$this->metaKey(), [
-            'schema' => '2', 'generation' => $generation, 'fingerprint' => $fingerprint,
+            'schema' => '3', 'generation' => $generation, 'fingerprint' => $fingerprint,
             'revision' => '0', 'ready' => '0',
             'scope' => $this->json($this->scope), 'progress' => $this->json($progress),
         ]]);
@@ -89,7 +91,7 @@ LUA
     public function metadata(): array
     {
         $meta = $this->call('hGetAll', [$this->metaKey()]);
-        if (!is_array($meta) || ($meta['schema'] ?? null) !== '2' ||
+        if (!is_array($meta) || ($meta['schema'] ?? null) !== '3' ||
             !isset($meta['generation'], $meta['fingerprint'], $meta['revision'], $meta['progress'], $meta['scope']) ||
             !in_array($meta['ready'] ?? null, ['0', '1'], true)) {
             throw new FastLookupIndexUnavailableException('The fastLookup index metadata is missing or invalid.');
@@ -457,8 +459,8 @@ LUA
                 $this->storedId($id);
                 $attributes[] = $id;
             } else {
-                $token = substr($field, 0, 17);
-                $id = substr($field, 17);
+                $token = substr($field, 0, self::TOKEN_BYTES);
+                $id = substr($field, self::TOKEN_BYTES);
                 try { $this->token($token); $this->decimalId($id); } catch (InvalidArgumentException $e) {
                     throw new FastLookupIndexUnavailableException('Corrupt reverse membership.', 0, $e);
                 }
@@ -626,7 +628,7 @@ LUA
     }
     private function token($token): void
     {
-        if (!is_string($token) || strlen($token) !== 17 || !in_array($token[0], ['E', 'I', 'D'], true)) { throw new InvalidArgumentException('Invalid fastLookup binary token.'); }
+        if (!is_string($token) || strlen($token) !== self::TOKEN_BYTES || !in_array($token[0], ['E', 'I', 'D'], true)) { throw new InvalidArgumentException('Invalid fastLookup binary token.'); }
     }
     private function json(array $value): string { return json_encode($value, JSON_THROW_ON_ERROR); }
     private function connection()
