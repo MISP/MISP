@@ -11,6 +11,12 @@ class FastLookupValueTool
      * in every posting field and reverse-manifest entry.
      */
     const DIGEST_BYTES = 8;
+    /**
+     * Port halves of composites are never indexed: a bare port would match most
+     * of these attributes, and at scale a single port posting would exceed the
+     * posting size limit. Standalone port attributes are excluded for the same reason.
+     */
+    const UNINDEXED_COMPONENTS = ['ip-src|port' => 'value2', 'ip-dst|port' => 'value2', 'hostname|port' => 'value2'];
 
     private $attribute;
     private $db;
@@ -31,7 +37,7 @@ class FastLookupValueTool
             foreach ($batch as $index => $row) {
                 foreach (['value1', 'value2'] as $component) {
                     $value = (string)($row[$component] ?? '');
-                    if ($value !== '' && $this->supportsWeights($component)) {
+                    if ($value !== '' && self::indexesComponent($row['type'], $component) && $this->supportsWeights($component)) {
                         $values[$index][$component] = $value;
                     }
                 }
@@ -41,7 +47,7 @@ class FastLookupValueTool
                 $tokens = [];
                 foreach (['value1', 'value2'] as $component) {
                     $value = (string)($row[$component] ?? '');
-                    if ($value === '') {
+                    if ($value === '' || !self::indexesComponent($row['type'], $component)) {
                         continue;
                     }
                     if ($this->supportsWeights($component)) {
@@ -170,6 +176,11 @@ class FastLookupValueTool
             }
         }
         return $matches;
+    }
+
+    public static function indexesComponent(string $type, string $component): bool
+    {
+        return (self::UNINDEXED_COMPONENTS[$type] ?? null) !== $component;
     }
 
     public function representable($value, $component)

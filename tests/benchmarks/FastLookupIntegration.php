@@ -264,7 +264,8 @@ same('ready', $status['status'], 'initial backfill ready');
 $values = array_merge(array_map(function ($id) { return 'event-' . $id; }, range(1, 8)), array_keys($attributeMatrix),
     ['no-event', 'component', '443', 'component|443', 'shared', 'numeric-sort', 'cafe', 'CAFÉ ', 'nbsp', 'literal%_',
      '!negation', 'left&&right', "quote'\\tail", '123', '2001:0DB8:0000:0000:0000:0000:0000:0001', 'excluded-text', 'missing', 'absent-😀', 'shared']);
-$common = ['component' => ['2'], '443' => ['2'], 'shared' => ['2', '4', '8'], 'numeric-sort' => ['2', '10'],
+// '443' is only the port half of a hostname|port attribute, which is never indexed.
+$common = ['component' => ['2'], 'shared' => ['2', '4', '8'], 'numeric-sort' => ['2', '10'],
     'cafe' => ['2'], 'CAFÉ ' => ['2'], 'nbsp' => ['2'], 'literal%_' => ['2'], '!negation' => ['2'],
     'left&&right' => ['2'], "quote'\\tail" => ['2'], '123' => ['2'], '2001:0DB8:0000:0000:0000:0000:0000:0001' => ['2']];
 $visibleMatrix = ['event-2' => ['2'], 'event-4' => ['4'], 'event-7' => ['7'], 'event-8' => ['8'],

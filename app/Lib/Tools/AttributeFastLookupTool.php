@@ -44,6 +44,14 @@ class AttributeFastLookupTool
         $acl = $this->db->conditions($this->attribute->buildConditions($user), true, false, $this->attribute);
         $from = $this->fromClause();
         $common = $this->commonConditions($scope, $acl);
+        $unindexed = [];
+        foreach ($scope['attribute_types'] as $type) {
+            foreach (['value1', 'value2'] as $component) {
+                if (!FastLookupValueTool::indexesComponent($type, $component)) {
+                    $unindexed[$component][] = $this->db->value($type, 'string');
+                }
+            }
+        }
         $rowCount = 0;
         $matches = [];
         foreach (array_chunk($values, self::BATCH_SIZE, true) as $batch) {
@@ -66,6 +74,9 @@ class AttributeFastLookupTool
                             continue;
                         }
                         $restriction = ' AND ' . $this->db->name('Attribute.id') . ' IN (' . implode(',', $ids) . ')';
+                    }
+                    if (!empty($unindexed[$component])) {
+                        $restriction .= ' AND ' . $this->db->name('Attribute.type') . ' NOT IN (' . implode(',', $unindexed[$component]) . ')';
                     }
                     $branches[] = 'SELECT ' . (int)$index . ' AS ' . $this->db->name('input_index')
                         . ', ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')

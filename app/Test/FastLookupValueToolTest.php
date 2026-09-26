@@ -109,16 +109,17 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $this->assertSame([], $this->tool->expandedMatches('a.example.org', $domain)['domains']);
     }
 
-    public function testCompositesIndexBothExactSidesWithoutTreatingPortsAsNetworks(): void
+    public function testCompositesIndexBothExactSidesExceptPortsAndNeverTreatPortsAsNetworks(): void
     {
         $rows = [
             ['id' => '1', 'type' => 'domain|ip', 'value1' => 'example.org', 'value2' => '192.0.2.1'],
             ['id' => '2', 'type' => 'ip-src|port', 'value1' => '192.0.2.1', 'value2' => '443'],
             ['id' => '3', 'type' => 'malware-sample', 'value1' => 'file.exe', 'value2' => str_repeat('a', 32)],
         ];
+        $expected = ['1' => 2, '2' => 1, '3' => 2];
         foreach ($this->tool->prepareAttributes($rows) as $row) {
             $exact = array_filter($row['tokens'], function ($token) { return $token[0] === 'E'; });
-            $this->assertCount(2, $exact);
+            $this->assertCount($expected[$row['id']], $exact);
             $this->assertCount(0, array_filter($row['tokens'], function ($token) { return $token[0] === 'I'; }));
         }
     }

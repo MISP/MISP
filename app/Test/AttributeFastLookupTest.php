@@ -71,6 +71,20 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $this->assertNotEmpty($manager->index->reads[0][1][0]);
     }
 
+    public function testPortHalvesOfCompositesNeverMatch(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[]];
+        $tool->lookup([], ['value' => ['443']]);
+        $branches = explode(' UNION ', $attribute->db->queries[0]);
+        $value1 = array_values(array_filter($branches, function ($sql) { return strpos($sql, "`Attribute`.`value1` = '443'") !== false; }));
+        $value2 = array_values(array_filter($branches, function ($sql) { return strpos($sql, "`Attribute`.`value2` = '443'") !== false; }));
+        $this->assertCount(1, $value1);
+        $this->assertCount(1, $value2);
+        $this->assertStringNotContainsString('NOT IN', $value1[0]);
+        $this->assertStringContainsString("`Attribute`.`type` NOT IN ('hostname|port','ip-dst|port','ip-src|port')", $value2[0]);
+    }
+
     public function testConfigurablePublicationAndTypeScopeApplyToLiveSql(): void
     {
         Configure::write('MISP.fast_lookup_published_only', false);
