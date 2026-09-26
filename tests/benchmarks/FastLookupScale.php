@@ -206,7 +206,8 @@ foreach ($types as $type) {
         $event = $firstEvent + intdiv($i, $perEvent);
         $rows[] = sprintf("(%d, %d, 0, %s, 'Network activity', %s, %s, 1, 1, 5, 0, 0)",
             ++$attributeId, $event, $pdo->quote($type), $pdo->quote($value[0]), $pdo->quote($value[1]));
-        if ($i % max(1, intdiv($perType, $lookupSize)) === 0) { $samples[] = $value; }
+        // Sample evenly, plus every CIDR (i % 50 === 13) so expansion lookups exist.
+        if ($i % max(1, intdiv($perType, $lookupSize)) === 0 || $source % 50 === 13) { $samples[] = $value; }
         if (count($rows) === 5000) {
             $pdo->exec('INSERT INTO attributes (id, event_id, object_id, type, category, value1, value2, to_ids, timestamp, distribution, sharing_group_id, deleted) VALUES ' . implode(',', $rows));
             $rows = [];
