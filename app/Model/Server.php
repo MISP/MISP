@@ -7047,7 +7047,7 @@ class Server extends AppModel
                 ),
                 'fast_lookup_attribute_types' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Comma-separated attribute types included in the fast lookup index. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
+                    'description' => __('Comma-separated attribute types included in the fast lookup index. Free text, rule and pattern bodies, scalars and fuzzy hashes (for example comment, yara, port, ssdeep) are never indexed. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
                     'value' => implode(',', FastLookupConfig::DEFAULT_TYPES),
                     'test' => 'testFastLookupTypes',
                     'type' => 'string',

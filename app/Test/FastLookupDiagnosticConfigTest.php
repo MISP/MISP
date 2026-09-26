@@ -54,4 +54,23 @@ class FastLookupDiagnosticConfigTest extends TestCase
         $this->assertNull($scope['attribute_types']);
         $this->assertFalse($scope['configuration_valid']);
     }
+
+    public function testExcludedTypesAreRealMispTypesAndNeverDefaults(): void
+    {
+        $types = json_decode(file_get_contents(dirname(__DIR__, 2) . '/describeTypes.json'), true)['result']['types'];
+        $this->assertSame([], array_values(array_diff(FastLookupConfig::EXCLUDED_TYPES, $types)));
+        $this->assertSame([], array_values(array_intersect(FastLookupConfig::DEFAULT_TYPES, FastLookupConfig::EXCLUDED_TYPES)));
+    }
+
+    public function testExcludedTypesAreRejectedEverywhere(): void
+    {
+        Configure::write('MISP.fast_lookup_attribute_types', 'domain,port');
+        try {
+            FastLookupConfig::scope($this->attribute);
+            $this->fail('An excluded type must invalidate the scope.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('port is never indexed', $e->getMessage());
+        }
+        $this->assertFalse(FastLookupConfig::diagnosticScope($this->attribute)['configuration_valid']);
+    }
 }

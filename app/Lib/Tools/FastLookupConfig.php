@@ -12,6 +12,25 @@ class FastLookupConfig
         'malware-sample',
     ];
     const MATCHING = ['exact', 'ip_cidr', 'parent_domain'];
+    /**
+     * Types that are never indexed: free text and payloads, rule and pattern
+     * bodies, low-cardinality scalars and fuzzy hashes. None of them is a value
+     * worth an exact log lookup, and the scalars would create huge postings.
+     */
+    const EXCLUDED_TYPES = [
+        // Free text and payloads
+        'comment', 'text', 'other', 'hex', 'anonymised', 'email-body', 'email-header', 'attachment',
+        // Rules, patterns and key material
+        'snort', 'suricata', 'bro', 'zeek', 'yara', 'sigma', 'stix2-pattern', 'kusto-query',
+        'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern',
+        'pgp-public-key', 'pgp-private-key', 'dkim-signature', 'cortex', 'email-mime-boundary',
+        // Scalars and dates
+        'float', 'integer', 'counter', 'boolean', 'size-in-bytes', 'port', 'datetime',
+        'whois-creation-date', 'http-method', 'mime-type', 'process-state', 'gender',
+        // Fuzzy hashes: only similarity matching is meaningful
+        'ssdeep', 'tlsh', 'impfuzzy', 'vhash',
+        'filename|ssdeep', 'filename|tlsh', 'filename|impfuzzy', 'filename|vhash',
+    ];
 
     public static function scope($attribute = null)
     {
@@ -140,6 +159,9 @@ class FastLookupConfig
             $type = trim($type);
             if ($type === '' || !array_key_exists($type, $definitions)) {
                 throw new InvalidArgumentException('Unknown MISP attribute type: ' . $type);
+            }
+            if (in_array($type, self::EXCLUDED_TYPES, true)) {
+                throw new InvalidArgumentException('MISP attribute type ' . $type . ' is never indexed by fast lookup.');
             }
             $types[$type] = true;
         }

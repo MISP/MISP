@@ -20,6 +20,23 @@ The exact default types are `domain`, `domain|ip`, `hostname`, `hostname|port`,
 `filename|md5`, `filename|sha1`, `filename|sha256`, `filename|sha512` and
 `malware-sample`. Responses report the actual configured list.
 
+Some types can never be added to the scope, because an exact log lookup makes no
+sense for them. `FastLookupConfig::EXCLUDED_TYPES` lists them, and a setting
+that names one is rejected:
+
+- free text and payloads: `comment`, `text`, `other`, `hex`, `anonymised`,
+  `email-body`, `email-header`, `attachment`;
+- rules, patterns and key material: `snort`, `suricata`, `bro`, `zeek`, `yara`,
+  `sigma`, `stix2-pattern`, `kusto-query`, `pattern-in-file`,
+  `pattern-in-traffic`, `pattern-in-memory`, `filename-pattern`,
+  `pgp-public-key`, `pgp-private-key`, `dkim-signature`, `cortex`,
+  `email-mime-boundary`;
+- scalars and dates, which would create huge postings: `float`, `integer`,
+  `counter`, `boolean`, `size-in-bytes`, `port`, `datetime`,
+  `whois-creation-date`, `http-method`, `mime-type`, `process-state`, `gender`;
+- fuzzy hashes, which only make sense for similarity matching: `ssdeep`, `tlsh`,
+  `impfuzzy`, `vhash` and their `filename|` composites.
+
 Use **Administration → Fast lookup index** (`/servers/fastLookup`) to inspect
 scope, progress and per-type attribute/token membership counts and Redis memory.
 With background jobs enabled, the dashboard queues rebuild/resume jobs. Otherwise,
