@@ -139,13 +139,14 @@ LUA
             }
             $this->decimalId($row['id']);
             $this->attributeType($row['type']);
-            $attributes[$row['type']][$row['id']] = $row['id'];
+            $attributes[$row['type']][$row['id']] = '';
             if (count($row['tokens']) > self::MAX_TOKENS_PER_ATTRIBUTE) {
                 throw new OverflowException('An attribute has too many fastLookup index tokens.');
             }
             foreach ($row['tokens'] as $token) {
                 $this->token($token);
                 $groups[$row['type']][$token][$row['id']] = $row['id'];
+                $attributes[$row['type']][$row['id']] .= $token;
             }
         }
         // Empty exact collation weights can intentionally have no Redis token:
@@ -163,14 +164,15 @@ if registered ~= exists then return redis.error_reply('missing event manifest') 
 if exists and redis.call('HGET', KEYS[5], '!') ~= ARGV[1] then return redis.error_reply('invalid event manifest') end
 redis.call('HSET', KEYS[3], ARGV[2], '1')
 redis.call('HSET', KEYS[5], '!', ARGV[1])
-for i = 3, #ARGV do
-    redis.call('HSET', KEYS[5], 'A' .. ARGV[i], '1')
+-- One manifest field per attribute; its value lists the attribute's tokens.
+for i = 3, #ARGV, 2 do
+    redis.call('HSET', KEYS[5], 'A' .. ARGV[i], ARGV[i + 1])
     redis.call('HSET', KEYS[4], ARGV[i], ARGV[2])
 end
 return 1
 LUA
                 , [$this->metaKey(), $this->inflightKey($generation), $prefix . 'events', $prefix . 'owners', $prefix . 'r:' . $eventId],
-                array_merge([$generation, $eventId], array_values($ids)));
+                array_merge([$generation, $eventId], ...array_map(null, array_map('strval', array_keys($ids)), array_values($ids))));
         }
         foreach ($groups as $type => $tokens) {
             foreach ($tokens as $token => $ids) {
@@ -198,10 +200,6 @@ local updated = raw .. table.concat(add)
 if #updated > MAX_BYTES or #ids + #add > MAX_IDS then return redis.error_reply('posting resource limit exceeded') end
 redis.call('HSET', KEYS[3], ARGV[2], '1')
 redis.call('HSET', KEYS[6], '!', ARGV[1])
-for i = 4, #ARGV do
-    redis.call('HSET', KEYS[6], 'A' .. ARGV[i], '1', ARGV[3] .. ARGV[i], '1')
-    redis.call('HSET', KEYS[4], ARGV[i], ARGV[2])
-end
 redis.call('HSET', KEYS[5], ARGV[3], updated)
 return 1
 LUA
@@ -267,8 +265,7 @@ LUA
                 $batch = [];
                 foreach ($this->hashEntries($reverse) as $field => $value) {
                     if ($field === '!') { continue; }
-                    if ($value !== '1') { throw new FastLookupIndexUnavailableException('Corrupt reverse membership.'); }
-                    $batch[] = $field;
+                    $batch[$field] = $value;
                     if (count($batch) >= self::BATCH_SIZE) {
                         $this->removeReverseBatch($generation, $eventId, $type, $batch);
                         $batch = [];
@@ -453,15 +450,17 @@ LUA
     {
         $prefix = $this->typePrefix($generation, $type);
         $tokens = []; $attributes = [];
-        foreach ($fields as $field) {
-            if ($field[0] === 'A') {
-                $id = substr($field, 1);
-                $this->storedId($id);
-                $attributes[] = $id;
-            } else {
-                $token = substr($field, 0, self::TOKEN_BYTES);
-                $id = substr($field, self::TOKEN_BYTES);
-                try { $this->token($token); $this->decimalId($id); } catch (InvalidArgumentException $e) {
+        foreach ($fields as $field => $value) {
+            $field = (string)$field;
+            if ($field === '' || $field[0] !== 'A' || !is_string($value) || strlen($value) % self::TOKEN_BYTES !== 0) {
+                throw new FastLookupIndexUnavailableException('Corrupt reverse membership.');
+            }
+            $id = substr($field, 1);
+            $this->storedId($id);
+            $attributes[] = $id;
+            foreach (str_split($value, self::TOKEN_BYTES) as $token) {
+                if ($token === '') { continue; }
+                try { $this->token($token); } catch (InvalidArgumentException $e) {
                     throw new FastLookupIndexUnavailableException('Corrupt reverse membership.', 0, $e);
                 }
                 $tokens[$token][] = $id;
@@ -479,7 +478,10 @@ for i = 5, #ARGV do
     if owner and owner ~= ARGV[2] then
         local ownerManifest = ARGV[4] .. owner
         if redis.call('HGET', ownerManifest, '!') ~= ARGV[1] then return redis.error_reply('missing new owner manifest') end
-        keep = redis.call('HEXISTS', ownerManifest, ARGV[3] .. ARGV[i]) == 1
+        local owned = redis.call('HGET', ownerManifest, 'A' .. ARGV[i]) or ''
+        for j = 1, #owned, TOKEN_BYTES do
+            if string.sub(owned, j, j + TOKEN_BYTES - 1) == ARGV[3] then keep = true break end
+        end
     end
     if not keep then remove[ARGV[i]] = true end
 end
@@ -489,7 +491,6 @@ local remaining = {}
 for _, id in ipairs(ids) do if not remove[id] then remaining[#remaining + 1] = id .. ',' end end
 if #remaining == 0 then redis.call('HDEL', KEYS[4], ARGV[3])
 else redis.call('HSET', KEYS[4], ARGV[3], table.concat(remaining)) end
-for i = 5, #ARGV do redis.call('HDEL', KEYS[5], ARGV[3] .. ARGV[i]) end
 return 1
 LUA
                 , [$this->metaKey(), $this->inflightKey($generation), $prefix . 'owners',
@@ -676,7 +677,8 @@ LUA;
     }
     private function postingParserScript(): string
     {
-        return 'local MAX_BYTES = ' . self::MAX_POSTING_BYTES . "\nlocal MAX_IDS = " . self::MAX_POSTING_IDS . "\n" . <<<'LUA'
+        return 'local MAX_BYTES = ' . self::MAX_POSTING_BYTES . "\nlocal MAX_IDS = " . self::MAX_POSTING_IDS
+            . "\nlocal TOKEN_BYTES = " . self::TOKEN_BYTES . "\n" . <<<'LUA'
 local function parsePosting(raw)
     if #raw > MAX_BYTES or (#raw > 0 and string.sub(raw, -1) ~= ',') then error('corrupt posting payload') end
     local ids, seen = {}, {}
