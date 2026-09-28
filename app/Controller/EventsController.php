@@ -5861,7 +5861,7 @@ class EventsController extends AppController
                 'attack-sightings' => __('Attack matrix by sightings'),
                 'context' => __('Aggregated context data'),
                 'context-markdown' => __('Aggregated context data as Markdown'),
-                'csv' => __('CSV'),
+                'csv' => __('CSV (NOT FOR EXCEL)'),
                 'hashes' => __('Hashes'),
                 'hosts' => __('Hosts file'),
                 'json' => __('MISP JSON'),
@@ -6947,7 +6947,7 @@ class EventsController extends AppController
             ),
             'csv' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
-                'text' => 'CSV',
+                'text' => __('CSV (NOT FOR EXCEL)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Include non-IDS marked attributes'),
@@ -6955,7 +6955,7 @@ class EventsController extends AppController
             ),
             'csv_with_context' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
-                'text' => __('CSV with additional context'),
+                'text' => __('CSV with additional context (NOT FOR EXCEL)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Include non-IDS marked attributes'),
@@ -7043,7 +7043,7 @@ class EventsController extends AppController
             }
             $exports['csv'] = array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
-                'text' => __('CSV (event not published, IDS flag ignored)'),
+                'text' => __('CSV (NOT FOR EXCEL, event not published, IDS flag ignored)'),
                 'requiresPublished' => false,
                 'checkbox' => false,
             );
