@@ -109,23 +109,34 @@ per-event dirty revision tokens; no schema migration or runtime dependency is
 added. Mutation callbacks use the model's existing database connection and join
 its transaction. They never commit a caller-owned transaction. Hard attribute/event deletion and
 quick-delete child removal wrap deletion and the dirty marker in one Cake transaction.
-Workers own their
-transactions and lock the checkpoint while changing Redis. Dirty acknowledgements
-are conditional on the observed revision, preserving concurrent changes.
+Workers take the checkpoint row `FOR UPDATE` only for their short drain,
+checkpoint and activation transactions; the rebuild scan itself runs outside
+that lock, using its own attribute cursor. Dirty acknowledgements are
+conditional on the observed revision, preserving concurrent changes.
 
-Worker exclusivity is a Redis lease (`SET NX PX` with a random token, renewed
-during scans, released by a compare-and-delete on that token), so it holds
-across every Galera node and every MISP server sharing the index, not just
-one process. A web request that marks an event dirty never waits for the
-lease: the change stays queued and a worker picks it up on its next batch.
+Whole-batch exclusivity between workers is a Redis lease (`SET NX PX` with a
+random token; released by a compare-and-delete on that token), not the row
+lock, so it holds across every Galera node and every MISP server sharing the
+index, not just one process. The lease has a 60 s TTL (`WORKER_LEASE_TTL_MS`)
+and is renewed before every scan chunk and before progress is recorded.
+`rebuildFastLookup`/`resumeFastLookup` wait up to 5 s (`WORKER_LOCK_WAIT`) for
+a busy lease before giving up for that invocation. Request-shutdown dispatch
+(`processPending`) makes a single, non-waiting attempt and leaves its markers
+queued if another worker holds the lease; a web request that marks an event
+dirty therefore never waits for a worker. A worker that loses its lease
+mid-scan (its renewal fails) stops immediately without recording progress or
+a failure state — the SQL progress already committed stays valid, and
+whichever worker holds the lease next continues from it.
 
-Every mutation callback takes a shared lock on the checkpoint row, and a worker
-holds the exclusive lock for its whole batch. A writer therefore never reads an
-empty generation while a rebuild is committing, so it never skips its dirty
-marker. No writer holds an uncommitted dirty marker while the worker decides
-readiness, so the scan-complete and empty-queue check is authoritative. As a
-result, attribute and event writes wait for at most one worker batch. Size that wait with the `batchSize` argument, and
-run large backfills with a small batch size or outside peak hours.
+Every mutation callback takes a shared lock on the checkpoint row. A writer
+therefore never reads an empty generation while a drain, checkpoint or
+activation transaction is committing, so it never skips its dirty marker. No
+writer holds an uncommitted dirty marker while a worker decides readiness, so
+the scan-complete and empty-queue check is authoritative. As a result,
+attribute and event writes wait only for a drain, checkpoint or activation
+transaction, never for the rebuild scan itself. The `batchSize` argument still
+sizes that wait for a drain of many dirty events; it no longer bounds scan
+length, since the scan runs outside the row lock.
 
 The durable pending revision is recorded before a Redis batch begins. It is
 committed together with a distinct next revision. Redis only receives the next
@@ -145,11 +156,15 @@ interrupted build fails. The first activation after a rebuild also removes the
 previous format's `misp:fast_lookup:v3:` keys and its `fastLookupIndex:state:v2`
 state row.
 
-Redis persistence and a suitable memory policy are operationally important for an
-index without expiry. Evicted or lost keys cause unavailability, requiring repair
-or rebuild. Initial scope changes make lookups unavailable until the first
-generation finishes building; a rebuild of an already-live index does not, since
-lookups keep being served by the current generation until the new one swaps in.
+Redis persistence and a suitable memory policy are operationally important: no
+fastLookup key expires except the worker lease. Evicted or lost keys cause
+unavailability, requiring repair or rebuild. Initial scope changes make
+lookups unavailable until the first generation finishes building; a rebuild of
+an already-live index does not, since lookups keep being served by the current
+generation until the new one swaps in. The lease key,
+`misp:fast_lookup:bf1:<sha256(namespace)>:worker`, is the one exception: it
+carries the 60 s TTL described above, and its expiry between batches, or after
+a crashed worker, is normal operation, not an index failure.
 
 ## Matching and authorization
 
