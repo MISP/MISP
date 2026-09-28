@@ -53,7 +53,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('RedisTool', 'Tools');
 App::uses('FastLookupConfig', 'Tools');
 App::uses('FastLookupIndexManager', 'Tools');
-App::uses('FastLookupIndex', 'Tools');
+App::uses('FastLookupFilter', 'Tools');
 App::uses('FastLookupValueTool', 'Tools');
 App::uses('AttributeFastLookupTool', 'Tools');
 
@@ -122,7 +122,7 @@ ConnectionManager::create('default', ['datasource' => 'Database/MysqlExtended', 
     'prefix' => '', 'encoding' => 'utf8mb4', 'persistent' => false]);
 $redis = RedisTool::init();
 $model = new FastLookupScaleAttribute();
-$namespace = 'misp:fast_lookup:v3:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
+$namespace = FastLookupFilter::PREFIX . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
 register_shutdown_function(function () use ($redis, $namespace) {
     $cursor = null;
     do {
@@ -234,25 +234,8 @@ $afterInit = redisUsed($redis);
 $report = ['parameters' => compact('perType', 'perEvent', 'duplicates', 'lookupSize', 'eventsPerType') + ['types' => $types],
     'load_seconds' => round($loadSeconds, 1), 'redis_baseline_bytes' => $baseline,
     'init' => ['seconds' => round(microtime(true) - $start, 2), 'bytes' => $afterInit - $baseline], 'types' => []];
-$previous = $afterInit;
-foreach ($types as $type) {
-    $t = microtime(true);
-    $status = $manager->runBatch($eventsPerType);
-    if (in_array($status['status'], ['error', 'unavailable'], true)) {
-        throw new RuntimeException('Backfill failed on ' . $type . ': ' . json_encode($status));
-    }
-    $used = redisUsed($redis);
-    $seconds = microtime(true) - $t;
-    $report['types'][$type] = [
-        'build_seconds' => round($seconds, 2),
-        'build_attributes_per_second' => (int)round($perType / $seconds),
-        'redis_bytes' => $used - $previous,
-        'redis_bytes_per_attribute' => round(($used - $previous) / $perType, 1),
-    ];
-    $previous = $used;
-    fwrite(STDERR, sprintf("%-16s %6.1f s  %7.1f B/attribute\n", $type, $seconds, ($used - $baseline) / max(1, $perType * count($report['types']))));
-}
-for ($i = 0; $i < 5 && $status['status'] !== 'ready'; ++$i) { $status = $manager->runBatch(1000); }
+$status = $manager->runBatch(1000);
+for ($i = 0; $i < 1000 && $status['status'] !== 'ready'; ++$i) { $status = $manager->runBatch(1000); }
 if ($status['status'] !== 'ready') { throw new RuntimeException('Backfill did not finish: ' . json_encode($status)); }
 $report['build_seconds_total'] = round(microtime(true) - $start, 1);
 $report['redis_bytes_total'] = redisUsed($redis) - $baseline;
@@ -260,22 +243,20 @@ $report['redis_bytes_per_attribute'] = round($report['redis_bytes_total'] / ($pe
 
 // Memory and encoding by key class, from the live Redis keys.
 $classes = [];
-$typeHash = [];
-foreach ($types as $type) { $typeHash[hash('sha256', $type)] = $type; }
 $cursor = null;
 do {
     $keys = $redis->scan($cursor, $namespace . '*', 1000) ?: [];
     foreach ($keys as $key) {
         $rest = substr($key, strlen($namespace));
-        if (preg_match('/^g:[^:]+:t:([0-9a-f]{64}):(b:\d+|owners|events|r:\d+)$/', $rest, $m)) {
-            $class = $m[2][0] === 'b' ? 'postings' : ($m[2][0] === 'r' ? 'reverse_manifests' : $m[2]);
-            $type = $typeHash[$m[1]] ?? '?';
+        if (preg_match('/^g:[^:]+:(bf|info|x:\d+:[0-9a-f]+|x:\d+)$/', $rest, $m)) {
+            $class = ['bf' => 'bloom_filter', 'info' => 'global'][$m[1]] ?? (substr_count($m[1], ':') === 2 ? 'overflow_postings' : 'postings');
         } else {
-            $class = 'global'; $type = '*';
+            $class = 'global';
         }
+        $type = '*';
         $bytes = (int)$redis->rawCommand('MEMORY', 'USAGE', $key, 'SAMPLES', '0');
         $encoding = $redis->object('encoding', $key);
-        $fields = (int)$redis->hLen($key);
+        $fields = $redis->type($key) === Redis::REDIS_HASH ? (int)$redis->hLen($key) : 1;
         foreach ([$class, $class . '@' . $type] as $bucket) {
             $classes[$bucket]['keys'] = ($classes[$bucket]['keys'] ?? 0) + 1;
             $classes[$bucket]['bytes'] = ($classes[$bucket]['bytes'] ?? 0) + $bytes;
@@ -294,7 +275,7 @@ $report['statistics_seconds'] = round(microtime(true) - $t, 2);
 // Redis candidate phase alone for the same values.
 $user = ['org_id' => 1, 'fixture_sgids' => [], 'Role' => ['perm_site_admin' => false, 'perm_sync' => false]];
 $valueTool = new FastLookupValueTool($model);
-$index = $manager->index();
+$index = $manager->filter();
 $generation = $manager->status()['generation'];
 $lookup = function (array $values) use ($user) {
     $t = microtime(true);
@@ -314,6 +295,48 @@ $candidatePhase = function (array $values) use ($valueTool, $index, $generation,
     }
     return [$tokenSeconds, $candidateSeconds];
 };
+// Baseline without Redis: the same ACL and scope filters, answered by the
+// indexed value1/value2 columns alone. Containment is enumerated into IN lists
+// (every canonical CIDR containing an IP, every parent of a hostname), the
+// strongest plain-SQL form; non-canonical stored CIDRs would still be missed.
+$sqlOnly = function (array $values) use ($model, $user, $types) {
+    $db = $model->getDataSource();
+    $acl = $db->conditions($model->buildConditions($user), true, false, $model);
+    $quote = function (array $list) use ($db) { return implode(',', array_map(function ($v) use ($db) { return $db->value($v, 'string'); }, $list)); };
+    $from = '`attributes` `Attribute` INNER JOIN `events` `Event` ON `Event`.`id` = `Attribute`.`event_id`'
+        . ' LEFT JOIN `objects` `Object` ON `Object`.`id` = `Attribute`.`object_id`';
+    $common = ' AND `Attribute`.`deleted` = 0 AND (' . ($acl ?: '1=1') . ') AND `Attribute`.`type` IN (' . $quote($types) . ') AND `Event`.`published` = 1';
+    $t = microtime(true);
+    $matched = [];
+    foreach (array_chunk($values, AttributeFastLookupTool::BATCH_SIZE, true) as $batch) {
+        $branches = [];
+        foreach ($batch as $index => $value) {
+            $forms = [$value];
+            if (($ip = @inet_pton($value)) !== false) {
+                $bits = strlen($ip) * 8;
+                for ($length = 0; $length < $bits; ++$length) {
+                    $network = '';
+                    for ($byte = 0; $byte < strlen($ip); ++$byte) {
+                        $keep = max(0, min(8, $length - 8 * $byte));
+                        $network .= chr(ord($ip[$byte]) & (0xFF << (8 - $keep)) & 0xFF);
+                    }
+                    $forms[] = inet_ntop($network) . '/' . $length;
+                }
+            } elseif (strpos($value, '.') !== false) {
+                $labels = explode('.', strtolower($value));
+                for ($i = 1; $i < count($labels) - 1; ++$i) { $forms[] = implode('.', array_slice($labels, $i)); }
+            }
+            foreach (['value1', 'value2'] as $component) {
+                $branches[] = 'SELECT ' . (int)$index . ' AS `input_index` FROM ' . $from
+                    . ' WHERE `Attribute`.`' . $component . '` IN (' . $quote($forms) . ')' . $common;
+            }
+        }
+        $statement = $db->rawQuery(implode(' UNION ', $branches));
+        while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) { $matched[$row['input_index']] = true; }
+        $statement->closeCursor();
+    }
+    return [microtime(true) - $t, count($matched)];
+};
 foreach ($types as $type) {
     $hits = []; $expansions = [];
     foreach ($loaded[$type]['samples'] as $value) {
@@ -332,7 +355,10 @@ foreach ($types as $type) {
         if (!$values) { continue; }
         [$seconds, $matched] = $lookup($values);
         [$tokenSeconds, $candidateSeconds] = $candidatePhase($values);
+        [$sqlSeconds, $sqlMatched] = getenv('FL_SQL_BASELINE') ? $sqlOnly($values) : [null, null];
         $results[$label] = [
+            'sql_only_seconds' => $sqlSeconds === null ? null : round($sqlSeconds, 3),
+            'sql_only_matched' => $sqlMatched,
             'values' => count($values), 'matched' => $matched,
             'seconds' => round($seconds, 3), 'values_per_second' => (int)round(count($values) / $seconds),
             'redis_candidate_seconds' => round($tokenSeconds + $candidateSeconds, 3),
@@ -341,8 +367,15 @@ foreach ($types as $type) {
         ];
     }
     $report['types'][$type]['lookups'] = $results;
-    fwrite(STDERR, sprintf("lookup %-16s hits %.2f s misses %.2f s\n", $type, $results['hits']['seconds'] ?? -1, $results['misses']['seconds']));
+    fwrite(STDERR, sprintf("lookup %-16s hits %.2f s (sql %.2f) misses %.2f s (sql %.2f)\n", $type, $results["hits"]["seconds"] ?? -1, $results["hits"]["sql_only_seconds"] ?? -1, $results["misses"]["seconds"], $results["misses"]["sql_only_seconds"] ?? -1));
 }
+$absent = [];
+for ($i = 0; $i < 20000; ++$i) { $absent[] = 'absent-' . $i . '.invalid'; }
+$positives = 0;
+foreach (array_chunk($absent, AttributeFastLookupTool::BATCH_SIZE, true) as $batch) {
+    foreach ($index->candidates($generation, $valueTool->queryTokens($batch, $types)) as $row) { $positives += $row['exact'] ? 1 : 0; }
+}
+$report['measured_false_positive_rate'] = $positives / count($absent);
 $report['versions'] = ['php' => PHP_VERSION, 'mariadb' => $pdo->query('SELECT VERSION()')->fetchColumn(),
     'redis' => $redis->info('server')['redis_version'],
     'hash_max_listpack' => $redis->config('GET', 'hash-max-listpack-*')];

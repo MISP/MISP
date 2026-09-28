@@ -47,7 +47,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('RedisTool', 'Tools');
 App::uses('FastLookupConfig', 'Tools');
 App::uses('FastLookupIndexManager', 'Tools');
-App::uses('FastLookupIndex', 'Tools');
+App::uses('FastLookupFilter', 'Tools');
 App::uses('AttributeFastLookupTool', 'Tools');
 
 class FastLookupIntegrationAttribute extends MispAttribute
@@ -112,7 +112,7 @@ $checks = 0;
 $queryMeasurements = [];
 $benchmarks = [];
 $model = new FastLookupIntegrationAttribute();
-$namespace = 'misp:fast_lookup:v3:' . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
+$namespace = FastLookupFilter::PREFIX . hash('sha256', FastLookupConfig::namespaceFor($model)) . ':';
 register_shutdown_function(function () use ($redis, $namespace) {
     // Only this test's namespace, including generations left by failed assertions.
     $cursor = null;
@@ -256,9 +256,8 @@ same('unavailable', $unavailable['status'], 'index unavailable before first back
 same(false, isset($unavailable['results']), 'unbuilt index never returns results');
 $build = manager();
 same('warming', $build->startRebuild()['status'], 'rebuild starts warming');
-same('warming', $build->runBatch(1)['status'], 'incomplete event scan remains warming');
-same(false, isset(lookup($user, ['shared'])['results']), 'incomplete backfill gates IOC results');
-while (($status = $build->runBatch(3))['status'] === 'warming') {}
+same(false, isset(lookup($user, ['shared'])['results']), 'unscanned rebuild gates IOC results');
+while (($status = $build->runBatch(1))['status'] === 'warming') {}
 same('ready', $status['status'], 'initial backfill ready');
 
 $values = array_merge(array_map(function ($id) { return 'event-' . $id; }, range(1, 8)), array_keys($attributeMatrix),
@@ -283,7 +282,11 @@ foreach (['user' => $user, 'site-admin' => $admin, 'sync' => $sync, 'org-admin' 
     $queries = lookupQueries();
     $live = array_values(array_filter($queries, function ($q) { return strpos($q['query'], 'event_id') !== false; }));
     same(1, count($live), "$role one candidate-constrained exact SQL query");
-    same(true, preg_match('/`Attribute`\.`id` IN \(/', $live[0]['query']) === 1, "$role exact SQL constrained by Redis candidates");
+    // The Bloom filter, not the exact-match SQL, decides which values are worth a
+    // branch: a value it never inserted (never an attribute value in this fixture)
+    // must not appear as a literal in the query, while a present one must.
+    same(true, strpos($live[0]['query'], "= 'shared'") !== false, "$role exact SQL includes a Bloom-positive value");
+    same(false, strpos($live[0]['query'], "= 'missing'") !== false, "$role exact SQL excludes a Bloom-negative value");
     $queryMeasurements[$role] = count($queries);
 }
 jsonSame(['event-3' => ['3']], lookup($admin, ['event-3', 'event-6']), 'site admin still restricted to publication scope');
@@ -372,10 +375,10 @@ catch (InvalidArgumentException $e) { ++$checks; }
 Configure::delete('MISP.fast_lookup_max_values');
 
 $metrics = manager()->status(true)['statistics'];
-same(count(FastLookupConfig::scope($model)['attribute_types']), count($metrics['types']), 'statistics include every configured type');
+same(true, $metrics['inserted'] > 0 && $metrics['inserted'] <= $metrics['capacity'], 'filter entries counted within capacity');
+same(true, $metrics['filter_bytes'] > 0, 'Bloom filter allocation measured');
+same(true, $metrics['posting_entries'] > 0 && $metrics['posting_bytes'] > 0, 'range and domain postings measured');
 same(true, $metrics['shared_memory_bytes'] > 0, 'shared Redis allocation measured');
-$domainMetrics = array_values(array_filter($metrics['types'], function ($row) { return $row['type'] === 'domain'; }))[0];
-same(true, $domainMetrics['entries'] > 0 && $domainMetrics['attributes'] > 0 && $domainMetrics['memory_bytes'] > 0, 'domain counts and actual allocation measured');
 $cursor = null; $redisKeys = [];
 do { $keys = $redis->scan($cursor, $namespace . '*', 1000); if ($keys) { $redisKeys = array_merge($redisKeys, $keys); } } while ($cursor !== 0);
 foreach ($redisKeys as $key) {
@@ -413,8 +416,8 @@ same('ready', manager()->status()['status'], 'rolled-back dirty marker is not pe
 jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared']), 'rollback preserves original lookup values');
 
 // A restored older Redis checkpoint and missing buckets must never be a miss.
-$metaKey = $namespace . 'meta';
-$metaKeys = $redis->keys($namespace . '*meta*');
+$metaKey = $namespace . 'metadata';
+$metaKeys = $redis->keys($namespace . 'metadata');
 same(1, count($metaKeys), 'one index metadata key');
 $metaKey = $metaKeys[0];
 $revision = $redis->hGet($metaKey, 'revision');
@@ -422,18 +425,17 @@ $redis->hSet($metaKey, 'revision', 'old-backup');
 same('unavailable', lookup($user, ['shared'])['status'], 'restored stale Redis checkpoint gates results');
 $redis->hSet($metaKey, 'revision', $revision);
 same('ready', manager()->status()['status'], 'matching checkpoint restored');
-$cursor = null; $bucket = null;
+// Evict the live Bloom filter: lookups must fail closed, never answer "absent".
+$filterKeys = [];
+$cursor = null;
 do {
-    $keys = $redis->scan($cursor, $namespace . '*', 1000);
-    foreach ($keys ?: [] as $key) {
-        if ($key !== $metaKey && $redis->type($key) === Redis::REDIS_HASH && $redis->hExists($key, '!')) { $bucket = $key; break 2; }
-    }
+    foreach ($redis->scan($cursor, $namespace . 'g:*:bf', 1000) ?: [] as $key) { $filterKeys[] = $key; }
 } while ($cursor !== 0);
-same(true, is_string($bucket), 'a sentinel-protected index bucket exists');
-$redis->del($bucket);
+same(1, count($filterKeys), 'one live Bloom filter exists');
+$redis->del($filterKeys);
 $missing = lookup($user, ['shared']);
-same(false, $missing['status'] === 'ready', 'missing bucket refuses result completeness');
-same(false, isset($missing['results']), 'missing bucket never returns partial results');
+same(false, $missing['status'] === 'ready', 'missing filter refuses result completeness');
+same(false, isset($missing['results']), 'missing filter never returns partial results');
 
 // Flush the test's deferred callback before database cleanup occurs at shutdown.
 FastLookupIndexManager::dispatchPending();
