@@ -77,11 +77,12 @@ compact exact/network/domain tokens. `FastLookupIndex` owns Redis data;
 `FastLookupIndexManager` owns SQL checkpoints, backfill and mutation delivery.
 
 The namespace is derived from database identity. Type-partitioned sharded Redis
-hashes use 17-byte binary fields (one kind byte plus a 128-bit digest), with compact
+hashes use 9-byte binary fields (one kind byte plus a 64-bit digest), with compact
 decimal attribute ID postings. There is no Redis key per IOC and no plaintext IOC
 in Redis keys or fields. Hash collisions only broaden candidates: SQL/value
-revalidation prevents false matches. Reverse event manifests permit removing,
-replacing or retrying event updates. Reads use direct batched hash lookups, without
+revalidation prevents false matches. Reverse event manifests, one field per
+attribute listing its tokens, permit removing, replacing or retrying event
+updates. Reads use direct batched hash lookups, without
 scanning the index for each requested IOC. Writes and cleanup are bounded.
 
 Internal rows in the existing `admin_settings` table contain the SQL checkpoint and
@@ -132,7 +133,9 @@ SQL equality; no approximation of authorization is stored in Redis.
 IP containment masks CIDR host bits and probes canonical prefixes for IPv4 and
 IPv6, including `/0` and single-address ranges. Domain suffix matching uses label
 boundaries and only domain-bearing attributes (`domain`, `domain|ip`). Hostname
-attributes are exact-only. No external DNS lookup is made. Current SQL rows supply
+attributes are exact-only. The port half of `ip-src|port`, `ip-dst|port` and
+`hostname|port` is never indexed or matched: a bare port would match most of those
+attributes, and one popular port would exceed the posting limit at scale. No external DNS lookup is made. Current SQL rows supply
 returned range/domain strings only after permission and scope checks.
 
 Live queries apply `MispAttribute::buildConditions`, current publication/type scope,
@@ -148,6 +151,34 @@ string limit and a 100000 candidate/result-row budget. Overflows produce errors
 without partial results. Very popular tokens are bounded to 500000 IDs and 8 MiB per
 posting; exceeding a storage bound prevents readiness rather than truncating the
 index. Use a narrower type scope if a deployment exceeds those storage limits.
+
+### Sizing
+
+`tests/benchmarks/FastLookupScale.php` loads synthetic attributes and reports build
+time, Redis memory by key class and lookup throughput. With 100,000 attributes
+of each default type (1.7M total, 100 attributes per event, 10% duplicated
+values; MariaDB 10.11, Redis 7.4, PHP 8.3 on one 6-core host), Redis
+`used_memory` grew by about 161 bytes per attribute:
+
+| Type class | Bytes per attribute |
+| --- | --- |
+| md5, sha1, hostname, IPv4/IPv6 hosts, `*\|port` | 136-143 |
+| sha256, sha512 | 149 |
+| `filename\|*`, `malware-sample` | 165-167 |
+| `domain` | 192 |
+| `domain\|ip` | 312 |
+
+About 50-58 bytes go to the per-type attribute owner map, 62-218 to postings
+and 23-44 to reverse manifests. Events larger than 128 attributes per type move
+their manifests out of Redis's compact listpack encoding: with 1,000-attribute
+events the average rose to about 195 bytes. Plan roughly 15-18 GiB of
+`used_memory` per 100 million indexed attributes with a common mix, plus
+fragmentation headroom. The build ran at about 1,900 attributes per second.
+
+Lookups of 10,000 values took about 10-12 s when every value matched (roughly
+900 values per second, mostly live SQL verification), 4.5-5 s when none matched,
+and 12-18 s for IP values, which probe every containing prefix. These are
+single-host synthetic figures, not capacity guarantees.
 
 Per-type measured memory includes posting buckets, ownership bookkeeping, event
 registries and reverse manifests. Shared metadata is reported separately. Counts
@@ -169,6 +200,7 @@ app/Vendor/bin/phpunit app/Test/
 MISP_FASTLOOKUP_LIFECYCLE_SOCKET=/path/to/disposable/mysql.sock app/Vendor/bin/phpunit --filter 'FastLookup(DeletionIntegration|IndexLifecycleIntegration|SqlCollation)Test' app/Test/
 bash tests/benchmarks/FastLookupIntegration.sh /path/to/cakephp/lib/Cake
 php tests/benchmarks/FastLookupIndexRedisContract.php /path/to/disposable/redis.sock
+FL_PER_TYPE=100000 php tests/benchmarks/FastLookupScale.php /path/to/cakephp/lib/Cake /path/to/disposable/mysql.sock /path/to/disposable/redis.sock
 ```
 
 Use disposable databases and Redis only. The shell runner starts socket-only
