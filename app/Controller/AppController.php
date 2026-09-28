@@ -864,12 +864,13 @@ class AppController extends Controller
         }
 
         $isUserRequest = !$this->_isRest() && !$this->request->is('ajax') && !$this->_isAutomation();
-        // An unenrolled user on an otp_required instance must not slip past the
-        // TOTP setup with an AJAX request; refuse it, since an XHR cannot follow
-        // the redirect the browser path takes. API keys are unaffected.
+        // An unenrolled user on an otp_required instance must not slip past the TOTP setup by
+        // asking for a machine-readable format; refuse the request, since neither an XHR nor a
+        // .json caller can follow the redirect the browser path takes. An identity that came
+        // from an API key is not a browser session and is left alone.
         if (
             !$isUserRequest &&
-            $this->request->is('ajax') &&
+            empty($user['logged_by_authkey']) &&
             empty($user['totp']) &&
             Configure::read('Security.otp_required') &&
             empty($user['Role']['perm_skip_otp']) &&
