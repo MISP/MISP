@@ -34,6 +34,15 @@ class FastLookupIndexManager
     const ATTRIBUTE_BATCH_SIZE = 500;
     /** Rows per rebuild scan query; progress is still recorded once per batch. */
     const SCAN_CHUNK_SIZE = 2000;
+    /**
+     * Attribute IDs one scan query may cover. The window, not the LIMIT, bounds
+     * the rows a query examines: excluded types, deleted rows or unpublished
+     * events would otherwise let one query walk to the high-water mark and
+     * outlast the worker lease. Ten chunks still fill a chunk per query where
+     * one ID in ten is in scope; a sparse stretch costs at most one cheap
+     * empty query per window.
+     */
+    const SCAN_WINDOW = 20000;
     const SCAN_BATCH_SIZE = 100;
     const PENDING_BATCH_SIZE = 25;
     /** One batch unit is one dirty event or this many scanned attributes. */
@@ -773,25 +782,29 @@ class FastLookupIndexManager
         $published = $scope['published_only'] ? ' AND e.published = TRUE' : '';
         $columns = $valueTool->scanColumns('a');
         $scanned = 0;
-        while ($scanned < $maximum) {
+        while ($scanned < $maximum && self::compareIds($build['cursor'], $build['high_water']) < 0) {
             $this->renewWorkerLease();
             $take = min(self::SCAN_CHUNK_SIZE, $maximum - $scanned);
+            $upper = self::windowEnd($build['cursor'], $build['high_water']);
             // Walk the primary key: with an index on a low-cardinality column
             // (deleted, type) the optimizer seeks that index and skips every ID
-            // up to the cursor, so each chunk would cost O(cursor).
+            // up to the cursor, so each chunk would cost O(cursor). The ID
+            // window bounds the rows one query examines, whatever the plan.
             $rows = $this->query("SELECT $columns FROM $table a FORCE INDEX (PRIMARY) INNER JOIN $events e ON e.id = a.event_id WHERE a.id > ? AND a.id <= ? AND a.deleted = FALSE AND a.type IN ($placeholders)$published ORDER BY a.id LIMIT $take",
-                array_merge([$build['cursor'], $build['high_water']], $types))->fetchAll(PDO::FETCH_ASSOC);
+                array_merge([$build['cursor'], $upper], $types))->fetchAll(PDO::FETCH_ASSOC);
             if ($rows) {
                 $this->filter()->add($build['generation'], $valueTool->prepareScannedAttributes($rows));
-                $build['cursor'] = (string)$rows[count($rows) - 1]['id'];
                 $build['processed'] += count($rows);
                 $scanned += count($rows);
             }
-            if (count($rows) < $take) {
-                $build['scan_complete'] = true;
-                $build['total'] = $build['processed'];
-                break;
-            }
+            // A short chunk read every row in (cursor, upper], so the cursor
+            // may pass the last row read; a full one may have left rows in
+            // the window and resumes after its last row.
+            $build['cursor'] = count($rows) < $take ? $upper : (string)$rows[count($rows) - 1]['id'];
+        }
+        if (self::compareIds($build['cursor'], $build['high_water']) >= 0) {
+            $build['scan_complete'] = true;
+            $build['total'] = $build['processed'];
         }
         // Record progress only while the lease is still ours; the T3
         // compare-and-set fences a worker whose lease lapses after this.
@@ -851,6 +864,15 @@ class FastLookupIndexManager
     private static function compareIds(string $left, string $right): int
     {
         return strlen($left) <=> strlen($right) ?: strcmp($left, $right);
+    }
+
+    /** min(cursor + SCAN_WINDOW, high_water); MISP attribute IDs are int(11). */
+    private static function windowEnd(string $cursor, string $highWater): string
+    {
+        if (!ctype_digit($cursor) || !ctype_digit($highWater) || strlen($highWater) > 18) {
+            throw new RuntimeException('The IOC index scan cursor is out of range.');
+        }
+        return (string)min((int)$cursor + self::SCAN_WINDOW, (int)$highWater);
     }
 
     /** Keep Cake delete callbacks and their durable marker in one transaction. */

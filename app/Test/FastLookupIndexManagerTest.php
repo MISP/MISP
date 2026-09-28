@@ -556,22 +556,124 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertFalse($this->filter->leaseHeld(), 'Every batch releases the worker lease.');
     }
 
+    /** Published domain attributes with the given IDs, in event 1. */
+    private function seedIds(array $ids)
+    {
+        $this->attribute->db->events = ['1' => true, '8' => false];
+        $this->attribute->db->attributes = [];
+        foreach ($ids as $id) {
+            $this->attribute->db->attributes[] = ['id' => (string)$id, 'event_id' => '1', 'type' => 'domain',
+                'value1' => "d$id.test", 'value2' => '', 'deleted' => false];
+        }
+    }
+
+    /** [after, upper, limit, rows] per rebuild scan query. */
+    private function scanShape()
+    {
+        return array_map(function ($scan) { return [$scan['after'], $scan['upper'], $scan['limit'], $scan['rows']]; }, $this->attribute->db->scans);
+    }
+
     public function testScanQueryForcesThePrimaryKeyAndUsesTheLargerChunk()
     {
-        $this->seed();
+        $this->seedIds(range(1, 2500));
         $manager = $this->manager();
         $db = $this->attribute->db;
         $manager->startRebuild();
-        // A batch limit high enough that the scan chunk, not the batch's
-        // attribute budget, caps the query's LIMIT.
+        // A budget of 3000 attributes: one full 2000-row chunk, then the
+        // remaining 1000 cap the second query's LIMIT.
         $this->assertSame('ready', $manager->runBatch(3)['status']);
-        $this->assertNotEmpty($db->scans);
         foreach ($db->scans as $scan) {
             $this->assertStringContainsString('FORCE INDEX (PRIMARY)', $scan['sql'],
                 'The deleted index makes the ID-cursor scan quadratic; force the primary key.');
-            $this->assertSame(2000, $scan['limit']);
         }
-        $this->assertSame(2000, FastLookupIndexManager::SCAN_CHUNK_SIZE);
+        $this->assertSame([['0', '2500', 2000, 2000], ['2000', '2500', 1000, 500]], $this->scanShape(),
+            'A full chunk resumes after its last row; a short one completes the window.');
+        $this->assertCount(2500, $this->filter->liveIds());
+        $this->assertSame(2500, $manager->status()['progress']['processed_attributes']);
+    }
+
+    public function testSparseIdRangeCompletesOneBoundedWindowPerQuery()
+    {
+        $window = FastLookupIndexManager::SCAN_WINDOW;
+        $this->seedIds([10, 2 * $window + 7]);
+        // Out-of-scope rows between them never end the scan early.
+        $this->attribute->db->attributes[] = ['id' => (string)($window + 5), 'event_id' => '8', 'type' => 'domain', 'value1' => 'draft.test', 'value2' => '', 'deleted' => false];
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([
+            ['0', (string)$window, 1000, 1],
+            [(string)$window, (string)(2 * $window), 999, 0],
+            [(string)(2 * $window), (string)(2 * $window + 7), 999, 1],
+        ], $this->scanShape(), 'Each query covers at most one window; an empty window still advances the cursor.');
+        $this->assertSame(['10', (string)(2 * $window + 7)], $this->filter->liveIds());
+        $status = $manager->status();
+        $this->assertSame(2, $status['progress']['processed_attributes'], 'Progress counts rows, not IDs.');
+        $this->assertSame(100, $status['progress']['percent']);
+    }
+
+    public function testTrailingOutOfScopeIdsEndInEmptyWindowsAndCompleteTheScan()
+    {
+        $window = FastLookupIndexManager::SCAN_WINDOW;
+        $this->seedIds([10]);
+        // The high-water mark is a deleted row: the scan's last windows are empty.
+        $this->attribute->db->attributes[] = ['id' => (string)(3 * $window), 'event_id' => '1', 'type' => 'domain', 'value1' => 'gone.test', 'value2' => '', 'deleted' => true];
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([
+            ['0', (string)$window, 1000, 1],
+            [(string)$window, (string)(2 * $window), 999, 0],
+            [(string)(2 * $window), (string)(3 * $window), 999, 0],
+        ], $this->scanShape());
+        $this->assertSame(['10'], $this->filter->liveIds());
+        $this->assertSame(1, $this->sqlState()['last_build']['processed']);
+    }
+
+    public function testWindowEdgesSkipNoAttribute()
+    {
+        $window = FastLookupIndexManager::SCAN_WINDOW;
+        // The first batch's 1000-row chunk ends exactly on the first window's
+        // edge; rows sit on both sides of every edge.
+        $ids = array_merge(range($window - 999, $window), [$window + 1, 2 * $window, 2 * $window + 1]);
+        $this->seedIds($ids);
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $manager->runBatch(1);
+        $this->assertSame((string)$window, $this->sqlState()['build']['cursor']);
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([
+            ['0', (string)$window, 1000, 1000],
+            [(string)$window, (string)(2 * $window), 1000, 2],
+            [(string)(2 * $window), (string)(2 * $window + 1), 998, 1],
+        ], $this->scanShape());
+        $this->assertSame(array_map('strval', $ids), $this->filter->liveIds());
+        foreach ($this->attribute->db->scans as $scan) {
+            $this->assertLessThanOrEqual($window, (int)$scan['upper'] - (int)$scan['after'], 'A query never spans more than one window.');
+        }
+    }
+
+    public function testFullChunkResumesAfterItsLastRowAcrossBatches()
+    {
+        $this->seedIds(range(1, 1001));
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $manager->runBatch(1);
+        $build = $this->sqlState()['build'];
+        $this->assertSame('1000', $build['cursor'], 'A full chunk may leave rows in its window: resume after its last row.');
+        $this->assertFalse($build['scan_complete']);
+        $this->assertSame(1000, $build['processed']);
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertCount(1001, $this->filter->liveIds());
+    }
+
+    public function testEmptyAttributeTableCompletesWithoutAScanQuery()
+    {
+        $this->seedIds([]);
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([], $this->attribute->db->scans);
     }
 
     public function testLiveRevisionIsCommittedBeforeRebuildScan()

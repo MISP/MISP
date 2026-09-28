@@ -122,7 +122,7 @@ class FastLookupLifecycleConnection
                 $types = array_slice($args, 2);
                 $keep = function ($row) use ($eventId, $after, $types) { return $row['event_id'] === $eventId && (int)$row['id'] > (int)$after; };
             } else {
-                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lease' => $this->leaseFilter ? $this->leaseFilter->leaseHeld() : null, 'sql' => $sql, 'limit' => (int)$match[1]];
+                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lease' => $this->leaseFilter ? $this->leaseFilter->leaseHeld() : null, 'sql' => $sql, 'limit' => (int)$match[1], 'after' => (string)$args[0], 'upper' => (string)$args[1], 'rows' => 0];
                 [$after, $highWater] = $args;
                 $types = array_slice($args, 2);
                 $published = strpos($sql, 'e.published = TRUE') !== false;
@@ -135,7 +135,9 @@ class FastLookupLifecycleConnection
                 return $keep($row) && !$row['deleted'] && in_array($row['type'], $types, true);
             }));
             usort($rows, function ($a, $b) { return (int)$a['id'] <=> (int)$b['id']; });
-            return array_slice($rows, 0, (int)$match[1]);
+            $rows = array_slice($rows, 0, (int)$match[1]);
+            if (strpos($sql, 'a.event_id = ?') === false) { $this->scans[count($this->scans) - 1]['rows'] = count($rows); }
+            return $rows;
         }
         throw new LogicException('Unexpected SQL: ' . $sql);
     }
