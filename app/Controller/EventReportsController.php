@@ -54,7 +54,7 @@ class EventReportsController extends AppController
         $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
-                $this->request->data['EventReport'] = $this->request->data;
+                $this->request->data = array('EventReport' => $this->request->data);
             }
             $report = $this->request->data;
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);

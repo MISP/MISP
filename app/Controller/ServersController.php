@@ -1901,8 +1901,9 @@ class ServersController extends AppController
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
-                            "remote_id" => $remote_event['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".(int)$remote_event['id'],
+                            "remote_id" => (int)$remote_event['id'],
+                            "exception" => null,
                         );
                     }
                 }
@@ -1928,7 +1929,7 @@ class ServersController extends AppController
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? (int)$remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],

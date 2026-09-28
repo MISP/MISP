@@ -3864,9 +3864,6 @@ class EventsController extends AppController
      * metadata and a count of unique correlating values per
      * related event.
      *
-     * ACL is enforced via the correlation table itself —
-     * all distribution / sharing group checks happen there.
-     *
      * @param int|string $id Event ID or UUID
      */
     public function viewRelatedEvents($id = null)
@@ -3904,10 +3901,10 @@ class EventsController extends AppController
         }
 
         // Fetch event metadata for related events
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['Event.id'] = $relatedEventIds;
         $relatedEvents = $this->Event->find('all', [
-            'conditions' => [
-                'Event.id' => $relatedEventIds,
-            ],
+            'conditions' => $conditions,
             'recursive' => -1,
             'order' => 'Event.date DESC',
             'fields' => [
@@ -4528,7 +4525,7 @@ class EventsController extends AppController
             $fingerprint = null;
             if (!empty($this->request->data)) {
                 if (empty($this->request->data['Event'])) {
-                    $this->request->data['Event'] = $this->request->data;
+                    $this->request->data = array('Event' => $this->request->data);
                 }
                 if (!empty($this->request->data['Event']['filecontent'])) {
                     $data = $this->request->data['Event']['filecontent'];
@@ -5278,7 +5275,7 @@ class EventsController extends AppController
     {
         if ($this->request->is(['post', 'put', 'delete'])) {
             if (isset($this->request->data['id'])) {
-                $this->request->data['Event'] = $this->request->data;
+                $this->request->data = array('Event' => $this->request->data);
             }
             if (!isset($id) && isset($this->request->data['Event']['id'])) {
                 $idList = $this->request->data['Event']['id'];
@@ -5864,7 +5861,8 @@ class EventsController extends AppController
                 'attack-sightings' => __('Attack matrix by sightings'),
                 'context' => __('Aggregated context data'),
                 'context-markdown' => __('Aggregated context data as Markdown'),
-                'csv' => __('CSV'),
+                'xlsx' => __('XLSX (Excel)'),
+                'csv' => __('CSV (NOT FOR EXCEL)'),
                 'hashes' => __('Hashes'),
                 'hosts' => __('Hosts file'),
                 'json' => __('MISP JSON'),
@@ -6947,9 +6945,25 @@ class EventsController extends AppController
                 'requiresPublished' => false,
                 'checkbox' => false,
             ),
+            'xlsx' => array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $id,
+                'text' => __('XLSX (Excel)'),
+                'requiresPublished' => false,
+                'checkbox' => true,
+                'checkbox_text' => __('Include non-IDS marked attributes'),
+                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id,
+            ),
+            'xlsx_with_context' => array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:1/eventid:' . $id,
+                'text' => __('XLSX (Excel) with additional context'),
+                'requiresPublished' => false,
+                'checkbox' => true,
+                'checkbox_text' => __('Include non-IDS marked attributes'),
+                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id,
+            ),
             'csv' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
-                'text' => 'CSV',
+                'text' => __('CSV (NOT FOR EXCEL)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Include non-IDS marked attributes'),
@@ -6957,7 +6971,7 @@ class EventsController extends AppController
             ),
             'csv_with_context' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
-                'text' => __('CSV with additional context'),
+                'text' => __('CSV with additional context (NOT FOR EXCEL)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Include non-IDS marked attributes'),
@@ -7027,9 +7041,15 @@ class EventsController extends AppController
                     unset($exports[$k]);
                 }
             }
+            $exports['xlsx'] = array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:0/eventid:' . $id,
+                'text' => __('XLSX (Excel) (event not published, IDS flag ignored)'),
+                'requiresPublished' => false,
+                'checkbox' => false,
+            );
             $exports['csv'] = array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
-                'text' => __('CSV (event not published, IDS flag ignored)'),
+                'text' => __('CSV (NOT FOR EXCEL, event not published, IDS flag ignored)'),
                 'requiresPublished' => false,
                 'checkbox' => false,
             );
