@@ -8,23 +8,20 @@ use PHPUnit\Framework\TestCase;
 class FastLookupIndexManagerTest extends TestCase
 {
     private $attribute;
-    private $index;
+    private $filter;
     private $manager;
 
     protected function setUp(): void
     {
         require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
-        if (is_file(__DIR__ . '/../Lib/Tools/FastLookupIndexManager.php')) {
-            require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
-        }
+        require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
         $this->attribute = new FastLookupLifecycleAttribute();
-        $this->index = new FastLookupLifecycleIndex();
+        $this->filter = new FastLookupLifecycleFilter();
     }
 
     private function manager()
     {
-        $this->assertTrue(class_exists('FastLookupIndexManager'), 'The persistent index lifecycle manager exists.');
-        return $this->manager ?? ($this->manager = new FastLookupIndexManager($this->attribute, $this->index));
+        return $this->manager ?? ($this->manager = new FastLookupIndexManager($this->attribute, $this->filter));
     }
 
     private function seed()
@@ -33,6 +30,8 @@ class FastLookupIndexManagerTest extends TestCase
         $this->attribute->db->attributes = [
             ['id' => '10', 'event_id' => '1', 'type' => 'domain', 'value1' => 'one.test', 'value2' => '', 'deleted' => false],
             ['id' => '20', 'event_id' => '4', 'type' => 'domain', 'value1' => 'two.test', 'value2' => '', 'deleted' => false],
+            ['id' => '30', 'event_id' => '8', 'type' => 'domain', 'value1' => 'draft.test', 'value2' => '', 'deleted' => false],
+            ['id' => '40', 'event_id' => '1', 'type' => 'domain', 'value1' => 'gone.test', 'value2' => '', 'deleted' => true],
         ];
     }
 
@@ -48,6 +47,11 @@ class FastLookupIndexManagerTest extends TestCase
         return $manager;
     }
 
+    private function liveInfo()
+    {
+        return $this->filter->metadata()['generations'][$this->filter->meta['live']];
+    }
+
     public function testMissingIndexRequiresBackfillInsteadOfReturningReady()
     {
         $status = $this->manager()->status();
@@ -55,21 +59,19 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame(['domain'], $status['scope']['attribute_types']);
     }
 
-    public function testBackfillResumesByEventIdAndOnlyReadiesCompleteScope()
+    public function testFirstBuildScansPublishedAttributesAndBecomesReady()
     {
         $this->seed();
         $manager = $this->manager();
         $this->assertSame('warming', $manager->startRebuild()['status']);
-        $first = $manager->runBatch(1);
-        $this->assertSame('warming', $first['status']);
-        $this->assertSame(1, $first['progress']['processed_events']);
-        $this->assertSame(2, $first['progress']['total_events']);
-        $manager->runBatch(1);
         $status = $manager->runBatch(1);
         $this->assertSame('ready', $status['status']);
-        $this->assertSame(['10'], array_column($this->index->events['1'], 'id'));
-        $this->assertSame(['20'], array_column($this->index->events['4'], 'id'));
-        $this->assertArrayNotHasKey('8', $this->index->events);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+        $this->assertSame(2, $status['progress']['processed_attributes']);
+        $this->assertSame(100, $status['progress']['percent']);
+        $this->assertSame(FastLookupIndexManager::MIN_CAPACITY, $this->filter->reserved[0]['capacity']);
+        $this->assertSame(0.001, $this->filter->reserved[0]['rate']);
+        $this->assertSame(4, $this->filter->reserved[0]['rangeEntries'], 'Domain attributes, deleted ones included, size the postings.');
     }
 
     public function testOutboxRollsBackWithCallerAndNeverCommitsCallerTransaction()
@@ -88,22 +90,22 @@ class FastLookupIndexManagerTest extends TestCase
     {
         $manager = $this->ready();
         Configure::$values['MISP.fast_lookup_enabled'] = false;
-        $this->index->available = false;
+        $this->filter->available = false;
         FastLookupIndexManager::recordChange($this->attribute, '1');
-        $this->index->available = true;
+        $this->filter->available = true;
         $this->assertSame('updating', $manager->status()['status']);
         unset($this->attribute->db->events['1']);
         $this->assertSame('ready', $manager->processPending()['status']);
-        $this->assertArrayNotHasKey('1', $this->index->events);
+        $this->assertSame(1, $this->liveInfo()['stale'], 'A removed event leaves stale entries for SQL to reject.');
     }
 
     public function testRestoredOldRedisCheckpointRefusesResultsAndIncrementalRepair()
     {
         $manager = $this->ready();
-        $old = $this->index->meta;
+        $old = $this->filter->meta;
         FastLookupIndexManager::recordChange($this->attribute, '1');
         $manager->processPending();
-        $this->index->meta = $old;
+        $this->filter->meta = $old;
         $this->assertNotSame('ready', $manager->status()['status']);
         $this->assertNotSame('ready', $manager->processPending()['status']);
     }
@@ -114,13 +116,13 @@ class FastLookupIndexManagerTest extends TestCase
         FastLookupIndexManager::recordChange($this->attribute, '1');
         FastLookupIndexManager::recordChange($this->attribute, '4');
         $snapshot = null;
-        $this->index->afterWrite = function () use (&$snapshot) {
-            $this->index->afterWrite = null;
-            $snapshot = [$this->index->meta, $this->index->events];
+        $this->filter->afterWrite = function () use (&$snapshot) {
+            $this->filter->afterWrite = null;
+            $snapshot = [$this->filter->meta, $this->filter->generations];
         };
         $this->assertSame('ready', $manager->processPending(2)['status']);
         // Restore the Redis state from after the first of the two events.
-        [$this->index->meta, $this->index->events] = $snapshot;
+        [$this->filter->meta, $this->filter->generations] = $snapshot;
         $this->assertNotSame('ready', $manager->status()['status']);
         $this->assertNotSame('ready', $manager->processPending()['status']);
         $this->assertNotSame('ready', $manager->status()['status']);
@@ -131,9 +133,9 @@ class FastLookupIndexManagerTest extends TestCase
         $manager = $this->ready();
         FastLookupIndexManager::recordChange($this->attribute, '1');
         $calls = 0;
-        $this->index->afterCheckpoint = function () use (&$calls) {
+        $this->filter->afterCheckpoint = function () use (&$calls) {
             if (++$calls === 2) {
-                $this->index->afterCheckpoint = null;
+                $this->filter->afterCheckpoint = null;
                 throw new RuntimeException('Interrupted before the SQL commit');
             }
         };
@@ -141,32 +143,37 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame('ready', $manager->processPending()['status']);
     }
 
-    public function testInterruptedBatchCanResumeWithoutLosingCompletedBackfillProgress()
+    public function testFailedBuildWaitsForResumeThenRestartsInFreshGeneration()
     {
         $this->seed();
         $manager = $this->manager();
         $manager->startRebuild();
-        $manager->runBatch(1);
-        $this->index->failNextWrite = true;
-        $this->assertNotSame('ready', $manager->runBatch(1)['status']);
-        $this->assertSame(1, $manager->status()['progress']['processed_events']);
+        $first = $this->filter->meta['building'];
+        $this->filter->failNextWrite = true;
+        $this->assertSame('error', $manager->runBatch(1)['status']);
+        $status = $manager->runBatch(1);
+        $this->assertSame('error', $status['status'], 'A failed build waits for an operator.');
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $status['build']['error']);
+        $manager->resume();
         $manager->runBatch(1);
         $this->assertSame('ready', $manager->runBatch(1)['status']);
-        $this->assertCount(2, $this->index->events);
+        $this->assertNotSame($first, $this->filter->meta['live']);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
     }
 
-    public function testInterruptedInitialisationResumesWithFreshGeneration()
+    public function testInterruptedReservationRestartsInFreshGeneration()
     {
         $this->seed();
         $manager = $this->manager();
-        $this->index->failInitialise = true;
+        $this->filter->failReserve = true;
         $this->assertSame('error', $manager->startRebuild()['status']);
-        $partialGeneration = $this->index->meta['generation'];
-        $this->assertSame('ready', $manager->runBatch(3)['status']);
-        $this->assertNotSame($partialGeneration, $this->index->meta['generation']);
+        $manager->resume();
+        $manager->runBatch(1);
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertNotSame($this->filter->reserved[0]['generation'], $this->filter->meta['live']);
     }
 
-    public function testBackfillMetricsRemainAvailableBeforeReadiness()
+    public function testBackfillMetricsAreAvailableWhileWarming()
     {
         $this->seed();
         $manager = $this->manager();
@@ -174,19 +181,15 @@ class FastLookupIndexManagerTest extends TestCase
         $status = $manager->status(true);
         $this->assertSame('warming', $status['status']);
         $this->assertArrayHasKey('statistics', $status);
-        $this->index->failNextWrite = true;
-        $manager->runBatch(1);
-        $status = $manager->status(true);
-        $this->assertSame('error', $status['status']);
-        $this->assertArrayHasKey('statistics', $status);
+        $this->assertSame(FastLookupIndexManager::MIN_CAPACITY, $status['statistics']['capacity']);
     }
 
     public function testNewDirtyRevisionIsNotAcknowledgedByOlderRefresh()
     {
         $manager = $this->ready();
         FastLookupIndexManager::recordChange($this->attribute, '1');
-        $this->index->afterWrite = function () {
-            $this->index->afterWrite = null;
+        $this->filter->afterWrite = function () {
+            $this->filter->afterWrite = null;
             FastLookupIndexManager::recordChange($this->attribute, '1');
         };
         $this->assertSame('updating', $manager->processPending(1)['status']);
@@ -215,6 +218,111 @@ class FastLookupIndexManagerTest extends TestCase
         } finally {
             $this->attribute->db->rollBack();
         }
+    }
+
+    public function testLiveGenerationServesWhileRebuildScans()
+    {
+        $manager = $this->ready();
+        $live = $this->filter->meta['live'];
+        $status = $manager->startRebuild();
+        $this->assertSame('ready', $status['status']);
+        $this->assertNotNull($status['build']);
+        $revision = $status['revision'];
+        $manager->runBatch(1);
+        $status = $manager->status();
+        $this->assertSame('ready', $status['status']);
+        $this->assertSame($revision, $status['revision'], 'Scan batches never invalidate in-flight lookups.');
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status']);
+        $this->assertNull($status['build']);
+        $this->assertNotSame($live, $this->filter->meta['live']);
+        $this->assertArrayNotHasKey($live, $this->filter->generations);
+    }
+
+    public function testAttributeAddedDuringRebuildIsInNewGeneration()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->attribute->db->attributes[] = ['id' => '50', 'event_id' => '1', 'type' => 'domain', 'value1' => 'new.test', 'value2' => '', 'deleted' => false];
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $manager->processPending();
+        $this->assertContains('50', $this->filter->liveIds(), 'The live generation receives the change.');
+        for ($i = 0; $i < 3 && $manager->status()['build'] !== null; ++$i) {
+            $manager->runBatch(1);
+        }
+        $this->assertNull($manager->status()['build']);
+        $this->assertContains('50', $this->filter->liveIds(), 'The rebuilt generation received it too.');
+    }
+
+    public function testRedisRestoreDuringBuildNeverActivatesIncompleteGeneration()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $manager->runBatch(1);
+        // Redis restored from a snapshot taken before the scan.
+        $this->filter->generations[$building]['info']['cursor'] = '0';
+        $manager->runBatch(1);
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status'], 'The live generation keeps serving.');
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $status['build']['error']);
+        $this->assertNotSame($building, $this->filter->meta['live']);
+    }
+
+    public function testEvictedBuildingFilterFailsOnlyTheBuild()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $manager->runBatch(1);
+        unset($this->filter->generations[$building]);
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $failed = $manager->runBatch(1);
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $failed['build']['error']);
+        $this->assertNotSame('error', $failed['status'], 'No global update error.');
+        // The pending dirty event still drains into the live generation.
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status'], 'The live generation keeps serving.');
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $status['build']['error']);
+        $this->assertNotSame($building, $this->filter->meta['live']);
+    }
+
+    public function testCapacityOrStaleShareSchedulesRebuild()
+    {
+        $manager = $this->ready();
+        $live = $this->filter->meta['live'];
+        $this->filter->generations[$live]['info']['inserted'] = 20000;
+        $this->filter->generations[$live]['info']['stale'] = 2000;
+        FastLookupIndexManager::recordChange($this->attribute, '4');
+        $status = $manager->processPending();
+        $this->assertSame('ready', $status['status']);
+        $this->assertNotNull($status['build'], 'A 10% stale share schedules a rebuild.');
+
+        $this->manager = null;
+        $this->filter = new FastLookupLifecycleFilter();
+        $this->attribute = new FastLookupLifecycleAttribute();
+        $manager = $this->ready();
+        $live = $this->filter->meta['live'];
+        $this->filter->generations[$live]['info']['inserted'] = (int)(0.8 * FastLookupIndexManager::MIN_CAPACITY);
+        FastLookupIndexManager::recordChange($this->attribute, '4');
+        $this->assertNotNull($manager->processPending()['build'], 'Reaching 80% of capacity schedules a rebuild.');
+    }
+
+    public function testSmallIndexesDoNotRebuildForStaleEntries()
+    {
+        $manager = $this->ready();
+        FastLookupIndexManager::recordChange($this->attribute, '4');
+        $this->assertNull($manager->processPending()['build']);
+    }
+
+    public function testMissingRedisBloomModuleIsReported()
+    {
+        $manager = $this->ready();
+        $this->filter->available = false;
+        $this->filter->moduleAvailable = false;
+        $status = $manager->status();
+        $this->assertSame('unavailable', $status['status']);
+        $this->assertStringContainsString('RedisBloom', $status['message']);
     }
 
     public function testEventSaveCallbackRecordsDirectPublicationAndUnpublication()

@@ -19,6 +19,10 @@ class FastLookupIndexShellTest extends TestCase
     {
         $attribute = new FastLookupLifecycleAttribute();
         $attribute->db->events = ['1' => true, '9' => true];
+        $attribute->db->attributes = [
+            ['id' => '11', 'event_id' => '1', 'type' => 'domain', 'value1' => 'one.test', 'value2' => '', 'deleted' => false],
+            ['id' => '19', 'event_id' => '9', 'type' => 'domain', 'value1' => 'nine.test', 'value2' => '', 'deleted' => false],
+        ];
         ClassRegistry::$attribute = $attribute;
         $shell = new AdminShell();
         $shell->MispAttribute = $attribute;
@@ -28,7 +32,7 @@ class FastLookupIndexShellTest extends TestCase
         $shell->rebuildFastLookup();
         $status = json_decode(end($shell->output), true);
         $this->assertSame('ready', $status['status']);
-        $this->assertSame(2, $status['progress']['processed_events']);
+        $this->assertSame(2, $status['progress']['processed_attributes']);
         $this->assertTrue($shell->Job->success);
     }
 

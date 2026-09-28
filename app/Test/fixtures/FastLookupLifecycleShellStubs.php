@@ -33,13 +33,13 @@ class BackgroundJobsTool
     public $queued = [];
     public function enqueue(...$args) { $this->queued[] = $args; }
 }
-class FastLookupIndex extends FastLookupLifecycleIndex
+class FastLookupFilter extends FastLookupLifecycleFilter
 {
     private static $shared;
     public function __construct(...$args)
     {
-        if (self::$shared === null) { self::$shared = ['meta' => [], 'events' => []]; }
+        if (self::$shared === null) { self::$shared = ['meta' => [], 'generations' => []]; }
         $this->meta =& self::$shared['meta'];
-        $this->events =& self::$shared['events'];
+        $this->generations =& self::$shared['generations'];
     }
 }

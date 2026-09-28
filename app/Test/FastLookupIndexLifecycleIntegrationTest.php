@@ -33,7 +33,7 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         $this->pdo->exec('CREATE TABLE events (id INT PRIMARY KEY, published BOOLEAN NOT NULL) ENGINE=InnoDB');
         $this->pdo->exec('CREATE TABLE attributes (id INT PRIMARY KEY, event_id INT NOT NULL, type VARCHAR(255), value1 TEXT, value2 TEXT, deleted BOOLEAN NOT NULL DEFAULT FALSE) ENGINE=InnoDB');
         $this->attribute = $this->model($this->pdo);
-        $this->index = new FastLookupLifecycleIndex();
+        $this->index = new FastLookupLifecycleFilter();
         $this->manager = new FastLookupIndexManager($this->attribute, $this->index);
     }
 
@@ -97,14 +97,14 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         $this->pdo->commit();
         $this->assertSame('updating', $this->manager->status()['status']);
         $this->assertSame('ready', $this->manager->processPending()['status']);
-        $this->assertArrayNotHasKey('1', $this->index->events);
+        $this->assertSame(1, $this->index->metadata()['generations'][$this->index->meta['live']]['stale']);
     }
 
     public function testInitialDisabledMutationFencesFirstBackfillSnapshot()
     {
         Configure::$values['MISP.fast_lookup_enabled'] = false;
         $this->pdo->beginTransaction();
-        $this->pdo->exec('INSERT INTO events VALUES (1, TRUE)');
+        $this->pdo->exec('INSERT INTO events VALUES (1, TRUE)'); $this->pdo->exec("INSERT INTO attributes VALUES (100, 1, 'domain', 'one.test', '', FALSE)");
         FastLookupIndexManager::recordChange($this->attribute, '1');
         $second = $this->connection();
         $other = new FastLookupIndexManager($this->model($second), $this->index);
@@ -119,7 +119,7 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         $other->startRebuild();
         $status = $other->runBatch(2);
         $this->assertSame('ready', $status['status']);
-        $this->assertSame(1, $status['progress']['processed_events']);
+        $this->assertSame(1, $status['progress']['processed_attributes']);
     }
 }
 

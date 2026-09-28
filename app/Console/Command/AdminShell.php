@@ -50,8 +50,8 @@ class AdminShell extends AppShell
     {
         $parser = parent::getOptionParser();
         foreach ([
-            'rebuildFastLookup' => 'Start and complete a new persistent IOC index backfill.',
-            'resumeFastLookup' => 'Resume an interrupted persistent IOC index backfill.',
+            'rebuildFastLookup' => 'Start and complete a new persistent IOC index build (the current index keeps serving).',
+            'resumeFastLookup' => 'Resume or restart an interrupted persistent IOC index build.',
             'processFastLookup' => 'Process pending persistent IOC index mutations.',
         ] as $command => $help) {
             $parser->addSubcommand($command, [
@@ -360,14 +360,19 @@ class AdminShell extends AppShell
         try {
             if ($rebuild) {
                 $status = $manager->startRebuild();
-                if (in_array($status['status'], ['error', 'unavailable'], true)) {
+                if (in_array($status['status'], ['error', 'unavailable'], true) && empty($status['build'])) {
                     throw new RuntimeException($status['message']);
                 }
+            } elseif (!$pendingOnly) {
+                $manager->resume();
             }
             do {
                 $status = $pendingOnly ? $manager->processPending($batchSize) : $manager->runBatch($batchSize);
+                // processFastLookup never scans a first build, only rebuilds beside a live generation.
+                $building = !empty($status['build']) && empty($status['build']['error'])
+                    && (!$pendingOnly || $status['generation'] !== null);
                 $this->Job->saveProgress($jobId, 'IOC index: ' . $status['status'], min(99, $status['progress']['percent']));
-                if ($pendingOnly && $status['status'] === 'updating' && Configure::read('MISP.background_jobs')) {
+                if ($pendingOnly && ($status['status'] === 'updating' || $building) && Configure::read('MISP.background_jobs')) {
                     $this->getBackgroundJobsTool()->enqueue(
                         BackgroundJobsTool::DEFAULT_QUEUE,
                         BackgroundJobsTool::CMD_ADMIN,
@@ -378,12 +383,12 @@ class AdminShell extends AppShell
                     $this->out($this->json($status));
                     return;
                 }
-            } while ($status['status'] === 'updating' || (!$pendingOnly && $status['status'] === 'warming'));
-            $success = $status['status'] === 'ready' || ($pendingOnly && $status['status'] === 'warming');
+            } while ($status['status'] === 'updating' || $building || (!$pendingOnly && $status['status'] === 'warming'));
+            $success = in_array($status['status'], ['ready', 'warming'], true) && empty($status['build']['error']);
             $this->Job->saveStatus($jobId, $success, $status['message'] ?? ('IOC index: ' . $status['status']));
             $this->out($this->json($status));
             if (!$success) {
-                $this->error($status['message'] ?? 'The persistent IOC index requires a rebuild.');
+                $this->error($status['build']['error'] ?? $status['message'] ?? 'The persistent IOC index requires a rebuild.');
             }
         } catch (Throwable $e) {
             $this->Job->saveStatus($jobId, false, 'The persistent IOC index update failed; pending mutations were retained.');
