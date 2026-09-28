@@ -231,11 +231,14 @@ with scope and progress but **no `results` field**:
 
 The example above is a first build: nothing has ever been indexed, so there
 is no live generation yet. Once a live generation exists — a resumed
-rebuild running beside a still-serving index, an `updating` batch, or a
-`ready` index — every response also carries a `filter` object with that
-generation's capacity, configured rate, current insert count and
+rebuild running beside a still-serving index, or an `updating` batch — the
+503 status envelopes built from the index status, and every
+`GET /servers/fastLookup` status response, also carry a `filter` object with
+that generation's capacity, configured rate, current insert count and
 upper-bound stale count, straight from Redis metadata (an O(1) read, never
-requiring `?metrics=1`):
+requiring `?metrics=1`). A 200 `ready` lookup body carries only `status`,
+`scope` and `results`, never `filter`; nor do the generic 503 error bodies
+(`"status": "error"` with the fixed unavailable message):
 
 ```json
 "filter": {

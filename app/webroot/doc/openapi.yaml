@@ -3257,7 +3257,7 @@ components:
   schemas:
     FastLookupScope:
       type: object
-      required: [attribute_types, published_only, max_values, matching]
+      required: [attribute_types, published_only, max_values, false_positive_rate, matching]
       properties:
         attribute_types:
           type: array
@@ -3280,7 +3280,7 @@ components:
         Invalid configuration cannot describe a usable index. The configured type names
         are retained, including unknown names; a non-string type setting is null.
         Invalid publication policy or request limit is null. Results are never returned.
-      required: [attribute_types, published_only, max_values, matching, configuration_valid]
+      required: [attribute_types, published_only, max_values, false_positive_rate, matching, configuration_valid]
       properties:
         attribute_types:
           type: array
@@ -3317,6 +3317,13 @@ components:
                 type: object
                 additionalProperties:
                   $ref: "#/components/schemas/FastLookupEventIds"
+    FastLookupProgress:
+      type: object
+      properties:
+        processed_attributes: {type: integer, minimum: 0, example: 1100}
+        total_attributes: {type: integer, minimum: 0, example: 1300}
+        percent: {type: integer, minimum: 0, maximum: 100, example: 84}
+        eta_seconds: {type: integer, minimum: 0, nullable: true, example: 24}
     FastLookupStatusResponse:
       type: object
       required: [status, scope]
@@ -3328,12 +3335,30 @@ components:
             - $ref: "#/components/schemas/FastLookupDiagnosticScope"
         message: {type: string}
         progress:
+          $ref: "#/components/schemas/FastLookupProgress"
+        generation:
+          type: string
+          nullable: true
+          description: The live generation, or null before the first build activates.
+        revision:
+          type: string
+          nullable: true
+          description: The committed index revision, or null without a live generation.
+        build:
           type: object
+          nullable: true
+          description: |
+            The generation being built beside (or, for a first build, instead of)
+            the live one; null when no build is in progress.
+          required: [generation, progress, error]
           properties:
-            processed_attributes: {type: integer, minimum: 0, example: 1100}
-            total_attributes: {type: integer, minimum: 0, example: 1300}
-            percent: {type: integer, minimum: 0, maximum: 100, example: 84}
-            eta_seconds: {type: integer, minimum: 0, nullable: true, example: 24}
+            generation: {type: string, example: 9f2c4b1e0a7d4c3b8e6f5a4d3c2b1a09}
+            progress:
+              $ref: "#/components/schemas/FastLookupProgress"
+            error:
+              type: string
+              nullable: true
+              description: Set when the build failed; resume restarts it in a fresh generation.
         filter:
           type: object
           description: |

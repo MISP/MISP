@@ -10,8 +10,10 @@ postings or cache permissions. The old `maxAge` request parameter and
 
 Fast lookup needs Redis 8 or Redis Stack for the RedisBloom module (`BF.*`
 commands). Without it the endpoint answers HTTP 503 with `Fast lookup requires
-the RedisBloom module (Redis 8 or Redis Stack).`. The index only supports
-MySQL/MariaDB.
+the RedisBloom module (Redis 8 or Redis Stack).`. When Redis cannot be reached
+at all, the 503 message says so instead (`The IOC index is unavailable: Redis
+cannot be reached.`), so an outage is not mistaken for a missing module. The
+index only supports MySQL/MariaDB.
 
 ## Configuration and operation
 
@@ -73,9 +75,12 @@ background jobs a bounded batch is processed at shutdown. Schedule
 outage use `resumeFastLookup` to drain work. An uncleared queue refuses lookups;
 it never quietly serves a partial index.
 
-Build progress reports processed/total events, percentage and an estimate derived
-from elapsed time and completed events. The estimate is null until progress is
-available; varying event sizes can make it change substantially. During backfill,
+Build progress reports processed/total attributes (`processed_attributes` and
+`total_attributes`), percentage and an estimate derived from elapsed time and
+processed attributes. The total is an estimate taken before the scan, including
+deleted and unpublished attributes, until the scan completes. The estimate is
+null until progress is available; an uneven spread of in-scope attributes over
+attribute IDs can make it change substantially. During backfill,
 pending updates, failed writes or scope changes, the API returns HTTP 503 and no
 `results` field. Clients should honor `Retry-After` and retry when ready.
 
@@ -118,7 +123,12 @@ Whole-batch exclusivity between workers is a Redis lease (`SET NX PX` with a
 random token; released by a compare-and-delete on that token), not the row
 lock, so it holds across every Galera node and every MISP server sharing the
 index, not just one process. The lease has a 60 s TTL (`WORKER_LEASE_TTL_MS`)
-and is renewed before every scan chunk and before progress is recorded.
+and is renewed before every scan chunk and before progress is recorded. Each
+scan query covers at most 20,000 attribute IDs past the cursor
+(`SCAN_WINDOW`) and returns at most 2,000 rows (`SCAN_CHUNK_SIZE`), so the rows
+one query examines stay bounded however sparse the in-scope attributes are
+(excluded types, deleted attributes, unpublished events), and no single query
+can outlast the lease.
 `rebuildFastLookup`/`resumeFastLookup` wait up to 5 s (`WORKER_LOCK_WAIT`) for
 a busy lease before giving up for that invocation. Request-shutdown dispatch
 (`processPending`) makes a single, non-waiting attempt and leaves its markers
@@ -144,15 +154,19 @@ revision after the batch completes, so a Redis snapshot taken partway through a
 batch never matches the SQL checkpoint. Readiness
 requires agreement between the SQL and Redis generation/revision, no incomplete
 write and no dirty events. This detects interrupted writes and a Redis instance
-restored from an older backup. Backfill traverses event IDs with a high-water mark,
+restored from an older backup. Backfill traverses attribute IDs up to a
+high-water mark taken when the generation is reserved, one ID window per query;
+a window that returns fewer rows than asked moves the cursor to the window's
+end, and the scan is complete once the cursor reaches the high-water mark. It
 then replays the dirty queue before declaring readiness. Lookup repeats the
 readiness fence after checking live SQL permissions. Every Redis operation first
 checks the filter key, the generation state and the bucket sentinels, so an
 evicted or missing key fails closed rather than reporting absence. A later
 rebuild runs beside the live generation, fenced by its own attribute cursor,
 and replaces the live generation atomically once it catches up: lookups keep
-being served by the old generation throughout, and only a broken or
-interrupted build fails. The first activation after a rebuild also removes the
+being served by the old generation apart from the short activation batch
+(activation sets Redis `ready=0` until the batch commits, and lookups answer
+503 meanwhile), and only a broken or interrupted build fails. The first activation after a rebuild also removes the
 previous format's `misp:fast_lookup:v3:` keys and its `fastLookupIndex:state:v2`
 state row.
 
@@ -161,7 +175,12 @@ fastLookup key expires except the worker lease. Evicted or lost keys cause
 unavailability, requiring repair or rebuild. Initial scope changes make
 lookups unavailable until the first generation finishes building; a rebuild of
 an already-live index does not, since lookups keep being served by the current
-generation until the new one swaps in. The lease key,
+generation apart from the short activation batch that swaps the new one in.
+A rebuild resets the Redis namespace, or drops the live generation from the
+SQL checkpoint, only when Redis itself reports the index metadata or a
+generation as missing or invalid (for example an evicted filter). A timeout,
+`BUSY` reply or other transport error never counts as a lost index: that
+rebuild attempt fails and the live generation keeps serving. The lease key,
 `misp:fast_lookup:bf1:<sha256(namespace)>:worker`, is the one exception: it
 carries the 60 s TTL described above, and its expiry between batches, or after
 a crashed worker, is normal operation, not an index failure.
@@ -273,12 +292,13 @@ FL_PER_TYPE=100000 php tests/benchmarks/FastLookupScale.php /path/to/cakephp/lib
 
 `FastLookupFilterRedisContract.php` (replacing `FastLookupIndexRedisContract.php`)
 needs Redis 8 or Redis Stack, since it exercises the RedisBloom `BF.*` commands
-directly; point it and the shell runner's `MISP_REDIS_IMAGE` at an image that
-provides RedisBloom rather than plain Redis.
+directly. The shell runner's default Redis image (`redis:8`) bundles RedisBloom;
+if you override `MISP_REDIS_IMAGE`, point it at an image that provides
+RedisBloom rather than plain Redis.
 
 Use disposable databases and Redis only. The shell runner starts socket-only
 MariaDB/Redis containers with no published ports and uses existing local images.
-Its defaults are `localhost/misp-live:tmp`, `mariadb:10.11` and `redis:7`; override
+Its defaults are `localhost/misp-live:tmp`, `mariadb:10.11` and `redis:8`; override
 `MISP_PHP_IMAGE`, `MISP_MARIADB_IMAGE`, `MISP_REDIS_IMAGE` as needed. Large SIEM
 workloads should be benchmarked with the deployment's type distribution, ACLs,
 event sizes and database/Redis latency. Fixture timings are not production capacity
