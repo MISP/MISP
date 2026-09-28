@@ -7,7 +7,9 @@
  */
 class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
 {
+    private $server;
     private $pdo;
+    private $database;
 
     protected function setUp(): void
     {
@@ -18,17 +20,20 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
         require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupConfig.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupValueTool.php';
-        $this->pdo = new PDO('mysql:unix_socket=' . $socket . ';charset=utf8mb4', 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-        // The disposable socket has no application database; use a scratch one for the probe table.
-        $this->pdo->exec('CREATE DATABASE IF NOT EXISTS fastlookup_collation_test');
-        $this->pdo->exec('USE fastlookup_collation_test');
+        $this->server = new PDO('mysql:unix_socket=' . $socket . ';charset=utf8mb4', 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        // The disposable socket has no application database; use a scratch one,
+        // uniquely named per run so concurrent worktrees never collide.
+        $this->database = 'fastlookup_collation_' . bin2hex(random_bytes(8));
+        $this->server->exec('CREATE DATABASE ' . $this->database);
+        $this->pdo = new PDO('mysql:unix_socket=' . $socket . ';dbname=' . $this->database . ';charset=utf8mb4',
+            'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         Configure::clear();
     }
 
     protected function tearDown(): void
     {
-        if ($this->pdo instanceof PDO) {
-            $this->pdo->exec('DROP DATABASE IF EXISTS fastlookup_collation_test');
+        if ($this->pdo instanceof PDO && $this->database) {
+            $this->server->exec('DROP DATABASE ' . $this->database);
         }
     }
 
