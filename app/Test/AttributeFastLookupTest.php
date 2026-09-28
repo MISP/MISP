@@ -276,7 +276,17 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     /**
      * F10: tokenizer-level - the tokens prepareScannedAttributes() derives for
      * stored attributes must intersect the queryTokens() a lookup of a child
-     * value produces, for an IP range, an ASCII domain and an IDN domain.
+     * value produces, for an IP range, an ASCII domain, and an IDN domain in
+     * both storage directions (MISP stores IDN domains as punycode, per
+     * AttributeValidationTool::modifyBeforeValidation('domain', ...), but the
+     * tokenizer's own domain() normalization must match either way).
+     *
+     * The per-token kind check the brief's first draft of this test had
+     * (asserting the intersecting token is 'I'/'D', not 'E') was dropped: the
+     * default stub datasource never supports collation weights, so
+     * queryTokens() always routes exact matches to $fallback rather than
+     * emitting an 'E' token, which made that assertion structurally
+     * unfalsifiable. assertNotEmpty() below is what actually exercises F10.
      */
     public function testTokenizerIntersectsStoredRangeAndDomainTokensWithQueryTokens(): void
     {
@@ -286,20 +296,26 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $rows = [
             ['id' => '11', 'type' => 'ip-src', 'value1' => '10.0.0.5/24', 'value2' => ''],
             ['id' => '12', 'type' => 'domain', 'value1' => 'Evil.COM.', 'value2' => ''],
-            ['id' => '13', 'type' => 'domain', 'value1' => 'bücher.example', 'value2' => ''],
+            // Stored as punycode (how MISP actually persists an IDN domain), queried in Unicode.
+            ['id' => '13', 'type' => 'domain', 'value1' => 'xn--bcher-kva.example', 'value2' => ''],
+            // Reverse direction: stored in Unicode, queried as a punycode child.
+            ['id' => '14', 'type' => 'domain', 'value1' => 'bücher.example', 'value2' => ''],
         ];
         $prepared = $tool->prepareScannedAttributes($rows);
-        $queries = $tool->queryTokens(['10.0.0.7', 'www.evil.com', 'www.bücher.example'], ['ip-src', 'domain']);
-        $expectedKind = ['0' => 'I', '1' => 'D', '2' => 'D'];
+        $queries = $tool->queryTokens(
+            ['10.0.0.7', 'www.evil.com', 'www.bücher.example', 'www.xn--bcher-kva.example'],
+            ['ip-src', 'domain']
+        );
         foreach ($prepared as $i => $row) {
             $storedTokens = $row['tokens'];
             $queryTokens = array_column($queries[$i], 'token');
-            $intersection = array_values(array_intersect($storedTokens, $queryTokens));
+            $intersection = array_intersect($storedTokens, $queryTokens);
             $this->assertNotEmpty($intersection, "Row $i ({$rows[$i]['value1']}) must share a token with its query.");
-            foreach ($intersection as $token) {
-                $this->assertSame($expectedKind[(string)$i], $token[0], "Row $i must intersect on its $expectedKind[$i] token, not an exact one.");
-            }
         }
+        // The punycode-stored and Unicode-stored IDN rows must land on the
+        // same domain token: the tokenizer normalizes both to one spelling.
+        $domainToken = function ($tokens) { return array_values(array_filter($tokens, function ($t) { return $t[0] === 'D'; })); };
+        $this->assertSame($domainToken($prepared[2]['tokens']), $domainToken($prepared[3]['tokens']));
     }
 
     /**
