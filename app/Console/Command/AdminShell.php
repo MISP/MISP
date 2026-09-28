@@ -360,16 +360,17 @@ class AdminShell extends AppShell
         try {
             if ($rebuild) {
                 $status = $manager->startRebuild();
-                if (in_array($status['status'], ['error', 'unavailable'], true) && empty($status['build'])) {
-                    throw new RuntimeException($status['message']);
-                }
             } elseif (!$pendingOnly) {
                 $manager->resume();
             }
-            do {
+            // An error or an unavailable index stops the job whatever the build
+            // state: retrying a batch that cannot succeed would never end.
+            $failed = $rebuild && in_array($status['status'], ['error', 'unavailable'], true);
+            while (!$failed) {
                 $status = $pendingOnly ? $manager->processPending($batchSize) : $manager->runBatch($batchSize);
+                $failed = in_array($status['status'], ['error', 'unavailable'], true);
                 // processFastLookup never scans a first build, only rebuilds beside a live generation.
-                $building = !empty($status['build']) && empty($status['build']['error'])
+                $building = !$failed && !empty($status['build']) && empty($status['build']['error'])
                     && (!$pendingOnly || $status['generation'] !== null);
                 $this->Job->saveProgress($jobId, 'IOC index: ' . $status['status'], min(99, $status['progress']['percent']));
                 if ($pendingOnly && ($status['status'] === 'updating' || $building) && Configure::read('MISP.background_jobs')) {
@@ -383,7 +384,10 @@ class AdminShell extends AppShell
                     $this->out($this->json($status));
                     return;
                 }
-            } while ($status['status'] === 'updating' || $building || (!$pendingOnly && $status['status'] === 'warming'));
+                if (!($status['status'] === 'updating' || $building || (!$pendingOnly && $status['status'] === 'warming'))) {
+                    break;
+                }
+            }
             $success = in_array($status['status'], ['ready', 'warming'], true) && empty($status['build']['error']);
             $this->Job->saveStatus($jobId, $success, $status['message'] ?? ('IOC index: ' . $status['status']));
             $this->out($this->json($status));

@@ -7,9 +7,12 @@ App::uses('FastLookupValueTool', 'Tools');
  * SQL owns the index checkpoint and mutation queue; Redis holds a derived Bloom
  * pre-filter (FastLookupFilter).
  *
- * Model callbacks write the queue on their existing connection/transaction.
- * A worker owns its transactions and locks the singleton SQL state row while
- * touching Redis. Batches that change what lookups see (dirty events, a first
+ * Model callbacks write the queue on their existing connection/transaction,
+ * under a share lock on the singleton SQL state row. Workers exclude each other
+ * with a SQL session lock held for a whole batch, and take the state row FOR
+ * UPDATE only while they drain the queue, checkpoint or activate: the rebuild
+ * scan runs outside the row lock with an attribute ID cursor, so it never holds
+ * writers back. Batches that change what lookups see (dirty events, a first
  * build, an activation) first commit a pending and a distinct next revision,
  * so a Redis snapshot from mid-batch never matches the committed checkpoint.
  * A rebuild writes a building generation beside the live one. Its scan batches
@@ -27,7 +30,7 @@ class FastLookupIndexManager
     const PENDING_BATCH_SIZE = 25;
     /** One batch unit is one dirty event or this many scanned attributes. */
     const SCAN_ATTRIBUTES_PER_UNIT = 1000;
-    const MIN_CAPACITY = 1000000;
+    const MIN_CAPACITY = FastLookupFilter::MIN_CAPACITY;
     /** Most attributes carry one or two tokens. */
     const TOKENS_PER_ATTRIBUTE = 2;
     const CAPACITY_HEADROOM = 1.5;
@@ -39,6 +42,8 @@ class FastLookupIndexManager
     const REBUILD_MIN_INSERTED = 10000;
     const IP_TYPES = ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'domain|ip'];
     const DOMAIN_TYPES = ['domain', 'domain|ip'];
+    /** Seconds a worker waits for another worker's batch before giving up. */
+    const WORKER_LOCK_WAIT = 5;
     const BUILD_FAILED = 'The IOC index rebuild failed. Resume to restart it from the beginning, or start a new rebuild.';
 
     private $attribute;
@@ -95,8 +100,10 @@ class FastLookupIndexManager
             }
             if (empty($state['generation']) || $state['fingerprint'] !== $fingerprint) {
                 if ($build && $build['fingerprint'] === $fingerprint) {
-                    $result['status'] = empty($build['error']) ? 'warming' : 'error';
-                    $result['message'] = $build['error'] ?? 'The IOC index is being built.';
+                    // A failing first build must not look like progress.
+                    $failure = $build['error'] ?? $state['error'] ?? null;
+                    $result['status'] = $failure === null ? 'warming' : 'error';
+                    $result['message'] = $failure ?? 'The IOC index is being built.';
                 } else {
                     $result['message'] = empty($state['generation'])
                         ? 'The IOC index requires an administrator to start a backfill.'
@@ -152,24 +159,33 @@ class FastLookupIndexManager
     public function startRebuild(): array
     {
         $this->requireIdleConnection();
-        // Sizing only needs an estimate, so it is counted outside the state
-        // lock: a full count must not hold attribute writers back.
+        // Sizing only needs an estimate, so it is counted outside every lock:
+        // a full count must not hold attribute writers or workers back.
         $sizing = $this->sizing(FastLookupConfig::scope($this->attribute));
-        $this->connection->beginTransaction();
-        try {
-            self::insertStateIfAbsent($this->connection, $this->settingsTable);
-            $state = ($this->readState(true) ?: []) + ['generation' => null, 'fingerprint' => null, 'revision' => '0',
-                'pending_revision' => null, 'next_revision' => null, 'error' => null];
-            $state['build'] = $this->newBuild($sizing);
-            $this->writeState($state);
-            $this->query("DELETE FROM {$this->settingsTable} WHERE setting = ?", [self::LEGACY_STATE_SETTING]);
-            $this->connection->commit();
-        } catch (Throwable $e) {
-            $this->rollbackOwnedTransaction();
-            throw $e;
+        if (!$this->acquireWorkerLock()) {
+            // Never replace a build another worker may be scanning.
+            throw new RuntimeException('Another IOC index worker is busy. Start the rebuild again once its batch has finished.');
         }
-        // Reserving the filter is resumable too: the build is committed first.
-        return $this->runBatchInternal(0, false);
+        try {
+            $this->connection->beginTransaction();
+            try {
+                self::insertStateIfAbsent($this->connection, $this->settingsTable);
+                $state = ($this->readState(true) ?: []) + ['generation' => null, 'fingerprint' => null, 'revision' => '0',
+                    'pending_revision' => null, 'next_revision' => null, 'error' => null];
+                $this->discardUnservableGeneration($state);
+                $state['build'] = $this->newBuild($sizing);
+                $this->writeState($state);
+                $this->connection->commit();
+            } catch (Throwable $e) {
+                $this->rollbackOwnedTransaction();
+                throw $e;
+            }
+            // Reserving the filter is resumable too: the build is committed first.
+            $this->work(0, false);
+        } finally {
+            $this->releaseWorkerLock();
+        }
+        return $this->status();
     }
 
     /** Clears a failed rebuild so the next batch restarts it in a fresh generation. */
@@ -204,6 +220,20 @@ class FastLookupIndexManager
     private function runBatchInternal(int $limit, bool $pendingOnly): array
     {
         $this->requireIdleConnection();
+        // A busy lock means another worker is running a batch: leave it be.
+        if ($this->acquireWorkerLock()) {
+            try {
+                $this->work($limit, $pendingOnly);
+            } finally {
+                $this->releaseWorkerLock();
+            }
+        }
+        return $this->status();
+    }
+
+    /** One batch. The caller holds the worker lock; failures are recorded, not thrown. */
+    private function work(int $limit, bool $pendingOnly): void
+    {
         $phase = 'update';
         try {
             $this->sizeStagedBuild();
@@ -213,7 +243,7 @@ class FastLookupIndexManager
             $state = $this->readState(true);
             if (!$this->canWork($state)) {
                 $this->connection->commit();
-                return $this->status();
+                return;
             }
             $build = $state['build'] ?? null;
             $buildActive = $build && !empty($build['reserved']) && empty($build['error']);
@@ -235,16 +265,21 @@ class FastLookupIndexManager
             $this->writeState($state);
             $this->connection->commit();
 
+            // Under the state row lock: reserve or verify the build, drain dirty
+            // events into every generation and settle the batch's revision.
             $this->connection->beginTransaction();
             $state = $this->readState(true);
             if (!$this->canWork($state)) {
                 $this->connection->commit();
-                return $this->status();
+                return;
             }
             $scope = FastLookupConfig::scope($this->attribute);
             $metadata = $this->hasRedisState($state) ? $this->filter()->metadata() : null;
-            if ($metadata !== null && !$this->checkpointMatches($state, $metadata, true)) {
-                throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+            if ($metadata !== null) {
+                $this->recoverActivation($state, $metadata);
+                if (!$this->checkpointMatches($state, $metadata, true)) {
+                    throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+                }
             }
             if (!empty($state['build']) && empty($state['build']['error'])) {
                 $phase = 'build';
@@ -268,46 +303,212 @@ class FastLookupIndexManager
                 }
             }
             $build = $state['build'] ?? null;
-            if ($build && !empty($build['reserved']) && empty($build['error']) && empty($build['scan_complete'])
-                && $limit > 0 && (!$pendingOnly || !empty($state['generation']))) {
-                $phase = 'build';
-                $this->scanAttributes($state['build'], $limit * self::SCAN_ATTRIBUTES_PER_UNIT, $scope);
-                $phase = 'update';
+            $scan = $build && !empty($build['reserved']) && empty($build['error']) && empty($build['scan_complete'])
+                && $limit > 0 && (!$pendingOnly || !empty($state['generation']));
+            // Nothing is served during a first build, so its revision stays
+            // staged across the scan and it activates right after it. Beside a
+            // live generation the batch settles first, so a scan never holds
+            // lookups back.
+            $deferred = $scan && $staged && empty($state['generation']);
+            if (!$deferred) {
+                $this->finishBatch($state, $staged);
             }
-            $build = $state['build'] ?? null;
-            if ($staged && $build && !empty($build['reserved']) && !empty($build['scan_complete'])
-                && empty($build['error']) && $this->dirtyCount() === 0) {
-                $this->filter()->activate($build['generation'], $build['fingerprint']);
-                $state['generation'] = $build['generation'];
-                $state['fingerprint'] = $build['fingerprint'];
-                $state['last_build'] = array_intersect_key($build, array_flip(['processed', 'total', 'scan_complete', 'started_at']));
-                $state['build'] = null;
+            $this->writeState($state);
+            $this->connection->commit();
+            if (!$scan) {
+                return;
             }
-            if ($staged) {
-                // Never publish the in-progress revision as committed: a Redis
-                // snapshot from mid-batch still carries it and must stay stale.
-                $committed = $state['next_revision'];
-                $state['revision'] = $committed;
-                $state['pending_revision'] = null;
-                $state['next_revision'] = null;
-                if ($this->hasRedisState($state)) {
-                    $ready = !empty($state['generation'])
-                        && $state['fingerprint'] === FastLookupConfig::fingerprint($this->attribute)
-                        && $this->dirtyCount() === 0;
-                    $this->filter()->checkpoint($committed, $ready);
-                }
+
+            // Outside the state row lock, so event and attribute writers are
+            // never held back by the scan; the worker lock keeps it exclusive.
+            // Redis's cursor is written after the rows it covers and may run
+            // ahead of SQL's after a crash, never behind it (prepareBuild).
+            $phase = 'build';
+            $scanned = $state['build'];
+            $this->scanAttributes($scanned, $limit * self::SCAN_ATTRIBUTES_PER_UNIT, $scope);
+
+            $phase = 'update';
+            $this->connection->beginTransaction();
+            $current = $this->readState(true);
+            $build = $current['build'] ?? null;
+            if (!$build || $build['generation'] !== $scanned['generation'] || empty($build['reserved']) || !empty($build['error'])
+                || $build['cursor'] !== $state['build']['cursor']
+                || ($current['pending_revision'] ?? null) !== ($state['pending_revision'] ?? null)) {
+                // The build changed meanwhile, which the worker lock should
+                // prevent: its SQL progress is not ours to record.
+                $this->connection->commit();
+                return;
             }
-            if (!empty($state['generation']) && empty($state['build'])) {
-                $this->scheduleRebuildIfNeeded($state);
+            $current['build'] = array_merge($build, array_intersect_key($scanned, array_flip(['cursor', 'processed', 'total', 'scan_complete'])));
+            $this->writeState($current);
+            $this->connection->commit();
+            if (!$deferred) {
+                return;
             }
-            $state['error'] = null;
+
+            // The first build settles in a transaction of its own, so an
+            // interrupted activation finds the completed scan in SQL.
+            $this->connection->beginTransaction();
+            $state = $this->readState(true);
+            if (!$this->canWork($state) || empty($state['pending_revision'])) {
+                $this->connection->commit();
+                return;
+            }
+            $metadata = $this->filter()->metadata();
+            if (!$this->checkpointMatches($state, $metadata, true)) {
+                throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+            }
+            $phase = 'build';
+            $this->prepareBuild($state, $metadata);
+            $phase = 'update';
+            $this->finishBatch($state, true);
             $this->writeState($state);
             $this->connection->commit();
         } catch (Throwable $e) {
             $this->rollbackOwnedTransaction();
             $this->saveFailure($e, $phase);
         }
-        return $this->status();
+    }
+
+    /** Activates a complete build and commits a staged revision, under the state row lock. */
+    private function finishBatch(array &$state, bool $staged): void
+    {
+        $build = $state['build'] ?? null;
+        if ($staged && $build && !empty($build['reserved']) && !empty($build['scan_complete'])
+            && empty($build['error']) && $this->dirtyCount() === 0) {
+            // Redis swaps and deletes the old generation before SQL commits;
+            // recoverActivation() completes the swap if that commit never lands.
+            $this->filter()->activate($build['generation'], $build['fingerprint']);
+            $this->completeActivation($state);
+        }
+        if ($staged) {
+            // Never publish the in-progress revision as committed: a Redis
+            // snapshot from mid-batch still carries it and must stay stale.
+            $committed = $state['next_revision'];
+            $state['revision'] = $committed;
+            $state['pending_revision'] = null;
+            $state['next_revision'] = null;
+            if ($this->hasRedisState($state)) {
+                $ready = !empty($state['generation'])
+                    && $state['fingerprint'] === FastLookupConfig::fingerprint($this->attribute)
+                    && $this->dirtyCount() === 0;
+                $this->filter()->checkpoint($committed, $ready);
+            }
+        }
+        if (!empty($state['generation']) && empty($state['build'])) {
+            $this->scheduleRebuildIfNeeded($state);
+        }
+        $state['error'] = null;
+    }
+
+    private function completeActivation(array &$state): void
+    {
+        $build = $state['build'];
+        $state['generation'] = $build['generation'];
+        $state['fingerprint'] = $build['fingerprint'];
+        $state['last_build'] = array_intersect_key($build, array_flip(['processed', 'total', 'scan_complete', 'started_at']));
+        $state['build'] = null;
+        // The first activation retires the previous index format; activate()
+        // already removed its Redis keys.
+        $this->query("DELETE FROM {$this->settingsTable} WHERE setting = ?", [self::LEGACY_STATE_SETTING]);
+    }
+
+    /**
+     * activate() swaps Redis to the build and deletes the old generation before
+     * SQL commits. If that commit never happened, or the old-key cleanup threw
+     * after the swap, Redis already serves the build the staged batch was
+     * activating: complete the activation in SQL instead of failing forever.
+     */
+    private function recoverActivation(array &$state, array $metadata): void
+    {
+        $build = $state['build'] ?? null;
+        if (empty($state['pending_revision']) || !$build || empty($build['reserved'])
+            || empty($build['scan_complete']) || !empty($build['error'])
+            || ($metadata['live'] ?? null) !== $build['generation']
+            || ($metadata['fingerprint'] ?? null) !== $build['fingerprint']
+            || ($metadata['building'] ?? null) !== null
+            || !in_array($metadata['revision'] ?? null, [$state['pending_revision'], $state['next_revision'] ?? null], true)) {
+            return;
+        }
+        $this->completeActivation($state);
+        $this->attribute->log('Completed an interrupted fast lookup index activation.', LOG_INFO);
+    }
+
+    /**
+     * A rebuild cannot run beside a live generation Redis has lost or holds at
+     * another checkpoint: every batch would fail on it. Drop it from SQL and
+     * build from scratch; lookups answer 503 until the new generation is ready.
+     */
+    private function discardUnservableGeneration(array &$state): void
+    {
+        if (empty($state['generation'])) {
+            return;
+        }
+        try {
+            $metadata = $this->filter()->metadata();
+        } catch (Throwable $e) {
+            if (!$this->filter()->moduleAvailable()) {
+                // Redis is unreachable or lacks RedisBloom: nothing can be
+                // built now, and the live generation may well be intact.
+                throw $e;
+            }
+            $metadata = null;
+        }
+        if ($metadata !== null) {
+            $this->recoverActivation($state, $metadata);
+            // The build is being replaced, so only the live checkpoint counts.
+            if ($this->checkpointMatches(['build' => null] + $state, $metadata, true)) {
+                return;
+            }
+        }
+        $this->attribute->log('The fast lookup index no longer matches its Redis state and is rebuilt from scratch.', LOG_WARNING);
+        $state['generation'] = null;
+        $state['fingerprint'] = null;
+        $state['error'] = null;
+        unset($state['last_build']);
+    }
+
+    /** Workers exclude each other for a whole batch without holding the state row. */
+    private function acquireWorkerLock(): bool
+    {
+        if ($this->postgres()) {
+            $deadline = microtime(true) + self::WORKER_LOCK_WAIT;
+            while (true) {
+                if ((int)$this->query('SELECT CASE WHEN pg_try_advisory_lock(hashtext(?)) THEN 1 ELSE 0 END', [$this->workerLockName()])->fetchColumn() === 1) {
+                    return true;
+                }
+                if (microtime(true) >= $deadline) {
+                    return false;
+                }
+                usleep(100000);
+            }
+        }
+        $acquired = $this->query('SELECT GET_LOCK(?, ?)', [$this->workerLockName(), self::WORKER_LOCK_WAIT])->fetchColumn();
+        if ($acquired === null || $acquired === false) {
+            throw new RuntimeException('Could not take the IOC index worker lock.');
+        }
+        return (int)$acquired === 1;
+    }
+
+    private function releaseWorkerLock(): void
+    {
+        try {
+            $this->query($this->postgres() ? 'SELECT pg_advisory_unlock(hashtext(?))' : 'SELECT RELEASE_LOCK(?)', [$this->workerLockName()]);
+        } catch (Throwable $e) {
+            // A lost session has released its lock already.
+            $this->logFailure($e);
+        }
+    }
+
+    /** Session locks are server-wide: name the lock after this database. */
+    private function workerLockName(): string
+    {
+        return 'misp_fast_lookup:' . substr(hash('sha256', FastLookupConfig::namespaceFor($this->attribute)), 0, 40);
+    }
+
+    private function postgres(): bool
+    {
+        return $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
     }
 
     private function canWork($state): bool
@@ -380,7 +581,7 @@ class FastLookupIndexManager
         }
         $total = array_sum($counts);
         return [
-            'capacity' => max(self::MIN_CAPACITY, (int)ceil(self::CAPACITY_HEADROOM * self::TOKENS_PER_ATTRIBUTE * $total)),
+            'capacity' => max(FastLookupFilter::MIN_CAPACITY, (int)ceil(self::CAPACITY_HEADROOM * self::TOKENS_PER_ATTRIBUTE * $total)),
             'range_entries' => $ranges,
             'total' => $total,
         ];
@@ -690,8 +891,11 @@ class FastLookupIndexManager
 
     private function checkpointMatches(array $state, array $metadata, bool $allowPending = false): bool
     {
-        if (($metadata['live'] ?? null) !== ($state['generation'] ?? null)
-            || ($metadata['fingerprint'] ?? null) !== ($state['fingerprint'] ?? null)) {
+        // Before the first activation nothing is served: a live generation
+        // Redis still holds from a discarded index is irrelevant, and the
+        // activation replaces it.
+        if (!empty($state['generation']) && (($metadata['live'] ?? null) !== $state['generation']
+            || ($metadata['fingerprint'] ?? null) !== ($state['fingerprint'] ?? null))) {
             return false;
         }
         $build = $state['build'] ?? null;

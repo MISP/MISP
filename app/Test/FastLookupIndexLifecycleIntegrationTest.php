@@ -24,6 +24,8 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
             $this->markTestSkipped('Requires an explicitly configured disposable MariaDB socket.');
         }
         require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
+        // Only for FastLookupFilter::MIN_CAPACITY; the manager runs on the fake.
+        require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
         $this->server = new PDO('mysql:unix_socket=' . $this->socket, 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $this->database = 'fast_lookup_lifecycle_' . bin2hex(random_bytes(8));
@@ -120,6 +122,52 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         $status = $other->runBatch(2);
         $this->assertSame('ready', $status['status']);
         $this->assertSame(1, $status['progress']['processed_attributes']);
+    }
+
+    /** During the scan a writer saves an event (share lock, 1 s lock wait) and reads the worker lock. */
+    private function writeDuringScan(callable $scan)
+    {
+        $writer = $this->connection();
+        $lock = (new ReflectionMethod(FastLookupIndexManager::class, 'workerLockName'));
+        $lock->setAccessible(true);
+        $name = $lock->invoke($this->manager);
+        $observed = null;
+        $this->index->afterWrite = function () use ($writer, $name, &$observed) {
+            $this->index->afterWrite = null;
+            $held = (int)$writer->query('SELECT IS_FREE_LOCK(' . $writer->quote($name) . ')')->fetchColumn() === 0;
+            $writer->beginTransaction();
+            $writer->exec('UPDATE events SET published=FALSE WHERE id=4');
+            FastLookupIndexManager::recordChange($this->model($writer), '4');
+            $writer->commit();
+            $observed = ['saved' => true, 'worker_lock_held' => $held];
+        };
+        try {
+            $scan();
+        } finally {
+            $this->index->afterWrite = null;
+        }
+        $this->assertSame(['saved' => true, 'worker_lock_held' => true], $observed, 'The scan holds the worker lock, not the state row.');
+        $this->assertSame(1, (int)$writer->query('SELECT IS_FREE_LOCK(' . $writer->quote($name) . ')')->fetchColumn(), 'The batch released the worker lock.');
+    }
+
+    public function testEventSaveIsNotBlockedByFirstBuildScan()
+    {
+        $this->pdo->exec('INSERT INTO events VALUES (1, TRUE), (4, TRUE)');
+        $this->pdo->exec("INSERT INTO attributes VALUES (10, 1, 'domain', 'one.test', '', FALSE), (20, 4, 'domain', 'four.test', '', FALSE)");
+        $this->manager->startRebuild();
+        $this->writeDuringScan(function () { $this->manager->runBatch(5); });
+        $this->assertSame('ready', $this->manager->runBatch(5)['status']);
+        $this->assertSame(['10', '20'], $this->index->liveIds());
+    }
+
+    public function testEventSaveIsNotBlockedByRebuildScan()
+    {
+        $this->pdo->exec("INSERT INTO attributes VALUES (10, 1, 'domain', 'one.test', '', FALSE), (20, 4, 'domain', 'four.test', '', FALSE)");
+        $this->ready();
+        $this->manager->startRebuild();
+        $this->writeDuringScan(function () { $this->manager->runBatch(5); });
+        $this->assertSame('updating', $this->manager->status()['status']);
+        $this->assertSame('ready', $this->manager->processPending()['status']);
     }
 }
 

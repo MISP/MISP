@@ -56,4 +56,54 @@ class FastLookupIndexShellTest extends TestCase
         $this->assertSame(['processFastLookup', 7, 1], $shell->Job->tool->queued[0][2]);
         $this->assertNull($shell->Job->success);
     }
+
+    private function brokenLiveDuringBuild()
+    {
+        $attribute = new FastLookupLifecycleAttribute();
+        $attribute->db->events = ['1' => true];
+        $attribute->db->attributes = [['id' => '11', 'event_id' => '1', 'type' => 'domain', 'value1' => 'one.test', 'value2' => '', 'deleted' => false]];
+        ClassRegistry::$attribute = $attribute;
+        $manager = new FastLookupIndexManager($attribute);
+        $manager->startRebuild();
+        $manager->runBatch(1);
+        $manager->startRebuild();
+        // Redis restored from an older snapshot: the live checkpoint no longer matches.
+        $filter = new FastLookupFilter();
+        $filter->meta['revision'] = 'restored';
+        return $attribute;
+    }
+
+    public function testResumeStopsOnErrorWhileBuildIsActive()
+    {
+        $attribute = $this->brokenLiveDuringBuild();
+        $shell = new AdminShell();
+        $shell->MispAttribute = $attribute;
+        $shell->Job = new Job();
+        $shell->args = ['5', '1'];
+        try {
+            $shell->resumeFastLookup();
+            $this->fail('A failing index must fail the job.');
+        } catch (RuntimeException $e) {
+            $this->assertNotSame('The IOC index loop did not stop.', $e->getMessage());
+        }
+        $this->assertFalse($shell->Job->success);
+        $this->assertLessThan(3, $shell->Job->progress);
+    }
+
+    public function testPendingWorkerDoesNotRequeueOnErrorWhileBuildIsActive()
+    {
+        $attribute = $this->brokenLiveDuringBuild();
+        Configure::$values['MISP.background_jobs'] = true;
+        $shell = new AdminShell();
+        $shell->MispAttribute = $attribute;
+        $shell->Job = new Job();
+        $shell->args = ['7', '1'];
+        try {
+            $shell->processFastLookup();
+            $this->fail('A failing index must fail the job.');
+        } catch (RuntimeException $e) {
+        }
+        $this->assertSame([], $shell->Job->tool->queued);
+        $this->assertFalse($shell->Job->success);
+    }
 }

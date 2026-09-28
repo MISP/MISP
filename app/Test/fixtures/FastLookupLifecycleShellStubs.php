@@ -20,9 +20,13 @@ class Job
     const WORKER_DEFAULT = 'default';
     public $tool;
     public $success;
+    public $progress = 0;
     public function __construct() { $this->tool = new BackgroundJobsTool(); }
     public function createJob(...$args) { return 5; }
-    public function saveProgress(...$args) {}
+    public function saveProgress(...$args)
+    {
+        if (++$this->progress > 50) { throw new LogicException('The IOC index loop did not stop.'); }
+    }
     public function saveStatus($jobId, $success, $message = null) { $this->success = $success; }
     public function getBackgroundJobsTool() { return $this->tool; }
 }

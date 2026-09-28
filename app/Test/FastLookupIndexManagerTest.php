@@ -14,6 +14,8 @@ class FastLookupIndexManagerTest extends TestCase
     protected function setUp(): void
     {
         require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
+        // Only for FastLookupFilter::MIN_CAPACITY; the manager runs on the fake.
+        require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
         $this->attribute = new FastLookupLifecycleAttribute();
         $this->filter = new FastLookupLifecycleFilter();
@@ -368,5 +370,209 @@ class FastLookupIndexManagerTest extends TestCase
         $attribute->data = ['Attribute' => ['type' => 'domain', 'event_id' => '1', 'deleted' => true]];
         $attribute->afterDelete();
         $this->assertSame('updating', $manager->status()['status']);
+    }
+
+    private function sqlState()
+    {
+        return json_decode($this->attribute->db->settings[FastLookupIndexManager::STATE_SETTING], true);
+    }
+
+    public function testRebuildAfterLiveFilterEvictionRunsAsFirstBuild()
+    {
+        $manager = $this->ready();
+        $old = $this->filter->meta['live'];
+        unset($this->filter->generations[$old]);
+        $this->assertSame('unavailable', $manager->status()['status']);
+        $status = $manager->startRebuild();
+        $this->assertSame('warming', $status['status'], 'Nothing is served until the new generation is complete.');
+        $this->assertNull($status['generation']);
+        for ($i = 0; $i < 3 && $manager->status()['status'] !== 'ready'; ++$i) {
+            $manager->runBatch(1);
+        }
+        $this->assertSame('ready', $manager->status()['status']);
+        $this->assertNotSame($old, $this->filter->meta['live']);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testRebuildAfterRestoredRedisCheckpointRunsAsFirstBuild()
+    {
+        $manager = $this->ready();
+        $old = $this->filter->meta['live'];
+        $restored = $this->filter->meta;
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $manager->processPending();
+        $this->filter->meta = $restored;
+        $status = $manager->startRebuild();
+        $this->assertSame('warming', $status['status']);
+        $this->assertNull($this->sqlState()['generation']);
+        $this->assertSame($old, $this->filter->meta['live'], 'Redis still holds the unserved old generation.');
+        $manager->runBatch(1);
+        $this->assertSame('ready', $manager->status()['status']);
+        $this->assertNotSame($old, $this->filter->meta['live']);
+        $this->assertArrayNotHasKey($old, $this->filter->generations);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testRebuildKeepsLiveGenerationWhenRedisIsUnreachable()
+    {
+        $manager = $this->ready();
+        $live = $this->filter->meta['live'];
+        $this->filter->available = false;
+        $this->filter->moduleAvailable = false;
+        try {
+            $manager->startRebuild();
+            $this->fail('A rebuild cannot start without Redis.');
+        } catch (RuntimeException $e) {
+        }
+        $this->assertSame($live, $this->sqlState()['generation']);
+        $this->assertNull($this->sqlState()['build']);
+        $this->filter->available = true;
+        $this->assertSame('ready', $manager->status()['status']);
+    }
+
+    public function testCrashAfterActivationBeforeSqlCommitCompletesActivation()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $manager->runBatch(1);
+        $calls = 0;
+        $this->filter->afterCheckpoint = function () use (&$calls) {
+            if (++$calls === 2) {
+                $this->filter->afterCheckpoint = null;
+                throw new RuntimeException('Interrupted after the swap, before the SQL commit');
+            }
+        };
+        $this->assertSame('error', $manager->runBatch(1)['status']);
+        $this->assertSame($building, $this->filter->meta['live'], 'Redis already swapped.');
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status']);
+        $this->assertSame($building, $status['generation']);
+        $this->assertNull($status['build']);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testActivationCleanupFailureAfterSwapCompletesActivation()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $manager->runBatch(1);
+        $this->filter->afterActivate = function () {
+            $this->filter->afterActivate = null;
+            throw new RuntimeException('Could not reclaim old fastLookup keys.');
+        };
+        $this->assertSame('error', $manager->runBatch(1)['status']);
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status']);
+        $this->assertSame($building, $status['generation']);
+        $this->assertNull($status['build']);
+    }
+
+    public function testFirstBuildCrashAfterActivationCompletesActivation()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $this->filter->afterActivate = function () {
+            $this->filter->afterActivate = null;
+            throw new RuntimeException('Interrupted after the swap');
+        };
+        $this->assertNotSame('ready', $manager->runBatch(1)['status']);
+        $this->assertNull($this->sqlState()['generation']);
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status']);
+        $this->assertSame($building, $status['generation']);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testScanRunsOutsideCheckpointTransactionUnderWorkerLock()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $db = $this->attribute->db;
+        $manager->startRebuild();
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $manager->startRebuild();
+        FastLookupIndexManager::recordChange($this->attribute, '4');
+        $this->assertSame('ready', $manager->processPending()['status']);
+        $manager->runBatch(1);
+        $this->assertNull($manager->status()['build']);
+        $this->assertCount(2, $db->scans, 'The first build and the rebuild each scanned.');
+        foreach ($db->scans as $scan) {
+            $this->assertFalse($scan['transaction'], 'The scan holds no checkpoint row lock.');
+            $this->assertTrue($scan['worker_lock'], 'The worker lock keeps the scan exclusive.');
+        }
+        $this->assertNotEmpty($db->refreshes);
+        foreach ($db->refreshes as $refresh) {
+            $this->assertTrue($refresh['transaction'], 'Dirty events drain under the checkpoint row lock.');
+        }
+        $this->assertSame(0, $db->workerLocks, 'Every batch releases the worker lock.');
+    }
+
+    public function testLiveRevisionIsCommittedBeforeRebuildScan()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $this->attribute->db->scans = [];
+        $during = null;
+        $this->filter->afterWrite = function () use (&$during, $manager) {
+            if ($this->attribute->db->scans && $during === null) {
+                $during = $manager->status()['status'];
+            }
+        };
+        $this->assertSame('ready', $manager->processPending()['status']);
+        $this->filter->afterWrite = null;
+        $this->assertCount(1, $this->attribute->db->scans);
+        $this->assertSame('ready', $during, 'Lookups keep being served while the rebuild scans.');
+    }
+
+    public function testBusyWorkerLockSkipsBatchWithoutTouchingState()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $before = $this->attribute->db->settings;
+        $this->attribute->db->workerLockBusy = true;
+        $this->assertSame('warming', $manager->runBatch(1)['status']);
+        $this->assertSame($before, $this->attribute->db->settings);
+        $this->assertSame([], $this->attribute->db->scans);
+        try {
+            $manager->startRebuild();
+            $this->fail('A rebuild must not replace a build another worker is scanning.');
+        } catch (RuntimeException $e) {
+        }
+        $this->assertSame($before, $this->attribute->db->settings);
+        $this->attribute->db->workerLockBusy = false;
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+    }
+
+    public function testLegacyStateRowIsDeletedOnFirstActivation()
+    {
+        $this->seed();
+        $this->attribute->db->settings[FastLookupIndexManager::LEGACY_STATE_SETTING] = '{"generation":"old"}';
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->assertArrayHasKey(FastLookupIndexManager::LEGACY_STATE_SETTING, $this->attribute->db->settings, 'The old index serves until the new one activates.');
+        $manager->runBatch(1);
+        $this->assertArrayNotHasKey(FastLookupIndexManager::LEGACY_STATE_SETTING, $this->attribute->db->settings);
+    }
+
+    public function testFirstBuildUpdateFailureIsReportedAsError()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->filter->available = false;
+        $this->assertSame('error', $manager->runBatch(1)['status'], 'A failing first build must not look like progress.');
+        $this->filter->available = true;
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+    }
+
+    public function testMinimumCapacityComesFromTheFilter()
+    {
+        $this->assertSame(FastLookupFilter::MIN_CAPACITY, FastLookupIndexManager::MIN_CAPACITY);
     }
 }

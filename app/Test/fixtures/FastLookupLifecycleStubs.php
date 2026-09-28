@@ -48,6 +48,13 @@ class FastLookupLifecycleConnection
     public $events = [];
     public $attributes = [];
     public $config = ['datasource' => 'Database/Mysql', 'prefix' => ''];
+    /** Another process holds the worker lock. */
+    public $workerLockBusy = false;
+    public $workerLocks = 0;
+    /** Per rebuild-scan query: whether a transaction or the worker lock was held. */
+    public $scans = [];
+    /** Per dirty-event refresh query: whether a transaction was open. */
+    public $refreshes = [];
     private $snapshot;
     public function getConnection() { return $this; }
     public function fullTableName($model) { return is_string($model) ? $model : $model->useTable; }
@@ -60,6 +67,15 @@ class FastLookupLifecycleConnection
     public function prepare($sql) { return new FastLookupLifecycleStatement($this, $sql); }
     public function execute($sql, $args)
     {
+        if (strpos($sql, 'GET_LOCK(') !== false) {
+            if ($this->workerLockBusy) { return [['acquired' => 0]]; }
+            ++$this->workerLocks;
+            return [['acquired' => 1]];
+        }
+        if (strpos($sql, 'RELEASE_LOCK(') !== false) {
+            --$this->workerLocks;
+            return [['released' => 1]];
+        }
         if (strpos($sql, 'admin_settings') !== false) {
             if (strpos($sql, 'INSERT') === 0) {
                 if (strpos($sql, 'DO NOTHING') === false && strpos($sql, 'setting = setting') === false || !isset($this->settings[$args[0]])) {
@@ -111,10 +127,12 @@ class FastLookupLifecycleConnection
         if (strpos($sql, 'FROM attributes') !== false) {
             preg_match('/LIMIT (\d+)/', $sql, $match);
             if (strpos($sql, 'a.event_id = ?') !== false) {
+                $this->refreshes[] = ['transaction' => $this->inTransaction()];
                 [$eventId, $after] = $args;
                 $types = array_slice($args, 2);
                 $keep = function ($row) use ($eventId, $after, $types) { return $row['event_id'] === $eventId && (int)$row['id'] > (int)$after; };
             } else {
+                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lock' => $this->workerLocks > 0];
                 [$after, $highWater] = $args;
                 $types = array_slice($args, 2);
                 $published = strpos($sql, 'e.published = TRUE') !== false;
@@ -134,6 +152,7 @@ class FastLookupLifecycleConnection
 }
 class FastLookupLifecycleFilter
 {
+    const MIN_CAPACITY = 1000000;
     public $meta = [];
     /** generation => ['rows' => [attribute id => row], 'info' => generation state] */
     public $generations = [];
@@ -143,6 +162,8 @@ class FastLookupLifecycleFilter
     public $failReserve = false;
     public $afterWrite;
     public $afterCheckpoint;
+    /** Runs after activate() has swapped the generations, like its old-key cleanup. */
+    public $afterActivate;
     /** reserve() arguments in call order. */
     public $reserved = [];
     public function moduleAvailable() { return $this->moduleAvailable; }
@@ -165,6 +186,10 @@ class FastLookupLifecycleFilter
     {
         $this->reserved[] = compact('generation', 'fingerprint', 'capacity', 'rate', 'rangeEntries');
         if ($this->failReserve) { $this->failReserve = false; throw new RuntimeException('Interrupted reservation'); }
+        if ($this->meta) {
+            // Like the real filter: unusable metadata cannot be served, so reserve() starts a clean namespace.
+            try { $this->metadata(); } catch (RuntimeException $e) { if (!$this->available) { throw $e; } $this->meta = []; $this->generations = []; }
+        }
         if (!$this->meta) {
             $this->meta = ['live' => null, 'building' => null, 'fingerprint' => null, 'building_fingerprint' => null, 'revision' => '0', 'ready' => false];
         }
@@ -201,6 +226,7 @@ class FastLookupLifecycleFilter
         if ($this->meta['building'] !== $generation) { throw new RuntimeException('Generation changed'); }
         $this->generations = [$generation => $this->generations[$generation]];
         $this->meta = array_merge($this->meta, ['live' => $generation, 'fingerprint' => $fingerprint, 'building' => null, 'building_fingerprint' => null, 'ready' => false]);
+        if ($this->afterActivate) { ($this->afterActivate)(); }
     }
     public function statistics($generation)
     {
