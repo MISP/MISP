@@ -242,9 +242,16 @@ Measured at 1.7M attributes (17 default types, 100,000 attributes each,
 keys, plus 147.8 KB of overflow postings in 2 keys). A full rebuild took
 **43.9 s**. Against the plain-SQL baseline (the strongest `LIKE`/range form,
 no filter), mean request time across the 17 types was 10.1 s filtered vs.
-10.45 s SQL-only for all-hit requests (about 3.3% faster), 1.57 s vs. 9.99 s
-for all-miss requests (6.36× faster), and 1.84 s vs. 5.97 s for range/domain
-expansion matches (about 3.2× faster). The measured false-positive rate over
+10.45 s SQL-only for all-hit requests (about 3.3% faster). That mean hides a
+split: the four IP types (`ip-src`, `ip-dst`, `ip-src|port`, `ip-dst|port`)
+were 33-44% faster than SQL on all-hit requests, while the other 13 types
+(hashes, domains and hostnames) were 0.6-2.9 s slower per 10,000-value
+all-hit request than SQL alone (e.g. `md5` 10.19 s vs 7.56 s) — the
+per-request tokenizing and filter round trip add on top of the same SQL
+equality check the SQL-only path also runs. For all-miss and
+range/domain-expansion requests, mean request
+time was 1.57 s vs. 9.99 s (6.36× faster) and 1.84 s vs. 5.97 s (about 3.2×
+faster). The measured false-positive rate over
 the sampled absent values was 0, against an estimated rate of about 2.55e-07
 at that fill level (configured target 0.001 — the filter is far under
 capacity at 1.7M attributes). Matches were identical to the SQL baseline for
