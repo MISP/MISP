@@ -42,7 +42,11 @@ class FastLookupIndexManager
     const REBUILD_MIN_INSERTED = 10000;
     const IP_TYPES = ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'domain|ip'];
     const DOMAIN_TYPES = ['domain', 'domain|ip'];
-    /** Seconds a worker waits for another worker's batch before giving up. */
+    /**
+     * Seconds a rebuild or resume batch waits for another worker's batch.
+     * processPending never waits: it may run inline at request shutdown, and
+     * its markers stay queued for the next dispatch or CLI batch.
+     */
     const WORKER_LOCK_WAIT = 5;
     const BUILD_FAILED = 'The IOC index rebuild failed. Resume to restart it from the beginning, or start a new rebuild.';
 
@@ -162,7 +166,7 @@ class FastLookupIndexManager
         // Sizing only needs an estimate, so it is counted outside every lock:
         // a full count must not hold attribute writers or workers back.
         $sizing = $this->sizing(FastLookupConfig::scope($this->attribute));
-        if (!$this->acquireWorkerLock()) {
+        if (!$this->acquireWorkerLock(self::WORKER_LOCK_WAIT)) {
             // Never replace a build another worker may be scanning.
             throw new RuntimeException('Another IOC index worker is busy. Start the rebuild again once its batch has finished.');
         }
@@ -221,7 +225,7 @@ class FastLookupIndexManager
     {
         $this->requireIdleConnection();
         // A busy lock means another worker is running a batch: leave it be.
-        if ($this->acquireWorkerLock()) {
+        if ($this->acquireWorkerLock($pendingOnly ? 0 : self::WORKER_LOCK_WAIT)) {
             try {
                 $this->work($limit, $pendingOnly);
             } finally {
@@ -471,21 +475,9 @@ class FastLookupIndexManager
     }
 
     /** Workers exclude each other for a whole batch without holding the state row. */
-    private function acquireWorkerLock(): bool
+    private function acquireWorkerLock(int $wait): bool
     {
-        if ($this->postgres()) {
-            $deadline = microtime(true) + self::WORKER_LOCK_WAIT;
-            while (true) {
-                if ((int)$this->query('SELECT CASE WHEN pg_try_advisory_lock(hashtext(?)) THEN 1 ELSE 0 END', [$this->workerLockName()])->fetchColumn() === 1) {
-                    return true;
-                }
-                if (microtime(true) >= $deadline) {
-                    return false;
-                }
-                usleep(100000);
-            }
-        }
-        $acquired = $this->query('SELECT GET_LOCK(?, ?)', [$this->workerLockName(), self::WORKER_LOCK_WAIT])->fetchColumn();
+        $acquired = $this->query('SELECT GET_LOCK(?, ?)', [$this->workerLockName(), $wait])->fetchColumn();
         if ($acquired === null || $acquired === false) {
             throw new RuntimeException('Could not take the IOC index worker lock.');
         }
@@ -495,9 +487,9 @@ class FastLookupIndexManager
     private function releaseWorkerLock(): void
     {
         try {
-            $this->query($this->postgres() ? 'SELECT pg_advisory_unlock(hashtext(?))' : 'SELECT RELEASE_LOCK(?)', [$this->workerLockName()]);
+            $this->query('SELECT RELEASE_LOCK(?)', [$this->workerLockName()]);
         } catch (Throwable $e) {
-            // A lost session has released its lock already.
+            // Closing a (non-persistent) connection releases its lock anyway.
             $this->logFailure($e);
         }
     }
@@ -506,11 +498,6 @@ class FastLookupIndexManager
     private function workerLockName(): string
     {
         return 'misp_fast_lookup:' . substr(hash('sha256', FastLookupConfig::namespaceFor($this->attribute)), 0, 40);
-    }
-
-    private function postgres(): bool
-    {
-        return $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
     }
 
     private function canWork($state): bool
@@ -767,7 +754,6 @@ class FastLookupIndexManager
             $statement->execute([self::STATE_SETTING]);
             $stateId = $statement->fetchColumn();
             $statement->closeCursor();
-            $postgres = $connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
             if ($stateId === false) {
                 // Materialise the lock row even before the first build. Locking
                 // an absent row is not portable across SQL isolation levels.
@@ -777,12 +763,12 @@ class FastLookupIndexManager
                 $stateId = $statement->fetchColumn();
                 $statement->closeCursor();
             }
-            // Mutations on different events share this lock. Only the worker
-            // takes FOR UPDATE, fencing the scan/checkpoint against all writers.
-            $lock = $postgres ? ' FOR SHARE' : ' LOCK IN SHARE MODE';
+            // Mutations on different events share this lock. Workers take it
+            // FOR UPDATE only to drain, checkpoint and activate, fencing those
+            // steps against writers; the rebuild scan runs without it.
             // Lock by primary key: MariaDB secondary-index shared locks can
             // include the preceding gap, which would block unrelated outbox INSERTs.
-            $statement = $connection->prepare("SELECT value FROM $table WHERE id = ?$lock");
+            $statement = $connection->prepare("SELECT value FROM $table WHERE id = ? LOCK IN SHARE MODE");
             $statement->execute([$stateId]);
             $exists = $statement->fetchColumn();
             $statement->closeCursor();
@@ -790,11 +776,7 @@ class FastLookupIndexManager
             if (!empty($state['generation']) || !empty($state['build'])) {
                 $key = self::DIRTY_PREFIX . (string)$eventId;
                 $revision = bin2hex(random_bytes(16));
-                $sql = "INSERT INTO $table (setting, value) VALUES (?, ?)";
-                $sql .= $postgres
-                    ? ' ON CONFLICT (setting) DO UPDATE SET value = EXCLUDED.value'
-                    : ' ON DUPLICATE KEY UPDATE value = VALUES(value)';
-                $statement = $connection->prepare($sql);
+                $statement = $connection->prepare("INSERT INTO $table (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
                 if (!$statement->execute([$key, $revision])) {
                     throw new RuntimeException('Could not record an IOC index mutation.');
                 }
@@ -842,11 +824,7 @@ class FastLookupIndexManager
 
     private static function insertStateIfAbsent($connection, string $table): void
     {
-        $sql = "INSERT INTO $table (setting, value) VALUES (?, ?)";
-        $sql .= $connection->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
-            ? ' ON CONFLICT (setting) DO NOTHING'
-            : ' ON DUPLICATE KEY UPDATE setting = setting';
-        $statement = $connection->prepare($sql);
+        $statement = $connection->prepare("INSERT INTO $table (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting = setting");
         if (!$statement || !$statement->execute([self::STATE_SETTING, '{}'])) {
             throw new RuntimeException('Could not initialise the IOC index state.');
         }

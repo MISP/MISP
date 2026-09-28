@@ -549,6 +549,24 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame('ready', $manager->runBatch(1)['status']);
     }
 
+    public function testPendingWorkerNeverWaitsForBusyWorkerLock()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        FastLookupIndexManager::recordChange($this->attribute, '1');
+        $db = $this->attribute->db;
+        $db->workerLockBusy = true;
+        $db->lockWaits = [];
+        $before = $db->settings;
+        $this->assertSame('updating', $manager->processPending()['status'], 'The marker stays queued for the next dispatch.');
+        $this->assertSame([0], $db->lockWaits, 'Request-shutdown dispatch must not block behind a rebuild scan.');
+        $this->assertSame($before, $db->settings);
+        $manager->runBatch(1);
+        $this->assertSame([0, FastLookupIndexManager::WORKER_LOCK_WAIT], $db->lockWaits, 'Rebuild batches still wait their turn.');
+        $db->workerLockBusy = false;
+        $this->assertSame('ready', $manager->processPending()['status']);
+    }
+
     public function testLegacyStateRowIsDeletedOnFirstActivation()
     {
         $this->seed();

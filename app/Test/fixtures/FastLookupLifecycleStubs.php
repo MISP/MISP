@@ -51,6 +51,8 @@ class FastLookupLifecycleConnection
     /** Another process holds the worker lock. */
     public $workerLockBusy = false;
     public $workerLocks = 0;
+    /** GET_LOCK timeouts in call order. */
+    public $lockWaits = [];
     /** Per rebuild-scan query: whether a transaction or the worker lock was held. */
     public $scans = [];
     /** Per dirty-event refresh query: whether a transaction was open. */
@@ -68,6 +70,7 @@ class FastLookupLifecycleConnection
     public function execute($sql, $args)
     {
         if (strpos($sql, 'GET_LOCK(') !== false) {
+            $this->lockWaits[] = (int)$args[1];
             if ($this->workerLockBusy) { return [['acquired' => 0]]; }
             ++$this->workerLocks;
             return [['acquired' => 1]];
