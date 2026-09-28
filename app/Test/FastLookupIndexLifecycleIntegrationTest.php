@@ -23,9 +23,11 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         if (!$this->socket || !in_array('mysql', PDO::getAvailableDrivers(), true)) {
             $this->markTestSkipped('Requires an explicitly configured disposable MariaDB socket.');
         }
-        require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
-        // Only for FastLookupFilter::MIN_CAPACITY; the manager runs on the fake.
+        // For FastLookupFilter::MIN_CAPACITY and the index exceptions; the
+        // manager runs on the fake. Loaded before the stubs, which declare
+        // the exceptions only when the real filter is absent.
         require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
+        require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
         $this->server = new PDO('mysql:unix_socket=' . $this->socket, 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $this->database = 'fast_lookup_lifecycle_' . bin2hex(random_bytes(8));

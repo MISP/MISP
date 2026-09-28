@@ -179,9 +179,10 @@ class FastLookupIndexManager
             }
         } catch (Throwable $e) {
             $result['status'] = 'unavailable';
-            $result['message'] = $this->moduleMissing()
-                ? 'Fast lookup requires the RedisBloom module (Redis 8 or Redis Stack).'
-                : 'The IOC index is unavailable. Its SQL queue has been retained.';
+            $result['message'] = [
+                'missing' => 'Fast lookup requires the RedisBloom module (Redis 8 or Redis Stack).',
+                'unreachable' => 'The IOC index is unavailable: Redis cannot be reached. Its SQL queue has been retained.',
+            ][$this->moduleState() ?? ''] ?? 'The IOC index is unavailable. Its SQL queue has been retained.';
             $this->logFailure($e);
             return $result;
         }
@@ -535,6 +536,8 @@ class FastLookupIndexManager
      * A rebuild cannot run beside a live generation Redis has lost or holds at
      * another checkpoint: every batch would fail on it. Drop it from SQL and
      * build from scratch; lookups answer 503 until the new generation is ready.
+     * Only Redis's own answer that the index is missing or invalid counts: a
+     * transport error propagates and the live generation keeps serving.
      */
     private function discardUnservableGeneration(array &$state): void
     {
@@ -543,10 +546,9 @@ class FastLookupIndexManager
         }
         try {
             $metadata = $this->filter()->metadata();
-        } catch (Throwable $e) {
+        } catch (FastLookupIndexCorruptException $e) {
             if (!$this->filter()->moduleAvailable()) {
-                // Redis is unreachable or lacks RedisBloom: nothing can be
-                // built now, and the live generation may well be intact.
+                // Redis lacks RedisBloom: nothing can be built now.
                 throw $e;
             }
             $metadata = null;
@@ -1114,12 +1116,13 @@ class FastLookupIndexManager
             && $current['cursor'] === $observed['cursor'];
     }
 
-    private function moduleMissing(): bool
+    /** 'available', 'missing' or 'unreachable' (FastLookupFilter::moduleState); null if unknown. */
+    private function moduleState(): ?string
     {
         try {
-            return !$this->filter()->moduleAvailable();
+            return $this->filter()->moduleState();
         } catch (Throwable $e) {
-            return false;
+            return null;
         }
     }
 

@@ -316,43 +316,127 @@ class FastLookupFilterTest extends TestCase
 
     public function testWrongSchemaVersionFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['schema' => 'v3']))->metadata();
     }
 
     public function testMissingRequiredFieldFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['live' => null], true))->metadata();
     }
 
     public function testReadyOutsideZeroOrOneFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['ready' => '2']))->metadata();
     }
 
     public function testCorruptRevisionIdentifierFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['revision' => 'bad revision!']))->metadata();
     }
 
     public function testCorruptLiveGenerationIdentifierFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['live' => 'bad generation!']))->metadata();
     }
 
     public function testUnparsableScopeJsonFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $this->filter(null, $this->metadataDouble(['scope' => '{not valid json']))->metadata();
+    }
+
+    /** Records every Redis call; $replies maps a method to a value or a Throwable to throw. */
+    private function recordingRedis(array $replies)
+    {
+        return new class($replies) {
+            public $calls = [];
+            private $replies;
+            public function __construct(array $replies) { $this->replies = $replies; }
+            public function __call($method, $args)
+            {
+                $this->calls[] = $method;
+                $reply = $this->replies[$method] ?? null;
+                if ($reply instanceof Throwable) { throw $reply; }
+                return $reply;
+            }
+        };
+    }
+
+    /** @dataProvider transportFailures */
+    public function testTransportFailureReadingMetadataIsNotCorruption(array $replies): void
+    {
+        try {
+            $this->filter(null, $this->recordingRedis($replies))->metadata();
+            $this->fail('A failed read must fail closed.');
+        } catch (FastLookupIndexUnavailableException $e) {
+            $this->assertNotInstanceOf(FastLookupIndexCorruptException::class, $e);
+        }
+    }
+
+    public function transportFailures(): array
+    {
+        return [
+            'timeout' => [['hGetAll' => new RuntimeException('read error on connection')]],
+            'refused read' => [['hGetAll' => false, 'getLastError' => 'LOADING Redis is loading the dataset in memory']],
+            'BUSY on the generation check' => [['hGetAll' => ['schema' => 'bloom-1', 'live' => 'live1', 'building' => '',
+                'fingerprint' => 'f', 'building_fingerprint' => '', 'revision' => '1', 'ready' => '1',
+                'scope' => json_encode(['attribute_types' => ['domain'], 'published_only' => true])],
+                'eval' => new RuntimeException('BUSY Redis is busy running a script.')]],
+        ];
+    }
+
+    public function testMissingOrMistypedMetadataIsCorruption(): void
+    {
+        foreach ([['hGetAll' => []], ['hGetAll' => false, 'getLastError' => 'WRONGTYPE Operation against a key holding the wrong kind of value']] as $replies) {
+            try {
+                $this->filter(null, $this->recordingRedis($replies))->metadata();
+                $this->fail('Missing metadata must fail closed.');
+            } catch (FastLookupIndexCorruptException $e) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testMissingLiveGenerationIsCorruption(): void
+    {
+        $this->expectException(FastLookupIndexCorruptException::class);
+        $this->filter(null, $this->recordingRedis(['hGetAll' => ['schema' => FastLookupFilter::SCHEMA, 'live' => 'live1', 'building' => '',
+            'fingerprint' => 'f', 'building_fingerprint' => '', 'revision' => '1', 'ready' => '1',
+            'scope' => json_encode(['attribute_types' => ['domain'], 'published_only' => true])],
+            'eval' => new RuntimeException('missing Bloom filter')]))->metadata();
+    }
+
+    public function testTransportFailureDuringReserveNeverResetsTheNamespace(): void
+    {
+        $redis = $this->recordingRedis(['hGetAll' => new RuntimeException('read error on connection')]);
+        try {
+            $this->filter(null, $redis)->reserve('next', 'fingerprint', 1000, 0.001, 1);
+            $this->fail('reserve() must fail when Redis cannot be read.');
+        } catch (FastLookupIndexUnavailableException $e) {
+            $this->assertNotInstanceOf(FastLookupIndexCorruptException::class, $e);
+        }
+        $this->assertSame(['hGetAll'], $redis->calls, 'Nothing was deleted, reset or reserved.');
+    }
+
+    public function testMissingMetadataDuringReserveStartsACleanNamespace(): void
+    {
+        $redis = $this->recordingRedis(['hGetAll' => [], 'eval' => 1, 'scan' => []]);
+        try {
+            $this->filter(null, $redis)->reserve('next', 'fingerprint', 1000, 0.001, 1);
+        } catch (FastLookupIndexUnavailableException $e) {
+            // The double's SCAN cursor never ends the cleanup; the reset already happened.
+        }
+        $this->assertSame(['hGetAll', 'del', 'hMSet'], array_slice($redis->calls, 0, 3));
     }
 
     public function testScopeDisagreeingWithConfigurationFailsClosed(): void
     {
-        $this->expectException(FastLookupIndexUnavailableException::class);
+        $this->expectException(FastLookupIndexCorruptException::class);
         $mismatched = json_encode(['attribute_types' => ['hostname'], 'published_only' => true], JSON_THROW_ON_ERROR);
         $this->filter(null, $this->metadataDouble(['scope' => $mismatched]))->metadata();
     }

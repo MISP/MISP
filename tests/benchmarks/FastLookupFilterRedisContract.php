@@ -15,10 +15,22 @@ class FastLookupFilterContractProxy
     /** Renames BF.* calls inside scripts, so real Redis rejects them as unknown commands. */
     public $noBloomCommands = false;
     public $maximumReplyBytes = 0;
+    /** Redis cannot be reached at all. */
+    public $down = false;
+    /** method => error message: the next such call fails like a timeout or BUSY reply. */
+    public $failNext = [];
     public function __construct($redis) { $this->redis = $redis; }
     public function __call($name, $args)
     {
         $lower = strtolower($name);
+        if ($this->down) {
+            throw new RedisException('Connection refused');
+        }
+        if (isset($this->failNext[$lower])) {
+            $message = $this->failNext[$lower];
+            unset($this->failNext[$lower]);
+            throw new RedisException($message);
+        }
         if ($lower === 'rawcommand' && $this->noMemory && strtolower($args[0]) === 'memory') {
             throw new RuntimeException('ERR unknown command MEMORY');
         }
@@ -71,11 +83,14 @@ $query = [7 => [['token' => $exact, 'kind' => 'exact']], 11 => [['token' => $dom
     13 => [['token' => $range, 'kind' => 'ip_range']], 17 => [['token' => $token('E', 'absent.example'), 'kind' => 'exact']]];
 
 try {
-    $assert($filter->moduleAvailable(), 'RedisBloom is detected');
+    $assert($filter->moduleAvailable() && $filter->moduleState() === 'available', 'RedisBloom is detected');
     $proxy->noModule = true;
-    $assert(!$filter->moduleAvailable(), 'A missing RedisBloom module is detected');
+    $assert(!$filter->moduleAvailable() && $filter->moduleState() === 'missing', 'A missing RedisBloom module is detected');
     $proxy->noModule = false;
-    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexUnavailableException::class, 'Missing index fails closed');
+    $proxy->down = true;
+    $assert(!$filter->moduleAvailable() && $filter->moduleState() === 'unreachable', 'Unreachable Redis is not a missing module');
+    $proxy->down = false;
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexCorruptException::class, 'Missing index fails closed as corrupt');
 
     $redis->set($legacy . 'metadata', 'old');
     $filter->reserve('first', str_repeat('a', 64), 1000, 0.001, 128);
@@ -207,7 +222,7 @@ try {
 
     // An evicted filter must not turn into "absent" answers or a fresh default filter.
     $redis->del($prefix . 'g:third:bf');
-    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexUnavailableException::class, 'An evicted filter invalidates metadata');
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexCorruptException::class, 'An evicted filter invalidates metadata');
     $throws(static function () use ($filter, $exact) { $filter->add('third', [['id' => '9', 'type' => 'domain', 'tokens' => [$exact]]]); }, FastLookupIndexUnavailableException::class, 'BF.MADD never recreates an evicted filter');
     $assert(!$redis->exists($prefix . 'g:third:bf'), 'No default filter was created');
 
@@ -224,6 +239,25 @@ try {
     $proxy->noBloomCommands = true;
     $throws(static function () use ($filter, $exact) { $filter->candidates('fifth', [[['token' => $exact, 'kind' => 'exact']]]); }, FastLookupIndexUnavailableException::class, 'Unavailable BF commands fail closed');
     $proxy->noBloomCommands = false;
+
+    // A transient Redis error during reserve() never resets the namespace or deletes the live generation.
+    $transient = static function ($method, $message) use ($filter, $proxy, $redis, $prefix, $assert, $exact) {
+        $proxy->failNext = [$method => $message];
+        try {
+            $filter->reserve('seventh', str_repeat('g', 64), 1000, 0.001, 1);
+            $assert(false, "reserve() failed to fail on $message");
+        } catch (FastLookupIndexUnavailableException $e) {
+            $assert(!$e instanceof FastLookupIndexCorruptException, "$message is not corruption");
+        }
+        $proxy->failNext = [];
+        $assert($redis->exists($prefix . 'g:fifth:bf') === 1 && $redis->exists($prefix . 'g:fifth:info') === 1, "$message leaves the live generation's keys");
+        $assert(!$redis->exists($prefix . 'g:seventh:bf'), "$message reserves nothing");
+        $meta = $filter->metadata();
+        $assert($meta['live'] === 'fifth' && $meta['ready'] === true, "$message leaves the live metadata");
+        $assert($filter->candidates('fifth', [[['token' => $exact, 'kind' => 'exact']]])[0]['exact'] === true, "$message: the live filter still answers");
+    };
+    $transient('hgetall', 'read error on connection');
+    $transient('eval', 'BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSCRIPT.');
 
     // Posting caps fail explicitly.
     $filter->reserve('fourth', str_repeat('d', 64), 1000, 0.001, 1);

@@ -6,6 +6,16 @@ class FastLookupIndexUnavailableException extends RuntimeException
 }
 
 /**
+ * Redis answered, and the index state it holds is missing or invalid. Only
+ * this may reset the namespace or drop a generation: a transport or server
+ * error (timeout, BUSY, LOADING, a refused command) is merely unavailable and
+ * must never be taken for a lost index.
+ */
+class FastLookupIndexCorruptException extends FastLookupIndexUnavailableException
+{
+}
+
+/**
  * Redis side of fast lookup: one RedisBloom filter per generation holding every
  * token, plus append-only postings for IP-range and domain tokens.
  *
@@ -84,21 +94,41 @@ class FastLookupFilter
 
     public function moduleAvailable(): bool
     {
+        return $this->moduleState() === 'available';
+    }
+
+    /**
+     * 'available'; 'missing' when Redis answered without the BF commands;
+     * 'unreachable' when Redis could not be asked or refused the question.
+     */
+    public function moduleState(): string
+    {
         try {
             $info = $this->connection()->rawCommand('COMMAND', 'INFO', 'BF.MEXISTS');
         } catch (Throwable $e) {
-            return false;
+            return 'unreachable';
         }
-        return is_array($info) && isset($info[0]) && is_array($info[0]);
+        if (is_array($info) && isset($info[0]) && is_array($info[0])) {
+            return 'available';
+        }
+        return is_array($info) && array_key_exists(0, $info) && $info[0] === null ? 'missing' : 'unreachable';
     }
 
     public function metadata(): array
     {
         $meta = $this->call('hGetAll', [$this->metaKey()]);
-        if (!is_array($meta) || ($meta['schema'] ?? null) !== self::SCHEMA
+        if (!is_array($meta)) {
+            // A refused read is not a lost index, unless the key is no hash.
+            $error = $this->call('getLastError', []);
+            if (is_string($error) && strpos($error, 'WRONGTYPE') === 0) {
+                throw new FastLookupIndexCorruptException('The fastLookup index metadata is invalid.');
+            }
+            throw new FastLookupIndexUnavailableException('Redis could not read the fastLookup index metadata.');
+        }
+        if (($meta['schema'] ?? null) !== self::SCHEMA
             || !isset($meta['live'], $meta['building'], $meta['fingerprint'], $meta['building_fingerprint'], $meta['revision'], $meta['scope'])
             || !in_array($meta['ready'] ?? null, ['0', '1'], true)) {
-            throw new FastLookupIndexUnavailableException('The fastLookup index metadata is missing or invalid.');
+            throw new FastLookupIndexCorruptException('The fastLookup index metadata is missing or invalid.');
         }
         try {
             $this->identifier($meta['revision']);
@@ -107,19 +137,20 @@ class FastLookupFilter
             }
             $scope = json_decode($meta['scope'], true, 32, JSON_THROW_ON_ERROR);
         } catch (Throwable $e) {
-            throw new FastLookupIndexUnavailableException('The fastLookup index metadata is corrupt.', 0, $e);
+            throw new FastLookupIndexCorruptException('The fastLookup index metadata is corrupt.', 0, $e);
         }
         if ($scope !== $this->scope) {
-            throw new FastLookupIndexUnavailableException('The fastLookup index scope does not match its configuration.');
+            throw new FastLookupIndexCorruptException('The fastLookup index scope does not match its configuration.');
         }
         $generations = [];
         if ($meta['live'] !== '') { $generations[$meta['live']] = $this->generationInfo($meta['live']); }
         if ($meta['building'] !== '') {
             // A broken build must never take the live generation down: omit
-            // it, and the manager fails only the build (prepareBuild).
+            // it, and the manager fails only the build (prepareBuild). A
+            // transport error is no broken build and propagates.
             try {
                 $generations[$meta['building']] = $this->generationInfo($meta['building']);
-            } catch (FastLookupIndexUnavailableException $e) {
+            } catch (FastLookupIndexCorruptException $e) {
             }
         }
         return [
@@ -143,8 +174,10 @@ class FastLookupFilter
         $buckets = self::bucketsFor($rangeEntries);
         try {
             $live = $this->metadata()['live'];
-        } catch (FastLookupIndexUnavailableException $e) {
-            // Unusable metadata cannot be served anyway; start a clean namespace.
+        } catch (FastLookupIndexCorruptException $e) {
+            // Missing or invalid metadata cannot be served anyway; start a
+            // clean namespace. Any other failure propagates: a transient
+            // Redis error must never delete the live generation.
             $live = null;
             $this->call('del', [$this->metaKey()]);
             $this->call('hMSet', [$this->metaKey(), ['schema' => self::SCHEMA, 'live' => '', 'building' => '',
@@ -501,16 +534,16 @@ return redis.call('HMGET', KEYS[1], 'capacity', 'rate', 'inserted', 'stale', 'bu
 LUA
             , [$this->infoKey($generation), $this->bloomKey($generation)], [$generation]);
         if (!is_array($reply) || count($reply) !== 6) {
-            throw new FastLookupIndexUnavailableException('Invalid fastLookup generation state.');
+            throw new FastLookupIndexCorruptException('Invalid fastLookup generation state.');
         }
         [$capacity, $rate, $inserted, $stale, $buckets, $cursor] = $reply;
         foreach ([$capacity, $inserted, $stale, $buckets, $cursor] as $number) {
             if (!is_string($number) || !ctype_digit($number)) {
-                throw new FastLookupIndexUnavailableException('Invalid fastLookup generation state.');
+                throw new FastLookupIndexCorruptException('Invalid fastLookup generation state.');
             }
         }
         if (!is_string($rate) || !is_numeric($rate)) {
-            throw new FastLookupIndexUnavailableException('Invalid fastLookup generation state.');
+            throw new FastLookupIndexCorruptException('Invalid fastLookup generation state.');
         }
         return ['capacity' => (int)$capacity, 'rate' => (float)$rate, 'inserted' => (int)$inserted,
             'stale' => (int)$stale, 'buckets' => (int)$buckets, 'cursor' => $cursor];
@@ -645,11 +678,15 @@ LUA
     private function evaluate($script, array $keys, array $args)
     {
         try {
+            $this->call('clearLastError', []);
             $result = $this->call('eval', [$script, array_merge($keys, $args), count($keys)]);
         } catch (FastLookupIndexUnavailableException $e) {
             $cause = $e->getPrevious();
             if ($cause && strpos($cause->getMessage(), 'posting resource limit exceeded') !== false) {
                 throw new OverflowException('A fastLookup posting exceeds the limit of 8 MiB or 500000 attribute IDs.', 0, $e);
+            }
+            if ($cause && self::guardFailure($cause->getMessage())) {
+                throw new FastLookupIndexCorruptException('A fastLookup generation is missing.', 0, $e);
             }
             throw $e;
         }
@@ -658,9 +695,18 @@ LUA
             if (is_string($error) && strpos($error, 'posting resource limit exceeded') !== false) {
                 throw new OverflowException('A fastLookup posting exceeds the limit of 8 MiB or 500000 attribute IDs.');
             }
+            if (is_string($error) && self::guardFailure($error)) {
+                throw new FastLookupIndexCorruptException('A fastLookup generation is missing.');
+            }
             throw new FastLookupIndexUnavailableException('Redis refused a fastLookup index operation.');
         }
         return $result;
+    }
+
+    /** The error replies requireGeneration() gives: Redis answered, the generation is gone. */
+    private static function guardFailure(string $error): bool
+    {
+        return in_array($error, ['missing generation state', 'missing Bloom filter'], true);
     }
     /** KEYS[1..3] = metadata, generation state, filter; ARGV[1] = a live or building generation. */
     private function fenceScript(): string

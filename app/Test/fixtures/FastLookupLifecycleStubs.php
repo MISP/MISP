@@ -1,4 +1,10 @@
 <?php
+// The index exceptions, for suites that fake FastLookupFilter itself. A suite
+// using the real filter loads FastLookupFilter.php before this file.
+if (!class_exists('FastLookupIndexUnavailableException', false)) {
+    class FastLookupIndexUnavailableException extends RuntimeException {}
+    class FastLookupIndexCorruptException extends FastLookupIndexUnavailableException {}
+}
 if (!class_exists('App', false)) {
     class App { public static function uses($class, $package) {} }
 }
@@ -151,6 +157,8 @@ class FastLookupLifecycleFilter
     public $available = true;
     public $moduleAvailable = true;
     public $failNextWrite = false;
+    /** metadata() fails like a Redis timeout or BUSY reply: Redis did not say the index is gone. */
+    public $failMetadataTransport = false;
     public $failReserve = false;
     public $afterWrite;
     public $afterCheckpoint;
@@ -168,7 +176,8 @@ class FastLookupLifecycleFilter
     /** Another worker's lease is released after this many refused attempts (null: never). */
     public $releaseOtherLeaseAfter;
     /** Like the real filter: false when Redis is unreachable too. */
-    public function moduleAvailable() { return $this->moduleAvailable && $this->available; }
+    public function moduleAvailable() { return $this->moduleState() === 'available'; }
+    public function moduleState() { return !$this->available ? 'unreachable' : ($this->moduleAvailable ? 'available' : 'missing'); }
     /** Another worker takes the lease (TTL in ms). */
     public function holdLease($token = 'other-worker', $ttlMs = 60000) { $this->lease = ['token' => $token, 'expires' => $this->clock + $ttlMs]; }
     /** Whether any unexpired lease exists. */
@@ -207,11 +216,15 @@ class FastLookupLifecycleFilter
     }
     public function metadata()
     {
-        if (!$this->available || !$this->meta) { throw new RuntimeException('Redis unavailable'); }
+        if (!$this->available) { throw new RuntimeException('Redis unavailable'); }
+        if ($this->failMetadataTransport) { throw new FastLookupIndexUnavailableException('Redis could not complete a fastLookup operation.'); }
+        if (!$this->moduleAvailable) { throw new FastLookupIndexUnavailableException('ERR unknown command'); }
+        // Like the real filter: only Redis's own answer that state is missing is corruption.
+        if (!$this->meta) { throw new FastLookupIndexCorruptException('Missing metadata'); }
         $meta = $this->meta;
         $meta['generations'] = [];
         if ($meta['live'] !== null) {
-            if (!isset($this->generations[$meta['live']])) { throw new RuntimeException('Missing generation'); }
+            if (!isset($this->generations[$meta['live']])) { throw new FastLookupIndexCorruptException('Missing generation'); }
             $meta['generations'][$meta['live']] = $this->generations[$meta['live']]['info'];
         }
         // Like the real filter: a missing building generation is omitted.
@@ -226,7 +239,7 @@ class FastLookupLifecycleFilter
         if ($this->failReserve) { $this->failReserve = false; throw new RuntimeException('Interrupted reservation'); }
         if ($this->meta) {
             // Like the real filter: unusable metadata cannot be served, so reserve() starts a clean namespace.
-            try { $this->metadata(); } catch (RuntimeException $e) { if (!$this->available) { throw $e; } $this->meta = []; $this->generations = []; }
+            try { $this->metadata(); } catch (FastLookupIndexCorruptException $e) { $this->meta = []; $this->generations = []; }
         }
         if (!$this->meta) {
             $this->meta = ['live' => null, 'building' => null, 'fingerprint' => null, 'building_fingerprint' => null, 'revision' => '0', 'ready' => false];

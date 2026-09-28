@@ -13,9 +13,11 @@ class FastLookupIndexManagerTest extends TestCase
 
     protected function setUp(): void
     {
-        require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
-        // Only for FastLookupFilter::MIN_CAPACITY; the manager runs on the fake.
+        // For FastLookupFilter::MIN_CAPACITY and the index exceptions; the
+        // manager runs on the fake. Loaded before the stubs, which declare
+        // the exceptions only when the real filter is absent.
         require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
+        require_once __DIR__ . '/fixtures/FastLookupLifecycleStubs.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
         require_once __DIR__ . '/fixtures/FastLookupPausingManager.php';
         $this->attribute = new FastLookupLifecycleAttribute();
@@ -364,11 +366,20 @@ class FastLookupIndexManagerTest extends TestCase
     public function testMissingRedisBloomModuleIsReported()
     {
         $manager = $this->ready();
-        $this->filter->available = false;
         $this->filter->moduleAvailable = false;
         $status = $manager->status();
         $this->assertSame('unavailable', $status['status']);
-        $this->assertStringContainsString('RedisBloom', $status['message']);
+        $this->assertSame('Fast lookup requires the RedisBloom module (Redis 8 or Redis Stack).', $status['message']);
+    }
+
+    public function testUnreachableRedisIsNotReportedAsAMissingModule()
+    {
+        $manager = $this->ready();
+        $this->filter->available = false;
+        $status = $manager->status();
+        $this->assertSame('unavailable', $status['status']);
+        $this->assertSame('The IOC index is unavailable: Redis cannot be reached. Its SQL queue has been retained.', $status['message']);
+        $this->assertStringNotContainsString('RedisBloom', $status['message']);
     }
 
     public function testEventSaveCallbackRecordsDirectPublicationAndUnpublication()
@@ -471,6 +482,28 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame($live, $this->sqlState()['generation']);
         $this->assertNull($this->sqlState()['build']);
         $this->filter->available = true;
+        $this->filter->moduleAvailable = true;
+        $this->assertSame('ready', $manager->status()['status']);
+    }
+
+    public function testRebuildKeepsLiveGenerationOnATransientRedisError()
+    {
+        $manager = $this->ready();
+        $live = $this->filter->meta['live'];
+        $reservations = count($this->filter->reserved);
+        // Redis answers the lease but times out (or is BUSY) reading the index.
+        $this->filter->failMetadataTransport = true;
+        try {
+            $manager->startRebuild();
+            $this->fail('A rebuild cannot start while Redis fails to answer.');
+        } catch (FastLookupIndexUnavailableException $e) {
+            $this->assertNotInstanceOf(FastLookupIndexCorruptException::class, $e);
+        }
+        $this->assertSame($live, $this->sqlState()['generation'], 'A transport error never drops the live generation.');
+        $this->assertNull($this->sqlState()['build']);
+        $this->assertArrayHasKey($live, $this->filter->generations);
+        $this->assertCount($reservations, $this->filter->reserved, 'No generation was reserved.');
+        $this->filter->failMetadataTransport = false;
         $this->assertSame('ready', $manager->status()['status']);
     }
 
