@@ -643,14 +643,15 @@ class FastLookupIndexManagerTest extends TestCase
     }
 
     /** Another worker takes the lease once the scan has added its first rows. */
-    private function loseLeaseDuringScan(?Throwable $failure = null)
+    private function loseLeaseDuringScan(?Throwable $failure = null, bool $redisDown = false)
     {
         $this->attribute->db->scans = [];
-        $this->filter->afterWrite = function () use ($failure) {
+        $this->filter->afterWrite = function () use ($failure, $redisDown) {
             if (!$this->attribute->db->scans) { return; }
             $this->filter->afterWrite = null;
             $this->filter->clock += FastLookupIndexManager::WORKER_LEASE_TTL_MS;
             $this->filter->holdLease('other-worker');
+            if ($redisDown) { $this->filter->available = false; }
             if ($failure) { throw $failure; }
         };
     }
@@ -717,15 +718,81 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertArrayNotHasKey(FastLookupIndexManager::LEGACY_STATE_SETTING, $this->attribute->db->settings);
     }
 
-    public function testFirstBuildUpdateFailureIsReportedAsError()
+    public function testFirstBuildWithUnreachableRedisIsReportedUnavailableWithoutSqlWrites()
     {
         $this->seed();
         $manager = $this->manager();
         $manager->startRebuild();
+        $before = $this->attribute->db->settings;
         $this->filter->available = false;
-        $this->assertSame('error', $manager->runBatch(1)['status'], 'A failing first build must not look like progress.');
+        $this->assertSame('unavailable', $manager->runBatch(1)['status'], 'A failing first build must not look like progress.');
+        $this->assertSame($before, $this->attribute->db->settings, 'A worker without the lease writes nothing to SQL.');
         $this->filter->available = true;
         $this->assertSame('ready', $manager->runBatch(1)['status']);
+    }
+
+    public function testWorkerThatLostItsLeaseToARedisOutageNeverRecordsAFailure()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->loseLeaseDuringScan(new RuntimeException('Redis timed out'), true);
+        $manager->runBatch(1);
+        $state = $this->sqlState();
+        $this->assertNull($state['build']['error'], 'Past its lease deadline a worker cannot tell whether it still holds the lease.');
+        $this->assertTrue($state['build']['reserved']);
+        $this->assertEmpty($state['error'] ?? null);
+    }
+
+    public function testRedisFailureWithinTheLeaseIsRecorded()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->attribute->db->scans = [];
+        $this->filter->afterWrite = function () {
+            if (!$this->attribute->db->scans) { return; }
+            $this->filter->afterWrite = null;
+            $this->filter->available = false;
+            throw new RuntimeException('Redis timed out');
+        };
+        $manager->runBatch(1);
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $this->sqlState()['build']['error']);
+    }
+
+    public function testStaleFailureNeverFailsABuildAnotherHolderAdvanced()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->attribute->db->scans = [];
+        $this->filter->afterWrite = function () {
+            if (!$this->attribute->db->scans) { return; }
+            $this->filter->afterWrite = null;
+            // Another holder recorded progress; this worker still believes
+            // its lease is current (it slipped past its last renewal).
+            $state = $this->sqlState();
+            $state['build']['cursor'] = '15';
+            $this->attribute->db->settings[FastLookupIndexManager::STATE_SETTING] = json_encode($state);
+            throw new RuntimeException('Generation changed');
+        };
+        $manager->runBatch(1);
+        $build = $this->sqlState()['build'];
+        $this->assertNull($build['error'], "A failure is recorded only against the build the failed step started from.");
+        $this->assertSame('15', $build['cursor']);
+    }
+
+    public function testBuildFailureIsRecordedAgainstTheUnchangedBuild()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->attribute->db->scans = [];
+        $this->filter->afterWrite = function () {
+            if (!$this->attribute->db->scans) { return; }
+            $this->filter->afterWrite = null;
+            throw new RuntimeException('Interrupted write');
+        };
+        $manager->runBatch(1);
+        $build = $this->sqlState()['build'];
+        $this->assertSame(FastLookupIndexManager::BUILD_FAILED, $build['error']);
+        $this->assertFalse($build['reserved']);
     }
 
     public function testRebuildAfterInterruptedActivationKeepsServingTheActivatedBuild()

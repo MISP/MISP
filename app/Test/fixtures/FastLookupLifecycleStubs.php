@@ -165,7 +165,8 @@ class FastLookupLifecycleFilter
     public $leaseRenewals = 0;
     /** Another worker's lease is released after this many refused attempts (null: never). */
     public $releaseOtherLeaseAfter;
-    public function moduleAvailable() { return $this->moduleAvailable; }
+    /** Like the real filter: false when Redis is unreachable too. */
+    public function moduleAvailable() { return $this->moduleAvailable && $this->available; }
     /** Another worker takes the lease (TTL in ms). */
     public function holdLease($token = 'other-worker', $ttlMs = 60000) { $this->lease = ['token' => $token, 'expires' => $this->clock + $ttlMs]; }
     /** Whether any unexpired lease exists. */

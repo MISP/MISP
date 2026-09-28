@@ -90,6 +90,31 @@ class FastLookupIndexShellTest extends TestCase
         $this->assertLessThan(3, $shell->Job->progress);
     }
 
+    public function testResumeStopsWhenRedisIsUnreachableDuringFirstBuild()
+    {
+        $attribute = new FastLookupLifecycleAttribute();
+        $attribute->db->events = ['1' => true];
+        $attribute->db->attributes = [['id' => '11', 'event_id' => '1', 'type' => 'domain', 'value1' => 'one.test', 'value2' => '', 'deleted' => false]];
+        ClassRegistry::$attribute = $attribute;
+        (new FastLookupIndexManager($attribute))->startRebuild();
+        $redis = new FastLookupFilter();
+        $redis->available = false;
+        $before = $attribute->db->settings;
+        $shell = new AdminShell();
+        $shell->MispAttribute = $attribute;
+        $shell->Job = new Job();
+        $shell->args = ['5', '1'];
+        try {
+            $shell->resumeFastLookup();
+            $this->fail('An unreachable Redis must fail the job.');
+        } catch (RuntimeException $e) {
+            $this->assertNotSame('The IOC index loop did not stop.', $e->getMessage());
+        }
+        $this->assertFalse($shell->Job->success);
+        $this->assertLessThan(3, $shell->Job->progress);
+        $this->assertSame($before, $attribute->db->settings, 'No SQL state is written without the lease.');
+    }
+
     public function testPendingWorkerDoesNotRequeueOnErrorWhileBuildIsActive()
     {
         $attribute = $this->brokenLiveDuringBuild();

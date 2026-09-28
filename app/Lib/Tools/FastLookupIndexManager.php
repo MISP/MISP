@@ -60,6 +60,11 @@ class FastLookupIndexManager
      */
     const WORKER_LEASE_TTL_MS = 60000;
     const WORKER_LEASE_RETRY_MS = 100;
+    /**
+     * When Redis cannot be asked, the lease counts as held only until this
+     * long before its last known expiry: past that, another worker may hold it.
+     */
+    const WORKER_LEASE_MARGIN_MS = 5000;
     const BUILD_FAILED = 'The IOC index rebuild failed. Resume to restart it from the beginning, or start a new rebuild.';
 
     private $attribute;
@@ -69,6 +74,8 @@ class FastLookupIndexManager
     private $filter;
     /** This worker's lease token while it holds the lease. */
     private $leaseToken;
+    /** Monotonic time (ms) until which the lease is certainly still ours. */
+    private $leaseDeadline;
     private static $dispatchModels = [];
     private static $shutdownRegistered = false;
 
@@ -118,8 +125,12 @@ class FastLookupIndexManager
             }
             if (empty($state['generation']) || $state['fingerprint'] !== $fingerprint) {
                 if ($build && $build['fingerprint'] === $fingerprint) {
-                    // A failing first build must not look like progress.
+                    // A failing first build must not look like progress, nor
+                    // one whose Redis is unreachable.
                     $failure = $build['error'] ?? $state['error'] ?? null;
+                    if ($failure === null && !$this->filter()->moduleAvailable()) {
+                        throw new RuntimeException('Redis is unavailable for the IOC index build.');
+                    }
                     $result['status'] = $failure === null ? 'warming' : 'error';
                     $result['message'] = $failure ?? 'The IOC index is being built.';
                 } else {
@@ -269,9 +280,9 @@ class FastLookupIndexManager
         try {
             $leased = $this->acquireWorkerLease($pendingOnly ? 0 : self::WORKER_LOCK_WAIT);
         } catch (Throwable $e) {
-            // Redis is unreachable: record it like any failed batch, so a
-            // first build reports an error rather than progress.
-            $this->saveFailure($e, 'update');
+            // Without the lease this worker may not write SQL state; status()
+            // reports the unreachable Redis itself.
+            $this->logFailure($e);
             return $this->status();
         }
         // A busy lease means another worker is running a batch: leave it be.
@@ -289,6 +300,9 @@ class FastLookupIndexManager
     private function work(int $limit, bool $pendingOnly): void
     {
         $phase = 'update';
+        // The SQL build as this worker last saw it committed: a build failure
+        // is recorded only if nobody has changed it since (saveFailure).
+        $observed = null;
         try {
             $this->sizeStagedBuild();
             // Commit intent separately. A crash during the next transaction must
@@ -323,6 +337,7 @@ class FastLookupIndexManager
             // events into every generation and settle the batch's revision.
             $this->connection->beginTransaction();
             $state = $this->readState(true);
+            $observed = $state['build'] ?? null;
             if (!$this->canWork($state)) {
                 $this->connection->commit();
                 return;
@@ -371,6 +386,7 @@ class FastLookupIndexManager
             $state['error'] = null;
             $this->writeState($state);
             $this->connection->commit();
+            $observed = $state['build'] ?? null;
             if (!$scan) {
                 return;
             }
@@ -408,6 +424,7 @@ class FastLookupIndexManager
             $this->renewWorkerLease();
             $this->connection->beginTransaction();
             $state = $this->readState(true);
+            $observed = $state['build'] ?? null;
             if (!$this->canWork($state) || empty($state['pending_revision'])) {
                 $this->connection->commit();
                 return;
@@ -430,7 +447,7 @@ class FastLookupIndexManager
                 $this->logFailure($e);
                 return;
             }
-            $this->saveFailure($e, $phase);
+            $this->saveFailure($e, $phase, $observed);
         }
     }
 
@@ -542,8 +559,10 @@ class FastLookupIndexManager
         $token = bin2hex(random_bytes(16));
         $retries = intdiv($wait * 1000, self::WORKER_LEASE_RETRY_MS);
         for ($attempt = 0; ; ++$attempt) {
+            $start = $this->now();
             if ($this->filter()->acquireLease($token, self::WORKER_LEASE_TTL_MS)) {
                 $this->leaseToken = $token;
+                $this->leaseDeadline = $start + self::WORKER_LEASE_TTL_MS - self::WORKER_LEASE_MARGIN_MS;
                 return true;
             }
             if ($attempt >= $retries) {
@@ -556,18 +575,35 @@ class FastLookupIndexManager
     /** Extends the lease, or stops the batch if another worker may hold it. */
     private function renewWorkerLease(): void
     {
-        if (!$this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS)) {
+        if (!$this->extendWorkerLease()) {
             throw new FastLookupWorkerLeaseLostException('The IOC index worker lease expired during the batch.');
         }
     }
 
-    /** A Redis failure counts as held, so the failure itself gets recorded. */
+    private function extendWorkerLease(): bool
+    {
+        // Measured before the request: the lease can only outlive this.
+        $start = $this->now();
+        if (!$this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS)) {
+            $this->leaseDeadline = null;
+            return false;
+        }
+        $this->leaseDeadline = $start + self::WORKER_LEASE_TTL_MS - self::WORKER_LEASE_MARGIN_MS;
+        return true;
+    }
+
+    /**
+     * Whether this worker may still record a failure. If Redis cannot say,
+     * the lease counts as held only until shortly before it could have
+     * expired, so a Redis failure is recorded without ever letting a worker
+     * whose lease lapsed fail another holder's work.
+     */
     private function holdsWorkerLease(): bool
     {
         try {
-            return $this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS);
+            return $this->extendWorkerLease();
         } catch (Throwable $e) {
-            return true;
+            return $this->leaseDeadline !== null && $this->now() < $this->leaseDeadline;
         }
     }
 
@@ -575,6 +611,7 @@ class FastLookupIndexManager
     {
         $token = $this->leaseToken;
         $this->leaseToken = null;
+        $this->leaseDeadline = null;
         try {
             $this->filter()->releaseLease($token);
         } catch (Throwable $e) {
@@ -586,6 +623,12 @@ class FastLookupIndexManager
     protected function pause(int $milliseconds): void
     {
         usleep($milliseconds * 1000);
+    }
+
+    /** Monotonic milliseconds. */
+    protected function now(): float
+    {
+        return hrtime(true) / 1e6;
     }
 
     private function canWork($state): bool
@@ -998,12 +1041,21 @@ class FastLookupIndexManager
         ];
     }
 
-    private function saveFailure(Throwable $e, string $phase): void
+    /**
+     * $observed is the SQL build the failed step started from: a build is
+     * failed only if it is still that build at that progress, so a writer
+     * whose lease lapsed never fails a build another holder has advanced.
+     */
+    private function saveFailure(Throwable $e, string $phase, ?array $observed = null): void
     {
         $this->logFailure($e);
         try {
             $this->connection->beginTransaction();
             $state = $this->readState(true);
+            if ($state && $phase === 'build' && !empty($state['build']) && !self::sameBuild($state['build'], $observed)) {
+                $this->connection->commit();
+                return;
+            }
             if ($state) {
                 if ($phase === 'build' && !empty($state['build'])) {
                     // The live generation keeps serving; the build restarts
@@ -1019,6 +1071,15 @@ class FastLookupIndexManager
         } catch (Throwable $ignored) {
             $this->rollbackOwnedTransaction();
         }
+    }
+
+    /** The compare-and-set T3 applies: same generation, reservation, error and cursor. */
+    private static function sameBuild(array $current, ?array $observed): bool
+    {
+        return $observed !== null && $current['generation'] === $observed['generation']
+            && !empty($current['reserved']) === !empty($observed['reserved'])
+            && ($current['error'] ?? null) === ($observed['error'] ?? null)
+            && $current['cursor'] === $observed['cursor'];
     }
 
     private function moduleMissing(): bool
