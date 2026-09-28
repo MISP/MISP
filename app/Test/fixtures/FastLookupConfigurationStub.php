@@ -84,11 +84,15 @@ class FastLookupTestAttribute
 
 class FastLookupTestFilter
 {
-    public $hits = [];
+    /** The filter's reply; null answers "absent" for every queried position, like the real filter. */
+    public $hits = null;
     public $reads = [];
     public function candidates($generation, array $tokens, $maximumIds = 100000)
     {
         $this->reads[] = [$generation, $tokens, $maximumIds];
+        if ($this->hits === null) {
+            return array_map(function () { return ['exact' => false, 'ip_range' => [], 'domain' => []]; }, $tokens);
+        }
         return $this->hits;
     }
 }

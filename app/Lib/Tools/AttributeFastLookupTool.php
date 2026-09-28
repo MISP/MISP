@@ -2,6 +2,7 @@
 App::uses('FastLookupConfig', 'Tools');
 App::uses('FastLookupValueTool', 'Tools');
 App::uses('FastLookupIndexManager', 'Tools');
+App::uses('FastLookupFilter', 'Tools');
 
 /** Persistent IOC candidate discovery followed by current SQL authorization. */
 class AttributeFastLookupTool
@@ -197,24 +198,30 @@ class AttributeFastLookupTool
             . ($scope['published_only'] ? ' AND ' . $this->db->name('Event.published') . ' = 1' : '');
     }
 
+    /**
+     * The filter answers every position of the batch with all three groups.
+     * Anything else is a malformed reply and fails closed: a missing flag or
+     * position must never read as "absent".
+     */
     private function validateCandidates(array $candidates, array $batch, &$rowCount)
     {
-        foreach ($candidates as $index => $groups) {
-            if (!array_key_exists($index, $batch) || !is_array($groups)) {
-                throw new RuntimeException('Invalid IOC index candidate response.');
-            }
-            if (!is_bool($groups['exact'] ?? false)) {
-                throw new RuntimeException('Invalid IOC index candidate response.');
+        if (count($candidates) !== count($batch) || array_diff_key($batch, $candidates) || array_diff_key($candidates, $batch)) {
+            throw new FastLookupIndexUnavailableException('Invalid IOC index candidate response.');
+        }
+        foreach ($candidates as $groups) {
+            if (!is_array($groups) || !array_key_exists('exact', $groups) || !is_bool($groups['exact'])
+                || !array_key_exists('ip_range', $groups) || !array_key_exists('domain', $groups)) {
+                throw new FastLookupIndexUnavailableException('Invalid IOC index candidate response.');
             }
             foreach (['ip_range', 'domain'] as $kind) {
-                $ids = $groups[$kind] ?? [];
+                $ids = $groups[$kind];
                 if (!is_array($ids)) {
-                    throw new RuntimeException('Invalid IOC index candidate IDs.');
+                    throw new FastLookupIndexUnavailableException('Invalid IOC index candidate IDs.');
                 }
                 $this->consumeRows(count($ids), $rowCount);
                 foreach ($ids as $id) {
                     if ((!is_string($id) && !is_int($id)) || !preg_match('/^[1-9][0-9]{0,18}$/D', (string)$id)) {
-                        throw new RuntimeException('Invalid IOC index candidate ID.');
+                        throw new FastLookupIndexUnavailableException('Invalid IOC index candidate ID.');
                     }
                 }
             }

@@ -8,6 +8,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
+        require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
         foreach (['FastLookupConfig', 'FastLookupValueTool', 'AttributeFastLookupTool'] as $class) {
             $path = __DIR__ . '/../Lib/Tools/' . $class . '.php';
             if (is_file($path)) { require_once $path; }
@@ -239,9 +240,36 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         try {
             $tool->lookup([], ['value' => ['192.0.2.1']]);
             $this->fail('Invalid candidate IDs must fail closed.');
-        } catch (RuntimeException $e) {
+        } catch (FastLookupIndexUnavailableException $e) {
             $this->assertSame([], $attribute->db->queries);
         }
+    }
+
+    /** @dataProvider malformedCandidateReplies */
+    public function testMalformedCandidateReplyFailsClosedAsUnavailable(array $hits, array $values): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->hits = $hits;
+        try {
+            $tool->lookup([], ['value' => $values]);
+            $this->fail('A malformed filter reply must never read as "absent".');
+        } catch (FastLookupIndexUnavailableException $e) {
+            $this->assertSame([], $attribute->db->queries, 'Nothing reached SQL.');
+        }
+    }
+
+    public function malformedCandidateReplies(): array
+    {
+        $absent = ['exact' => false, 'ip_range' => [], 'domain' => []];
+        return [
+            'no exact flag' => [[0 => ['ip_range' => [], 'domain' => []]], ['example.org']],
+            'exact flag not boolean' => [[0 => ['exact' => 1, 'ip_range' => [], 'domain' => []]], ['example.org']],
+            'empty reply' => [[], ['example.org']],
+            'a position missing' => [[0 => $absent], ['example.org', 'example.net']],
+            'an extra position' => [[0 => $absent, 1 => $absent], ['example.org']],
+            'groups not an array' => [[0 => false], ['example.org']],
+            'no range list' => [[0 => ['exact' => false, 'domain' => []]], ['example.org']],
+        ];
     }
 
     public function testIgnorableWeightsUseSqlToIncludeEmptyComponents(): void
