@@ -236,37 +236,39 @@ configured `MISP.fast_lookup_false_positive_rate`.
 
 Measured at 1.7M attributes (17 default types, 100,000 attributes each,
 10,000-value lookup requests per type; MariaDB 10.11.19, Redis 8.2.10, PHP
-8.3.33, one 6-core host): Redis grew by about **9.0 bytes per attribute**
-(filter 9,165,968 bytes, shared across all types at a 5,100,000-token capacity
-with 1,813,731 tokens inserted; range/domain postings 4,960,128 bytes across
-3,516 keys, plus 147.8 KB of overflow postings). A full rebuild took **43.1
-s**. Against the plain-SQL baseline (the strongest `LIKE`/range form, no
-filter), mean request time across the 17 types was 10.05 s filtered vs.
-10.11 s SQL-only for all-hit requests (about even), 1.56 s vs. 10.05 s for
-all-miss requests (6.44× faster), and 1.77 s vs. 5.86 s for range/domain
-expansion matches (3.3× faster). The measured false-positive rate over the
-sampled absent values was 0, against an estimated rate of about 2.55e-07 at
-that fill level (configured target 0.001 — the filter is far under capacity
-at 1.7M attributes). Matches were identical to the SQL baseline for every
-type and lookup kind.
+8.3.33, one 6-core host): Redis grew by about **9.2 bytes per attribute**
+(filter 9,165,968 bytes in 1 shared key at a 5,100,000-token capacity with
+1,813,731 tokens inserted; range/domain postings 4,960,128 bytes across 3,516
+keys, plus 147.8 KB of overflow postings in 2 keys). A full rebuild took
+**43.9 s**. Against the plain-SQL baseline (the strongest `LIKE`/range form,
+no filter), mean request time across the 17 types was 10.1 s filtered vs.
+10.45 s SQL-only for all-hit requests (about 3.3% faster), 1.57 s vs. 9.99 s
+for all-miss requests (6.36× faster), and 1.84 s vs. 5.97 s for range/domain
+expansion matches (about 3.2× faster). The measured false-positive rate over
+the sampled absent values was 0, against an estimated rate of about 2.55e-07
+at that fill level (configured target 0.001 — the filter is far under
+capacity at 1.7M attributes). Matches were identical to the SQL baseline for
+every type and lookup kind.
 
 For context, the per-type postings index this replaced measured about 161
 bytes per attribute and a 1,175 s full rebuild at the same 1.7M-attribute
-scale: the Bloom filter is roughly 18× smaller and, after fixing the rebuild
-scan to force the primary key and use larger chunks, about 27× faster to
-build.
+scale: the Bloom filter is roughly 17.5× smaller and, after bounding the
+rebuild scan to primary-key reads in 20,000-ID windows (2,000-row chunks per
+query, so a sparse stretch or the final partial window can no longer run past
+the worker lease), about 26.8× faster to build.
 
 Because the filter's capacity is `max(1,000,000, 1.5 × 2 × in-scope
 attributes)`, its size scales with the in-scope attribute count rather than
 with events or duplicate values; postings scale with the number of distinct
 range/domain values and how many attribute IDs each carries. Linearly
 extrapolating the measured 1.7M-attribute point to 100M attributes (×58.82,
-not an independent measurement): build time projects to about **2,535 s
-(~42 minutes)**, and Redis memory to about **900 MB (~0.84 GiB)**, versus the
-old postings index's projected ~16 GB at the same scale. RedisBloom/Redis/
-MariaDB behavior at that scale — key-count effects, the scan's I/O pattern
-against a much larger table — may not stay linear, so treat this as an
-order-of-magnitude estimate, not a commitment.
+not an independent measurement): build time projects to about **2,582 s
+(~43.0 minutes, ~0.72 hours)**, and Redis memory to about **920 MB
+(~0.86 GiB)**, versus the old postings index's projected ~16.1 GB at the same
+scale (about 17.5× smaller). RedisBloom/Redis/MariaDB behavior at that scale
+— key-count effects, the scan's I/O pattern against a much larger table —
+may not stay linear, so treat this as an order-of-magnitude estimate, not a
+commitment.
 
 Redis `MEMORY USAGE` support is required for memory measurements; unsupported
 measurement is shown as unavailable, never replaced by an invented estimate.
