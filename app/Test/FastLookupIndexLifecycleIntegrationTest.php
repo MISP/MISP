@@ -124,30 +124,30 @@ class FastLookupIndexLifecycleIntegrationTest extends TestCase
         $this->assertSame(1, $status['progress']['processed_attributes']);
     }
 
-    /** During the scan a writer saves an event (share lock, 1 s lock wait) and reads the worker lock. */
+    /**
+     * During the scan a writer saves an event (share lock, 1 s lock wait) while
+     * the worker lease is held; the lease lives in the fake filter's Redis.
+     */
     private function writeDuringScan(callable $scan)
     {
         $writer = $this->connection();
-        $lock = (new ReflectionMethod(FastLookupIndexManager::class, 'workerLockName'));
-        $lock->setAccessible(true);
-        $name = $lock->invoke($this->manager);
         $observed = null;
-        $this->index->afterWrite = function () use ($writer, $name, &$observed) {
+        $this->index->afterWrite = function () use ($writer, &$observed) {
             $this->index->afterWrite = null;
-            $held = (int)$writer->query('SELECT IS_FREE_LOCK(' . $writer->quote($name) . ')')->fetchColumn() === 0;
+            $held = $this->index->leaseHeld();
             $writer->beginTransaction();
             $writer->exec('UPDATE events SET published=FALSE WHERE id=4');
             FastLookupIndexManager::recordChange($this->model($writer), '4');
             $writer->commit();
-            $observed = ['saved' => true, 'worker_lock_held' => $held];
+            $observed = ['saved' => true, 'worker_lease_held' => $held];
         };
         try {
             $scan();
         } finally {
             $this->index->afterWrite = null;
         }
-        $this->assertSame(['saved' => true, 'worker_lock_held' => true], $observed, 'The scan holds the worker lock, not the state row.');
-        $this->assertSame(1, (int)$writer->query('SELECT IS_FREE_LOCK(' . $writer->quote($name) . ')')->fetchColumn(), 'The batch released the worker lock.');
+        $this->assertSame(['saved' => true, 'worker_lease_held' => true], $observed, 'The scan holds the worker lease, not the state row.');
+        $this->assertFalse($this->index->leaseHeld(), 'The batch released the worker lease.');
     }
 
     public function testEventSaveIsNotBlockedByFirstBuildScan()

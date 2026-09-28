@@ -17,13 +17,15 @@ class FastLookupIndexManagerTest extends TestCase
         // Only for FastLookupFilter::MIN_CAPACITY; the manager runs on the fake.
         require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupIndexManager.php';
+        require_once __DIR__ . '/fixtures/FastLookupPausingManager.php';
         $this->attribute = new FastLookupLifecycleAttribute();
         $this->filter = new FastLookupLifecycleFilter();
+        $this->attribute->db->leaseFilter = $this->filter;
     }
 
     private function manager()
     {
-        return $this->manager ?? ($this->manager = new FastLookupIndexManager($this->attribute, $this->filter));
+        return $this->manager ?? ($this->manager = new FastLookupPausingManager($this->attribute, $this->filter));
     }
 
     private function seed()
@@ -529,7 +531,7 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame(['10', '20'], $this->filter->liveIds());
     }
 
-    public function testScanRunsOutsideCheckpointTransactionUnderWorkerLock()
+    public function testScanRunsOutsideCheckpointTransactionUnderWorkerLease()
     {
         $this->seed();
         $manager = $this->manager();
@@ -544,13 +546,14 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertCount(2, $db->scans, 'The first build and the rebuild each scanned.');
         foreach ($db->scans as $scan) {
             $this->assertFalse($scan['transaction'], 'The scan holds no checkpoint row lock.');
-            $this->assertTrue($scan['worker_lock'], 'The worker lock keeps the scan exclusive.');
+            $this->assertTrue($scan['worker_lease'], 'The worker lease keeps the scan exclusive.');
         }
         $this->assertNotEmpty($db->refreshes);
         foreach ($db->refreshes as $refresh) {
             $this->assertTrue($refresh['transaction'], 'Dirty events drain under the checkpoint row lock.');
         }
-        $this->assertSame(0, $db->workerLocks, 'Every batch releases the worker lock.');
+        $this->assertGreaterThan(0, $this->filter->leaseRenewals, 'The scan renews its lease.');
+        $this->assertFalse($this->filter->leaseHeld(), 'Every batch releases the worker lease.');
     }
 
     public function testLiveRevisionIsCommittedBeforeRebuildScan()
@@ -571,42 +574,136 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame('ready', $during, 'Lookups keep being served while the rebuild scans.');
     }
 
-    public function testBusyWorkerLockSkipsBatchWithoutTouchingState()
+    public function testBusyWorkerLeaseSkipsBatchWithoutTouchingState()
     {
         $this->seed();
         $manager = $this->manager();
         $manager->startRebuild();
         $before = $this->attribute->db->settings;
-        $this->attribute->db->workerLockBusy = true;
+        $this->filter->holdLease('other-worker');
         $this->assertSame('warming', $manager->runBatch(1)['status']);
         $this->assertSame($before, $this->attribute->db->settings);
         $this->assertSame([], $this->attribute->db->scans);
+        $this->assertSame(FastLookupIndexManager::WORKER_LOCK_WAIT * 1000, array_sum($manager->pauses), 'A rebuild batch waits its turn, then gives up.');
         try {
             $manager->startRebuild();
             $this->fail('A rebuild must not replace a build another worker is scanning.');
         } catch (RuntimeException $e) {
         }
         $this->assertSame($before, $this->attribute->db->settings);
-        $this->attribute->db->workerLockBusy = false;
+        $this->assertSame('other-worker', $this->filter->lease['token'], "Another worker's lease is never released.");
+        $this->filter->lease = null;
         $this->assertSame('ready', $manager->runBatch(1)['status']);
     }
 
-    public function testPendingWorkerNeverWaitsForBusyWorkerLock()
+    public function testPendingWorkerNeverWaitsForBusyWorkerLease()
     {
         $manager = $this->ready();
         $manager->startRebuild();
         FastLookupIndexManager::recordChange($this->attribute, '1');
         $db = $this->attribute->db;
-        $db->workerLockBusy = true;
-        $db->lockWaits = [];
+        $this->filter->holdLease('other-worker');
+        $this->filter->leaseAttempts = [];
+        $manager->pauses = [];
         $before = $db->settings;
         $this->assertSame('updating', $manager->processPending()['status'], 'The marker stays queued for the next dispatch.');
-        $this->assertSame([0], $db->lockWaits, 'Request-shutdown dispatch must not block behind a rebuild scan.');
+        $this->assertCount(1, $this->filter->leaseAttempts, 'Request-shutdown dispatch tries the lease once.');
+        $this->assertSame([], $manager->pauses, 'Request-shutdown dispatch must not block behind a rebuild scan.');
         $this->assertSame($before, $db->settings);
         $manager->runBatch(1);
-        $this->assertSame([0, FastLookupIndexManager::WORKER_LOCK_WAIT], $db->lockWaits, 'Rebuild batches still wait their turn.');
-        $db->workerLockBusy = false;
+        $retries = FastLookupIndexManager::WORKER_LOCK_WAIT * 1000 / FastLookupIndexManager::WORKER_LEASE_RETRY_MS;
+        $this->assertCount(2 + $retries, $this->filter->leaseAttempts, 'Rebuild batches still wait their turn.');
+        $this->assertCount($retries, $manager->pauses);
+        $this->filter->lease = null;
         $this->assertSame('ready', $manager->processPending()['status']);
+    }
+
+    public function testBatchRunsOnceAnotherWorkerReleasesItsLease()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->filter->holdLease('other-worker');
+        $this->filter->releaseOtherLeaseAfter = 3;
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([FastLookupIndexManager::WORKER_LEASE_RETRY_MS, FastLookupIndexManager::WORKER_LEASE_RETRY_MS, FastLookupIndexManager::WORKER_LEASE_RETRY_MS], $manager->pauses);
+        $this->assertFalse($this->filter->leaseHeld());
+    }
+
+    public function testExpiredWorkerLeaseIsTakenOver()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        // A worker died holding the lease; it lapses after its TTL.
+        $this->filter->holdLease('dead-worker');
+        $this->filter->clock += FastLookupIndexManager::WORKER_LEASE_TTL_MS;
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame([], $manager->pauses);
+    }
+
+    /** Another worker takes the lease once the scan has added its first rows. */
+    private function loseLeaseDuringScan(?Throwable $failure = null)
+    {
+        $this->attribute->db->scans = [];
+        $this->filter->afterWrite = function () use ($failure) {
+            if (!$this->attribute->db->scans) { return; }
+            $this->filter->afterWrite = null;
+            $this->filter->clock += FastLookupIndexManager::WORKER_LEASE_TTL_MS;
+            $this->filter->holdLease('other-worker');
+            if ($failure) { throw $failure; }
+        };
+    }
+
+    public function testLeaseLostDuringRebuildScanStopsBeforeRecordingProgress()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $before = $this->sqlState()['build'];
+        $this->loseLeaseDuringScan();
+        $status = $manager->runBatch(1);
+        $this->assertSame('ready', $status['status'], 'The live generation keeps serving.');
+        $build = $this->sqlState()['build'];
+        $this->assertSame($building, $build['generation']);
+        $this->assertSame($before['cursor'], $build['cursor'], 'A worker without the lease never records scan progress.');
+        $this->assertSame($before['processed'], $build['processed']);
+        $this->assertFalse($build['scan_complete']);
+        $this->assertNull($build['error'], "Another worker's build is not failed.");
+        $this->assertEmpty($this->sqlState()['error'] ?? null);
+        $this->assertSame('0', $this->filter->generations[$building]['info']['cursor'], 'The Redis cursor is not advanced either.');
+        $this->assertSame('other-worker', $this->filter->lease['token'], "The new holder's lease is left alone.");
+        $this->filter->lease = null;
+        $manager->runBatch(1);
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame($building, $this->filter->meta['live'], 'Later batches rescan from the SQL cursor and activate.');
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testLeaseLostDuringFirstBuildScanNeverActivates()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $manager->startRebuild();
+        $this->loseLeaseDuringScan();
+        $this->assertSame('warming', $manager->runBatch(1)['status']);
+        $this->assertNull($this->filter->meta['live'], 'A worker without the lease never activates a generation.');
+        $this->assertFalse($this->sqlState()['build']['scan_complete']);
+        $this->filter->lease = null;
+        $this->assertSame('ready', $manager->runBatch(1)['status']);
+        $this->assertSame(['10', '20'], $this->filter->liveIds());
+    }
+
+    public function testWorkerThatLostItsLeaseNeverRecordsAFailure()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $this->loseLeaseDuringScan(new RuntimeException('Generation changed'));
+        $manager->runBatch(1);
+        $state = $this->sqlState();
+        $this->assertNull($state['build']['error'], 'Only the lease holder may fail the build.');
+        $this->assertTrue($state['build']['reserved']);
+        $this->assertEmpty($state['error'] ?? null);
     }
 
     public function testLegacyStateRowIsDeletedOnFirstActivation()

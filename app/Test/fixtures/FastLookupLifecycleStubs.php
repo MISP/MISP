@@ -48,13 +48,10 @@ class FastLookupLifecycleConnection
     public $events = [];
     public $attributes = [];
     public $config = ['datasource' => 'Database/Mysql', 'prefix' => ''];
-    /** Another process holds the worker lock. */
-    public $workerLockBusy = false;
-    public $workerLocks = 0;
-    /** GET_LOCK timeouts in call order. */
-    public $lockWaits = [];
-    /** Per rebuild-scan query: whether a transaction or the worker lock was held. */
+    /** Per rebuild-scan query: whether a transaction was open and the worker lease held. */
     public $scans = [];
+    /** The fake filter whose worker lease the scan records (set by tests). */
+    public $leaseFilter;
     /** Per dirty-event refresh query: whether a transaction was open. */
     public $refreshes = [];
     private $snapshot;
@@ -69,16 +66,6 @@ class FastLookupLifecycleConnection
     public function prepare($sql) { return new FastLookupLifecycleStatement($this, $sql); }
     public function execute($sql, $args)
     {
-        if (strpos($sql, 'GET_LOCK(') !== false) {
-            $this->lockWaits[] = (int)$args[1];
-            if ($this->workerLockBusy) { return [['acquired' => 0]]; }
-            ++$this->workerLocks;
-            return [['acquired' => 1]];
-        }
-        if (strpos($sql, 'RELEASE_LOCK(') !== false) {
-            --$this->workerLocks;
-            return [['released' => 1]];
-        }
         if (strpos($sql, 'admin_settings') !== false) {
             if (strpos($sql, 'INSERT') === 0) {
                 if (strpos($sql, 'DO NOTHING') === false && strpos($sql, 'setting = setting') === false || !isset($this->settings[$args[0]])) {
@@ -135,7 +122,7 @@ class FastLookupLifecycleConnection
                 $types = array_slice($args, 2);
                 $keep = function ($row) use ($eventId, $after, $types) { return $row['event_id'] === $eventId && (int)$row['id'] > (int)$after; };
             } else {
-                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lock' => $this->workerLocks > 0];
+                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lease' => $this->leaseFilter ? $this->leaseFilter->leaseHeld() : null];
                 [$after, $highWater] = $args;
                 $types = array_slice($args, 2);
                 $published = strpos($sql, 'e.published = TRUE') !== false;
@@ -169,7 +156,49 @@ class FastLookupLifecycleFilter
     public $afterActivate;
     /** reserve() arguments in call order. */
     public $reserved = [];
+    /** The worker lease like Redis holds it: ['token' => ..., 'expires' => ms on $clock], or null. */
+    public $lease;
+    /** Milliseconds; tests advance it to expire a lease. */
+    public $clock = 0;
+    /** acquireLease() calls, in order, and renewLease() calls. */
+    public $leaseAttempts = [];
+    public $leaseRenewals = 0;
+    /** Another worker's lease is released after this many refused attempts (null: never). */
+    public $releaseOtherLeaseAfter;
     public function moduleAvailable() { return $this->moduleAvailable; }
+    /** Another worker takes the lease (TTL in ms). */
+    public function holdLease($token = 'other-worker', $ttlMs = 60000) { $this->lease = ['token' => $token, 'expires' => $this->clock + $ttlMs]; }
+    /** Whether any unexpired lease exists. */
+    public function leaseHeld() { return $this->leaseToken() !== null; }
+    public function acquireLease($token, $ttlMs)
+    {
+        if (!$this->available) { throw new RuntimeException('Redis unavailable'); }
+        $this->leaseAttempts[] = $token;
+        if ($this->leaseToken() !== null) {
+            if ($this->releaseOtherLeaseAfter !== null && --$this->releaseOtherLeaseAfter <= 0) { $this->lease = null; $this->releaseOtherLeaseAfter = null; }
+            return false;
+        }
+        $this->lease = ['token' => $token, 'expires' => $this->clock + $ttlMs];
+        return true;
+    }
+    public function renewLease($token, $ttlMs)
+    {
+        if (!$this->available) { throw new RuntimeException('Redis unavailable'); }
+        ++$this->leaseRenewals;
+        if ($this->leaseToken() !== $token) { return false; }
+        $this->lease['expires'] = $this->clock + $ttlMs;
+        return true;
+    }
+    public function releaseLease($token)
+    {
+        if (!$this->available) { throw new RuntimeException('Redis unavailable'); }
+        if ($this->leaseToken() === $token) { $this->lease = null; }
+    }
+    private function leaseToken()
+    {
+        if ($this->lease !== null && $this->lease['expires'] <= $this->clock) { $this->lease = null; }
+        return $this->lease['token'] ?? null;
+    }
     public function metadata()
     {
         if (!$this->available || !$this->meta) { throw new RuntimeException('Redis unavailable'); }

@@ -42,8 +42,9 @@ class FastLookupFilter extends FastLookupLifecycleFilter
     private static $shared;
     public function __construct(...$args)
     {
-        if (self::$shared === null) { self::$shared = ['meta' => [], 'generations' => []]; }
+        if (self::$shared === null) { self::$shared = ['meta' => [], 'generations' => [], 'lease' => null]; }
         $this->meta =& self::$shared['meta'];
         $this->generations =& self::$shared['generations'];
+        $this->lease =& self::$shared['lease'];
     }
 }

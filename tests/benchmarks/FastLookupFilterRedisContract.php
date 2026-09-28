@@ -160,16 +160,46 @@ try {
     $throws(static function () use ($filter, $domain) { $filter->add('third', [['id' => '5', 'type' => 'domain', 'tokens' => [$domain]]]); }, FastLookupIndexUnavailableException::class, 'A write to an evicted bucket fails closed');
     $redis->restore($prefix . 'g:third:x:0', 0, $bucket);
 
-    // Statistics measure every key the namespace owns.
+    // The worker lease is exclusive, only its owner renews or releases it, and it expires.
+    $lease = $prefix . 'worker';
+    $assert($filter->acquireLease('owner', 60000), 'A free lease is acquired');
+    $assert(!$filter->acquireLease('intruder', 60000), 'A held lease is exclusive');
+    $assert(!$filter->renewLease('intruder', 120000) && $redis->pttl($lease) <= 60000, 'Another token cannot renew the lease');
+    $filter->releaseLease('intruder');
+    $assert($redis->get($lease) === 'owner', 'Another token cannot release the lease');
+    $assert($filter->renewLease('owner', 120000) && $redis->pttl($lease) > 60000, 'The owner renews the lease');
+    $filter->releaseLease('owner');
+    $assert(!$redis->exists($lease), 'The owner releases the lease');
+    $assert($filter->acquireLease('short', 200), 'A short lease is acquired');
+    $assert($redis->pttl($lease) > 0 && $redis->pttl($lease) <= 200, 'The lease carries its TTL');
+    usleep(300000);
+    $assert(!$redis->exists($lease), 'The lease expires after its TTL');
+    $assert(!$filter->renewLease('short', 60000), 'An expired lease cannot be renewed');
+    $assert($filter->acquireLease('next', 60000), 'An expired lease is taken over');
+    $filter->releaseLease('short');
+    $assert($redis->get($lease) === 'next', "A stale owner's release leaves the new lease alone");
+    $throws(static function () use ($filter) { $filter->acquireLease('not a token', 1000); }, InvalidArgumentException::class, 'A malformed lease token is refused');
+    $throws(static function () use ($filter) { $filter->acquireLease('owner', 0); }, InvalidArgumentException::class, 'A lease needs a positive TTL');
+
+    // Statistics measure every key the namespace owns; the held lease is not index data.
     $stats = $filter->statistics('third');
     $assert($stats['inserted'] === 1 && $stats['posting_entries'] === 600, 'Statistics count filter entries and posting memberships');
     $actual = 0;
     foreach ($keys($prefix . '*') as $key) {
+        $assert(strpos($key, 'example.org') === false, 'Keys never contain IOCs');
+        if ($key === $lease) {
+            $assert($redis->pttl($key) > 0, 'The worker lease always carries a TTL');
+            continue;
+        }
         $actual += $redis->rawCommand('MEMORY', 'USAGE', $key, 'SAMPLES', 0);
         $assert($redis->ttl($key) === -1, 'Index keys have no TTL');
-        $assert(strpos($key, 'example.org') === false, 'Keys never contain IOCs');
     }
+    $assert(in_array($lease, $keys($prefix . '*'), true), 'The lease was checked while held');
+    $filter->releaseLease('next');
     $assert($stats['shared_memory_bytes'] + $stats['filter_bytes'] + $stats['posting_bytes'] === $actual, 'Statistics include every key: ' . json_encode([$stats, $actual]));
+    $redis->hSet($lease, 'corrupt', '1');
+    $throws(static function () use ($filter) { $filter->renewLease('next', 1000); }, FastLookupIndexUnavailableException::class, 'A corrupt lease key fails closed');
+    $redis->del($lease);
     $proxy->noMemory = true;
     $unmeasured = $filter->statistics('third');
     $assert($unmeasured['filter_bytes'] === null && !empty($unmeasured['memory_unavailable_reason']), 'Unsupported MEMORY is reported, never zero');

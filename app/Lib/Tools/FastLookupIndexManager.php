@@ -3,13 +3,19 @@ App::uses('FastLookupConfig', 'Tools');
 App::uses('FastLookupFilter', 'Tools');
 App::uses('FastLookupValueTool', 'Tools');
 
+/** The worker lease lapsed mid-batch: another worker may own the index now. */
+class FastLookupWorkerLeaseLostException extends RuntimeException
+{
+}
+
 /**
  * SQL owns the index checkpoint and mutation queue; Redis holds a derived Bloom
  * pre-filter (FastLookupFilter).
  *
  * Model callbacks write the queue on their existing connection/transaction,
  * under a share lock on the singleton SQL state row. Workers exclude each other
- * with a SQL session lock held for a whole batch, and take the state row FOR
+ * with a Redis lease held for a whole batch, so the exclusion spans every MISP
+ * server and database node sharing the index, and take the state row FOR
  * UPDATE only while they drain the queue, checkpoint or activate: the rebuild
  * scan runs outside the row lock with an attribute ID cursor, so it never holds
  * writers back. Batches that change what lookups see (dirty events, a first
@@ -43,11 +49,17 @@ class FastLookupIndexManager
     const IP_TYPES = ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'domain|ip'];
     const DOMAIN_TYPES = ['domain', 'domain|ip'];
     /**
-     * Seconds a rebuild or resume batch waits for another worker's batch.
+     * Seconds a rebuild or resume batch waits for another worker's lease.
      * processPending never waits: it may run inline at request shutdown, and
      * its markers stay queued for the next dispatch or CLI batch.
      */
     const WORKER_LOCK_WAIT = 5;
+    /**
+     * Lifetime of the worker lease. The scan renews it before every chunk and
+     * before it records progress, so only a stalled or dead worker loses it.
+     */
+    const WORKER_LEASE_TTL_MS = 60000;
+    const WORKER_LEASE_RETRY_MS = 100;
     const BUILD_FAILED = 'The IOC index rebuild failed. Resume to restart it from the beginning, or start a new rebuild.';
 
     private $attribute;
@@ -55,6 +67,8 @@ class FastLookupIndexManager
     private $connection;
     private $settingsTable;
     private $filter;
+    /** This worker's lease token while it holds the lease. */
+    private $leaseToken;
     private static $dispatchModels = [];
     private static $shutdownRegistered = false;
 
@@ -194,7 +208,7 @@ class FastLookupIndexManager
         // Sizing only needs an estimate, so it is counted outside every lock:
         // a full count must not hold attribute writers or workers back.
         $sizing = $this->sizing(FastLookupConfig::scope($this->attribute));
-        if (!$this->acquireWorkerLock(self::WORKER_LOCK_WAIT)) {
+        if (!$this->acquireWorkerLease(self::WORKER_LOCK_WAIT)) {
             // Never replace a build another worker may be scanning.
             throw new RuntimeException('Another IOC index worker is busy. Start the rebuild again once its batch has finished.');
         }
@@ -215,7 +229,7 @@ class FastLookupIndexManager
             // Reserving the filter is resumable too: the build is committed first.
             $this->work(0, false);
         } finally {
-            $this->releaseWorkerLock();
+            $this->releaseWorkerLease();
         }
         return $this->status();
     }
@@ -252,18 +266,26 @@ class FastLookupIndexManager
     private function runBatchInternal(int $limit, bool $pendingOnly): array
     {
         $this->requireIdleConnection();
-        // A busy lock means another worker is running a batch: leave it be.
-        if ($this->acquireWorkerLock($pendingOnly ? 0 : self::WORKER_LOCK_WAIT)) {
+        try {
+            $leased = $this->acquireWorkerLease($pendingOnly ? 0 : self::WORKER_LOCK_WAIT);
+        } catch (Throwable $e) {
+            // Redis is unreachable: record it like any failed batch, so a
+            // first build reports an error rather than progress.
+            $this->saveFailure($e, 'update');
+            return $this->status();
+        }
+        // A busy lease means another worker is running a batch: leave it be.
+        if ($leased) {
             try {
                 $this->work($limit, $pendingOnly);
             } finally {
-                $this->releaseWorkerLock();
+                $this->releaseWorkerLease();
             }
         }
         return $this->status();
     }
 
-    /** One batch. The caller holds the worker lock; failures are recorded, not thrown. */
+    /** One batch. The caller holds the worker lease; failures are recorded, not thrown. */
     private function work(int $limit, bool $pendingOnly): void
     {
         $phase = 'update';
@@ -354,7 +376,7 @@ class FastLookupIndexManager
             }
 
             // Outside the state row lock, so event and attribute writers are
-            // never held back by the scan; the worker lock keeps it exclusive.
+            // never held back by the scan; the worker lease keeps it exclusive.
             // Redis's cursor is written after the rows it covers and may run
             // ahead of SQL's after a crash, never behind it (prepareBuild).
             $phase = 'build';
@@ -368,8 +390,9 @@ class FastLookupIndexManager
             if (!$build || $build['generation'] !== $scanned['generation'] || empty($build['reserved']) || !empty($build['error'])
                 || $build['cursor'] !== $state['build']['cursor']
                 || ($current['pending_revision'] ?? null) !== ($state['pending_revision'] ?? null)) {
-                // The build changed meanwhile, which the worker lock should
-                // prevent: its SQL progress is not ours to record.
+                // The build changed meanwhile, which the worker lease should
+                // prevent unless this worker's lease lapsed: its SQL progress
+                // is not ours to record.
                 $this->connection->commit();
                 return;
             }
@@ -382,6 +405,7 @@ class FastLookupIndexManager
 
             // The first build settles in a transaction of its own, so an
             // interrupted activation finds the completed scan in SQL.
+            $this->renewWorkerLease();
             $this->connection->beginTransaction();
             $state = $this->readState(true);
             if (!$this->canWork($state) || empty($state['pending_revision'])) {
@@ -400,6 +424,12 @@ class FastLookupIndexManager
             $this->connection->commit();
         } catch (Throwable $e) {
             $this->rollbackOwnedTransaction();
+            if ($e instanceof FastLookupWorkerLeaseLostException || !$this->holdsWorkerLease()) {
+                // Another worker may own the index by now: the SQL state is
+                // not ours to fail. Progress recorded so far stays valid.
+                $this->logFailure($e);
+                return;
+            }
             $this->saveFailure($e, $phase);
         }
     }
@@ -502,30 +532,60 @@ class FastLookupIndexManager
         unset($state['last_build']);
     }
 
-    /** Workers exclude each other for a whole batch without holding the state row. */
-    private function acquireWorkerLock(int $wait): bool
+    /**
+     * Workers exclude each other for a whole batch without holding the state
+     * row. The lease lives in Redis, which every MISP server shares, so the
+     * exclusion also holds across database nodes. Tries once when $wait is 0.
+     */
+    private function acquireWorkerLease(int $wait): bool
     {
-        $acquired = $this->query('SELECT GET_LOCK(?, ?)', [$this->workerLockName(), $wait])->fetchColumn();
-        if ($acquired === null || $acquired === false) {
-            throw new RuntimeException('Could not take the IOC index worker lock.');
+        $token = bin2hex(random_bytes(16));
+        $retries = intdiv($wait * 1000, self::WORKER_LEASE_RETRY_MS);
+        for ($attempt = 0; ; ++$attempt) {
+            if ($this->filter()->acquireLease($token, self::WORKER_LEASE_TTL_MS)) {
+                $this->leaseToken = $token;
+                return true;
+            }
+            if ($attempt >= $retries) {
+                return false;
+            }
+            $this->pause(self::WORKER_LEASE_RETRY_MS);
         }
-        return (int)$acquired === 1;
     }
 
-    private function releaseWorkerLock(): void
+    /** Extends the lease, or stops the batch if another worker may hold it. */
+    private function renewWorkerLease(): void
+    {
+        if (!$this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS)) {
+            throw new FastLookupWorkerLeaseLostException('The IOC index worker lease expired during the batch.');
+        }
+    }
+
+    /** A Redis failure counts as held, so the failure itself gets recorded. */
+    private function holdsWorkerLease(): bool
     {
         try {
-            $this->query('SELECT RELEASE_LOCK(?)', [$this->workerLockName()]);
+            return $this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS);
         } catch (Throwable $e) {
-            // Closing a (non-persistent) connection releases its lock anyway.
+            return true;
+        }
+    }
+
+    private function releaseWorkerLease(): void
+    {
+        $token = $this->leaseToken;
+        $this->leaseToken = null;
+        try {
+            $this->filter()->releaseLease($token);
+        } catch (Throwable $e) {
+            // The lease expires by itself; never mask the batch's own outcome.
             $this->logFailure($e);
         }
     }
 
-    /** Session locks are server-wide: name the lock after this database. */
-    private function workerLockName(): string
+    protected function pause(int $milliseconds): void
     {
-        return 'misp_fast_lookup:' . substr(hash('sha256', FastLookupConfig::namespaceFor($this->attribute)), 0, 40);
+        usleep($milliseconds * 1000);
     }
 
     private function canWork($state): bool
@@ -664,6 +724,7 @@ class FastLookupIndexManager
         $columns = $valueTool->scanColumns('a');
         $scanned = 0;
         while ($scanned < $maximum) {
+            $this->renewWorkerLease();
             $take = min(self::ATTRIBUTE_BATCH_SIZE, $maximum - $scanned);
             $rows = $this->query("SELECT $columns FROM $table a INNER JOIN $events e ON e.id = a.event_id WHERE a.id > ? AND a.id <= ? AND a.deleted = FALSE AND a.type IN ($placeholders)$published ORDER BY a.id LIMIT $take",
                 array_merge([$build['cursor'], $build['high_water']], $types))->fetchAll(PDO::FETCH_ASSOC);
@@ -679,6 +740,9 @@ class FastLookupIndexManager
                 break;
             }
         }
+        // Record progress only while the lease is still ours; the T3
+        // compare-and-set fences a worker whose lease lapses after this.
+        $this->renewWorkerLease();
         $this->filter()->setCursor($build['generation'], $build['cursor']);
     }
 

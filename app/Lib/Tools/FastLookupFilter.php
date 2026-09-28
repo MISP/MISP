@@ -435,6 +435,58 @@ LUA
         ];
     }
 
+    /**
+     * Worker exclusion across every MISP server sharing this Redis: a lease is
+     * one key holding its owner's token with a TTL, so a dead worker's lease
+     * expires by itself. Only the token's owner can renew or release it.
+     */
+    public function acquireLease(string $token, int $ttlMs): bool
+    {
+        $this->leaseArguments($token, $ttlMs);
+        $this->call('clearLastError', []);
+        $acquired = $this->call('set', [$this->leaseKey(), $token, ['nx', 'px' => $ttlMs]]);
+        if ($acquired === false) {
+            // SET NX answers false when another worker holds the lease; a
+            // refused command must not pass for that.
+            $error = $this->call('getLastError', []);
+            if (is_string($error) && $error !== '') {
+                throw new FastLookupIndexUnavailableException('Redis refused the fastLookup worker lease.');
+            }
+            return false;
+        }
+        return $acquired === true;
+    }
+
+    public function renewLease(string $token, int $ttlMs): bool
+    {
+        $this->leaseArguments($token, $ttlMs);
+        return $this->evaluate(<<<'LUA'
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+redis.call('PEXPIRE', KEYS[1], ARGV[2])
+return 1
+LUA
+            , [$this->leaseKey()], [$token, (string)$ttlMs]) === 1;
+    }
+
+    /** Never deletes another worker's lease. Redis errors throw like every other call. */
+    public function releaseLease(string $token): void
+    {
+        $this->identifier($token);
+        $this->evaluate(<<<'LUA'
+if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('DEL', KEYS[1]) end
+return 1
+LUA
+            , [$this->leaseKey()], [$token]);
+    }
+
+    private function leaseArguments(string $token, int $ttlMs): void
+    {
+        $this->identifier($token);
+        if ($ttlMs < 1 || $ttlMs > 86400000) {
+            throw new InvalidArgumentException('Invalid fastLookup worker lease duration.');
+        }
+    }
+
     private function generationInfo(string $generation): array
     {
         $reply = $this->evaluate($this->guardScript() . <<<'LUA'
@@ -539,6 +591,7 @@ LUA
 
     private function sumMemory($a, $b): ?int { return $a === null || $b === null ? null : $a + $b; }
     private function metaKey(): string { return $this->prefix . 'metadata'; }
+    private function leaseKey(): string { return $this->prefix . 'worker'; }
     private function generationPrefix($generation): string { return $this->prefix . 'g:' . $generation . ':'; }
     private function infoKey($generation): string { return $this->generationPrefix($generation) . 'info'; }
     private function bloomKey($generation): string { return $this->generationPrefix($generation) . 'bf'; }
