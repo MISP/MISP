@@ -1,7 +1,7 @@
 <?php
 App::uses('FastLookupConfig', 'Tools');
 
-/** Fixed-size postings and the corresponding live containment predicates. */
+/** Tokens for the Bloom pre-filter and range/domain postings, and the live containment predicates. */
 class FastLookupValueTool
 {
     /**
@@ -21,6 +21,7 @@ class FastLookupValueTool
     private $attribute;
     private $db;
     private $columns;
+    private $padWeights = [];
 
     public function __construct($attribute)
     {
@@ -29,59 +30,109 @@ class FastLookupValueTool
         $this->columns = FastLookupConfig::columnSchemas($attribute);
     }
 
-    public function prepareAttributes(array $rows)
+    /** SELECT list for attribute scans; the database computes collation weights in the scan. */
+    public function scanColumns(string $alias): string
+    {
+        $columns = [];
+        foreach (['id', 'type', 'value1', 'value2'] as $field) {
+            $columns[] = $this->db->name($alias . '.' . $field) . ' AS ' . $this->db->name($field);
+        }
+        foreach (['value1' => 'weight1', 'value2' => 'weight2'] as $component => $name) {
+            $expression = $this->supportsWeights($component)
+                ? 'WEIGHT_STRING(RTRIM(' . $this->db->name($alias . '.' . $component) . '))'
+                : 'NULL';
+            $columns[] = $expression . ' AS ' . $this->db->name($name);
+        }
+        return implode(', ', $columns);
+    }
+
+    /** Rows come from a scan using scanColumns(); no further weight queries are made. */
+    public function prepareScannedAttributes(array $rows)
     {
         $prepared = [];
-        foreach (array_chunk($rows, 100) as $batch) {
-            $values = [];
-            foreach ($batch as $index => $row) {
-                foreach (['value1', 'value2'] as $component) {
-                    $value = (string)($row[$component] ?? '');
-                    if ($value !== '' && self::indexesComponent($row['type'], $component) && $this->supportsWeights($component)) {
-                        $values[$index][$component] = $value;
+        foreach ($rows as $row) {
+            $tokens = [];
+            foreach (['value1' => 'weight1', 'value2' => 'weight2'] as $component => $weightField) {
+                $value = (string)($row[$component] ?? '');
+                if ($value === '' || !self::indexesComponent($row['type'], $component)) {
+                    continue;
+                }
+                if ($this->supportsWeights($component)) {
+                    if (!is_string($row[$weightField] ?? null)) {
+                        throw new RuntimeException('Invalid IOC collation weight response.');
                     }
+                    // Empty/ignorable weights use exact SQL discovery at read time.
+                    $weight = $this->stripPadding($component, $row[$weightField]);
+                    if ($weight !== '') {
+                        $tokens[] = $this->exactToken($component, $weight);
+                    }
+                } else {
+                    $tokens[] = self::token('E', $value);
                 }
             }
-            $weights = $this->weights($values);
-            foreach ($batch as $index => $row) {
-                $tokens = [];
-                foreach (['value1', 'value2'] as $component) {
-                    $value = (string)($row[$component] ?? '');
-                    if ($value === '' || !self::indexesComponent($row['type'], $component)) {
-                        continue;
-                    }
-                    if ($this->supportsWeights($component)) {
-                        $weight = $weights[$index][$component];
-                        // Empty/ignorable weights use exact SQL discovery at read
-                        // time, including the usually empty value2 column.
-                        if ($weight !== '') {
-                            $tokens[] = $this->exactToken($component, $weight);
-                        }
-                    } else {
-                        $tokens[] = self::token('E', $value);
-                    }
+            $ipComponent = self::ipComponent($row['type']);
+            if ($ipComponent !== null) {
+                $network = self::network((string)($row[$ipComponent] ?? ''));
+                if ($network !== null) {
+                    $tokens[] = self::networkToken($network[0], $network[1]);
                 }
-                $ipComponent = self::ipComponent($row['type']);
-                if ($ipComponent !== null) {
-                    $network = self::network((string)($row[$ipComponent] ?? ''));
-                    if ($network !== null) {
-                        $tokens[] = self::networkToken($network[0], $network[1]);
-                    }
-                }
-                if (self::domainType($row['type'])) {
-                    $domain = self::domain((string)($row['value1'] ?? ''));
-                    if ($domain !== null) {
-                        $tokens[] = self::token('D', $domain);
-                    }
-                }
-                $prepared[] = [
-                    'id' => (string)$row['id'],
-                    'type' => $row['type'],
-                    'tokens' => array_values(array_unique($tokens, SORT_STRING)),
-                ];
             }
+            if (self::domainType($row['type'])) {
+                $domain = self::domain((string)($row['value1'] ?? ''));
+                if ($domain !== null) {
+                    $tokens[] = self::token('D', $domain);
+                }
+            }
+            $prepared[] = [
+                'id' => (string)$row['id'],
+                'type' => $row['type'],
+                'tokens' => array_values(array_unique($tokens, SORT_STRING)),
+            ];
         }
         return $prepared;
+    }
+
+    /** SQL padding ignores characters weighing like a space (e.g. NBSP under unicode_ci). */
+    private function stripPadding(string $component, string $weight): string
+    {
+        $collation = $this->columns[$component]['collate'];
+        return self::stripPaddingWeight($weight, $this->padWeight($collation));
+    }
+
+    /** Lazily fetched and memoized: the weight of a single space under a given collation. */
+    private function padWeight(string $collation): string
+    {
+        if (!isset($this->padWeights[$collation])) {
+            $statement = $this->db->rawQuery('SELECT WEIGHT_STRING(' . $this->padExpression($collation) . ') AS pad_weight');
+            if (!is_object($statement)) {
+                throw new RuntimeException('Could not derive IOC collation weights.');
+            }
+            try {
+                $row = $statement->fetch(PDO::FETCH_ASSOC);
+            } finally {
+                $statement->closeCursor();
+            }
+            if (!is_array($row) || !is_string($row['pad_weight'] ?? null) || $row['pad_weight'] === '') {
+                throw new RuntimeException('Invalid IOC collation weight response.');
+            }
+            $this->padWeights[$collation] = $row['pad_weight'];
+        }
+        return $this->padWeights[$collation];
+    }
+
+    /** A single space, converted and collated, for use inside WEIGHT_STRING(). */
+    private function padExpression(string $collation): string
+    {
+        $charset = explode('_', $collation, 2)[0];
+        return 'CONVERT(' . $this->db->value(' ', 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
+    }
+
+    private static function stripPaddingWeight(string $weight, string $pad): string
+    {
+        while (strlen($weight) >= strlen($pad) && substr($weight, -strlen($pad)) === $pad) {
+            $weight = substr($weight, 0, -strlen($pad));
+        }
+        return $weight;
     }
 
     /**
@@ -136,20 +187,14 @@ class FastLookupValueTool
                 }
             }
             $queries[$index] = [];
-            foreach ($types as $type) {
-                foreach ($tokens as $token => $kind) {
-                    $queries[$index][] = ['type' => $type, 'token' => $token, 'kind' => $kind];
-                }
-                if ($networkTokens && self::ipComponent($type) !== null) {
-                    foreach ($networkTokens as $token) {
-                        $queries[$index][] = ['type' => $type, 'token' => $token, 'kind' => 'ip_range'];
-                    }
-                }
-                if ($domainTokens && self::domainType($type)) {
-                    foreach ($domainTokens as $token) {
-                        $queries[$index][] = ['type' => $type, 'token' => $token, 'kind' => 'domain'];
-                    }
-                }
+            foreach ($tokens as $token => $kind) {
+                $queries[$index][] = ['token' => (string)$token, 'kind' => $kind];
+            }
+            foreach ($networkTokens as $token) {
+                $queries[$index][] = ['token' => $token, 'kind' => 'ip_range'];
+            }
+            foreach ($domainTokens as $token) {
+                $queries[$index][] = ['token' => $token, 'kind' => 'domain'];
             }
         }
         return $queries;
@@ -222,7 +267,7 @@ class FastLookupValueTool
                     $destinations[$index][$component] = [[$index, $component]];
                     $charset = explode('_', $collation, 2)[0];
                     $expression = 'CONVERT(' . $this->db->value($value, 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
-                    $pad = 'CONVERT(' . $this->db->value(' ', 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
+                    $pad = $this->padExpression($collation);
                     $branches[] = 'SELECT ' . (int)$index . ' AS input_index, ' . $this->db->value($component, 'string')
                         . ' AS component, WEIGHT_STRING(RTRIM(' . $expression . ')) AS weight, WEIGHT_STRING(' . $pad . ') AS pad_weight';
                 }
@@ -242,13 +287,7 @@ class FastLookupValueTool
                         || !is_string($row['pad_weight'] ?? null) || $row['pad_weight'] === '') {
                         throw new RuntimeException('Invalid IOC collation weight response.');
                     }
-                    $weight = $row['weight'];
-                    $pad = $row['pad_weight'];
-                    // SQL padding ignores characters with the same weight as a
-                    // space too (e.g. NBSP under unicode_ci), not only ASCII SP.
-                    while (strlen($weight) >= strlen($pad) && substr($weight, -strlen($pad)) === $pad) {
-                        $weight = substr($weight, 0, -strlen($pad));
-                    }
+                    $weight = self::stripPaddingWeight($row['weight'], $row['pad_weight']);
                     foreach ($destinations[$index][$component] ?? [[$index, $component]] as list($destinationIndex, $destinationComponent)) {
                         $weights[$destinationIndex][$destinationComponent] = $weight;
                     }

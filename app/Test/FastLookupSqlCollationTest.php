@@ -19,7 +19,17 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
         require_once __DIR__ . '/../Lib/Tools/FastLookupConfig.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupValueTool.php';
         $this->pdo = new PDO('mysql:unix_socket=' . $socket . ';charset=utf8mb4', 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        // The disposable socket has no application database; use a scratch one for the probe table.
+        $this->pdo->exec('CREATE DATABASE IF NOT EXISTS fastlookup_collation_test');
+        $this->pdo->exec('USE fastlookup_collation_test');
         Configure::clear();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo instanceof PDO) {
+            $this->pdo->exec('DROP DATABASE IF EXISTS fastlookup_collation_test');
+        }
     }
 
     /** @dataProvider collations */
@@ -42,19 +52,41 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
             ["\u{200b}", "\u{200b}"], ["\u{0301}", "\u{0301}"], ['Case', 'case'],
             ['α', 'Α'], ['large' . str_repeat(' ', 300), 'large'],
         ];
-        foreach ($pairs as list($stored, $query)) {
-            $left = 'CONVERT(' . $this->pdo->quote($stored) . ' USING ' . $charset . ') COLLATE ' . $collation;
-            $right = 'CONVERT(' . $this->pdo->quote($query) . ' USING ' . $charset . ') COLLATE ' . $collation;
-            $equal = (bool)$this->pdo->query('SELECT ' . $left . ' = ' . $right)->fetchColumn();
-            $prepared = $tool->prepareAttributes([['id' => '1', 'type' => 'domain', 'value1' => $stored, 'value2' => '']]);
-            $queries = $tool->queryTokens([$query], ['domain'], $fallback);
-            $candidate = !empty($fallback[0]['value1']) || (bool)array_intersect($prepared[0]['tokens'], array_column($queries[0], 'token'));
-            if ($equal) {
-                $this->assertTrue($candidate, $collation . ' lost a SQL-equal pair: ' . json_encode([$stored, $query]));
-            } else {
-                // False positives are allowed; final SQL equality revalidates.
-                $this->assertIsBool($candidate);
+        // Values are round-tripped through a real MySQL table with the collation
+        // under test, so the weights scanColumns()/prepareScannedAttributes()
+        // consume are the database's own, not a value computed in PHP.
+        $table = 'fastlookup_collation_probe';
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $table);
+        $this->pdo->exec(
+            'CREATE TABLE ' . $table . ' ('
+            . 'id INT PRIMARY KEY, type VARCHAR(64), '
+            . 'value1 VARCHAR(500) CHARACTER SET ' . $charset . ' COLLATE ' . $collation . ', '
+            . 'value2 VARCHAR(500) CHARACTER SET ' . $charset . ' COLLATE ' . $collation . ')'
+        );
+        try {
+            foreach ($pairs as list($stored, $query)) {
+                $left = 'CONVERT(' . $this->pdo->quote($stored) . ' USING ' . $charset . ') COLLATE ' . $collation;
+                $right = 'CONVERT(' . $this->pdo->quote($query) . ' USING ' . $charset . ') COLLATE ' . $collation;
+                $equal = (bool)$this->pdo->query('SELECT ' . $left . ' = ' . $right)->fetchColumn();
+
+                $this->pdo->exec('TRUNCATE TABLE ' . $table);
+                $insert = $this->pdo->prepare('INSERT INTO ' . $table . " (id, type, value1, value2) VALUES (1, 'domain', ?, '')");
+                $insert->execute([$stored]);
+                $row = $this->pdo->query('SELECT ' . $tool->scanColumns('t') . ' FROM ' . $table . ' t WHERE t.id = 1')
+                    ->fetch(PDO::FETCH_ASSOC);
+                $prepared = $tool->prepareScannedAttributes([$row]);
+
+                $queries = $tool->queryTokens([$query], ['domain'], $fallback);
+                $candidate = !empty($fallback[0]['value1']) || (bool)array_intersect($prepared[0]['tokens'], array_column($queries[0], 'token'));
+                if ($equal) {
+                    $this->assertTrue($candidate, $collation . ' lost a SQL-equal pair: ' . json_encode([$stored, $query]));
+                } else {
+                    // False positives are allowed; final SQL equality revalidates.
+                    $this->assertIsBool($candidate);
+                }
             }
+        } finally {
+            $this->pdo->exec('DROP TABLE IF EXISTS ' . $table);
         }
     }
 

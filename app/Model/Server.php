@@ -2025,6 +2025,11 @@ class Server extends AppModel
         return FastLookupConfig::validateMaxValuesSetting($value);
     }
 
+    public function testFastLookupFalsePositiveRate($value)
+    {
+        return FastLookupConfig::validateFalsePositiveRateSetting($value);
+    }
+
     public function testForPositiveInteger($value)
     {
         if ((is_int($value) && $value >= 0) || ctype_digit($value)) {
@@ -7068,6 +7073,14 @@ class Server extends AppModel
                     'test' => 'testFastLookupLimit',
                     'beforeHook' => 'fastLookupLimitBeforeHook',
                     'type' => 'numeric',
+                    'null' => false,
+                ),
+                'fast_lookup_false_positive_rate' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Bloom filter false-positive rate of the fast lookup index, between 0.0001 and 0.05. Lower rates use more Redis memory (about 1.8 bytes per token at 0.001) and send fewer absent values to SQL. Changing it requires a new backfill.'),
+                    'value' => (string)FastLookupConfig::DEFAULT_FALSE_POSITIVE_RATE,
+                    'test' => 'testFastLookupFalsePositiveRate',
+                    'type' => 'string',
                     'null' => false,
                 ),
                 'redis_host' => array(

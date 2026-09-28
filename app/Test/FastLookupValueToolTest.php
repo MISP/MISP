@@ -74,7 +74,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
             ['id' => '3', 'type' => 'ip-src', 'value1' => '0.0.0.0/0', 'value2' => ''],
             ['id' => '4', 'type' => 'ip-dst', 'value1' => '::/0', 'value2' => ''],
         ];
-        $prepared = $this->tool->prepareAttributes($rows);
+        $prepared = $this->tool->prepareScannedAttributes($rows);
         $queries = $this->tool->queryTokens(['192.0.2.3', '2001:db8:abcd::5'], ['ip-src', 'ip-dst']);
         foreach ($prepared as $i => $row) {
             foreach ($row['tokens'] as $token) {
@@ -117,7 +117,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
             ['id' => '3', 'type' => 'malware-sample', 'value1' => 'file.exe', 'value2' => str_repeat('a', 32)],
         ];
         $expected = ['1' => 2, '2' => 1, '3' => 2];
-        foreach ($this->tool->prepareAttributes($rows) as $row) {
+        foreach ($this->tool->prepareScannedAttributes($rows) as $row) {
             $exact = array_filter($row['tokens'], function ($token) { return $token[0] === 'E'; });
             $this->assertCount($expected[$row['id']], $exact);
             $this->assertCount(0, array_filter($row['tokens'], function ($token) { return $token[0] === 'I'; }));
@@ -126,7 +126,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
 
     public function testDomainTokensMeetQuerySuffixesButNotSubstrings(): void
     {
-        $prepared = $this->tool->prepareAttributes([['id' => '9', 'type' => 'domain', 'value1' => 'example.org', 'value2' => '']]);
+        $prepared = $this->tool->prepareScannedAttributes([['id' => '9', 'type' => 'domain', 'value1' => 'example.org', 'value2' => '']]);
         $domain = array_values(array_filter($prepared[0]['tokens'], function ($token) { return $token[0] === 'D'; }))[0];
         $queries = $this->tool->queryTokens(['www.example.org', 'badexample.org'], ['domain']);
         $this->assertContains($domain, array_column($queries[0], 'token'));
@@ -144,5 +144,59 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $this->assertCount(1, $query[0]);
         $this->assertSame([], $fallback);
         $this->assertSame(1, substr_count($this->attribute->db->queries[0], ' AS weight,'), 'Equivalent component collations must not duplicate weight work.');
+    }
+
+    public function testFalsePositiveRateIsInScopeAndFingerprint(): void
+    {
+        $this->assertSame(0.001, FastLookupConfig::scope($this->attribute)['false_positive_rate']);
+        $first = FastLookupConfig::fingerprint($this->attribute);
+        Configure::write('MISP.fast_lookup_false_positive_rate', '0.01');
+        $this->assertSame(0.01, FastLookupConfig::scope($this->attribute)['false_positive_rate']);
+        $this->assertNotSame($first, FastLookupConfig::fingerprint($this->attribute));
+        foreach (['0', '0.5', 'abc', '0.00001', -1] as $invalid) {
+            $this->assertIsString(FastLookupConfig::validateFalsePositiveRateSetting($invalid));
+        }
+        $this->assertTrue(FastLookupConfig::validateFalsePositiveRateSetting('0.0001'));
+    }
+
+    public function testScanColumnsSelectWeightsOnlyForSupportedCollations(): void
+    {
+        $this->assertStringNotContainsString('WEIGHT_STRING', $this->tool->scanColumns('a'));
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $tool = new FastLookupValueTool($this->attribute);
+        $columns = $tool->scanColumns('a');
+        $this->assertStringContainsString('WEIGHT_STRING(RTRIM(`a`.`value1`)) AS `weight1`', $columns);
+        $this->assertStringContainsString('WEIGHT_STRING(RTRIM(`a`.`value2`)) AS `weight2`', $columns);
+        $this->attribute->columns['value2']['collate'] = 'utf8mb4_0900_ai_ci';
+        $tool = new FastLookupValueTool($this->attribute);
+        $this->assertStringContainsString('NULL AS `weight2`', $tool->scanColumns('a'));
+    }
+
+    public function testScannedWeightsStripPaddingAndMatchQueryTokens(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $tool = new FastLookupValueTool($this->attribute);
+        // The pad weight is fetched once per collation, then the query-side weights.
+        $this->attribute->db->responses = [
+            [['pad_weight' => "\x02\x09"]],
+            [['input_index' => 0, 'component' => 'value1', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
+             ['input_index' => 0, 'component' => 'value2', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"]],
+        ];
+        $prepared = $tool->prepareScannedAttributes([
+            ['id' => '5', 'type' => 'md5', 'value1' => 'c ', 'value2' => '', 'weight1' => "\x0e\x60\x02\x09", 'weight2' => null],
+        ]);
+        $query = $tool->queryTokens(['c'], ['md5']);
+        $this->assertSame([$query[0][0]['token']], $prepared[0]['tokens']);
+        $this->assertSame('exact', $query[0][0]['kind']);
+        $this->assertArrayNotHasKey('type', $query[0][0]);
+    }
+
+    public function testQueryTokensAreTypeAgnosticAndUnique(): void
+    {
+        // Two domain-bearing types used to repeat each parent token once per type.
+        $queries = $this->tool->queryTokens(['www.example.org'], ['domain', 'domain|ip', 'hostname']);
+        $tokens = array_column($queries[0], 'token');
+        $this->assertSame($tokens, array_values(array_unique($tokens)));
+        $this->assertSame(['domain', 'domain'], array_column($queries[0], 'kind'));
     }
 }

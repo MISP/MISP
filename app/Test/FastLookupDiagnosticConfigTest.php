@@ -73,4 +73,11 @@ class FastLookupDiagnosticConfigTest extends TestCase
         }
         $this->assertFalse(FastLookupConfig::diagnosticScope($this->attribute)['configuration_valid']);
     }
+
+    public function testFalsePositiveRateSettingIsDeclared(): void
+    {
+        $source = file_get_contents(__DIR__ . '/../Model/Server.php');
+        $this->assertStringContainsString("'fast_lookup_false_positive_rate' => array(", $source);
+        $this->assertStringContainsString('FastLookupConfig::DEFAULT_FALSE_POSITIVE_RATE', $source);
+    }
 }

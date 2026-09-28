@@ -5,6 +5,10 @@ class FastLookupConfig
 {
     const NORMALIZATION_VERSION = 2;
     const DEFAULT_MAX_VALUES = 10000;
+    /** Bloom false-positive rate: each false positive costs one SQL equality probe. */
+    const DEFAULT_FALSE_POSITIVE_RATE = 0.001;
+    const MIN_FALSE_POSITIVE_RATE = 0.0001;
+    const MAX_FALSE_POSITIVE_RATE = 0.05;
     const DEFAULT_TYPES = [
         'domain', 'domain|ip', 'hostname', 'hostname|port', 'ip-src', 'ip-dst',
         'ip-src|port', 'ip-dst|port', 'md5', 'sha1', 'sha256', 'sha512',
@@ -41,6 +45,7 @@ class FastLookupConfig
             'attribute_types' => $types,
             'published_only' => self::readPublishedOnly(),
             'max_values' => self::readMaxValues(),
+            'false_positive_rate' => self::readFalsePositiveRate(),
             'matching' => self::MATCHING,
         ];
     }
@@ -66,6 +71,7 @@ class FastLookupConfig
                 'attribute_types' => $types,
                 'published_only' => self::orNull([self::class, 'readPublishedOnly']),
                 'max_values' => self::orNull([self::class, 'readMaxValues']),
+                'false_positive_rate' => self::orNull([self::class, 'readFalsePositiveRate']),
                 'matching' => self::MATCHING,
                 'configuration_valid' => false,
             ];
@@ -87,6 +93,16 @@ class FastLookupConfig
     {
         try {
             self::positiveInteger($value);
+            return true;
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public static function validateFalsePositiveRateSetting($value)
+    {
+        try {
+            self::falsePositiveRate($value);
             return true;
         } catch (InvalidArgumentException $e) {
             return $e->getMessage();
@@ -184,6 +200,21 @@ class FastLookupConfig
     {
         $maximum = Configure::read('MISP.fast_lookup_max_values');
         return $maximum === null ? self::DEFAULT_MAX_VALUES : self::positiveInteger($maximum);
+    }
+
+    private static function readFalsePositiveRate(): float
+    {
+        $rate = Configure::read('MISP.fast_lookup_false_positive_rate');
+        return $rate === null ? self::DEFAULT_FALSE_POSITIVE_RATE : self::falsePositiveRate($rate);
+    }
+
+    private static function falsePositiveRate($value): float
+    {
+        if ((!is_string($value) && !is_int($value) && !is_float($value)) || !is_numeric($value)
+            || (float)$value < self::MIN_FALSE_POSITIVE_RATE || (float)$value > self::MAX_FALSE_POSITIVE_RATE) {
+            throw new InvalidArgumentException('MISP.fast_lookup_false_positive_rate must be a number between 0.0001 and 0.05.');
+        }
+        return (float)$value;
     }
 
     private static function orNull(callable $reader)
