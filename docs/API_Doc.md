@@ -217,11 +217,12 @@ with scope and progress but **no `results` field**:
     "attribute_types": ["domain", "ip-dst"],
     "published_only": true,
     "max_values": 10000,
+    "false_positive_rate": 0.001,
     "matching": ["exact", "ip_cidr", "parent_domain"]
   },
   "progress": {
-    "processed_events": 1100,
-    "total_events": 1300,
+    "processed_attributes": 1100,
+    "total_attributes": 1300,
     "percent": 84,
     "eta_seconds": 24
   }
@@ -232,10 +233,10 @@ The estimate is based on completed work and elapsed time; it is `null` before
 there is enough progress. Pending updates (`updating`), missing/stale Redis state,
 failed builds and changed scope also refuse results. Retry once the index is ready.
 
-Site administrators can monitor progress, entries and measured Redis memory per
-attribute type at **Administration → Fast lookup index** (`/servers/fastLookup`).
-Use its rebuild/resume controls when background jobs are enabled, or run as the
-MISP service user:
+Site administrators can monitor backfill progress and the Bloom filter's fill,
+stale-entry and measured memory statistics at **Administration → Fast lookup
+index** (`/servers/fastLookup`). Use its rebuild/resume controls when
+background jobs are enabled, or run as the MISP service user:
 
 ```bash
 app/Console/cake Admin rebuildFastLookup
@@ -244,7 +245,7 @@ app/Console/cake Admin processFastLookup
 ```
 
 `GET /servers/fastLookup` with `Accept: application/json` returns status;
-`?metrics=1` also measures per-type memory. `POST /servers/rebuildFastLookup`
+`?metrics=1` also measures the Bloom filter's fill and memory. `POST /servers/rebuildFastLookup`
 accepts `{"mode":"rebuild"}` or `{"mode":"resume"}` and queues a job. Both are
 site-admin only. See [operational details](development/fastlookup.md).
 

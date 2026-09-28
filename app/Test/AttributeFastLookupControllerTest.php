@@ -190,11 +190,11 @@ class AttributeFastLookupControllerTest extends TestCase
 
     public function testWarmingReturns503WithScopeAndProgressWithoutResults(): void
     {
-        $this->controller->MispAttribute->result = ['status' => 'warming', 'scope' => FastLookupConfig::scope(), 'progress' => ['processed_events' => 1100, 'total_events' => 1300, 'eta_seconds' => 20]];
+        $this->controller->MispAttribute->result = ['status' => 'warming', 'scope' => FastLookupConfig::scope(), 'progress' => ['processed_attributes' => 1100, 'total_attributes' => 1300, 'eta_seconds' => 20]];
         $response = $this->controller->fastLookup();
         $this->assertSame(503, $response->statusCode());
         $this->assertSame('5', $response->headers['Retry-After']);
-        $this->assertSame(1100, json_decode($response->body(), true)['progress']['processed_events']);
+        $this->assertSame(1100, json_decode($response->body(), true)['progress']['processed_attributes']);
         $this->assertArrayNotHasKey('results', json_decode($response->body(), true));
     }
 

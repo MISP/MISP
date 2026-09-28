@@ -143,4 +143,13 @@ class FastLookupAdminControllerTest extends TestCase
         };
         return $controller;
     }
+
+    public function testDashboardShowsFilterStatisticsAndBuildProgress(): void
+    {
+        $view = file_get_contents(__DIR__ . '/../View/Servers/fast_lookup.ctp');
+        foreach (["['estimated_false_positive_rate']", "['filter_bytes']", "['posting_bytes']", "['stale']", 'progress.processed_attributes', "\$lookupStatus['build']", "\$statistics['inserted'] > \$statistics['capacity']"] as $needle) {
+            $this->assertStringContainsString($needle, $view);
+        }
+        $this->assertStringNotContainsString('processed_events', $view);
+    }
 }

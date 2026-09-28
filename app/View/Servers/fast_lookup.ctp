@@ -16,11 +16,15 @@ $bytes = function ($value) {
     <div id="fast-lookup-status" role="status" aria-live="polite">
         <p><strong><?= __('Status') ?>:</strong> <span data-lookup-status><?= h($lookupStatus['status']) ?></span></p>
         <p data-lookup-message><?= h($lookupStatus['message'] ?? '') ?></p>
-        <p><span data-lookup-processed><?= h($progress['processed_events'] ?? 0) ?></span> <?= __('events out of') ?>
-            <span data-lookup-total><?= h($progress['total_events'] ?? 0) ?></span> <?= __('events processed') ?>.
+        <p><span data-lookup-processed><?= h($progress['processed_attributes'] ?? 0) ?></span> <?= __('attributes out of') ?>
+            <span data-lookup-total><?= h($progress['total_attributes'] ?? 0) ?></span> <?= __('attributes processed') ?>.
             <?= __('Estimated time remaining') ?>: <span data-lookup-eta><?= isset($progress['eta_seconds']) ? h($progress['eta_seconds']) . ' ' . __('seconds') : __('Calculating') ?></span></p>
         <progress data-lookup-progress max="100" value="<?= h($progress['percent'] ?? 0) ?>" aria-label="<?= __('Backfill completion') ?>"></progress>
-        <p><?= __('Lookup requests return no results until the entire configured scope is ready. Publications and attribute changes update the index without expiry.') ?></p>
+        <p><?= __('Lookup requests return no results until the first complete build. Later rebuilds run beside the current index, which keeps answering until the new one replaces it.') ?></p>
+        <?php if (!empty($lookupStatus['build'])): ?>
+            <p><strong><?= __('Rebuild in progress') ?>:</strong> <?= h($lookupStatus['build']['progress']['percent']) ?>%
+            <?php if (!empty($lookupStatus['build']['error'])): ?><span class="alert"><?= h($lookupStatus['build']['error']) ?></span><?php endif; ?></p>
+        <?php endif; ?>
     </div>
     <h3><?= __('Scope') ?></h3>
     <dl class="lookup-scope">
@@ -45,27 +49,28 @@ app/Console/cake Admin resumeFastLookup
 app/Console/cake Admin processFastLookup</pre>
         <p><?= __('Schedule processFastLookup regularly to drain updates after large imports or outages.') ?></p>
     <?php endif; ?>
-    <h3><?= __('Entries and memory by attribute type') ?></h3>
-    <p><?= __('Memory includes postings and reverse event manifests. Lookup entries count attribute-to-token memberships, including range and domain tokens; they are not a count of unique IOC strings.') ?></p>
+    <h3><?= __('Filter and memory') ?></h3>
+    <p><?= __('The Bloom filter holds every indexed value as a token and only proves absence; values it cannot rule out are checked in SQL. IP ranges and domains also keep attribute lists. Edits and deletions leave stale tokens until the next rebuild; SQL removes them from results.') ?></p>
     <p><?= __('Measured at') ?>: <?= h($statistics['measured_at'] ?? __('Not yet measured')) ?>.
         <a class="btn" href="<?= h($baseurl) ?>/servers/fastLookup?metrics=1"><?= __('Measure memory statistics') ?></a></p>
     <?php if (!empty($statistics['memory_unavailable_reason'])): ?>
         <p class="alert"><?= h($statistics['memory_unavailable_reason']) ?></p>
     <?php endif; ?>
-    <div class="table-responsive" tabindex="0" role="region" aria-label="<?= __('Entries and memory by attribute type') ?>">
-        <table class="table table-striped table-condensed">
-            <thead><tr><th scope="col"><?= __('Attribute type') ?></th><th scope="col"><?= __('Indexed attributes') ?></th><th scope="col"><?= __('Lookup entries') ?></th><th scope="col"><?= __('Redis memory') ?></th></tr></thead>
-            <tbody>
-            <?php foreach ($statistics['types'] ?? [] as $row): ?>
-                <tr><th scope="row"><?= h($row['type']) ?></th><td><?= h(number_format($row['attributes'])) ?></td><td><?= h(number_format($row['entries'])) ?></td><td><?= h($bytes($row['memory_bytes'])) ?></td></tr>
-            <?php endforeach; ?>
-            <?php if (empty($statistics['types'])): ?>
-                <tr><td colspan="4"><?= __('Statistics are unavailable until an index generation exists.') ?></td></tr>
-            <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-    <p><?= __('Shared index metadata') ?>: <?= h($bytes($statistics['shared_memory_bytes'] ?? null)) ?></p>
+    <?php if ($statistics && isset($statistics['inserted'], $statistics['capacity']) && $statistics['inserted'] > $statistics['capacity']): ?>
+        <p class="alert"><?= __('The filter holds more entries than its configured capacity. Answers stay correct, but lookups are slower; schedule a rebuild.') ?></p>
+    <?php endif; ?>
+    <?php if ($statistics): ?>
+        <dl class="lookup-scope">
+            <dt><?= __('Tokens in the filter') ?></dt><dd><?= h(number_format($statistics['inserted'])) ?> / <?= h(number_format($statistics['capacity'])) ?></dd>
+            <dt><?= __('Stale entries (upper bound)') ?></dt><dd><?= h(number_format($statistics['stale'])) ?></dd>
+            <dt><?= __('False-positive rate') ?></dt><dd><?= h(sprintf('%.4f%%', 100 * $statistics['estimated_false_positive_rate'])) ?> (<?= __('configured') ?> <?= h(sprintf('%.4f%%', 100 * $statistics['rate'])) ?>)</dd>
+            <dt><?= __('Bloom filter memory') ?></dt><dd><?= h($bytes($statistics['filter_bytes'])) ?></dd>
+            <dt><?= __('Range and domain lists') ?></dt><dd><?= h($bytes($statistics['posting_bytes'])) ?> (<?= h(number_format($statistics['posting_entries'])) ?> <?= __('entries') ?>)</dd>
+            <dt><?= __('Shared index metadata') ?></dt><dd><?= h($bytes($statistics['shared_memory_bytes'])) ?></dd>
+        </dl>
+    <?php else: ?>
+        <p><?= __('Statistics are unavailable until an index generation exists.') ?></p>
+    <?php endif; ?>
     <p class="muted" id="fast-lookup-poll-state"><?= __('Progress refreshes every five seconds. Memory statistics refresh only when requested.') ?></p>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'admin', 'menuItem' => 'fastLookup']) ?>
@@ -81,8 +86,8 @@ app/Console/cake Admin processFastLookup</pre>
             var progress = data.progress || {};
             text('[data-lookup-status]', data.status);
             text('[data-lookup-message]', data.message || '');
-            text('[data-lookup-processed]', progress.processed_events || 0);
-            text('[data-lookup-total]', progress.total_events || 0);
+            text('[data-lookup-processed]', progress.processed_attributes || 0);
+            text('[data-lookup-total]', progress.total_attributes || 0);
             text('[data-lookup-eta]', progress.eta_seconds == null ? <?= json_encode(__('Calculating')) ?> : progress.eta_seconds + ' ' + <?= json_encode(__('seconds')) ?>);
             document.querySelector('[data-lookup-progress]').value = progress.percent || 0;
             text('#fast-lookup-poll-state', <?= json_encode(__('Progress refreshed. Memory statistics refresh only when requested.')) ?>);

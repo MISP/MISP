@@ -357,7 +357,7 @@ paths:
         - in: query
           name: metrics
           schema: {type: integer, enum: [0, 1], default: 0}
-          description: "Include measured per-type Redis memory and entry counts."
+          description: "Include measured Bloom filter fill, stale-entry and Redis memory statistics."
       responses:
         "200":
           description: "Index status, scope, progress and optionally statistics."
@@ -3265,6 +3265,7 @@ components:
           example: [domain, ip-dst]
         published_only: {type: boolean, example: true}
         max_values: {type: integer, minimum: 1, example: 10000}
+        false_positive_rate: {type: number, minimum: 0.0001, maximum: 0.05, example: 0.001}
         matching:
           type: array
           items: {type: string}
@@ -3287,6 +3288,7 @@ components:
           items: {type: string}
         published_only: {type: boolean, nullable: true}
         max_values: {type: integer, minimum: 1, nullable: true}
+        false_positive_rate: {type: number, minimum: 0.0001, maximum: 0.05, nullable: true, example: 0.001}
         matching:
           type: array
           items: {type: string}
@@ -3328,8 +3330,8 @@ components:
         progress:
           type: object
           properties:
-            processed_events: {type: integer, minimum: 0, example: 1100}
-            total_events: {type: integer, minimum: 0, example: 1300}
+            processed_attributes: {type: integer, minimum: 0, example: 1100}
+            total_attributes: {type: integer, minimum: 0, example: 1300}
             percent: {type: integer, minimum: 0, maximum: 100, example: 84}
             eta_seconds: {type: integer, minimum: 0, nullable: true, example: 24}
     # Analyst Data

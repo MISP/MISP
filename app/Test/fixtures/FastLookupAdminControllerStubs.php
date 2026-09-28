@@ -3,7 +3,7 @@ require_once __DIR__ . '/FastLookupControllerStubs.php';
 class FastLookupIndexManager
 {
     public static $metrics = [];
-    public function status($metrics = false) { self::$metrics[] = $metrics; return ['status' => 'warming', 'scope' => FastLookupConfig::scope(), 'progress' => ['processed_events' => 0, 'total_events' => 10]]; }
+    public function status($metrics = false) { self::$metrics[] = $metrics; return ['status' => 'warming', 'scope' => FastLookupConfig::scope(), 'progress' => ['processed_attributes' => 0, 'total_attributes' => 10]]; }
 }
 class Job
 {

@@ -73,7 +73,7 @@ class ServersController extends AppController
             $status = [
                 'status' => 'error',
                 'scope' => FastLookupConfig::diagnosticScope(),
-                'progress' => ['processed_events' => 0, 'total_events' => 0, 'percent' => 0, 'eta_seconds' => null],
+                'progress' => ['processed_attributes' => 0, 'total_attributes' => 0, 'percent' => 0, 'eta_seconds' => null],
                 'message' => $e->getMessage(),
             ];
         }
