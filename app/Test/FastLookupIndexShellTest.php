@@ -115,6 +115,69 @@ class FastLookupIndexShellTest extends TestCase
         $this->assertSame($before, $attribute->db->settings, 'No SQL state is written without the lease.');
     }
 
+    private function refusedLease(bool $live)
+    {
+        $attribute = new FastLookupLifecycleAttribute();
+        $attribute->db->events = ['1' => true];
+        $attribute->db->attributes = [['id' => '11', 'event_id' => '1', 'type' => 'domain', 'value1' => 'one.test', 'value2' => '', 'deleted' => false]];
+        ClassRegistry::$attribute = $attribute;
+        $manager = new FastLookupIndexManager($attribute);
+        $manager->startRebuild();
+        if ($live) {
+            $manager->runBatch(1);
+            $manager->startRebuild();
+            FastLookupIndexManager::recordChange($attribute, '1');
+        }
+        $redis = new FastLookupFilter();
+        $redis->refuseLeaseWrites = true;
+        return $attribute;
+    }
+
+    /** @dataProvider liveCases */
+    public function testResumeStopsWhenRedisRefusesTheLease(bool $live)
+    {
+        $attribute = $this->refusedLease($live);
+        $before = $attribute->db->settings;
+        $shell = new AdminShell();
+        $shell->MispAttribute = $attribute;
+        $shell->Job = new Job();
+        $shell->args = ['5', '1'];
+        try {
+            $shell->resumeFastLookup();
+            $this->fail('A refused lease must fail the job.');
+        } catch (RuntimeException $e) {
+            $this->assertNotSame('The IOC index loop did not stop.', $e->getMessage());
+        }
+        $this->assertFalse($shell->Job->success);
+        $this->assertLessThan(3, $shell->Job->progress);
+        $this->assertSame($before, $attribute->db->settings);
+    }
+
+    /** @dataProvider liveCases */
+    public function testPendingWorkerDoesNotRequeueWhenRedisRefusesTheLease(bool $live)
+    {
+        $attribute = $this->refusedLease($live);
+        Configure::$values['MISP.background_jobs'] = true;
+        $before = $attribute->db->settings;
+        $shell = new AdminShell();
+        $shell->MispAttribute = $attribute;
+        $shell->Job = new Job();
+        $shell->args = ['7', '1'];
+        try {
+            $shell->processFastLookup();
+            $this->fail('A refused lease must fail the job.');
+        } catch (RuntimeException $e) {
+        }
+        $this->assertSame([], $shell->Job->tool->queued, 'The job never requeues itself behind a refused lease.');
+        $this->assertFalse($shell->Job->success);
+        $this->assertSame($before, $attribute->db->settings);
+    }
+
+    public function liveCases(): array
+    {
+        return ['first build' => [false], 'rebuild beside a live generation' => [true]];
+    }
+
     public function testPendingWorkerDoesNotRequeueOnErrorWhileBuildIsActive()
     {
         $attribute = $this->brokenLiveDuringBuild();

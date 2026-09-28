@@ -731,6 +731,29 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame('ready', $manager->runBatch(1)['status']);
     }
 
+    /** @dataProvider leaseRefusalCases */
+    public function testRefusedLeaseWriteIsTerminalWithoutSqlWrites(bool $live)
+    {
+        $this->seed();
+        $manager = $live ? $this->ready() : $this->manager();
+        $manager->startRebuild();
+        $before = $this->attribute->db->settings;
+        $this->filter->refuseLeaseWrites = true;
+        foreach ([$manager->runBatch(1), $manager->processPending()] as $status) {
+            $this->assertSame('unavailable', $status['status'], 'Reads still work, so only the refused lease can stop the CLI loops.');
+            $this->assertNotNull($status['build']);
+            $this->assertStringNotContainsString('OOM', $status['message']);
+        }
+        $this->assertSame($before, $this->attribute->db->settings, 'A worker without the lease writes nothing to SQL.');
+        $this->filter->refuseLeaseWrites = false;
+        $this->assertNotSame('unavailable', $manager->runBatch(1)['status']);
+    }
+
+    public function leaseRefusalCases(): array
+    {
+        return ['first build' => [false], 'rebuild beside a live generation' => [true]];
+    }
+
     public function testWorkerThatLostItsLeaseToARedisOutageNeverRecordsAFailure()
     {
         $manager = $this->ready();

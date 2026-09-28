@@ -280,10 +280,15 @@ class FastLookupIndexManager
         try {
             $leased = $this->acquireWorkerLease($pendingOnly ? 0 : self::WORKER_LOCK_WAIT);
         } catch (Throwable $e) {
-            // Without the lease this worker may not write SQL state; status()
-            // reports the unreachable Redis itself.
+            // Without the lease this worker may not write SQL state. Redis may
+            // still answer reads (OOM, READONLY, MISCONF, ACL), so status()
+            // alone could look like progress: report a terminal status that
+            // is not persisted, so CLI loops stop instead of spinning.
             $this->logFailure($e);
-            return $this->status();
+            $status = $this->status();
+            $status['status'] = 'unavailable';
+            $status['message'] = 'The IOC index worker lease could not be taken in Redis. Its SQL queue has been retained.';
+            return $status;
         }
         // A busy lease means another worker is running a batch: leave it be.
         if ($leased) {

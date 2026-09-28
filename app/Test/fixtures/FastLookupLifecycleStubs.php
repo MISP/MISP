@@ -171,9 +171,12 @@ class FastLookupLifecycleFilter
     public function holdLease($token = 'other-worker', $ttlMs = 60000) { $this->lease = ['token' => $token, 'expires' => $this->clock + $ttlMs]; }
     /** Whether any unexpired lease exists. */
     public function leaseHeld() { return $this->leaseToken() !== null; }
+    /** Redis answers reads but refuses the lease write (OOM, READONLY, ACL). */
+    public $refuseLeaseWrites = false;
     public function acquireLease($token, $ttlMs)
     {
         if (!$this->available) { throw new RuntimeException('Redis unavailable'); }
+        if ($this->refuseLeaseWrites) { throw new RuntimeException('OOM command not allowed'); }
         $this->leaseAttempts[] = $token;
         if ($this->leaseToken() !== null) {
             if ($this->releaseOtherLeaseAfter !== null && --$this->releaseOtherLeaseAfter <= 0) { $this->lease = null; $this->releaseOtherLeaseAfter = null; }
