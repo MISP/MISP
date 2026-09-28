@@ -411,6 +411,20 @@ class FastLookupFilterTest extends TestCase
             'eval' => new RuntimeException('missing Bloom filter')]))->metadata();
     }
 
+    public function testModuleStateTellsAMissingModuleFromAnUnreachableRedis(): void
+    {
+        $cases = [
+            'available' => [['rawCommand' => [['bf.mexists', -2, ['readonly']]]], 'available'],
+            'unknown command, as phpredis returns it' => [['rawCommand' => [false]], 'missing'],
+            'unknown command, nil element' => [['rawCommand' => [null]], 'missing'],
+            'refused command' => [['rawCommand' => false], 'unreachable'],
+            'connection failure' => [['rawCommand' => new RuntimeException('Connection refused')], 'unreachable'],
+        ];
+        foreach ($cases as $name => [$replies, $state]) {
+            $this->assertSame($state, $this->filter(null, $this->recordingRedis($replies))->moduleState(), $name);
+        }
+    }
+
     public function testTransportFailureDuringReserveNeverResetsTheNamespace(): void
     {
         $redis = $this->recordingRedis(['hGetAll' => new RuntimeException('read error on connection')]);

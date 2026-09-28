@@ -12,7 +12,8 @@ Fast lookup needs Redis 8 or Redis Stack for the RedisBloom module (`BF.*`
 commands). Without it the endpoint answers HTTP 503 with `Fast lookup requires
 the RedisBloom module (Redis 8 or Redis Stack).`. When Redis cannot be reached
 at all, the 503 message says so instead (`The IOC index is unavailable: Redis
-cannot be reached.`), so an outage is not mistaken for a missing module. The
+cannot be reached. Its SQL queue has been retained.`), so an outage is not
+mistaken for a missing module. The
 index only supports MySQL/MariaDB.
 
 ## Configuration and operation

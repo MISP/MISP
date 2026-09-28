@@ -111,7 +111,9 @@ class FastLookupFilter
         if (is_array($info) && isset($info[0]) && is_array($info[0])) {
             return 'available';
         }
-        return is_array($info) && array_key_exists(0, $info) && $info[0] === null ? 'missing' : 'unreachable';
+        // phpredis returns [false] (a nil element) for an unknown command; an
+        // error reply makes the whole result false.
+        return is_array($info) && count($info) === 1 && ($info[0] === false || $info[0] === null) ? 'missing' : 'unreachable';
     }
 
     public function metadata(): array

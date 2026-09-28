@@ -35,7 +35,8 @@ class FastLookupFilterContractProxy
             throw new RuntimeException('ERR unknown command MEMORY');
         }
         if ($lower === 'rawcommand' && $this->noModule && strtolower($args[0]) === 'command') {
-            return [null];
+            // What phpredis returns for COMMAND INFO on an unknown command.
+            return $this->redis->rawCommand('COMMAND', 'INFO', 'BF.UNLOADEDMEXISTS');
         }
         if ($lower === 'eval' && $this->noBloomCommands) {
             $args[0] = str_replace("'BF.", "'BF.UNLOADED", $args[0]);
