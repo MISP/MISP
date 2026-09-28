@@ -320,10 +320,10 @@ LUA
             foreach ($batch as $token) {
                 array_push($args, $token[0] === 'E' ? 0 : $this->keyIndex($keys, $this->postingKey($generation, $token, $buckets)), $token);
             }
-            $reply = $this->evaluate($this->postingScript() . <<<'LUA'
+            $reply = $this->evaluate($this->guardScript() . $this->postingScript() . <<<'LUA'
 if redis.call('HGET', KEYS[1], 'live') ~= ARGV[1] or redis.call('HGET', KEYS[1], 'ready') ~= '1' then return redis.error_reply('index changed') end
-if redis.call('HGET', KEYS[2], '!') ~= ARGV[1] then return redis.error_reply('missing generation state') end
-if redis.call('EXISTS', KEYS[3]) ~= 1 or redis.call('TYPE', KEYS[3]).ok ~= BLOOM_TYPE then return redis.error_reply('missing Bloom filter') end
+local failure = requireGeneration(KEYS[2], KEYS[3], ARGV[1])
+if failure then return failure end
 local tokens = {}
 for i = 4, #ARGV, 2 do tokens[#tokens + 1] = ARGV[i] end
 local present = redis.call('BF.MEXISTS', KEYS[3], unpack(tokens))
@@ -437,12 +437,12 @@ LUA
 
     private function generationInfo(string $generation): array
     {
-        $reply = $this->evaluate(<<<'LUA'
-if redis.call('HGET', KEYS[1], '!') ~= ARGV[1] then return redis.error_reply('missing generation state') end
-if redis.call('EXISTS', KEYS[2]) ~= 1 or redis.call('TYPE', KEYS[2]).ok ~= ARGV[2] then return redis.error_reply('missing Bloom filter') end
+        $reply = $this->evaluate($this->guardScript() . <<<'LUA'
+local failure = requireGeneration(KEYS[1], KEYS[2], ARGV[1])
+if failure then return failure end
 return redis.call('HMGET', KEYS[1], 'capacity', 'rate', 'inserted', 'stale', 'buckets', 'cursor')
 LUA
-            , [$this->infoKey($generation), $this->bloomKey($generation)], [$generation, self::BLOOM_TYPE]);
+            , [$this->infoKey($generation), $this->bloomKey($generation)], [$generation]);
         if (!is_array($reply) || count($reply) !== 6) {
             throw new FastLookupIndexUnavailableException('Invalid fastLookup generation state.');
         }
@@ -607,16 +607,33 @@ LUA
     /** KEYS[1..3] = metadata, generation state, filter; ARGV[1] = a live or building generation. */
     private function fenceScript(): string
     {
-        return "local BLOOM_TYPE = '" . self::BLOOM_TYPE . "'\n" . <<<'LUA'
+        return $this->guardScript() . <<<'LUA'
 if ARGV[1] ~= redis.call('HGET', KEYS[1], 'live') and ARGV[1] ~= redis.call('HGET', KEYS[1], 'building') then return redis.error_reply('generation changed') end
-if redis.call('HGET', KEYS[2], '!') ~= ARGV[1] then return redis.error_reply('missing generation state') end
-if redis.call('EXISTS', KEYS[3]) ~= 1 or redis.call('TYPE', KEYS[3]).ok ~= BLOOM_TYPE then return redis.error_reply('missing Bloom filter') end
+local failure = requireGeneration(KEYS[2], KEYS[3], ARGV[1])
+if failure then return failure end
+
+LUA;
+    }
+    /**
+     * The one fail-closed generation guard: BF.MEXISTS reports absence for a
+     * missing key and BF.MADD creates a default filter, so every script checks
+     * the state sentinel and the filter's type first. Returns an error reply,
+     * or nil when the generation is intact.
+     */
+    private function guardScript(): string
+    {
+        return "local BLOOM_TYPE = '" . self::BLOOM_TYPE . "'\n" . <<<'LUA'
+local function requireGeneration(infoKey, bloomKey, generation)
+    if redis.call('HGET', infoKey, '!') ~= generation then return redis.error_reply('missing generation state') end
+    if redis.call('EXISTS', bloomKey) ~= 1 or redis.call('TYPE', bloomKey).ok ~= BLOOM_TYPE then return redis.error_reply('missing Bloom filter') end
+    return nil
+end
 
 LUA;
     }
     private function postingScript(): string
     {
-        return "local BLOOM_TYPE = '" . self::BLOOM_TYPE . "'\nlocal MAX_BYTES = " . self::MAX_POSTING_BYTES
+        return "local MAX_BYTES = " . self::MAX_POSTING_BYTES
             . "\nlocal MAX_IDS = " . self::MAX_POSTING_IDS . "\nlocal INLINE_BYTES = " . self::INLINE_POSTING_BYTES . "\n" . <<<'LUA'
 local function hex(s)
     return (string.gsub(s, '.', function (c) return string.format('%02x', string.byte(c)) end))
