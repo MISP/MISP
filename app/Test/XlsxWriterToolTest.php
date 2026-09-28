@@ -89,7 +89,6 @@ class XlsxWriterToolTest extends TestCase
             $writer->addRow(["r$i", 'x']);
         }
         $parts = $this->parts((string)$writer->finish());
-        $this->assertSame(3, $writer->sheetCount());
 
         $workbook = simplexml_load_string($parts['xl/workbook.xml']);
         $names = [];
@@ -109,14 +108,13 @@ class XlsxWriterToolTest extends TestCase
         $this->assertSame(['r1', 'r2', 'r3', 'r4', 'r5', 'r6'], $seen);
     }
 
-    public function testOverlongValuesAreTruncatedAndCounted()
+    public function testOverlongValuesAreTruncated()
     {
         $writer = new XlsxWriterTool();
         $writer->addRow([str_repeat('x', XlsxWriterTool::MAX_CELL_LENGTH + 500), 'short']);
         $parts = $this->parts((string)$writer->finish());
         $rows = $this->sheetRows($parts['xl/worksheets/sheet1.xml']);
 
-        $this->assertSame(1, $writer->truncatedCells());
         $this->assertSame(
             XlsxWriterTool::MAX_CELL_LENGTH,
             mb_strlen($rows[0]['A1'], 'UTF-8')

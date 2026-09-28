@@ -51,20 +51,11 @@ class XlsxWriterTool
     /** @var int Rows written to the sheet currently open, header included */
     private $rowsInSheet = 0;
 
-    /** @var int */
-    private $truncatedCells = 0;
-
-    /** @var int */
-    private $escapedCells = 0;
-
     /** @var string[] Column reference cache, index 0 => 'A' */
     private $columnNames = [];
 
     /** @var bool */
     private $finished = false;
-
-    /** @var int Survives the temporary file cleanup finish() performs */
-    private $sheetCount = 0;
 
     /**
      * @param array $options sheetName, escapeFormulas, literalPrefix,
@@ -150,30 +141,6 @@ class XlsxWriterTool
         }
     }
 
-    /**
-     * @return int Cells cut down to the Excel per-cell character limit
-     */
-    public function truncatedCells()
-    {
-        return $this->truncatedCells;
-    }
-
-    /**
-     * @return int Cells that needed formula neutralisation
-     */
-    public function escapedCells()
-    {
-        return $this->escapedCells;
-    }
-
-    /**
-     * @return int
-     */
-    public function sheetCount()
-    {
-        return $this->sheetCount;
-    }
-
     private function startSheet()
     {
         $this->closeSheet();
@@ -187,7 +154,6 @@ class XlsxWriterTool
             'name' => $index === 1 ? $this->sheetName : $this->sheetName . ' ' . $index,
             'path' => $path,
         ];
-        $this->sheetCount = $index;
         $this->handle = $handle;
         $this->rowsInSheet = 0;
         $this->write(
@@ -237,7 +203,6 @@ class XlsxWriterTool
         }
         $style = self::STYLE_DEFAULT;
         if ($this->escapeFormulas && in_array($value[0], self::FORMULA_LEADS, true)) {
-            $this->escapedCells++;
             if ($this->literalPrefix) {
                 $value = "'" . $value;
             } else {
@@ -275,7 +240,6 @@ class XlsxWriterTool
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $value);
         if (mb_strlen($value, 'UTF-8') > self::MAX_CELL_LENGTH) {
             $value = mb_substr($value, 0, self::MAX_CELL_LENGTH - 1, 'UTF-8') . '…';
-            $this->truncatedCells++;
         }
         return $value;
     }
