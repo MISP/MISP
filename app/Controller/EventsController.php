@@ -5861,6 +5861,7 @@ class EventsController extends AppController
                 'attack-sightings' => __('Attack matrix by sightings'),
                 'context' => __('Aggregated context data'),
                 'context-markdown' => __('Aggregated context data as Markdown'),
+                'xlsx' => __('XLSX (Excel)'),
                 'csv' => __('CSV (NOT FOR EXCEL)'),
                 'hashes' => __('Hashes'),
                 'hosts' => __('Hosts file'),
@@ -5875,7 +5876,6 @@ class EventsController extends AppController
                 'stix2' => __('STIX 2'),
                 'suricata' => __('Suricata rules'),
                 'text' => __('Text file'),
-                'xlsx' => __('XLSX (Excel)'),
                 'xml' => __('MISP XML'),
                 'yara' => __('YARA rules'),
                 'yara-json' => __('YARA rules (JSON)'),
@@ -6945,22 +6945,6 @@ class EventsController extends AppController
                 'requiresPublished' => false,
                 'checkbox' => false,
             ),
-            'csv' => array(
-                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
-                'text' => __('CSV (NOT FOR EXCEL)'),
-                'requiresPublished' => false,
-                'checkbox' => true,
-                'checkbox_text' => __('Include non-IDS marked attributes'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id,
-            ),
-            'csv_with_context' => array(
-                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
-                'text' => __('CSV with additional context (NOT FOR EXCEL)'),
-                'requiresPublished' => false,
-                'checkbox' => true,
-                'checkbox_text' => __('Include non-IDS marked attributes'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id,
-            ),
             'xlsx' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $id,
                 'text' => __('XLSX (Excel)'),
@@ -6976,6 +6960,22 @@ class EventsController extends AppController
                 'checkbox' => true,
                 'checkbox_text' => __('Include non-IDS marked attributes'),
                 'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id,
+            ),
+            'csv' => array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
+                'text' => __('CSV (NOT FOR EXCEL)'),
+                'requiresPublished' => false,
+                'checkbox' => true,
+                'checkbox_text' => __('Include non-IDS marked attributes'),
+                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id,
+            ),
+            'csv_with_context' => array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
+                'text' => __('CSV with additional context (NOT FOR EXCEL)'),
+                'requiresPublished' => false,
+                'checkbox' => true,
+                'checkbox_text' => __('Include non-IDS marked attributes'),
+                'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id,
             ),
             'stix_xml' => array(
                 'url' => $this->baseurl . '/events/restSearch/stix/eventid:' . $id,
@@ -7041,15 +7041,15 @@ class EventsController extends AppController
                     unset($exports[$k]);
                 }
             }
-            $exports['csv'] = array(
-                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
-                'text' => __('CSV (NOT FOR EXCEL, event not published, IDS flag ignored)'),
-                'requiresPublished' => false,
-                'checkbox' => false,
-            );
             $exports['xlsx'] = array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:0/eventid:' . $id,
                 'text' => __('XLSX (Excel) (event not published, IDS flag ignored)'),
+                'requiresPublished' => false,
+                'checkbox' => false,
+            );
+            $exports['csv'] = array(
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
+                'text' => __('CSV (NOT FOR EXCEL, event not published, IDS flag ignored)'),
                 'requiresPublished' => false,
                 'checkbox' => false,
             );
