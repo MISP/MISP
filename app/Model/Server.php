@@ -2605,11 +2605,15 @@ class Server extends AppModel
             }
         }
 
-        if (isset($setting['level'])) {
-            $setting['name'] = $settingName;
-            if ($withOptions && isset($setting['optionsSource'])) {
-                $setting['options'] = $setting['optionsSource']();
-            }
+        // Only an individual setting can be addressed, never a whole branch:
+        // every caller treats the result as a leaf, and a branch carries no redaction flag.
+        if (!is_array($setting) || !isset($setting['level'])) {
+            return false;
+        }
+
+        $setting['name'] = $settingName;
+        if ($withOptions && isset($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
 
         return $setting;
