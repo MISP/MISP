@@ -1,0 +1,207 @@
+<?php
+/** Run against a disposable Redis 8 Unix socket; touches only random test namespaces. */
+declare(strict_types=1);
+
+require_once __DIR__ . '/../../app/Lib/Tools/FastLookupFilter.php';
+if (!class_exists('Redis') || empty($argv[1])) {
+    throw new RuntimeException('Usage: php FastLookupFilterRedisContract.php /disposable/redis.sock (phpredis required)');
+}
+
+class FastLookupFilterContractProxy
+{
+    public $redis;
+    public $noMemory = false;
+    public $noModule = false;
+    /** Renames BF.* calls inside scripts, so real Redis rejects them as unknown commands. */
+    public $noBloomCommands = false;
+    public $maximumReplyBytes = 0;
+    public function __construct($redis) { $this->redis = $redis; }
+    public function __call($name, $args)
+    {
+        $lower = strtolower($name);
+        if ($lower === 'rawcommand' && $this->noMemory && strtolower($args[0]) === 'memory') {
+            throw new RuntimeException('ERR unknown command MEMORY');
+        }
+        if ($lower === 'rawcommand' && $this->noModule && strtolower($args[0]) === 'command') {
+            return [null];
+        }
+        if ($lower === 'eval' && $this->noBloomCommands) {
+            $args[0] = str_replace("'BF.", "'BF.UNLOADED", $args[0]);
+        }
+        $result = $this->redis->{$name}(...$args);
+        if ($lower === 'eval' && isset($result[1]) && is_array($result[1])) {
+            $this->maximumReplyBytes = max($this->maximumReplyBytes, array_sum(array_map(static function ($v) { return is_string($v) ? strlen($v) : 0; }, $result[1])));
+        }
+        return $result;
+    }
+    public function hScan($key, &$cursor, $pattern = null, $count = 0) { return $this->redis->hScan($key, $cursor, $pattern, $count); }
+    public function scan(&$cursor, $pattern = null, $count = 0) { return $this->redis->scan($cursor, $pattern, $count); }
+}
+
+$redis = new Redis();
+$redis->connect($argv[1]);
+$proxy = new FastLookupFilterContractProxy($redis);
+$namespace = 'contract-' . bin2hex(random_bytes(16));
+$prefix = FastLookupFilter::PREFIX . hash('sha256', $namespace) . ':';
+$legacy = FastLookupFilter::LEGACY_PREFIX . hash('sha256', $namespace) . ':';
+$scope = ['attribute_types' => ['domain', 'ip-src'], 'published_only' => true];
+$filter = new FastLookupFilter($namespace, $scope, $proxy);
+$assertions = 0;
+$assert = static function ($condition, $message) use (&$assertions) {
+    ++$assertions;
+    if (!$condition) { throw new RuntimeException($message); }
+};
+$throws = static function ($call, $class, $message) use ($assert) {
+    try { $call(); } catch (Throwable $e) {
+        $assert($e instanceof $class, $message . ': got ' . get_class($e) . ' ' . $e->getMessage());
+        return;
+    }
+    $assert(false, $message . ': no exception');
+};
+$token = static function ($kind, $value) { return $kind . substr(hash('sha256', $value, true), 0, 8); };
+$keys = static function ($pattern) use ($redis) {
+    $all = []; $cursor = null;
+    do { $batch = $redis->scan($cursor, $pattern, 500); if ($batch) { $all = array_merge($all, $batch); } } while ($cursor !== 0);
+    return $all;
+};
+$exact = $token('E', 'example.org');
+$domain = $token('D', 'example.org');
+$range = $token('I', '192.0.2.0/24');
+$query = [7 => [['token' => $exact, 'kind' => 'exact']], 11 => [['token' => $domain, 'kind' => 'domain']],
+    13 => [['token' => $range, 'kind' => 'ip_range']], 17 => [['token' => $token('E', 'absent.example'), 'kind' => 'exact']]];
+
+try {
+    $assert($filter->moduleAvailable(), 'RedisBloom is detected');
+    $proxy->noModule = true;
+    $assert(!$filter->moduleAvailable(), 'A missing RedisBloom module is detected');
+    $proxy->noModule = false;
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexUnavailableException::class, 'Missing index fails closed');
+
+    $redis->set($legacy . 'metadata', 'old');
+    $filter->reserve('first', str_repeat('a', 64), 1000, 0.001, 128);
+    $meta = $filter->metadata();
+    $assert($meta['live'] === null && $meta['building'] === 'first' && $meta['ready'] === false, 'Reserve creates a building generation');
+    $assert($meta['generations']['first']['capacity'] === 1000 && $meta['generations']['first']['buckets'] === 2, 'Generation state records sizing');
+    $assert($redis->eval("return redis.call('TYPE', KEYS[1]).ok", [$prefix . 'g:first:bf'], 1) === FastLookupFilter::BLOOM_TYPE, 'The filter is a RedisBloom filter');
+    $throws(static function () use ($filter) { $filter->reserve('first', str_repeat('a', 64), 1000, 0.001, 128); }, FastLookupIndexUnavailableException::class, 'A generation is reserved once');
+
+    $filter->add('first', [
+        ['id' => '12', 'type' => 'domain', 'tokens' => [$exact, $domain]],
+        ['id' => '13', 'type' => 'domain', 'tokens' => [$exact]],
+        ['id' => '14', 'type' => 'ip-src', 'tokens' => [$range]],
+    ]);
+    $filter->add('first', [['id' => '12', 'type' => 'domain', 'tokens' => [$exact, $domain]]]);
+    $assert($filter->metadata()['generations']['first']['inserted'] === 3, 'Re-adding counts only new filter entries');
+    $filter->markStale('first', 2);
+    $filter->setCursor('first', '14');
+    $info = $filter->metadata()['generations']['first'];
+    $assert($info['stale'] === 2 && $info['cursor'] === '14', 'Stale count and scan cursor are stored');
+    $throws(static function () use ($filter, $query) { $filter->candidates('first', $query); }, FastLookupIndexUnavailableException::class, 'A building generation never answers');
+
+    $filter->checkpoint('r1', false);
+    $filter->activate('first', str_repeat('a', 64));
+    $filter->checkpoint('r2', true);
+    $assert(!$redis->exists($legacy . 'metadata'), 'Activation reclaims the legacy v3 index keys');
+    $result = $filter->candidates('first', $query);
+    $assert($result[7]['exact'] === true && $result[7]['ip_range'] === [] && $result[7]['domain'] === [], 'Exact tokens report maybe-present without IDs');
+    $assert($result[11]['domain'] === ['12'], 'Domain postings are deduplicated');
+    $assert($result[13]['ip_range'] === ['14'], 'Range postings keep their kind and position');
+    $assert($result[17]['exact'] === false, 'An absent value is excluded by the filter');
+    $throws(static function () use ($filter, $query) { $filter->candidates('other', $query); }, FastLookupIndexUnavailableException::class, 'Another generation is refused');
+    $throws(static function () use ($filter) { $filter->candidates('first', [[['token' => $GLOBALS['exact'], 'kind' => 'domain']]]); }, InvalidArgumentException::class, 'Token kind mismatch is invalid');
+
+    // No false negatives, and a false-positive rate near the configured one.
+    $filter->reserve('second', str_repeat('b', 64), 100000, 0.01, 1);
+    $inserted = [];
+    for ($i = 0; $i < 100000; $i += 1000) {
+        $rows = [];
+        for ($j = $i; $j < $i + 1000; ++$j) { $rows[] = ['id' => (string)($j + 1), 'type' => 'domain', 'tokens' => [$inserted[] = $token('E', 'present-' . $j)]]; }
+        $filter->add('second', $rows);
+    }
+    $filter->checkpoint('r3', false);
+    $filter->activate('second', str_repeat('b', 64));
+    $filter->checkpoint('r4', true);
+    $assert(!$keys($prefix . 'g:first:*'), 'Activation removes the previous generation');
+    $present = [];
+    foreach ($inserted as $i => $t) { $present[$i] = [['token' => $t, 'kind' => 'exact']]; }
+    $missing = 0;
+    foreach (array_chunk($present, 5000, true) as $chunk) {
+        foreach ($filter->candidates('second', $chunk) as $row) { $missing += $row['exact'] ? 0 : 1; }
+    }
+    $assert($missing === 0, 'No false negatives across 100,000 tokens');
+    $absent = [];
+    for ($i = 0; $i < 20000; ++$i) { $absent[$i] = [['token' => $token('E', 'absent-' . $i), 'kind' => 'exact']]; }
+    $positives = 0;
+    foreach (array_chunk($absent, 5000, true) as $chunk) {
+        foreach ($filter->candidates('second', $chunk) as $row) { $positives += $row['exact'] ? 1 : 0; }
+    }
+    $assert($positives / 20000 <= 0.02, 'False-positive rate stays within twice the configured 1%: ' . ($positives / 20000));
+
+    // Long postings overflow, stay listpack-encoded, and fail closed when evicted.
+    $filter->reserve('third', str_repeat('c', 64), 1000, 0.001, 1);
+    $rows = [];
+    for ($id = 1000; $id < 1600; ++$id) { $rows[] = ['id' => (string)$id, 'type' => 'domain', 'tokens' => [$domain]]; }
+    $filter->add('third', $rows);
+    $filter->checkpoint('r5', false);
+    $filter->activate('third', str_repeat('c', 64));
+    $filter->checkpoint('r6', true);
+    $overflow = array_values(array_filter($keys($prefix . 'g:third:x:*'), static function ($key) { return preg_match('/:x:\d+:[0-9a-f]{18}$/', $key) === 1; }));
+    $assert(count($overflow) === 1, 'A long posting moves to one overflow key');
+    $assert($redis->object('encoding', $prefix . 'g:third:x:0') === 'listpack', 'The bucket stays listpack-encoded');
+    $assert(count($filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]])[0]['domain']) === 600, 'Overflow postings return every ID');
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 10); }, OverflowException::class, 'The candidate budget never truncates');
+    $stored = $redis->get($overflow[0]);
+    $redis->del($overflow[0]);
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]]); }, FastLookupIndexUnavailableException::class, 'An evicted overflow posting fails closed');
+    $redis->set($overflow[0], $stored);
+    $bucket = $redis->dump($prefix . 'g:third:x:0');
+    $redis->del($prefix . 'g:third:x:0');
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]]); }, FastLookupIndexUnavailableException::class, 'An evicted posting bucket fails closed');
+    $throws(static function () use ($filter, $domain) { $filter->add('third', [['id' => '5', 'type' => 'domain', 'tokens' => [$domain]]]); }, FastLookupIndexUnavailableException::class, 'A write to an evicted bucket fails closed');
+    $redis->restore($prefix . 'g:third:x:0', 0, $bucket);
+
+    // Statistics measure every key the namespace owns.
+    $stats = $filter->statistics('third');
+    $assert($stats['inserted'] === 1 && $stats['posting_entries'] === 600, 'Statistics count filter entries and posting memberships');
+    $actual = 0;
+    foreach ($keys($prefix . '*') as $key) {
+        $actual += $redis->rawCommand('MEMORY', 'USAGE', $key, 'SAMPLES', 0);
+        $assert($redis->ttl($key) === -1, 'Index keys have no TTL');
+        $assert(strpos($key, 'example.org') === false, 'Keys never contain IOCs');
+    }
+    $assert($stats['shared_memory_bytes'] + $stats['filter_bytes'] + $stats['posting_bytes'] === $actual, 'Statistics include every key: ' . json_encode([$stats, $actual]));
+    $proxy->noMemory = true;
+    $unmeasured = $filter->statistics('third');
+    $assert($unmeasured['filter_bytes'] === null && !empty($unmeasured['memory_unavailable_reason']), 'Unsupported MEMORY is reported, never zero');
+    $proxy->noMemory = false;
+
+    // An evicted filter must not turn into "absent" answers or a fresh default filter.
+    $redis->del($prefix . 'g:third:bf');
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexUnavailableException::class, 'An evicted filter invalidates metadata');
+    $throws(static function () use ($filter, $exact) { $filter->add('third', [['id' => '9', 'type' => 'domain', 'tokens' => [$exact]]]); }, FastLookupIndexUnavailableException::class, 'BF.MADD never recreates an evicted filter');
+    $assert(!$redis->exists($prefix . 'g:third:bf'), 'No default filter was created');
+
+    // An evicted *building* filter fails only that build; the live one serves.
+    $filter->reserve('fifth', str_repeat('e', 64), 1000, 0.001, 1);
+    $filter->add('fifth', [['id' => '1', 'type' => 'domain', 'tokens' => [$exact]]]);
+    $filter->activate('fifth', str_repeat('e', 64));
+    $filter->checkpoint('r5', true);
+    $filter->reserve('sixth', str_repeat('f', 64), 1000, 0.001, 1);
+    $redis->del($prefix . 'g:sixth:bf');
+    $meta = $filter->metadata();
+    $assert($meta['live'] === 'fifth' && $meta['building'] === 'sixth' && !isset($meta['generations']['sixth']), 'A broken building generation is omitted, not fatal');
+    $assert($filter->candidates('fifth', [[['token' => $exact, 'kind' => 'exact']]])[0]['exact'] === true, 'The live filter still answers');
+    $proxy->noBloomCommands = true;
+    $throws(static function () use ($filter, $exact) { $filter->candidates('fifth', [[['token' => $exact, 'kind' => 'exact']]]); }, FastLookupIndexUnavailableException::class, 'Unavailable BF commands fail closed');
+    $proxy->noBloomCommands = false;
+
+    // Posting caps fail explicitly.
+    $filter->reserve('fourth', str_repeat('d', 64), 1000, 0.001, 1);
+    $redis->set($prefix . 'g:fourth:x:0:' . bin2hex($domain), 'fourth|' . implode(',', range(1, 500000)) . ',');
+    $redis->hSet($prefix . 'g:fourth:x:0', $domain, '*');
+    $throws(static function () use ($filter, $domain) { $filter->add('fourth', [['id' => '999999999', 'type' => 'domain', 'tokens' => [$domain]]]); }, OverflowException::class, 'The posting cap is an explicit resource failure');
+
+    echo json_encode(['assertions' => $assertions, 'redis_version' => $redis->info('server')['redis_version'], 'status' => 'passed'], JSON_PRETTY_PRINT), "\n";
+} finally {
+    foreach (array_chunk(array_merge($keys($prefix . '*'), $keys($legacy . '*')), 500) as $batch) { $redis->del($batch); }
+}

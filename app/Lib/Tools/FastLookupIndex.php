@@ -1,9 +1,9 @@
 <?php
 
-/** Missing, incomplete or corrupt Redis state must never look like a negative lookup. */
-class FastLookupIndexUnavailableException extends RuntimeException
-{
-}
+// FastLookupIndexUnavailableException lives there. A plain require, not
+// App::uses: the autoloader cannot find the exception by its own name, and
+// the Redis contract loads this file without CakePHP.
+require_once __DIR__ . '/FastLookupFilter.php';
 
 /**
  * Persistent, authorization-free attribute candidates. The manager owns the SQL
