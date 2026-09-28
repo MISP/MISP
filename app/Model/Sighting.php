@@ -66,7 +66,8 @@ class Sighting extends AppModel
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
         'xml' => array('xml', 'XmlExport', 'xml'),
-        'csv' => array('csv', 'CsvExport', 'csv')
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'xlsx' => array('xlsx', 'XlsxExport', 'xlsx')
     );
 
     public function beforeValidate($options = array())
@@ -1320,7 +1321,11 @@ class Sighting extends AppModel
             }
         }
 
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
