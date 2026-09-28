@@ -186,6 +186,48 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame(FastLookupIndexManager::MIN_CAPACITY, $status['statistics']['capacity']);
     }
 
+    /** F14 fix: the cheap live-generation counters must be present without
+     *  ?metrics=1, so the dashboard can warn about over-capacity/stale
+     *  filters without an expensive memory measurement. */
+    public function testStatusWithoutMetricsCarriesCheapFilterCountersForTheLiveGeneration()
+    {
+        $manager = $this->ready();
+        $status = $manager->status();
+        $this->assertArrayNotHasKey('statistics', $status, 'No metrics were requested.');
+        $this->assertArrayHasKey('filter', $status);
+        $this->assertSame([
+            'capacity' => $this->liveInfo()['capacity'],
+            'rate' => $this->liveInfo()['rate'],
+            'inserted' => $this->liveInfo()['inserted'],
+            'stale' => $this->liveInfo()['stale'],
+        ], $status['filter']);
+    }
+
+    /** A never-built index has no live generation, so status() carries no
+     *  counters at all (and does not attempt to read any). */
+    public function testStatusOmitsFilterCountersWithoutALiveGeneration()
+    {
+        $status = $this->manager()->status();
+        $this->assertSame('unavailable', $status['status']);
+        $this->assertArrayNotHasKey('filter', $status);
+    }
+
+    /** A metadata() failure while the cheap counters are being fetched for
+     *  an early-return status (here: a pending batch) must be swallowed:
+     *  the reported status/message stand, `filter` is simply left off. */
+    public function testStatusSwallowsFilterMetadataFailureDuringPendingRevision()
+    {
+        $manager = $this->ready();
+        $key = FastLookupIndexManager::STATE_SETTING;
+        $state = json_decode($this->attribute->db->settings[$key], true);
+        $state['pending_revision'] = $state['revision'];
+        $this->attribute->db->settings[$key] = json_encode($state);
+        $this->filter->available = false;
+        $status = $manager->status();
+        $this->assertSame('updating', $status['status']);
+        $this->assertArrayNotHasKey('filter', $status);
+    }
+
     public function testNewDirtyRevisionIsNotAcknowledgedByOlderRefresh()
     {
         $manager = $this->ready();

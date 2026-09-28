@@ -147,9 +147,28 @@ class FastLookupAdminControllerTest extends TestCase
     public function testDashboardShowsFilterStatisticsAndBuildProgress(): void
     {
         $view = file_get_contents(__DIR__ . '/../View/Servers/fast_lookup.ctp');
-        foreach (["['estimated_false_positive_rate']", "['filter_bytes']", "['posting_bytes']", "['stale']", 'progress.processed_attributes', "\$lookupStatus['build']", "\$statistics['inserted'] > \$statistics['capacity']"] as $needle) {
+        foreach (["['estimated_false_positive_rate']", "['filter_bytes']", "['posting_bytes']", "['stale']", 'progress.processed_attributes', "\$lookupStatus['build']"] as $needle) {
             $this->assertStringContainsString($needle, $view);
         }
         $this->assertStringNotContainsString('processed_events', $view);
+    }
+
+    /** F14: the over-capacity warning must read the cheap, always-on `filter`
+     *  key, not the `?metrics=1`-gated `statistics` key, so it renders
+     *  without requiring a memory measurement. */
+    public function testOverCapacityWarningUsesTheCheapFilterKeyNotMetricsGatedStatistics(): void
+    {
+        $view = file_get_contents(__DIR__ . '/../View/Servers/fast_lookup.ctp');
+        $this->assertStringContainsString("\$lookupStatus['filter']", $view);
+        $this->assertStringContainsString("\$filterCounters['inserted'] > \$filterCounters['capacity']", $view);
+        $this->assertStringNotContainsString("\$statistics['inserted'] > \$statistics['capacity']", $view);
+        // The warning paragraph itself must appear before the metrics-gated
+        // "Filter and memory" statistics section, i.e. it is not nested
+        // inside the `if ($statistics)` block that guards that section.
+        $warningPos = strpos($view, 'holds more entries than its configured capacity');
+        $statsHeadingPos = strpos($view, "__('Filter and memory')");
+        $this->assertNotFalse($warningPos);
+        $this->assertNotFalse($statsHeadingPos);
+        $this->assertLessThan($statsHeadingPos, $warningPos);
     }
 }

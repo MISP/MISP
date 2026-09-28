@@ -113,7 +113,7 @@ class FastLookupIndexManager
                         ? 'The IOC index requires an administrator to start a backfill.'
                         : 'The configured IOC scope has changed. A new backfill is required.';
                 }
-                return $this->includeStatistics($result, $metrics, $measure);
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
             }
             $result['generation'] = $state['generation'];
             $result['revision'] = $state['revision'];
@@ -124,17 +124,17 @@ class FastLookupIndexManager
             if (!empty($state['error'])) {
                 $result['status'] = 'error';
                 $result['message'] = $state['error'];
-                return $this->includeStatistics($result, $metrics, $measure);
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
             }
             if (!empty($state['pending_revision'])) {
                 $result['status'] = 'updating';
                 $result['message'] = 'An IOC index batch is in progress or awaiting resume.';
-                return $this->includeStatistics($result, $metrics, $measure);
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
             }
             $metadata = $this->filter()->metadata();
             if (!$this->checkpointMatches($state, $metadata)) {
                 $result['message'] = 'The Redis index does not match its SQL checkpoint. Rebuild the index.';
-                return $this->includeStatistics($result, $metrics, $measure);
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure), $metadata);
             }
             if ($this->dirtyCount() > 0) {
                 $result['status'] = 'updating';
@@ -149,7 +149,35 @@ class FastLookupIndexManager
             $this->logFailure($e);
             return $result;
         }
-        return $this->includeStatistics($result, $metrics, $measure);
+        return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure), $metadata);
+    }
+
+    /**
+     * Cheap, always-on filter counters for the live generation (an O(1)
+     * HMGET via metadata(), never the MEMORY USAGE walk statistics() does),
+     * so the dashboard can warn about over-capacity/stale filters without
+     * requiring ?metrics=1. Never lets a metadata failure fail status().
+     */
+    private function withFilterCounters(array $result, ?array $metadata = null): array
+    {
+        if ($metadata === null) {
+            try {
+                $metadata = $this->filter()->metadata();
+            } catch (Throwable $e) {
+                return $result;
+            }
+        }
+        $live = $metadata['live'] ?? null;
+        if ($live !== null && isset($metadata['generations'][$live])) {
+            $info = $metadata['generations'][$live];
+            $result['filter'] = [
+                'capacity' => $info['capacity'],
+                'rate' => $info['rate'],
+                'inserted' => $info['inserted'],
+                'stale' => $info['stale'],
+            ];
+        }
+        return $result;
     }
 
     public function isCurrent(array $snapshot): bool

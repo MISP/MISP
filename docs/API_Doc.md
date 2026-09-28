@@ -229,6 +229,27 @@ with scope and progress but **no `results` field**:
 }
 ```
 
+The example above is a first build: nothing has ever been indexed, so there
+is no live generation yet. Once a live generation exists — a resumed
+rebuild running beside a still-serving index, an `updating` batch, or a
+`ready` index — every response also carries a `filter` object with that
+generation's capacity, configured rate, current insert count and
+upper-bound stale count, straight from Redis metadata (an O(1) read, never
+requiring `?metrics=1`):
+
+```json
+"filter": {
+  "capacity": 1000000,
+  "rate": 0.001,
+  "inserted": 1100,
+  "stale": 12
+}
+```
+
+`filter` is omitted whenever no live generation exists yet, or its
+metadata cannot be read; a missing or unreadable `filter` never fails the
+request.
+
 The estimate is based on completed work and elapsed time; it is `null` before
 there is enough progress. Pending updates (`updating`), missing/stale Redis state,
 failed builds and changed scope also refuse results. Retry once the index is ready.

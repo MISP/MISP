@@ -3334,6 +3334,20 @@ components:
             total_attributes: {type: integer, minimum: 0, example: 1300}
             percent: {type: integer, minimum: 0, maximum: 100, example: 84}
             eta_seconds: {type: integer, minimum: 0, nullable: true, example: 24}
+        filter:
+          type: object
+          description: |
+            Cheap live-generation counters (an O(1) Redis read). Present whenever a
+            live generation exists and its metadata is readable; omitted otherwise,
+            for example before any generation has ever been built. Unlike
+            `statistics` (only returned with `?metrics=1` on the admin endpoint),
+            this key never requires a memory measurement, so a dashboard or caller
+            can detect an over-capacity or stale-heavy filter on every response.
+          properties:
+            capacity: {type: integer, minimum: 0, example: 1000000}
+            rate: {type: number, minimum: 0.0001, maximum: 0.05, example: 0.001}
+            inserted: {type: integer, minimum: 0, example: 1100}
+            stale: {type: integer, minimum: 0, example: 12}
     # Analyst Data
     AnalystDataID:
       type: string

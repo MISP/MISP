@@ -1,8 +1,10 @@
 <?php
 App::uses('CakeNumber', 'Utility');
+App::uses('FastLookupFilter', 'Tools');
 $scope = $lookupStatus['scope'] ?? [];
 $progress = $lookupStatus['progress'] ?? [];
 $statistics = $lookupStatus['statistics'] ?? [];
+$filterCounters = $lookupStatus['filter'] ?? [];
 $bytes = function ($value) {
     return $value === null ? __('Unavailable') : CakeNumber::toReadableSize($value);
 };
@@ -49,15 +51,20 @@ app/Console/cake Admin resumeFastLookup
 app/Console/cake Admin processFastLookup</pre>
         <p><?= __('Schedule processFastLookup regularly to drain updates after large imports or outages.') ?></p>
     <?php endif; ?>
+    <?php if ($filterCounters): ?>
+        <?php if (isset($filterCounters['inserted'], $filterCounters['capacity']) && $filterCounters['inserted'] > $filterCounters['capacity']): ?>
+            <p class="alert"><?= __('The filter holds more entries than its configured capacity. Answers stay correct, but lookups are slower; schedule a rebuild.') ?></p>
+        <?php endif; ?>
+        <p class="muted"><?= __('Filter fill') ?>: <?= h(number_format($filterCounters['inserted'])) ?> / <?= h(number_format($filterCounters['capacity'])) ?>
+            (<?= __('estimated false-positive rate') ?> <?= h(sprintf('%.4f%%', 100 * FastLookupFilter::estimatedFalsePositiveRate($filterCounters['capacity'], $filterCounters['rate'], $filterCounters['inserted']))) ?>,
+            <?= __('stale') ?> <?= h(number_format($filterCounters['stale'])) ?>)</p>
+    <?php endif; ?>
     <h3><?= __('Filter and memory') ?></h3>
     <p><?= __('The Bloom filter holds every indexed value as a token and only proves absence; values it cannot rule out are checked in SQL. IP ranges and domains also keep attribute lists. Edits and deletions leave stale tokens until the next rebuild; SQL removes them from results.') ?></p>
     <p><?= __('Measured at') ?>: <?= h($statistics['measured_at'] ?? __('Not yet measured')) ?>.
         <a class="btn" href="<?= h($baseurl) ?>/servers/fastLookup?metrics=1"><?= __('Measure memory statistics') ?></a></p>
     <?php if (!empty($statistics['memory_unavailable_reason'])): ?>
         <p class="alert"><?= h($statistics['memory_unavailable_reason']) ?></p>
-    <?php endif; ?>
-    <?php if ($statistics && isset($statistics['inserted'], $statistics['capacity']) && $statistics['inserted'] > $statistics['capacity']): ?>
-        <p class="alert"><?= __('The filter holds more entries than its configured capacity. Answers stay correct, but lookups are slower; schedule a rebuild.') ?></p>
     <?php endif; ?>
     <?php if ($statistics): ?>
         <dl class="lookup-scope">
