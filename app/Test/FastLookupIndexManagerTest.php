@@ -571,6 +571,24 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertSame('ready', $manager->runBatch(1)['status']);
     }
 
+    public function testRebuildAfterInterruptedActivationKeepsServingTheActivatedBuild()
+    {
+        $manager = $this->ready();
+        $manager->startRebuild();
+        $building = $this->filter->meta['building'];
+        $manager->runBatch(1);
+        $this->filter->afterActivate = function () {
+            $this->filter->afterActivate = null;
+            throw new RuntimeException('Interrupted after the swap');
+        };
+        $this->assertSame('error', $manager->runBatch(1)['status']);
+        $status = $manager->startRebuild();
+        $this->assertSame($building, $status['generation'], 'The rebuild completes the activation instead of starting from scratch.');
+        $this->assertNotNull($status['build']);
+        $this->assertSame('ready', $manager->processPending()['status']);
+        $this->assertSame($building, $this->filter->meta['live']);
+    }
+
     public function testMinimumCapacityComesFromTheFilter()
     {
         $this->assertSame(FastLookupFilter::MIN_CAPACITY, FastLookupIndexManager::MIN_CAPACITY);

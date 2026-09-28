@@ -313,6 +313,8 @@ class FastLookupIndexManager
             if (!$deferred) {
                 $this->finishBatch($state, $staged);
             }
+            // The update half succeeded; a failing scan records its own error.
+            $state['error'] = null;
             $this->writeState($state);
             $this->connection->commit();
             if (!$scan) {
