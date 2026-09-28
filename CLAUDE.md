@@ -115,6 +115,16 @@ app/Console/cake StartWorker                  # Start background workers
 - **Python files**: Lowercase with underscores (`load_warninglists.py`)
 - **JavaScript files**: Lowercase with dashes (`bootstrap-colorpicker.js`)
 
+## Code Comments
+
+Keep comments minimal. Add one only where the code would be genuinely confusing in a vacuum, and
+keep it to a line or two — no large explanatory blocks justifying a change.
+
+**Never reference tracker or planning artefacts in code comments**: no finding ids (`V01`, `A01`),
+no task or phase numbers (`TaskA1`), no pointers to a PRD, handoff or progress tracker. That
+context belongs in the internal records, not in the tree. If a stale or misleading comment is what
+led someone astray, delete it rather than replacing it with a longer one.
+
 ## Commit Message Format
 
 Use gitchangelog prefixes for automatic changelog generation:
@@ -178,6 +188,27 @@ When adding a new widget render kind (any new value for `public $render` on a cl
 1. Add a `thumb<Name>()` builder following the existing pattern (single-color SVG, 80×45 viewBox, `currentColor` strokes/fills).
 2. Register it in the `REGISTRY` object at the bottom of the file under the exact `$render` string.
 3. The glyph should visually evoke the widget's output shape, not its data domain — a bar chart is bars regardless of whether it's counting events or orgs.
+
+## Performance — data scale and hardware spread
+
+When tuning a query or a hot path, reason about two independent axes and extrapolate; do **not**
+trust absolute timings from one machine.
+
+- **Event size.** Most events are small, **but not all** — a single event can exceed **1,000,000
+  attributes/objects** on operational instances, and that is more common in some communities than
+  rare. Judge any per-event work (per-row probes, PHP loops over the attribute/object set) at ~10^6
+  rows, not at a handful.
+- **Hardware spread.** MISP runs on everything from an **8 GB dual-core** box to **512 GB / 64-core**
+  community servers. Development often happens on a resource-constrained laptop, so extrapolation is
+  unavoidable — favour approaches whose cost scales predictably.
+- **The two axes can cross over.** A cost that scales with *event* size (e.g. a correlated per-row
+  subquery) and one that scales with *instance* size (e.g. an un-scoped `IN (SELECT …)` that the
+  planner materialises over the whole table) behave differently at the extremes and on different
+  hardware. Prefer the plan that stays bounded on the constrained end (event-scoped, O(1) extra
+  memory) over one that is faster only on a big box.
+- **Measure with portable signals, not wall-clock ms:** `EXPLAIN` / MariaDB `ANALYZE FORMAT=JSON`
+  (access type, actual rows, `MATERIALIZED` vs `unique_subquery`), rows examined, and temp-table
+  creation. These extrapolate across hardware; laptop milliseconds do not.
 
 ## Debugging
 
