@@ -6,6 +6,13 @@ The feature is disabled by default and requires Redis. It does not expire IOC
 postings or cache permissions. The old `maxAge` request parameter and
 `MISP.fast_lookup_cache_ttl` setting have been removed.
 
+## Requirements
+
+Fast lookup needs Redis 8 or Redis Stack for the RedisBloom module (`BF.*`
+commands). Without it the endpoint answers HTTP 503 with `Fast lookup requires
+the RedisBloom module (Redis 8 or Redis Stack).`. The index only supports
+MySQL/MariaDB.
+
 ## Configuration and operation
 
 | Setting | Default | Effect |
@@ -14,6 +21,7 @@ postings or cache permissions. The old `maxAge` request parameter and
 | `MISP.fast_lookup_attribute_types` | IPs, domains, hostnames and common hashes, including relevant composite types | Comma-separated MISP type names. Changing membership requires a new backfill. |
 | `MISP.fast_lookup_published_only` | `true` | Include only published events; changing this policy requires a backfill. |
 | `MISP.fast_lookup_max_values` | `10000` | Positive maximum submitted values per request. Changing this limit does not rebuild the index. |
+| `MISP.fast_lookup_false_positive_rate` | `0.001` | Target Bloom filter false-positive rate, `0.0001`-`0.05`. Part of the index fingerprint: changing it requires a rebuild. |
 
 The exact default types are `domain`, `domain|ip`, `hostname`, `hostname|port`,
 `ip-src`, `ip-dst`, `ip-src|port`, `ip-dst|port`, `md5`, `sha1`, `sha256`, `sha512`,
@@ -38,8 +46,10 @@ that names one is rejected:
   `impfuzzy`, `vhash` and their `filename|` composites.
 
 Use **Administration → Fast lookup index** (`/servers/fastLookup`) to inspect
-scope, progress and per-type attribute/token membership counts and Redis memory.
-With background jobs enabled, the dashboard queues rebuild/resume jobs. Otherwise,
+scope, progress and the filter status (tokens inserted, capacity, stale entries
+and configured false-positive rate), always shown with a warning once the
+filter holds more entries than its capacity; Redis memory statistics are shown
+on request. With background jobs enabled, the dashboard queues rebuild/resume jobs. Otherwise,
 run these commands as the MISP service user from the installation root:
 
 ```bash
@@ -73,17 +83,26 @@ pending updates, failed writes or scope changes, the API returns HTTP 503 and no
 
 `FastLookupConfig` owns membership settings and the database/configuration
 fingerprint. `FastLookupValueTool` maps database values and request values into
-compact exact/network/domain tokens. `FastLookupIndex` owns Redis data;
+compact exact/network/domain tokens. `FastLookupFilter` owns Redis data;
 `FastLookupIndexManager` owns SQL checkpoints, backfill and mutation delivery.
 
-The namespace is derived from database identity. Type-partitioned sharded Redis
-hashes use 9-byte binary fields (one kind byte plus a 64-bit digest), with compact
-decimal attribute ID postings. There is no Redis key per IOC and no plaintext IOC
-in Redis keys or fields. Hash collisions only broaden candidates: SQL/value
-revalidation prevents false matches. Reverse event manifests, one field per
-attribute listing its tokens, permit removing, replacing or retrying event
-updates. Reads use direct batched hash lookups, without
-scanning the index for each requested IOC. Writes and cleanup are bounded.
+Redis holds one RedisBloom filter per generation (key prefix
+`misp:fast_lookup:bf1:<sha256(namespace)>:`, no TTL). The filter is a single
+`NONSCALING` `BF.RESERVE` holding every exact, range and domain token, sized to
+`max(1,000,000, 1.5 × 2 × in-scope attributes)`: two tokens per attribute
+headroom at 1.5x, with a 1,000,000-token floor. `BF.MEXISTS`/`BF.MADD` only
+prove absence; a token the filter cannot rule out still goes to SQL for exact
+values, or reads its postings for range/domain values, which SQL then
+revalidates. Range and domain attribute IDs live in listpack-sized bucket
+hashes (about 64 fields per bucket); a posting over 64 bytes moves out to an
+overflow key `<bucket>:<hex token>` holding `<generation>|<ids>`, capped at
+8 MiB and 500,000 IDs, so one popular value never inflates its bucket. Edits
+and deletions leave stale filter entries behind — the filter only grows, so a
+removed or changed value's old token is never cleared — and SQL revalidation
+drops them from results. A rebuild is scheduled automatically once the filter
+has inserted at least 80% of its capacity, or once it holds at least 10,000
+tokens with 10% or more of them stale; run `Admin rebuildFastLookup` nightly
+where automatic scheduling is not enough.
 
 Internal rows in the existing `admin_settings` table contain the SQL checkpoint and
 per-event dirty revision tokens; no schema migration or runtime dependency is
@@ -93,6 +112,12 @@ quick-delete child removal wrap deletion and the dirty marker in one Cake transa
 Workers own their
 transactions and lock the checkpoint while changing Redis. Dirty acknowledgements
 are conditional on the observed revision, preserving concurrent changes.
+
+Worker exclusivity is a Redis lease (`SET NX PX` with a random token, renewed
+during scans, released by a compare-and-delete on that token), so it holds
+across every Galera node and every MISP server sharing the index, not just
+one process. A web request that marks an event dirty never waits for the
+lease: the change stays queued and a worker picks it up on its next batch.
 
 Every mutation callback takes a shared lock on the checkpoint row, and a worker
 holds the exclusive lock for its whole batch. A writer therefore never reads an
@@ -110,15 +135,21 @@ requires agreement between the SQL and Redis generation/revision, no incomplete
 write and no dirty events. This detects interrupted writes and a Redis instance
 restored from an older backup. Backfill traverses event IDs with a high-water mark,
 then replays the dirty queue before declaring readiness. Lookup repeats the
-readiness fence after checking live SQL permissions. Missing bucket sentinels,
-corruption, restored state and Redis failures refuse results. Rebuild a missing or
-stale index; resume an interrupted generation when its checkpoint remains valid.
+readiness fence after checking live SQL permissions. Every Redis operation first
+checks the filter key, the generation state and the bucket sentinels, so an
+evicted or missing key fails closed rather than reporting absence. A later
+rebuild runs beside the live generation, fenced by its own attribute cursor,
+and replaces the live generation atomically once it catches up: lookups keep
+being served by the old generation throughout, and only a broken or
+interrupted build fails. The first activation after a rebuild also removes the
+previous format's `misp:fast_lookup:v3:` keys and its `fastLookupIndex:state:v2`
+state row.
 
 Redis persistence and a suitable memory policy are operationally important for an
 index without expiry. Evicted or lost keys cause unavailability, requiring repair
-or rebuild. Initial scope changes and rebuilds deliberately make lookups unavailable
-until the replacement is complete. This implementation does not maintain an older
-servable generation during rebuild.
+or rebuild. Initial scope changes make lookups unavailable until the first
+generation finishes building; a rebuild of an already-live index does not, since
+lookups keep being served by the current generation until the new one swaps in.
 
 ## Matching and authorization
 
@@ -154,39 +185,37 @@ index. Use a narrower type scope if a deployment exceeds those storage limits.
 
 ### Sizing
 
-`tests/benchmarks/FastLookupScale.php` loads synthetic attributes and reports build
-time, Redis memory by key class and lookup throughput. With 100,000 attributes
-of each default type (1.7M total, 100 attributes per event, 10% duplicated
-values; MariaDB 10.11, Redis 7.4, PHP 8.3 on one 6-core host), Redis
-`used_memory` grew by about 161 bytes per attribute:
+`tests/benchmarks/FastLookupScale.php` loads synthetic attributes across the
+default types into homogeneous events, backfills the index, and measures
+Redis memory growth (total and per key class), build time and lookup
+throughput. It classifies every index key it finds as the Bloom filter, its
+global/generation metadata, listpack postings or overflow postings, so Redis
+memory can be split between the filter itself and the range/domain postings
+rather than reported as one number. With `FL_SQL_BASELINE` set, each lookup
+batch also runs the same values through a plain-SQL search (the strongest
+`LIKE`/range form, without the filter), so filtered and unfiltered timings are
+reported side by side for hits, misses and range/domain expansion matches.
+`measured_false_positive_rate` compares filter membership for values known to
+be absent against the true absence, giving an observed rate to set next to the
+configured `MISP.fast_lookup_false_positive_rate`.
 
-| Type class | Bytes per attribute |
-| --- | --- |
-| md5, sha1, hostname, IPv4/IPv6 hosts, `*\|port` | 136-143 |
-| sha256, sha512 | 149 |
-| `filename\|*`, `malware-sample` | 165-167 |
-| `domain` | 192 |
-| `domain\|ip` | 312 |
+Because the filter's capacity is `max(1,000,000, 1.5 × 2 × in-scope
+attributes)`, its size scales with the in-scope attribute count rather than
+with events or duplicate values; postings scale with the number of distinct
+range/domain values and how many attribute IDs each carries. A 100-million-
+attribute projection extrapolates from the measured bytes-per-attribute split:
+the filter's share grows with `capacity × 1.8 bytes` at the default 0.1% rate
+(RedisBloom's approximate bits-per-item at that rate), and the postings share
+scales with the measured range/domain proportion of the corpus, plus
+fragmentation headroom.
 
-About 50-58 bytes go to the per-type attribute owner map, 62-218 to postings
-and 23-44 to reverse manifests. Events larger than 128 attributes per type move
-their manifests out of Redis's compact listpack encoding: with 1,000-attribute
-events the average rose to about 195 bytes. Plan roughly 15-18 GiB of
-`used_memory` per 100 million indexed attributes with a common mix, plus
-fragmentation headroom. The build ran at about 1,900 attributes per second.
-
-Lookups of 10,000 values took about 10-12 s when every value matched (roughly
-900 values per second, mostly live SQL verification), 4.5-5 s when none matched,
-and 12-18 s for IP values, which probe every containing prefix. These are
-single-host synthetic figures, not capacity guarantees.
-
-Per-type measured memory includes posting buckets, ownership bookkeeping, event
-registries and reverse manifests. Shared metadata is reported separately. Counts
-are indexed attributes and token memberships, not unique IOC strings. The dashboard
-polls inexpensive status every five seconds; memory scans are explicit and
-timestamped. Redis `MEMORY USAGE` support is required for memory measurements;
-unsupported measurement is shown as unavailable, never replaced by an invented
-estimate. Statistics and rebuild operations require site administrator access.
+Redis `MEMORY USAGE` support is required for memory measurements; unsupported
+measurement is shown as unavailable, never replaced by an invented estimate.
+The dashboard polls inexpensive status every five seconds; memory scans are
+explicit and timestamped. Statistics and rebuild operations require site
+administrator access. These are single-host synthetic figures, not capacity
+guarantees; a deployment's real type mix, duplicate rate, event sizes and
+database/Redis latency will differ.
 
 ## Verification
 
@@ -199,9 +228,14 @@ doubles so test discovery cannot replace other suites' global classes.
 app/Vendor/bin/phpunit app/Test/
 MISP_FASTLOOKUP_LIFECYCLE_SOCKET=/path/to/disposable/mysql.sock app/Vendor/bin/phpunit --filter 'FastLookup(DeletionIntegration|IndexLifecycleIntegration|SqlCollation)Test' app/Test/
 bash tests/benchmarks/FastLookupIntegration.sh /path/to/cakephp/lib/Cake
-php tests/benchmarks/FastLookupIndexRedisContract.php /path/to/disposable/redis.sock
+php tests/benchmarks/FastLookupFilterRedisContract.php /path/to/disposable/redis.sock
 FL_PER_TYPE=100000 php tests/benchmarks/FastLookupScale.php /path/to/cakephp/lib/Cake /path/to/disposable/mysql.sock /path/to/disposable/redis.sock
 ```
+
+`FastLookupFilterRedisContract.php` (replacing `FastLookupIndexRedisContract.php`)
+needs Redis 8 or Redis Stack, since it exercises the RedisBloom `BF.*` commands
+directly; point it and the shell runner's `MISP_REDIS_IMAGE` at an image that
+provides RedisBloom rather than plain Redis.
 
 Use disposable databases and Redis only. The shell runner starts socket-only
 MariaDB/Redis containers with no published ports and uses existing local images.
