@@ -122,7 +122,7 @@ class FastLookupLifecycleConnection
                 $types = array_slice($args, 2);
                 $keep = function ($row) use ($eventId, $after, $types) { return $row['event_id'] === $eventId && (int)$row['id'] > (int)$after; };
             } else {
-                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lease' => $this->leaseFilter ? $this->leaseFilter->leaseHeld() : null];
+                $this->scans[] = ['transaction' => $this->inTransaction(), 'worker_lease' => $this->leaseFilter ? $this->leaseFilter->leaseHeld() : null, 'sql' => $sql, 'limit' => (int)$match[1]];
                 [$after, $highWater] = $args;
                 $types = array_slice($args, 2);
                 $published = strpos($sql, 'e.published = TRUE') !== false;

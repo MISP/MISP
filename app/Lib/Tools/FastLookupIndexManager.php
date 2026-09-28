@@ -32,6 +32,8 @@ class FastLookupIndexManager
     const LEGACY_STATE_SETTING = 'fastLookupIndex:state:v2';
     const DIRTY_PREFIX = 'fastLookupIndex:dirty:v2:';
     const ATTRIBUTE_BATCH_SIZE = 500;
+    /** Rows per rebuild scan query; progress is still recorded once per batch. */
+    const SCAN_CHUNK_SIZE = 2000;
     const SCAN_BATCH_SIZE = 100;
     const PENDING_BATCH_SIZE = 25;
     /** One batch unit is one dirty event or this many scanned attributes. */
@@ -773,8 +775,11 @@ class FastLookupIndexManager
         $scanned = 0;
         while ($scanned < $maximum) {
             $this->renewWorkerLease();
-            $take = min(self::ATTRIBUTE_BATCH_SIZE, $maximum - $scanned);
-            $rows = $this->query("SELECT $columns FROM $table a INNER JOIN $events e ON e.id = a.event_id WHERE a.id > ? AND a.id <= ? AND a.deleted = FALSE AND a.type IN ($placeholders)$published ORDER BY a.id LIMIT $take",
+            $take = min(self::SCAN_CHUNK_SIZE, $maximum - $scanned);
+            // Walk the primary key: with an index on a low-cardinality column
+            // (deleted, type) the optimizer seeks that index and skips every ID
+            // up to the cursor, so each chunk would cost O(cursor).
+            $rows = $this->query("SELECT $columns FROM $table a FORCE INDEX (PRIMARY) INNER JOIN $events e ON e.id = a.event_id WHERE a.id > ? AND a.id <= ? AND a.deleted = FALSE AND a.type IN ($placeholders)$published ORDER BY a.id LIMIT $take",
                 array_merge([$build['cursor'], $build['high_water']], $types))->fetchAll(PDO::FETCH_ASSOC);
             if ($rows) {
                 $this->filter()->add($build['generation'], $valueTool->prepareScannedAttributes($rows));

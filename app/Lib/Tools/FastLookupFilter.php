@@ -217,19 +217,24 @@ LUA
             $keys = $fence; $args = [$generation];
             foreach ($chunk as $token => $ids) {
                 $token = (string)$token;
-                array_push($args, $this->keyIndex($keys, $this->postingKey($generation, $token, $buckets)), $token, count($ids));
+                array_push($args, $this->keyIndex($keys, $this->postingKey($generation, $token, $buckets)), $token, bin2hex($token), count($ids));
                 foreach ($ids as $id) { $args[] = $id; }
             }
             $this->evaluate($this->fenceScript() . $this->postingScript() . <<<'LUA'
 local i = 2
+local checked = {}
 while i <= #ARGV do
-    local bucket, token, count = KEYS[tonumber(ARGV[i])], ARGV[i + 1], tonumber(ARGV[i + 2])
-    if redis.call('HGET', bucket, '!') ~= ARGV[1] then return redis.error_reply('missing posting bucket') end
-    local overflow = bucket .. ':' .. hex(token)
+    local bucket, token, count = KEYS[tonumber(ARGV[i])], ARGV[i + 1], tonumber(ARGV[i + 3])
+    if not checked[bucket] then
+        if redis.call('HGET', bucket, '!') ~= ARGV[1] then return redis.error_reply('missing posting bucket') end
+        checked[bucket] = true
+    end
+    if #ARGV[i + 2] ~= 2 * #token then return redis.error_reply('malformed posting request') end
+    local overflow = bucket .. ':' .. ARGV[i + 2]
     local raw, spilled = readPosting(bucket, overflow, token, ARGV[1])
     local ids, seen = parsePosting(raw)
     local add = {}
-    for j = i + 3, i + 2 + count do
+    for j = i + 4, i + 3 + count do
         if not seen[ARGV[j]] then
             seen[ARGV[j]] = true
             add[#add + 1] = ARGV[j] .. ','
@@ -238,7 +243,7 @@ while i <= #ARGV do
     local updated = raw .. table.concat(add)
     if #updated > MAX_BYTES or #ids + #add > MAX_IDS then return redis.error_reply('posting resource limit exceeded') end
     writePosting(bucket, overflow, token, ARGV[1], updated, spilled)
-    i = i + 3 + count
+    i = i + 4 + count
 end
 return 1
 LUA

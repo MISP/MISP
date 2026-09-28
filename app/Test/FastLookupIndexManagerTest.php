@@ -556,6 +556,24 @@ class FastLookupIndexManagerTest extends TestCase
         $this->assertFalse($this->filter->leaseHeld(), 'Every batch releases the worker lease.');
     }
 
+    public function testScanQueryForcesThePrimaryKeyAndUsesTheLargerChunk()
+    {
+        $this->seed();
+        $manager = $this->manager();
+        $db = $this->attribute->db;
+        $manager->startRebuild();
+        // A batch limit high enough that the scan chunk, not the batch's
+        // attribute budget, caps the query's LIMIT.
+        $this->assertSame('ready', $manager->runBatch(3)['status']);
+        $this->assertNotEmpty($db->scans);
+        foreach ($db->scans as $scan) {
+            $this->assertStringContainsString('FORCE INDEX (PRIMARY)', $scan['sql'],
+                'The deleted index makes the ID-cursor scan quadratic; force the primary key.');
+            $this->assertSame(2000, $scan['limit']);
+        }
+        $this->assertSame(2000, FastLookupIndexManager::SCAN_CHUNK_SIZE);
+    }
+
     public function testLiveRevisionIsCommittedBeforeRebuildScan()
     {
         $manager = $this->ready();

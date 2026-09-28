@@ -236,7 +236,17 @@ class FastLookupValueTool
         return !$threeByte || preg_match('/[\xF0-\xF4]/', $value) !== 1;
     }
 
+    private $supportsWeights = [];
+
     private function supportsWeights($component)
+    {
+        if (!isset($this->supportsWeights[$component])) {
+            $this->supportsWeights[$component] = $this->collationSupportsWeights($component);
+        }
+        return $this->supportsWeights[$component];
+    }
+
+    private function collationSupportsWeights($component)
     {
         $driver = $this->db->config['datasource'] ?? get_class($this->db);
         if (stripos($driver, 'mysql') === false && stripos($driver, 'mariadb') === false) {
