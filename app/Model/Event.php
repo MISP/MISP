@@ -1872,7 +1872,7 @@ class Event extends AppModel
                 $attributeCondSelect => $user['org_id']
             );
 
-            $conditionsObjects['AND'][0]['OR'] = array(
+            $objectAclCondition = array('OR' => array(
                 array('AND' => array(
                     'Object.distribution >' => 0,
                     'Object.distribution !=' => 4,
@@ -1882,7 +1882,8 @@ class Event extends AppModel
                     'Object.sharing_group_id' => $sgids,
                 )),
                 $objectCondSelect => $user['org_id']
-            );
+            ));
+            $conditionsObjects['AND'][0] = $objectAclCondition;
 
             $conditionsEventReport['AND'][0]['OR'] = array(
                 array('AND' => array(
@@ -2063,16 +2064,19 @@ class Event extends AppModel
         }
         if ($flatten) {
             if (!$isSiteAdmin) {
-                // flattened object attributes still have to pass the object ACL
-                // that the dropped Object contain would have enforced
-                $objectAclConditions = $conditionsObjects;
-                $objectAclConditions[] = 'Object.event_id = Attribute.event_id';
+                // flattened object attributes still have to pass the object ACL that the
+                // dropped Object contain would have enforced - that condition only. The
+                // rest of the contain (soft-delete state, the distribution filters) says
+                // which objects are listed, not which attributes may be seen.
                 $objectAcl = $this->subQueryGenerator(
                     $this->Object,
                     array(
                         'fields' => array('Object.id'),
                         'recursive' => -1,
-                        'conditions' => $objectAclConditions,
+                        'conditions' => array(
+                            'Object.id = Attribute.object_id',
+                            $objectAclCondition,
+                        ),
                     ),
                     'Attribute.object_id'
                 );
