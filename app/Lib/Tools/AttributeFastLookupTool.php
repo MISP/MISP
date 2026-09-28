@@ -59,7 +59,7 @@ class AttributeFastLookupTool
                 throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
             }
             $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback);
-            $candidates = $this->manager->index()->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount);
+            $candidates = $this->manager->filter()->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount);
             $this->validateCandidates($candidates, $batch, $rowCount);
             $branches = [];
             foreach ($batch as $index => $value) {
@@ -67,14 +67,11 @@ class AttributeFastLookupTool
                     if (!$valueTool->representable($value, $component)) {
                         continue;
                     }
-                    $restriction = '';
-                    if (empty($fallback[$index][$component])) {
-                        $ids = $candidates[$index]['exact'] ?? [];
-                        if (!$ids) {
-                            continue;
-                        }
-                        $restriction = ' AND ' . $this->db->name('Attribute.id') . ' IN (' . implode(',', $ids) . ')';
+                    // The Bloom filter only proves absence; SQL equality decides.
+                    if (empty($fallback[$index][$component]) && empty($candidates[$index]['exact'])) {
+                        continue;
                     }
+                    $restriction = '';
                     if (!empty($unindexed[$component])) {
                         $restriction .= ' AND ' . $this->db->name('Attribute.type') . ' NOT IN (' . implode(',', $unindexed[$component]) . ')';
                     }
@@ -206,7 +203,10 @@ class AttributeFastLookupTool
             if (!array_key_exists($index, $batch) || !is_array($groups)) {
                 throw new RuntimeException('Invalid IOC index candidate response.');
             }
-            foreach (['exact', 'ip_range', 'domain'] as $kind) {
+            if (!is_bool($groups['exact'] ?? false)) {
+                throw new RuntimeException('Invalid IOC index candidate response.');
+            }
+            foreach (['ip_range', 'domain'] as $kind) {
                 $ids = $groups[$kind] ?? [];
                 if (!is_array($ids)) {
                     throw new RuntimeException('Invalid IOC index candidate IDs.');

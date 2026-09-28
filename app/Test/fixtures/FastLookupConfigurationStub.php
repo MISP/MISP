@@ -82,7 +82,7 @@ class FastLookupTestAttribute
     }
 }
 
-class FastLookupTestIndex
+class FastLookupTestFilter
 {
     public $hits = [];
     public $reads = [];
@@ -101,10 +101,10 @@ class FastLookupTestManager
     public $reads = 0;
     public function __construct()
     {
-        $this->index = new FastLookupTestIndex();
+        $this->index = new FastLookupTestFilter();
         $this->snapshot = ['status' => 'ready', 'generation' => 'generation-one', 'revision' => 'revision-one'];
     }
     public function status($metrics = false) { ++$this->reads; return $this->snapshot; }
-    public function index() { return $this->index; }
+    public function filter() { return $this->index; }
     public function isCurrent(array $snapshot) { return $this->current; }
 }

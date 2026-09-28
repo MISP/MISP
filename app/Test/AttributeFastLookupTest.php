@@ -53,11 +53,11 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $this->assertSame([['id' => 17]], $attribute->users);
     }
 
-    public function testSupportedCollationUsesRedisExactCandidatesAndLiveEquality(): void
+    public function testMaybePresentExactTokenUsesLiveEqualityWithoutIdRestriction(): void
     {
         $tool = $this->tool($attribute, $manager);
         $attribute->db->config['datasource'] = 'Database/Mysql';
-        $manager->index->hits = [0 => ['exact' => ['11', '12'], 'ip_range' => [], 'domain' => []]];
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
             [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "],
              ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "]],
@@ -66,7 +66,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $result = $tool->lookup([], ['value' => ['cafe']]);
         $this->assertSame(['7'], $result['results']->cafe['event_ids']);
         $this->assertStringContainsString('WEIGHT_STRING', $attribute->db->queries[0]);
-        $this->assertStringContainsString('`Attribute`.`id` IN (11,12)', $attribute->db->queries[1]);
+        $this->assertStringNotContainsString('`Attribute`.`id` IN (', $attribute->db->queries[1]);
         $this->assertStringContainsString("`Attribute`.`value1` = 'cafe'", $attribute->db->queries[1]);
         $this->assertNotEmpty($manager->index->reads[0][1][0]);
     }
@@ -101,8 +101,8 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     {
         $tool = $this->tool($attribute, $manager);
         $manager->index->hits = [
-            0 => ['exact' => [], 'ip_range' => ['11', '12', '13'], 'domain' => []],
-            1 => ['exact' => [], 'ip_range' => [], 'domain' => ['14', '15']],
+            0 => ['exact' => false, 'ip_range' => ['11', '12', '13'], 'domain' => []],
+            1 => ['exact' => false, 'ip_range' => [], 'domain' => ['14', '15']],
         ];
         $attribute->db->responses = [[], [
             ['id' => '11', 'event_id' => '10', 'type' => 'ip-src', 'value1' => '192.0.2.199/24', 'value2' => ''],
@@ -235,7 +235,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     public function testMalformedCandidateIdsNeverEnterSql(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $manager->index->hits = [0 => ['exact' => [], 'ip_range' => ['1) OR 1=1'], 'domain' => []]];
+        $manager->index->hits = [0 => ['exact' => false, 'ip_range' => ['1) OR 1=1'], 'domain' => []]];
         try {
             $tool->lookup([], ['value' => ['192.0.2.1']]);
             $this->fail('Invalid candidate IDs must fail closed.');
@@ -257,5 +257,71 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $this->assertSame(['7'], $result['results']->{"\u{200b}"}['event_ids']);
         $this->assertStringNotContainsString('`Attribute`.`id` IN (', $attribute->db->queries[1]);
         $this->assertStringContainsString('`Attribute`.`value2` = ', $attribute->db->queries[1]);
+    }
+
+    public function testAbsentExactTokenSkipsSqlEquality(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => false, 'ip_range' => [], 'domain' => []]];
+        $attribute->db->responses = [
+            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C", 'pad_weight' => "\x00 "],
+             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C", 'pad_weight' => "\x00 "]],
+        ];
+        $result = $tool->lookup([], ['value' => ['c']]);
+        $this->assertSame('{}', json_encode($result['results']));
+        $this->assertCount(1, $attribute->db->queries, 'Only the collation weight query runs for an absent value.');
+    }
+
+    /**
+     * F10: tokenizer-level - the tokens prepareScannedAttributes() derives for
+     * stored attributes must intersect the queryTokens() a lookup of a child
+     * value produces, for an IP range, an ASCII domain and an IDN domain.
+     */
+    public function testTokenizerIntersectsStoredRangeAndDomainTokensWithQueryTokens(): void
+    {
+        $attribute = new FastLookupTestAttribute();
+        require_once __DIR__ . '/../Lib/Tools/FastLookupValueTool.php';
+        $tool = new FastLookupValueTool($attribute);
+        $rows = [
+            ['id' => '11', 'type' => 'ip-src', 'value1' => '10.0.0.5/24', 'value2' => ''],
+            ['id' => '12', 'type' => 'domain', 'value1' => 'Evil.COM.', 'value2' => ''],
+            ['id' => '13', 'type' => 'domain', 'value1' => 'bücher.example', 'value2' => ''],
+        ];
+        $prepared = $tool->prepareScannedAttributes($rows);
+        $queries = $tool->queryTokens(['10.0.0.7', 'www.evil.com', 'www.bücher.example'], ['ip-src', 'domain']);
+        $expectedKind = ['0' => 'I', '1' => 'D', '2' => 'D'];
+        foreach ($prepared as $i => $row) {
+            $storedTokens = $row['tokens'];
+            $queryTokens = array_column($queries[$i], 'token');
+            $intersection = array_values(array_intersect($storedTokens, $queryTokens));
+            $this->assertNotEmpty($intersection, "Row $i ({$rows[$i]['value1']}) must share a token with its query.");
+            foreach ($intersection as $token) {
+                $this->assertSame($expectedKind[(string)$i], $token[0], "Row $i must intersect on its $expectedKind[$i] token, not an exact one.");
+            }
+        }
+    }
+
+    /**
+     * F10: a stale filter entry (the exact token maybe-present and a range
+     * candidate ID both point at attributes SQL no longer has) must vanish
+     * from the results while the response stays ready.
+     */
+    public function testStaleFilterEntriesAreDroppedByLiveSqlAndResponseStaysReady(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => ['11'], 'domain' => []]];
+        $attribute->db->responses = [
+            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C", 'pad_weight' => "\x00 "],
+             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C", 'pad_weight' => "\x00 "]],
+            [],
+            [],
+        ];
+        $result = $tool->lookup([], ['value' => ['c']]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertSame('{}', json_encode($result['results']));
+        $this->assertCount(3, $attribute->db->queries);
+        $this->assertStringContainsString('`Attribute`.`deleted` = 0', $attribute->db->queries[1]);
     }
 }
