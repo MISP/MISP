@@ -227,17 +227,23 @@ function median(array $numbers)
 
 /**
  * Runs $work (returning any value) once warm and then FL_RUNS times; reports
- * the median wall and CPU seconds and the last run's value.
+ * the median wall and CPU seconds. $summarize turns each run's value into what
+ * is reported, outside the timed interval; it must agree across every run.
  */
-function measure(callable $work, array $cpuFiles, int $runs): array
+function measure(callable $work, array $cpuFiles, int $runs, ?callable $summarize = null): array
 {
-    $walls = []; $cpus = [];
+    $walls = []; $cpus = []; $summary = null;
     for ($run = $runs > 1 ? -1 : 0; $run < $runs; ++$run) {
         $before = cpuSnapshot($cpuFiles);
         $t = microtime(true);
         $value = $work();
         $wall = microtime(true) - $t;
         $after = cpuSnapshot($cpuFiles);
+        $current = $summarize ? $summarize($value) : $value;
+        if ($summary !== null && $current !== $summary) {
+            throw new RuntimeException('Runs disagree: ' . json_encode($summary) . ' vs ' . json_encode($current));
+        }
+        $summary = $current;
         if ($run < 0) { continue; }
         $walls[] = $wall;
         $cpus[] = array_map(function ($name) use ($before, $after) {
@@ -249,7 +255,7 @@ function measure(callable $work, array $cpuFiles, int $runs): array
         $cpu[$name] = median(array_column($cpus, $name));
     }
     $cpu['total'] = array_sum(array_filter($cpu, function ($n) { return $n !== null; }));
-    return [median($walls), array_map(function ($n) { return $n === null ? null : round($n, 3); }, $cpu), $value];
+    return [median($walls), array_map(function ($n) { return $n === null ? null : round($n, 3); }, $cpu), $summary];
 }
 
 $typeIndex = array_flip(array_values($types));
@@ -347,7 +353,10 @@ $generation = $manager->status()['generation'];
 $lookup = function (array $values) use ($user) {
     $response = (new FastLookupScaleAttribute())->fastLookup($user, ['value' => $values]);
     if (($response['status'] ?? null) !== 'ready') { throw new RuntimeException('Lookup not ready: ' . json_encode($response)); }
-    return [count((array)$response['results']), hash('sha256', json_encode($response['results']))];
+    return $response['results'];
+};
+$summarizeLookup = function ($results) {
+    return [count((array)$results), hash('sha256', json_encode($results, JSON_THROW_ON_ERROR))];
 };
 $candidatePhase = function (array $values) use ($valueTool, $index, $generation, $types) {
     $tokenSeconds = 0; $candidateSeconds = 0;
@@ -422,13 +431,17 @@ foreach ($types as $type) {
     $results = [];
     foreach (['hits' => $hits, 'misses' => $misses, 'expansions' => array_slice(array_values(array_unique($expansions)), 0, $lookupSize)] as $label => $values) {
         if (!$values) { continue; }
-        [$seconds, $cpu, [$matched, $digest]] = measure(function () use ($lookup, $values) { return $lookup($values); }, $cpuFiles, $runs);
+        [$seconds, $cpu, [$matched, $digest]] = measure(function () use ($lookup, $values) { return $lookup($values); }, $cpuFiles, $runs, $summarizeLookup);
         [$tokenSeconds, $candidateSeconds] = $candidatePhase($values);
         [$sqlSeconds, $sqlCpu, $sqlMatched] = getenv('FL_SQL_BASELINE') ? measure(function () use ($sqlOnly, $values) { return $sqlOnly($values); }, $cpuFiles, $runs) : [null, null, null];
+        if ($sqlMatched !== null && $sqlMatched !== $matched) {
+            fwrite(STDERR, sprintf("WARNING %s %s: lookup matched %d, sql baseline %d\n", $type, $label, $matched, $sqlMatched));
+        }
         $results[$label] = [
             'sql_only_seconds' => $sqlSeconds === null ? null : round($sqlSeconds, 3),
             'sql_only_cpu_seconds' => $sqlCpu,
             'sql_only_matched' => $sqlMatched,
+            'sql_only_matches_lookup' => $sqlMatched === null ? null : $sqlMatched === $matched,
             'values' => count($values), 'matched' => $matched,
             'results_sha256' => $digest,
             'seconds' => round($seconds, 3), 'cpu_seconds' => $cpu,
