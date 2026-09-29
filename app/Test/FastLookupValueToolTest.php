@@ -284,6 +284,17 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         return array_merge($valueCells, array_values($table), [$probe], $padCells);
     }
 
+    public function testAsciiProbeCoversEveryCodePointAndSpacePosition(): void
+    {
+        $probe = FastLookupValueTool::ASCII_PROBE;
+        for ($n = 0; $n < 128; ++$n) {
+            $this->assertStringContainsString(chr($n), $probe, sprintf('0x%02X', $n));
+        }
+        $this->assertSame(' ', $probe[0]);
+        $this->assertRegExp('/[^ ] [^ ]/', $probe);
+        $this->assertRegExp('/[A-Za-z]  \z/', $probe);
+    }
+
     public function testAsciiWeightsComeFromVerifiedTableWithoutFurtherQueries(): void
     {
         $this->attribute->db->config['datasource'] = 'Database/Mysql';
