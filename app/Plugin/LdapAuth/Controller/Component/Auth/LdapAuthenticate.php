@@ -868,7 +868,7 @@ class LdapAuthenticate extends BaseAuthenticate
                 'password' => $randomPassword,
                 'confirm_password' => $randomPassword,
                 'authkey' => $userModel->generateAuthKey(),
-                'nids_sid' => 4000000,
+                'nids_sid' => 5000000,
                 'newsread' => 0,
                 'role_id' => $roleId,
                 'change_pw' => 0,
