@@ -22,7 +22,7 @@ import requests
 import urllib3  # type: ignore
 
 try:
-    from pymisp import PyMISP, MISPEvent, MISPUser, MISPOrganisation, MISPSighting
+    from pymisp import PyMISP, MISPEvent, MISPObject, MISPUser, MISPOrganisation, MISPSighting
 except ImportError:
     if sys.version_info < (3, 6):
         print('This test suite requires Python 3.6+, breaking.')
@@ -385,6 +385,101 @@ class DecayingModelImportOwnership(unittest.TestCase):
                                  'an imported model was created for another organisation')
                 self.assertIn(str(entry.get('default', 0)), ('0', 'False', 'None'),
                               'an imported model was flagged as a default model')
+
+
+class FlattenedObjectAcl(unittest.TestCase):
+    """Flattening an event applies the object distribution ACL to the object's attributes,
+    and nothing else the dropped Object contain carried.
+
+    fetchEvent() removes the Object contain when flattening, so an object-only attribute would
+    otherwise reach everyone who can open the event. Re-applying the whole contain instead of
+    its ACL alone is the other half of it: the soft-delete conditions the contain carries say
+    which objects are listed, not which of their attributes the owner may see.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression flatten owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression flatten outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+        cls._seed()
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @classmethod
+    def _seed(cls):
+        """A community event of the owner org holding a shared and an organisation-only
+        object, with one attribute of the shared object soft-deleted.
+
+        Attributes are tracked by id: a soft delete may sanitise the value away.
+        """
+        event = MISPEvent()
+        event.info = 'regression flattened object acl %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+
+        shared = MISPObject('file')
+        shared.distribution = 5       # inherit the event
+        shared.add_attribute('filename', value='kept-%s.txt' % random(), distribution=5)
+        shared.add_attribute('filename', value='gone-%s.txt' % random(), distribution=5)
+        shared = check_response(cls.owner.add_object(cls.event.id, shared))
+
+        private = MISPObject('file')
+        private.distribution = 0      # organisation only
+        private.add_attribute('filename', value='private-%s.txt' % random(), distribution=5)
+        private = check_response(cls.owner.add_object(cls.event.id, private))
+
+        cls.kept_id, cls.deleted_id = (int(a.id) for a in shared.attributes)
+        cls.private_id = int(private.attributes[0].id)
+        check_response(cls.owner.delete_attribute(cls.deleted_id))
+
+    def _flattened(self, connector, **filters):
+        payload = {'eventid': int(self.event.id), 'flatten': 1}
+        payload.update(filters)
+        response = send(connector, 'POST', 'events/restSearch', payload)
+        if isinstance(response, dict):
+            response = response.get('response', [])
+        ids = []
+        for entry in response:
+            event = entry['Event'] if 'Event' in entry else entry
+            for attribute in event.get('Attribute', []):
+                ids.append(int(attribute['id']))
+        return ids
+
+    def test_object_distribution_applies_to_flattened_attributes(self):
+        seen = self._flattened(self.outsider)
+        self.assertIn(self.kept_id, seen,
+                      'the outsider cannot read the event at all, so the test proves nothing')
+        self.assertNotIn(self.private_id, seen,
+                         "an organisation-only object's attribute leaked through flatten")
+
+    def test_owner_keeps_deleted_attributes_of_a_live_object(self):
+        seen = self._flattened(self.owner, deleted='only')
+        self.assertIn(self.deleted_id, seen,
+                      'the owner lost a soft-deleted attribute because its object is not deleted')
+        self.assertNotIn(self.kept_id, seen, 'deleted:only returned a live attribute')
+
+    def test_outsider_still_cannot_read_deleted_attributes(self):
+        seen = self._flattened(self.outsider, deleted=[0, 1])
+        self.assertIn(self.kept_id, seen,
+                      'the outsider cannot read the event at all, so the test proves nothing')
+        self.assertNotIn(self.deleted_id, seen,
+                         "another organisation's soft-deleted attribute was returned")
+        self.assertNotIn(self.private_id, seen,
+                         "an organisation-only object's attribute leaked through flatten")
 
 
 if __name__ == '__main__':
