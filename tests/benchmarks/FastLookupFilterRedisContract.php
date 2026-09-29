@@ -309,6 +309,15 @@ try {
     $r16 = $token('I', '203.0.0.0/16');
     $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexUnavailableException::class, 'add() fails closed on a partial prefix state');
     $assert($redis->rawCommand('BF.MEXISTS', $bf, $r16) === [0], 'A refused mask update publishes none of its tokens');
+    $redis->hMSet($info, $masks);
+    foreach (['missing' => null, 'non-decimal' => 'x'] as $case => $version) {
+        $redis->hMSet($info, $masks);
+        if ($version === null) { $redis->hDel($info, 'pv'); } else { $redis->hSet($info, 'pv', $version); }
+        $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexUnavailableException::class, "add() fails closed on a $case prefix version");
+        $after = $redis->hMGet($info, ['p4', 'p6', 'pv']);
+        $assert($after['p4'] === $masks['p4'] && $after['p6'] === $masks['p6'] && $after['pv'] === ($version ?? false), "A $case prefix version leaves the masks and version untouched");
+        $assert($redis->rawCommand('BF.MEXISTS', $bf, $r16) === [0], "A $case prefix version publishes none of the tokens");
+    }
     $throws(static function () use ($filter) { $filter->prefixLengths('ninth'); }, FastLookupIndexCorruptException::class, 'A missing generation has no prefix state');
 
     echo json_encode(['assertions' => $assertions, 'redis_version' => $redis->info('server')['redis_version'], 'status' => 'passed'], JSON_PRETTY_PRINT), "\n";

@@ -253,8 +253,9 @@ LUA
         if ($lengths[4] || $lengths[6]) {
             $this->evaluate($this->fenceScript() . <<<'LUA'
 local p4, p6 = redis.call('HGET', KEYS[2], 'p4'), redis.call('HGET', KEYS[2], 'p6')
-if not p4 and not p6 and not redis.call('HGET', KEYS[2], 'pv') then return 0 end
-if not p4 or not p6 or #p4 ~= 33 or #p6 ~= 129 or string.find(p4, '[^01]') or string.find(p6, '[^01]') then
+local pv = redis.call('HGET', KEYS[2], 'pv')
+if not p4 and not p6 and not pv then return 0 end
+if not p4 or not p6 or not pv or not string.match(pv, '^%d+$') or #p4 ~= 33 or #p6 ~= 129 or string.find(p4, '[^01]') or string.find(p6, '[^01]') then
     return redis.error_reply('corrupt prefix mask')
 end
 local function merge(mask, list)
