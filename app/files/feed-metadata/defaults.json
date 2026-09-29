@@ -2629,5 +2629,31 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "name": "AbuseTrack community IP blocklist",
+      "provider": "abusetrack.io",
+      "url": "https://abusetrack.io/api/v1/blocklist.txt?comments=0",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"^#.*\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]
