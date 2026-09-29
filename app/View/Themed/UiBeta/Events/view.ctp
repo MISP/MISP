@@ -2321,8 +2321,28 @@
                                        'checkbox_url' => $baseurl . '/events/restSearch/xml/eventid:' . $eventId . '/withAttachments:1.xml',
                                        'icon' => 'fa-file-code',
                                    ],
+                                   'xlsx' => [
+                                       'label' => $isPublished ? __('XLSX (Excel)') : __('XLSX (Excel, IDS flag ignored)'),
+                                       'url' => $isPublished
+                                           ? $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $eventId
+                                           : $baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:0/eventid:' . $eventId,
+                                       'checkbox' => $isPublished,
+                                       'checkbox_label' => __('Include non-IDS marked attributes'),
+                                       'checkbox_url' => $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $eventId,
+                                       'icon' => 'fa-file-excel',
+                                   ],
+                                   'xlsx_context' => [
+                                       'label' => __('XLSX (Excel) with context'),
+                                       'url' => $isPublished
+                                           ? $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:1/eventid:' . $eventId
+                                           : $baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:1/eventid:' . $eventId,
+                                       'checkbox' => $isPublished,
+                                       'checkbox_label' => __('Include non-IDS marked attributes'),
+                                       'checkbox_url' => $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $eventId,
+                                       'icon' => 'fa-file-excel',
+                                   ],
                                    'csv' => [
-                                       'label' => $isPublished ? __('CSV') : __('CSV (IDS flag ignored)'),
+                                       'label' => $isPublished ? __('CSV (NOT FOR EXCEL)') : __('CSV (NOT FOR EXCEL, IDS flag ignored)'),
                                        'url' => $isPublished
                                            ? $baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $eventId
                                            : $baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $eventId,
@@ -2332,7 +2352,7 @@
                                        'icon' => 'fa-file-csv',
                                    ],
                                    'csv_context' => [
-                                       'label' => __('CSV with context'),
+                                       'label' => __('CSV with context (NOT FOR EXCEL)'),
                                        'url' => $isPublished
                                            ? $baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $eventId
                                            : $baseurl . '/events/restSearch/returnFormat:csv/includeContext:1/eventid:' . $eventId,
