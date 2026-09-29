@@ -31,21 +31,31 @@ App::build(['Model' => [APP . 'Model/'], 'Tools' => [APPLIBS . 'Tools/'],
     'Migration' => [APPLIBS . 'Migration/']], App::PREPEND);
 App::uses('Event', 'Model');
 App::uses('MispAttribute', 'Model');
+App::uses('ShadowAttribute', 'Model');
+App::uses('EventReport', 'Model');
+App::uses('EventReportTag', 'Model');
+App::uses('AttachmentScan', 'Model');
+App::uses('FuzzyCorrelateSsdeep', 'Model');
 App::uses('FastLookupIndexManager', 'Tools');
 Configure::write('Cache.disable', true);
 Configure::write('debug', 2);
 error_reporting(E_ALL & ~E_DEPRECATED);
 Configure::write('MISP.completely_disable_correlation', true);
 
-trait FastLookupDeletionFixture
+trait FastLookupDeletionBareModel
 {
-    public $nestedSave = false;
-    public $veto = false;
-
     protected function _mergeVars($properties, $class, $normalize = true)
     {
         parent::_mergeVars(array_values(array_diff($properties, ['actsAs', 'belongsTo', 'hasMany'])), $class, $normalize);
     }
+}
+
+trait FastLookupDeletionFixture
+{
+    use FastLookupDeletionBareModel;
+
+    public $nestedSave = false;
+    public $veto = false;
 
     public function beforeDelete($cascade = true)
     {
@@ -71,6 +81,83 @@ class FastLookupDeletionEvent extends Event
     public function __construct()
     {
         Model::__construct(false, 'events', 'default');
+        // Models quickDelete() reads or purges before its raw per-table deletes.
+        $this->Attribute = new FastLookupDeletionAttribute();
+        ClassRegistry::addObject('MispAttribute', $this->Attribute);
+        $this->ShadowAttribute = new FastLookupDeletionShadowAttribute();
+        $this->EventReport = new FastLookupDeletionEventReport();
+        new FastLookupDeletionAttachmentScan();
+        new FastLookupDeletionFuzzyCorrelateSsdeep();
+    }
+}
+
+class FastLookupDeletionShadowAttribute extends ShadowAttribute
+{
+    use FastLookupDeletionBareModel;
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    public function __construct()
+    {
+        AppModel::__construct(false, 'shadow_attributes', 'default');
+    }
+}
+
+class FastLookupDeletionEventReport extends EventReport
+{
+    use FastLookupDeletionBareModel;
+    public $name = 'EventReport';
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    public function __construct()
+    {
+        AppModel::__construct(false, 'event_reports', 'default');
+        $this->EventReportTag = new FastLookupDeletionEventReportTag();
+    }
+}
+
+class FastLookupDeletionEventReportTag extends EventReportTag
+{
+    use FastLookupDeletionBareModel;
+    public $name = 'EventReportTag';
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    public function __construct()
+    {
+        AppModel::__construct(false, 'event_report_tags', 'default');
+    }
+}
+
+class FastLookupDeletionAttachmentScan extends AttachmentScan
+{
+    use FastLookupDeletionBareModel;
+    public $name = 'AttachmentScan';
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    public function __construct()
+    {
+        AppModel::__construct(false, 'attachment_scans', 'default');
+    }
+}
+
+class FastLookupDeletionFuzzyCorrelateSsdeep extends FuzzyCorrelateSsdeep
+{
+    use FastLookupDeletionBareModel;
+    public $name = 'FuzzyCorrelateSsdeep';
+    public $actsAs = [];
+    public $belongsTo = [];
+    public $hasMany = [];
+
+    public function __construct()
+    {
+        AppModel::__construct(false, 'fuzzy_correlate_ssdeep', 'default');
     }
 }
 
@@ -83,7 +170,7 @@ class FastLookupDeletionAttribute extends MispAttribute
 
     public function __construct()
     {
-        Model::__construct(false, 'attributes', 'default');
+        AppModel::__construct(false, 'attributes', 'default');
     }
 }
 
