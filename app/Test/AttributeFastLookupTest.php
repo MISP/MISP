@@ -487,9 +487,20 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $tool = $this->tool($attribute, $manager);
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
-        $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00X"]; }, range(1, 100001));
+        $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00C\x00 "]; }, range(1, 100001));
         $attribute->db->responses = [[["\x00C", "\x00 "]], $rows, []];
         $this->expectException(OverflowException::class);
+        $tool->lookup([], ['value' => ['c']]);
+    }
+
+    public function testRowMatchingNoInputWeightFailsClosed(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
+        $attribute->db->responses = [[["\x00C", "\x00 "]], [['event_id' => '1', 'weight' => "\x00X"]], []];
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid IOC lookup response.');
         $tool->lookup([], ['value' => ['c']]);
     }
 
@@ -537,15 +548,33 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $this->assertSame('I', array_values($ranges)[0]['token'][0]);
     }
 
+    private function rangeTokens(array $tokens): array
+    {
+        $ranges = array_column(array_filter($tokens, function ($token) { return $token['kind'] === 'ip_range'; }), 'token');
+        sort($ranges);
+        return $ranges;
+    }
+
     public function testPrefixVersionChangeRefreshesOnceThenFails(): void
     {
+        Configure::write('MISP.fast_lookup_attribute_types', 'ip-dst');
         $tool = $this->tool($attribute, $manager);
+        $stale = ['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]];
+        $fresh = ['version' => '4', 'lengths' => [4 => [8 => true, 16 => true], 6 => []]];
+        $manager->index->prefixSequence = [$stale, $fresh];
         $manager->index->changes = 1;
         $attribute->db->responses = [[], []];
         $result = $tool->lookup([], ['value' => ['10.1.2.3']]);
         $this->assertSame('ready', $result['status']);
         $this->assertSame(2, $manager->index->prefixReads);
         $this->assertCount(2, $manager->index->reads);
+        $this->assertSame('3', $manager->index->reads[0][3]);
+        $this->assertSame('4', $manager->index->reads[1][3]);
+        $expected = (new FastLookupValueTool($attribute))->queryTokens(['10.1.2.3'], ['ip-dst'], $fallback, $weights, $fresh['lengths']);
+        $retried = $this->rangeTokens($manager->index->reads[1][1][0]);
+        $this->assertCount(2, $retried);
+        $this->assertSame($this->rangeTokens($expected[0]), $retried);
+        $this->assertNotSame($this->rangeTokens($manager->index->reads[0][1][0]), $retried);
 
         $tool = $this->tool($attribute, $manager);
         $manager->index->changes = 2;
@@ -556,5 +585,20 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
             $this->assertSame(2, $manager->index->prefixReads);
             $this->assertSame([], $attribute->db->queries);
         }
+    }
+
+    public function testRequestsWithoutRangeTokensSkipThePrefixVersionCheck(): void
+    {
+        Configure::write('MISP.fast_lookup_attribute_types', 'sha256');
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->prefixes = ['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]];
+        $manager->index->changes = 5;
+        $attribute->db->responses = [[], []];
+        $result = $tool->lookup([], ['value' => [hash('sha256', 'x')]]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertCount(1, $manager->index->reads);
+        $this->assertSame([], $this->rangeTokens($manager->index->reads[0][1][0]));
+        $this->assertNull($manager->index->reads[0][3]);
+        $this->assertSame(1, $manager->index->prefixReads);
     }
 }

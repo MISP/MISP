@@ -93,17 +93,19 @@ class FastLookupTestFilter
     public $reads = [];
     public $prefixes = ['version' => '', 'lengths' => null];
     public $prefixReads = 0;
-    /** The next candidates() calls that report a prefix-version change. */
+    /** Answers to successive prefixLengths() calls; $prefixes once exhausted. */
+    public $prefixSequence = [];
+    /** The next candidates() calls with a prefix version that report a prefix-version change. */
     public $changes = 0;
     public function prefixLengths($generation)
     {
         ++$this->prefixReads;
-        return $this->prefixes;
+        return $this->prefixSequence ? array_shift($this->prefixSequence) : $this->prefixes;
     }
     public function candidates($generation, array $tokens, $maximumIds = 100000, $prefixVersion = null)
     {
         $this->reads[] = [$generation, $tokens, $maximumIds, $prefixVersion];
-        if ($this->changes-- > 0) {
+        if ($prefixVersion !== null && $this->changes-- > 0) {
             throw new FastLookupPrefixesChangedException('changed');
         }
         if ($this->hits === null) {

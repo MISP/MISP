@@ -65,7 +65,8 @@ class AttributeFastLookupTool
             }
             $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
             try {
-                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount, $prefixes['version']);
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount,
+                    self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
             } catch (FastLookupPrefixesChangedException $e) {
                 if ($prefixesRefreshed) {
                     throw $e;
@@ -73,7 +74,8 @@ class AttributeFastLookupTool
                 $prefixesRefreshed = true;
                 $prefixes = $filter->prefixLengths($snapshot['generation']);
                 $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
-                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount, $prefixes['version']);
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount,
+                    self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
             }
             $this->validateCandidates($candidates, $batch, $rowCount);
             $pairs = [];
@@ -106,8 +108,9 @@ class AttributeFastLookupTool
                     }
                     $byWeight[$weight][] = $index;
                 }
-                // Rows repeating pairs already counted cost nothing, so each
-                // query keeps the full limit and fails when it alone exceeds it.
+                // Each query keeps the full limit and fails when it alone
+                // exceeds it: conservative, as rows may collapse into fewer
+                // pairs, but never truncating.
                 if ($inList) {
                     $column = $this->db->name('Attribute.' . $component);
                     $sql = 'SELECT DISTINCT ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
@@ -115,10 +118,12 @@ class AttributeFastLookupTool
                         . ' FROM ' . $from . ' WHERE ' . $column . ' IN (' . implode(',', $inList) . ')' . $common . $restriction
                         . ' LIMIT ' . (self::MAX_ROWS + 1);
                     foreach ($this->rows($sql) as $row) {
-                        if (!is_string($row['weight'] ?? null)) {
+                        $rowWeight = is_string($row['weight'] ?? null) ? $valueTool->stripColumnPadding($component, $row['weight']) : null;
+                        // SQL equality matched a value no input weighs as: never answer without it.
+                        if ($rowWeight === null || !isset($byWeight[$rowWeight])) {
                             throw new RuntimeException('Invalid IOC lookup response.');
                         }
-                        foreach ($byWeight[$valueTool->stripColumnPadding($component, $row['weight'])] ?? [] as $index) {
+                        foreach ($byWeight[$rowWeight] as $index) {
                             $this->addPair($matches, $pairs, $index, (string)$row['event_id'], $rowCount);
                         }
                     }
@@ -352,6 +357,19 @@ class AttributeFastLookupTool
         if ($rowCount > self::MAX_ROWS) {
             throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
         }
+    }
+
+    /** Only range tokens depend on the prefix set; other lookups never wait on its changes. */
+    private static function hasRangeTokens(array $tokens)
+    {
+        foreach ($tokens as $position) {
+            foreach ($position as $token) {
+                if (($token['kind'] ?? null) === 'ip_range') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static function sortedIds(array $events)
