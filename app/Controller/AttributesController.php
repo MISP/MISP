@@ -3091,6 +3091,9 @@ class AttributesController extends AppController
             ];
         }
 
+        /* One category per enabled taxonomy, with its enabled tags */
+        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
+
         /* Tag Collections: each expands to its member tags */
         $this->loadModel('TagCollection');
         $collRaw = $this->TagCollection->fetchTagCollection($user, [
@@ -3144,6 +3147,7 @@ class AttributesController extends AppController
         $this->set('allTags',           $allTags);
         $this->set('customTags',        $customTags);
         $this->set('tagCollections',    $tagCollections);
+        $this->set('taxonomies',        $taxonomies);
         $this->set('currentGlobalTags', $currentGlobalTags);
         $this->set('currentLocalTags',  $currentLocalTags);
         $this->set('attributeId',       $attributeId);

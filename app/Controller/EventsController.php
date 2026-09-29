@@ -3018,6 +3018,9 @@ class EventsController extends AppController
         /* Custom Tags: tags that do not belong to any taxonomy */
         $customTags = $tagModel->getCustomTagsForPicker($user);
 
+        /* One category per enabled taxonomy, with its enabled tags */
+        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
+
         /* Tag Collections: each expands to its member tags */
         $this->loadModel('TagCollection');
         $collRaw = $this->TagCollection->fetchTagCollection($user, [
@@ -3071,6 +3074,7 @@ class EventsController extends AppController
         $this->set('allTags',           $allTags);
         $this->set('customTags',        $customTags);
         $this->set('tagCollections',    $tagCollections);
+        $this->set('taxonomies',        $taxonomies);
         $this->set('currentGlobalTags', $currentGlobalTags);
         $this->set('currentLocalTags',  $currentLocalTags);
         $this->set('eventId',           $eventId);

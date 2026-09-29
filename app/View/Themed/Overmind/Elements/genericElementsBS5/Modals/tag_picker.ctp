@@ -8,6 +8,8 @@
  *   $allTags           [{id, name, colour}, ...]
  *   $customTags        [{id, name, colour}, ...]
  *   $tagCollections    [{id, name, tags:[{id,name,colour}]}, ...]
+ *   $taxonomies        [{id, namespace, description, tags:[…]}, ...]
+ *                      enabled taxonomies, each with its enabled tags
  *   $currentGlobalTags [{id, name, colour}, ...]   pre-selected (global)
  *   $currentLocalTags  [{id, name, colour}, ...]   pre-selected (local)
  *   $mayModify         bool
@@ -25,11 +27,17 @@ $postUrl   = h($saveUrl);
 $allJson    = json_encode($allTags,           JSON_HEX_TAG | JSON_HEX_AMP);
 $customJson = json_encode($customTags,        JSON_HEX_TAG | JSON_HEX_AMP);
 $collJson   = json_encode($tagCollections,    JSON_HEX_TAG | JSON_HEX_AMP);
+$taxonomies = $taxonomies ?? [];
+$taxCats = [];
+foreach ($taxonomies as $taxonomy) {
+    $taxCats['taxonomy-' . $taxonomy['id']] = $taxonomy['tags'];
+}
+$taxJson    = json_encode((object)$taxCats,   JSON_HEX_TAG | JSON_HEX_AMP);
 $initGJson  = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson  = json_encode($currentLocalTags,  JSON_HEX_TAG | JSON_HEX_AMP);
 
 /* Reusable section markup (category buttons + picker + selected area) */
-$section = function ($scope, $iconClass, $title, $badgeHtml = '') {
+$section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomies) {
     ob_start(); ?>
     <div class="w-100 px-2" data-section="<?= h($scope) ?>">
         <div class="d-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-tag"
@@ -48,6 +56,21 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
             <button type="button" class="btn btn-sm btn-outline-tag tag-cat-btn"
                     data-cat="collections"><?= __('Tag Collections') ?></button>
         </div>
+
+        <?php if (!empty($taxonomies)): ?>
+        <div class="d-flex flex-wrap gap-1 mb-2 overflow-auto tag-cat-list"
+             style="max-height:5.5rem;">
+            <?php foreach ($taxonomies as $taxonomy): ?>
+                <button type="button"
+                        class="btn btn-sm btn-outline-tag tag-cat-btn py-0 px-2"
+                        data-cat="taxonomy-<?= h($taxonomy['id']) ?>"
+                        title="<?= h($taxonomy['description']) ?>">
+                    <?= h($taxonomy['namespace']) ?>
+                    <span class="opacity-75 ms-1"><?= count($taxonomy['tags']) ?></span>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <select class="tag-picker"
                 placeholder="<?= __('Search tags to add…') ?>"></select>
@@ -102,11 +125,11 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
     var postUrl    = <?= json_encode($postUrl) ?>;
     var uid        = <?= json_encode($uid) ?>;
     var reloadHook = <?= json_encode($reloadHook) ?>;
-    var catData    = {
+    var catData    = Object.assign({
         all:         <?= $allJson    ?: '[]' ?>,
         custom:      <?= $customJson ?: '[]' ?>,
         collections: <?= $collJson   ?: '[]' ?>
-    };
+    }, <?= $taxJson ?: '{}' ?>);
     var initSelected = {
         global: <?= $initGJson ?: '[]' ?>,
         local:  <?= $initLJson ?: '[]' ?>
