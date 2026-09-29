@@ -90,7 +90,7 @@
     - For `'2001:db8::1'` with `[4 => [], 6 => [128 => true]]` it returns 1.
   - **`testScannedRowsReportNetworkLengths`:** `prepareScannedAttributes()` on the rows below returns these `networks`:
     - `ip-dst` `10.0.0.0/13` gives `[[4, 13]]`;
-    - `ip-src` `10.1.2.3` gives `[[4, 32]]`;
+    - `ip-src` `10.1.2.3` gives `[]` (a bare IP is found by its exact token; only CIDR values carry a network);
     - `ip-dst|port` with value1 `2001:db8::/32` gives `[[6, 32]]`;
     - `domain` gives `[]`.
 - [ ] **Step 2: Run the tests; they fail.** `~/tmp/fl-batched/pu.sh app/Test/FastLookupValueToolTest.php` fails on the new tests: queryTokens has no 4th/5th parameter, and the rows have no `networks` key.
@@ -386,7 +386,7 @@ LUA
       - all three result keys have `event_ids ["7"]`.
     - **`testRowsMapOnlyToInputsWithTheSameWeight`:** a row whose weight equals only input 1's weight adds events to input 1 alone.
     - **`testDuplicatePairsAcrossComponentsCountOnce`:** the same (input, event) returned by `value1` and `value2` counts once toward `MAX_ROWS`. Use a reflection-free check: set up exactly `MAX_ROWS` distinct pairs duplicated across both components, and the lookup must not throw `OverflowException`.
-    - **`testBatchesCloseAtTheByteCap`:** 1,000 values of 4,096 ASCII bytes produce more than one batch. Assert more than one weights query (the queries starting with `SELECT WEIGHT_STRING`), and that no single query exceeds 8 MiB.
+    - **`testBatchesCloseAtTheByteCap`:** 1,000 distinct values of 4,000 bytes that each contain 150 single quotes (quoted size about 4,152 bytes, so 1,000 of them exceed 4 MiB) produce more than one batch. Assert more than one weights query (the queries starting with `SELECT WEIGHT_STRING`), and that no single query exceeds 8 MiB.
     - **`testThousandValuesUseOneBatch`:** 1,000 short values give exactly one weights query and at most 2 `IN` queries.
     - **`testPrefixLengthsAreReadOnceAndPassedToCandidates`:**
       - `prefixes` is `['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]]`;
@@ -562,7 +562,7 @@ LUA
      - store `ip-dst` `10.0.0.0/13` and `ip-src` `10.9.9.9`;
      - look up `10.1.2.3`: it matches the /13 via `ip_ranges`;
      - look up `10.9.9.9`: it matches exactly;
-     - read `prefixLengths()` and assert it contains exactly `4 => [13, 32]`.
+     - read `prefixLengths()` and assert it contains exactly `4 => [13]` (bare IPs are exact tokens, not networks).
   5. **Legacy generation:**
      - `HDEL` `p4`, `p6` and `pv` on the live generation's info key;
      - add a new `ip-dst` `192.168.0.0/16` through the normal mutation path and process the queue;
