@@ -211,7 +211,11 @@ function cpuSnapshot(array $cpuFiles): array
     $snapshot = ['php' => $usage['ru_utime.tv_sec'] + $usage['ru_utime.tv_usec'] / 1e6
         + $usage['ru_stime.tv_sec'] + $usage['ru_stime.tv_usec'] / 1e6];
     foreach ($cpuFiles as $name => $path) {
-        $snapshot[$name] = preg_match('/^usage_usec (\d+)$/m', (string)file_get_contents($path), $m) ? $m[1] / 1e6 : null;
+        $stat = @file_get_contents($path);
+        if (!is_string($stat) || !preg_match('/^usage_usec (\d+)$/m', $stat, $m)) {
+            throw new RuntimeException("FL_CPU_STAT $name=$path is unreadable or has no usage_usec.");
+        }
+        $snapshot[$name] = $m[1] / 1e6;
     }
     return $snapshot;
 }
@@ -244,6 +248,8 @@ function measure(callable $work, array $cpuFiles, int $runs, ?callable $summariz
             throw new RuntimeException('Runs disagree: ' . json_encode($summary) . ' vs ' . json_encode($current));
         }
         $summary = $current;
+        // Freeing the results is not part of the next run's timing.
+        unset($value, $current);
         if ($run < 0) { continue; }
         $walls[] = $wall;
         $cpus[] = array_map(function ($name) use ($before, $after) {
@@ -254,7 +260,7 @@ function measure(callable $work, array $cpuFiles, int $runs, ?callable $summariz
     foreach (['php', 'db', 'redis'] as $name) {
         $cpu[$name] = median(array_column($cpus, $name));
     }
-    $cpu['total'] = array_sum(array_filter($cpu, function ($n) { return $n !== null; }));
+    $cpu['total'] = in_array(null, $cpu, true) ? null : array_sum($cpu);
     return [median($walls), array_map(function ($n) { return $n === null ? null : round($n, 3); }, $cpu), $summary];
 }
 
