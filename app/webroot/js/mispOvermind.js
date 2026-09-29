@@ -169,6 +169,33 @@ function openModal(url, size = 'xl') {
 }
 
 /**
+ * Go back to an event's view after a modal flow that changed its content.
+ *
+ * view_layout keeps location.hash in step with the active tab
+ * (`history.replaceState` on shown.bs.tab), so the tab the enrichment or import
+ * was launched from is already in the URL - it only has to survive the trip.
+ * Assigning a URL that differs from the current one by its hash alone does not
+ * reload anything, so returning to the same event asks for the reload outright.
+ *
+ * @param {number|string} eventId
+ */
+function returnToEventView(eventId) {
+    const hash = /^#tab-[\w-]+$/.test(window.location.hash) ? window.location.hash : '';
+    /* baseurl is absolute on most instances but empty on some, so the two sides
+     * of the comparison are resolved against the current document rather than
+     * compared as written. */
+    const target = new URL(baseurl + '/events/view2/' + eventId + hash, window.location.href);
+    if (target.origin === window.location.origin && target.pathname === window.location.pathname) {
+        if (hash && window.location.hash !== hash) {
+            window.location.hash = hash;
+        }
+        window.location.reload();
+    } else {
+        window.location.href = target.href;
+    }
+}
+
+/**
  * Reload whichever event-view index tab is currently shown.
  *
  * Where the tag, galaxy and relationship modals are opened from an attribute
