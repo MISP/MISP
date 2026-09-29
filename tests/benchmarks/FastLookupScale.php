@@ -10,7 +10,15 @@
  * Usage: php FastLookupScale.php CAKE_DIR MYSQL_SOCKET REDIS_SOCKET
  * Environment: FL_PER_TYPE (default 1000), FL_PER_EVENT (100), FL_TYPES
  * (comma list, default FastLookupConfig::DEFAULT_TYPES), FL_DUPLICATES (0.1),
- * FL_LOOKUP (10000), FL_OUT (JSON report path).
+ * FL_LOOKUP (10000), FL_OUT (JSON report path), FL_SQL_BASELINE (set to also
+ * time the plain-SQL baseline), FL_RUNS (1; each lookup is repeated and the
+ * median reported, after one warm-up run when above 1), FL_CPU_STAT (optional,
+ * for example db=/dbcpu,redis=/rediscpu: cgroup v2 cpu.stat files of the
+ * database and Redis containers, mounted into this one; PHP's own CPU always
+ * comes from getrusage()).
+ *
+ * Every lookup kind reports results_sha256, the digest of the JSON-encoded
+ * results as returned, so runs on different code can be compared.
  */
 if ($argc !== 4) {
     fwrite(STDERR, "Usage: php FastLookupScale.php CAKE_DIR DISPOSABLE_MYSQL_SOCKET DISPOSABLE_REDIS_SOCKET\n");
@@ -88,6 +96,7 @@ $perEvent = (int)(getenv('FL_PER_EVENT') ?: 100);
 $types = getenv('FL_TYPES') ? explode(',', getenv('FL_TYPES')) : FastLookupConfig::DEFAULT_TYPES;
 $duplicates = (float)(getenv('FL_DUPLICATES') === false ? 0.1 : getenv('FL_DUPLICATES'));
 $lookupSize = (int)(getenv('FL_LOOKUP') ?: 10000);
+$runs = max(1, (int)(getenv('FL_RUNS') ?: 1));
 $eventsPerType = intdiv($perType + $perEvent - 1, $perEvent);
 if ($eventsPerType > 1000) {
     fwrite(STDERR, "FL_PER_TYPE / FL_PER_EVENT must be at most 1000 events per type.\n");
@@ -185,6 +194,64 @@ function lookupForms(string $type, array $value): array
 
 function redisUsed($redis): int { return (int)$redis->info('memory')['used_memory']; }
 
+$cpuFiles = [];
+foreach (array_filter(explode(',', (string)getenv('FL_CPU_STAT'))) as $entry) {
+    [$name, $path] = array_pad(explode('=', $entry, 2), 2, '');
+    if ($name === '' || $path === '') {
+        fwrite(STDERR, "FL_CPU_STAT entries must be name=path.\n");
+        exit(2);
+    }
+    $cpuFiles[$name] = $path;
+}
+
+/** CPU seconds consumed so far: PHP's own plus each configured cgroup. */
+function cpuSnapshot(array $cpuFiles): array
+{
+    $usage = getrusage();
+    $snapshot = ['php' => $usage['ru_utime.tv_sec'] + $usage['ru_utime.tv_usec'] / 1e6
+        + $usage['ru_stime.tv_sec'] + $usage['ru_stime.tv_usec'] / 1e6];
+    foreach ($cpuFiles as $name => $path) {
+        $snapshot[$name] = preg_match('/^usage_usec (\d+)$/m', (string)file_get_contents($path), $m) ? $m[1] / 1e6 : null;
+    }
+    return $snapshot;
+}
+
+function median(array $numbers)
+{
+    $numbers = array_values(array_filter($numbers, function ($n) { return $n !== null; }));
+    if (!$numbers) { return null; }
+    sort($numbers);
+    $middle = intdiv(count($numbers), 2);
+    return count($numbers) % 2 ? $numbers[$middle] : ($numbers[$middle - 1] + $numbers[$middle]) / 2;
+}
+
+/**
+ * Runs $work (returning any value) once warm and then FL_RUNS times; reports
+ * the median wall and CPU seconds and the last run's value.
+ */
+function measure(callable $work, array $cpuFiles, int $runs): array
+{
+    $walls = []; $cpus = [];
+    for ($run = $runs > 1 ? -1 : 0; $run < $runs; ++$run) {
+        $before = cpuSnapshot($cpuFiles);
+        $t = microtime(true);
+        $value = $work();
+        $wall = microtime(true) - $t;
+        $after = cpuSnapshot($cpuFiles);
+        if ($run < 0) { continue; }
+        $walls[] = $wall;
+        $cpus[] = array_map(function ($name) use ($before, $after) {
+            return ($before[$name] ?? null) === null || ($after[$name] ?? null) === null ? null : $after[$name] - $before[$name];
+        }, array_combine(['php', 'db', 'redis'], ['php', 'db', 'redis']));
+    }
+    $cpu = [];
+    foreach (['php', 'db', 'redis'] as $name) {
+        $cpu[$name] = median(array_column($cpus, $name));
+    }
+    $cpu['total'] = array_sum(array_filter($cpu, function ($n) { return $n !== null; }));
+    return [median($walls), array_map(function ($n) { return $n === null ? null : round($n, 3); }, $cpu), $value];
+}
+
 $typeIndex = array_flip(array_values($types));
 $eventId = 0; $attributeId = 0;
 $loaded = []; $loadStart = microtime(true);
@@ -231,7 +298,7 @@ $baseline = redisUsed($redis);
 $start = microtime(true);
 $status = $manager->startRebuild();
 $afterInit = redisUsed($redis);
-$report = ['parameters' => compact('perType', 'perEvent', 'duplicates', 'lookupSize', 'eventsPerType') + ['types' => $types],
+$report = ['parameters' => compact('perType', 'perEvent', 'duplicates', 'lookupSize', 'eventsPerType', 'runs') + ['types' => $types],
     'load_seconds' => round($loadSeconds, 1), 'redis_baseline_bytes' => $baseline,
     'init' => ['seconds' => round(microtime(true) - $start, 2), 'bytes' => $afterInit - $baseline], 'types' => []];
 $status = $manager->runBatch(1000);
@@ -278,10 +345,9 @@ $valueTool = new FastLookupValueTool($model);
 $index = $manager->filter();
 $generation = $manager->status()['generation'];
 $lookup = function (array $values) use ($user) {
-    $t = microtime(true);
     $response = (new FastLookupScaleAttribute())->fastLookup($user, ['value' => $values]);
     if (($response['status'] ?? null) !== 'ready') { throw new RuntimeException('Lookup not ready: ' . json_encode($response)); }
-    return [microtime(true) - $t, count((array)$response['results'])];
+    return [count((array)$response['results']), hash('sha256', json_encode($response['results']))];
 };
 $candidatePhase = function (array $values) use ($valueTool, $index, $generation, $types) {
     $tokenSeconds = 0; $candidateSeconds = 0;
@@ -296,9 +362,10 @@ $candidatePhase = function (array $values) use ($valueTool, $index, $generation,
     return [$tokenSeconds, $candidateSeconds];
 };
 // Baseline without Redis: the same ACL and scope filters, answered by the
-// indexed value1/value2 columns alone. Containment is enumerated into IN lists
-// (every canonical CIDR containing an IP, every parent of a hostname), the
-// strongest plain-SQL form; non-canonical stored CIDRs would still be missed.
+// indexed value1/value2 columns alone, in batches of BATCH_SIZE with one query
+// per batch and component. Containment is enumerated into IN lists (every
+// canonical CIDR containing an IP, every parent of a hostname), the strongest
+// plain-SQL form; non-canonical stored CIDRs would still be missed.
 $sqlOnly = function (array $values) use ($model, $user, $types) {
     $db = $model->getDataSource();
     $acl = $db->conditions($model->buildConditions($user), true, false, $model);
@@ -306,10 +373,9 @@ $sqlOnly = function (array $values) use ($model, $user, $types) {
     $from = '`attributes` `Attribute` INNER JOIN `events` `Event` ON `Event`.`id` = `Attribute`.`event_id`'
         . ' LEFT JOIN `objects` `Object` ON `Object`.`id` = `Attribute`.`object_id`';
     $common = ' AND `Attribute`.`deleted` = 0 AND (' . ($acl ?: '1=1') . ') AND `Attribute`.`type` IN (' . $quote($types) . ') AND `Event`.`published` = 1';
-    $t = microtime(true);
     $matched = [];
     foreach (array_chunk($values, AttributeFastLookupTool::BATCH_SIZE, true) as $batch) {
-        $branches = [];
+        $owners = [];
         foreach ($batch as $index => $value) {
             $forms = [$value];
             if (($ip = @inet_pton($value)) !== false) {
@@ -326,16 +392,19 @@ $sqlOnly = function (array $values) use ($model, $user, $types) {
                 $labels = explode('.', strtolower($value));
                 for ($i = 1; $i < count($labels) - 1; ++$i) { $forms[] = implode('.', array_slice($labels, $i)); }
             }
-            foreach (['value1', 'value2'] as $component) {
-                $branches[] = 'SELECT ' . (int)$index . ' AS `input_index` FROM ' . $from
-                    . ' WHERE `Attribute`.`' . $component . '` IN (' . $quote($forms) . ')' . $common;
-            }
+            foreach ($forms as $form) { $owners[strtolower(trim($form))][$index] = true; }
         }
-        $statement = $db->rawQuery(implode(' UNION ', $branches));
-        while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) { $matched[$row['input_index']] = true; }
-        $statement->closeCursor();
+        $in = $quote(array_map('strval', array_keys($owners)));
+        foreach (['value1', 'value2'] as $component) {
+            $statement = $db->rawQuery('SELECT DISTINCT `Attribute`.`event_id`, `Attribute`.`' . $component . '` AS v FROM ' . $from
+                . ' WHERE `Attribute`.`' . $component . '` IN (' . $in . ')' . $common);
+            while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) {
+                foreach ($owners[strtolower(trim($row['v']))] ?? [] as $index => $_) { $matched[$index] = true; }
+            }
+            $statement->closeCursor();
+        }
     }
-    return [microtime(true) - $t, count($matched)];
+    return count($matched);
 };
 foreach ($types as $type) {
     $hits = []; $expansions = [];
@@ -353,14 +422,17 @@ foreach ($types as $type) {
     $results = [];
     foreach (['hits' => $hits, 'misses' => $misses, 'expansions' => array_slice(array_values(array_unique($expansions)), 0, $lookupSize)] as $label => $values) {
         if (!$values) { continue; }
-        [$seconds, $matched] = $lookup($values);
+        [$seconds, $cpu, [$matched, $digest]] = measure(function () use ($lookup, $values) { return $lookup($values); }, $cpuFiles, $runs);
         [$tokenSeconds, $candidateSeconds] = $candidatePhase($values);
-        [$sqlSeconds, $sqlMatched] = getenv('FL_SQL_BASELINE') ? $sqlOnly($values) : [null, null];
+        [$sqlSeconds, $sqlCpu, $sqlMatched] = getenv('FL_SQL_BASELINE') ? measure(function () use ($sqlOnly, $values) { return $sqlOnly($values); }, $cpuFiles, $runs) : [null, null, null];
         $results[$label] = [
             'sql_only_seconds' => $sqlSeconds === null ? null : round($sqlSeconds, 3),
+            'sql_only_cpu_seconds' => $sqlCpu,
             'sql_only_matched' => $sqlMatched,
             'values' => count($values), 'matched' => $matched,
-            'seconds' => round($seconds, 3), 'values_per_second' => (int)round(count($values) / $seconds),
+            'results_sha256' => $digest,
+            'seconds' => round($seconds, 3), 'cpu_seconds' => $cpu,
+            'values_per_second' => (int)round(count($values) / $seconds),
             'redis_candidate_seconds' => round($tokenSeconds + $candidateSeconds, 3),
             'tokenize_seconds' => round($tokenSeconds, 3),
             'candidates_seconds' => round($candidateSeconds, 3),
