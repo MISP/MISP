@@ -386,7 +386,7 @@ LUA
       - all three result keys have `event_ids ["7"]`.
     - **`testRowsMapOnlyToInputsWithTheSameWeight`:** a row whose weight equals only input 1's weight adds events to input 1 alone.
     - **`testDuplicatePairsAcrossComponentsCountOnce`:** the same (input, event) returned by `value1` and `value2` counts once toward `MAX_ROWS`. Use a reflection-free check: set up exactly `MAX_ROWS` distinct pairs duplicated across both components, and the lookup must not throw `OverflowException`.
-    - **`testBatchesCloseAtTheByteCap`:** 1,000 distinct values of 4,000 bytes that each contain 150 single quotes (quoted size about 4,152 bytes, so 1,000 of them exceed 4 MiB) produce more than one batch. Assert more than one weights query (the queries starting with `SELECT WEIGHT_STRING`), and that no single query exceeds 8 MiB.
+    - **`testBatchesCloseAtTheByteCap`:** 1,000 distinct values of 4,000 bytes that each contain 200 single quotes (quoted size about 4,202 bytes, so 1,000 of them exceed 4 MiB) produce more than one batch. Assert more than one weights query (the queries starting with `SELECT WEIGHT_STRING`), and that no single query exceeds 8 MiB.
     - **`testThousandValuesUseOneBatch`:** 1,000 short values give exactly one weights query and at most 2 `IN` queries.
     - **`testPrefixLengthsAreReadOnceAndPassedToCandidates`:**
       - `prefixes` is `['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]]`;
