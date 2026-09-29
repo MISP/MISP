@@ -314,10 +314,116 @@ class FastLookupFilterTest extends TestCase
         $this->assertTrue($meta['ready']);
     }
 
-    public function testWrongSchemaVersionFailsClosed(): void
+    /** @dataProvider unknownSchemas */
+    public function testWrongSchemaVersionFailsClosed(string $schema): void
     {
         $this->expectException(FastLookupIndexCorruptException::class);
-        $this->filter(null, $this->metadataDouble(['schema' => 'v3']))->metadata();
+        $this->filter(null, $this->metadataDouble(['schema' => $schema]))->metadata();
+    }
+
+    public function unknownSchemas(): array
+    {
+        return ['v3' => ['v3'], 'a later schema' => ['bloom-3'], 'empty' => ['']];
+    }
+
+    public function testCurrentAndLegacySchemasAreServed(): void
+    {
+        $this->assertSame('bloom-2', FastLookupFilter::SCHEMA);
+        $this->assertSame('bloom-1', FastLookupFilter::LEGACY_SCHEMA);
+        foreach ([FastLookupFilter::SCHEMA, FastLookupFilter::LEGACY_SCHEMA] as $schema) {
+            $this->assertTrue($this->filter(null, $this->metadataDouble(['schema' => $schema]))->metadata()['ready'], $schema);
+        }
+    }
+
+    /** The reserve() and reset calls a double records, up to the cleanup the double cannot finish. */
+    private function reserveCalls(array $replies): array
+    {
+        $redis = $this->recordingRedis($replies + ['eval' => 1, 'scan' => []]);
+        try {
+            $this->filter(null, $redis)->reserve('next', 'fingerprint', 1000, 0.001, 1);
+        } catch (FastLookupIndexUnavailableException $e) {
+            // The double's SCAN cursor never ends the cleanup.
+        }
+        return $redis->arguments;
+    }
+
+    public function testReserveStampsTheCurrentSchemaWithTheMaskedGeneration(): void
+    {
+        $calls = $this->reserveCalls(['hGetAll' => ['schema' => FastLookupFilter::LEGACY_SCHEMA] + $this->validMetadataFields()]);
+        $reserve = array_values(array_filter($calls, function ($call) {
+            return $call[0] === 'eval' && strpos($call[1][0], 'BF.RESERVE') !== false;
+        }));
+        $this->assertCount(1, $reserve);
+        [$script, $arguments, $keyCount] = $reserve[0][1];
+        $this->assertStringContainsString("'p4'", $script);
+        $this->assertStringContainsString("'building', ARGV[1], 'building_fingerprint', ARGV[2], 'schema', ARGV[6]", $script);
+        $this->assertSame('bloom-2', $arguments[$keyCount + 5]);
+        $this->assertNotContains('hMSet', array_column($calls, 0), 'A served legacy namespace is not reset.');
+    }
+
+    public function testNamespaceResetWritesTheCurrentSchema(): void
+    {
+        $calls = $this->reserveCalls(['hGetAll' => []]);
+        $reset = array_values(array_filter($calls, function ($call) { return $call[0] === 'hMSet'; }));
+        $this->assertCount(1, $reset);
+        $this->assertSame('bloom-2', $reset[0][1][1]['schema']);
+    }
+
+    public function testCheckpointAcceptsBothSchemas(): void
+    {
+        $redis = $this->recordingRedis(['eval' => 1]);
+        $this->filter(null, $redis)->checkpoint('r1', false);
+        [, [$script, $arguments, $keyCount]] = $redis->arguments[1];
+        $this->assertStringContainsString('schema ~= ARGV[3] and schema ~= ARGV[4]', $script);
+        $this->assertSame(['bloom-2', 'bloom-1'], array_slice($arguments, $keyCount + 2, 2));
+    }
+
+    /** metadata() for a live generation 'live1' whose state HMGET answers $state. */
+    private function liveGenerationMetadata(array $state, string $field = 'live')
+    {
+        $fields = [$field => 'live1'] + ($field === 'live' ? [] : ['live' => '']) + $this->validMetadataFields();
+        $fields['ready'] = $field === 'live' ? '1' : '0';
+        return $this->filter(null, $this->recordingRedis(['hGetAll' => $fields, 'eval' => $state]))->metadata();
+    }
+
+    private function generationState(array $masks): array
+    {
+        return array_merge(['1000', '0.001', '0', '0', '1', '0'], $masks);
+    }
+
+    public function testLegacyAndMaskedGenerationStatesAreValid(): void
+    {
+        $this->assertSame(1000, $this->liveGenerationMetadata($this->generationState([false, false, false]))['generations']['live1']['capacity']);
+        $this->assertSame(1000, $this->liveGenerationMetadata($this->generationState([null, null, null]))['generations']['live1']['capacity']);
+        $masked = $this->generationState([str_repeat('0', 33), str_repeat('0', 128) . '1', '4']);
+        $this->assertSame(1000, $this->liveGenerationMetadata($masked)['generations']['live1']['capacity']);
+    }
+
+    /** @dataProvider corruptPrefixStates */
+    public function testLiveGenerationWithACorruptPrefixStateIsCorrupt(array $masks): void
+    {
+        $this->expectException(FastLookupIndexCorruptException::class);
+        $this->liveGenerationMetadata($this->generationState($masks));
+    }
+
+    public function testBuildingGenerationWithACorruptPrefixStateIsOmitted(): void
+    {
+        $meta = $this->liveGenerationMetadata($this->generationState([false, str_repeat('0', 129), '0']), 'building');
+        $this->assertSame('live1', $meta['building']);
+        $this->assertSame([], $meta['generations']);
+    }
+
+    public function testCorruptPrefixMaskReplyIsCorruption(): void
+    {
+        foreach ([['eval' => false, 'getLastError' => 'corrupt prefix mask'], ['eval' => new RuntimeException('corrupt prefix mask')]] as $replies) {
+            try {
+                $this->filter(null, $this->recordingRedis($replies))
+                    ->add('generation', [['id' => '1', 'tokens' => [$this->token('I')], 'networks' => [[4, 24]]]]);
+                $this->fail('A corrupt prefix mask must fail closed.');
+            } catch (FastLookupIndexCorruptException $e) {
+                $this->assertSame('The fastLookup IP prefix state is corrupt.', $e->getMessage());
+            }
+        }
     }
 
     public function testMissingRequiredFieldFailsClosed(): void
@@ -355,11 +461,13 @@ class FastLookupFilterTest extends TestCase
     {
         return new class($replies) {
             public $calls = [];
+            public $arguments = [];
             private $replies;
             public function __construct(array $replies) { $this->replies = $replies; }
             public function __call($method, $args)
             {
                 $this->calls[] = $method;
+                $this->arguments[] = [$method, $args];
                 $reply = $this->replies[$method] ?? null;
                 if ($reply instanceof Throwable) { throw $reply; }
                 return $reply;

@@ -97,6 +97,7 @@ try {
     $filter->reserve('first', str_repeat('a', 64), 1000, 0.001, 128);
     $meta = $filter->metadata();
     $assert($meta['live'] === null && $meta['building'] === 'first' && $meta['ready'] === false, 'Reserve creates a building generation');
+    $assert($redis->hGet($prefix . 'metadata', 'schema') === 'bloom-2', 'A reset namespace carries the current schema');
     $assert($meta['generations']['first']['capacity'] === 1000 && $meta['generations']['first']['buckets'] === 2, 'Generation state records sizing');
     $assert($redis->eval("return redis.call('TYPE', KEYS[1]).ok", [$prefix . 'g:first:bf'], 1) === FastLookupFilter::BLOOM_TYPE, 'The filter is a RedisBloom filter');
     $throws(static function () use ($filter) { $filter->reserve('first', str_repeat('a', 64), 1000, 0.001, 128); }, FastLookupIndexUnavailableException::class, 'A generation is reserved once');
@@ -269,7 +270,10 @@ try {
     // IP prefix masks: set before their tokens become visible, versioned, legacy generations left alone.
     $info = $prefix . 'g:eighth:info';
     $bf = $prefix . 'g:eighth:bf';
+    $redis->hSet($prefix . 'metadata', 'schema', 'bloom-1');
+    $assert($filter->metadata()['live'] !== null, 'A legacy schema namespace is served');
     $filter->reserve('eighth', str_repeat('h', 64), 1000, 0.001, 1);
+    $assert($redis->hMGet($prefix . 'metadata', ['schema', 'building']) === ['schema' => 'bloom-2', 'building' => 'eighth'], 'Reserving a masked generation stamps the current schema');
     $assert($filter->prefixLengths('eighth') === ['version' => '0', 'lengths' => [4 => [], 6 => []]], 'A new generation starts with empty masks at version 0');
     $r24 = $token('I', '198.51.100.0/24');
     $filter->add('eighth', [['id' => '21', 'type' => 'ip-src', 'tokens' => [$r24], 'networks' => [[4, 24]]]]);
@@ -302,18 +306,33 @@ try {
     $assert($redis->hMGet($info, ['p4', 'p6', 'pv']) === ['p4' => false, 'p6' => false, 'pv' => false], 'add() never creates masks on a legacy generation');
     $assert($filter->prefixLengths('eighth') === ['version' => '', 'lengths' => null], 'A legacy generation has no lengths');
     $assert($filter->candidates('eighth', [[['token' => $r13, 'kind' => 'ip_range']]], 100000, '')[0]['ip_range'] === ['25'], 'A legacy generation matches an empty prefix version');
+    // What an older release leaves behind: a legacy schema over an unmasked live generation.
+    $redis->hSet($prefix . 'metadata', 'schema', 'bloom-1');
+    $filter->checkpoint('r9', true);
+    $assert($filter->metadata()['generations']['eighth']['capacity'] === 1000, 'A legacy namespace with a legacy live generation is valid');
+    $assert($filter->candidates('eighth', [[['token' => $r13, 'kind' => 'ip_range']]], 100000, '')[0]['ip_range'] === ['25'], 'A legacy namespace keeps serving range lookups');
+    $assert($redis->hGet($prefix . 'metadata', 'schema') === 'bloom-1', 'Serving never rewrites the schema');
+    $redis->hSet($prefix . 'metadata', 'schema', 'bloom-3');
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexCorruptException::class, 'An unknown schema fails closed');
+    $throws(static function () use ($filter) { $filter->checkpoint('r10', true); }, FastLookupIndexUnavailableException::class, 'checkpoint() refuses an unknown schema');
+    $redis->hSet($prefix . 'metadata', 'schema', 'bloom-2');
 
     $redis->hMSet($info, $masks);
     $redis->hDel($info, 'p6');
     $throws(static function () use ($filter) { $filter->prefixLengths('eighth'); }, FastLookupIndexCorruptException::class, 'A partial prefix state is corrupt');
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexCorruptException::class, 'A live generation with a partial prefix state is corrupt');
     $r16 = $token('I', '203.0.0.0/16');
-    $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexUnavailableException::class, 'add() fails closed on a partial prefix state');
+    $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexCorruptException::class, 'add() fails closed on a partial prefix state');
+    $redis->hMSet($info, $masks);
+    $redis->hSet($info, 'p4', str_repeat('0', 32));
+    $throws(static function () use ($filter) { $filter->metadata(); }, FastLookupIndexCorruptException::class, 'A live generation with a malformed IPv4 mask is corrupt');
+    $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexCorruptException::class, 'add() reports a malformed IPv4 mask as corrupt');
     $assert($redis->rawCommand('BF.MEXISTS', $bf, $r16) === [0], 'A refused mask update publishes none of its tokens');
     $redis->hMSet($info, $masks);
     foreach (['missing' => null, 'non-decimal' => 'x'] as $case => $version) {
         $redis->hMSet($info, $masks);
         if ($version === null) { $redis->hDel($info, 'pv'); } else { $redis->hSet($info, 'pv', $version); }
-        $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexUnavailableException::class, "add() fails closed on a $case prefix version");
+        $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexCorruptException::class, "add() fails closed on a $case prefix version");
         $after = $redis->hMGet($info, ['p4', 'p6', 'pv']);
         $assert($after['p4'] === $masks['p4'] && $after['p6'] === $masks['p6'] && $after['pv'] === ($version ?? false), "A $case prefix version leaves the masks and version untouched");
         $assert($redis->rawCommand('BF.MEXISTS', $bf, $r16) === [0], "A $case prefix version publishes none of the tokens");

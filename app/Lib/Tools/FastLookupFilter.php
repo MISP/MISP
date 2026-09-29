@@ -37,7 +37,13 @@ class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableExcep
  */
 class FastLookupFilter
 {
-    const SCHEMA = 'bloom-1';
+    /**
+     * Stamped when a generation with IP prefix masks is reserved. Code that
+     * knows only LEGACY_SCHEMA fails closed on it rather than adding ranges
+     * without updating the masks; a legacy namespace keeps being served.
+     */
+    const SCHEMA = 'bloom-2';
+    const LEGACY_SCHEMA = 'bloom-1';
     const PREFIX = 'misp:fast_lookup:bf1:';
     const LEGACY_PREFIX = 'misp:fast_lookup:v3:';
     const BLOOM_TYPE = 'MBbloom--';
@@ -132,7 +138,7 @@ class FastLookupFilter
             }
             throw new FastLookupIndexUnavailableException('Redis could not read the fastLookup index metadata.');
         }
-        if (($meta['schema'] ?? null) !== self::SCHEMA
+        if (!in_array($meta['schema'] ?? null, [self::SCHEMA, self::LEGACY_SCHEMA], true)
             || !isset($meta['live'], $meta['building'], $meta['fingerprint'], $meta['building_fingerprint'], $meta['revision'], $meta['scope'])
             || !in_array($meta['ready'] ?? null, ['0', '1'], true)) {
             throw new FastLookupIndexCorruptException('The fastLookup index metadata is missing or invalid.');
@@ -197,11 +203,11 @@ if redis.call('EXISTS', KEYS[2]) ~= 0 or redis.call('EXISTS', KEYS[3]) ~= 0 then
 redis.call('BF.RESERVE', KEYS[3], ARGV[4], ARGV[3], 'NONSCALING')
 redis.call('HSET', KEYS[2], '!', ARGV[1], 'capacity', ARGV[3], 'rate', ARGV[4], 'inserted', '0', 'stale', '0', 'buckets', ARGV[5], 'cursor', '0',
     'p4', string.rep('0', 33), 'p6', string.rep('0', 129), 'pv', '0')
-redis.call('HSET', KEYS[1], 'building', ARGV[1], 'building_fingerprint', ARGV[2])
+redis.call('HSET', KEYS[1], 'building', ARGV[1], 'building_fingerprint', ARGV[2], 'schema', ARGV[6])
 return 1
 LUA
             , [$this->metaKey(), $this->infoKey($generation), $this->bloomKey($generation)],
-            [$generation, $fingerprint, (string)$capacity, rtrim(sprintf('%.10F', $rate), '0'), (string)$buckets]);
+            [$generation, $fingerprint, (string)$capacity, rtrim(sprintf('%.10F', $rate), '0'), (string)$buckets, self::SCHEMA]);
         $keys = [];
         for ($i = 0; $i < $buckets; ++$i) {
             $keys[] = $this->generationPrefix($generation) . 'x:' . $i;
@@ -347,12 +353,13 @@ LUA
     {
         $this->identifier($revision);
         $this->evaluate(<<<'LUA'
-if redis.call('HGET', KEYS[1], 'schema') ~= ARGV[3] then return redis.error_reply('index missing') end
+local schema = redis.call('HGET', KEYS[1], 'schema')
+if schema ~= ARGV[3] and schema ~= ARGV[4] then return redis.error_reply('index missing') end
 if ARGV[2] == '1' and redis.call('HGET', KEYS[1], 'live') == '' then return redis.error_reply('no live generation') end
 redis.call('HSET', KEYS[1], 'revision', ARGV[1], 'ready', ARGV[2])
 return 1
 LUA
-            , [$this->metaKey()], [$revision, $ready ? '1' : '0', self::SCHEMA]);
+            , [$this->metaKey()], [$revision, $ready ? '1' : '0', self::SCHEMA, self::LEGACY_SCHEMA]);
     }
 
     public function activate(string $generation, string $fingerprint): void
@@ -385,13 +392,12 @@ LUA
         if (!is_array($reply) || count($reply) !== 3) {
             throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
         }
-        [$p4, $p6, $pv] = array_map(static function ($field) { return $field === null ? false : $field; }, array_values($reply));
-        if ($p4 === false && $p6 === false && $pv === false) {
-            return ['version' => '', 'lengths' => null];
-        }
-        if (!is_string($p4) || !preg_match('/\A[01]{33}\z/', $p4) || !is_string($p6) || !preg_match('/\A[01]{129}\z/', $p6)
-            || !is_string($pv) || !ctype_digit($pv)) {
+        [$p4, $p6, $pv] = array_values($reply);
+        if (!self::validPrefixState($p4, $p6, $pv)) {
             throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
+        }
+        if ($p4 === false || $p4 === null) {
+            return ['version' => '', 'lengths' => null];
         }
         $lengths = [4 => [], 6 => []];
         foreach ([4 => $p4, 6 => $p6] as $family => $mask) {
@@ -616,13 +622,16 @@ LUA
         $reply = $this->evaluate($this->guardScript() . <<<'LUA'
 local failure = requireGeneration(KEYS[1], KEYS[2], ARGV[1])
 if failure then return failure end
-return redis.call('HMGET', KEYS[1], 'capacity', 'rate', 'inserted', 'stale', 'buckets', 'cursor')
+return redis.call('HMGET', KEYS[1], 'capacity', 'rate', 'inserted', 'stale', 'buckets', 'cursor', 'p4', 'p6', 'pv')
 LUA
             , [$this->infoKey($generation), $this->bloomKey($generation)], [$generation]);
-        if (!is_array($reply) || count($reply) !== 6) {
+        if (!is_array($reply) || count($reply) !== 9) {
             throw new FastLookupIndexCorruptException('Invalid fastLookup generation state.');
         }
-        [$capacity, $rate, $inserted, $stale, $buckets, $cursor] = $reply;
+        [$capacity, $rate, $inserted, $stale, $buckets, $cursor, $p4, $p6, $pv] = array_values($reply);
+        if (!self::validPrefixState($p4, $p6, $pv)) {
+            throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
+        }
         foreach ([$capacity, $inserted, $stale, $buckets, $cursor] as $number) {
             if (!is_string($number) || !ctype_digit($number)) {
                 throw new FastLookupIndexCorruptException('Invalid fastLookup generation state.');
@@ -633,6 +642,17 @@ LUA
         }
         return ['capacity' => (int)$capacity, 'rate' => (float)$rate, 'inserted' => (int)$inserted,
             'stale' => (int)$stale, 'buckets' => (int)$buckets, 'cursor' => $cursor];
+    }
+
+    /** All three prefix fields absent (a legacy generation) or all well formed. */
+    private static function validPrefixState($p4, $p6, $pv): bool
+    {
+        [$p4, $p6, $pv] = array_map(static function ($field) { return $field === null ? false : $field; }, [$p4, $p6, $pv]);
+        if ($p4 === false && $p6 === false && $pv === false) {
+            return true;
+        }
+        return is_string($p4) && preg_match('/\A[01]{33}\z/', $p4) && is_string($p6) && preg_match('/\A[01]{129}\z/', $p6)
+            && is_string($pv) && ctype_digit($pv);
     }
 
     private function bucketCount(string $generation): int
@@ -774,6 +794,9 @@ LUA
             if ($cause && self::guardFailure($cause->getMessage())) {
                 throw new FastLookupIndexCorruptException('A fastLookup generation is missing.', 0, $e);
             }
+            if ($cause && $cause->getMessage() === 'corrupt prefix mask') {
+                throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.', 0, $e);
+            }
             throw $e;
         }
         if ($result === false) {
@@ -783,6 +806,9 @@ LUA
             }
             if (is_string($error) && self::guardFailure($error)) {
                 throw new FastLookupIndexCorruptException('A fastLookup generation is missing.');
+            }
+            if ($error === 'corrupt prefix mask') {
+                throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
             }
             throw new FastLookupIndexUnavailableException('Redis refused a fastLookup index operation.');
         }
