@@ -389,11 +389,14 @@ $fields = array_merge($fields, [
  */
 
 $children = [
-    [
-        'type' => 'search',
-        'button' => 'Search',
-        'placeholder' => __('Filter by attribute value'),
-    ]
+    array_merge(
+        [
+            'type' => 'search',
+            'button' => 'Search',
+            'placeholder' => __('Filter by attribute value, UUID or comment'),
+        ],
+        $inEventView ? ['mode' => 'legacy', 'name' => 'searchFor'] : []
+    )
 ];
 
 // Inside an event the attribute tab reloads itself over ajax and drives its own

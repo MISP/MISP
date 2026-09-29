@@ -1989,7 +1989,8 @@ class Event extends AppModel
      *   - category (string|null)
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
-     *   - searchFor (string|null) value substring search
+     *   - searchFor (string|null) substring search over value, uuid and
+     *     comment
      *   - eventIds (int[]|null) extended / extending view: every event whose
      *     attributes belong in the list. $eventId stays the primary one.
      * @return array ['Attribute' => [...], 'total' => int]
@@ -2066,8 +2067,17 @@ class Event extends AppModel
                 $options['toIDS'] == 2 ? 0 : 1;
         }
         if (!empty($options['searchFor'])) {
-            $conditions['Attribute.value LIKE'] =
-                '%' . $options['searchFor'] . '%';
+            // Same reach as the classic event view's filter: a value, a UUID
+            // or a comment, so a deep link onto one attribute resolves as
+            // well as free text does. Appended at the top level, not under
+            // 'AND' - the ACL block below writes $conditions['AND'][0]['OR']
+            // by index and would overwrite anything sitting there.
+            $needle = '%' . $options['searchFor'] . '%';
+            $conditions[] = ['OR' => [
+                'Attribute.value LIKE' => $needle,
+                'Attribute.uuid LIKE' => $needle,
+                'Attribute.comment LIKE' => $needle,
+            ]];
         }
 
         // Proposals filter. The toggle narrows the list down to what carries
@@ -2488,8 +2498,12 @@ class Event extends AppModel
             $conditions['ShadowAttribute.type'] = $options['type'];
         }
         if (!empty($options['searchFor'])) {
-            $conditions['ShadowAttribute.value1 LIKE'] =
-                '%' . $options['searchFor'] . '%';
+            $needle = '%' . $options['searchFor'] . '%';
+            $conditions[] = ['OR' => [
+                'ShadowAttribute.value1 LIKE' => $needle,
+                'ShadowAttribute.uuid LIKE' => $needle,
+                'ShadowAttribute.comment LIKE' => $needle,
+            ]];
         }
         return $conditions;
     }
@@ -2634,7 +2648,8 @@ class Event extends AppModel
      *   - deleted (int, 0/1/2)
      *   - name (string|null) object template name filter
      *   - meta-category (string|null)
-     *   - searchFor (string|null) search in object attribute values
+     *   - searchFor (string|null) substring search over the object's own
+     *     uuid / name / comment and its attributes' values and uuids
      *   - eventIds (int[]|null) extended / extending view: every event whose
      *     objects belong in the list
      * @return array ['Object' => [...], 'total' => int]
@@ -2751,10 +2766,13 @@ class Event extends AppModel
             'Object.last_seen',
         ];
 
-        // If searchFor is set, we need to find objects that
-        // have at least one attribute matching the search term.
-        // We do this via a subquery on the object IDs.
+        // If searchFor is set, keep the objects that match it themselves or
+        // hold at least one attribute that does - the latter through a
+        // subquery on the object IDs. Matching a UUID on either side is what
+        // lets a deep link onto one object, or onto one of its attributes,
+        // land on it.
         if (!empty($options['searchFor'])) {
+            $needle = '%' . $options['searchFor'] . '%';
             $db = $this->getDataSource();
             $subQuery = $db->buildStatement([
                 'fields' => ['DISTINCT Attribute.object_id'],
@@ -2763,12 +2781,18 @@ class Event extends AppModel
                 'conditions' => [
                     'Attribute.event_id' => $eventIds,
                     'Attribute.object_id !=' => 0,
-                    'Attribute.value1 LIKE' =>
-                        '%' . $options['searchFor'] . '%',
+                    'OR' => [
+                        'Attribute.value1 LIKE' => $needle,
+                        'Attribute.uuid LIKE' => $needle,
+                    ],
                 ],
             ], $this->Attribute);
-            $conditions[] =
-                'Object.id IN (' . $subQuery . ')';
+            $conditions[] = ['OR' => [
+                'Object.uuid LIKE' => $needle,
+                'Object.name LIKE' => $needle,
+                'Object.comment LIKE' => $needle,
+                'Object.id IN (' . $subQuery . ')',
+            ]];
         }
 
         // Count total (for pagination metadata)
