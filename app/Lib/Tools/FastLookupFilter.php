@@ -15,6 +15,11 @@ class FastLookupIndexCorruptException extends FastLookupIndexUnavailableExceptio
 {
 }
 
+/** The set of indexed IP prefix lengths changed after the caller read it. */
+class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableException
+{
+}
+
 /**
  * Redis side of fast lookup: one RedisBloom filter per generation holding every
  * token, plus append-only postings for IP-range and domain tokens.
@@ -190,7 +195,8 @@ class FastLookupFilter
 if redis.call('HGET', KEYS[1], 'live') == ARGV[1] then return redis.error_reply('a rebuild must use a fresh generation') end
 if redis.call('EXISTS', KEYS[2]) ~= 0 or redis.call('EXISTS', KEYS[3]) ~= 0 then return redis.error_reply('generation keys already exist') end
 redis.call('BF.RESERVE', KEYS[3], ARGV[4], ARGV[3], 'NONSCALING')
-redis.call('HSET', KEYS[2], '!', ARGV[1], 'capacity', ARGV[3], 'rate', ARGV[4], 'inserted', '0', 'stale', '0', 'buckets', ARGV[5], 'cursor', '0')
+redis.call('HSET', KEYS[2], '!', ARGV[1], 'capacity', ARGV[3], 'rate', ARGV[4], 'inserted', '0', 'stale', '0', 'buckets', ARGV[5], 'cursor', '0',
+    'p4', string.rep('0', 33), 'p6', string.rep('0', 129), 'pv', '0')
 redis.call('HSET', KEYS[1], 'building', ARGV[1], 'building_fingerprint', ARGV[2])
 return 1
 LUA
@@ -218,9 +224,10 @@ LUA
     public function add(string $generation, array $prepared): void
     {
         $this->identifier($generation);
-        $tokens = []; $postings = [];
+        $tokens = []; $postings = []; $lengths = [4 => [], 6 => []];
         foreach ($prepared as $row) {
-            if (!is_array($row) || !isset($row['id'], $row['tokens']) || !is_string($row['id']) || !is_array($row['tokens'])) {
+            if (!is_array($row) || !isset($row['id'], $row['tokens']) || !is_string($row['id']) || !is_array($row['tokens'])
+                || (isset($row['networks']) && !is_array($row['networks']))) {
                 throw new InvalidArgumentException('Malformed prepared fastLookup attribute.');
             }
             $this->decimalId($row['id']);
@@ -232,8 +239,41 @@ LUA
                 $tokens[$token] = true;
                 if ($token[0] !== 'E') { $postings[$token][$row['id']] = $row['id']; }
             }
+            foreach ($row['networks'] ?? [] as $network) {
+                if (!is_array($network) || count($network) !== 2 || !isset($network[0], $network[1])
+                    || !is_int($network[0]) || !is_int($network[1]) || !in_array($network[0], [4, 6], true)
+                    || $network[1] < 0 || $network[1] > ($network[0] === 4 ? 32 : 128)) {
+                    throw new InvalidArgumentException('Malformed prepared fastLookup attribute.');
+                }
+                $lengths[$network[0]][$network[1]] = true;
+            }
         }
         $fence = [$this->metaKey(), $this->infoKey($generation), $this->bloomKey($generation)];
+        // Before any token of this call is visible: a range token's length must always be in the mask.
+        if ($lengths[4] || $lengths[6]) {
+            $this->evaluate($this->fenceScript() . <<<'LUA'
+local p4, p6 = redis.call('HGET', KEYS[2], 'p4'), redis.call('HGET', KEYS[2], 'p6')
+if not p4 and not p6 and not redis.call('HGET', KEYS[2], 'pv') then return 0 end
+if not p4 or not p6 or #p4 ~= 33 or #p6 ~= 129 or string.find(p4, '[^01]') or string.find(p6, '[^01]') then
+    return redis.error_reply('corrupt prefix mask')
+end
+local function merge(mask, list)
+    local bytes, changed = {string.byte(mask, 1, #mask)}, false
+    for n in string.gmatch(list, '%d+') do
+        local i = tonumber(n) + 1
+        if bytes[i] ~= 49 then bytes[i] = 49; changed = true end
+    end
+    return string.char(unpack(bytes)), changed
+end
+local n4, c4 = merge(p4, ARGV[2])
+local n6, c6 = merge(p6, ARGV[3])
+if not (c4 or c6) then return 0 end
+redis.call('HSET', KEYS[2], 'p4', n4, 'p6', n6)
+redis.call('HINCRBY', KEYS[2], 'pv', 1)
+return 1
+LUA
+                , $fence, [$generation, implode(',', array_keys($lengths[4])), implode(',', array_keys($lengths[6]))]);
+        }
         foreach (array_chunk(array_map('strval', array_keys($tokens)), self::FILTER_BATCH) as $chunk) {
             $this->evaluate($this->fenceScript() . <<<'LUA'
 local added = redis.call('BF.MADD', KEYS[3], unpack(ARGV, 2))
@@ -328,9 +368,48 @@ LUA
         $this->deleteMatching($this->legacyPrefix . '*', null);
     }
 
-    public function candidates(string $generation, array $queryTokens, int $maximumIds = 100000): array
+    /**
+     * The IP prefix lengths a generation's range tokens use, and the version of
+     * that set; 'lengths' is null for a generation built without masks.
+     */
+    public function prefixLengths(string $generation): array
     {
         $this->identifier($generation);
+        $reply = $this->evaluate($this->guardScript() . <<<'LUA'
+local failure = requireGeneration(KEYS[1], KEYS[2], ARGV[1])
+if failure then return failure end
+return redis.call('HMGET', KEYS[1], 'p4', 'p6', 'pv')
+LUA
+            , [$this->infoKey($generation), $this->bloomKey($generation)], [$generation]);
+        if (!is_array($reply) || count($reply) !== 3) {
+            throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
+        }
+        [$p4, $p6, $pv] = array_map(static function ($field) { return $field === null ? false : $field; }, array_values($reply));
+        if ($p4 === false && $p6 === false && $pv === false) {
+            return ['version' => '', 'lengths' => null];
+        }
+        if (!is_string($p4) || !preg_match('/\A[01]{33}\z/', $p4) || !is_string($p6) || !preg_match('/\A[01]{129}\z/', $p6)
+            || !is_string($pv) || !ctype_digit($pv)) {
+            throw new FastLookupIndexCorruptException('The fastLookup IP prefix state is corrupt.');
+        }
+        $lengths = [4 => [], 6 => []];
+        foreach ([4 => $p4, 6 => $p6] as $family => $mask) {
+            for ($n = 0, $size = strlen($mask); $n < $size; ++$n) {
+                if ($mask[$n] === '1') {
+                    $lengths[$family][$n] = true;
+                }
+            }
+        }
+        return ['version' => $pv, 'lengths' => $lengths];
+    }
+
+    /** A non-null $prefixVersion fails the lookup when the generation's prefix set has moved on. */
+    public function candidates(string $generation, array $queryTokens, int $maximumIds = 100000, ?string $prefixVersion = null): array
+    {
+        $this->identifier($generation);
+        if ($prefixVersion !== null && $prefixVersion !== '' && !ctype_digit($prefixVersion)) {
+            throw new InvalidArgumentException('Invalid fastLookup prefix version.');
+        }
         if ($maximumIds < 1 || $maximumIds > self::MAX_POSTING_IDS) {
             throw new InvalidArgumentException('Invalid fastLookup candidate budget.');
         }
@@ -356,7 +435,7 @@ LUA
         $count = 0;
         foreach (array_chunk(array_map('strval', array_keys($plan)), self::READ_BATCH_SIZE) as $batch) {
             $keys = [$this->metaKey(), $this->infoKey($generation), $this->bloomKey($generation)];
-            $args = [$generation, (string)($maximumIds * 21)];
+            $args = [$generation, (string)($maximumIds * 21), $prefixVersion ?? '-'];
             foreach ($batch as $token) {
                 array_push($args, $token[0] === 'E' ? 0 : $this->keyIndex($keys, $this->postingKey($generation, $token, $buckets)), $token);
             }
@@ -364,12 +443,13 @@ LUA
 if redis.call('HGET', KEYS[1], 'live') ~= ARGV[1] or redis.call('HGET', KEYS[1], 'ready') ~= '1' then return redis.error_reply('index changed') end
 local failure = requireGeneration(KEYS[2], KEYS[3], ARGV[1])
 if failure then return failure end
+if ARGV[3] ~= '-' and (redis.call('HGET', KEYS[2], 'pv') or '') ~= ARGV[3] then return {2} end
 local tokens = {}
-for i = 4, #ARGV, 2 do tokens[#tokens + 1] = ARGV[i] end
+for i = 5, #ARGV, 2 do tokens[#tokens + 1] = ARGV[i] end
 local present = redis.call('BF.MEXISTS', KEYS[3], unpack(tokens))
 local bytes, result = 0, {}
 for n, flag in ipairs(present) do
-    local keyIndex, token = tonumber(ARGV[1 + 2 * n]), ARGV[2 + 2 * n]
+    local keyIndex, token = tonumber(ARGV[2 + 2 * n]), ARGV[3 + 2 * n]
     if flag ~= 1 then
         result[n] = false
     elseif keyIndex == 0 then
@@ -386,8 +466,11 @@ end
 return {1, result}
 LUA
                 , $keys, $args);
-            if (!is_array($reply) || !isset($reply[0]) || !in_array($reply[0], [0, 1], true)) {
+            if (!is_array($reply) || !isset($reply[0]) || !in_array($reply[0], [0, 1, 2], true)) {
                 throw new FastLookupIndexUnavailableException('Invalid fastLookup filter response.');
+            }
+            if ($reply[0] === 2) {
+                throw new FastLookupPrefixesChangedException('The fastLookup IP prefix set changed during the lookup.');
             }
             if ($reply[0] === 0) {
                 throw new OverflowException('The fastLookup candidate payload exceeds the request budget.');

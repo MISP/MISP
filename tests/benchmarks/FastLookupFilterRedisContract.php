@@ -266,6 +266,51 @@ try {
     $redis->hSet($prefix . 'g:fourth:x:0', $domain, '*');
     $throws(static function () use ($filter, $domain) { $filter->add('fourth', [['id' => '999999999', 'type' => 'domain', 'tokens' => [$domain]]]); }, OverflowException::class, 'The posting cap is an explicit resource failure');
 
+    // IP prefix masks: set before their tokens become visible, versioned, legacy generations left alone.
+    $info = $prefix . 'g:eighth:info';
+    $bf = $prefix . 'g:eighth:bf';
+    $filter->reserve('eighth', str_repeat('h', 64), 1000, 0.001, 1);
+    $assert($filter->prefixLengths('eighth') === ['version' => '0', 'lengths' => [4 => [], 6 => []]], 'A new generation starts with empty masks at version 0');
+    $r24 = $token('I', '198.51.100.0/24');
+    $filter->add('eighth', [['id' => '21', 'type' => 'ip-src', 'tokens' => [$r24], 'networks' => [[4, 24]]]]);
+    $assert($redis->hGet($info, 'p4')[24] === '1' && $filter->prefixLengths('eighth')['version'] === '1', 'A new length sets its bit and bumps the version');
+    $assert($redis->rawCommand('BF.MEXISTS', $bf, $r24) === [1] && isset($filter->prefixLengths('eighth')['lengths'][4][24]), 'A visible range token has its length in the mask');
+    $filter->add('eighth', [['id' => '22', 'type' => 'ip-src', 'tokens' => [$r24], 'networks' => [[4, 24]]]]);
+    $assert($filter->prefixLengths('eighth')['version'] === '1', 'A known length leaves the version alone');
+    $filter->add('eighth', [['id' => '23', 'type' => 'ip-src', 'tokens' => [$token('E', '198.51.100.7')]]]);
+    $assert($filter->prefixLengths('eighth')['version'] === '1', 'Rows without networks leave the version alone');
+    $filter->checkpoint('r7', false);
+    $filter->activate('eighth', str_repeat('h', 64));
+    $filter->checkpoint('r8', true);
+    $rangeQuery = [[['token' => $r24, 'kind' => 'ip_range']]];
+    $assert($filter->candidates('eighth', $rangeQuery, 100000, '1')[0]['ip_range'] === ['21', '22'], 'A current prefix version answers');
+    $r32 = $token('I', '198.51.100.7/32');
+    $r64 = $token('I', '2001:db8::/64');
+    $filter->add('eighth', [['id' => '24', 'type' => 'ip-src', 'tokens' => [$r32, $r64], 'networks' => [[4, 32], [6, 64]]]]);
+    $lengths = $filter->prefixLengths('eighth');
+    $assert($lengths === ['version' => '2', 'lengths' => [4 => [24 => true, 32 => true], 6 => [64 => true]]], 'New lengths in both families bump the version once: ' . json_encode($lengths));
+    $assert($redis->rawCommand('BF.MEXISTS', $bf, $r32, $r64) === [1, 1], 'The new range tokens are visible with their lengths set');
+    $throws(static function () use ($filter, $rangeQuery) { $filter->candidates('eighth', $rangeQuery, 100000, '1'); }, FastLookupPrefixesChangedException::class, 'A stale prefix version fails the lookup');
+    $throws(static function () use ($filter, $rangeQuery) { $filter->candidates('eighth', $rangeQuery, 100000, ''); }, FastLookupPrefixesChangedException::class, 'A legacy expectation fails on a masked generation');
+    $assert($filter->candidates('eighth', $rangeQuery, 100000, '2')[0]['ip_range'] === ['21', '22'], 'The current prefix version answers');
+    $assert($filter->candidates('eighth', $rangeQuery)[0]['ip_range'] === ['21', '22'], 'No prefix version skips the check');
+
+    $masks = $redis->hMGet($info, ['p4', 'p6', 'pv']);
+    $redis->hDel($info, 'p4', 'p6', 'pv');
+    $r13 = $token('I', '192.0.0.0/13');
+    $filter->add('eighth', [['id' => '25', 'type' => 'ip-src', 'tokens' => [$r13], 'networks' => [[4, 13]]]]);
+    $assert($redis->hMGet($info, ['p4', 'p6', 'pv']) === ['p4' => false, 'p6' => false, 'pv' => false], 'add() never creates masks on a legacy generation');
+    $assert($filter->prefixLengths('eighth') === ['version' => '', 'lengths' => null], 'A legacy generation has no lengths');
+    $assert($filter->candidates('eighth', [[['token' => $r13, 'kind' => 'ip_range']]], 100000, '')[0]['ip_range'] === ['25'], 'A legacy generation matches an empty prefix version');
+
+    $redis->hMSet($info, $masks);
+    $redis->hDel($info, 'p6');
+    $throws(static function () use ($filter) { $filter->prefixLengths('eighth'); }, FastLookupIndexCorruptException::class, 'A partial prefix state is corrupt');
+    $r16 = $token('I', '203.0.0.0/16');
+    $throws(static function () use ($filter, $r16) { $filter->add('eighth', [['id' => '26', 'type' => 'ip-src', 'tokens' => [$r16], 'networks' => [[4, 16]]]]); }, FastLookupIndexUnavailableException::class, 'add() fails closed on a partial prefix state');
+    $assert($redis->rawCommand('BF.MEXISTS', $bf, $r16) === [0], 'A refused mask update publishes none of its tokens');
+    $throws(static function () use ($filter) { $filter->prefixLengths('ninth'); }, FastLookupIndexCorruptException::class, 'A missing generation has no prefix state');
+
     echo json_encode(['assertions' => $assertions, 'redis_version' => $redis->info('server')['redis_version'], 'status' => 'passed'], JSON_PRETTY_PRINT), "\n";
 } finally {
     foreach (array_chunk(array_merge($keys($prefix . '*'), $keys($legacy . '*')), 500) as $batch) { $redis->del($batch); }

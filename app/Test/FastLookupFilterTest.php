@@ -448,6 +448,79 @@ class FastLookupFilterTest extends TestCase
         $this->assertSame(['hGetAll', 'del', 'hMSet'], array_slice($redis->calls, 0, 3));
     }
 
+    // -- IP prefix lengths -----------------------------------------------------
+
+    /** @dataProvider malformedNetworks */
+    public function testMalformedNetworksAreRejectedBeforeAnyRedisWrite($networks): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->filter()->add('generation', [['id' => '1', 'tokens' => [$this->token('I')], 'networks' => $networks]]);
+    }
+
+    public function malformedNetworks(): array
+    {
+        return [
+            'not a list' => ['x'],
+            'unknown family' => [[[5, 1]]],
+            'IPv4 length over 32' => [[[4, 33]]],
+            'IPv6 length over 128' => [[[6, 129]]],
+            'negative length' => [[[4, -1]]],
+            'family as a string' => [[['4', 8]]],
+            'missing length' => [[[4]]],
+        ];
+    }
+
+    public function testInvalidPrefixVersionIsRejectedBeforeAnyRedisCall(): void
+    {
+        foreach (['x', '-1'] as $version) {
+            try {
+                $this->filter()->candidates('generation', [], 10, $version);
+                $this->fail('An invalid prefix version must be rejected.');
+            } catch (InvalidArgumentException $e) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    /** Answers every eval() with $reply. */
+    private function evalRedis($reply)
+    {
+        return new class($reply) {
+            private $reply;
+            public function __construct($reply) { $this->reply = $reply; }
+            public function eval($script, $args, $keys) { return $this->reply; }
+            public function clearLastError() { return true; }
+            public function getLastError() { return null; }
+        };
+    }
+
+    public function testPrefixLengthsParsesMasks(): void
+    {
+        $reply = [str_repeat('0', 13) . '1' . str_repeat('0', 19), str_repeat('0', 128) . '1', '7'];
+        $this->assertSame(['version' => '7', 'lengths' => [4 => [13 => true], 6 => [128 => true]]],
+            $this->filter(null, $this->evalRedis($reply))->prefixLengths('generation'));
+        $this->assertSame(['version' => '', 'lengths' => null],
+            $this->filter(null, $this->evalRedis([false, false, false]))->prefixLengths('generation'));
+    }
+
+    /** @dataProvider corruptPrefixStates */
+    public function testPartialOrMalformedPrefixStateIsCorrupt(array $reply): void
+    {
+        $this->expectException(FastLookupIndexCorruptException::class);
+        $this->filter(null, $this->evalRedis($reply))->prefixLengths('generation');
+    }
+
+    public function corruptPrefixStates(): array
+    {
+        return [
+            'missing IPv4 mask' => [[false, str_repeat('0', 129), '0']],
+            'short IPv4 mask' => [[str_repeat('0', 32), str_repeat('0', 129), '0']],
+            'non-binary mask' => [[str_repeat('2', 33), str_repeat('0', 129), '0']],
+            'non-decimal version' => [[str_repeat('0', 33), str_repeat('0', 129), 'x']],
+            'missing version' => [[str_repeat('0', 33), str_repeat('0', 129), false]],
+        ];
+    }
+
     public function testScopeDisagreeingWithConfigurationFailsClosed(): void
     {
         $this->expectException(FastLookupIndexCorruptException::class);
