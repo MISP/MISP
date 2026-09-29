@@ -208,7 +208,8 @@ function lookupQueries()
 {
     global $db;
     return array_values(array_filter($db->getLog(false, true)['log'], function ($entry) {
-        return stripos($entry['query'], 'input_index') !== false;
+        return stripos($entry['query'], 'input_index') !== false
+            || strpos($entry['query'], 'WEIGHT_STRING(RTRIM(`Attribute`.') !== false;
     }));
 }
 
@@ -281,12 +282,13 @@ foreach (['user' => $user, 'site-admin' => $admin, 'sync' => $sync, 'org-admin' 
     same(json_encode($first), json_encode($second), "$role repeated lookup parity");
     $queries = lookupQueries();
     $live = array_values(array_filter($queries, function ($q) { return strpos($q['query'], 'event_id') !== false; }));
-    same(1, count($live), "$role one candidate-constrained exact SQL query");
+    same(true, count($live) >= 1 && count($live) <= 2, "$role at most one candidate-constrained exact SQL query per component");
     // The Bloom filter, not the exact-match SQL, decides which values are worth a
     // branch: a value it never inserted (never an attribute value in this fixture)
     // must not appear as a literal in the query, while a present one must.
-    same(true, strpos($live[0]['query'], "= 'shared'") !== false, "$role exact SQL includes a Bloom-positive value");
-    same(false, strpos($live[0]['query'], "= 'missing'") !== false, "$role exact SQL excludes a Bloom-negative value");
+    $liveSql = implode("\n", array_column($live, 'query'));
+    same(true, strpos($liveSql, "'shared'") !== false, "$role exact SQL includes a Bloom-positive value");
+    same(false, strpos($liveSql, "'missing'") !== false, "$role exact SQL excludes a Bloom-negative value");
     $queryMeasurements[$role] = count($queries);
 }
 jsonSame(['event-3' => ['3']], lookup($admin, ['event-3', 'event-6']), 'site admin still restricted to publication scope');

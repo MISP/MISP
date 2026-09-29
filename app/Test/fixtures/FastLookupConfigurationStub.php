@@ -14,6 +14,10 @@ if (!class_exists('App', false)) {
     class App { public static function uses($class, $package) {} }
 }
 
+if (!class_exists('FastLookupPrefixesChangedException', false) && class_exists('FastLookupIndexUnavailableException', false)) {
+    class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableException {}
+}
+
 class FastLookupTestStatement
 {
     private $rows;
@@ -87,9 +91,21 @@ class FastLookupTestFilter
     /** The filter's reply; null answers "absent" for every queried position, like the real filter. */
     public $hits = null;
     public $reads = [];
-    public function candidates($generation, array $tokens, $maximumIds = 100000)
+    public $prefixes = ['version' => '', 'lengths' => null];
+    public $prefixReads = 0;
+    /** The next candidates() calls that report a prefix-version change. */
+    public $changes = 0;
+    public function prefixLengths($generation)
     {
-        $this->reads[] = [$generation, $tokens, $maximumIds];
+        ++$this->prefixReads;
+        return $this->prefixes;
+    }
+    public function candidates($generation, array $tokens, $maximumIds = 100000, $prefixVersion = null)
+    {
+        $this->reads[] = [$generation, $tokens, $maximumIds, $prefixVersion];
+        if ($this->changes-- > 0) {
+            throw new FastLookupPrefixesChangedException('changed');
+        }
         if ($this->hits === null) {
             return array_map(function () { return ['exact' => false, 'ip_range' => [], 'domain' => []]; }, $tokens);
         }

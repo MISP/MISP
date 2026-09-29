@@ -9,7 +9,8 @@ class AttributeFastLookupTool
 {
     const MAX_VALUE_BYTES = 4096;
     const MAX_REQUEST_BYTES = 16777216;
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 1000;
+    const MAX_BATCH_BYTES = 4194304;
     const MAX_ROWS = 100000;
 
     private $attribute;
@@ -55,35 +56,79 @@ class AttributeFastLookupTool
         }
         $rowCount = 0;
         $matches = [];
-        foreach (array_chunk($values, self::BATCH_SIZE, true) as $batch) {
+        $filter = $this->manager->filter();
+        $prefixes = $filter->prefixLengths($snapshot['generation']);
+        $prefixesRefreshed = false;
+        foreach ($this->batches($values) as $batch) {
             if ($rowCount === self::MAX_ROWS) {
                 throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
             }
-            $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback);
-            $candidates = $this->manager->filter()->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount);
+            $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
+            try {
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount, $prefixes['version']);
+            } catch (FastLookupPrefixesChangedException $e) {
+                if ($prefixesRefreshed) {
+                    throw $e;
+                }
+                $prefixesRefreshed = true;
+                $prefixes = $filter->prefixLengths($snapshot['generation']);
+                $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount, $prefixes['version']);
+            }
             $this->validateCandidates($candidates, $batch, $rowCount);
-            $branches = [];
-            foreach ($batch as $index => $value) {
-                foreach (['value1', 'value2'] as $component) {
+            $pairs = [];
+            foreach (['value1', 'value2'] as $component) {
+                $restriction = '';
+                if (!empty($unindexed[$component])) {
+                    $restriction = ' AND ' . $this->db->name('Attribute.type') . ' NOT IN (' . implode(',', $unindexed[$component]) . ')';
+                }
+                $byWeight = [];
+                $inList = [];
+                $branches = [];
+                foreach ($batch as $index => $value) {
                     if (!$valueTool->representable($value, $component)) {
                         continue;
                     }
-                    // The Bloom filter only proves absence; SQL equality decides.
-                    if (empty($fallback[$index][$component]) && empty($candidates[$index]['exact'])) {
+                    if (!empty($fallback[$index][$component])) {
+                        $branches[] = 'SELECT ' . (int)$index . ' AS ' . $this->db->name('input_index')
+                            . ', ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
+                            . ' FROM ' . $from . ' WHERE ' . $this->db->name('Attribute.' . $component)
+                            . ' = ' . $this->db->value($value, 'string') . $common . $restriction;
                         continue;
                     }
-                    $restriction = '';
-                    if (!empty($unindexed[$component])) {
-                        $restriction .= ' AND ' . $this->db->name('Attribute.type') . ' NOT IN (' . implode(',', $unindexed[$component]) . ')';
+                    // The Bloom filter only proves absence; SQL equality decides.
+                    $weight = $weights[$index][$component] ?? '';
+                    if ($weight === '' || empty($candidates[$index]['exact'])) {
+                        continue;
                     }
-                    $branches[] = 'SELECT ' . (int)$index . ' AS ' . $this->db->name('input_index')
-                        . ', ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
-                        . ' FROM ' . $from . ' WHERE ' . $this->db->name('Attribute.' . $component)
-                        . ' = ' . $this->db->value($value, 'string') . $common . $restriction;
+                    if (!isset($byWeight[$weight])) {
+                        $inList[] = $this->db->value($value, 'string');
+                    }
+                    $byWeight[$weight][] = $index;
                 }
-            }
-            foreach ($this->query($branches, $rowCount) as $row) {
-                $matches[(int)$row['input_index']]['events'][(string)$row['event_id']] = true;
+                // Rows repeating pairs already counted cost nothing, so each
+                // query keeps the full limit and fails when it alone exceeds it.
+                if ($inList) {
+                    $column = $this->db->name('Attribute.' . $component);
+                    $sql = 'SELECT DISTINCT ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
+                        . ', WEIGHT_STRING(RTRIM(' . $column . ')) AS ' . $this->db->name('weight')
+                        . ' FROM ' . $from . ' WHERE ' . $column . ' IN (' . implode(',', $inList) . ')' . $common . $restriction
+                        . ' LIMIT ' . (self::MAX_ROWS + 1);
+                    foreach ($this->rows($sql) as $row) {
+                        if (!is_string($row['weight'] ?? null)) {
+                            throw new RuntimeException('Invalid IOC lookup response.');
+                        }
+                        foreach ($byWeight[$valueTool->stripColumnPadding($component, $row['weight'])] ?? [] as $index) {
+                            $this->addPair($matches, $pairs, $index, (string)$row['event_id'], $rowCount);
+                        }
+                    }
+                }
+                if ($branches) {
+                    $sql = implode(' UNION ', $branches) . ' LIMIT ' . (self::MAX_ROWS + 1);
+                    foreach ($this->rows($sql) as $row) {
+                        $this->addPair($matches, $pairs, (int)$row['input_index'], (string)$row['event_id'], $rowCount);
+                    }
+                }
             }
 
             // Fetch each expanded candidate once; ACLs, type, publication and
@@ -248,6 +293,57 @@ class AttributeFastLookupTool
             $statement->closeCursor();
         }
         return $rows;
+    }
+
+    /** Streams without counting: callers count distinct pairs. */
+    private function rows(string $sql): Generator
+    {
+        $statement = $this->db->rawQuery($sql);
+        if (!is_object($statement)) {
+            throw new RuntimeException('Could not execute the IOC lookup query.');
+        }
+        try {
+            $count = 0;
+            while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) {
+                if (++$count > self::MAX_ROWS) {
+                    throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
+                }
+                yield $row;
+            }
+        } finally {
+            $statement->closeCursor();
+        }
+    }
+
+    private function addPair(array &$matches, array &$pairs, int $index, string $eventId, &$rowCount)
+    {
+        if (!isset($pairs[$index][$eventId])) {
+            $this->consumeRows(1, $rowCount);
+            $pairs[$index][$eventId] = true;
+            $matches[$index]['events'][$eventId] = true;
+        }
+    }
+
+    /** Batches bound both the value count and the SQL-quoted size, so no statement nears max_allowed_packet. */
+    private function batches(array $values): array
+    {
+        $batches = [];
+        $batch = [];
+        $bytes = 0;
+        foreach ($values as $index => $value) {
+            $size = strlen($this->db->value($value, 'string'));
+            if ($batch && (count($batch) === self::BATCH_SIZE || $bytes + $size > self::MAX_BATCH_BYTES)) {
+                $batches[] = $batch;
+                $batch = [];
+                $bytes = 0;
+            }
+            $batch[$index] = $value;
+            $bytes += $size;
+        }
+        if ($batch) {
+            $batches[] = $batch;
+        }
+        return $batches;
     }
 
     private function consumeRows($count, &$rowCount)

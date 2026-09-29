@@ -7,8 +7,8 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
         require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
+        require_once __DIR__ . '/fixtures/FastLookupConfigurationStub.php';
         foreach (['FastLookupConfig', 'FastLookupValueTool', 'AttributeFastLookupTool'] as $class) {
             $path = __DIR__ . '/../Lib/Tools/' . $class . '.php';
             if (is_file($path)) { require_once $path; }
@@ -42,10 +42,11 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->responses = [[
             ['input_index' => '0', 'event_id' => '10'], ['input_index' => '0', 'event_id' => '2'],
             ['input_index' => '0', 'event_id' => '10'], ['input_index' => '1', 'event_id' => '1'],
-        ]];
+        ], [['input_index' => '0', 'event_id' => '2']]];
         $result = $tool->lookup(['id' => 17], ['value' => ['cafe', '0', 'cafe', 'missing']]);
         $this->assertSame('{"cafe":{"event_ids":["2","10"],"ip_ranges":{},"domains":{}},"0":{"event_ids":["1"],"ip_ranges":{},"domains":{}}}', json_encode($result['results']));
-        $sql = $attribute->db->queries[0];
+        $this->assertCount(2, $attribute->db->queries);
+        $sql = implode("\n", $attribute->db->queries);
         foreach (["`Attribute`.`value1` = 'cafe'", "`Attribute`.`value2` = 'cafe'", 'INNER JOIN `events`', 'LEFT JOIN `objects`',
             '`Attribute`.`deleted` = 0', '`Event`.`published` = 1', '`Attribute`.`type` IN (', '`Event`.`org_id` = 7', '`Object`.`distribution` = 5'] as $part) {
             $this->assertStringContainsString($part, $sql);
@@ -61,22 +62,25 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
             [["\x00C\x00A\x00F\x00E", "\x00 "]],
-            [['input_index' => '0', 'event_id' => '7']],
+            [['event_id' => '7', 'weight' => "\x00C\x00A\x00F\x00E\x00 "]],
+            [],
         ];
         $result = $tool->lookup([], ['value' => ['cafe']]);
         $this->assertSame(['7'], $result['results']->cafe['event_ids']);
         $this->assertStringContainsString('WEIGHT_STRING', $attribute->db->queries[0]);
         $this->assertStringNotContainsString('`Attribute`.`id` IN (', $attribute->db->queries[1]);
-        $this->assertStringContainsString("`Attribute`.`value1` = 'cafe'", $attribute->db->queries[1]);
+        $this->assertStringContainsString("`Attribute`.`value1` IN ('cafe')", $attribute->db->queries[1]);
+        $this->assertStringContainsString('WEIGHT_STRING(RTRIM(`Attribute`.`value1`))', $attribute->db->queries[1]);
         $this->assertNotEmpty($manager->index->reads[0][1][0]);
     }
 
     public function testPortHalvesOfCompositesNeverMatch(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [[]];
+        $attribute->db->responses = [[], []];
         $tool->lookup([], ['value' => ['443']]);
-        $branches = explode(' UNION ', $attribute->db->queries[0]);
+        $this->assertCount(2, $attribute->db->queries);
+        $branches = explode(' UNION ', implode(' UNION ', $attribute->db->queries));
         $value1 = array_values(array_filter($branches, function ($sql) { return strpos($sql, "`Attribute`.`value1` = '443'") !== false; }));
         $value2 = array_values(array_filter($branches, function ($sql) { return strpos($sql, "`Attribute`.`value2` = '443'") !== false; }));
         $this->assertCount(1, $value1);
@@ -90,7 +94,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         Configure::write('MISP.fast_lookup_published_only', false);
         Configure::write('MISP.fast_lookup_attribute_types', 'domain');
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [[]];
+        $attribute->db->responses = [[], []];
         $result = $tool->lookup([], ['value' => ['example.org']]);
         $this->assertSame(['domain'], $result['scope']['attribute_types']);
         $this->assertStringNotContainsString('`Event`.`published` = 1', $attribute->db->queries[0]);
@@ -104,7 +108,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
             0 => ['exact' => false, 'ip_range' => ['11', '12', '13'], 'domain' => []],
             1 => ['exact' => false, 'ip_range' => [], 'domain' => ['14', '15']],
         ];
-        $attribute->db->responses = [[], [
+        $attribute->db->responses = [[], [], [
             ['id' => '11', 'event_id' => '10', 'type' => 'ip-src', 'value1' => '192.0.2.199/24', 'value2' => ''],
             ['id' => '12', 'event_id' => '2', 'type' => 'ip-dst', 'value1' => '192.0.2.0/25', 'value2' => ''],
             ['id' => '13', 'event_id' => '3', 'type' => 'ip-src', 'value1' => '192.0.3.0/24', 'value2' => ''],
@@ -115,15 +119,15 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $this->assertSame(['2', '10'], $result['results']->{'192.0.2.1'}['event_ids']);
         $this->assertSame(['10'], $result['results']->{'192.0.2.1'}['ip_ranges']->{'192.0.2.199/24'});
         $this->assertSame(['9'], $result['results']->{'www.example.org'}['domains']->{'example.org'});
-        $this->assertStringContainsString('`Attribute`.`id` IN (11,12,13,14,15)', $attribute->db->queries[1]);
-        $this->assertStringContainsString('`Event`.`org_id` = 7', $attribute->db->queries[1]);
-        $this->assertStringNotContainsString("= '192.0.2.1'", $attribute->db->queries[1]);
+        $this->assertStringContainsString('`Attribute`.`id` IN (11,12,13,14,15)', $attribute->db->queries[2]);
+        $this->assertStringContainsString('`Event`.`org_id` = 7', $attribute->db->queries[2]);
+        $this->assertStringNotContainsString("= '192.0.2.1'", $attribute->db->queries[2]);
     }
 
     public function testGenerationFenceDiscardsAllResults(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']]];
+        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']], []];
         $manager->current = false;
         $result = $tool->lookup([], ['value' => ['example.org']]);
         $this->assertNotSame('ready', $result['status']);
@@ -187,7 +191,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     public function testLiteralQuotingAndIpv6Normalization(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [[['input_index' => 1, 'event_id' => '9']]];
+        $attribute->db->responses = [[['input_index' => 1, 'event_id' => '9']], []];
         $result = $tool->lookup([], ['value' => ["!%' OR 1=1 --", '2001:0DB8:0:0::1']]);
         $this->assertSame(['9'], $result['results']->{'2001:0DB8:0:0::1'}['event_ids']);
         $this->assertStringContainsString("= '!%'' OR 1=1 --'", $attribute->db->queries[0]);
@@ -208,17 +212,19 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     public function testLaterBatchesKeepTheirInputOrdinals(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [[], [['input_index' => 100, 'event_id' => '1']]];
-        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 100));
+        $attribute->db->responses = [[], [], [['input_index' => 1000, 'event_id' => '1']], []];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 1000));
         $result = $tool->lookup([], ['value' => $values]);
-        $this->assertSame(['1'], $result['results']->{'ioc-100'}['event_ids']);
-        $this->assertCount(2, $attribute->db->queries);
+        $this->assertSame(['1'], $result['results']->{'ioc-1000'}['event_ids']);
+        $this->assertCount(4, $attribute->db->queries);
+        $this->assertStringContainsString("'ioc-1000'", $attribute->db->queries[2]);
+        $this->assertStringNotContainsString("'ioc-999'", $attribute->db->queries[2]);
     }
 
     public function testSqlResourceLimitDoesNotReturnPartialResults(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [array_fill(0, 100001, ['input_index' => 0, 'event_id' => '1'])];
+        $attribute->db->responses = [array_map(function ($i) { return ['input_index' => 0, 'event_id' => (string)$i]; }, range(1, 100001))];
         $this->expectException(OverflowException::class);
         $tool->lookup([], ['value' => ['example.org']]);
     }
@@ -226,10 +232,14 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     public function testExhaustedBudgetStopsBeforeAnotherCandidateBatch(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [array_fill(0, 100000, ['input_index' => 0, 'event_id' => '1']), []];
-        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 100));
-        $this->expectException(OverflowException::class);
-        $tool->lookup([], ['value' => $values]);
+        $attribute->db->responses = [array_map(function ($i) { return ['input_index' => 0, 'event_id' => (string)$i]; }, range(1, 100000)), []];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 1000));
+        try {
+            $tool->lookup([], ['value' => $values]);
+            $this->fail('An exhausted row budget must stop the lookup.');
+        } catch (OverflowException $e) {
+            $this->assertCount(1, $manager->index->reads, 'No second candidate batch was read.');
+        }
     }
 
     public function testMalformedCandidateIdsNeverEnterSql(): void
@@ -358,11 +368,193 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
             [["\x00C", "\x00 "]],
             [],
             [],
+            [],
         ];
         $result = $tool->lookup([], ['value' => ['c']]);
         $this->assertSame('ready', $result['status']);
         $this->assertSame('{}', json_encode($result['results']));
-        $this->assertCount(3, $attribute->db->queries);
+        $this->assertCount(4, $attribute->db->queries);
+        $this->assertStringContainsString('`Attribute`.`id` IN (11)', $attribute->db->queries[3]);
         $this->assertStringContainsString('`Attribute`.`deleted` = 0', $attribute->db->queries[1]);
+    }
+
+    /** A MySQL-typed datasource answering every weights query with distinct weights and every other query with no rows. */
+    private function weighingTool(&$attribute, &$manager)
+    {
+        $attribute = new FastLookupTestAttribute();
+        $attribute->db = new class extends FastLookupTestDatasource {
+            public function rawQuery($sql)
+            {
+                $this->queries[] = $sql;
+                if (strpos($sql, 'SELECT WEIGHT_STRING') !== 0) {
+                    return new FastLookupTestStatement([]);
+                }
+                preg_match_all('/ AS `([wp])\d+`/', $sql, $columns);
+                $row = [];
+                foreach ($columns[1] as $n => $kind) {
+                    $row[] = $kind === 'p' ? "\x00 " : 'w' . count($this->queries) . '-' . $n;
+                }
+                return new FastLookupTestStatement([$row]);
+            }
+        };
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager = new FastLookupTestManager();
+        return new AttributeFastLookupTool($attribute, $manager);
+    }
+
+    private function weightQueries($attribute)
+    {
+        return array_values(array_filter($attribute->db->queries, function ($sql) { return strpos($sql, 'SELECT WEIGHT_STRING') === 0; }));
+    }
+
+    public function testEqualWeightsShareOneInEntryAndAllInputsMatch(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $exact = ['exact' => true, 'ip_range' => [], 'domain' => []];
+        $manager->index->hits = [0 => $exact, 1 => $exact, 2 => $exact];
+        $weight = "\x00C\x00A\x00F\x00E";
+        $attribute->db->responses = [
+            [[$weight, $weight, $weight . "\x00 ", "\x00 "]],
+            [['event_id' => '7', 'weight' => $weight . "\x00 "]],
+            [],
+        ];
+        $result = $tool->lookup([], ['value' => ['CAFE', 'cafe', "cafe\u{a0}"]]);
+        $this->assertCount(3, $attribute->db->queries);
+        $sql = $attribute->db->queries[1];
+        $this->assertStringContainsString("`Attribute`.`value1` IN ('CAFE')", $sql);
+        $this->assertRegExp("/`Attribute`.`value1` IN \('[^']*'\)/", $sql);
+        $this->assertStringNotContainsString('UNION', $sql);
+        $this->assertStringNotContainsString("= 'cafe'", implode("\n", $attribute->db->queries));
+        foreach (['CAFE', 'cafe', "cafe\u{a0}"] as $input) {
+            $this->assertSame(['7'], $result['results']->{$input}['event_ids']);
+        }
+    }
+
+    public function testRowsMapOnlyToInputsWithTheSameWeight(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $exact = ['exact' => true, 'ip_range' => [], 'domain' => []];
+        $manager->index->hits = [0 => $exact, 1 => $exact];
+        $attribute->db->responses = [
+            [["\x00A", "\x00B", "\x00 "]],
+            [['event_id' => '5', 'weight' => "\x00B\x00 "]],
+            [],
+        ];
+        $result = $tool->lookup([], ['value' => ['a', 'b']]);
+        $this->assertStringContainsString("`Attribute`.`value1` IN ('a','b')", $attribute->db->queries[1]);
+        $this->assertSame('{"b":{"event_ids":["5"],"ip_ranges":{},"domains":{}}}', json_encode($result['results']));
+    }
+
+    public function testDuplicatePairsAcrossComponentsCountOnce(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
+        $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00C\x00 "]; }, range(1, 100000));
+        $attribute->db->responses = [[["\x00C", "\x00 "]], $rows, $rows];
+        $result = $tool->lookup([], ['value' => ['c']]);
+        $this->assertCount(100000, $result['results']->c['event_ids']);
+        $this->assertStringContainsString('`Attribute`.`value2` IN (', $attribute->db->queries[2]);
+    }
+
+    public function testLaterEqualityQueriesKeepTheFullRowLimit(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
+        $attribute->db->responses = [
+            [["\x00C", "\x00 "]],
+            [['event_id' => '1', 'weight' => "\x00C"], ['event_id' => '2', 'weight' => "\x00C"]],
+            [],
+        ];
+        $tool->lookup([], ['value' => ['c']]);
+        $this->assertStringEndsWith(' LIMIT 100001', $attribute->db->queries[1]);
+        $this->assertStringEndsWith(' LIMIT 100001', $attribute->db->queries[2]);
+    }
+
+    public function testLaterFallbackQueriesKeepTheFullRowLimit(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [[['input_index' => 0, 'event_id' => '1'], ['input_index' => 0, 'event_id' => '2']], []];
+        $tool->lookup([], ['value' => ['c']]);
+        $this->assertStringEndsWith(' LIMIT 100001', $attribute->db->queries[1]);
+    }
+
+    public function testOneQueryReturningMoreThanMaxRowsOverflows(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->config['datasource'] = 'Database/Mysql';
+        $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
+        $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00X"]; }, range(1, 100001));
+        $attribute->db->responses = [[["\x00C", "\x00 "]], $rows, []];
+        $this->expectException(OverflowException::class);
+        $tool->lookup([], ['value' => ['c']]);
+    }
+
+    public function testBatchesCloseAtTheByteCap(): void
+    {
+        $tool = $this->weighingTool($attribute, $manager);
+        $values = array_map(function ($i) {
+            return substr(sprintf('%04d', $i) . str_repeat("'" . str_repeat('x', 19), 200), 0, 4000);
+        }, range(0, 999));
+        $this->assertSame(200, substr_count($values[0], "'"));
+        $this->assertGreaterThan(4194304, array_sum(array_map(function ($value) use ($attribute) { return strlen($attribute->db->value($value, 'string')); }, $values)));
+        $result = $tool->lookup([], ['value' => $values]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertGreaterThan(1, count($this->weightQueries($attribute)));
+        $this->assertGreaterThan(1, count($manager->index->reads));
+        foreach ($attribute->db->queries as $sql) {
+            $this->assertLessThanOrEqual(8388608, strlen($sql));
+        }
+    }
+
+    public function testThousandValuesUseOneBatch(): void
+    {
+        $tool = $this->weighingTool($attribute, $manager);
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 999));
+        $manager->index->hits = array_fill(0, 1000, ['exact' => true, 'ip_range' => [], 'domain' => []]);
+        $tool->lookup([], ['value' => $values]);
+        $this->assertCount(1, $this->weightQueries($attribute));
+        $this->assertCount(1, $manager->index->reads);
+        $in = array_filter($attribute->db->queries, function ($sql) { return strpos($sql, 'SELECT DISTINCT') === 0; });
+        $this->assertCount(2, $in);
+    }
+
+    public function testPrefixLengthsAreReadOnceAndPassedToCandidates(): void
+    {
+        Configure::write('MISP.fast_lookup_attribute_types', 'ip-dst');
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->prefixes = ['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]];
+        $attribute->db->responses = [[], []];
+        $tool->lookup([], ['value' => ['10.1.2.3']]);
+        $this->assertSame(1, $manager->index->prefixReads);
+        $this->assertCount(1, $manager->index->reads);
+        $this->assertSame('3', $manager->index->reads[0][3]);
+        $ranges = array_filter($manager->index->reads[0][1][0], function ($token) { return $token['kind'] === 'ip_range'; });
+        $this->assertCount(1, $ranges);
+        $this->assertSame('I', array_values($ranges)[0]['token'][0]);
+    }
+
+    public function testPrefixVersionChangeRefreshesOnceThenFails(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->changes = 1;
+        $attribute->db->responses = [[], []];
+        $result = $tool->lookup([], ['value' => ['10.1.2.3']]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertSame(2, $manager->index->prefixReads);
+        $this->assertCount(2, $manager->index->reads);
+
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->changes = 2;
+        try {
+            $tool->lookup([], ['value' => ['10.1.2.3']]);
+            $this->fail('A second prefix change must fail the lookup.');
+        } catch (FastLookupIndexUnavailableException $e) {
+            $this->assertSame(2, $manager->index->prefixReads);
+            $this->assertSame([], $attribute->db->queries);
+        }
     }
 }
