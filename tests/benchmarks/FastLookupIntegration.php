@@ -167,6 +167,17 @@ function jsonSame(array $expected, array $actual, $label)
     same(json_encode((object)$expected), json_encode(eventIds($actual)), $label);
 }
 
+function resultsJson(array $expected, array $response, $label)
+{
+    same('ready', $response['status'], "$label ready");
+    same(json_encode((object)$expected), json_encode($response['results']), $label);
+}
+
+function entry(array $events, array $ranges = [], array $domains = [])
+{
+    return ['event_ids' => $events, 'ip_ranges' => (object)$ranges, 'domains' => (object)$domains];
+}
+
 function manager()
 {
     return new FastLookupIndexManager(new FastLookupIntegrationAttribute());
@@ -402,10 +413,63 @@ same('unavailable', lookup($user, ['shared'])['status'], 'attribute type scope m
 rebuild();
 jsonSame([], lookup($user, ['192.0.2.42']), 'type scope excludes network ranges');
 
-// Empty-weight query must preserve SQL's matching of normally empty value2.
-$ignorable = "\u{200b}";
-$ignorableResult = lookup($user, [$ignorable]);
-same(true, isset($ignorableResult['results']->{$ignorable}), 'ignorable-weight input uses exact SQL fallback');
+// A fresh default-scope generation holding no earlier ranges or example.org rows.
+Configure::delete('MISP.fast_lookup_published_only');
+Configure::delete('MISP.fast_lookup_attribute_types');
+$pdo->exec("UPDATE attributes SET deleted=1 WHERE type IN ('ip-src','ip-dst') OR value1='example.org'");
+$exampleId = addAttribute('Example.org', 7);
+$longPrefix = str_repeat('a', 255);
+foreach ([8 => 'x', 10 => 'y'] as $event => $tail) {
+    addAttribute($longPrefix . str_repeat($tail, 45), $event, ['type' => 'filename|sha256', 'value2' => hash('sha256', $tail)]);
+}
+addAttribute('10.0.0.0/13', 2, ['type' => 'ip-dst']);
+addAttribute('10.9.9.9', 4, ['type' => 'ip-src']);
+rebuild();
+$parent = ['Example.org' => ['7']];
+$padded = ['example.org ' => entry(['7']), "example.org\u{a0}" => entry(['7']), "example.org\u{3000}" => entry(['7'])];
+resultsJson(['example.org' => entry(['7'], [], $parent), 'EXAMPLE.ORG' => entry(['7'], [], $parent)] + $padded,
+    lookup($user, array_merge(['example.org', 'EXAMPLE.ORG'], array_keys($padded))), 'case and trailing pad-weight variants match');
+resultsJson([], lookup($user, ["example.org\t", ' example.org']), 'tab and leading space do not match');
+$oracle = $pdo->prepare('SELECT COUNT(*) FROM attributes WHERE id=? AND value1=?');
+foreach (['example.org' => 1, 'EXAMPLE.ORG' => 1, 'example.org ' => 1, "example.org\u{a0}" => 1, "example.org\u{3000}" => 1,
+    "example.org\t" => 0, ' example.org' => 0] as $variant => $matches) {
+    $oracle->execute([$exampleId, $variant]);
+    same($matches, (int)$oracle->fetchColumn(), 'SQL equality agrees for ' . json_encode($variant));
+}
+
+$longX = $longPrefix . str_repeat('x', 45);
+$longY = $longPrefix . str_repeat('y', 45);
+resultsJson([$longX => entry(['8'])], lookup($user, [$longX]), 'long value beyond the index prefix matches its own event');
+resultsJson([$longY => entry(['10'])], lookup($user, [$longY]), 'second long value matches only its own event');
+resultsJson([], lookup($user, [$longPrefix]), 'shared 255-character prefix matches neither long value');
+
+// Pad-stripped weight is empty: never matched, although most value2 are empty.
+resultsJson([], lookup($user, ["\u{a0}", "\u{200b}", '  ']), 'whitespace-only and ignorable inputs return no key');
+
+resultsJson(['10.1.2.3' => entry(['2'], ['10.0.0.0/13' => ['2']])],
+    lookup($user, ['10.1.2.3']), 'address inside the /13 matches through its range');
+resultsJson(['10.9.9.9' => entry(['4'])], lookup($user, ['10.9.9.9']), 'bare IP matches exactly');
+$filter = manager()->filter();
+$live = $filter->metadata()['live'];
+$prefixes = $filter->prefixLengths($live);
+same([4 => [13], 6 => []], array_map('array_keys', $prefixes['lengths']), 'only CIDR values set prefix lengths');
+
+// A generation written before prefix masks existed keeps applying every length.
+$infoKey = $namespace . 'g:' . $live . ':info';
+same(3, $redis->hDel($infoKey, 'p4', 'p6', 'pv'), 'prefix masks removed from the live generation');
+addAttribute('192.168.0.0/16', 10, ['type' => 'ip-dst']);
+changed(10);
+drain();
+resultsJson(['192.168.5.5' => entry(['10'], ['192.168.0.0/16' => ['10']]),
+    '10.1.2.3' => entry(['2'], ['10.0.0.0/13' => ['2']])],
+    lookup($user, ['192.168.5.5', '10.1.2.3']), 'legacy generation matches old and new ranges');
+same(false, $redis->hExists($infoKey, 'p4'), 'legacy generation never gains prefix masks');
+same(['version' => '', 'lengths' => null], $filter->prefixLengths($live), 'legacy generation has no prefix state');
+
+$single = lookup($user, ['example.org']);
+resultsJson(['example.org' => entry(['7'], [], ['Example.org' => ['7']])], $single, 'single value lookup');
+same(json_encode($single['results']), json_encode(lookup($user, ['example.org', 'example.org', 'example.org'])['results']),
+    'duplicate inputs collapse to the single-value result');
 
 // Rollbacks retain both model data and the durable dirty marker atomically.
 $connection = $db->getConnection();
