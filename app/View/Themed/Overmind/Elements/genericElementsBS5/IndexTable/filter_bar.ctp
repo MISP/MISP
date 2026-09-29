@@ -266,6 +266,40 @@ $activeTotal = count(array_diff_key(
             </a>
         <?php endif; ?>
 
+        <?php if ($child['type'] === 'menu' && !empty($child['items'])): ?>
+            <div class="dropdown flex-shrink-0">
+                <button type="button"
+                        class="<?= h($child['class'] ?? 'btn btn-outline-primary') ?> dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false"<?php
+                        if (!empty($child['title'])): ?>
+                        title="<?= h($child['title']) ?>"<?php
+                        endif; ?>>
+                    <?php if (!empty($child['icon'])): ?>
+                        <i class="<?= h($child['icon']) ?>"></i>
+                    <?php endif; ?>
+                    <?= h($child['label']) ?>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <?php foreach ($child['items'] as $item): ?>
+                        <li>
+                            <a class="dropdown-item" href="<?= h($item['url']) ?>"<?php
+                               if (!empty($item['title'])): ?>
+                               title="<?= h($item['title']) ?>"<?php
+                               endif; ?><?php
+                               if (!empty($item['onclick'])): ?>
+                               onclick="<?= h($item['onclick']) ?>"<?php
+                               endif; ?>>
+                                <?php if (!empty($item['icon'])): ?>
+                                    <i class="<?= h($item['icon']) ?> fa-fw me-2"></i>
+                                <?php endif; ?>
+                                <?= h($item['label']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
     <?php endforeach; ?>
 
     <div class="ms-auto index-filter-pager">
