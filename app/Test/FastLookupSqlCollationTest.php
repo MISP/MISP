@@ -81,9 +81,12 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
                     ->fetch(PDO::FETCH_ASSOC);
                 $prepared = $tool->prepareScannedAttributes([$row]);
 
-                $queries = $tool->queryTokens([$query], ['domain'], $fallback);
+                $queries = $tool->queryTokens([$query], ['domain'], $fallback, $weights);
                 $candidate = !empty($fallback[0]['value1']) || (bool)array_intersect($prepared[0]['tokens'], array_column($queries[0], 'token'));
-                if ($equal) {
+                if ($weights[0]['value1'] === '') {
+                    // An ignorable-only value never matches, by design.
+                    $this->assertFalse($candidate);
+                } elseif ($equal) {
                     $this->assertTrue($candidate, $collation . ' lost a SQL-equal pair: ' . json_encode([$stored, $query]));
                 } else {
                     // False positives are allowed; final SQL equality revalidates.

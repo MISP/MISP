@@ -60,8 +60,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "],
-             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C\x00A\x00F\x00E", 'pad_weight' => "\x00 "]],
+            [["\x00C\x00A\x00F\x00E", "\x00 "]],
             [['input_index' => '0', 'event_id' => '7']],
         ];
         $result = $tool->lookup([], ['value' => ['cafe']]);
@@ -272,19 +271,19 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         ];
     }
 
-    public function testIgnorableWeightsUseSqlToIncludeEmptyComponents(): void
+    public function testIgnorableOnlyInputNeverMatches(): void
     {
         $tool = $this->tool($attribute, $manager);
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $attribute->db->responses = [
-            [['input_index' => '0', 'component' => 'value1', 'weight' => '', 'pad_weight' => "\x02\x09"],
-             ['input_index' => '0', 'component' => 'value2', 'weight' => '', 'pad_weight' => "\x02\x09"]],
-            [['input_index' => '0', 'event_id' => '7']],
+            [['', "\x02\x09"]],
+            [],
         ];
         $result = $tool->lookup([], ['value' => ["\u{200b}"]]);
-        $this->assertSame(['7'], $result['results']->{"\u{200b}"}['event_ids']);
-        $this->assertStringNotContainsString('`Attribute`.`id` IN (', $attribute->db->queries[1]);
-        $this->assertStringContainsString('`Attribute`.`value2` = ', $attribute->db->queries[1]);
+        $this->assertSame('{}', json_encode($result['results']));
+        foreach (array_slice($attribute->db->queries, 1) as $query) {
+            $this->assertStringNotContainsString("\u{200b}", $query);
+        }
     }
 
     public function testAbsentExactTokenSkipsSqlEquality(): void
@@ -293,8 +292,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => false, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C", 'pad_weight' => "\x00 "],
-             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C", 'pad_weight' => "\x00 "]],
+            [["\x00C", "\x00 "]],
         ];
         $result = $tool->lookup([], ['value' => ['c']]);
         $this->assertSame('{}', json_encode($result['results']));
@@ -357,8 +355,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => ['11'], 'domain' => []]];
         $attribute->db->responses = [
-            [['input_index' => '0', 'component' => 'value1', 'weight' => "\x00C", 'pad_weight' => "\x00 "],
-             ['input_index' => '0', 'component' => 'value2', 'weight' => "\x00C", 'pad_weight' => "\x00 "]],
+            [["\x00C", "\x00 "]],
             [],
             [],
         ];

@@ -70,11 +70,13 @@ class FastLookupValueTool
                     $tokens[] = self::token('E', $value);
                 }
             }
+            $networks = [];
             $ipComponent = self::ipComponent($row['type']);
             if ($ipComponent !== null) {
                 $network = self::network((string)($row[$ipComponent] ?? ''));
                 if ($network !== null) {
                     $tokens[] = self::networkToken($network[0], $network[1]);
+                    $networks[] = [strlen($network[0]) === 4 ? 4 : 6, $network[1]];
                 }
             }
             if (self::domainType($row['type'])) {
@@ -87,9 +89,16 @@ class FastLookupValueTool
                 'id' => (string)$row['id'],
                 'type' => $row['type'],
                 'tokens' => array_values(array_unique($tokens, SORT_STRING)),
+                'networks' => $networks,
             ];
         }
         return $prepared;
+    }
+
+    /** Pad-strips a WEIGHT_STRING(RTRIM(column)) value like an input weight. */
+    public function stripColumnPadding(string $component, string $weight): string
+    {
+        return $this->stripPadding($component, $weight);
     }
 
     /** SQL padding ignores characters weighing like a space (e.g. NBSP under unicode_ci). */
@@ -138,8 +147,10 @@ class FastLookupValueTool
     /**
      * Input ordinals are retained through tokenization and Redis batching.
      * @param array|null $fallback Receives [input index][component] => true for SQL-only discovery.
+     * @param array|null $weights Receives [input index][component] => pad-stripped weight.
+     * @param array|null $prefixLengths [4|6 => [length => true]]; null generates every length.
      */
-    public function queryTokens(array $values, array $types, &$fallback = null)
+    public function queryTokens(array $values, array $types, &$fallback = null, &$weights = null, ?array $prefixLengths = null)
     {
         $requests = [];
         $fallback = [];
@@ -167,7 +178,6 @@ class FastLookupValueTool
             $tokens = [];
             foreach ($weights[$index] ?? [] as $component => $weight) {
                 if ($weight === '') {
-                    $fallback[$index][$component] = true;
                     continue;
                 }
                 $tokens[$this->exactToken($component, $weight)] = 'exact';
@@ -176,7 +186,11 @@ class FastLookupValueTool
             $domain = $ip === false ? self::domain($value) : null;
             $networkTokens = [];
             if ($ip !== false && $hasIpType) {
+                $family = strlen($ip) === 4 ? 4 : 6;
                 for ($prefix = 0, $maximum = strlen($ip) * 8; $prefix <= $maximum; ++$prefix) {
+                    if ($prefixLengths !== null && !isset($prefixLengths[$family][$prefix])) {
+                        continue;
+                    }
                     $networkTokens[] = self::networkToken($ip, $prefix);
                 }
             }
@@ -259,60 +273,64 @@ class FastLookupValueTool
 
     private function weights(array $values)
     {
-        $weights = [];
-        foreach (array_chunk($values, 100, true) as $batch) {
-            $branches = [];
-            $unique = [];
-            $destinations = [];
-            foreach ($batch as $index => $components) {
-                foreach ($components as $component => $value) {
-                    $collation = $this->columns[$component]['collate'];
-                    $identity = $collation . "\0" . $value;
-                    if (isset($unique[$identity])) {
-                        list($firstIndex, $firstComponent) = $unique[$identity];
-                        $destinations[$firstIndex][$firstComponent][] = [$index, $component];
-                        continue;
-                    }
-                    $unique[$identity] = [$index, $component];
-                    $destinations[$index][$component] = [[$index, $component]];
+        $columns = [];
+        $unique = [];
+        $destinations = [];
+        $collations = [];
+        foreach ($values as $index => $components) {
+            foreach ($components as $component => $value) {
+                $collation = $this->columns[$component]['collate'];
+                $identity = $collation . "\0" . $value;
+                if (!isset($unique[$identity])) {
+                    $unique[$identity] = count($columns);
                     $charset = explode('_', $collation, 2)[0];
                     $expression = 'CONVERT(' . $this->db->value($value, 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
-                    $pad = $this->padExpression($collation);
-                    $branches[] = 'SELECT ' . (int)$index . ' AS input_index, ' . $this->db->value($component, 'string')
-                        . ' AS component, WEIGHT_STRING(RTRIM(' . $expression . ')) AS weight, WEIGHT_STRING(' . $pad . ') AS pad_weight';
+                    $columns[] = 'WEIGHT_STRING(RTRIM(' . $expression . ')) AS ' . $this->db->name('w' . count($columns));
+                    $collations[$collation] = true;
                 }
-            }
-            if (!$branches) {
-                continue;
-            }
-            $statement = $this->db->rawQuery(implode(' UNION ALL ', $branches));
-            if (!is_object($statement)) {
-                throw new RuntimeException('Could not derive IOC collation weights.');
-            }
-            try {
-                while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) {
-                    $index = (int)$row['input_index'];
-                    $component = $row['component'];
-                    if (!isset($batch[$index][$component]) || !is_string($row['weight'] ?? null)
-                        || !is_string($row['pad_weight'] ?? null) || $row['pad_weight'] === '') {
-                        throw new RuntimeException('Invalid IOC collation weight response.');
-                    }
-                    $weight = self::stripPaddingWeight($row['weight'], $row['pad_weight']);
-                    foreach ($destinations[$index][$component] ?? [[$index, $component]] as list($destinationIndex, $destinationComponent)) {
-                        $weights[$destinationIndex][$destinationComponent] = $weight;
-                    }
-                }
-            } finally {
-                $statement->closeCursor();
-            }
-            foreach ($batch as $index => $components) {
-                foreach ($components as $component => $value) {
-                    if (!isset($weights[$index][$component])) {
-                        throw new RuntimeException('Incomplete IOC collation weight response.');
-                    }
-                }
+                $destinations[$unique[$identity]][] = [$index, $component];
             }
         }
+        if (!$columns) {
+            return [];
+        }
+        $valueColumns = count($columns);
+        $pads = [];
+        foreach (array_keys($collations) as $collation) {
+            if (!isset($this->padWeights[$collation])) {
+                $pads[count($columns)] = $collation;
+                $columns[] = 'WEIGHT_STRING(' . $this->padExpression($collation) . ') AS ' . $this->db->name('p' . count($pads));
+            }
+        }
+        $statement = $this->db->rawQuery('SELECT ' . implode(', ', $columns));
+        if (!is_object($statement)) {
+            throw new RuntimeException('Could not derive IOC collation weights.');
+        }
+        try {
+            $row = $statement->fetch(PDO::FETCH_NUM);
+        } finally {
+            $statement->closeCursor();
+        }
+        if (!is_array($row) || count($row) !== count($columns)) {
+            throw new RuntimeException('Invalid IOC collation weight response.');
+        }
+        $row = array_values($row);
+        foreach ($pads as $position => $collation) {
+            if (!is_string($row[$position]) || $row[$position] === '') {
+                throw new RuntimeException('Invalid IOC collation weight response.');
+            }
+            $this->padWeights[$collation] = $row[$position];
+        }
+        $weights = [];
+        for ($n = 0; $n < $valueColumns; ++$n) {
+            if (!is_string($row[$n])) {
+                throw new RuntimeException('Invalid IOC collation weight response.');
+            }
+            foreach ($destinations[$n] as [$index, $component]) {
+                $weights[$index][$component] = self::stripPaddingWeight($row[$n], $this->padWeights[$this->columns[$component]['collate']]);
+            }
+        }
+        ksort($weights);
         return $weights;
     }
 

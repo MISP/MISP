@@ -136,14 +136,81 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
     public function testSameLiteralAndCollationShareOneDatabaseWeight(): void
     {
         $this->attribute->db->config['datasource'] = 'Database/Mysql';
-        $this->attribute->db->responses = [[
-            ['input_index' => 0, 'component' => 'value1', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
-            ['input_index' => 0, 'component' => 'value2', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
-        ]];
+        $this->attribute->db->responses = [[["\x0e\x60", "\x02\x09"]]];
         $query = $this->tool->queryTokens(['c'], ['domain'], $fallback);
         $this->assertCount(1, $query[0]);
         $this->assertSame([], $fallback);
-        $this->assertSame(1, substr_count($this->attribute->db->queries[0], ' AS weight,'), 'Equivalent component collations must not duplicate weight work.');
+        $this->assertSame(1, substr_count($this->attribute->db->queries[0], 'WEIGHT_STRING(RTRIM('), 'Equivalent component collations must not duplicate weight work.');
+    }
+
+    public function testWeightsUseOneWideSelectWithPadColumns(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[["\x00A\x00 ", "\x00B", "\x00 "]]];
+        $this->tool->queryTokens(['A', 'b', 'A'], ['domain'], $fallback, $weights);
+        $queries = $this->attribute->db->queries;
+        $this->assertCount(1, $queries);
+        $this->assertStringStartsWith("SELECT WEIGHT_STRING(RTRIM(CONVERT('A' USING utf8mb3) COLLATE utf8mb3_unicode_ci)) AS ", $queries[0]);
+        $this->assertStringNotContainsString('UNION', $queries[0]);
+        $this->assertSame(1, substr_count($queries[0], "WEIGHT_STRING(CONVERT(' ' USING utf8mb3) COLLATE utf8mb3_unicode_ci)"));
+        $this->assertSame(1, substr_count($queries[0], "CONVERT('A' USING"));
+        $this->assertSame([
+            0 => ['value1' => "\x00A", 'value2' => "\x00A"],
+            1 => ['value1' => "\x00B", 'value2' => "\x00B"],
+            2 => ['value1' => "\x00A", 'value2' => "\x00A"],
+        ], $weights);
+    }
+
+    /** @dataProvider malformedWideRows */
+    public function testMalformedWideWeightRowFailsClosed(array $row): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[$row]];
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid IOC collation weight response.');
+        $this->tool->queryTokens(['A'], ['domain']);
+    }
+
+    public static function malformedWideRows(): array
+    {
+        return [
+            'too few columns' => [["\x00A"]],
+            'non-string cell' => [[null, "\x00 "]],
+            'empty pad' => [["\x00A", '']],
+        ];
+    }
+
+    public function testEmptyWeightProducesNoTokenAndNoFallback(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[['', "\x02\x09"]]];
+        $query = $this->tool->queryTokens(["\u{200b}"], ['md5'], $fallback, $weights);
+        $this->assertSame([], $fallback);
+        $this->assertSame('', $weights[0]['value1']);
+        $this->assertNotContains('exact', array_column($query[0], 'kind'));
+    }
+
+    public function testPrefixLengthsPruneNetworkTokens(): void
+    {
+        $count = function ($value, $prefixLengths) {
+            $queries = $this->tool->queryTokens([$value], ['ip-dst'], $fallback, $weights, $prefixLengths);
+            return count(array_filter($queries[0], function ($t) { return $t['kind'] === 'ip_range'; }));
+        };
+        $this->assertSame(2, $count('10.1.2.3', [4 => [13 => true, 32 => true], 6 => []]));
+        $this->assertSame(33, $count('10.1.2.3', null));
+        $this->assertSame(1, $count('2001:db8::1', [4 => [], 6 => [128 => true]]));
+    }
+
+    public function testScannedRowsReportNetworkLengths(): void
+    {
+        $rows = [
+            ['id' => '1', 'type' => 'ip-dst', 'value1' => '10.0.0.0/13', 'value2' => ''],
+            ['id' => '2', 'type' => 'ip-src', 'value1' => '10.1.2.3', 'value2' => ''],
+            ['id' => '3', 'type' => 'ip-dst|port', 'value1' => '2001:db8::/32', 'value2' => '80'],
+            ['id' => '4', 'type' => 'domain', 'value1' => 'example.org', 'value2' => ''],
+        ];
+        $prepared = $this->tool->prepareScannedAttributes($rows);
+        $this->assertSame([[[4, 13]], [], [[6, 32]], []], array_column($prepared, 'networks'));
     }
 
     public function testFalsePositiveRateIsInScopeAndFingerprint(): void
@@ -176,11 +243,10 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
     {
         $this->attribute->db->config['datasource'] = 'Database/Mysql';
         $tool = new FastLookupValueTool($this->attribute);
-        // The pad weight is fetched once per collation, then the query-side weights.
+        // The pad weight is fetched once per collation and reused by the query-side weights.
         $this->attribute->db->responses = [
             [['pad_weight' => "\x02\x09"]],
-            [['input_index' => 0, 'component' => 'value1', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"],
-             ['input_index' => 0, 'component' => 'value2', 'weight' => "\x0e\x60", 'pad_weight' => "\x02\x09"]],
+            [["\x0e\x60"]],
         ];
         $prepared = $tool->prepareScannedAttributes([
             ['id' => '5', 'type' => 'md5', 'value1' => 'c ', 'value2' => '', 'weight1' => "\x0e\x60\x02\x09", 'weight2' => null],
