@@ -357,6 +357,9 @@ class FastLookupValueTool
                     }
                 }
                 $verified[$collation] = strtr(rtrim(self::ASCII_PROBE, ' '), $table) === $row[$position + 128] ? $table : false;
+                if ($verified[$collation] === false) {
+                    CakeLog::warning('FastLookupValueTool: ASCII weight table for collation ' . $collation . ' disagrees with the database; using SQL weights.');
+                }
             }
             for ($n = 0; $n < $valueColumns; ++$n) {
                 if (!is_string($row[$n])) {

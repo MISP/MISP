@@ -18,6 +18,14 @@ if (!class_exists('FastLookupPrefixesChangedException', false) && class_exists('
     class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableException {}
 }
 
+if (!class_exists('CakeLog', false)) {
+    class CakeLog
+    {
+        public static $warnings = [];
+        public static function warning($message) { self::$warnings[] = $message; }
+    }
+}
+
 class FastLookupTestStatement
 {
     private $rows;

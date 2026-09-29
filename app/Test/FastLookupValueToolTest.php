@@ -350,6 +350,36 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $this->assertCount(3, $this->attribute->db->queries);
         $this->assertStringNotContainsString('CHAR(', $this->attribute->db->queries[2]);
         $this->assertSame("\x01B", $weights[0]['value1']);
+        $this->assertCount(1, CakeLog::$warnings);
+        $this->assertStringContainsString('utf8mb3_unicode_ci', CakeLog::$warnings[0]);
+        $this->assertStringContainsString('SQL weights', CakeLog::$warnings[0]);
+    }
+
+    public function testAsciiTablesAreBuiltPerCollationForEachComponent(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->columns['value1'] = ['charset' => 'utf8mb4', 'collate' => 'utf8mb4_unicode_ci'];
+        $this->attribute->columns['value2'] = ['charset' => 'utf8mb4', 'collate' => 'utf8mb4_bin'];
+        $ci = self::asciiTable();
+        $bin = [];
+        foreach ($ci as $byte => $weight) {
+            $bin[$byte] = "\x01" . $byte;
+        }
+        $probe = function (array $table) { return strtr(rtrim(FastLookupValueTool::ASCII_PROBE, ' '), $table); };
+        $row = array_merge(array_values($ci), [$probe($ci)], array_values($bin), [$probe($bin)], ["\x00 ", "\x01 "]);
+        $this->attribute->db->responses = [[$row]];
+        $tool = new FastLookupValueTool($this->attribute);
+        $tool->queryTokens(['Ab'], ['filename|md5'], $fallback, $weights);
+        $queries = $this->attribute->db->queries;
+        $this->assertCount(1, $queries);
+        $this->assertSame(128, substr_count($queries[0], 'AS `t1_'));
+        $this->assertSame(128, substr_count($queries[0], 'AS `t2_'));
+        $this->assertSame(1, substr_count($queries[0], 'AS `q1`'));
+        $this->assertSame(1, substr_count($queries[0], 'AS `q2`'));
+        $this->assertSame(1, substr_count($queries[0], 'COLLATE utf8mb4_unicode_ci) AS `t1_0`'));
+        $this->assertSame(1, substr_count($queries[0], 'COLLATE utf8mb4_bin) AS `t2_0`'));
+        $this->assertSame([], CakeLog::$warnings);
+        $this->assertSame([0 => ['value1' => "\x00A\x00b", 'value2' => "\x01A\x01b"]], $weights);
     }
 
     /** @dataProvider malformedTableRows */

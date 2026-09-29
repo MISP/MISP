@@ -224,8 +224,14 @@ value consists entirely of ignorable characters is not findable through
 fastLookup; search for it with the regular attribute search instead.
 
 Lookups run in batches of at most 1,000 values or 4 MiB of SQL-quoted values,
-whichever is reached first. For each batch, one query reads the collation
-weights of every input, one `candidates()` call answers every token, and each
+whichever is reached first. Weights of ASCII-only values are
+derived in PHP from a per-collation table of the 128 ASCII code points, fetched
+once per lookup in the first weights query. That query also weighs a probe
+string covering every ASCII code point; if the table does not reproduce it, the
+table is rejected, a warning is logged and SQL weights are used for that
+collation. Non-ASCII or unrepresentable values get their weights from one wide
+single-row query per batch, and later all-ASCII batches issue no weights query.
+For each batch, one `candidates()` call answers every token, and each
 component (`value1`, `value2`) is resolved by a single `IN (…)` query holding
 one representative value per distinct weight. Rows come back with their own
 weight and are mapped to every input that shares it; a row whose weight
@@ -348,8 +354,8 @@ form.
 
 All-hit requests take 0.11–0.24 of their previous time. Misses and expansions
 are faster on every type. The last column is a batched plain-SQL `IN` lookup
-with the same ACL and no Redis. It is faster than the index for exact and
-domain hits: the index pays for itself on IP containment (network ranges)
+with the same ACL and no Redis. It is faster than the index for hash, filename,
+hostname and domain hits: the index pays for itself on IP containment (network ranges)
 and on misses, which never reach the database.
 
 ## Verification

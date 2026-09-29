@@ -310,19 +310,16 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * F10: tokenizer-level - the tokens prepareScannedAttributes() derives for
+     * Tokenizer-level: the tokens prepareScannedAttributes() derives for
      * stored attributes must intersect the queryTokens() a lookup of a child
      * value produces, for an IP range, an ASCII domain, and an IDN domain in
      * both storage directions (MISP stores IDN domains as punycode, per
      * AttributeValidationTool::modifyBeforeValidation('domain', ...), but the
      * tokenizer's own domain() normalization must match either way).
      *
-     * The per-token kind check the brief's first draft of this test had
-     * (asserting the intersecting token is 'I'/'D', not 'E') was dropped: the
-     * default stub datasource never supports collation weights, so
-     * queryTokens() always routes exact matches to $fallback rather than
-     * emitting an 'E' token, which made that assertion structurally
-     * unfalsifiable. assertNotEmpty() below is what actually exercises F10.
+     * The stub datasource never supports collation weights, so queryTokens()
+     * routes exact matches to $fallback and emits no 'E' token; the check is
+     * therefore only that the token sets intersect.
      */
     public function testTokenizerIntersectsStoredRangeAndDomainTokensWithQueryTokens(): void
     {
@@ -355,7 +352,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * F10: a stale filter entry (the exact token maybe-present and a range
+     * A stale filter entry (the exact token maybe-present and a range
      * candidate ID both point at attributes SQL no longer has) must vanish
      * from the results while the response stays ready.
      */
