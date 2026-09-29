@@ -413,6 +413,38 @@ same('unavailable', lookup($user, ['shared'])['status'], 'attribute type scope m
 rebuild();
 jsonSame([], lookup($user, ['192.0.2.42']), 'type scope excludes network ranges');
 
+// Rollbacks retain both model data and the durable dirty marker atomically.
+$connection = $db->getConnection();
+$connection->beginTransaction();
+$connection->exec("UPDATE attributes SET value1='rolled-back' WHERE value1='shared'");
+changed(2);
+same(true, $connection->inTransaction(), 'dirty tracking does not commit caller transaction');
+$connection->rollBack();
+same('ready', manager()->status()['status'], 'rolled-back dirty marker is not pending');
+jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared']), 'rollback preserves original lookup values');
+
+// A restored older Redis checkpoint and missing buckets must never be a miss.
+$metaKey = $namespace . 'metadata';
+$metaKeys = $redis->keys($namespace . 'metadata');
+same(1, count($metaKeys), 'one index metadata key');
+$metaKey = $metaKeys[0];
+$revision = $redis->hGet($metaKey, 'revision');
+$redis->hSet($metaKey, 'revision', 'old-backup');
+same('unavailable', lookup($user, ['shared'])['status'], 'restored stale Redis checkpoint gates results');
+$redis->hSet($metaKey, 'revision', $revision);
+same('ready', manager()->status()['status'], 'matching checkpoint restored');
+// Evict the live Bloom filter: lookups must fail closed, never answer "absent".
+$filterKeys = [];
+$cursor = null;
+do {
+    foreach ($redis->scan($cursor, $namespace . 'g:*:bf', 1000) ?: [] as $key) { $filterKeys[] = $key; }
+} while ($cursor !== 0);
+same(1, count($filterKeys), 'one live Bloom filter exists');
+$redis->del($filterKeys);
+$missing = lookup($user, ['shared']);
+same(false, $missing['status'] === 'ready', 'missing filter refuses result completeness');
+same(false, isset($missing['results']), 'missing filter never returns partial results');
+
 // A fresh default-scope generation holding no earlier ranges or example.org rows.
 Configure::delete('MISP.fast_lookup_published_only');
 Configure::delete('MISP.fast_lookup_attribute_types');
@@ -426,6 +458,7 @@ addAttribute('10.0.0.0/13', 2, ['type' => 'ip-dst']);
 addAttribute('10.9.9.9', 4, ['type' => 'ip-src']);
 rebuild();
 $parent = ['Example.org' => ['7']];
+// Padded inputs are not parsed as domains, so they carry no parent mapping.
 $padded = ['example.org ' => entry(['7']), "example.org\u{a0}" => entry(['7']), "example.org\u{3000}" => entry(['7'])];
 resultsJson(['example.org' => entry(['7'], [], $parent), 'EXAMPLE.ORG' => entry(['7'], [], $parent)] + $padded,
     lookup($user, array_merge(['example.org', 'EXAMPLE.ORG'], array_keys($padded))), 'case and trailing pad-weight variants match');
@@ -460,6 +493,7 @@ same(3, $redis->hDel($infoKey, 'p4', 'p6', 'pv'), 'prefix masks removed from the
 addAttribute('192.168.0.0/16', 10, ['type' => 'ip-dst']);
 changed(10);
 drain();
+same($live, $filter->metadata()['live'], 'queue processing keeps the legacy generation live');
 resultsJson(['192.168.5.5' => entry(['10'], ['192.168.0.0/16' => ['10']]),
     '10.1.2.3' => entry(['2'], ['10.0.0.0/13' => ['2']])],
     lookup($user, ['192.168.5.5', '10.1.2.3']), 'legacy generation matches old and new ranges');
@@ -470,38 +504,6 @@ $single = lookup($user, ['example.org']);
 resultsJson(['example.org' => entry(['7'], [], ['Example.org' => ['7']])], $single, 'single value lookup');
 same(json_encode($single['results']), json_encode(lookup($user, ['example.org', 'example.org', 'example.org'])['results']),
     'duplicate inputs collapse to the single-value result');
-
-// Rollbacks retain both model data and the durable dirty marker atomically.
-$connection = $db->getConnection();
-$connection->beginTransaction();
-$connection->exec("UPDATE attributes SET value1='rolled-back' WHERE value1='shared'");
-changed(2);
-same(true, $connection->inTransaction(), 'dirty tracking does not commit caller transaction');
-$connection->rollBack();
-same('ready', manager()->status()['status'], 'rolled-back dirty marker is not pending');
-jsonSame(['shared' => ['2', '4', '8']], lookup($user, ['shared']), 'rollback preserves original lookup values');
-
-// A restored older Redis checkpoint and missing buckets must never be a miss.
-$metaKey = $namespace . 'metadata';
-$metaKeys = $redis->keys($namespace . 'metadata');
-same(1, count($metaKeys), 'one index metadata key');
-$metaKey = $metaKeys[0];
-$revision = $redis->hGet($metaKey, 'revision');
-$redis->hSet($metaKey, 'revision', 'old-backup');
-same('unavailable', lookup($user, ['shared'])['status'], 'restored stale Redis checkpoint gates results');
-$redis->hSet($metaKey, 'revision', $revision);
-same('ready', manager()->status()['status'], 'matching checkpoint restored');
-// Evict the live Bloom filter: lookups must fail closed, never answer "absent".
-$filterKeys = [];
-$cursor = null;
-do {
-    foreach ($redis->scan($cursor, $namespace . 'g:*:bf', 1000) ?: [] as $key) { $filterKeys[] = $key; }
-} while ($cursor !== 0);
-same(1, count($filterKeys), 'one live Bloom filter exists');
-$redis->del($filterKeys);
-$missing = lookup($user, ['shared']);
-same(false, $missing['status'] === 'ready', 'missing filter refuses result completeness');
-same(false, isset($missing['results']), 'missing filter never returns partial results');
 
 // Flush the test's deferred callback before database cleanup occurs at shutdown.
 FastLookupIndexManager::dispatchPending();
