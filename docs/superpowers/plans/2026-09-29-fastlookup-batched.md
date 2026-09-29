@@ -603,3 +603,59 @@ Not dispatched as an implementer task. The controller runs it after the final wh
 - [ ] Update `docs/development/fastlookup.md`: batching, prefix masks, whitespace-only inputs and the new sizing/latency table.
 - [ ] Remove `docs/superpowers/` from the branch.
 - [ ] Draft the stacked PR, base `feature/attributes-fast-lookup-bloom` on the fork or #11168's branch as appropriate, with a BLUF, a priority tag and the honest Bloom-vs-SQL table.
+
+---
+
+## Addendum (2026-09-29, after the acceptance gate)
+
+The gate result on 9680717ce vs 5a55bece9:
+- Digests are identical on 57 of 57 type × kind pairs.
+- All-hit requests reach ≤ 0.25 on 15 of 17 types. sha256 is 0.28 wall / 0.26 CPU and filename|sha512 is 0.30 / 0.29.
+- Misses are faster everywhere.
+- **`domain` expansions are 1.24× slower.**
+- Remaining per-request cost on hash types: the input weights query (tokenize 0.45–0.74 s) and the `value2` `IN` query.
+
+The user chose to close the gap while keeping the design (Tasks 7–8), then rerun the gate.
+
+### Task 7: ASCII-only input weights computed in PHP
+
+**Files:**
+- Modify: `app/Lib/Tools/FastLookupValueTool.php`
+- Test: `app/Test/FastLookupValueToolTest.php`, `app/Test/FastLookupSqlCollationTest.php` (MariaDB-backed)
+
+**Interfaces:** unchanged public API. `queryTokens()` and `$weights` output are identical, value for value.
+
+- **Why it works.** For the whitelisted single-level PAD SPACE collations (`supportsWeights()`), `WEIGHT_STRING(RTRIM(x))` of an ASCII-only string equals the concatenation of the per-character weights of `RTRIM(x)`. Pad stripping stays exactly as today.
+- **Character table.**
+  - Per collation, build a table of the weights of the 128 ASCII code points 0x00–0x7F, `WEIGHT_STRING(CONVERT(CHAR(n) USING <charset>) COLLATE <collation>)`.
+  - Fetch it **once per tool instance and collation**, in one single-row `SELECT` that is merged into the existing wide weights query as extra columns.
+  - Memoise it next to `padWeights`.
+- **Self-check** in the same query:
+  - Include the SQL weight of a fixed probe string that exercises every printable ASCII character in mixed case, with an embedded tab, trailing spaces and a leading space.
+  - If the PHP composition of the probe differs from the SQL weight, disable the PHP path for that collation for the tool's lifetime and use SQL weights, as today.
+  - Never trust the table without the check.
+- **Where the PHP path applies:**
+  - It applies to values matching `/\A[\x00-\x7F]*\z/` in a whitelisted collation; any other value keeps its SQL column.
+  - When every value of a batch is ASCII and the table is memoised, `weights()` issues **no query**.
+  - The first batch still runs one query, for the table plus probe plus any non-ASCII values.
+- **Tests:**
+  - **Unit, with a fake table:**
+    - ASCII values produce no weight columns once the table is memoised;
+    - non-ASCII values still get SQL columns;
+    - a probe mismatch falls back to SQL;
+    - a malformed table row fails closed with the existing `Invalid IOC collation weight response.`
+  - **MariaDB-backed** (`FastLookupSqlCollationTest`), for `utf8mb3_unicode_ci`, `utf8mb4_unicode_ci`, `utf8mb3_general_ci` and `utf8mb4_bin`: for every ASCII code point, and for 2,000 random ASCII strings of length 0–300 including control characters and trailing spaces, PHP weights must equal `WEIGHT_STRING(RTRIM(…))` after pad stripping.
+- **Verification:** all fastLookup suites, the Redis contract and the integration runner stay green.
+- **Commit:** `chg: [fastLookup] Derive ASCII input weights from a verified per-collation table`
+
+### Task 8: domain-expansion regression
+
+**Files:** determined by profiling, most likely `app/Lib/Tools/AttributeFastLookupTool.php`, `app/Lib/Tools/FastLookupFilter.php` and/or `app/Lib/Tools/FastLookupValueTool.php`.
+
+- Reproduce with `FastLookupScale.php` for `FL_TYPES=domain`, with `FL_PER_TYPE=100000` and `FL_LOOKUP=10000`, comparing 5a55bece9 and this branch.
+  - Expansions: 2.40 s → 2.98 s wall.
+  - PHP CPU: 1.15 → 1.82 s.
+  - `candidates_seconds`: 1.00 → 1.25.
+- Profile the PHP side, for example with microtime sections or an Xdebug-free sampling approach. Identify the cause and fix it without changing results: the digest must stay equal.
+- **Gate:** `domain` expansions are no slower than 5a55bece9, and every other type and kind is unchanged or faster.
+- **Commit:** `fix: [fastLookup] …` (describe the cause).
