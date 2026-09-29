@@ -159,6 +159,7 @@ function openModal(url, size = 'xl') {
             initTemplateElementForm(container);
             initServerForm(container);
             initSharingGroupForm(container);
+            initObjectForm(container);
 
             // Reuse the single instance for #mainModal — calling openModal again
             // while a modal is already open must not spawn a second Bootstrap.Modal instance
@@ -424,6 +425,9 @@ function renderMainModalContent(html) {
     }
     if (typeof initJsonFields === 'function') {
         initJsonFields(container);
+    }
+    if (typeof initObjectForm === 'function') {
+        initObjectForm(container);
     }
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
@@ -4021,17 +4025,17 @@ document.addEventListener('DOMContentLoaded', function () {
     initJsonFields(document);
 });
 
-function initDistributionSelect(elId, onChange) {
-    var el = document.getElementById(elId);
-    if (!el || el.tomselect) { return; }
-    new TomSelect(el, {
+function initDistributionSelect(elOrId, onChange, settings) {
+    var el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+    if (!el || el.tomselect || typeof TomSelect === 'undefined') { return null; }
+    return new TomSelect(el, Object.assign({
         create:   false,
         onChange: onChange || null,
         render: {
             option: renderDistOption,
             item:   renderDistSelected
         }
-    });
+    }, settings || {}));
 }
 
 function formTypeChanged(idPrefix) {
@@ -6162,4 +6166,806 @@ window.initCenterOnClick = initCenterOnClick;
 
 document.addEventListener('DOMContentLoaded', function () {
     initCenterOnClick();
+});
+
+/*******************************
+ * Object add / edit form
+ *
+ * Two screens share this entry point, told apart by which JSON payload the
+ * fragment carries: the template picker (#objectPickerData) and the form
+ * itself (#objectFormData). The picker's list is never sent with the form, so
+ * choosing a template is a navigation between the two rather than a reload of
+ * one big fragment.
+ *******************************/
+
+function initObjectForm(container) {
+    if (!container) { return; }
+    var pickerData = container.querySelector('#objectPickerData');
+    if (pickerData) { initObjectTemplatePicker(container, pickerData); }
+    var formData = container.querySelector('#objectFormData');
+    if (formData) { initObjectAddForm(container, formData); }
+}
+
+function readJsonPayload(el) {
+    try {
+        return JSON.parse(el.textContent);
+    } catch (e) {
+        return null;
+    }
+}
+
+/* -- step 1: the template picker ---------------------------------------- */
+
+function initObjectTemplatePicker(container, payloadEl) {
+    var data = readJsonPayload(payloadEl);
+    if (!data) { return; }
+
+    var select  = container.querySelector('#objectTemplateSelect');
+    var nextBtn = container.querySelector('#objNextBtn');
+    var preview = container.querySelector('#templateDescPreview');
+    if (!select) { return; }
+
+    var byId = {};
+    data.templates.forEach(function (t) { byId[t.id] = t; });
+
+    function describe(value) {
+        var t = value ? byId[value] : null;
+        if (nextBtn) { nextBtn.disabled = !t; }
+        if (!preview) { return; }
+        if (!t) {
+            preview.classList.add('d-none');
+            return;
+        }
+        preview.classList.remove('d-none');
+        preview.innerHTML = '<strong>' + escapeHtml(t.name) + '</strong>'
+            + ' <span class="badge bg-secondary ms-1">v' + escapeHtml(t.version) + '</span>'
+            + ' <span class="badge rounded-pill text-bg-light border text-secondary fw-normal ms-1">'
+            + escapeHtml(t.meta) + '</span>'
+            + '<br><small class="text-muted">' + escapeHtml(t.desc) + '</small>';
+    }
+
+    function go(value) {
+        if (!value) { return; }
+        var url = data.formUrl + '/' + encodeURIComponent(value);
+        if (typeof openModal === 'function') {
+            openModal(url);
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    if (typeof TomSelect === 'undefined') {
+        /* No TomSelect: a plain grouped <select> still gets the job done. */
+        var groups = {};
+        data.templates.forEach(function (t) {
+            (groups[t.meta] = groups[t.meta] || []).push(t);
+        });
+        select.add(new Option('', ''));
+        Object.keys(groups).sort().forEach(function (meta) {
+            var og = document.createElement('optgroup');
+            og.label = meta;
+            groups[meta].forEach(function (t) { og.appendChild(new Option(t.name, t.id)); });
+            select.appendChild(og);
+        });
+        select.addEventListener('change', function () { describe(select.value); });
+        bindMetaButtons(container, function (meta) {
+            select.querySelectorAll('optgroup').forEach(function (og) {
+                og.hidden = meta !== '' && og.label !== meta;
+            });
+        });
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function () { go(select.value); });
+        }
+        describe('');
+        return;
+    }
+
+    /* The meta-category is an optgroup rather than a row of filter buttons:
+     * the buttons used to rebuild all 378 options on every click and drop the
+     * current selection while doing it. Searching covers the description too,
+     * which is the only way to find `x509-fingerprint` by typing "certificate". */
+    var metas = [];
+    data.templates.forEach(function (t) {
+        if (metas.indexOf(t.meta) === -1) { metas.push(t.meta); }
+    });
+    metas.sort();
+
+    var ts = new TomSelect(select, {
+        options: data.templates,
+        optgroups: metas.map(function (m) { return { value: m, label: m }; }),
+        optgroupField: 'meta',
+        optgroupOrder: metas,
+        valueField: 'id',
+        labelField: 'name',
+        searchField: ['name', 'desc'],
+        /* Insertion order stops mattering, so re-adding options on the way back
+         * to "All" cannot scramble the list. */
+        sortField: [{ field: '$score' }, { field: 'name', direction: 'asc' }],
+        maxOptions: null,
+        create: false,
+        placeholder: select.dataset.placeholder || '-- Select a template --',
+        render: {
+            option: function (t, escape) {
+                return '<div class="py-1">'
+                    + '<span class="fw-semibold">' + escape(t.name) + '</span>'
+                    + ' <span class="badge bg-secondary fw-normal">v' + escape(t.version) + '</span>'
+                    + '<div class="text-muted small text-truncate">' + escape(t.desc) + '</div>'
+                    + '</div>';
+            },
+            item: function (t, escape) { return '<div>' + escape(t.name) + '</div>'; }
+        },
+        onChange: describe
+    });
+
+    /* A meta-category narrows the option set for real. Scoring the others out
+     * is not enough: sifter skips the score function entirely when the search
+     * box is empty, so the unfiltered list would come back whole. What stays is
+     * the part that used to be wrong - the pick survives, because the selected
+     * template is never one of the options taken away. */
+    bindMetaButtons(container, function (meta) {
+        var selected = ts.getValue();
+        var wanted = {};
+        data.templates.forEach(function (t) {
+            if (!meta || t.meta === meta || t.id === selected) { wanted[t.id] = t; }
+        });
+
+        Object.keys(ts.options).forEach(function (id) {
+            if (!wanted[id]) { ts.removeOption(id, true); }
+        });
+        var missing = Object.keys(wanted)
+            .filter(function (id) { return !ts.options[id]; })
+            .map(function (id) { return wanted[id]; });
+        if (missing.length) { ts.addOptions(missing); }
+
+        ts.refreshOptions(ts.isOpen);
+    });
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () { go(ts.getValue()); });
+    }
+    describe('');
+}
+
+/* The row of meta-category buttons above the picker. "All" is the one that
+ * starts pressed; the caller decides what narrowing actually means. */
+function bindMetaButtons(container, onChange) {
+    var buttons = container.querySelectorAll('.meta-cat-btn');
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            buttons.forEach(function (other) {
+                var pressed = other === btn;
+                other.classList.toggle('active', pressed);
+                other.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+                /* The count sits on the accent the pressed button is filled
+                 * with, so it has to invert with it or it reads as a blank. */
+                var count = other.querySelector('.ov-obj-step-badge');
+                if (count) { count.classList.toggle('is-on', pressed); }
+            });
+            onChange(btn.dataset.meta || '');
+        });
+    });
+}
+
+/* -- step 2/3: the form -------------------------------------------------- */
+
+function initObjectAddForm(container, payloadEl) {
+    var data = readJsonPayload(payloadEl);
+    if (!data) { return; }
+
+    var form = container.querySelector('#objectAddForm');
+    if (!form) { return; }
+
+    var errorBox = container.querySelector('#objFormError');
+
+    function showError(message) {
+        if (!errorBox) {
+            showToast(message, 'danger');
+            return;
+        }
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+        errorBox.scrollIntoView({ block: 'nearest' });
+    }
+
+    function clearError() {
+        if (errorBox) { errorBox.classList.add('d-none'); }
+    }
+
+    /* ---- one row ------------------------------------------------------- */
+
+    function rowParts(row) {
+        return {
+            card:   row,
+            save:   row.querySelector('input[type="hidden"][id$="Save"]'),
+            value:  row.querySelector('.Attribute_value'),
+            select: row.querySelector('.Attribute_value_select'),
+            file:   row.querySelector('.Attribute_attachment')
+        };
+    }
+
+    function rowValue(row) {
+        var p = rowParts(row);
+        if (p.select && p.select.value && p.select.value !== 'Enter value manually') {
+            return p.select.value;
+        }
+        if (p.file) { return p.file.value; }
+        return p.value ? p.value.value.trim() : '';
+    }
+
+    function bindRow(row) {
+        var p = rowParts(row);
+
+        /* A card the user left empty is dropped server-side rather than failing
+         * validation; nothing about that shows in the card itself. */
+        function syncSave() {
+            if (!p.save) { return; }
+            p.save.value = rowValue(row) !== '' ? '1' : '0';
+            syncOneOfFrame();
+        }
+
+        /* One value per line: a pasted list becomes one card per entry, the first
+         * staying in the card being typed into. Only a repeatable relation can do
+         * this — a single-occurrence one has nowhere to put the rest, so its text
+         * is left exactly as it was pasted. A card driven by a <select> has no
+         * free-text field to split. */
+        var SPLIT_LIMIT = 100;
+
+        function splitPastedLines() {
+            if (!p.value || row.dataset.multiple !== '1' || p.select) { return; }
+            var raw = p.value.value;
+            if (raw.indexOf('\n') === -1 && raw.indexOf('\r') === -1) { return; }
+
+            var lines = raw.split(/\r?\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(function (line) { return line !== ''; });
+
+            p.value.value = lines.length ? lines[0] : '';
+            if (lines.length < 2) { return; }
+
+            var rest = lines.slice(1);
+            var dropped = 0;
+            if (rest.length > SPLIT_LIMIT) {
+                dropped = rest.length - SPLIT_LIMIT;
+                rest = rest.slice(0, SPLIT_LIMIT);
+            }
+
+            var relation = row.dataset.objectRelation;
+            var group = groupOfCard(row);
+            var anchor = row;
+            var last = null;
+
+            rest.forEach(function (line) {
+                var card = addCard(relation, group, anchor);
+                if (!card) { return; }
+                var field = card.querySelector('.Attribute_value');
+                if (field) {
+                    field.value = line;
+                    field.dispatchEvent(new Event('input'));
+                }
+                anchor = card;
+                last = card;
+            });
+
+            if (dropped) {
+                showError(dropped + ' further line'
+                    + (dropped === 1 ? ' was' : 's were')
+                    + ' not added: ' + SPLIT_LIMIT + ' is the most one paste creates at once.');
+            }
+            if (last) {
+                var lastField = last.querySelector('.Attribute_value');
+                if (lastField) {
+                    lastField.focus();
+                    lastField.setSelectionRange(lastField.value.length, lastField.value.length);
+                }
+            }
+        }
+
+        if (p.value) {
+            p.value.addEventListener('input', function () {
+                splitPastedLines();
+                syncSave();
+            });
+        }
+        if (p.file)   { p.file.addEventListener('change', syncSave); }
+        if (p.select) {
+            p.select.addEventListener('change', function () {
+                if (p.value) {
+                    p.value.classList.toggle('d-none', p.select.value !== 'Enter value manually');
+                }
+                syncSave();
+            });
+            if (p.value) {
+                p.value.classList.toggle('d-none', p.select.value !== 'Enter value manually');
+            }
+        }
+        syncSave();
+
+        /* IDS / Correlate tiles: the colours are CSS, this only names the state. */
+        row.querySelectorAll('.ov-obj-toggle').forEach(function (tile) {
+            var box = tile.querySelector('.ov-obj-toggle-input');
+            if (!box) { return; }
+            var lit = tile.classList.contains('ov-obj-toggle-corr')
+                ? function () { return !box.checked; }
+                : function () { return box.checked; };
+            box.addEventListener('change', function () {
+                tile.classList.toggle('is-on', lit());
+            });
+        });
+
+        /* The three selects get the same treatment as the rest of the theme:
+         * the distribution one through the shared renderers, so a level looks the
+         * same here as in the event form, and the other two searchable. */
+        var dist = row.querySelector('.Attribute_distribution_select');
+        var sgWrap = row.querySelector('.ov-obj-sg-wrap');
+
+        function revealSg() {
+            if (sgWrap) {
+                sgWrap.classList.toggle('d-none', parseInt(dist.value, 10) !== 4);
+            }
+        }
+
+        if (dist) {
+            initDistributionSelect(dist, revealSg, { controlInput: null });
+            if (!dist.tomselect) { dist.addEventListener('change', revealSg); }
+            revealSg();
+        }
+
+        if (typeof TomSelect !== 'undefined') {
+            row.querySelectorAll(
+                '.Attribute_category_select, .Attribute_sharing_group_id_select'
+            ).forEach(function (sel) {
+                if (sel.tomselect) { return; }
+                new TomSelect(sel, {
+                    create: false,
+                    allowEmptyOption: true,
+                    maxOptions: null,
+                    placeholder: sel.dataset.placeholder || ''
+                });
+            });
+        }
+    }
+
+    /* TomSelect keeps a reference of its own, so a card being thrown away has to
+     * hand its instances back before it leaves the document. */
+    function destroyRow(row) {
+        row.querySelectorAll('select').forEach(function (sel) {
+            if (sel.tomselect) { sel.tomselect.destroy(); }
+        });
+    }
+
+    form.querySelectorAll('.attribute_row').forEach(bindRow);
+
+    /* ---- "Add another …" ----------------------------------------------- */
+
+    /* The row is a clone of the template's own row with a bumped index, so the
+     * adder costs nothing rather than a round trip to get_row per click. */
+    function reindexValue(value, from, to) {
+        return value
+            .replace('[Attribute][' + from + ']', '[Attribute][' + to + ']')
+            .replace(new RegExp('^Attribute' + from + '(?=[A-Z]|$)'), 'Attribute' + to)
+            .replace(new RegExp('^row_' + from + '$'), 'row_' + to)
+            .replace(new RegExp('^card-(ids|corr)-' + from + '$'), 'card-$1-' + to);
+    }
+
+    function reindexRow(node, from, to) {
+        var attrs = ['id', 'name', 'for', 'aria-controls', 'aria-labelledby'];
+        var visit = function (el) {
+            attrs.forEach(function (a) {
+                if (el.hasAttribute(a)) {
+                    el.setAttribute(a, reindexValue(el.getAttribute(a), from, to));
+                }
+            });
+            Array.prototype.forEach.call(el.children, visit);
+        };
+        visit(node);
+        node.dataset.rowIndex = to;
+    }
+
+    function blankRow(node) {
+        node.querySelectorAll('input[type="hidden"]').forEach(function (h) {
+            h.value = h.defaultValue;
+        });
+        node.querySelectorAll('textarea').forEach(function (t) { t.value = ''; });
+        node.querySelectorAll('input[type="file"]').forEach(function (f) { f.value = ''; });
+        node.querySelectorAll('select').forEach(function (s) {
+            Array.prototype.forEach.call(s.options, function (o) { o.selected = o.defaultSelected; });
+        });
+        node.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = c.defaultChecked;
+        });
+        node.querySelectorAll('.Attribute_value').forEach(function (v) {
+            var sel = node.querySelector('.Attribute_value_select');
+            v.classList.toggle('d-none', !!sel);
+        });
+    }
+
+    /* ---- the attribute palettes -------------------------------------- */
+
+    /* The requiredOneOf frame is dashed while the requirement is open and solid
+     * once it is met. It follows the values, not the cards: a card added and left
+     * empty satisfies nothing, so a solid border there would be a lie. */
+    function syncOneOfFrame() {
+        var frame = form.querySelector('.ov-obj-palette[data-palette="oneof"]');
+        var cards = form.querySelector('.ov-obj-cards[data-group="oneof"]');
+        if (!frame || !cards) { return; }
+        var met = Array.prototype.some.call(
+            cards.querySelectorAll('.attribute_row'),
+            function (row) { return rowValue(row) !== ''; }
+        );
+        frame.classList.toggle('is-satisfied', met);
+    }
+
+    function nextRowIndex() {
+        var lastRow = form.querySelector('#last-row');
+        if (!lastRow) { return null; }
+        var next = parseInt(lastRow.dataset.lastRow, 10) + 1;
+        lastRow.dataset.lastRow = next;
+        return next;
+    }
+
+    /* A relation's palette button, if it has one. */
+    function pickButton(relation) {
+        return form.querySelector('.ov-obj-pick[data-add-relation="' + CSS.escape(relation) + '"]');
+    }
+
+    /* A single-occurrence relation is spent once a card for it exists. */
+    function syncPickButton(relation) {
+        var btn = pickButton(relation);
+        if (!btn || btn.dataset.multiple === '1') { return; }
+        btn.disabled = !!form.querySelector(
+            '.ov-obj-cards .attribute_row[data-object-relation="' + CSS.escape(relation) + '"]'
+        );
+    }
+
+    /* `after` places the new card straight below an existing one instead of at
+     * the end of the group, which is what keeps a pasted list in order. */
+    function addCard(relation, group, after) {
+        var source = form.querySelector(
+            '.ov-obj-row-source[data-relation="' + CSS.escape(relation) + '"]'
+        );
+        var target = form.querySelector('.ov-obj-cards[data-group="' + CSS.escape(group) + '"]');
+        var next = nextRowIndex();
+        if (!source || (!target && !after) || next === null) { return null; }
+
+        var card = source.content.firstElementChild.cloneNode(true);
+        reindexRow(card, card.dataset.rowIndex, next);
+        blankRow(card);
+        if (after) {
+            after.insertAdjacentElement('afterend', card);
+        } else {
+            target.appendChild(card);
+        }
+        bindRow(card);
+        syncPickButton(relation);
+        return card;
+    }
+
+    function groupOfCard(row) {
+        var host = row.closest('.ov-obj-cards');
+        return host ? host.dataset.group : 'other';
+    }
+
+    form.querySelectorAll('.ov-obj-pick').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var card = addCard(btn.dataset.addRelation, btn.dataset.target);
+            if (!card) { return; }
+            card.scrollIntoView({ block: 'nearest' });
+            var first = card.querySelector(
+                '.Attribute_value_select, .Attribute_value, .Attribute_attachment'
+            );
+            if (first) { first.focus(); }
+        });
+    });
+
+    /* Removing a card hands its slot back to the palette. */
+    form.addEventListener('click', function (event) {
+        var remove = event.target.closest('.ov-obj-row-remove');
+        if (!remove || !form.contains(remove)) { return; }
+        var card = remove.closest('.attribute_row');
+        if (!card) { return; }
+        var relation = card.dataset.objectRelation;
+        destroyRow(card);
+        card.remove();
+        syncPickButton(relation);
+        syncOneOfFrame();
+        clearError();
+    });
+
+    form.querySelectorAll('.ov-obj-pick').forEach(function (btn) {
+        syncPickButton(btn.dataset.addRelation);
+    });
+    syncOneOfFrame();
+
+    /* ---- change template ------------------------------------------------ */
+
+    var changeBtn = container.querySelector('#objChangeTemplateBtn');
+    if (changeBtn && typeof openModal === 'function') {
+        changeBtn.addEventListener('click', function () {
+            openModal(changeBtn.dataset.pickerUrl);
+        });
+    }
+
+    /* ---- collected state ------------------------------------------------ */
+
+    function savedRows() {
+        var rows = [];
+        form.querySelectorAll('.attribute_row').forEach(function (row) {
+            var save = row.querySelector('input[type="hidden"][id$="Save"]');
+            if (!save || save.value !== '1') { return; }
+            rows.push(row);
+        });
+        return rows;
+    }
+
+    function describeRow(row) {
+        var category = row.querySelector('select[id$="Category"]');
+        var dist = row.querySelector('.Attribute_distribution_select');
+        var ids = row.querySelector('input[id$="ToIds"]');
+        var corr = row.querySelector('input[id$="DisableCorrelation"]');
+        var comment = row.querySelector('.ov-obj-row-comment');
+        var type = row.querySelector('input[id$="Type"]');
+        return {
+            relation: row.dataset.objectRelation || '',
+            value: rowValue(row),
+            type: type ? type.value : '',
+            category: category ? category.value : '',
+            distribution: dist ? parseInt(dist.value, 10) : 0,
+            to_ids: ids ? ids.checked : false,
+            correlate: corr ? !corr.checked : true,
+            comment: comment ? comment.value.trim() : ''
+        };
+    }
+
+    /* ---- required fields ------------------------------------------------ */
+
+    function missingRequirements() {
+        var present = {};
+        savedRows().forEach(function (row) {
+            if (rowValue(row) !== '') { present[row.dataset.objectRelation] = true; }
+        });
+        var problems = [];
+        (data.template.required || []).forEach(function (relation) {
+            if (!present[relation]) { problems.push(relation); }
+        });
+        var oneOf = data.template.requiredOneOf || [];
+        var satisfied = oneOf.length === 0 || oneOf.some(function (r) { return present[r]; });
+        return { missing: problems, oneOfUnmet: satisfied ? [] : oneOf };
+    }
+
+    /* The precise complaints come first: with the palette layout an empty form is
+     * the normal starting point, so "nothing is filled in" is the least useful
+     * thing to say about it. */
+    function requirementMessage() {
+        var check = missingRequirements();
+        if (check.missing.length) {
+            return 'This template requires a value for: ' + check.missing.join(', ') + '.';
+        }
+        if (check.oneOfUnmet.length) {
+            var shown = check.oneOfUnmet.slice(0, 6).join(', ');
+            if (check.oneOfUnmet.length > 6) {
+                shown += ' … (' + (check.oneOfUnmet.length - 6) + ' more)';
+            }
+            return 'This template requires a value for at least one of: ' + shown + '.';
+        }
+        if (savedRows().length === 0) {
+            return 'Add an attribute and give it a value before saving.';
+        }
+        return '';
+    }
+
+    /* ---- review --------------------------------------------------------- */
+
+    /* Deliberately a compact digest, not a copy of the object index's markup -
+     * the two used to be kept in step by hand and drifted. */
+    function buildReview() {
+        var rows = savedRows().map(describeRow);
+        var distEl = container.querySelector('#ObjectDistribution');
+        var dist = distEl ? parseInt(distEl.value, 10) : 0;
+
+        var warn = container.querySelector('#objWarningMessage');
+        if (warn) { warn.classList.toggle('d-none', dist < 3); }
+
+        var body = container.querySelector('#objReviewBody');
+        if (!body) { return rows; }
+
+        if (!rows.length) {
+            body.innerHTML = '<p class="text-muted fst-italic mb-3">'
+                + '<i class="fas fa-circle-info me-1"></i>'
+                + 'No attributes will be saved.</p>';
+            return rows;
+        }
+
+        var html = '<div class="d-flex align-items-center gap-2 flex-wrap mb-2">'
+            + distBadgeHtml(dist, true, data.distributionLevels)
+            + '<span class="fw-semibold">' + escapeHtml(data.template.name) + '</span>'
+            + '<span class="badge rounded-pill text-bg-light border text-secondary fw-normal">'
+            + escapeHtml(data.template.meta) + '</span>'
+            + '<span class="badge bg-secondary-subtle text-secondary">'
+            + rows.length + (rows.length === 1 ? ' attribute' : ' attributes')
+            + '</span></div>';
+
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
+            + '<thead class="table-light"><tr>'
+            + '<th>Value</th><th>Type</th><th>Category</th>'
+            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+            + '</tr></thead><tbody>';
+
+        rows.forEach(function (a) {
+            html += '<tr>'
+                + '<td class="text-break">' + distBadgeHtml(a.distribution, false)
+                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
+                + ' ' + escapeHtml(a.value || '—')
+                + (a.comment
+                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
+                        + escapeHtml(a.comment) + '</div>'
+                    : '')
+                + '</td>'
+                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
+                + '<td class="text-center"><i class="fas fa-shield-halved '
+                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
+                + '<td class="text-center"><i class="fas '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '"></i></td>'
+                + '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+
+        var problem = requirementMessage();
+        if (problem) {
+            html += '<div class="alert alert-warning py-2 mb-0">'
+                + '<i class="fas fa-triangle-exclamation me-1"></i>'
+                + escapeHtml(problem) + '</div>';
+        }
+
+        body.innerHTML = html;
+        return rows;
+    }
+
+    /* ---- similar objects ------------------------------------------------ */
+
+    function renderSimilar(result) {
+        var box = container.querySelector('#objSimilarObjects');
+        if (!box) { return; }
+        if (!result || !result.count) {
+            box.innerHTML = '';
+            return;
+        }
+        var html = '<div class="card ov-obj-similar mb-0"><div class="card-body p-3">'
+            + '<div class="fw-semibold mb-2">'
+            + '<i class="fas fa-triangle-exclamation text-warning me-1"></i>'
+            + escapeHtml(String(result.count))
+            + (result.count === 1
+                ? ' object in this event already overlaps this one'
+                : ' objects in this event already overlap this one')
+            + '</div>'
+            + '<div class="text-muted small mb-2">'
+            + 'Saving will create another one. Edit the existing object instead if this is the same observation.'
+            + '</div>';
+
+        result.objects.forEach(function (o) {
+            html += '<div class="d-flex align-items-start gap-2 mb-1">'
+                + '<a class="text-nowrap" target="_blank" rel="noopener"'
+                + ' href="' + escapeHtml(baseurl) + '/objects/view/' + escapeHtml(String(o.id)) + '">'
+                + '#' + escapeHtml(String(o.id)) + '</a>'
+                + '<span class="ov-obj-similar-match text-muted">'
+                + o.attributes.map(function (a) {
+                    return escapeHtml(a.object_relation) + ' = ' + escapeHtml(a.value);
+                }).join(', ')
+                + '</span></div>';
+        });
+
+        box.innerHTML = html + '</div></div>';
+    }
+
+    function fetchSimilar() {
+        var box = container.querySelector('#objSimilarObjects');
+        var rows = savedRows();
+        if (!box || !rows.length || data.isEdit) { return; }
+
+        var payload = new FormData();
+        rows.forEach(function (row, i) {
+            var a = describeRow(row);
+            if (a.value === '') { return; }
+            payload.append('data[Attribute][' + i + '][object_relation]', a.relation);
+            payload.append('data[Attribute][' + i + '][type]', a.type);
+            payload.append('data[Attribute][' + i + '][value]', a.value);
+        });
+
+        box.innerHTML = '<div class="text-muted small">'
+            + '<span class="spinner-border spinner-border-sm me-2"></span>'
+            + 'Looking for objects that already carry these values…</div>';
+
+        fetch(data.similarUrl, {
+            method: 'POST',
+            body: payload,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(renderSimilar)
+            .catch(function () { box.innerHTML = ''; });
+    }
+
+    /* ---- navigation between the two steps ------------------------------- */
+
+    var reviewBtn = container.querySelector('#objReviewBtn');
+    if (reviewBtn) {
+        reviewBtn.addEventListener('click', function () {
+            buildReview();
+            fetchSimilar();
+            var el = container.querySelector('#objCollapse3');
+            if (el) { bootstrap.Collapse.getOrCreateInstance(el).show(); }
+        });
+    }
+
+    var backBtn = container.querySelector('#objPrevBtn3');
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            var el = container.querySelector('#objCollapse3');
+            if (el) { bootstrap.Collapse.getOrCreateInstance(el).hide(); }
+        });
+    }
+
+    var objDist = container.querySelector('#ObjectDistribution');
+    if (objDist) {
+        objDist.addEventListener('change', function () {
+            var warn = container.querySelector('#objWarningMessage');
+            if (warn) { warn.classList.toggle('d-none', parseInt(objDist.value, 10) < 3); }
+        });
+    }
+
+    /* ---- submit ---------------------------------------------------------- */
+
+    /* Posting through fetch() keeps the event view standing: a rejected save
+     * leaves this form exactly as the user left it, and an accepted one reloads
+     * the objects tab rather than the whole page. */
+    var submitBtn = container.querySelector('#submitButton');
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearError();
+
+        var problem = requirementMessage();
+        if (problem) {
+            showError(problem);
+            buildReview();
+            return;
+        }
+
+        if (submitBtn) { submitBtn.disabled = true; }
+
+        /* No `Accept: application/json` here: _isRest() reads that header, and the
+         * REST branch of add()/edit() answers in a different shape and with a
+         * 403 on a rejected save. This is the session-backed ajax branch. */
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (result) {
+                if (!result || !result.saved) {
+                    if (submitBtn) { submitBtn.disabled = false; }
+                    showError((result && result.errors) || 'Object could not be saved.');
+                    return;
+                }
+                var modalEl = document.getElementById('mainModal');
+                var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                if (modal) { modal.hide(); }
+                showToast(result.success || 'Object saved.', 'success');
+                if (!reloadEventViewIndexTab()) {
+                    window.location.reload();
+                }
+            })
+            .catch(function () {
+                if (submitBtn) { submitBtn.disabled = false; }
+                showError('Request failed — please try again.');
+            });
+    });
+}
+
+/* A full-page render of objects/add or objects/edit - a rejected save on a
+ * plain navigation, or a bookmarked URL - gets the same wiring as the modal. */
+document.addEventListener('DOMContentLoaded', function () {
+    initObjectForm(document);
 });

@@ -3896,3 +3896,337 @@ tr.evt-extension-row td:first-child {
 [data-bs-theme="dark"] .ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
     background: rgba(110, 168, 254, .32);
 }
+
+/* ==========================================================================
+   Object add/edit form
+   The row's tiles, tints and borders live here rather than inline: the JS only
+   toggles `is-on`, so the lit and unlit colours are stated once instead of
+   once per render path, and dark mode gets a say.
+   ========================================================================== */
+
+.ov-obj-step-badge {
+    background: rgba(var(--bs-object-rgb), .12);
+    color: var(--bs-object);
+}
+
+.ov-obj-step-badge.is-on {
+    background: var(--bs-object);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .ov-obj-step-badge {
+    background: rgba(var(--bs-object-rgb), .28);
+    color: #e9ecef;
+}
+
+.ov-obj-template-bar {
+    background: rgba(var(--bs-object-rgb), .05);
+    border: 1px solid var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .ov-obj-template-bar {
+    background: rgba(var(--bs-object-rgb), .18);
+}
+
+/* Takes the room the badges and the button leave, on one line - a template
+ * description runs to a couple of hundred characters and would otherwise wrap
+ * the bar into three rows. The full text stays in the title attribute. */
+.ov-obj-template-desc {
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: .78rem;
+}
+
+/* The step headers are labels, not controls - nothing collapses on click, and
+ * an always-open one must not wear Bootstrap's active-accordion blue either. */
+.accordion-button.ov-accordion-static,
+.accordion-button.ov-accordion-static:not(.collapsed) {
+    cursor: default;
+    pointer-events: none;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    box-shadow: none;
+}
+
+.accordion-button.ov-accordion-static::after {
+    display: none;
+}
+
+/* The object accent is dark enough that an outline button drawn in it
+ * disappears against a dark background. */
+[data-bs-theme="dark"] .btn-outline-object {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: rgba(var(--bs-emphasis-color-rgb), .35);
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-hover-bg: rgba(var(--bs-emphasis-color-rgb), .12);
+    --bs-btn-hover-border-color: rgba(var(--bs-emphasis-color-rgb), .5);
+    --bs-btn-active-color: var(--bs-body-color);
+    --bs-btn-active-bg: rgba(var(--bs-emphasis-color-rgb), .18);
+    --bs-btn-active-border-color: rgba(var(--bs-emphasis-color-rgb), .5);
+}
+
+/* -- one attribute row --------------------------------------------------- */
+
+.ov-obj-row {
+    border-left: 3px solid var(--bs-object);
+}
+
+.ov-obj-row-header {
+    background: rgba(var(--bs-object-rgb), .04);
+}
+
+[data-bs-theme="dark"] .ov-obj-row-header {
+    background: rgba(var(--bs-object-rgb), .22);
+}
+
+.ov-obj-row-footer {
+    background: rgba(var(--bs-emphasis-color-rgb), .015);
+}
+
+.ov-obj-row-name {
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--bs-object);
+}
+
+[data-bs-theme="dark"] .ov-obj-row-name {
+    color: var(--bs-body-color);
+}
+
+.ov-obj-required {
+    font-size: .5rem;
+    vertical-align: super;
+}
+
+.ov-obj-row-type {
+    font-size: .62rem;
+}
+
+.ov-obj-row-desc {
+    font-size: .7rem;
+}
+
+.ov-obj-row-label {
+    font-size: .65rem;
+    white-space: nowrap;
+}
+
+.ov-obj-row-select {
+    width: auto;
+    font-size: .75rem;
+}
+
+/* TomSelect copies the select's classes onto its wrapper, so the row selects
+ * keep their size from .ov-obj-row-select and only need their innards tightened
+ * to stop the footer growing a row taller than the native controls were. */
+.ov-obj-row .ts-wrapper.form-select-sm {
+    min-width: 12rem;
+    padding: 0;
+}
+
+.ov-obj-row .ts-wrapper .ts-control {
+    min-height: calc(1.5em + .5rem + 2px);
+    padding: .15rem 1.75rem .15rem .5rem;
+    border: 0;
+    background: transparent;
+    font-size: .75rem;
+    line-height: 1.4;
+}
+
+.ov-obj-row .ts-wrapper.single .ts-control input {
+    font-size: .75rem;
+}
+
+.ov-obj-row .ts-dropdown {
+    font-size: .75rem;
+}
+
+/* The sharing-group slot collapses with its wrapper, never with the select. */
+.ov-obj-sg-wrap {
+    display: inline-block;
+}
+
+.ov-obj-row-comment {
+    font-size: .8rem;
+    resize: vertical;
+}
+
+.ov-obj-row .Attribute_value {
+    resize: vertical;
+}
+
+/* -- IDS / Correlate tiles ------------------------------------------------ */
+
+.ov-obj-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: 0;
+    padding: .25rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: .72rem;
+    cursor: pointer;
+    user-select: none;
+    color: var(--bs-secondary-color);
+    transition: border-color .15s, background .15s, color .15s;
+}
+
+.ov-obj-toggle > i {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-obj-toggle-input {
+    display: none;
+}
+
+.ov-obj-toggle.is-locked {
+    opacity: .4;
+    pointer-events: none;
+}
+
+.ov-obj-toggle-ids.is-on {
+    border-color: var(--bs-warning);
+    background: rgba(var(--bs-warning-rgb), .08);
+}
+
+.ov-obj-toggle-ids.is-on > i {
+    color: var(--bs-warning);
+}
+
+.ov-obj-toggle-corr.is-on {
+    border-color: var(--bs-success);
+    background: rgba(var(--bs-success-rgb), .08);
+}
+
+.ov-obj-toggle-corr.is-on > i {
+    color: var(--bs-success);
+}
+
+/* One icon per state, so nothing has to swap a class from JavaScript. */
+.ov-obj-toggle .ov-toggle-on-icon {
+    display: none;
+}
+
+.ov-obj-toggle.is-on .ov-toggle-on-icon {
+    display: inline-block;
+}
+
+.ov-obj-toggle.is-on .ov-toggle-off-icon {
+    display: none;
+}
+
+/* -- attribute groups and their palettes ---------------------------------- */
+
+.ov-obj-group-label {
+    margin-bottom: .5rem;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+/* Empty until something is picked, so it must not reserve space. */
+.ov-obj-cards:empty {
+    display: none;
+}
+
+.ov-obj-palette {
+    border-style: dashed;
+    transition: border-color .15s, border-style .15s;
+}
+
+/* Dashed while the requiredOneOf rule is still open, solid once it is met.
+ * The colour goes through --bs-card-border-color because that is the variable
+ * .card resolves its border from; setting border-color here loses to it. */
+.ov-obj-palette.is-satisfied {
+    --bs-card-border-color: var(--bs-success);
+    border-style: solid;
+}
+
+.ov-obj-palette.is-satisfied .ov-obj-palette-header {
+    background: rgba(var(--bs-success-rgb), .08);
+}
+
+.ov-obj-palette.is-satisfied .ov-obj-palette-header > i {
+    color: var(--bs-success) !important;
+}
+
+.ov-obj-palette-header {
+    background: rgba(var(--bs-object-rgb), .04);
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .ov-obj-palette-header {
+    background: rgba(var(--bs-object-rgb), .22);
+}
+
+/* One pick per relation. The type rides along because two relations often
+ * differ only by it, and the description is the button's title. */
+.ov-obj-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    transition: border-color .15s, background .15s;
+}
+
+.ov-obj-pick:hover:not(:disabled) {
+    border-color: var(--bs-object);
+    background: rgba(var(--bs-object-rgb), .08);
+    color: var(--bs-body-color);
+}
+
+.ov-obj-pick > i {
+    font-size: .62rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-obj-pick:disabled {
+    opacity: .45;
+}
+
+.ov-obj-pick-type {
+    padding: 0 .3rem;
+    border-radius: var(--bs-border-radius-sm);
+    background: rgba(var(--bs-emphasis-color-rgb), .07);
+    color: var(--bs-secondary-color);
+    font-size: .62rem;
+}
+
+.ov-obj-pick-multi {
+    opacity: .6;
+}
+
+.ov-obj-row-remove {
+    padding: .1rem .35rem;
+    border: 0;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    line-height: 1;
+    opacity: .55;
+    transition: color .15s, opacity .15s;
+}
+
+.ov-obj-row-remove:hover,
+.ov-obj-row-remove:focus-visible {
+    color: var(--bs-danger);
+    opacity: 1;
+}
+
+/* -- Review: similar objects --------------------------------------------- */
+
+.ov-obj-similar {
+    border-left: 3px solid var(--bs-warning);
+}
+
+.ov-obj-similar-match {
+    font-size: .75rem;
+}
