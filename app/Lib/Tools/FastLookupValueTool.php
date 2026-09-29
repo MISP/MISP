@@ -61,7 +61,7 @@ class FastLookupValueTool
                     if (!is_string($row[$weightField] ?? null)) {
                         throw new RuntimeException('Invalid IOC collation weight response.');
                     }
-                    // Empty/ignorable weights use exact SQL discovery at read time.
+                    // An empty weight is never indexed, and never matched at read time.
                     $weight = $this->stripPadding($component, $row[$weightField]);
                     if ($weight !== '') {
                         $tokens[] = $this->exactToken($component, $weight);

@@ -171,6 +171,26 @@ being served by the old generation apart from the short activation batch
 previous format's `misp:fast_lookup:v3:` keys and its `fastLookupIndex:state:v2`
 state row.
 
+Each generation records which IP prefix lengths its range tokens use: `p4`
+(33 characters) and `p6` (129 characters) hold a `0`/`1` flag per length, and
+`pv` counts how often either mask changed. A new length's flag is set, and
+`pv` incremented, in its own script before any token of that length becomes
+visible, so every visible range token's length is always in the mask. A lookup
+reads the masks once, probes only the flagged lengths, and passes `pv` along
+with its range tokens; if the masks changed meanwhile it re-reads them once,
+and a second change answers 503. Requests without range tokens never check
+`pv`. A generation built by an earlier release has no masks: it is served with
+every prefix length, and adding to it never creates them. Masks present on
+only some of the three fields, or malformed, make the generation corrupt.
+
+Reserving a generation with masks stamps the namespace metadata schema as
+`bloom-2`; earlier releases know only `bloom-1` and fail closed on it rather
+than adding ranges without updating the masks. `bloom-1` namespaces keep being
+served until the next rebuild replaces their generation. All MISP servers
+sharing one Redis must run the same release: after a downgrade the older
+release treats the index as invalid and rebuilds it from scratch, and so does
+the newer release after upgrading again.
+
 Redis persistence and a suitable memory policy are operationally important: no
 fastLookup key expires except the worker lease. Evicted or lost keys cause
 unavailability, requiring repair or rebuild. Initial scope changes make
@@ -191,13 +211,33 @@ a crashed worker, is normal operation, not an index failure.
 Exact candidates use database collation weights for supported MySQL/MariaDB
 `utf8`, `utf8mb3` and `utf8mb4` Unicode/general/binary collations. Database version,
 column collations and normalization version participate in the membership
-fingerprint. Unsupported collations/dialects and empty/ignorable weight cases
-use indexed SQL exact discovery after the complete-index readiness gate, retaining
-SQL equality semantics. They may be slower. Candidate revalidation always uses
-SQL equality; no approximation of authorization is stored in Redis.
+fingerprint. Unsupported collations/dialects use indexed SQL exact discovery
+after the complete-index readiness gate, retaining SQL equality semantics; they
+may be slower. Candidate revalidation always uses SQL equality; no
+approximation of authorization is stored in Redis.
+
+An input whose collation weight, with trailing pad weights stripped, is empty
+for a component — whitespace only, or only characters the collation ignores
+such as U+200B ZERO WIDTH SPACE or U+00A0 NO-BREAK SPACE — never matches that
+component. The same rule applies when indexing, so a stored attribute whose
+value consists entirely of ignorable characters is not findable through
+fastLookup; search for it with the regular attribute search instead.
+
+Lookups run in batches of at most 1,000 values or 4 MiB of SQL-quoted values,
+whichever is reached first. For each batch, one query reads the collation
+weights of every input, one filter call answers every token, and each
+component (`value1`, `value2`) is resolved by a single `IN (…)` query holding
+one representative value per distinct weight. Rows come back with their own
+weight and are mapped to every input that shares it; a row whose weight
+matches no input fails the request rather than being dropped, since SQL
+equality is the correctness bar. Columns with a collation outside the
+supported list keep one equality query per value, combined with `UNION`.
 
 IP containment masks CIDR host bits and probes canonical prefixes for IPv4 and
-IPv6, including `/0` and single-address ranges. Domain suffix matching uses label
+IPv6, including `/0` and single-address ranges. Only the prefix lengths some
+indexed range actually uses are probed (see the prefix masks below), so a
+request for one address usually costs a handful of range tokens rather than
+33 (IPv4) or 129 (IPv6). Domain suffix matching uses label
 boundaries and only domain-bearing attributes (`domain`, `domain|ip`). Hostname
 attributes are exact-only. The port half of `ip-src|port`, `ip-dst|port` and
 `hostname|port` is never indexed or matched: a bare port would match most of those
@@ -217,6 +257,11 @@ string limit and a 100000 candidate/result-row budget. Overflows produce errors
 without partial results. Very popular tokens are bounded to 500000 IDs and 8 MiB per
 posting; exceeding a storage bound prevents readiness rather than truncating the
 index. Use a narrower type scope if a deployment exceeds those storage limits.
+
+Batching keeps every weights query and `IN (…)` list well under a 16 MiB
+`max_allowed_packet`. The per-value `UNION` path used for unsupported
+collations is larger; a statement the server refuses fails the request rather
+than returning partial results.
 
 ### Sizing
 
@@ -240,22 +285,10 @@ Measured at 1.7M attributes (17 default types, 100,000 attributes each,
 (filter 9,165,968 bytes in 1 shared key at a 5,100,000-token capacity with
 1,813,731 tokens inserted; range/domain postings 4,960,128 bytes across 3,516
 keys, plus 147.8 KB of overflow postings in 2 keys). A full rebuild took
-**43.9 s**. Against the plain-SQL baseline (the strongest `LIKE`/range form,
-no filter), mean request time across the 17 types was 10.1 s filtered vs.
-10.45 s SQL-only for all-hit requests (about 3.3% faster). That mean hides a
-split: the four IP types (`ip-src`, `ip-dst`, `ip-src|port`, `ip-dst|port`)
-were 33-44% faster than SQL on all-hit requests, while the other 13 types
-(hashes, domains and hostnames) were 0.6-2.9 s slower per 10,000-value
-all-hit request than SQL alone (e.g. `md5` 10.19 s vs 7.56 s) — the
-per-request tokenizing and filter round trip add on top of the same SQL
-equality check the SQL-only path also runs. For all-miss and
-range/domain-expansion requests, mean request
-time was 1.57 s vs. 9.99 s (6.36× faster) and 1.84 s vs. 5.97 s (about 3.2×
-faster). The measured false-positive rate over
-the sampled absent values was 0, against an estimated rate of about 2.55e-07
-at that fill level (configured target 0.001 — the filter is far under
-capacity at 1.7M attributes). Matches were identical to the SQL baseline for
-every type and lookup kind.
+**43.9 s**. The measured false-positive rate over the sampled absent values
+was 0, against an estimated rate of about 2.55e-07 at that fill level
+(configured target 0.001 — the filter is far under capacity at 1.7M
+attributes).
 
 For context, the per-type postings index this replaced measured about 161
 bytes per attribute and a 1,175 s full rebuild at the same 1.7M-attribute
@@ -284,6 +317,10 @@ explicit and timestamped. Statistics and rebuild operations require site
 administrator access. These are single-host synthetic figures, not capacity
 guarantees; a deployment's real type mix, duplicate rate, event sizes and
 database/Redis latency will differ.
+
+#### Latency at 1.7M attributes
+
+Numbers pending the acceptance benchmark.
 
 ## Verification
 
