@@ -320,7 +320,37 @@ database/Redis latency will differ.
 
 #### Latency at 1.7M attributes
 
-Numbers pending the acceptance benchmark.
+Same data set and host as above, 10,000-value requests, median of three
+warm runs. Each cell is the previous per-100-value implementation, then the
+current batched one. Results were byte-identical between the two for every
+type and request kind. Expansions apply only to types with a range or domain
+form.
+
+| Type | Hits (s) | Ratio | Misses (s) | Expansions (s) | Plain SQL hits (s) |
+|---|---:|---:|---:|---:|---:|
+| `domain` | 9.76 → 2.20 | 0.23 | 1.12 → 0.65 | 2.58 → 1.75 | 0.66 |
+| `domain\|ip` | 8.89 → 2.18 | 0.24 | 1.17 → 0.71 | 3.20 → 1.69 | 0.61 |
+| `hostname` | 10.43 → 1.99 | 0.19 | 1.63 → 1.00 | — | 1.15 |
+| `hostname\|port` | 10.39 → 2.16 | 0.21 | 1.52 → 0.89 | — | 1.02 |
+| `ip-src` | 10.08 → 1.21 | 0.12 | 2.91 → 0.53 | 1.17 → 0.45 | 2.21 |
+| `ip-dst` | 11.79 → 1.31 | 0.11 | 3.06 → 0.48 | 1.15 → 0.26 | 1.97 |
+| `ip-src\|port` | 10.75 → 1.24 | 0.12 | 3.37 → 0.49 | 1.41 → 0.24 | 2.05 |
+| `ip-dst\|port` | 10.55 → 1.31 | 0.12 | 2.80 → 0.61 | 1.14 → 0.24 | 2.13 |
+| `md5` | 10.75 → 1.40 | 0.13 | 1.33 → 0.49 | — | 0.93 |
+| `sha1` | 10.36 → 1.53 | 0.15 | 1.03 → 0.48 | — | 0.87 |
+| `sha256` | 9.96 → 1.66 | 0.17 | 1.14 → 0.55 | — | 0.87 |
+| `sha512` | 10.72 → 2.16 | 0.20 | 1.23 → 0.71 | — | 0.96 |
+| `filename\|md5` | 9.28 → 1.39 | 0.15 | 1.13 → 0.43 | — | 0.71 |
+| `filename\|sha1` | 9.23 → 1.45 | 0.16 | 1.22 → 0.46 | — | 0.76 |
+| `filename\|sha256` | 9.52 → 1.48 | 0.15 | 1.12 → 0.52 | — | 0.85 |
+| `filename\|sha512` | 9.60 → 1.82 | 0.19 | 1.51 → 0.61 | — | 0.95 |
+| `malware-sample` | 9.93 → 1.44 | 0.15 | 1.15 → 0.44 | — | 0.79 |
+
+All-hit requests take 0.11–0.24 of their previous time. Misses and expansions
+are faster on every type. The last column is a batched plain-SQL `IN` lookup
+with the same ACL and no Redis. It is faster than the index for exact and
+domain hits: the index pays for itself on IP containment (network ranges)
+and on misses, which never reach the database.
 
 ## Verification
 
