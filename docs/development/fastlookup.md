@@ -225,7 +225,7 @@ fastLookup; search for it with the regular attribute search instead.
 
 Lookups run in batches of at most 1,000 values or 4 MiB of SQL-quoted values,
 whichever is reached first. For each batch, one query reads the collation
-weights of every input, one filter call answers every token, and each
+weights of every input, one `candidates()` call answers every token, and each
 component (`value1`, `value2`) is resolved by a single `IN (…)` query holding
 one representative value per distinct weight. Rows come back with their own
 weight and are mapped to every input that shares it; a row whose weight

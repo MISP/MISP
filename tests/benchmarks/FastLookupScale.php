@@ -201,6 +201,11 @@ foreach (array_filter(explode(',', (string)getenv('FL_CPU_STAT'))) as $entry) {
         fwrite(STDERR, "FL_CPU_STAT entries must be name=path.\n");
         exit(2);
     }
+    $stat = @file_get_contents($path);
+    if (!is_string($stat) || !preg_match('/^usage_usec \d+$/m', $stat)) {
+        fwrite(STDERR, "FL_CPU_STAT $name=$path is unreadable or has no usage_usec.\n");
+        exit(2);
+    }
     $cpuFiles[$name] = $path;
 }
 
