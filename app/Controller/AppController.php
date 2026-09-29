@@ -246,13 +246,16 @@ class AppController extends Controller
         // tighter than ||, so the https branch is never gated by it. That turns
         // every endpoint accepting an XML content type - including cspReport,
         // which is unauthenticated by design - into a blind SSRF. Decode only
-        // what actually looks like a document.
-        $this->RequestHandler->addInputType('xml', [function ($body) {
-            if (!is_string($body) || strpos($body, '<') === false) {
-                return [];
-            }
-            return $this->RequestHandler->convertXml($body);
-        }]);
+        // what actually looks like a document. A controller that does not load
+        // RequestHandler (Api, Allowedlists, Pages) decodes no body at all.
+        if (isset($this->RequestHandler)) {
+            $this->RequestHandler->addInputType('xml', [function ($body) {
+                if (!is_string($body) || strpos($body, '<') === false) {
+                    return [];
+                }
+                return $this->RequestHandler->convertXml($body);
+            }]);
+        }
 
         if ($this->_isRest()) {
             $jsonDecode = function ($dataToDecode) {
