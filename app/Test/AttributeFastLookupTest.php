@@ -61,7 +61,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [["\x00C\x00A\x00F\x00E", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([])],
             [['event_id' => '7', 'weight' => "\x00C\x00A\x00F\x00E\x00 "]],
             [],
         ];
@@ -302,7 +302,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => false, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [["\x00C", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([])],
         ];
         $result = $tool->lookup([], ['value' => ['c']]);
         $this->assertSame('{}', json_encode($result['results']));
@@ -365,7 +365,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => ['11'], 'domain' => []]];
         $attribute->db->responses = [
-            [["\x00C", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([])],
             [],
             [],
             [],
@@ -389,10 +389,19 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
                 if (strpos($sql, 'SELECT WEIGHT_STRING') !== 0) {
                     return new FastLookupTestStatement([]);
                 }
-                preg_match_all('/ AS `([wp])\d+`/', $sql, $columns);
+                preg_match_all('/ AS `([wpq]|t\d+_)(\d+)`/', $sql, $columns, PREG_SET_ORDER);
+                $table = self::asciiWeightTable();
                 $row = [];
-                foreach ($columns[1] as $n => $kind) {
-                    $row[] = $kind === 'p' ? "\x00 " : 'w' . count($this->queries) . '-' . $n;
+                foreach ($columns as $n => [, $kind, $ordinal]) {
+                    if ($kind === 'p') {
+                        $row[] = "\x00 ";
+                    } elseif ($kind === 'q') {
+                        $row[] = strtr(rtrim(FastLookupValueTool::ASCII_PROBE, ' '), $table);
+                    } elseif ($kind !== 'w') {
+                        $row[] = $table[chr((int)$ordinal)];
+                    } else {
+                        $row[] = 'w' . count($this->queries) . '-' . $n;
+                    }
                 }
                 return new FastLookupTestStatement([$row]);
             }
@@ -415,7 +424,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $manager->index->hits = [0 => $exact, 1 => $exact, 2 => $exact];
         $weight = "\x00C\x00A\x00F\x00E";
         $attribute->db->responses = [
-            [[$weight, $weight, $weight . "\x00 ", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([$weight . "\x00 "])],
             [['event_id' => '7', 'weight' => $weight . "\x00 "]],
             [],
         ];
@@ -438,7 +447,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $exact = ['exact' => true, 'ip_range' => [], 'domain' => []];
         $manager->index->hits = [0 => $exact, 1 => $exact];
         $attribute->db->responses = [
-            [["\x00A", "\x00B", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([])],
             [['event_id' => '5', 'weight' => "\x00B\x00 "]],
             [],
         ];
@@ -453,7 +462,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00C\x00 "]; }, range(1, 100000));
-        $attribute->db->responses = [[["\x00C", "\x00 "]], $rows, $rows];
+        $attribute->db->responses = [[FastLookupTestDatasource::weightRow([])], $rows, $rows];
         $result = $tool->lookup([], ['value' => ['c']]);
         $this->assertCount(100000, $result['results']->c['event_ids']);
         $this->assertStringContainsString('`Attribute`.`value2` IN (', $attribute->db->queries[2]);
@@ -465,7 +474,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $attribute->db->responses = [
-            [["\x00C", "\x00 "]],
+            [FastLookupTestDatasource::weightRow([])],
             [['event_id' => '1', 'weight' => "\x00C"], ['event_id' => '2', 'weight' => "\x00C"]],
             [],
         ];
@@ -488,7 +497,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
         $rows = array_map(function ($i) { return ['event_id' => (string)$i, 'weight' => "\x00C\x00 "]; }, range(1, 100001));
-        $attribute->db->responses = [[["\x00C", "\x00 "]], $rows, []];
+        $attribute->db->responses = [[FastLookupTestDatasource::weightRow([])], $rows, []];
         $this->expectException(OverflowException::class);
         $tool->lookup([], ['value' => ['c']]);
     }
@@ -498,7 +507,7 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $tool = $this->tool($attribute, $manager);
         $attribute->db->config['datasource'] = 'Database/Mysql';
         $manager->index->hits = [0 => ['exact' => true, 'ip_range' => [], 'domain' => []]];
-        $attribute->db->responses = [[["\x00C", "\x00 "]], [['event_id' => '1', 'weight' => "\x00X"]], []];
+        $attribute->db->responses = [[FastLookupTestDatasource::weightRow([])], [['event_id' => '1', 'weight' => "\x00X"]], []];
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid IOC lookup response.');
         $tool->lookup([], ['value' => ['c']]);
@@ -508,7 +517,8 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
     {
         $tool = $this->weighingTool($attribute, $manager);
         $values = array_map(function ($i) {
-            return substr(sprintf('%04d', $i) . str_repeat("'" . str_repeat('x', 19), 200), 0, 4000);
+            // Non-ASCII, so every batch carries its values into the weights query.
+            return substr("\u{e9}" . sprintf('%04d', $i) . str_repeat("'" . str_repeat('x', 19), 200), 0, 4000);
         }, range(0, 999));
         $this->assertSame(200, substr_count($values[0], "'"));
         $this->assertGreaterThan(4194304, array_sum(array_map(function ($value) use ($attribute) { return strlen($attribute->db->value($value, 'string')); }, $values)));
@@ -519,6 +529,16 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         foreach ($attribute->db->queries as $sql) {
             $this->assertLessThanOrEqual(8388608, strlen($sql));
         }
+    }
+
+    public function testLaterAsciiBatchesIssueNoWeightsQuery(): void
+    {
+        $tool = $this->weighingTool($attribute, $manager);
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 2499));
+        $result = $tool->lookup([], ['value' => $values]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertCount(3, $manager->index->reads);
+        $this->assertCount(1, $this->weightQueries($attribute));
     }
 
     public function testThousandValuesUseOneBatch(): void

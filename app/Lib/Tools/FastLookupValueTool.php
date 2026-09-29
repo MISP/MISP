@@ -17,11 +17,15 @@ class FastLookupValueTool
      * posting size limit. Standalone port attributes are excluded for the same reason.
      */
     const UNINDEXED_COMPONENTS = ['ip-src|port' => 'value2', 'ip-dst|port' => 'value2', 'hostname|port' => 'value2'];
+    /** Checked against SQL before a collation's ASCII weight table is trusted. */
+    const ASCII_PROBE = " The Quick\tBrown Fox !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x00\x01\x1f\x7f end  ";
 
     private $attribute;
     private $db;
     private $columns;
     private $padWeights = [];
+    /** Per collation: byte => weight for 0x00-0x7F, or false once the probe disagreed with SQL. */
+    private $asciiWeights = [];
 
     public function __construct($attribute)
     {
@@ -271,30 +275,49 @@ class FastLookupValueTool
         return preg_match('/^utf8(?:mb3|mb4)?_(?:unicode_ci|general_ci|bin)$/D', $this->columns[$component]['collate']) === 1;
     }
 
+    /**
+     * WEIGHT_STRING(RTRIM(v)) per value, pad-stripped. For ASCII-only values in
+     * these single-level collations it is the concatenation of per-byte weights,
+     * derived in PHP from a table the database verified against a probe.
+     */
     private function weights(array $values)
     {
         $columns = [];
         $unique = [];
         $destinations = [];
         $collations = [];
+        $ascii = [];
         foreach ($values as $index => $components) {
             foreach ($components as $component => $value) {
                 $collation = $this->columns[$component]['collate'];
+                $collations[$collation] = true;
+                if (($this->asciiWeights[$collation] ?? null) !== false && is_string($value) && preg_match('/\A[\x00-\x7F]*\z/', $value) === 1) {
+                    $ascii[$index][$component] = $value;
+                    continue;
+                }
                 $identity = $collation . "\0" . $value;
                 if (!isset($unique[$identity])) {
                     $unique[$identity] = count($columns);
-                    $charset = explode('_', $collation, 2)[0];
-                    $expression = 'CONVERT(' . $this->db->value($value, 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
-                    $columns[] = 'WEIGHT_STRING(RTRIM(' . $expression . ')) AS ' . $this->db->name('w' . count($columns));
-                    $collations[$collation] = true;
+                    $columns[] = 'WEIGHT_STRING(RTRIM(' . $this->literalExpression($value, $collation) . ')) AS ' . $this->db->name('w' . count($columns));
                 }
                 $destinations[$unique[$identity]][] = [$index, $component];
             }
         }
-        if (!$columns) {
-            return [];
-        }
         $valueColumns = count($columns);
+        $tables = [];
+        foreach ($ascii as $components) {
+            foreach (array_keys($components) as $component) {
+                $collation = $this->columns[$component]['collate'];
+                if (!isset($this->asciiWeights[$collation]) && !in_array($collation, $tables, true)) {
+                    $tables[count($columns)] = $collation;
+                    $charset = explode('_', $collation, 2)[0];
+                    for ($n = 0; $n < 128; ++$n) {
+                        $columns[] = 'WEIGHT_STRING(CONVERT(CHAR(' . $n . ') USING ' . $charset . ') COLLATE ' . $collation . ') AS ' . $this->db->name('t' . count($tables) . '_' . $n);
+                    }
+                    $columns[] = 'WEIGHT_STRING(RTRIM(' . $this->literalExpression(self::ASCII_PROBE, $collation) . ')) AS ' . $this->db->name('q' . count($tables));
+                }
+            }
+        }
         $pads = [];
         foreach (array_keys($collations) as $collation) {
             if (!isset($this->padWeights[$collation])) {
@@ -302,36 +325,87 @@ class FastLookupValueTool
                 $columns[] = 'WEIGHT_STRING(' . $this->padExpression($collation) . ') AS ' . $this->db->name('p' . count($pads));
             }
         }
-        $statement = $this->db->rawQuery('SELECT ' . implode(', ', $columns));
-        if (!is_object($statement)) {
-            throw new RuntimeException('Could not derive IOC collation weights.');
-        }
-        try {
-            $row = $statement->fetch(PDO::FETCH_NUM);
-        } finally {
-            $statement->closeCursor();
-        }
-        if (!is_array($row) || count($row) !== count($columns)) {
-            throw new RuntimeException('Invalid IOC collation weight response.');
-        }
-        $row = array_values($row);
-        foreach ($pads as $position => $collation) {
-            if (!is_string($row[$position]) || $row[$position] === '') {
+        $computed = [];
+        if ($columns) {
+            $statement = $this->db->rawQuery('SELECT ' . implode(', ', $columns));
+            if (!is_object($statement)) {
+                throw new RuntimeException('Could not derive IOC collation weights.');
+            }
+            try {
+                $row = $statement->fetch(PDO::FETCH_NUM);
+            } finally {
+                $statement->closeCursor();
+            }
+            if (!is_array($row) || count($row) !== count($columns)) {
                 throw new RuntimeException('Invalid IOC collation weight response.');
             }
-            $this->padWeights[$collation] = $row[$position];
+            $row = array_values($row);
+            foreach ($pads as $position => $collation) {
+                if (!is_string($row[$position]) || $row[$position] === '') {
+                    throw new RuntimeException('Invalid IOC collation weight response.');
+                }
+            }
+            $verified = [];
+            foreach ($tables as $position => $collation) {
+                $table = [];
+                for ($n = 0; $n <= 128; ++$n) {
+                    if (!is_string($row[$position + $n])) {
+                        throw new RuntimeException('Invalid IOC collation weight response.');
+                    }
+                    if ($n < 128) {
+                        $table[chr($n)] = $row[$position + $n];
+                    }
+                }
+                $verified[$collation] = strtr(rtrim(self::ASCII_PROBE, ' '), $table) === $row[$position + 128] ? $table : false;
+            }
+            for ($n = 0; $n < $valueColumns; ++$n) {
+                if (!is_string($row[$n])) {
+                    throw new RuntimeException('Invalid IOC collation weight response.');
+                }
+            }
+            foreach ($pads as $position => $collation) {
+                $this->padWeights[$collation] = $row[$position];
+            }
+            $this->asciiWeights = $verified + $this->asciiWeights;
+            for ($n = 0; $n < $valueColumns; ++$n) {
+                foreach ($destinations[$n] as [$index, $component]) {
+                    $computed[$index][$component] = self::stripPaddingWeight($row[$n], $this->padWeights[$this->columns[$component]['collate']]);
+                }
+            }
+        }
+        $rejected = [];
+        foreach ($ascii as $index => $components) {
+            foreach ($components as $component => $value) {
+                $collation = $this->columns[$component]['collate'];
+                if ($this->asciiWeights[$collation] === false) {
+                    $rejected[$index][$component] = $value;
+                    continue;
+                }
+                // RTRIM removes trailing spaces only.
+                $computed[$index][$component] = self::stripPaddingWeight(strtr(rtrim($value, ' '), $this->asciiWeights[$collation]), $this->padWeights[$collation]);
+            }
+        }
+        if ($rejected) {
+            foreach ($this->weights($rejected) as $index => $components) {
+                foreach ($components as $component => $weight) {
+                    $computed[$index][$component] = $weight;
+                }
+            }
         }
         $weights = [];
-        for ($n = 0; $n < $valueColumns; ++$n) {
-            if (!is_string($row[$n])) {
-                throw new RuntimeException('Invalid IOC collation weight response.');
-            }
-            foreach ($destinations[$n] as [$index, $component]) {
-                $weights[$index][$component] = self::stripPaddingWeight($row[$n], $this->padWeights[$this->columns[$component]['collate']]);
+        foreach ($values as $index => $components) {
+            foreach (array_keys($components) as $component) {
+                $weights[$index][$component] = $computed[$index][$component];
             }
         }
         ksort($weights);
         return $weights;
+    }
+
+    private function literalExpression($value, string $collation): string
+    {
+        $charset = explode('_', $collation, 2)[0];
+        return 'CONVERT(' . $this->db->value($value, 'string') . ' USING ' . $charset . ') COLLATE ' . $collation;
     }
 
     private function exactToken($component, $weight)

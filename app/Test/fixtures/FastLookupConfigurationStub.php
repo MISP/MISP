@@ -43,6 +43,23 @@ class FastLookupTestDatasource
     }
     public function getConnection() { return $this; }
     public function getAttribute($attribute) { return $this->version; }
+    /** Case-folding per-byte weights "\x00" . strtoupper(byte); a space weighs like the pad "\x00 ". */
+    public static function asciiWeightTable(): array
+    {
+        $table = [];
+        for ($n = 0; $n < 128; ++$n) {
+            $table[chr($n)] = "\x00" . strtoupper(chr($n));
+        }
+        return $table;
+    }
+
+    /** A wide weights row: value cells, the ASCII table and its probe weight, then pad cells. */
+    public static function weightRow(array $valueCells, array $padCells = ["\x00 "]): array
+    {
+        $table = self::asciiWeightTable();
+        return array_merge($valueCells, array_values($table), [strtr(rtrim(FastLookupValueTool::ASCII_PROBE, ' '), $table)], $padCells);
+    }
+
     public function rawQuery($sql)
     {
         $this->queries[] = $sql;

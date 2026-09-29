@@ -137,7 +137,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
     {
         $this->attribute->db->config['datasource'] = 'Database/Mysql';
         $this->attribute->db->responses = [[["\x0e\x60", "\x02\x09"]]];
-        $query = $this->tool->queryTokens(['c'], ['domain'], $fallback);
+        $query = $this->tool->queryTokens(['é'], ['domain'], $fallback);
         $this->assertCount(1, $query[0]);
         $this->assertSame([], $fallback);
         $this->assertSame(1, substr_count($this->attribute->db->queries[0], 'WEIGHT_STRING(RTRIM('), 'Equivalent component collations must not duplicate weight work.');
@@ -147,13 +147,13 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
     {
         $this->attribute->db->config['datasource'] = 'Database/Mysql';
         $this->attribute->db->responses = [[["\x00A\x00 ", "\x00B", "\x00 "]]];
-        $this->tool->queryTokens(['A', 'b', 'A'], ['domain'], $fallback, $weights);
+        $this->tool->queryTokens(['Ä', 'ß', 'Ä'], ['domain'], $fallback, $weights);
         $queries = $this->attribute->db->queries;
         $this->assertCount(1, $queries);
-        $this->assertStringStartsWith("SELECT WEIGHT_STRING(RTRIM(CONVERT('A' USING utf8mb3) COLLATE utf8mb3_unicode_ci)) AS ", $queries[0]);
+        $this->assertStringStartsWith("SELECT WEIGHT_STRING(RTRIM(CONVERT('Ä' USING utf8mb3) COLLATE utf8mb3_unicode_ci)) AS ", $queries[0]);
         $this->assertStringNotContainsString('UNION', $queries[0]);
         $this->assertSame(1, substr_count($queries[0], "WEIGHT_STRING(CONVERT(' ' USING utf8mb3) COLLATE utf8mb3_unicode_ci)"));
-        $this->assertSame(1, substr_count($queries[0], "CONVERT('A' USING"));
+        $this->assertSame(1, substr_count($queries[0], "CONVERT('Ä' USING"));
         $this->assertSame([
             0 => ['value1' => "\x00A", 'value2' => "\x00A"],
             1 => ['value1' => "\x00B", 'value2' => "\x00B"],
@@ -168,7 +168,7 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $this->attribute->db->responses = [[$row]];
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid IOC collation weight response.');
-        $this->tool->queryTokens(['A'], ['domain']);
+        $this->tool->queryTokens(['Ä'], ['domain']);
     }
 
     public static function malformedWideRows(): array
@@ -249,9 +249,9 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
             [["\x0e\x60"]],
         ];
         $prepared = $tool->prepareScannedAttributes([
-            ['id' => '5', 'type' => 'md5', 'value1' => 'c ', 'value2' => '', 'weight1' => "\x0e\x60\x02\x09", 'weight2' => null],
+            ['id' => '5', 'type' => 'md5', 'value1' => 'é ', 'value2' => '', 'weight1' => "\x0e\x60\x02\x09", 'weight2' => null],
         ]);
-        $query = $tool->queryTokens(['c'], ['md5']);
+        $query = $tool->queryTokens(['é'], ['md5']);
         $this->assertSame([$query[0][0]['token']], $prepared[0]['tokens']);
         $this->assertSame('exact', $query[0][0]['kind']);
         $this->assertArrayNotHasKey('type', $query[0][0]);
@@ -264,5 +264,103 @@ class FastLookupValueToolTest extends PHPUnit\Framework\TestCase
         $tokens = array_column($queries[0], 'token');
         $this->assertSame($tokens, array_values(array_unique($tokens)));
         $this->assertSame(['domain', 'domain'], array_column($queries[0], 'kind'));
+    }
+
+    /** A synthetic per-code-point table: weight "\x00" . byte, so a space weighs like the pad. */
+    private static function asciiTable(): array
+    {
+        $table = [];
+        for ($n = 0; $n < 128; ++$n) {
+            $table[chr($n)] = "\x00" . chr($n);
+        }
+        return $table;
+    }
+
+    /** Value cells, then the 128 table cells and the probe weight, then the pad cell. */
+    private static function wideRow(array $valueCells, ?string $probe = null, array $padCells = ["\x00 "]): array
+    {
+        $table = self::asciiTable();
+        $probe = $probe ?? strtr(rtrim(FastLookupValueTool::ASCII_PROBE, ' '), $table);
+        return array_merge($valueCells, array_values($table), [$probe], $padCells);
+    }
+
+    public function testAsciiWeightsComeFromVerifiedTableWithoutFurtherQueries(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[self::wideRow(["\x0e\x60"])]];
+        $this->tool->queryTokens(['A b  ', 'é', "\t", ''], ['md5'], $fallback, $weights);
+        $queries = $this->attribute->db->queries;
+        $this->assertCount(1, $queries);
+        $this->assertSame(128, substr_count($queries[0], 'WEIGHT_STRING(CONVERT(CHAR('));
+        $this->assertSame(1, substr_count($queries[0], "CONVERT('é' USING"));
+        $this->assertStringNotContainsString("'A b  '", $queries[0]);
+        $this->assertSame(1, substr_count($queries[0], "WEIGHT_STRING(CONVERT(' ' USING utf8mb3) COLLATE utf8mb3_unicode_ci)"));
+        $this->assertSame([], $fallback);
+        $this->assertSame([
+            0 => ['value1' => "\x00A\x00 \x00b", 'value2' => "\x00A\x00 \x00b"],
+            1 => ['value1' => "\x0e\x60", 'value2' => "\x0e\x60"],
+            2 => ['value1' => "\x00\t", 'value2' => "\x00\t"],
+            3 => ['value1' => '', 'value2' => ''],
+        ], $weights);
+
+        // Memoised: an all-ASCII batch issues no query (the stub throws on any).
+        $this->tool->queryTokens(['xyz ', ' ', "a\x00 "], ['md5'], $fallback, $weights);
+        $this->assertCount(1, $this->attribute->db->queries);
+        $this->assertSame("\x00x\x00y\x00z", $weights[0]['value1']);
+        $this->assertSame('', $weights[1]['value1']);
+        $this->assertSame("\x00a\x00\x00", $weights[2]['value1']);
+    }
+
+    public function testNonAsciiValuesStillGetSqlColumnsOnceTableIsMemoised(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[self::wideRow([])], [["\x0e\x60"]]];
+        $this->tool->queryTokens(['a'], ['md5']);
+        $this->tool->queryTokens(['é', 'a'], ['md5'], $fallback, $weights);
+        $queries = $this->attribute->db->queries;
+        $this->assertCount(2, $queries);
+        $this->assertSame("SELECT WEIGHT_STRING(RTRIM(CONVERT('é' USING utf8mb3) COLLATE utf8mb3_unicode_ci)) AS `w0`", $queries[1]);
+        $this->assertSame([
+            0 => ['value1' => "\x0e\x60", 'value2' => "\x0e\x60"],
+            1 => ['value1' => "\x00a", 'value2' => "\x00a"],
+        ], $weights);
+    }
+
+    public function testProbeMismatchFallsBackToSqlForTheToolLifetime(): void
+    {
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[self::wideRow([], "\x00?")], [["\x01A"]], [["\x01B"]]];
+        $this->tool->queryTokens(['A '], ['md5'], $fallback, $weights);
+        $queries = $this->attribute->db->queries;
+        $this->assertCount(2, $queries);
+        $this->assertSame("SELECT WEIGHT_STRING(RTRIM(CONVERT('A ' USING utf8mb3) COLLATE utf8mb3_unicode_ci)) AS `w0`", $queries[1]);
+        $this->assertSame([0 => ['value1' => "\x01A", 'value2' => "\x01A"]], $weights);
+        $this->tool->queryTokens(['B'], ['md5'], $fallback, $weights);
+        $this->assertCount(3, $this->attribute->db->queries);
+        $this->assertStringNotContainsString('CHAR(', $this->attribute->db->queries[2]);
+        $this->assertSame("\x01B", $weights[0]['value1']);
+    }
+
+    /** @dataProvider malformedTableRows */
+    public function testMalformedTableRowFailsClosed(string $defect): void
+    {
+        $row = self::wideRow([]);
+        if ($defect === 'null table cell') {
+            $row[65] = null;
+        } elseif ($defect === 'null probe') {
+            $row[128] = null;
+        } else {
+            unset($row[128]);
+        }
+        $this->attribute->db->config['datasource'] = 'Database/Mysql';
+        $this->attribute->db->responses = [[array_values($row)]];
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid IOC collation weight response.');
+        $this->tool->queryTokens(['A'], ['md5']);
+    }
+
+    public static function malformedTableRows(): array
+    {
+        return ['null table cell' => ['null table cell'], 'null probe' => ['null probe'], 'missing probe' => ['missing probe']];
     }
 }

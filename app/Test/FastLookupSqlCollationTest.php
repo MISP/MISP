@@ -35,6 +35,8 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
         if ($this->pdo instanceof PDO && $this->database) {
             $this->server->exec('DROP DATABASE ' . $this->database);
         }
+        // Isolated failures serialize the test case; PDO cannot be serialized.
+        $this->pdo = $this->server = null;
     }
 
     /** @dataProvider collations */
@@ -96,6 +98,60 @@ class FastLookupSqlCollationTest extends PHPUnit\Framework\TestCase
         } finally {
             $this->pdo->exec('DROP TABLE IF EXISTS ' . $table);
         }
+    }
+
+    /** @dataProvider collations */
+    public function testAsciiWeightsEqualDatabaseWeightsWithoutQueries($collation): void
+    {
+        $attribute = new FastLookupTestAttribute();
+        $attribute->db = new class($this->pdo) extends FastLookupTestDatasource {
+            private $pdo;
+            public function __construct($pdo) { $this->pdo = $pdo; $this->config['datasource'] = 'Database/Mysql'; }
+            public function rawQuery($sql) { $this->queries[] = $sql; return $this->pdo->query($sql); }
+            public function value($value, $type = null) { return $this->pdo->quote($value); }
+            public function getConnection() { return $this->pdo; }
+        };
+        $charset = explode('_', $collation, 2)[0];
+        $attribute->columns = array_fill_keys(['value1', 'value2'], ['charset' => $charset, 'collate' => $collation]);
+        $tool = new FastLookupValueTool($attribute);
+        $tool->queryTokens(['warm-up'], ['md5']);
+        $queries = count($attribute->db->queries);
+
+        $inputs = ['', ' ', '   ', "\t", " \t ", "a \x00", "\x00 ", ' a', "a\x7f ", str_repeat(' ', 300)];
+        for ($n = 0; $n < 128; ++$n) {
+            $inputs[] = chr($n);
+            $inputs[] = 'x' . chr($n) . ' ';
+        }
+        mt_srand(20260929 + crc32($collation));
+        $controls = array_merge(array_map('chr', range(0, 31)), ["\x7f"]);
+        for ($i = 0; $i < 2000; ++$i) {
+            $value = '';
+            for ($length = mt_rand(0, 300), $j = 0; $j < $length; ++$j) {
+                $roll = mt_rand(0, 9);
+                $value .= $roll < 2 ? $controls[mt_rand(0, count($controls) - 1)] : ($roll < 4 ? ' ' : chr(mt_rand(0x21, 0x7e)));
+            }
+            $inputs[] = $value . str_repeat(' ', mt_rand(0, 3));
+        }
+
+        $mismatches = [];
+        foreach (array_chunk($inputs, 500) as $chunk) {
+            $tool->queryTokens($chunk, ['md5'], $fallback, $weights);
+            $this->assertSame($queries, count($attribute->db->queries), $collation . ' issued a weights query for ASCII values.');
+            $this->assertSame([], $fallback);
+            $columns = [];
+            foreach ($chunk as $value) {
+                $columns[] = 'WEIGHT_STRING(RTRIM(CONVERT(' . $this->pdo->quote($value) . ' USING ' . $charset . ') COLLATE ' . $collation . '))';
+            }
+            $row = $this->pdo->query('SELECT ' . implode(', ', $columns))->fetch(PDO::FETCH_NUM);
+            foreach ($chunk as $i => $value) {
+                $expected = $tool->stripColumnPadding('value1', $row[$i]);
+                if ($weights[$i]['value1'] !== $expected || $weights[$i]['value2'] !== $expected) {
+                    $mismatches[] = bin2hex($value);
+                }
+            }
+        }
+        $this->assertSame([], array_slice($mismatches, 0, 5), $collation . ': ' . count($mismatches) . ' of ' . count($inputs) . ' ASCII weights differ from SQL.');
+        $this->assertSame($queries, count($attribute->db->queries));
     }
 
     public static function collations(): array
