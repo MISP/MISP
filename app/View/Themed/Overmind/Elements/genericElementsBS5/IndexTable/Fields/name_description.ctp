@@ -2,7 +2,7 @@
 $paths = array_map('trim', explode(',', $field['data_path']));
 
 $name        = Hash::extract($row, $paths[0])[0] ?? null;
-$description = Hash::extract($row, $paths[1])[0] ?? null;
+$description = isset($paths[1]) ? (Hash::extract($row, $paths[1])[0] ?? null) : null;
 
 if (empty($name)) {
     return;
