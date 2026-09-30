@@ -5827,7 +5827,16 @@ $(document.body).on('click', '.populateActionTrigger', function() {
             }
         },
         error: function(data) {
-            showMessage('fail', data['responseJSON']['errors']);
+            var response = data.responseJSON || {};
+            var message = response.errors || response.message;
+            if (Array.isArray(message)) {
+                message = message.join('\n');
+            }
+            if (typeof message === 'string' && message.length > 0) {
+                showMessage('fail', escapeHtml(message));
+            } else {
+                xhrFailCallback(data);
+            }
         },
         type: populate_script['type'],
         url: baseurl + populate_script['uri']
