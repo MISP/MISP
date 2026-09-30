@@ -207,8 +207,10 @@ event/attribute/object/sharing-group permissions in SQL. There is no implicit
 Permission-filtered responses are never cached; HTTP responses use
 `Cache-Control: no-store`.
 
-Until backfill is complete, requests return HTTP **503** and `Retry-After: 5`,
-with scope and progress but **no `results` field**:
+Until backfill is complete, requests return HTTP **503** and `Retry-After: 5`
+with **no `results` field**. The index covers every organisation's data, so
+callers other than site administrators receive only the status, the
+configured scope and a generic message:
 
 ```json
 {
@@ -220,19 +222,30 @@ with scope and progress but **no `results` field**:
     "false_positive_rate": 0.001,
     "matching": ["exact", "ip_cidr", "parent_domain"]
   },
-  "progress": {
-    "processed_attributes": 1100,
-    "total_attributes": 1300,
-    "percent": 84,
-    "eta_seconds": 24
-  }
+  "message": "The IOC index is being built; retry later."
 }
 ```
 
-The example above is a first build: nothing has ever been indexed, so there
-is no live generation yet. Once a live generation exists — a resumed
-rebuild running beside a still-serving index, or an `updating` batch — the
-503 status envelopes built from the index status, and every
+`warming` and `updating` carry `The IOC index is being built; retry later.`;
+`unavailable` and `error` carry `Fast lookup is unavailable. Contact your
+administrator.`; an index that changes while a lookup runs answers `updating`
+with `The IOC index changed during this lookup; retry after it is ready.`
+
+Site administrators receive the full index status instead: its detailed
+message, `progress`, `generation`, `revision` and `build`:
+
+```json
+"progress": {
+  "processed_attributes": 1100,
+  "total_attributes": 1300,
+  "percent": 84,
+  "eta_seconds": 24
+}
+```
+
+Once a live generation exists — a resumed rebuild running beside a
+still-serving index, or an `updating` batch — the site administrators'
+503 status envelopes, and every
 `GET /servers/fastLookup` status response, also carry a `filter` object with
 that generation's capacity, configured rate, current insert count and
 upper-bound stale count, straight from Redis metadata (an O(1) read, never
@@ -257,6 +270,14 @@ The estimate is based on completed work and elapsed time; it is `null` before
 there is enough progress. Pending updates (`updating`), missing/stale Redis state,
 failed builds and changed scope also refuse results. Retry once the index is ready.
 
+Only matches the caller may see count towards the result limit: a request with
+more than 100,000 visible (input, event) pairs answers **413** without partial
+results. Candidates read from the shared index before the permission checks
+never count towards it; a request needing more than 500,000 of them for one
+batch of 1,000 values, 5,000,000 in all, or their Redis payload, answers the
+generic **503** unavailable body and logs the
+reason for administrators. Split such requests into smaller ones.
+
 Site administrators can monitor backfill progress and the Bloom filter's fill,
 stale-entry and measured memory statistics at **Administration → Fast lookup
 index** (`/servers/fastLookup`). Use its rebuild/resume controls when
@@ -279,9 +300,9 @@ site-admin only. See [operational details](development/fastlookup.md).
 | 400 | Invalid JSON, option, request shape, input limit or content type. |
 | 403 | Authentication/authorization failed or feature disabled. |
 | 405 | Non-POST lookup, or API searches disabled for this role. |
-| 413 | Candidate/result safety budget exceeded; no partial results. |
+| 413 | More than 100,000 visible (input, event) pairs; no partial results. |
 | 429 | Normal API search rate limit exceeded. |
-| 503 | Warming, updating or unavailable; no results. |
+| 503 | Warming, updating or unavailable, including the per-request index work cap; no results. |
 
 ## AddTag
 Add a tag or a tag collection to an attribute.

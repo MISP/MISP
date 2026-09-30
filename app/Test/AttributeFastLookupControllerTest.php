@@ -174,10 +174,32 @@ class AttributeFastLookupControllerTest extends TestCase
         $this->assertRejected(400);
     }
 
-    public function testResourceCapBecomes413WithoutAPartialMapping(): void
+    public function testVisibleRowLimitBecomes413WithoutAPartialMapping(): void
     {
-        $this->controller->MispAttribute->exception = new OverflowException('Candidate row limit exceeded.');
+        $this->controller->MispAttribute->exception = new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
         $this->assertRejected(413);
+    }
+
+    public function testCandidateResourceCapLooksLikeAnyOutageAndIsLogged(): void
+    {
+        require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
+        $this->controller->MispAttribute->exception = new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
+        $this->assertRejected(503);
+        $response = $this->controller->fastLookup();
+        $this->assertSame('5', $response->headers['Retry-After']);
+        $this->assertSame(['status' => 'error', 'scope' => FastLookupConfig::scope(),
+            'message' => 'Fast lookup is unavailable. Contact your administrator.'], json_decode($response->body(), true));
+        $this->assertSame(['warning', 'fastLookup refused: The fastLookup candidate IDs exceed the per-request resource cap.'],
+            $this->controller->logs[0]);
+    }
+
+    public function testOtherFailuresStayGeneric503Errors(): void
+    {
+        $this->controller->MispAttribute->exception = new RuntimeException('Redis said 123 things.');
+        $response = $this->controller->fastLookup();
+        $this->assertSame(503, $response->statusCode());
+        $this->assertSame('Fast lookup is unavailable. Contact your administrator.', json_decode($response->body(), true)['message']);
+        $this->assertSame('error', $this->controller->logs[0][0]);
     }
 
     /** @dataProvider actionSpellings */

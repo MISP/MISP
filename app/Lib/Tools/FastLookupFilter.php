@@ -21,6 +21,15 @@ class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableExcep
 }
 
 /**
+ * A lookup needs more pre-authorization candidate work than one request may
+ * do. It is sized far above real use, never depends on what the caller may
+ * see, and so must never be reported as a result-size limit.
+ */
+class FastLookupResourceLimitException extends RuntimeException
+{
+}
+
+/**
  * A generation's filter is full and refused tokens: the write failed, and the
  * generation cannot take them until it is rebuilt larger.
  */
@@ -70,6 +79,8 @@ class FastLookupFilter
     const INLINE_POSTING_BYTES = 64;
     const MAX_POSTING_BYTES = 8388608;
     const MAX_POSTING_IDS = 500000;
+    /** Posting bytes a candidate read may use per ID of its budget: a 19-digit ID, its comma and slack. */
+    const CANDIDATE_BYTES_PER_ID = 21;
     const MAX_TOKENS_PER_ATTRIBUTE = 1024;
     const FILTER_BATCH = 1000;
     const POSTING_BATCH = 128;
@@ -443,14 +454,20 @@ LUA
         return ['version' => $pv, 'lengths' => $lengths];
     }
 
-    /** A non-null $prefixVersion fails the lookup when the generation's prefix set has moved on. */
-    public function candidates(string $generation, array $queryTokens, int $maximumIds = 100000, ?string $prefixVersion = null): array
+    /**
+     * $maximumIds bounds the distinct (position, kind, ID) candidates of this
+     * call, and CANDIDATE_BYTES_PER_ID times it the posting bytes read, before
+     * any authorization; either overflow is a FastLookupResourceLimitException.
+     * A non-null $prefixVersion fails the lookup when the generation's prefix
+     * set has moved on.
+     */
+    public function candidates(string $generation, array $queryTokens, int $maximumIds = self::MAX_POSTING_IDS, ?string $prefixVersion = null): array
     {
         $this->identifier($generation);
         if ($prefixVersion !== null && $prefixVersion !== '' && !ctype_digit($prefixVersion)) {
             throw new InvalidArgumentException('Invalid fastLookup prefix version.');
         }
-        if ($maximumIds < 1 || $maximumIds > self::MAX_POSTING_IDS) {
+        if ($maximumIds < 0 || $maximumIds > self::MAX_POSTING_IDS) {
             throw new InvalidArgumentException('Invalid fastLookup candidate budget.');
         }
         $plan = []; $output = [];
@@ -477,9 +494,10 @@ LUA
         }
         $buckets = $info['buckets'];
         $count = 0;
+        $bytes = $maximumIds * self::CANDIDATE_BYTES_PER_ID;
         foreach (array_chunk(array_map('strval', array_keys($plan)), self::READ_BATCH_SIZE) as $batch) {
             $keys = [$this->metaKey(), $this->infoKey($generation), $this->bloomKey($generation)];
-            $args = [$generation, (string)($maximumIds * 21), $prefixVersion ?? '-'];
+            $args = [$generation, (string)$bytes, $prefixVersion ?? '-'];
             foreach ($batch as $token) {
                 array_push($args, $token[0] === 'E' ? 0 : $this->keyIndex($keys, $this->postingKey($generation, $token, $buckets)), $token);
             }
@@ -517,7 +535,7 @@ LUA
                 throw new FastLookupPrefixesChangedException('The fastLookup IP prefix set changed during the lookup.');
             }
             if ($reply[0] === 0) {
-                throw new OverflowException('The fastLookup candidate payload exceeds the request budget.');
+                throw new FastLookupResourceLimitException('The fastLookup candidate payload exceeds the per-request resource cap.');
             }
             $rows = $reply[1] ?? null;
             if (!is_array($rows) || count($rows) !== count($batch)) {
@@ -531,11 +549,17 @@ LUA
                     foreach ($plan[$token] as [$position]) { $output[$position]['exact'] = true; }
                     continue;
                 }
+                $bytes -= is_string($row) ? strlen($row) : 0;
+                if ($bytes < 0) {
+                    throw new FastLookupResourceLimitException('The fastLookup candidate payload exceeds the per-request resource cap.');
+                }
                 $ids = $this->parsePosting($row, $maximumIds);
                 foreach ($plan[$token] as [$position, $kind]) {
                     foreach ($ids as $id) {
                         if (!isset($output[$position][$kind][$id])) {
-                            if (++$count > $maximumIds) { throw new OverflowException('The fastLookup candidate count exceeds the request budget.'); }
+                            if (++$count > $maximumIds) {
+                                throw new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
+                            }
                             $output[$position][$kind][$id] = $id;
                         }
                     }
@@ -731,7 +755,9 @@ LUA
         if (!is_string($value) || $value === '' || substr($value, -1) !== ',' || strlen($value) > self::MAX_POSTING_BYTES) {
             throw new FastLookupIndexUnavailableException('A fastLookup posting payload is corrupt.');
         }
-        if (substr_count($value, ',') > $maximum) { throw new OverflowException('The fastLookup candidate count exceeds the request budget.'); }
+        if (substr_count($value, ',') > $maximum) {
+            throw new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
+        }
         $ids = explode(',', substr($value, 0, -1));
         $seen = [];
         foreach ($ids as $id) {

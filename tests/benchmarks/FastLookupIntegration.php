@@ -265,10 +265,15 @@ $stranger = array_replace($user, ['org_id' => 3, 'fixture_sgids' => []]);
 
 $unavailable = lookup($user, ['shared']);
 same('unavailable', $unavailable['status'], 'index unavailable before first backfill');
+same(['status', 'scope', 'message'], array_keys($unavailable), 'an unavailable index shows users only status, scope and message');
 same(false, isset($unavailable['results']), 'unbuilt index never returns results');
 $build = manager();
 same('warming', $build->startRebuild()['status'], 'rebuild starts warming');
 same(false, isset(lookup($user, ['shared'])['results']), 'unscanned rebuild gates IOC results');
+$warming = lookup($user, ['shared']);
+same(['status', 'scope', 'message'], array_keys($warming), 'a warming index shows users only status, scope and message');
+same(['warming', 'The IOC index is being built; retry later.'], [$warming['status'], $warming['message']], 'a warming index gives users a generic message');
+same(true, isset(lookup($admin, ['shared'])['progress']['total_attributes']), 'a warming index shows site admins its progress');
 while (($status = $build->runBatch(1))['status'] === 'warming') {}
 same('ready', $status['status'], 'initial backfill ready');
 
@@ -317,6 +322,9 @@ $benchmarks[] = ['scenario' => '10000 distinct IPv4 misses', 'elapsed_ms' => rou
 addAttribute('new.example.org', 2);
 changed(2);
 same('updating', lookup($user, ['new.example.org'])['status'], 'dirty event gates results');
+same(['status', 'scope', 'message'], array_keys(lookup($user, ['new.example.org'])), 'an updating index hides its details from users');
+$adminStatus = lookup($admin, ['new.example.org']);
+same(true, isset($adminStatus['generation'], $adminStatus['revision'], $adminStatus['progress'], $adminStatus['filter']), 'an updating index shows site admins its details');
 drain();
 jsonSame(['new.example.org' => ['2']], lookup($user, ['new.example.org']), 'new member appears after refresh');
 

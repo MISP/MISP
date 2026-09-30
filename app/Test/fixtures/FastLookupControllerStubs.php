@@ -46,6 +46,7 @@ if (!class_exists('AppController', false)) {
         public $Job;
         public $Server;
         public $viewVars = [];
+        public $logs = [];
         public $rest = true;
         public $admin = true;
         protected function _isSiteAdmin() { return $this->admin; }
@@ -54,6 +55,7 @@ if (!class_exists('AppController', false)) {
         protected function _isRest() { return $this->rest; }
         public function set($name, $value) { $this->viewVars[$name] = $value; }
         public function loadModel($name) { $this->{$name} = new $name(); }
+        public function log($message, $type = 'error') { $this->logs[] = [$type, $message]; return true; }
     }
 }
 if (!class_exists('CakeResponse', false)) {

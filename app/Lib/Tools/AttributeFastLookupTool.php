@@ -11,7 +11,14 @@ class AttributeFastLookupTool
     const MAX_REQUEST_BYTES = 16777216;
     const BATCH_SIZE = 1000;
     const MAX_BATCH_BYTES = 4194304;
+    /** Visible (input, event) pairs: the only result-size limit a caller can see. */
     const MAX_ROWS = 100000;
+    /**
+     * Pre-authorization candidate IDs one request may read from the shared
+     * index: a resource cap, independent of visibility and far above real use.
+     */
+    const MAX_CANDIDATE_IDS = 5000000;
+    const CHANGED_MESSAGE = 'The IOC index changed during this lookup; retry after it is ready.';
 
     private $attribute;
     private $db;
@@ -27,9 +34,36 @@ class AttributeFastLookupTool
     /**
      * @return array Scoped status, with results only for a complete current index.
      * @throws InvalidArgumentException Invalid request or configuration.
-     * @throws OverflowException Complete results exceed the bounded row budget.
+     * @throws OverflowException Complete visible results exceed the bounded row budget.
+     * @throws FastLookupResourceLimitException The request needs more candidate work than allowed.
      */
     public function lookup(array $user, array $request)
+    {
+        $result = $this->search($user, $request);
+        if (($result['status'] ?? null) === 'ready' || !empty($user['Role']['perm_site_admin'])) {
+            return $result;
+        }
+        return self::publicStatus($result);
+    }
+
+    /**
+     * Index progress, generations, build errors and filter counters describe
+     * every organisation's data: only site admins see them.
+     */
+    private static function publicStatus(array $status): array
+    {
+        $state = in_array($status['status'] ?? null, ['warming', 'updating', 'error'], true) ? $status['status'] : 'unavailable';
+        if (($status['message'] ?? null) === self::CHANGED_MESSAGE) {
+            $message = self::CHANGED_MESSAGE;
+        } elseif ($state === 'warming' || $state === 'updating') {
+            $message = 'The IOC index is being built; retry later.';
+        } else {
+            $message = 'Fast lookup is unavailable. Contact your administrator.';
+        }
+        return ['status' => $state, 'scope' => $status['scope'], 'message' => $message];
+    }
+
+    private function search(array $user, array $request)
     {
         $scope = FastLookupConfig::scope($this->attribute);
         list($originals, $values) = $this->validate($request, $scope['max_values']);
@@ -55,6 +89,7 @@ class AttributeFastLookupTool
             }
         }
         $rowCount = 0;
+        $candidateCount = 0;
         $matches = [];
         $filter = $this->manager->filter();
         $prefixes = $filter->prefixLengths($snapshot['generation']);
@@ -64,8 +99,9 @@ class AttributeFastLookupTool
                 throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
             }
             $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
+            $budget = min(FastLookupFilter::MAX_POSTING_IDS, static::MAX_CANDIDATE_IDS - $candidateCount);
             try {
-                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount,
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, $budget,
                     self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
             } catch (FastLookupPrefixesChangedException $e) {
                 if ($prefixesRefreshed) {
@@ -74,10 +110,10 @@ class AttributeFastLookupTool
                 $prefixesRefreshed = true;
                 $prefixes = $filter->prefixLengths($snapshot['generation']);
                 $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
-                $candidates = $filter->candidates($snapshot['generation'], $tokens, self::MAX_ROWS - $rowCount,
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, $budget,
                     self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
             }
-            $this->validateCandidates($candidates, $batch, $rowCount);
+            $candidateCount += $this->validateCandidates($candidates, $batch, $budget);
             $pairs = [];
             foreach (['value1', 'value2'] as $component) {
                 $restriction = '';
@@ -138,32 +174,34 @@ class AttributeFastLookupTool
 
             // Fetch each expanded candidate once; ACLs, type, publication and
             // deletion are checked before any current component leaves SQL.
+            // Each ID maps to packed (position << 1 | kind) codes, which keeps
+            // a full candidate budget within tens of megabytes.
             $expanded = [];
             foreach ($candidates as $index => $groups) {
-                foreach (['ip_range', 'domain'] as $kind) {
-                    foreach ($groups[$kind] ?? [] as $id) {
-                        $expanded[$id][$index][$kind] = true;
+                foreach (['ip_range' => 0, 'domain' => 1] as $kind => $bit) {
+                    $code = pack('N', $index << 1 | $bit);
+                    foreach ($groups[$kind] as $id) {
+                        $expanded[$id] = ($expanded[$id] ?? '') . $code;
                     }
                 }
             }
+            unset($candidates);
+            $fields = [];
+            foreach (['id', 'event_id', 'type', 'value1', 'value2'] as $field) {
+                $fields[] = $this->db->name('Attribute.' . $field) . ' AS ' . $this->db->name($field);
+            }
             foreach (array_chunk(array_keys($expanded), 1000) as $ids) {
-                $fields = [];
-                foreach (['id', 'event_id', 'type', 'value1', 'value2'] as $field) {
-                    $fields[] = $this->db->name('Attribute.' . $field) . ' AS ' . $this->db->name($field);
-                }
                 $sql = 'SELECT ' . implode(', ', $fields) . ' FROM ' . $from
                     . ' WHERE ' . $this->db->name('Attribute.id') . ' IN (' . implode(',', $ids) . ')' . $common;
-                foreach ($this->query([$sql], $rowCount) as $row) {
-                    foreach ($expanded[$row['id']] ?? [] as $index => $kinds) {
+                foreach ($this->rows($sql) as $row) {
+                    $eventId = (string)$row['event_id'];
+                    foreach (unpack('N*', $expanded[$row['id']] ?? '') as $code) {
+                        $index = $code >> 1;
+                        $group = $code & 1 ? 'domains' : 'ip_ranges';
                         $live = $valueTool->expandedMatches($batch[$index], $row);
-                        foreach (['ip_range' => 'ip_ranges', 'domain' => 'domains'] as $kind => $group) {
-                            if (!isset($kinds[$kind])) {
-                                continue;
-                            }
-                            foreach ($live[$group] as $storedValue) {
-                                $matches[$index]['events'][(string)$row['event_id']] = true;
-                                $matches[$index][$group][$storedValue][(string)$row['event_id']] = true;
-                            }
+                        foreach ($live[$group] as $storedValue) {
+                            $this->addPair($matches, $pairs, $index, $eventId, $rowCount);
+                            $matches[$index][$group][$storedValue][$eventId] = true;
                         }
                     }
                 }
@@ -175,7 +213,7 @@ class AttributeFastLookupTool
             if (($status['status'] ?? '') === 'ready') {
                 $status['status'] = 'updating';
             }
-            $status['message'] = 'The IOC index changed during this lookup; retry after it is ready.';
+            $status['message'] = self::CHANGED_MESSAGE;
             unset($status['results']);
             return $status;
         }
@@ -253,8 +291,9 @@ class AttributeFastLookupTool
      * Anything else is a malformed reply and fails closed: a missing flag or
      * position must never read as "absent".
      */
-    private function validateCandidates(array $candidates, array $batch, &$rowCount)
+    private function validateCandidates(array $candidates, array $batch, int $budget): int
     {
+        $count = 0;
         if (count($candidates) !== count($batch) || array_diff_key($batch, $candidates) || array_diff_key($candidates, $batch)) {
             throw new FastLookupIndexUnavailableException('Invalid IOC index candidate response.');
         }
@@ -268,7 +307,10 @@ class AttributeFastLookupTool
                 if (!is_array($ids)) {
                     throw new FastLookupIndexUnavailableException('Invalid IOC index candidate IDs.');
                 }
-                $this->consumeRows(count($ids), $rowCount);
+                $count += count($ids);
+                if ($count > $budget) {
+                    throw new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
+                }
                 foreach ($ids as $id) {
                     if ((!is_string($id) && !is_int($id)) || !preg_match('/^[1-9][0-9]{0,18}$/D', (string)$id)) {
                         throw new FastLookupIndexUnavailableException('Invalid IOC index candidate ID.');
@@ -276,28 +318,7 @@ class AttributeFastLookupTool
                 }
             }
         }
-    }
-
-    private function query(array $branches, &$rowCount)
-    {
-        if (!$branches) {
-            return [];
-        }
-        $sql = implode(' UNION ', $branches) . ' LIMIT ' . (self::MAX_ROWS - $rowCount + 1);
-        $statement = $this->db->rawQuery($sql);
-        if (!is_object($statement)) {
-            throw new RuntimeException('Could not execute the IOC lookup query.');
-        }
-        $rows = [];
-        try {
-            while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) {
-                $this->consumeRows(1, $rowCount);
-                $rows[] = $row;
-            }
-        } finally {
-            $statement->closeCursor();
-        }
-        return $rows;
+        return $count;
     }
 
     /** Streams without counting: callers count distinct pairs. */

@@ -123,6 +123,10 @@ class AttributesController extends AppController
             $result = $this->MispAttribute->fastLookup($this->Auth->user(), $this->request->data);
         } catch (InvalidArgumentException $e) {
             return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 400);
+        } catch (FastLookupResourceLimitException $e) {
+            // Reported like any other outage: the cap counts IOCs the caller may not see.
+            $this->log('fastLookup refused: ' . $e->getMessage(), 'warning');
+            return $this->__fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
         } catch (OverflowException $e) {
             return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 413);
         } catch (RuntimeException $e) {

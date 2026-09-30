@@ -84,6 +84,9 @@ null until progress is available; an uneven spread of in-scope attributes over
 attribute IDs can make it change substantially. During backfill,
 pending updates, failed writes or scope changes, the API returns HTTP 503 and no
 `results` field. Clients should honor `Retry-After` and retry when ready.
+Progress, generations, revisions, build errors and filter counters describe the
+whole instance, so the lookup API returns them to site administrators only;
+other callers get the status, the configured scope and a generic message.
 
 ## Storage and consistency
 
@@ -269,8 +272,16 @@ records. HTTP responses are noncacheable.
 ## Limits and observability
 
 Requests have a configurable value count, 4096-byte per-value limit, 16 MiB combined
-string limit and a 100000 candidate/result-row budget. Overflows produce errors
-without partial results. Very popular tokens are bounded to 500000 IDs and 8 MiB per
+string limit and a 100000 result budget, counting only (input, event) pairs the
+caller may see. Exceeding it answers 413 without partial results. Range and
+domain candidate IDs come from the shared index before authorization, so they
+never count towards that budget or its message; SQL checks them in chunks of
+1,000 IDs. A separate resource cap bounds that pre-authorization work: at most
+500,000 candidate IDs per 1,000-value batch (`FastLookupFilter::MAX_POSTING_IDS`),
+5,000,000 per request (`AttributeFastLookupTool::MAX_CANDIDATE_IDS`), and 21 bytes
+of Redis posting payload per ID of the batch budget. It does not depend on what the
+caller may see; reaching it answers the generic 503 unavailable body and logs a
+warning with the reason. Very popular tokens are bounded to 500000 IDs and 8 MiB per
 posting; exceeding a storage bound prevents readiness rather than truncating the
 index. Use a narrower type scope if a deployment exceeds those storage limits.
 

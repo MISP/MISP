@@ -169,7 +169,11 @@ try {
     $assert(count($overflow) === 1, 'A long posting moves to one overflow key');
     $assert($redis->object('encoding', $prefix . 'g:third:x:0') === 'listpack', 'The bucket stays listpack-encoded');
     $assert(count($filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]])[0]['domain']) === 600, 'Overflow postings return every ID');
-    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 10); }, OverflowException::class, 'The candidate budget never truncates');
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 10); }, FastLookupResourceLimitException::class, 'The payload budget never truncates');
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 599); }, FastLookupResourceLimitException::class, 'The candidate budget never truncates');
+    $assert(count($filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 600)[0]['domain']) === 600, 'A budget of exactly the candidates answers');
+    $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]], 0); }, FastLookupResourceLimitException::class, 'A spent budget refuses any candidate');
+    $assert($filter->candidates('third', [[['token' => $GLOBALS['exact'], 'kind' => 'exact']]], 0)[0]['ip_range'] === [], 'A spent budget still answers exact tokens');
     $stored = $redis->get($overflow[0]);
     $redis->del($overflow[0]);
     $throws(static function () use ($filter, $domain) { $filter->candidates('third', [[['token' => $domain, 'kind' => 'domain']]]); }, FastLookupIndexUnavailableException::class, 'An evicted overflow posting fails closed');

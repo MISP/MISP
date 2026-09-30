@@ -200,7 +200,6 @@ class FastLookupFilterTest extends TestCase
     public function invalidCandidateBudgets(): array
     {
         return [
-            'zero' => [0],
             'negative' => [-1],
             'over the 500000 cap' => [500001],
         ];
@@ -666,6 +665,113 @@ class FastLookupFilterTest extends TestCase
         $this->assertFalse(FastLookupFilter::filterFull(1000, 999));
         $this->assertTrue(FastLookupFilter::filterFull(1000, 1000));
         $this->assertTrue(FastLookupFilter::filterFull(1000, 1001));
+    }
+
+    /**
+     * A live, healthy generation whose candidate probes $probe answers from
+     * the token/key argument pairs and the byte budget of each eval.
+     */
+    private function candidateRedis(callable $probe)
+    {
+        return new class($probe, ['live' => 'live1', 'fingerprint' => 'f'] + $this->validMetadataFields()) {
+            public $budgets = [];
+            private $probe;
+            private $meta;
+            public function __construct(callable $probe, array $meta) { $this->probe = $probe; $this->meta = $meta; }
+            public function hGetAll($key) { return $this->meta; }
+            public function clearLastError() { return true; }
+            public function getLastError() { return null; }
+            public function eval($script, $args, $keys)
+            {
+                if (strpos($script, 'BF.MEXISTS') === false) {
+                    return ['1000000', '0.001', '10', '0', '1', '0', str_repeat('0', 33), str_repeat('0', 129), '0'];
+                }
+                $argv = array_slice($args, $keys);
+                $this->budgets[] = (int)$argv[1];
+                return ($this->probe)(array_values(array_filter(array_slice($argv, 3), function ($n) { return $n % 2; }, ARRAY_FILTER_USE_KEY)), (int)$argv[1]);
+            }
+        };
+    }
+
+    private function domainQuery(int $tokens): array
+    {
+        $query = [];
+        for ($n = 0; $n < $tokens; ++$n) {
+            $query[0][] = ['token' => 'D' . pack('J', $n), 'kind' => 'domain'];
+        }
+        return $query;
+    }
+
+    public function testCandidatesWithinTheBudgetAnswer(): void
+    {
+        $redis = $this->candidateRedis(function (array $tokens) {
+            return [1, array_map(function () { return '7,3,'; }, $tokens)];
+        });
+        $this->assertSame([['exact' => false, 'ip_range' => [], 'domain' => ['3', '7']]],
+            $this->filter(null, $redis)->candidates('live1', $this->domainQuery(3), 2));
+        $this->assertSame([2 * FastLookupFilter::CANDIDATE_BYTES_PER_ID], $redis->budgets);
+    }
+
+    public function testCandidateIdsAboveTheBudgetAreAResourceFailure(): void
+    {
+        $redis = $this->candidateRedis(function (array $tokens) {
+            return [1, array_map(function ($n) { return ($n + 1) . ','; }, array_keys($tokens))];
+        });
+        try {
+            $this->filter(null, $redis)->candidates('live1', $this->domainQuery(3), 2);
+            $this->fail('Candidates above the budget must fail.');
+        } catch (FastLookupResourceLimitException $e) {
+            $this->assertNotInstanceOf(OverflowException::class, $e);
+            $this->assertNotInstanceOf(FastLookupIndexUnavailableException::class, $e);
+            $this->assertNotRegExp('/[0-9]/', $e->getMessage());
+        }
+    }
+
+    public function testOnePostingAboveTheBudgetIsAResourceFailure(): void
+    {
+        $redis = $this->candidateRedis(function (array $tokens) { return [1, ['1,2,3,']]; });
+        $this->expectException(FastLookupResourceLimitException::class);
+        $this->filter(null, $redis)->candidates('live1', $this->domainQuery(1), 2);
+    }
+
+    public function testAZeroBudgetStillAnswersWithoutCandidates(): void
+    {
+        $redis = $this->candidateRedis(function (array $tokens) { return [1, [false]]; });
+        $this->assertSame([['exact' => false, 'ip_range' => [], 'domain' => []]],
+            $this->filter(null, $redis)->candidates('live1', $this->domainQuery(1), 0));
+        $redis = $this->candidateRedis(function (array $tokens) { return [1, ['1,']]; });
+        $this->expectException(FastLookupResourceLimitException::class);
+        $this->filter(null, $redis)->candidates('live1', $this->domainQuery(1), 0);
+    }
+
+    public function testThePayloadBudgetOverflowIsAResourceFailure(): void
+    {
+        $redis = $this->candidateRedis(function () { return [0]; });
+        try {
+            $this->filter(null, $redis)->candidates('live1', $this->domainQuery(1), 10);
+            $this->fail('A payload over the byte budget must fail.');
+        } catch (FastLookupResourceLimitException $e) {
+            $this->assertNotRegExp('/[0-9]/', $e->getMessage());
+        }
+    }
+
+    /** The byte budget spans every probe of a call, not each READ_BATCH_SIZE chunk. */
+    public function testThePayloadBudgetSpansProbeChunks(): void
+    {
+        $redis = $this->candidateRedis(function (array $tokens) {
+            return [1, array_map(function () { return '5,'; }, $tokens)];
+        });
+        $budget = FastLookupFilter::READ_BATCH_SIZE;
+        $this->filter(null, $redis)->candidates('live1', $this->domainQuery(FastLookupFilter::READ_BATCH_SIZE + 1), $budget);
+        $total = $budget * FastLookupFilter::CANDIDATE_BYTES_PER_ID;
+        $this->assertSame([$total, $total - 2 * FastLookupFilter::READ_BATCH_SIZE], $redis->budgets);
+
+        $redis = $this->candidateRedis(function (array $tokens) {
+            return [1, array_map(function () { return '5,'; }, $tokens)];
+        });
+        // Each chunk alone (2048 bytes) fits the 2100-byte budget; both do not.
+        $this->expectException(FastLookupResourceLimitException::class);
+        $this->filter(null, $redis)->candidates('live1', $this->domainQuery(2 * FastLookupFilter::READ_BATCH_SIZE), 100);
     }
 
     public function testCandidatesRefuseAFullGenerationBeforeProbing(): void

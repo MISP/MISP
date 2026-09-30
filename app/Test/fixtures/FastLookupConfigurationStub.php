@@ -113,7 +113,10 @@ class FastLookupTestAttribute
 
 class FastLookupTestFilter
 {
-    /** The filter's reply; null answers "absent" for every queried position, like the real filter. */
+    /**
+     * The filter's reply; null answers "absent" for every queried position,
+     * like the real filter, and a closure answers each call from its tokens.
+     */
     public $hits = null;
     public $reads = [];
     public $prefixes = ['version' => '', 'lengths' => null];
@@ -140,6 +143,9 @@ class FastLookupTestFilter
         }
         if ($this->hits === null) {
             return array_map(function () { return ['exact' => false, 'ip_range' => [], 'domain' => []]; }, $tokens);
+        }
+        if ($this->hits instanceof Closure) {
+            return ($this->hits)($tokens);
         }
         return $this->hits;
     }

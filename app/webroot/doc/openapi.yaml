@@ -294,9 +294,12 @@ paths:
         Missing/invisible inputs are omitted from results. Original spelling is retained;
         event IDs are distinct, numerically sorted decimal strings. A ready index with
         no matches returns an empty results object. Warming, updating, missing/stale Redis
-        state or failed builds return 503 with scope and progress but no results field.
-        Candidate/result processing is bounded to 100000 rows; overflow returns 413
-        without partial results. Responses use Cache-Control: no-store.
+        state or failed builds return 503 with scope but no results field; only site
+        administrators also receive progress, generation, revision, build and filter details.
+        Results are bounded to 100000 visible (input, event) pairs; overflow returns 413
+        without partial results. Index candidates never count towards that limit; a
+        request needing more than 5000000 of them returns the generic 503 unavailable
+        body. Responses use Cache-Control: no-store.
       requestBody:
         required: true
         content:
@@ -333,11 +336,11 @@ paths:
         "405":
           description: "Only POST supported, or API searches disabled for the role."
         "413":
-          description: "Candidate/result budget exceeded; includes scope and no results."
+          description: "More than 100000 visible (input, event) pairs; includes scope and no results."
         "429":
           description: "Normal API search rate limit exceeded."
         "503":
-          description: "Warming, updating or unavailable. No partial results."
+          description: "Warming, updating or unavailable, including the per-request index work cap. No partial results."
           headers:
             Retry-After:
               schema: {type: integer, example: 5}
@@ -3327,6 +3330,10 @@ components:
     FastLookupStatusResponse:
       type: object
       required: [status, scope]
+      description: |
+        Callers other than site administrators receive only status, scope and a
+        generic message; progress, generation, revision, build and filter are
+        returned to site administrators only.
       properties:
         status: {type: string, enum: [warming, updating, unavailable, error]}
         scope:

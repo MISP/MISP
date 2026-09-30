@@ -23,17 +23,188 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         return new AttributeFastLookupTool($attribute, $manager);
     }
 
-    public function testWarmingReturnsScopeAndProgressWithoutQuerying(): void
+    private const ADMIN = ['id' => 1, 'Role' => ['perm_site_admin' => true]];
+    private const USER = ['id' => 2, 'Role' => ['perm_site_admin' => false]];
+
+    public function testWarmingReturnsScopeAndProgressToSiteAdminsWithoutQuerying(): void
     {
         $tool = $this->tool($attribute, $manager);
         $manager->snapshot = ['status' => 'warming', 'progress' => ['percent' => 40]];
-        $result = $tool->lookup([], ['value' => ['example.org']]);
+        $result = $tool->lookup(self::ADMIN, ['value' => ['example.org']]);
         $this->assertSame('warming', $result['status']);
         $this->assertSame(10000, $result['scope']['max_values']);
         $this->assertSame(40, $result['progress']['percent']);
         $this->assertArrayNotHasKey('results', $result);
         $this->assertSame([], $attribute->db->queries);
         $this->assertSame([], $manager->index->reads);
+    }
+
+    /** A status as the manager reports it, with every instance-wide detail. */
+    private static function detailedStatus(string $status): array
+    {
+        return [
+            'status' => $status,
+            'scope' => ['attribute_types' => ['stale']],
+            'progress' => ['processed_attributes' => 1100, 'total_attributes' => 1300, 'percent' => 84, 'eta_seconds' => 24],
+            'generation' => 'generation-two',
+            'revision' => '41',
+            'build' => ['generation' => 'generation-three', 'progress' => ['processed_attributes' => 7], 'error' => 'Redis OOM at 123456 tokens'],
+            'filter' => ['capacity' => 1000000, 'rate' => 0.001, 'inserted' => 99999, 'stale' => 12],
+            'message' => 'The Redis index does not match its SQL checkpoint. Rebuild the index.',
+        ];
+    }
+
+    /** @dataProvider nonReadyStatuses */
+    public function testNonAdminsSeeOnlyStatusScopeAndAGenericMessage(string $status, string $expected, string $message): void
+    {
+        foreach ([[], self::USER, ['id' => 3, 'Role' => ['perm_site_admin' => 0]]] as $user) {
+            $tool = $this->tool($attribute, $manager);
+            $manager->snapshot = self::detailedStatus($status);
+            $result = $tool->lookup($user, ['value' => ['example.org']]);
+            $this->assertSame(['status', 'scope', 'message'], array_keys($result));
+            $this->assertSame($expected, $result['status']);
+            $this->assertSame(10000, $result['scope']['max_values'], 'The scope is the configured one.');
+            $this->assertSame($message, $result['message']);
+            $this->assertNotRegExp('/[0-9]/', json_encode($result['message']));
+            $this->assertSame([], $attribute->db->queries);
+        }
+    }
+
+    /** @dataProvider nonReadyStatuses */
+    public function testSiteAdminsKeepTheFullStatus(string $status): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->snapshot = self::detailedStatus($status);
+        $result = $tool->lookup(self::ADMIN, ['value' => ['example.org']]);
+        $this->assertSame(array_replace(self::detailedStatus($status), ['scope' => $result['scope']]), $result);
+        $this->assertSame(10000, $result['scope']['max_values']);
+    }
+
+    public function nonReadyStatuses(): array
+    {
+        $built = 'The IOC index is being built; retry later.';
+        $unavailable = 'Fast lookup is unavailable. Contact your administrator.';
+        return [
+            'unavailable' => ['unavailable', 'unavailable', $unavailable],
+            'warming' => ['warming', 'warming', $built],
+            'updating' => ['updating', 'updating', $built],
+            'error' => ['error', 'error', $unavailable],
+            'unknown' => ['broken', 'unavailable', $unavailable],
+        ];
+    }
+
+    public function testIndexChangeDuringLookupHidesDetailsFromNonAdmins(): void
+    {
+        foreach ([self::USER, self::ADMIN] as $user) {
+            $tool = $this->tool($attribute, $manager);
+            $attribute->db->responses = [[['input_index' => 0, 'event_id' => '7']], []];
+            $manager->current = false;
+            $manager->snapshot = ['status' => 'ready'] + array_diff_key(self::detailedStatus('ready'), ['status' => 1]);
+            $result = $tool->lookup($user, ['value' => ['example.org']]);
+            $this->assertSame('updating', $result['status']);
+            $this->assertSame('The IOC index changed during this lookup; retry after it is ready.', $result['message']);
+            $this->assertArrayNotHasKey('results', $result);
+            if ($user === self::USER) {
+                $this->assertSame(['status', 'scope', 'message'], array_keys($result));
+            } else {
+                $this->assertSame(84, $result['progress']['percent']);
+                $this->assertSame('generation-two', $result['generation']);
+                $this->assertSame(99999, $result['filter']['inserted']);
+            }
+        }
+    }
+
+    /** $count range candidates for position 0 whose rows the caller may see only in $visible. */
+    private function rangeLookup(&$attribute, &$manager, int $count, array $visible, $user = self::USER)
+    {
+        $tool = $this->tool($attribute, $manager);
+        $ids = array_map('strval', range(1, $count));
+        $manager->index->hits = [0 => ['exact' => false, 'ip_range' => $ids, 'domain' => []]];
+        $attribute->db->responses = [[], []];
+        foreach (array_chunk($ids, 1000) as $chunk) {
+            $rows = [];
+            foreach ($chunk as $id) {
+                if (isset($visible[$id])) {
+                    $rows[] = ['id' => $id, 'event_id' => $visible[$id], 'type' => 'ip-src', 'value1' => '192.0.2.0/24', 'value2' => ''];
+                }
+            }
+            $attribute->db->responses[] = $rows;
+        }
+        return $tool->lookup($user, ['value' => ['192.0.2.1']]);
+    }
+
+    public function testInvisibleRangeCandidatesNeverCountTowardsTheRowLimit(): void
+    {
+        $visible = [];
+        foreach ([3, 17, 20000, 45001, 70000, 99999, 100001, 120000, 149999, 150000] as $n => $id) {
+            $visible[(string)$id] = (string)(100 + $n);
+        }
+        $result = $this->rangeLookup($attribute, $manager, 150000, $visible);
+        $this->assertSame('ready', $result['status']);
+        $expected = array_map('strval', range(100, 109));
+        $this->assertSame($expected, $result['results']->{'192.0.2.1'}['event_ids']);
+        $this->assertSame($expected, $result['results']->{'192.0.2.1'}['ip_ranges']->{'192.0.2.0/24'});
+        $this->assertCount(152, $attribute->db->queries, 'Every candidate chunk was checked in SQL.');
+        $this->assertSame(FastLookupFilter::MAX_POSTING_IDS, $manager->index->reads[0][2]);
+    }
+
+    public function testVisibleRowsInOneEventCountAsOnePair(): void
+    {
+        $ids = array_map('strval', range(1, 100001));
+        $result = $this->rangeLookup($attribute, $manager, 100001, array_fill_keys($ids, '5'));
+        $this->assertSame(['5'], $result['results']->{'192.0.2.1'}['event_ids']);
+    }
+
+    public function testMoreThanMaxRowsVisiblePairsOverflow(): void
+    {
+        $ids = array_map('strval', range(1, 100001));
+        $this->expectException(OverflowException::class);
+        $this->rangeLookup($attribute, $manager, 100001, array_combine($ids, $ids));
+    }
+
+    public function testExactlyMaxRowsVisiblePairsAnswer(): void
+    {
+        $ids = array_map('strval', range(1, 100000));
+        $result = $this->rangeLookup($attribute, $manager, 100000, array_combine($ids, $ids));
+        $this->assertCount(100000, $result['results']->{'192.0.2.1'}['event_ids']);
+    }
+
+    public function testCandidatesAboveTheCallBudgetAreAResourceFailure(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->hits = [0 => ['exact' => false, 'ip_range' => array_map('strval', range(1, FastLookupFilter::MAX_POSTING_IDS)),
+            'domain' => ['1']]];
+        $attribute->db->responses = [[], []];
+        try {
+            $tool->lookup(self::USER, ['value' => ['192.0.2.1']]);
+            $this->fail('Candidate work above the cap must fail.');
+        } catch (FastLookupResourceLimitException $e) {
+            $this->assertNotInstanceOf(OverflowException::class, $e);
+            $this->assertNotRegExp('/[0-9]/', $e->getMessage());
+            $this->assertSame([], $attribute->db->queries, 'Nothing reached SQL.');
+        }
+    }
+
+    public function testTheRequestCandidateCapSpansBatches(): void
+    {
+        $attribute = new FastLookupTestAttribute();
+        $manager = new FastLookupTestManager();
+        $tool = new class($attribute, $manager) extends AttributeFastLookupTool {
+            const MAX_CANDIDATE_IDS = 1500;
+        };
+        $manager->index->hits = function (array $tokens) {
+            $reply = array_map(function () { return ['exact' => false, 'ip_range' => [], 'domain' => []]; }, $tokens);
+            $reply[array_key_first($reply)]['ip_range'] = array_map('strval', range(1, 1000));
+            return $reply;
+        };
+        $attribute->db->responses = [[], [], [], []];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 1000));
+        try {
+            $tool->lookup(self::ADMIN, ['value' => $values]);
+            $this->fail('The request cap must hold across batches.');
+        } catch (FastLookupResourceLimitException $e) {
+            $this->assertSame([1500, 500], array_column($manager->index->reads, 2));
+        }
     }
 
     public function testFallbackSqlPreservesCollationScopeAndSortedOriginalKeys(): void
