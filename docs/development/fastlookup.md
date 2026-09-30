@@ -98,15 +98,15 @@ Redis holds one RedisBloom filter per generation (key prefix
 `max(1,000,000, 1.5 × 2 × in-scope attributes)`: two tokens per attribute
 headroom at 1.5x, with a 1,000,000-token floor, and never less than twice the
 tokens the live generation holds. A full filter refuses further tokens, and the
-write fails closed rather than dropping them: a full live generation stops
-serving, answering 503 until a larger rebuild replaces it, which is scheduled
-automatically, and a full rebuild restarts at twice its capacity: by itself up
-to three times in a row while nothing serves, otherwise when resumed. A
-generation whose inserted count reaches its capacity counts as full even when
-no add was refused, since earlier releases dropped the tokens a full filter
-refused without noticing; after upgrading, such a filter answers 503 and is
-replaced from the next worker batch. Upgrade every MISP server sharing the Redis together, as older
-releases keep dropping refused tokens silently. `BF.MEXISTS`/`BF.MADD` only
+write fails closed rather than dropping them. A full live generation stops
+serving and answers 503 until a larger rebuild, scheduled automatically,
+replaces it. A full rebuild restarts at twice its capacity: by itself up to
+three times in a row while nothing serves, otherwise when resumed. A generation
+whose inserted count reaches its capacity counts as full even when no add was
+refused, because earlier releases silently dropped the tokens a full filter
+refused. After upgrading, such a filter answers 503 and is replaced from the
+next worker batch. Upgrade every MISP server sharing the Redis together, as
+older releases keep dropping refused tokens silently. `BF.MEXISTS`/`BF.MADD` only
 prove absence; a token the filter cannot rule out still goes to SQL for exact
 values, or reads its postings for range/domain values, which SQL then
 revalidates. Range and domain attribute IDs live in listpack-sized bucket

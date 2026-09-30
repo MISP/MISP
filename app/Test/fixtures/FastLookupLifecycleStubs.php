@@ -5,6 +5,18 @@ if (!class_exists('FastLookupIndexUnavailableException', false)) {
     class FastLookupIndexUnavailableException extends RuntimeException {}
     class FastLookupIndexCorruptException extends FastLookupIndexUnavailableException {}
 }
+if (!class_exists('FastLookupIndexFullException', false)) {
+    class FastLookupIndexFullException extends FastLookupIndexUnavailableException
+    {
+        public $generation;
+
+        public function __construct(string $generation, ?Throwable $previous = null)
+        {
+            parent::__construct('The fastLookup filter is full.', 0, $previous);
+            $this->generation = $generation;
+        }
+    }
+}
 if (!class_exists('App', false)) {
     class App { public static function uses($class, $package) {} }
 }
