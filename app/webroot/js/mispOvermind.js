@@ -154,6 +154,7 @@ function openModal(url, size = 'xl') {
             initTomSelect(container);
             initChoiceFields(container);
             initJsonFields(container);
+            initDateFields(container);
             initPgpKeyLookup(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
@@ -452,6 +453,9 @@ function renderMainModalContent(html) {
     }
     if (typeof initJsonFields === 'function') {
         initJsonFields(container);
+    }
+    if (typeof initDateFields === 'function') {
+        initDateFields(container);
     }
     if (typeof initObjectForm === 'function') {
         initObjectForm(container);
@@ -3758,7 +3762,7 @@ function installRequiredFieldGuard() {
         }
         var first = null;
         form.querySelectorAll('[required]').forEach(function (field) {
-            if (field.disabled || field.closest('[data-json-field]')) { return; }
+            if (field.disabled || field.closest('[data-json-field], [data-date-field]')) { return; }
             if (field.type === 'checkbox' || field.type === 'radio') { return; }
             if (String(field.value).trim()) {
                 clear(field);
@@ -4204,6 +4208,718 @@ document.addEventListener('DOMContentLoaded', function () {
     initJsonFields(document);
 });
 
+/*******************************
+ * initDateFields
+ * Binds every date picker inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/date_field.ctp. The user types or picks
+ * DD/MM/YYYY [HH:MM:SS]; the hidden text input posts ISO. All in UTC.
+ *
+ * Each field exposes `wrap.ovDateField` (also on the posted input):
+ * get(), set(iso), clear(), open(), close(), validate(show), focus().
+ * The posted input fires `input` + `change` whenever its value moves, which is
+ * what a host script listens to.
+ *
+ * Idempotent, like initJsonFields.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+var dateSubmitGuardInstalled = false;
+
+function initDateFields(container) {
+    var scope = container || document;
+    installDateSubmitGuard();
+
+    scope.querySelectorAll('[data-date-field]').forEach(function (wrap) {
+        if (wrap.dataset.dateBound) { return; }
+        wrap.dataset.dateBound = '1';
+        bindDateField(wrap);
+    });
+}
+window.initDateFields = initDateFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initDateFields(document);
+});
+
+/* One capture-phase listener for every form, like the JSON guard: it decides
+ * before a form's own handler, which can read event.defaultPrevented. */
+function installDateSubmitGuard() {
+    if (dateSubmitGuardInstalled) { return; }
+    dateSubmitGuardInstalled = true;
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.querySelectorAll) { return; }
+        var first = null;
+        form.querySelectorAll('[data-date-field]').forEach(function (wrap) {
+            var api = wrap.ovDateField;
+            if (api && api.validate(true) && !first) { first = api; }
+        });
+        if (first) {
+            e.preventDefault();
+            first.focus();
+        }
+    }, true);
+}
+
+var ovDate = (function () {
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function num(s) { return s === undefined || s === '' ? 0 : parseInt(s, 10); }
+
+    function fromTime(t) {
+        var d = new Date(t);
+        return {
+            y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(),
+            h: d.getUTCHours(), i: d.getUTCMinutes(), s: d.getUTCSeconds()
+        };
+    }
+
+    function toTime(p) {
+        return Date.UTC(p.y, p.m - 1, p.d, p.h, p.i, p.s);
+    }
+
+    function dayOf(p) {
+        return Date.UTC(p.y, p.m - 1, p.d);
+    }
+
+    /* Date() rolls 31/02 over into March, so compare the parts back: that is
+     * what rejects a day the month does not have. */
+    function make(y, m, d, h, i, s) {
+        if (y < 1000 || h > 23 || i > 59 || s > 59) { return null; }
+        var p = fromTime(Date.UTC(y, m - 1, d, h, i, s));
+        return (p.y === y && p.m === m && p.d === d) ? p : null;
+    }
+
+    /* DD/MM/YYYY [HH:MM[:SS]], or ISO as MISP stores it — offset and
+     * fractional seconds included, so pasting a value out of MISP works. */
+    function parse(text) {
+        var v = String(text || '').trim();
+        if (!v) { return null; }
+        var r = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[\sT,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (r) {
+            return make(num(r[3]), num(r[2]), num(r[1]), num(r[4]), num(r[5]), num(r[6]));
+        }
+        r = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?(?:[.,]\d+)?\s*(Z|[+-]\d{2}:?\d{2})?)?$/i);
+        if (!r) { return null; }
+        var p = make(num(r[1]), num(r[2]), num(r[3]), num(r[4]), num(r[5]), num(r[6]));
+        if (p && r[7] && r[7].toUpperCase() !== 'Z') {
+            var digits = r[7].slice(1).replace(':', '');
+            var minutes = num(digits.slice(0, 2)) * 60 + num(digits.slice(2));
+            p = fromTime(toTime(p) - (r[7][0] === '-' ? -1 : 1) * minutes * 60000);
+        }
+        return p;
+    }
+
+    function display(p, withTime) {
+        var out = pad(p.d) + '/' + pad(p.m) + '/' + p.y;
+        return withTime ? out + ' ' + pad(p.h) + ':' + pad(p.i) + ':' + pad(p.s) : out;
+    }
+
+    function iso(p, withTime) {
+        var out = p.y + '-' + pad(p.m) + '-' + pad(p.d);
+        return withTime ? out + ' ' + pad(p.h) + ':' + pad(p.i) + ':' + pad(p.s) : out;
+    }
+
+    return {
+        pad: pad, parse: parse, display: display, iso: iso,
+        fromTime: fromTime, toTime: toTime, dayOf: dayOf
+    };
+})();
+
+function bindDateField(wrap) {
+    var input = wrap.querySelector('[data-date-display]');
+    var posted = wrap.querySelector('[data-date-value]');
+    var box = wrap.querySelector('[data-date-box]');
+    if (!input || !posted || !box) { return; }
+
+    var toggleBtn = wrap.querySelector('[data-date-toggle]');
+    var clearBtn = wrap.querySelector('[data-date-clear]');
+    var withTime = wrap.dataset.dateMode === 'datetime';
+    var required = wrap.dataset.dateRequired === '1';
+    var labels = {};
+    try { labels = JSON.parse(wrap.dataset.dateLabels || '{}'); } catch (e) { /* keep defaults */ }
+
+    var locale = document.documentElement.lang || navigator.language || 'en';
+    function fmt(options) {
+        try {
+            return new Intl.DateTimeFormat(locale, Object.assign({ timeZone: 'UTC' }, options));
+        } catch (e) {
+            return new Intl.DateTimeFormat('en', Object.assign({ timeZone: 'UTC' }, options));
+        }
+    }
+    var monthLong = fmt({ month: 'long', year: 'numeric' });
+    var monthShort = fmt({ month: 'short' });
+    var dayLong = fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    var weekdayShort = fmt({ weekday: 'short' });
+
+    /* What came from the server: left exactly as it is unless the user picks
+     * something else, so an untouched edit never rewrites a stored value. */
+    var initialRaw = posted.value;
+    var initial = ovDate.parse(initialRaw);
+    var selected = initial;
+    var today = ovDate.fromTime(Date.now());
+    var view = { y: (selected || today).y, m: (selected || today).m };
+    var focusDay = ovDate.dayOf(selected || today);
+    var level = 'days';
+    var pop = null;
+    var parts = {};
+
+    function precise(p) {
+        return withTime ? ovDate.toTime(p) : ovDate.dayOf(p);
+    }
+
+    function referenced(selector) {
+        if (!selector) { return null; }
+        var node = (wrap.closest('form') || document).querySelector(selector)
+            || document.querySelector(selector);
+        return node ? ovDate.parse(node.value) : null;
+    }
+
+    function bounds() {
+        var min = ovDate.parse(wrap.dataset.dateMin);
+        var max = ovDate.parse(wrap.dataset.dateMax);
+        var after = referenced(wrap.dataset.dateAfter);
+        var before = referenced(wrap.dataset.dateBefore);
+        return {
+            minDay: Math.max(min ? ovDate.dayOf(min) : -Infinity, after ? ovDate.dayOf(after) : -Infinity),
+            maxDay: Math.min(max ? ovDate.dayOf(max) : Infinity, before ? ovDate.dayOf(before) : Infinity),
+            after: after,
+            before: before
+        };
+    }
+
+    function inRange(p) {
+        var b = bounds();
+        var day = ovDate.dayOf(p);
+        if (day < b.minDay || day > b.maxDay) { return false; }
+        if (b.after && precise(p) < precise(b.after)) { return false; }
+        if (b.before && precise(p) > precise(b.before)) { return false; }
+        return true;
+    }
+
+    /* ── Value ───────────────────────────────────────────────── */
+    function write(p) {
+        var value = '';
+        if (p) {
+            value = (initial && precise(initial) === precise(p))
+                ? initialRaw
+                : ovDate.iso(p, withTime);
+        }
+        if (posted.value === value) { return; }
+        posted.value = value;
+        posted.dispatchEvent(new Event('input', { bubbles: true }));
+        posted.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function refreshClear() {
+        if (clearBtn) { clearBtn.classList.toggle('d-none', !input.value.trim()); }
+    }
+
+    function select(p, keepOpen) {
+        selected = p;
+        input.value = p ? ovDate.display(p, withTime) : '';
+        if (p) {
+            view = { y: p.y, m: p.m };
+            focusDay = ovDate.dayOf(p);
+        }
+        write(p);
+        refreshClear();
+        validate(!!p || required === false);
+        if (pop && !pop.classList.contains('d-none')) {
+            if (keepOpen) { render(); } else { close(true); }
+        }
+    }
+
+    /* ── Invalid state ───────────────────────────────────────── */
+    function markInvalid(message) {
+        box.classList.add('is-invalid');
+        var msg = wrap.querySelector(':scope > .ov-field-error');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'ov-field-error';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-circle-exclamation';
+            msg.appendChild(icon);
+            msg.appendChild(document.createElement('span'));
+            wrap.appendChild(msg);
+        }
+        msg.querySelector('span').textContent = message;
+    }
+
+    function markValid() {
+        box.classList.remove('is-invalid');
+        var msg = wrap.querySelector(':scope > .ov-field-error');
+        if (msg) { msg.remove(); }
+    }
+
+    /* Reads the text, writes what it means, and answers with the complaint (or
+     * null). `show` decides whether the complaint is also drawn. */
+    function validate(show) {
+        var text = input.value.trim();
+        var message = null;
+        if (!text) {
+            selected = null;
+            write(null);
+            if (required) { message = labels.required || 'This field is required.'; }
+        } else {
+            var p = ovDate.parse(text);
+            if (!p) {
+                message = labels.invalid || 'Enter a date as DD/MM/YYYY.';
+            } else {
+                selected = p;
+                write(p);
+                if (!inRange(p)) { message = labels.range || 'This date is outside the allowed range.'; }
+            }
+        }
+        if (!message) {
+            markValid();
+        } else if (show) {
+            markInvalid(message);
+        }
+        return message;
+    }
+
+    /* ── Popover ─────────────────────────────────────────────── */
+    function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) { node.className = className; }
+        if (text !== undefined) { node.textContent = text; }
+        return node;
+    }
+
+    function iconButton(className, icon, label) {
+        var b = el('button', className);
+        b.type = 'button';
+        b.title = label;
+        b.setAttribute('aria-label', label);
+        b.appendChild(el('i', icon));
+        return b;
+    }
+
+    function build() {
+        pop = el('div', 'ov-date-pop d-none');
+        pop.setAttribute('role', 'dialog');
+
+        var head = el('div', 'ov-date-head');
+        var prev = iconButton('ov-date-nav', 'fas fa-chevron-left', labels.prev || 'Previous');
+        var title = el('button', 'ov-date-title');
+        title.type = 'button';
+        title.dataset.dateTitle = '1';
+        var next = iconButton('ov-date-nav', 'fas fa-chevron-right', labels.next || 'Next');
+        prev.addEventListener('click', function () { step(-1); });
+        next.addEventListener('click', function () { step(1); });
+        title.addEventListener('click', function () {
+            level = level === 'days' ? 'months' : 'years';
+            render();
+        });
+        head.appendChild(prev);
+        head.appendChild(title);
+        head.appendChild(next);
+        pop.appendChild(head);
+
+        var body = el('div', 'ov-date-body');
+        body.dataset.dateBody = '1';
+        body.addEventListener('keydown', onGridKey);
+        pop.appendChild(body);
+
+        if (withTime) {
+            var time = el('div', 'ov-date-time');
+            time.appendChild(el('span', 'ov-date-time-label', labels.time || 'Time (UTC)'));
+            var fields = el('div', 'ov-date-time-fields');
+            [['h', 23], ['i', 59], ['s', 59]].forEach(function (spec, index) {
+                if (index) { fields.appendChild(el('span', 'ov-date-time-sep', ':')); }
+                var part = el('input', 'ov-date-time-part');
+                part.type = 'text';
+                part.inputMode = 'numeric';
+                part.maxLength = 2;
+                part.autocomplete = 'off';
+                part.dataset.part = spec[0];
+                part.dataset.max = spec[1];
+                part.addEventListener('input', onTimeInput);
+                part.addEventListener('keydown', onTimeKey);
+                part.addEventListener('blur', function () { part.value = ovDate.pad(num(part.value)); });
+                parts[spec[0]] = part;
+                fields.appendChild(part);
+            });
+            time.appendChild(fields);
+            pop.appendChild(time);
+        }
+
+        var foot = el('div', 'ov-date-foot');
+        var todayBtn = el('button', 'ov-date-link', labels.today || 'Today');
+        todayBtn.type = 'button';
+        todayBtn.addEventListener('click', function () {
+            select(ovDate.fromTime(withTime ? Math.floor(Date.now() / 1000) * 1000 : Date.now()), withTime);
+        });
+        foot.appendChild(todayBtn);
+        foot.appendChild(el('span', 'flex-grow-1'));
+        if (clearBtn) {
+            var clear = el('button', 'ov-date-link', labels.clear || 'Clear');
+            clear.type = 'button';
+            clear.addEventListener('click', function () { select(null); input.focus(); });
+            foot.appendChild(clear);
+        }
+        if (withTime) {
+            var done = el('button', 'ov-date-done', labels.done || 'Done');
+            done.type = 'button';
+            done.addEventListener('click', function () { close(true); });
+            foot.appendChild(done);
+        }
+        pop.appendChild(foot);
+
+        /* Keep focus where it is when a button is pressed, so a click inside
+           the popover never reads as leaving the field. */
+        pop.addEventListener('mousedown', function (e) {
+            if (!e.target.closest('input')) { e.preventDefault(); }
+        });
+        wrap.appendChild(pop);
+    }
+
+    function num(v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; }
+
+    function currentTime() {
+        return selected || { h: 0, i: 0, s: 0 };
+    }
+
+    function onTimeInput() {
+        var base = selected || ovDate.fromTime(ovDate.dayOf(today));
+        var p = Object.assign({}, base, {
+            h: Math.min(num(parts.h.value), 23),
+            i: Math.min(num(parts.i.value), 59),
+            s: Math.min(num(parts.s.value), 59)
+        });
+        selected = p;
+        input.value = ovDate.display(p, true);
+        write(p);
+        refreshClear();
+        validate(true);
+        if (level === 'days') { renderGrid(); }
+    }
+
+    function onTimeKey(e) {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') { return; }
+        e.preventDefault();
+        var part = e.currentTarget;
+        var max = num(part.dataset.max);
+        var v = num(part.value) + (e.key === 'ArrowUp' ? 1 : -1);
+        part.value = ovDate.pad(v > max ? 0 : (v < 0 ? max : v));
+        onTimeInput();
+    }
+
+    function step(dir) {
+        if (level === 'days') {
+            var m = view.m + dir;
+            view = { y: view.y + Math.floor((m - 1) / 12), m: ((m - 1) % 12 + 12) % 12 + 1 };
+        } else {
+            view = { y: view.y + dir * (level === 'years' ? 12 : 1), m: view.m };
+        }
+        render();
+    }
+
+    function cell(className, text, onPick) {
+        var b = el('button', className, text);
+        b.type = 'button';
+        b.tabIndex = -1;
+        b.addEventListener('click', onPick);
+        return b;
+    }
+
+    function renderGrid() {
+        var body = pop.querySelector('[data-date-body]');
+        var title = pop.querySelector('[data-date-title]');
+        body.textContent = '';
+        body.className = 'ov-date-body is-' + level;
+        var b = bounds();
+        var todayDay = ovDate.dayOf(today);
+        var selectedDay = selected ? ovDate.dayOf(selected) : null;
+
+        if (level === 'days') {
+            title.textContent = monthLong.format(new Date(Date.UTC(view.y, view.m - 1, 1)));
+            /* 1 Jan 2024 was a Monday. */
+            for (var w = 0; w < 7; w++) {
+                body.appendChild(el('span', 'ov-date-weekday',
+                    weekdayShort.format(new Date(Date.UTC(2024, 0, 1 + w)))));
+            }
+            var first = new Date(Date.UTC(view.y, view.m - 1, 1));
+            var start = ovDate.dayOf({ y: view.y, m: view.m, d: 1 })
+                - ((first.getUTCDay() + 6) % 7) * 86400000;
+            for (var k = 0; k < 42; k++) {
+                var day = start + k * 86400000;
+                var p = ovDate.fromTime(day);
+                var c = cell('ov-date-day', String(p.d), pickDay.bind(null, day));
+                c.dataset.day = day;
+                c.setAttribute('aria-label', dayLong.format(new Date(day)));
+                if (p.m !== view.m) { c.classList.add('is-other'); }
+                if (day === todayDay) { c.classList.add('is-today'); c.setAttribute('aria-current', 'date'); }
+                if (day === selectedDay) { c.classList.add('is-selected'); c.setAttribute('aria-pressed', 'true'); }
+                if (day < b.minDay || day > b.maxDay) { c.disabled = true; }
+                if (day === focusDay) { c.tabIndex = 0; }
+                body.appendChild(c);
+            }
+            if (!body.querySelector('[tabindex="0"]')) {
+                var fallback = body.querySelector('.ov-date-day:not(.is-other)');
+                if (fallback) { fallback.tabIndex = 0; }
+            }
+        } else if (level === 'months') {
+            title.textContent = String(view.y);
+            for (var m = 1; m <= 12; m++) {
+                var mc = cell('ov-date-cell', monthShort.format(new Date(Date.UTC(2024, m - 1, 1))),
+                    pickMonth.bind(null, m));
+                if (selected && selected.y === view.y && selected.m === m) { mc.classList.add('is-selected'); }
+                if (today.y === view.y && today.m === m) { mc.classList.add('is-today'); }
+                if (m === view.m) { mc.tabIndex = 0; }
+                body.appendChild(mc);
+            }
+        } else {
+            var from = Math.floor(view.y / 12) * 12;
+            title.textContent = from + ' – ' + (from + 11);
+            for (var y = from; y < from + 12; y++) {
+                var yc = cell('ov-date-cell', String(y), pickYear.bind(null, y));
+                if (selected && selected.y === y) { yc.classList.add('is-selected'); }
+                if (today.y === y) { yc.classList.add('is-today'); }
+                if (y === view.y) { yc.tabIndex = 0; }
+                body.appendChild(yc);
+            }
+        }
+    }
+
+    function render() {
+        if (!pop) { return; }
+        renderGrid();
+        if (withTime) {
+            var t = currentTime();
+            ['h', 'i', 's'].forEach(function (k) {
+                if (document.activeElement !== parts[k]) { parts[k].value = ovDate.pad(t[k]); }
+            });
+        }
+        place();
+    }
+
+    function pickDay(day) {
+        var p = ovDate.fromTime(day);
+        var t = currentTime();
+        select(Object.assign(p, { h: t.h, i: t.i, s: t.s }), withTime);
+        if (!withTime) { input.focus(); }
+    }
+
+    function pickMonth(m) {
+        view = { y: view.y, m: m };
+        level = 'days';
+        render();
+        focusCell();
+    }
+
+    function pickYear(y) {
+        view = { y: y, m: view.m };
+        level = 'months';
+        render();
+        focusCell();
+    }
+
+    function focusCell() {
+        var target = pop.querySelector('[data-date-body] [tabindex="0"]');
+        if (target) { target.focus(); }
+    }
+
+    /* Arrows walk the grid (a day grid crosses into the next month), PageUp/
+     * PageDown turn the page, Home/End go to the ends of the week. */
+    function onGridKey(e) {
+        var key = e.key;
+        if (level !== 'days') {
+            var cells = Array.prototype.slice.call(pop.querySelectorAll('[data-date-body] button'));
+            var at = cells.indexOf(document.activeElement);
+            var move = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[key];
+            if (move === undefined || at < 0) { return; }
+            e.preventDefault();
+            var to = cells[Math.max(0, Math.min(cells.length - 1, at + move))];
+            cells.forEach(function (c) { c.tabIndex = -1; });
+            to.tabIndex = 0;
+            to.focus();
+            return;
+        }
+        var d = ovDate.fromTime(focusDay);
+        var next = null;
+        var DAY = 86400000;
+        if (key === 'ArrowLeft') { next = focusDay - DAY; }
+        else if (key === 'ArrowRight') { next = focusDay + DAY; }
+        else if (key === 'ArrowUp') { next = focusDay - 7 * DAY; }
+        else if (key === 'ArrowDown') { next = focusDay + 7 * DAY; }
+        else if (key === 'Home') { next = focusDay - ((new Date(focusDay).getUTCDay() + 6) % 7) * DAY; }
+        else if (key === 'End') { next = focusDay + (6 - (new Date(focusDay).getUTCDay() + 6) % 7) * DAY; }
+        else if (key === 'PageUp' || key === 'PageDown') {
+            var shift = (key === 'PageUp' ? -1 : 1) * (e.shiftKey ? 12 : 1);
+            var m = d.m - 1 + shift;
+            var y = d.y + Math.floor(m / 12);
+            m = (m % 12 + 12) % 12;
+            var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+            next = Date.UTC(y, m, Math.min(d.d, last));
+        }
+        if (next === null) { return; }
+        e.preventDefault();
+        focusDay = next;
+        var p = ovDate.fromTime(next);
+        view = { y: p.y, m: p.m };
+        render();
+        focusCell();
+    }
+
+    function place() {
+        if (!pop || pop.classList.contains('d-none')) { return; }
+        var r = box.getBoundingClientRect();
+        var w = pop.offsetWidth;
+        var h = pop.offsetHeight;
+        var gap = 6;
+        var top = r.bottom + gap;
+        if (top + h > window.innerHeight - 8 && r.top - gap - h > 8) {
+            top = r.top - gap - h;
+        }
+        var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+        pop.style.top = top + 'px';
+        pop.style.left = left + 'px';
+        /* A transformed ancestor becomes the containing block of a fixed
+           element: measure where it landed and correct by the difference. */
+        var got = pop.getBoundingClientRect();
+        if (Math.abs(got.top - top) > 0.5 || Math.abs(got.left - left) > 0.5) {
+            pop.style.top = (2 * top - got.top) + 'px';
+            pop.style.left = (2 * left - got.left) + 'px';
+        }
+    }
+
+    function onOutside(e) {
+        if (!wrap.contains(e.target)) { close(false); }
+    }
+
+    function open(focusGrid) {
+        if (!pop) { build(); }
+        if (!pop.classList.contains('d-none')) {
+            if (focusGrid) { focusCell(); }
+            return;
+        }
+        today = ovDate.fromTime(Date.now());
+        var anchor = selected || today;
+        view = { y: anchor.y, m: anchor.m };
+        focusDay = ovDate.dayOf(anchor);
+        level = 'days';
+        pop.classList.remove('d-none');
+        wrap.classList.add('is-open');
+        input.setAttribute('aria-expanded', 'true');
+        render();
+        document.addEventListener('mousedown', onOutside, true);
+        window.addEventListener('resize', place);
+        document.addEventListener('scroll', place, true);
+        if (focusGrid) { focusCell(); }
+    }
+
+    function close(refocus) {
+        if (!pop || pop.classList.contains('d-none')) { return; }
+        pop.classList.add('d-none');
+        wrap.classList.remove('is-open');
+        input.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('mousedown', onOutside, true);
+        window.removeEventListener('resize', place);
+        document.removeEventListener('scroll', place, true);
+        if (refocus) { input.focus(); }
+    }
+
+    function isOpen() {
+        return !!pop && !pop.classList.contains('d-none');
+    }
+
+    /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only here
+     * does a half-typed date get called wrong. */
+    function commit() {
+        var message = validate(true);
+        if (!message && selected) { input.value = ovDate.display(selected, withTime); }
+        refreshClear();
+    }
+
+    /* ── Wiring ──────────────────────────────────────────────── */
+    input.addEventListener('input', function () {
+        var p = ovDate.parse(input.value);
+        refreshClear();
+        if (p) {
+            validate(false);
+            view = { y: p.y, m: p.m };
+            focusDay = ovDate.dayOf(p);
+            if (isOpen()) { render(); }
+        } else if (!input.value.trim()) {
+            validate(false);
+        }
+    });
+
+    input.addEventListener('click', function () { open(false); });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' && (e.altKey || !isOpen())) {
+            e.preventDefault();
+            open(true);
+        } else if (e.key === 'ArrowDown' && isOpen()) {
+            e.preventDefault();
+            focusCell();
+        } else if (e.key === 'Enter' && isOpen()) {
+            e.preventDefault();
+            commit();
+            close(false);
+        }
+    });
+
+    /* Escape closes the popover, not the modal around it. */
+    wrap.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isOpen()) {
+            e.preventDefault();
+            e.stopPropagation();
+            close(true);
+        }
+    });
+
+    wrap.addEventListener('focusout', function (e) {
+        if (e.relatedTarget && wrap.contains(e.relatedTarget)) { return; }
+        if (e.target === input) { commit(); }
+        if (e.relatedTarget) { close(false); }
+    });
+
+    [toggleBtn, clearBtn].forEach(function (b) {
+        if (b) { b.addEventListener('mousedown', function (e) { e.preventDefault(); }); }
+    });
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            if (isOpen()) { close(true); } else { input.focus(); open(true); }
+        });
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            select(null);
+            input.focus();
+        });
+    }
+
+    /* A range bound moved: say at once if this value no longer fits. */
+    [wrap.dataset.dateAfter, wrap.dataset.dateBefore].forEach(function (selector) {
+        if (!selector) { return; }
+        var ref = (wrap.closest('form') || document).querySelector(selector);
+        if (!ref) { return; }
+        ref.addEventListener('change', function () {
+            if (input.value.trim()) { validate(true); }
+            if (isOpen()) { render(); }
+        });
+    });
+
+    if (selected) { input.value = ovDate.display(selected, withTime); }
+    else if (initialRaw) { input.value = initialRaw; }
+    refreshClear();
+
+    var api = {
+        get: function () { return posted.value; },
+        set: function (value) { select(ovDate.parse(value)); },
+        clear: function () { select(null); },
+        open: function () { open(false); },
+        close: function () { close(false); },
+        validate: function (show) { return validate(show !== false); },
+        focus: function () { input.focus(); }
+    };
+    wrap.ovDateField = api;
+    posted.ovDateField = api;
+}
+
 function initDistributionSelect(elOrId, onChange, settings) {
     var el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
     if (!el || el.tomselect || typeof TomSelect === 'undefined') { return null; }
@@ -4522,19 +5238,6 @@ function initAttributeForm(currentDist, isEdit) {
         });
     }
 
-    /* datetime-local pickers → hidden YYYY-MM-DD HH:MM:SS fields */
-    function setupTemporalInputs() {
-        [['attr-first-seen-picker', 'AttributeFirstSeen'],
-         ['attr-last-seen-picker',  'AttributeLastSeen']].forEach(function (pair) {
-            var picker = document.getElementById(pair[0]);
-            var hidden = document.getElementById(pair[1]);
-            if (!picker || !hidden) { return; }
-            picker.addEventListener('change', function () {
-                hidden.value = picker.value ? picker.value.replace('T', ' ') : '';
-            });
-        });
-    }
-
     /* Live format validation of the Value field against the selected Type.
      * Reuses the server-side AttributeValidationTool via an AJAX endpoint so
      * the rules stay in sync with what MISP will actually accept. */
@@ -4634,7 +5337,6 @@ function initAttributeForm(currentDist, isEdit) {
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
-    setupTemporalInputs();
     setupValueValidation();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
@@ -4654,7 +5356,6 @@ function initAttributeForm(currentDist, isEdit) {
  * What it owns:
  *   - the three choice_cards groups (distribution, analysis, threat level)
  *   - the extends-event preview
- *   - the DD/MM/YYYY date field over its ISO hidden twin
  *   - required-field validation, and a submit that cannot fire twice
  *
  * The field look — the underline, the box, the invalid state — lives in
@@ -4799,82 +5500,12 @@ function initEventForm(container) {
         schedule();
     }
 
-    /* ── Event date ──────────────────────────────────────────────
-     * DD/MM/YYYY in front of the user, YYYY-MM-DD in the hidden field MISP
-     * actually reads. */
-    function bindDate() {
-        var display = form.querySelector('#EventDateDisplay');
-        var hidden = form.querySelector('#EventDate');
-        if (!display || !hidden) { return; }
-
-        var message = display.dataset.invalidMsg
-            || 'Enter the event date as DD/MM/YYYY.';
-
-        function pad(n) { return (n < 10 ? '0' : '') + n; }
-
-        function build(y, m, d) {
-            var date = new Date(Date.UTC(y, m - 1, d));
-            /* Date() rolls 31/02 over into March, so compare the parts back:
-             * that is what rejects a day the month does not have. */
-            if (date.getUTCFullYear() !== y
-                    || date.getUTCMonth() !== m - 1
-                    || date.getUTCDate() !== d) {
-                return null;
-            }
-            return date;
-        }
-
-        function parse(text) {
-            var value = text.trim();
-            var human = value.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
-            if (human) {
-                return build(+human[3], +human[2], +human[1]);
-            }
-            /* Also accept what the hidden field speaks, so pasting an ISO date
-             * out of MISP itself works. */
-            var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-            return iso ? build(+iso[1], +iso[2], +iso[3]) : null;
-        }
-
-        function sync() {
-            var date = parse(display.value);
-            if (date) {
-                hidden.value = date.getUTCFullYear() + '-'
-                    + pad(date.getUTCMonth() + 1) + '-'
-                    + pad(date.getUTCDate());
-                markValid(display);
-            }
-            return date;
-        }
-
-        display.addEventListener('input', sync);
-
-        /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only
-         * here does a half-typed date get called wrong. */
-        display.addEventListener('blur', function () {
-            var date = sync();
-            if (date) {
-                display.value = pad(date.getUTCDate()) + '/'
-                    + pad(date.getUTCMonth() + 1) + '/'
-                    + date.getUTCFullYear();
-            } else if (display.value.trim()) {
-                markInvalid(display, message);
-            }
-        });
-
-        validators.push(function (quiet) {
-            var date = sync();
-            if (date) { return null; }
-            if (!quiet) { markInvalid(display, message); }
-            return display;
-        });
-    }
-
     /* ── Submit ──────────────────────────────────────────────── */
     function bindSubmit() {
         var button = form.querySelector('#EventSubmitButton');
 
         form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) { return; }
             var wrong = validators
                 .map(function (validate) { return validate(false); })
                 .filter(Boolean);
@@ -4900,7 +5531,6 @@ function initEventForm(container) {
     initChoiceFields(form);
     bindInfo();
     bindExtendsPreview();
-    bindDate();
     bindSubmit();
 }
 window.initEventForm = initEventForm;
@@ -5055,6 +5685,9 @@ function loadAjaxContainer(container) {
             initTopbarFilterSelects(container);
             if (typeof initJsonFields === 'function') {
                 initJsonFields(container);
+            }
+            if (typeof initDateFields === 'function') {
+                initDateFields(container);
             }
         })
         .catch(() => {
@@ -7101,6 +7734,7 @@ function initObjectAddForm(container, payloadEl) {
     var submitBtn = container.querySelector('#submitButton');
 
     form.addEventListener('submit', function (event) {
+        if (event.defaultPrevented) { return; }
         event.preventDefault();
         clearError();
 

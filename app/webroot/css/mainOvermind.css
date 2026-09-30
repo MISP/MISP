@@ -2895,6 +2895,7 @@ tr.evt-extension-row td:first-child {
 
 /* Invalid: the same red on whichever of the two shapes the field wears. */
 .ov-form-line.is-invalid-field,
+.ov-form-line.is-invalid,
 .ov-form-box.is-invalid-field {
     border-color: var(--bs-danger);
 }
@@ -2910,6 +2911,295 @@ tr.evt-extension-row td:first-child {
 
 .ov-field-error i {
     font-size: .7rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DATE FIELD  (Elements/genericElementsBS5/Forms/date_field)
+   The typed box and its calendar popover. --ov-date-accent is
+   the modal's accent; everything else reads Bootstrap's own
+   variables, so dark mode needs nothing of its own but the shadow.
+   ═══════════════════════════════════════════════════════════ */
+.ov-date {
+    --ov-date-accent: var(--bs-primary);
+    position: relative;
+}
+
+.ov-date-box {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .3rem .35rem .3rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-date-box:focus-within,
+.ov-date.is-open .ov-date-box {
+    border-color: var(--ov-date-accent);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-date-accent) 18%, transparent);
+}
+
+.ov-date-box.is-invalid {
+    border-color: var(--bs-danger);
+    box-shadow: none;
+}
+
+.ov-date-glyph {
+    color: var(--ov-date-accent);
+    font-size: .85rem;
+}
+
+.ov-date-input {
+    flex: 1;
+    min-width: 0;
+    padding: .15rem 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--bs-body-color);
+    font-size: .925rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-date-utc {
+    padding: .1rem .4rem;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.ov-date-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-date-btn:hover {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+}
+
+.ov-date.is-open [data-date-toggle] i {
+    transform: rotate(180deg);
+}
+
+.ov-date-btn i {
+    transition: transform .15s ease;
+}
+
+.ov-date-pop {
+    position: fixed;
+    z-index: 1090;
+    width: 18.5rem;
+    padding: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .75rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .14);
+    animation: ov-date-in .12s ease-out;
+}
+
+[data-bs-theme="dark"] .ov-date-pop {
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .5);
+}
+
+@keyframes ov-date-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+.ov-date-head {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: .5rem;
+}
+
+.ov-date-title,
+.ov-date-nav,
+.ov-date-day,
+.ov-date-cell,
+.ov-date-link {
+    border: 0;
+    background: transparent;
+    color: var(--bs-body-color);
+}
+
+.ov-date-title {
+    flex: 1;
+    padding: .3rem .5rem;
+    border-radius: var(--bs-border-radius);
+    font-weight: 600;
+    font-size: .9rem;
+    text-transform: capitalize;
+}
+
+.ov-date-nav {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-date-title:hover,
+.ov-date-nav:hover,
+.ov-date-link:hover {
+    background: var(--bs-secondary-bg);
+}
+
+.ov-date-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.ov-date-body.is-months,
+.ov-date-body.is-years {
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35rem;
+}
+
+.ov-date-weekday {
+    padding: .2rem 0 .35rem;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 600;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.ov-date-day {
+    aspect-ratio: 1;
+    border-radius: .5rem;
+    font-size: .85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-date-cell {
+    padding: .65rem 0;
+    border-radius: .5rem;
+    font-size: .85rem;
+    text-transform: capitalize;
+}
+
+.ov-date-day:hover:not(:disabled),
+.ov-date-cell:hover {
+    background: color-mix(in srgb, var(--ov-date-accent) 12%, transparent);
+}
+
+.ov-date-day.is-other {
+    color: var(--bs-tertiary-color);
+}
+
+.ov-date-day.is-today,
+.ov-date-cell.is-today {
+    box-shadow: inset 0 0 0 1px var(--ov-date-accent);
+    color: var(--ov-date-accent);
+    font-weight: 600;
+}
+
+.ov-date-day.is-selected,
+.ov-date-cell.is-selected,
+.ov-date-day.is-selected:hover,
+.ov-date-cell.is-selected:hover {
+    background: var(--ov-date-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.ov-date-day:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+}
+
+.ov-date-day:focus-visible,
+.ov-date-cell:focus-visible,
+.ov-date-title:focus-visible,
+.ov-date-nav:focus-visible {
+    outline: 2px solid var(--ov-date-accent);
+    outline-offset: 1px;
+}
+
+.ov-date-time {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.ov-date-time-label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+}
+
+.ov-date-time-fields {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+}
+
+.ov-date-time-part {
+    width: 2.4rem;
+    padding: .25rem 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    outline: none;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .85rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.ov-date-time-part:focus {
+    border-color: var(--ov-date-accent);
+}
+
+.ov-date-time-sep {
+    color: var(--bs-secondary-color);
+}
+
+.ov-date-foot {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.ov-date-link {
+    padding: .25rem .55rem;
+    border-radius: var(--bs-border-radius-sm);
+    color: var(--ov-date-accent);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.ov-date-done {
+    padding: .25rem .8rem;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: var(--ov-date-accent);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════

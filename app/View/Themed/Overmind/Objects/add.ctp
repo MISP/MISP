@@ -135,10 +135,6 @@ echo $this->Form->create('Object', [
  */
 $this->Form->unlockField('Attribute');
 
-/* The stored ISO strings, which edit() puts on request->data. A datetime-local
- * input only accepts them down to the second. */
-$firstSeen = substr((string)($this->request->data['Object']['first_seen'] ?? ''), 0, 19);
-$lastSeen  = substr((string)($this->request->data['Object']['last_seen'] ?? ''), 0, 19);
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
@@ -207,45 +203,35 @@ $lastSeen  = substr((string)($this->request->data['Object']['last_seen'] ?? ''),
                         ]) ?>
                     </div>
 
-                    <!-- First Seen / Last Seen. A datetime-local input posts the
-                         value itself, so nothing here is a hidden field whose
-                         value the token seals. -->
+                    <!-- First Seen / Last Seen -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <?= $this->element('genericElementsBS5/Forms/section_label', [
                                 'accent' => 'object',
                                 'label' => __('First Seen (UTC)'),
-                                'for' => 'ObjectFirstSeen',
+                                'for' => 'ObjectFirstSeenDisplay',
                             ]) ?>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-calendar-days text-muted"></i></span>
-                                <?= $this->Form->text('first_seen', [
-                                    'type' => 'datetime-local',
-                                    'step' => '1',
-                                    'id' => 'ObjectFirstSeen',
-                                    'class' => 'form-control',
-                                    'required' => false,
-                                    'value' => $firstSeen,
-                                ]) ?>
-                            </div>
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'first_seen',
+                                'id' => 'ObjectFirstSeen',
+                                'mode' => 'datetime',
+                                'accent' => 'object',
+                            ]) ?>
                         </div>
                         <div class="col-md-6">
                             <?= $this->element('genericElementsBS5/Forms/section_label', [
                                 'accent' => 'object',
                                 'label' => __('Last Seen (UTC)'),
-                                'for' => 'ObjectLastSeen',
+                                'for' => 'ObjectLastSeenDisplay',
                             ]) ?>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-calendar-days text-muted"></i></span>
-                                <?= $this->Form->text('last_seen', [
-                                    'type' => 'datetime-local',
-                                    'step' => '1',
-                                    'id' => 'ObjectLastSeen',
-                                    'class' => 'form-control',
-                                    'required' => false,
-                                    'value' => $lastSeen,
-                                ]) ?>
-                            </div>
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'last_seen',
+                                'id' => 'ObjectLastSeen',
+                                'mode' => 'datetime',
+                                'accent' => 'object',
+                                'after' => '#ObjectFirstSeen',
+                                'rangeMsg' => __('Last seen cannot be earlier than first seen.'),
+                            ]) ?>
                         </div>
                     </div>
 
