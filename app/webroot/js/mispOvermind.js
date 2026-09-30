@@ -3699,6 +3699,82 @@ function installJsonSubmitGuard() {
     }, true);
 }
 
+/**
+ * The refusal of an empty `required` field, for a form marked
+ * `data-required-guard`. Forms are `novalidate`, so the browser says nothing:
+ * this flags the field with `.is-invalid` and one `.ov-field-error` line
+ * (worded by `data-required-msg`) that clears as the user types. Installed
+ * once on the document in the capture phase, like installJsonSubmitGuard,
+ * whose boxes it leaves alone.
+ */
+var requiredFieldGuardInstalled = false;
+function installRequiredFieldGuard() {
+    if (requiredFieldGuardInstalled) { return; }
+    requiredFieldGuardInstalled = true;
+
+    function anchorOf(field) {
+        return field.closest('.input-group') || field;
+    }
+
+    function errorOf(field) {
+        var next = anchorOf(field).nextElementSibling;
+        return next && next.classList.contains('ov-field-error') ? next : null;
+    }
+
+    function clear(field) {
+        field.classList.remove('is-invalid');
+        var msg = errorOf(field);
+        if (msg) { msg.remove(); }
+    }
+
+    function flag(field) {
+        field.classList.add('is-invalid');
+        if (errorOf(field)) { return; }
+        var msg = document.createElement('div');
+        msg.className = 'ov-field-error';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-circle-exclamation';
+        var text = document.createElement('span');
+        text.textContent = field.dataset.requiredMsg || 'This field is required.';
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        var anchor = anchorOf(field);
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+
+        function onEdit() {
+            if (!String(field.value).trim()) { return; }
+            clear(field);
+            field.removeEventListener('input', onEdit);
+            field.removeEventListener('change', onEdit);
+        }
+        field.addEventListener('input', onEdit);
+        field.addEventListener('change', onEdit);
+    }
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.matches || !form.matches('[data-required-guard]')) {
+            return;
+        }
+        var first = null;
+        form.querySelectorAll('[required]').forEach(function (field) {
+            if (field.disabled || field.closest('[data-json-field]')) { return; }
+            if (field.type === 'checkbox' || field.type === 'radio') { return; }
+            if (String(field.value).trim()) {
+                clear(field);
+                return;
+            }
+            flag(field);
+            if (!first) { first = field; }
+        });
+        if (first) {
+            e.preventDefault();
+            first.focus();
+        }
+    }, true);
+}
+installRequiredFieldGuard();
+
 /*******************************
  * initJsonFields
  * Wires every JSON box inside `container` — the markup of

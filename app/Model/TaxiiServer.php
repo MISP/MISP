@@ -19,6 +19,19 @@ class TaxiiServer extends AppModel
         'Containable'
     ];
 
+    public $validate = [
+        'name' => [
+            'rule' => 'notBlank',
+            'required' => 'create',
+            'message' => 'Please provide a name for the server.',
+        ],
+        'discovery_url' => [
+            'rule' => ['custom', '/^https?:\/\//i'],
+            'allowEmpty' => true,
+            'message' => 'The URL has to start with http:// or https://',
+        ],
+    ];
+
     private $Job = null;
     private $Event = null;
     private $Allowedlist = null;
