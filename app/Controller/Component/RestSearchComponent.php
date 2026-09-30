@@ -4,6 +4,15 @@ App::uses('Component', 'Controller');
 
 class RestSearchComponent extends Component
 {
+    /** Response bodies retain their existing exporter-specific structure. */
+    public function getCursorHeaders(array $pagination)
+    {
+        return [
+            'X-Next-Cursor' => (string) $pagination['next_cursor'],
+            'X-Has-More' => $pagination['has_more'] ? 'true' : 'false',
+        ];
+    }
+
     //This array determines the order for ordered_url_params, as a result it is not advised to remove or change existing values
     public $paramArray = array(
         'Attribute' => [
@@ -75,7 +84,8 @@ class RestSearchComponent extends Component
             'minimum_ttl',
             'ttl',
             'hash_type',
-            'escape_formulas_literal'
+            'escape_formulas_literal',
+            'after_id'
         ],
         'Event' => [
             'returnFormat',

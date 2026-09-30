@@ -3665,6 +3665,20 @@ components:
     AttributeRestSearchFilter:
       type: object
       properties:
+        after_id:
+          type: integer
+          minimum: 0
+          description: >-
+            Resume after this attribute ID in ascending ID order. Requires a
+            positive limit and cannot be combined with page or any order other
+            than Attribute.id ASC. Supported formats: json, text, cache, hashes,
+            count. The limit bounds raw SQL rows before warninglist, decay,
+            proposal and allowedlist filtering, so the response may be shorter
+            or empty while more rows remain. Pass X-Next-Cursor as after_id on
+            the next request and repeat all filters. Authorization is checked
+            on every request. Traversal is live, not a snapshot: concurrent
+            changes and changes in visibility can affect the results. Text
+            deduplication and count apply separately to each response.
         page:
           $ref: "#/components/schemas/PageSearchFilter"
         limit:
@@ -8611,6 +8625,23 @@ components:
     AttributesRestSearchResponse:
       description: "Rest search attributes response"
       headers:
+        X-Next-Cursor:
+          description: >-
+            Present only for after_id requests. Last raw SQL attribute ID scanned,
+            including rows removed by PHP filters. Unchanged from after_id when
+            no rows were scanned. Use this value for the next request.
+          schema:
+            type: integer
+            minimum: 0
+        X-Has-More:
+          description: >-
+            Present only for after_id requests. True means the raw scan limit was
+            filled and more rows may exist; one final empty request can be needed
+            to establish exhaustion. False means the scan reached the end of the
+            currently visible matching rows. An empty response alone does not
+            indicate exhaustion. Serialized as true or false.
+          schema:
+            type: boolean
         X-Result-Count:
           $ref: "#/components/headers/X-Result-Count"
         X-Export-Module-Used:
