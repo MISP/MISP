@@ -5,7 +5,7 @@
         'data' => [
             'title' => empty($this->request->params['named']['enable']) ? __('Confirm creation of Taxonomy Tag') : __('Confirm enabling Taxonomy Tag'),
             'description' => __('Tag `%s` will be %s.',
-                $this->request->data['Taxonomy']['name'],
+                h($this->request->data['Taxonomy']['name']),
                 !empty($this->request->params['named']['enable']) ? 
                     __('enabled') : (
                     !empty($this->request->params['named']['update']) ? __('updated') : __('created')

@@ -279,6 +279,15 @@ $distFallback = $this->DistributionLevel->fallback();
                                 <input type="text" class="form-control" disabled>
                             </div>
                         </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted mb-1"><?= __('Tags to remove') ?></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="fas fa-tag text-muted"></i></span>
+                                <input type="text" class="form-control ft-remove-tags" placeholder="tag1, tag2"
+                                       title="<?= __('These tags are removed from the attribute already in the event that carries this value, if it has them.') ?>"
+                                       value="<?= (isset($item['remove_tags']) && $item['remove_tags'] !== false) ? h(implode(',', $item['remove_tags'])) : '' ?>">
+                            </div>
+                        </div>
                     </div>
 
                     <?php if (!empty($item['related'])): ?>
@@ -472,7 +481,8 @@ $distFallback = $this->DistributionLevel->fallback();
                     sharing_group_id: c.querySelector('.ft-sg').value,
                     data: c.querySelector('.ft-data').value,
                     data_is_handled: c.querySelector('.ft-datahandled').value,
-                    tags: c.querySelector('.ft-tags').value
+                    tags: c.querySelector('.ft-tags').value,
+                    remove_tags: c.querySelector('.ft-remove-tags').value
                 };
             });
             if (arr.length === 0) { return; }

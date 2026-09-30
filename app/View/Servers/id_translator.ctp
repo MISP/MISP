@@ -48,9 +48,9 @@ if (isset($remote_events) && isset($local_event)) {
     $table_data[] = array('key' => __('Local ID'), 'html' => $link);
     foreach ($remote_events as $remote_event) {
         if ($remote_event['remote_id']) {
-            $value = __('Remote ID:') . ' <a href="'.h($remote_event['url']).'" rel="noreferrer noopener" target="_blank">' . $remote_event['remote_id'] . '</a>';
+            $value = __('Remote ID:') . ' <a href="'.h($remote_event['url']).'" rel="noreferrer noopener" target="_blank">' . h($remote_event['remote_id']) . '</a>';
             if ($isSiteAdmin) {
-                $value .= ' (<a href="' . $baseurl . '/servers/previewEvent/' . $remote_event['server_id'] . '/' . $remote_event['remote_id'] . '">' . __('preview') .  '</a>)';
+                $value .= ' (<a href="' . $baseurl . '/servers/previewEvent/' . h($remote_event['server_id']) . '/' . h($remote_event['remote_id']) . '">' . __('preview') .  '</a>)';
             }
             $table_data[] = array('key' => h($remote_event['server_name']), 'html' => $value);
         } elseif ($remote_event['exception']) {
