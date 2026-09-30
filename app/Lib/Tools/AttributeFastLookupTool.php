@@ -1,0 +1,394 @@
+<?php
+App::uses('FastLookupConfig', 'Tools');
+App::uses('FastLookupValueTool', 'Tools');
+App::uses('FastLookupIndexManager', 'Tools');
+App::uses('FastLookupFilter', 'Tools');
+
+/** Persistent IOC candidate discovery followed by current SQL authorization. */
+class AttributeFastLookupTool
+{
+    const MAX_VALUE_BYTES = 4096;
+    const MAX_REQUEST_BYTES = 16777216;
+    const BATCH_SIZE = 1000;
+    const MAX_BATCH_BYTES = 4194304;
+    /** Visible (input, event) pairs. */
+    const MAX_ROWS = 100000;
+    /** Pre-authorization index candidates, whatever the caller may see. */
+    const MAX_CANDIDATE_IDS = 5000000;
+    const CHANGED_MESSAGE =
+        'The IOC index changed during this lookup; retry after it is ready.';
+
+    private $attribute;
+    private $db;
+    private $manager;
+
+    public function __construct($attribute, $manager = null)
+    {
+        $this->attribute = $attribute;
+        $this->db = $attribute->getDataSource();
+        $this->manager = $manager;
+    }
+
+    /**
+     * @return array Scoped status, with results only for a complete current index.
+     * @throws InvalidArgumentException Invalid request or configuration.
+     * @throws OverflowException Visible results exceed the row budget.
+     * @throws FastLookupResourceLimitException Candidate work exceeds its cap.
+     */
+    public function lookup(array $user, array $request)
+    {
+        $result = $this->search($user, $request);
+        if (($result['status'] ?? null) === 'ready' || !empty($user['Role']['perm_site_admin'])) {
+            return $result;
+        }
+        return self::publicStatus($result);
+    }
+
+    /** Index details describe every organisation's data: admins only. */
+    private static function publicStatus(array $status): array
+    {
+        $state = in_array($status['status'] ?? null, ['warming', 'updating', 'error'], true) ? $status['status'] : 'unavailable';
+        if (($status['message'] ?? null) === self::CHANGED_MESSAGE) {
+            $message = self::CHANGED_MESSAGE;
+        } elseif ($state === 'warming' || $state === 'updating') {
+            $message = 'The IOC index is being built; retry later.';
+        } else {
+            $message = 'Fast lookup is unavailable. Contact your administrator.';
+        }
+        return ['status' => $state, 'scope' => $status['scope'], 'message' => $message];
+    }
+
+    private function search(array $user, array $request)
+    {
+        $scope = FastLookupConfig::scope($this->attribute);
+        list($originals, $values) = $this->validate($request, $scope['max_values']);
+        if ($this->manager === null) {
+            $this->manager = new FastLookupIndexManager($this->attribute);
+        }
+        $snapshot = $this->manager->status();
+        $snapshot['scope'] = $scope;
+        if (($snapshot['status'] ?? '') !== 'ready') {
+            unset($snapshot['results']);
+            return $snapshot;
+        }
+        $valueTool = new FastLookupValueTool($this->attribute);
+        $acl = $this->db->conditions($this->attribute->buildConditions($user), true, false, $this->attribute);
+        $from = $this->fromClause();
+        $common = $this->commonConditions($scope, $acl);
+        $unindexed = [];
+        foreach ($scope['attribute_types'] as $type) {
+            foreach (['value1', 'value2'] as $component) {
+                if (!FastLookupValueTool::indexesComponent($type, $component)) {
+                    $unindexed[$component][] = $this->db->value($type, 'string');
+                }
+            }
+        }
+        $rowCount = 0;
+        $candidateCount = 0;
+        $matches = [];
+        $filter = $this->manager->filter();
+        $prefixes = $filter->prefixLengths($snapshot['generation']);
+        $prefixesRefreshed = false;
+        foreach ($this->batches($values) as $batch) {
+            $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
+            $budget = min(FastLookupFilter::MAX_POSTING_IDS,
+                static::MAX_CANDIDATE_IDS - $candidateCount);
+            try {
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, $budget,
+                    self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
+            } catch (FastLookupPrefixesChangedException $e) {
+                if ($prefixesRefreshed) {
+                    throw $e;
+                }
+                $prefixesRefreshed = true;
+                $prefixes = $filter->prefixLengths($snapshot['generation']);
+                $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
+                $candidates = $filter->candidates($snapshot['generation'], $tokens, $budget,
+                    self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
+            }
+            $candidateCount += $this->validateCandidates($candidates, $batch, $budget);
+            $pairs = [];
+            foreach (['value1', 'value2'] as $component) {
+                $restriction = '';
+                if (!empty($unindexed[$component])) {
+                    $restriction = ' AND ' . $this->db->name('Attribute.type') . ' NOT IN (' . implode(',', $unindexed[$component]) . ')';
+                }
+                $byWeight = [];
+                $inList = [];
+                $branches = [];
+                foreach ($batch as $index => $value) {
+                    if (!$valueTool->representable($value, $component)) {
+                        continue;
+                    }
+                    if (!empty($fallback[$index][$component])) {
+                        $branches[] = 'SELECT ' . (int)$index . ' AS ' . $this->db->name('input_index')
+                            . ', ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
+                            . ' FROM ' . $from . ' WHERE ' . $this->db->name('Attribute.' . $component)
+                            . ' = ' . $this->db->value($value, 'string') . $common . $restriction;
+                        continue;
+                    }
+                    // The Bloom filter only proves absence; SQL equality decides.
+                    $weight = $weights[$index][$component] ?? '';
+                    if ($weight === '' || empty($candidates[$index]['exact'])) {
+                        continue;
+                    }
+                    if (!isset($byWeight[$weight])) {
+                        $inList[] = $this->db->value($value, 'string');
+                    }
+                    $byWeight[$weight][] = $index;
+                }
+                // Each query keeps the full limit and fails when it alone
+                // exceeds it: conservative, as rows may collapse into fewer
+                // pairs, but never truncating.
+                if ($inList) {
+                    $column = $this->db->name('Attribute.' . $component);
+                    $sql = 'SELECT DISTINCT ' . $this->db->name('Attribute.event_id') . ' AS ' . $this->db->name('event_id')
+                        . ', WEIGHT_STRING(RTRIM(' . $column . ')) AS ' . $this->db->name('weight')
+                        . ' FROM ' . $from . ' WHERE ' . $column . ' IN (' . implode(',', $inList) . ')' . $common . $restriction
+                        . ' LIMIT ' . (self::MAX_ROWS + 1);
+                    foreach ($this->rows($sql) as $row) {
+                        $rowWeight = is_string($row['weight'] ?? null) ? $valueTool->stripColumnPadding($component, $row['weight']) : null;
+                        // SQL equality matched a value no input weighs as: never answer without it.
+                        if ($rowWeight === null || !isset($byWeight[$rowWeight])) {
+                            throw new RuntimeException('Invalid IOC lookup response.');
+                        }
+                        foreach ($byWeight[$rowWeight] as $index) {
+                            $this->addPair($matches, $pairs, $index, (string)$row['event_id'], $rowCount);
+                        }
+                    }
+                }
+                if ($branches) {
+                    $sql = implode(' UNION ', $branches) . ' LIMIT ' . (self::MAX_ROWS + 1);
+                    foreach ($this->rows($sql) as $row) {
+                        $this->addPair($matches, $pairs, (int)$row['input_index'], (string)$row['event_id'], $rowCount);
+                    }
+                }
+            }
+
+            // Fetch each expanded candidate once; ACLs, type, publication and
+            // deletion are checked before any current component leaves SQL.
+            // Packed (position << 1 | kind) codes keep this compact.
+            $expanded = [];
+            foreach ($candidates as $index => $groups) {
+                foreach (['ip_range' => 0, 'domain' => 1] as $kind => $bit) {
+                    $code = pack('N', $index << 1 | $bit);
+                    foreach ($groups[$kind] as $id) {
+                        $expanded[$id] = ($expanded[$id] ?? '') . $code;
+                    }
+                }
+            }
+            unset($candidates);
+            $fields = [];
+            foreach (['id', 'event_id', 'type', 'value1', 'value2'] as $field) {
+                $fields[] = $this->db->name('Attribute.' . $field) . ' AS ' . $this->db->name($field);
+            }
+            foreach (array_chunk(array_keys($expanded), 1000) as $ids) {
+                $sql = 'SELECT ' . implode(', ', $fields) . ' FROM ' . $from
+                    . ' WHERE ' . $this->db->name('Attribute.id') . ' IN (' . implode(',', $ids) . ')' . $common;
+                foreach ($this->rows($sql) as $row) {
+                    $eventId = (string)$row['event_id'];
+                    foreach (unpack('N*', $expanded[$row['id']] ?? '') as $code) {
+                        $index = $code >> 1;
+                        $group = $code & 1 ? 'domains' : 'ip_ranges';
+                        $live = $valueTool->expandedMatches($batch[$index], $row);
+                        foreach ($live[$group] as $storedValue) {
+                            $this->addPair($matches, $pairs, $index, $eventId, $rowCount);
+                            $matches[$index][$group][$storedValue][$eventId] = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (!$this->manager->isCurrent($snapshot)) {
+            $status = $this->manager->status();
+            $status['scope'] = $scope;
+            if (($status['status'] ?? '') === 'ready') {
+                $status['status'] = 'updating';
+            }
+            $status['message'] = self::CHANGED_MESSAGE;
+            unset($status['results']);
+            return $status;
+        }
+        $results = new stdClass();
+        foreach ($originals as $index => $original) {
+            if (empty($matches[$index]['events'])) {
+                continue;
+            }
+            $entry = ['event_ids' => self::sortedIds($matches[$index]['events'])];
+            foreach (['ip_ranges', 'domains'] as $group) {
+                $entry[$group] = new stdClass();
+                $groups = $matches[$index][$group] ?? [];
+                ksort($groups, SORT_STRING);
+                foreach ($groups as $storedValue => $events) {
+                    $entry[$group]->{(string)$storedValue} = self::sortedIds($events);
+                }
+            }
+            $results->{$original} = $entry;
+        }
+        return ['status' => 'ready', 'scope' => $scope, 'results' => $results];
+    }
+
+    private function validate(array $request, $maximum)
+    {
+        if (array_diff(array_keys($request), ['value'])) {
+            throw new InvalidArgumentException('Only value is supported; maxAge is no longer available.');
+        }
+        if (!isset($request['value']) || !is_array($request['value'])
+            || array_values($request['value']) !== $request['value'] || count($request['value']) > $maximum) {
+            throw new InvalidArgumentException("value must be a list of at most $maximum IOC strings.");
+        }
+        $bytes = 0;
+        $originals = [];
+        $values = [];
+        $seen = [];
+        foreach ($request['value'] as $value) {
+            if (!is_string($value) || $value === '' || strlen($value) > self::MAX_VALUE_BYTES
+                || strpos($value, "\0") !== false || preg_match('//u', $value) !== 1) {
+                throw new InvalidArgumentException('Each IOC must be a nonempty UTF-8 string of at most 4096 bytes, without NUL characters.');
+            }
+            $bytes += strlen($value);
+            if ($bytes > self::MAX_REQUEST_BYTES) {
+                throw new InvalidArgumentException('The combined IOC size must not exceed 16 MiB.');
+            }
+            if (isset($seen[$value])) {
+                continue;
+            }
+            $seen[$value] = true;
+            $originals[] = $value;
+            $values[] = filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? inet_ntop(inet_pton($value)) : $value;
+        }
+        return [$originals, $values];
+    }
+
+    private function fromClause()
+    {
+        $db = $this->db;
+        return $db->fullTableName($this->attribute) . ' ' . $db->name('Attribute')
+            . ' INNER JOIN ' . $db->fullTableName($this->attribute->Event) . ' ' . $db->name('Event')
+            . ' ON ' . $db->name('Event.id') . ' = ' . $db->name('Attribute.event_id')
+            . ' LEFT JOIN ' . $db->fullTableName($this->attribute->Object) . ' ' . $db->name('Object')
+            . ' ON ' . $db->name('Object.id') . ' = ' . $db->name('Attribute.object_id');
+    }
+
+    private function commonConditions(array $scope, $acl)
+    {
+        $types = array_map(function ($type) { return $this->db->value($type, 'string'); }, $scope['attribute_types']);
+        return ' AND ' . $this->db->name('Attribute.deleted') . ' = 0 AND (' . ($acl ?: '1=1') . ')'
+            . ' AND ' . $this->db->name('Attribute.type') . ' IN (' . implode(',', $types) . ')'
+            . ($scope['published_only'] ? ' AND ' . $this->db->name('Event.published') . ' = 1' : '');
+    }
+
+    /**
+     * The filter answers every position of the batch with all three groups.
+     * Anything else is a malformed reply and fails closed: a missing flag or
+     * position must never read as "absent".
+     */
+    private function validateCandidates(array $candidates, array $batch, int $budget): int
+    {
+        $count = 0;
+        if (count($candidates) !== count($batch) || array_diff_key($batch, $candidates) || array_diff_key($candidates, $batch)) {
+            throw new FastLookupIndexUnavailableException('Invalid IOC index candidate response.');
+        }
+        foreach ($candidates as $groups) {
+            if (!is_array($groups) || !array_key_exists('exact', $groups) || !is_bool($groups['exact'])
+                || !array_key_exists('ip_range', $groups) || !array_key_exists('domain', $groups)) {
+                throw new FastLookupIndexUnavailableException('Invalid IOC index candidate response.');
+            }
+            foreach (['ip_range', 'domain'] as $kind) {
+                $ids = $groups[$kind];
+                if (!is_array($ids)) {
+                    throw new FastLookupIndexUnavailableException('Invalid IOC index candidate IDs.');
+                }
+                $count += count($ids);
+                if ($count > $budget) {
+                    throw new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
+                }
+                foreach ($ids as $id) {
+                    if ((!is_string($id) && !is_int($id)) || !preg_match('/^[1-9][0-9]{0,18}$/D', (string)$id)) {
+                        throw new FastLookupIndexUnavailableException('Invalid IOC index candidate ID.');
+                    }
+                }
+            }
+        }
+        return $count;
+    }
+
+    /** Streams without counting: callers count distinct pairs. */
+    private function rows(string $sql): Generator
+    {
+        $statement = $this->db->rawQuery($sql);
+        if (!is_object($statement)) {
+            throw new RuntimeException('Could not execute the IOC lookup query.');
+        }
+        try {
+            $count = 0;
+            while (($row = $statement->fetch(PDO::FETCH_ASSOC)) !== false) {
+                if (++$count > self::MAX_ROWS) {
+                    throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
+                }
+                yield $row;
+            }
+        } finally {
+            $statement->closeCursor();
+        }
+    }
+
+    private function addPair(array &$matches, array &$pairs, int $index, string $eventId, &$rowCount)
+    {
+        if (!isset($pairs[$index][$eventId])) {
+            $this->consumeRows(1, $rowCount);
+            $pairs[$index][$eventId] = true;
+            $matches[$index]['events'][$eventId] = true;
+        }
+    }
+
+    /** Batches bound both the value count and the SQL-quoted size, so no statement nears max_allowed_packet. */
+    private function batches(array $values): array
+    {
+        $batches = [];
+        $batch = [];
+        $bytes = 0;
+        foreach ($values as $index => $value) {
+            $size = strlen($this->db->value($value, 'string'));
+            if ($batch && (count($batch) === self::BATCH_SIZE || $bytes + $size > self::MAX_BATCH_BYTES)) {
+                $batches[] = $batch;
+                $batch = [];
+                $bytes = 0;
+            }
+            $batch[$index] = $value;
+            $bytes += $size;
+        }
+        if ($batch) {
+            $batches[] = $batch;
+        }
+        return $batches;
+    }
+
+    private function consumeRows($count, &$rowCount)
+    {
+        $rowCount += $count;
+        if ($rowCount > self::MAX_ROWS) {
+            throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
+        }
+    }
+
+    /** Only range tokens depend on the prefix set; other lookups never wait on its changes. */
+    private static function hasRangeTokens(array $tokens)
+    {
+        foreach ($tokens as $position) {
+            foreach ($position as $token) {
+                if (($token['kind'] ?? null) === 'ip_range') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static function sortedIds(array $events)
+    {
+        $ids = array_map('strval', array_keys($events));
+        usort($ids, function ($left, $right) { return strlen($left) <=> strlen($right) ?: strcmp($left, $right); });
+        return $ids;
+    }
+}

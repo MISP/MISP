@@ -5,7 +5,8 @@ class RateLimitComponent extends Component
 {
     const LIMITED_FUNCTIONS = array(
         'attributes' => array(
-            'restSearch' => 1
+            'restSearch' => 1,
+            'fastLookup' => 1,
         ),
         'events' => array(
             'restSearch' => 1
@@ -21,7 +22,8 @@ class RateLimitComponent extends Component
      */
     public function check(array $user, $controller, $action)
     {
-        if (!isset(self::LIMITED_FUNCTIONS[$controller][$action])) {
+        $limitedActions = array_change_key_case(self::LIMITED_FUNCTIONS[$controller] ?? []);
+        if (!isset($limitedActions[strtolower($action)])) {
             return null; // no limit enforced for this controller action
         }
 

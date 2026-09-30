@@ -1,0 +1,241 @@
+<?php
+
+/** Membership settings and database identity shared by writers and readers. */
+class FastLookupConfig
+{
+    const NORMALIZATION_VERSION = 2;
+    const DEFAULT_MAX_VALUES = 10000;
+    /** Bloom false-positive rate: each false positive costs one SQL equality probe. */
+    const DEFAULT_FALSE_POSITIVE_RATE = 0.001;
+    const MIN_FALSE_POSITIVE_RATE = 0.0001;
+    const MAX_FALSE_POSITIVE_RATE = 0.05;
+    const DEFAULT_TYPES = [
+        'domain', 'domain|ip', 'hostname', 'hostname|port', 'ip-src', 'ip-dst',
+        'ip-src|port', 'ip-dst|port', 'md5', 'sha1', 'sha256', 'sha512',
+        'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha512',
+        'malware-sample',
+    ];
+    const MATCHING = ['exact', 'ip_cidr', 'parent_domain'];
+    /**
+     * Types that are never indexed: free text and payloads, rule and pattern
+     * bodies, low-cardinality scalars and fuzzy hashes. None of them is a value
+     * worth an exact log lookup, and the scalars would create huge postings.
+     */
+    const EXCLUDED_TYPES = [
+        // Free text and payloads
+        'comment', 'text', 'other', 'hex', 'anonymised', 'email-body', 'email-header', 'attachment',
+        // Rules, patterns and key material
+        'snort', 'suricata', 'bro', 'zeek', 'yara', 'sigma', 'stix2-pattern', 'kusto-query',
+        'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern',
+        'pgp-public-key', 'pgp-private-key', 'dkim-signature', 'cortex', 'email-mime-boundary',
+        // Scalars and dates
+        'float', 'integer', 'counter', 'boolean', 'size-in-bytes', 'port', 'datetime',
+        'whois-creation-date', 'http-method', 'mime-type', 'process-state', 'gender',
+        // Fuzzy hashes: only similarity matching is meaningful
+        'ssdeep', 'tlsh', 'impfuzzy', 'vhash',
+        'filename|ssdeep', 'filename|tlsh', 'filename|impfuzzy', 'filename|vhash',
+    ];
+
+    public static function scope($attribute = null)
+    {
+        $setting = Configure::read('MISP.fast_lookup_attribute_types');
+        $types = $setting === null ? self::DEFAULT_TYPES : self::parseTypes($setting, $attribute);
+        sort($types, SORT_STRING);
+        return [
+            'attribute_types' => $types,
+            'published_only' => self::readPublishedOnly(),
+            'max_values' => self::readMaxValues(),
+            'false_positive_rate' => self::readFalsePositiveRate(),
+            'matching' => self::MATCHING,
+        ];
+    }
+
+    /** Report invalid settings without inventing a usable membership scope. */
+    public static function diagnosticScope($attribute = null): array
+    {
+        try {
+            return self::scope($attribute);
+        } catch (InvalidArgumentException $e) {
+            $setting = Configure::read('MISP.fast_lookup_attribute_types');
+            if ($setting === null) {
+                $types = self::DEFAULT_TYPES;
+            } elseif (is_string($setting)) {
+                $types = array_values(array_unique(array_filter(array_map('trim', explode(',', $setting)), 'strlen')));
+            } else {
+                $types = null;
+            }
+            if ($types !== null) {
+                sort($types, SORT_STRING);
+            }
+            return [
+                'attribute_types' => $types,
+                'published_only' => self::orNull([self::class, 'readPublishedOnly']),
+                'max_values' => self::orNull([self::class, 'readMaxValues']),
+                'false_positive_rate' => self::orNull([self::class, 'readFalsePositiveRate']),
+                'matching' => self::MATCHING,
+                'configuration_valid' => false,
+            ];
+        }
+    }
+
+    /** Settings validation returns the convention expected by Server. */
+    public static function validateTypeSetting($value)
+    {
+        try {
+            self::parseTypes($value);
+            return true;
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public static function validateMaxValuesSetting($value)
+    {
+        try {
+            self::positiveInteger($value);
+            return true;
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public static function validateFalsePositiveRateSetting($value)
+    {
+        try {
+            self::falsePositiveRate($value);
+            return true;
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public static function namespaceFor($attribute)
+    {
+        return json_encode(self::databaseIdentity($attribute), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+
+    public static function fingerprint($attribute)
+    {
+        $scope = self::scope($attribute);
+        unset($scope['max_values']);
+        $db = $attribute->getDataSource();
+        $version = 'unknown';
+        if (method_exists($db, 'getConnection')) {
+            $connection = $db->getConnection();
+            if (is_object($connection) && method_exists($connection, 'getAttribute')) {
+                $version = (string)$connection->getAttribute(PDO::ATTR_SERVER_VERSION);
+            }
+        }
+        $identity = [
+            'database' => self::databaseIdentity($attribute),
+            'database_version' => $version,
+            'columns' => self::columnSchemas($attribute),
+            'scope' => $scope,
+            'normalization_version' => self::NORMALIZATION_VERSION,
+            'idna' => function_exists('idn_to_ascii') ? (defined('INTL_ICU_VERSION') ? INTL_ICU_VERSION : 'available') : 'unavailable',
+        ];
+        return hash('sha256', json_encode($identity, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    }
+
+    public static function columnSchemas($attribute)
+    {
+        $columns = [];
+        foreach (['value1', 'value2'] as $component) {
+            $schema = $attribute->schema($component);
+            $columns[$component] = [
+                'charset' => strtolower($schema['charset'] ?? ''),
+                'collate' => strtolower($schema['collate'] ?? ''),
+            ];
+        }
+        return $columns;
+    }
+
+    private static function databaseIdentity($attribute)
+    {
+        $db = $attribute->getDataSource();
+        $identity = array_intersect_key($db->config, array_flip([
+            'datasource', 'host', 'port', 'database', 'schema', 'prefix', 'unix_socket',
+        ]));
+        $identity['table'] = $db->fullTableName($attribute);
+        ksort($identity);
+        return $identity;
+    }
+
+    private static function parseTypes($value, $attribute = null)
+    {
+        if (!is_string($value) || trim($value) === '') {
+            throw new InvalidArgumentException('Select at least one comma-separated MISP attribute type.');
+        }
+        if ($attribute === null) {
+            $attribute = ClassRegistry::init('MispAttribute');
+        }
+        $definitions = $attribute->typeDefinitions;
+        $types = [];
+        foreach (explode(',', $value) as $type) {
+            $type = trim($type);
+            if ($type === '' || !array_key_exists($type, $definitions)) {
+                throw new InvalidArgumentException('Unknown MISP attribute type: ' . $type);
+            }
+            if (in_array($type, self::EXCLUDED_TYPES, true)) {
+                throw new InvalidArgumentException('MISP attribute type ' . $type . ' is never indexed by fast lookup.');
+            }
+            $types[$type] = true;
+        }
+        return array_keys($types);
+    }
+
+    private static function readPublishedOnly(): bool
+    {
+        $published = Configure::read('MISP.fast_lookup_published_only');
+        if ($published === null) {
+            return true;
+        }
+        if (!in_array($published, [true, false, 0, 1, '0', '1'], true)) {
+            throw new InvalidArgumentException('MISP.fast_lookup_published_only must be a boolean.');
+        }
+        return (bool)$published;
+    }
+
+    private static function readMaxValues(): int
+    {
+        $maximum = Configure::read('MISP.fast_lookup_max_values');
+        return $maximum === null ? self::DEFAULT_MAX_VALUES : self::positiveInteger($maximum);
+    }
+
+    private static function readFalsePositiveRate(): float
+    {
+        $rate = Configure::read('MISP.fast_lookup_false_positive_rate');
+        return $rate === null ? self::DEFAULT_FALSE_POSITIVE_RATE : self::falsePositiveRate($rate);
+    }
+
+    private static function falsePositiveRate($value): float
+    {
+        if ((!is_string($value) && !is_int($value) && !is_float($value)) || !is_numeric($value)
+            || (float)$value < self::MIN_FALSE_POSITIVE_RATE || (float)$value > self::MAX_FALSE_POSITIVE_RATE) {
+            throw new InvalidArgumentException('MISP.fast_lookup_false_positive_rate must be a number between 0.0001 and 0.05.');
+        }
+        return (float)$value;
+    }
+
+    private static function orNull(callable $reader)
+    {
+        try {
+            return $reader();
+        } catch (InvalidArgumentException $e) {
+            return null;
+        }
+    }
+
+    private static function positiveInteger($value)
+    {
+        if ((!is_int($value) && !is_string($value)) || !preg_match('/^[1-9][0-9]*$/D', (string)$value)) {
+            throw new InvalidArgumentException('MISP.fast_lookup_max_values must be a positive integer.');
+        }
+        $maximum = (string)PHP_INT_MAX;
+        $value = (string)$value;
+        if (strlen($value) > strlen($maximum) || (strlen($value) === strlen($maximum) && strcmp($value, $maximum) > 0)) {
+            throw new InvalidArgumentException('MISP.fast_lookup_max_values exceeds the supported integer range.');
+        }
+        return (int)$value;
+    }
+}
