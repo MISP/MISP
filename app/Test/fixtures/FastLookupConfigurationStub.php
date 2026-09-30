@@ -122,6 +122,8 @@ class FastLookupTestFilter
     public $prefixSequence = [];
     /** The next candidates() calls with a prefix version that report a prefix-version change. */
     public $changes = 0;
+    /** Once the prefix-version changes are used up, candidates() reports a full filter. */
+    public $full = false;
     public function prefixLengths($generation)
     {
         ++$this->prefixReads;
@@ -132,6 +134,9 @@ class FastLookupTestFilter
         $this->reads[] = [$generation, $tokens, $maximumIds, $prefixVersion];
         if ($prefixVersion !== null && $this->changes-- > 0) {
             throw new FastLookupPrefixesChangedException('changed');
+        }
+        if ($this->full) {
+            throw new FastLookupIndexFullException($generation);
         }
         if ($this->hits === null) {
             return array_map(function () { return ['exact' => false, 'ip_range' => [], 'domain' => []]; }, $tokens);

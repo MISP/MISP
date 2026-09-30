@@ -344,6 +344,7 @@ try {
 
     // A full NONSCALING filter refuses tokens: the add fails as full, and nothing it took before reads absent.
     $tiny->reserve('full', str_repeat('u', 64), 40, 0.01, 1);
+    $assert($redis->hGet($fullPrefix . 'metadata', 'schema') === 'bloom-2' && $tiny->prefixLengths('full')['version'] === '0', 'A generation that can fill starts masked under the current schema');
     $accepted = [];
     $full = null;
     for ($i = 0; $i < 1000 && $full === null; ++$i) {
@@ -361,6 +362,10 @@ try {
     $assert($fullInserted >= 1 && $fullInserted <= count($accepted) + 1, "The tokens stored before the refusal are counted: $fullInserted");
     $flags = $redis->rawCommand('BF.MEXISTS', $fullPrefix . 'g:full:bf', ...$accepted);
     $assert(count($accepted) > 0 && $flags === array_fill(0, count($accepted), 1), 'No token taken before the refusal reads absent');
+    $r20 = $token('I', '203.0.113.0/20');
+    $throws(static function () use ($tiny, $r20) { $tiny->add('full', [['id' => '2000', 'type' => 'ip-src', 'tokens' => [$r20], 'networks' => [[4, 20]]]]); },
+        FastLookupIndexFullException::class, 'A range add to a full filter fails as full');
+    $assert(isset($tiny->prefixLengths('full')['lengths'][4][20]), 'A refused range token still has its length in the mask');
     // A filter at its capacity never answers, since it may have refused tokens.
     $assert($fullInserted === 40, "The full filter reached its capacity: $fullInserted");
     $tiny->checkpoint('full-r1', false);
@@ -368,6 +373,8 @@ try {
     $tiny->checkpoint('full-r2', true);
     $throws(static function () use ($tiny, $accepted) { $tiny->candidates('full', [[['token' => $accepted[0], 'kind' => 'exact']]]); },
         FastLookupIndexFullException::class, 'A full filter fails the lookup as full');
+    $throws(static function () use ($tiny, $r20) { $tiny->candidates('full', [[['token' => $r20, 'kind' => 'ip_range']]], 100000, '0'); },
+        FastLookupIndexFullException::class, 'A full filter fails as full before any prefix version check');
 
     // A filter an earlier release filled may have dropped tokens silently: at its capacity it never answers.
     $tiny->reserve('oldfull', str_repeat('v', 64), 1000, 0.01, 1);

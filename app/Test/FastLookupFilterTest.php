@@ -672,10 +672,11 @@ class FastLookupFilterTest extends TestCase
     {
         $redis = $this->recordingRedis([
             'hGetAll' => ['live' => 'live1', 'fingerprint' => 'f'] + $this->validMetadataFields(),
-            'eval' => ['1000', '0.001', '1000', '0', '1', '0'],
+            'eval' => ['1000', '0.001', '1000', '0', '1', '0', str_repeat('0', 33), str_repeat('0', 129), '3'],
         ]);
         try {
-            $this->filter(null, $redis)->candidates('live1', [[['token' => $this->token('E'), 'kind' => 'exact']]]);
+            // A stale prefix version too: the full check comes first.
+            $this->filter(null, $redis)->candidates('live1', [[['token' => $this->token('I'), 'kind' => 'ip_range']]], 100000, '2');
             $this->fail('A full generation must never answer.');
         } catch (FastLookupIndexFullException $e) {
             $this->assertSame('live1', $e->generation);

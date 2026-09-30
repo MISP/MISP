@@ -505,6 +505,29 @@ resultsJson(['example.org' => entry(['7'], [], ['Example.org' => ['7']])], $sing
 same(json_encode($single['results']), json_encode(lookup($user, ['example.org', 'example.org', 'example.org'])['results']),
     'duplicate inputs collapse to the single-value result');
 
+// What an earlier release leaves behind: a legacy namespace whose unmasked live filter reached its capacity.
+$redis->hSet($metaKey, 'schema', 'bloom-1');
+$fullCapacity = (int)$redis->hGet($infoKey, 'capacity');
+$redis->hSet($infoKey, 'inserted', (string)$fullCapacity);
+try { lookup($user, ['10.1.2.3']); throw new RuntimeException('A full filter answered a lookup'); }
+catch (FastLookupIndexFullException $e) { same($live, $e->generation, 'a full live filter fails the lookup as full'); }
+changed(10);
+same(false, manager()->processPending(25)['status'] === 'ready', 'a full live generation stops serving');
+same(false, isset(lookup($user, ['10.1.2.3'])['results']), 'no results while the replacement builds');
+$replacing = manager();
+for ($i = 0; $i < 100 && ($status = $replacing->runBatch(3))['status'] !== 'ready'; ++$i) {
+    if ($status['status'] === 'error') { throw new RuntimeException('Replacement failed: ' . json_encode($status)); }
+}
+same('ready', $status['status'], 'the replacement generation becomes ready');
+$replacement = $filter->metadata()['live'];
+same(true, $replacement !== $live, 'a fresh generation replaces the full one');
+same('bloom-2', $redis->hGet($metaKey, 'schema'), 'the replacement stamps the current schema');
+same([4 => [13, 16], 6 => []], array_map('array_keys', $filter->prefixLengths($replacement)['lengths']), 'the replacement carries prefix masks');
+same(true, $filter->metadata()['generations'][$replacement]['capacity'] >= 2 * $fullCapacity, 'the replacement is at least twice the full capacity');
+resultsJson(['192.168.5.5' => entry(['10'], ['192.168.0.0/16' => ['10']]),
+    '10.1.2.3' => entry(['2'], ['10.0.0.0/13' => ['2']])],
+    lookup($user, ['192.168.5.5', '10.1.2.3']), 'the replacement matches both ranges');
+
 // Flush the test's deferred callback before database cleanup occurs at shutdown.
 FastLookupIndexManager::dispatchPending();
 $report = ['checks' => $checks, 'versions' => ['php' => PHP_VERSION,

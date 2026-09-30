@@ -604,6 +604,27 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         }
     }
 
+    public function testPrefixRefreshThatFindsAFullFilterFailsAsFull(): void
+    {
+        Configure::write('MISP.fast_lookup_attribute_types', 'ip-dst');
+        $tool = $this->tool($attribute, $manager);
+        $manager->index->prefixSequence = [
+            ['version' => '3', 'lengths' => [4 => [32 => true], 6 => []]],
+            ['version' => '4', 'lengths' => [4 => [16 => true], 6 => []]],
+        ];
+        $manager->index->changes = 1;
+        $manager->index->full = true;
+        try {
+            $tool->lookup([], ['value' => ['10.1.2.3']]);
+            $this->fail('A full filter must never answer after a prefix refresh.');
+        } catch (FastLookupIndexFullException $e) {
+            $this->assertSame('generation-one', $e->generation);
+            $this->assertSame(2, $manager->index->prefixReads);
+            $this->assertCount(2, $manager->index->reads);
+            $this->assertSame([], $attribute->db->queries);
+        }
+    }
+
     public function testRequestsWithoutRangeTokensSkipThePrefixVersionCheck(): void
     {
         Configure::write('MISP.fast_lookup_attribute_types', 'sha256');
