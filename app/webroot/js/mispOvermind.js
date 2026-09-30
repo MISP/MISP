@@ -3776,6 +3776,82 @@ function installRequiredFieldGuard() {
 installRequiredFieldGuard();
 
 /*******************************
+ * installOnDemandActions
+ * One delegated listener for every IndexTable/Fields/on_demand cell: GET the
+ * cell's url, or POST its text box as `value`, and list the JSON answer's
+ * keys under the button — or the `errors` of a refused one.
+ ******************************/
+var onDemandActionsInstalled = false;
+function installOnDemandActions() {
+    if (onDemandActionsInstalled) { return; }
+    onDemandActionsInstalled = true;
+
+    function line(key, value, className) {
+        var row = document.createElement('div');
+        if (className) { row.className = className; }
+        if (key !== null) {
+            var label = document.createElement('span');
+            label.className = 'fw-semibold';
+            label.textContent = key + ': ';
+            row.appendChild(label);
+        }
+        row.appendChild(document.createTextNode(
+            value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value)
+        ));
+        return row;
+    }
+
+    function run(cell) {
+        var result = cell.querySelector('[data-on-demand-result]');
+        var input = cell.querySelector('[data-on-demand-value]');
+        var options = {
+            credentials: 'same-origin',
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}
+        };
+        if (input) {
+            options.method = 'POST';
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            options.body = new URLSearchParams({value: input.value.trim()}).toString();
+        }
+        result.replaceChildren(line(null, cell.dataset.running || '…', 'text-muted'));
+        fetch(cell.dataset.url, options)
+            .then(function (r) {
+                return r.json().catch(function () { return null; }).then(function (data) {
+                    return {ok: r.ok, status: r.status, data: data};
+                });
+            })
+            .then(function (answer) {
+                var data = answer.data;
+                if (!answer.ok || !data || typeof data !== 'object') {
+                    var reason = data && (data.errors || data.message || data.name);
+                    result.replaceChildren(
+                        line(null, 'Error ' + answer.status, 'text-danger fw-semibold'),
+                        line(null, reason || '', 'text-danger')
+                    );
+                    return;
+                }
+                result.replaceChildren.apply(result, Object.keys(data).map(function (key) {
+                    return line(key, data[key]);
+                }));
+            })
+            .catch(function (err) {
+                result.replaceChildren(line(null, String(err), 'text-danger'));
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest('[data-on-demand-run]');
+        if (button) { run(button.closest('[data-on-demand]')); }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-on-demand-value]')) { return; }
+        e.preventDefault();
+        run(e.target.closest('[data-on-demand]'));
+    });
+}
+installOnDemandActions();
+
+/*******************************
  * initJsonFields
  * Wires every JSON box inside `container` — the markup of
  * Elements/genericElementsBS5/Forms/json_field.ctp.
