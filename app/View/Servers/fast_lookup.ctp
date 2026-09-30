@@ -52,8 +52,8 @@ app/Console/cake Admin processFastLookup</pre>
         <p><?= __('Schedule processFastLookup regularly to drain updates after large imports or outages.') ?></p>
     <?php endif; ?>
     <?php if ($filterCounters): ?>
-        <?php if (isset($filterCounters['inserted'], $filterCounters['capacity']) && $filterCounters['inserted'] > $filterCounters['capacity']): ?>
-            <p class="alert"><?= __('The filter holds more entries than its configured capacity. Answers stay correct, but lookups are slower; schedule a rebuild.') ?></p>
+        <?php if (isset($filterCounters['inserted'], $filterCounters['capacity']) && $filterCounters['inserted'] >= FastLookupIndexManager::REBUILD_AT_CAPACITY * $filterCounters['capacity']): ?>
+            <p class="alert"><?= __('The filter is nearly full. A full filter refuses new entries, and the index is unavailable until a larger rebuild activates; that rebuild is scheduled automatically.') ?></p>
         <?php endif; ?>
         <p class="muted"><?= __('Filter fill') ?>: <?= h(number_format($filterCounters['inserted'])) ?> / <?= h(number_format($filterCounters['capacity'])) ?>
             (<?= __('estimated false-positive rate') ?> <?= h(sprintf('%.4f%%', 100 * FastLookupFilter::estimatedFalsePositiveRate($filterCounters['capacity'], $filterCounters['rate'], $filterCounters['inserted']))) ?>,

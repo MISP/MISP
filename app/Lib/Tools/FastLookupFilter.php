@@ -21,6 +21,21 @@ class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableExcep
 }
 
 /**
+ * A generation's filter is full and refused tokens: the write failed, and the
+ * generation cannot take them until it is rebuilt larger.
+ */
+class FastLookupIndexFullException extends FastLookupIndexUnavailableException
+{
+    public $generation;
+
+    public function __construct(string $generation, ?Throwable $previous = null)
+    {
+        parent::__construct('The fastLookup filter is full.', 0, $previous);
+        $this->generation = $generation;
+    }
+}
+
+/**
  * Redis side of fast lookup: one RedisBloom filter per generation holding every
  * token, plus append-only postings for IP-range and domain tokens.
  *
@@ -60,6 +75,8 @@ class FastLookupFilter
     const POSTING_BATCH = 128;
     const READ_BATCH_SIZE = 1024;
     const DELETE_BATCH = 500;
+    /** The add script's error reply; its ARGV[1] names the full generation. */
+    const FULL_ERROR = 'Bloom filter is full';
 
     private $prefix;
     private $legacyPrefix;
@@ -101,6 +118,15 @@ class FastLookupFilter
         $hashes = (int)ceil(-log($rate) / log(2));
         $bits = -log($rate) / (log(2) ** 2) * max(1, $capacity);
         return (1 - exp(-$hashes * $inserted / $bits)) ** $hashes;
+    }
+
+    /**
+     * A filter at its capacity may have lost tokens: an earlier release did
+     * not report the adds a full filter refused.
+     */
+    public static function filterFull(int $capacity, int $inserted): bool
+    {
+        return $inserted >= $capacity;
     }
 
     public function moduleAvailable(): bool
@@ -285,7 +311,14 @@ LUA
             $this->evaluate($this->fenceScript() . <<<'LUA'
 local added = redis.call('BF.MADD', KEYS[3], unpack(ARGV, 2))
 local count = 0
-for _, flag in ipairs(added) do if flag == 1 then count = count + 1 end end
+for _, flag in ipairs(added) do
+    -- A full NONSCALING filter answers an error for the rest of the batch.
+    if type(flag) == 'table' and flag.err then
+        redis.call('HINCRBY', KEYS[2], 'inserted', count)
+        return redis.error_reply('Bloom filter is full')
+    end
+    if flag == 1 then count = count + 1 end
+end
 redis.call('HINCRBY', KEYS[2], 'inserted', count)
 return count
 LUA
@@ -438,7 +471,11 @@ LUA
         if (!$before['ready'] || $before['live'] !== $generation) {
             throw new FastLookupIndexUnavailableException('The fastLookup index is not ready for this generation.');
         }
-        $buckets = $before['generations'][$generation]['buckets'];
+        $info = $before['generations'][$generation];
+        if (self::filterFull($info['capacity'], $info['inserted'])) {
+            throw new FastLookupIndexFullException($generation);
+        }
+        $buckets = $info['buckets'];
         $count = 0;
         foreach (array_chunk(array_map('strval', array_keys($plan)), self::READ_BATCH_SIZE) as $batch) {
             $keys = [$this->metaKey(), $this->infoKey($generation), $this->bloomKey($generation)];
@@ -788,6 +825,9 @@ LUA
             $result = $this->call('eval', [$script, array_merge($keys, $args), count($keys)]);
         } catch (FastLookupIndexUnavailableException $e) {
             $cause = $e->getPrevious();
+            if ($cause && strpos($cause->getMessage(), self::FULL_ERROR) !== false) {
+                throw new FastLookupIndexFullException((string)$args[0], $e);
+            }
             if ($cause && strpos($cause->getMessage(), 'posting resource limit exceeded') !== false) {
                 throw new OverflowException('A fastLookup posting exceeds the limit of 8 MiB or 500000 attribute IDs.', 0, $e);
             }
@@ -801,6 +841,9 @@ LUA
         }
         if ($result === false) {
             $error = $this->call('getLastError', []);
+            if (is_string($error) && strpos($error, self::FULL_ERROR) !== false) {
+                throw new FastLookupIndexFullException((string)$args[0]);
+            }
             if (is_string($error) && strpos($error, 'posting resource limit exceeded') !== false) {
                 throw new OverflowException('A fastLookup posting exceeds the limit of 8 MiB or 500000 attribute IDs.');
             }

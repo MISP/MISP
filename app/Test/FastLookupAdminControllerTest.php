@@ -160,12 +160,12 @@ class FastLookupAdminControllerTest extends TestCase
     {
         $view = file_get_contents(__DIR__ . '/../View/Servers/fast_lookup.ctp');
         $this->assertStringContainsString("\$lookupStatus['filter']", $view);
-        $this->assertStringContainsString("\$filterCounters['inserted'] > \$filterCounters['capacity']", $view);
+        $this->assertStringContainsString("\$filterCounters['inserted'] >= FastLookupIndexManager::REBUILD_AT_CAPACITY * \$filterCounters['capacity']", $view);
         $this->assertStringNotContainsString("\$statistics['inserted'] > \$statistics['capacity']", $view);
         // The warning paragraph itself must appear before the metrics-gated
         // "Filter and memory" statistics section, i.e. it is not nested
         // inside the `if ($statistics)` block that guards that section.
-        $warningPos = strpos($view, 'holds more entries than its configured capacity');
+        $warningPos = strpos($view, 'A full filter refuses new entries');
         $statsHeadingPos = strpos($view, "__('Filter and memory')");
         $this->assertNotFalse($warningPos);
         $this->assertNotFalse($statsHeadingPos);
