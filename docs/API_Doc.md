@@ -273,10 +273,9 @@ failed builds and changed scope also refuse results. Retry once the index is rea
 Only matches the caller may see count towards the result limit: a request with
 more than 100,000 visible (input, event) pairs answers **413** without partial
 results. Candidates read from the shared index before the permission checks
-never count towards it; a request needing more than 500,000 of them for one
-batch of 1,000 values, 5,000,000 in all, or their Redis payload, answers the
-generic **503** unavailable body and logs the
-reason for administrators. Split such requests into smaller ones.
+never count towards it; a request needing more than 500,000 of them per batch
+of up to 1,000 values, 5,000,000 in all, or their Redis payload, answers the
+generic **503** unavailable body and logs the reason for administrators. Split such requests into smaller ones.
 
 Site administrators can monitor backfill progress and the Bloom filter's fill,
 stale-entry and measured memory statistics at **Administration → Fast lookup

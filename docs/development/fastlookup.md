@@ -277,9 +277,10 @@ caller may see. Exceeding it answers 413 without partial results. Range and
 domain candidate IDs come from the shared index before authorization, so they
 never count towards that budget or its message; SQL checks them in chunks of
 1,000 IDs. A separate resource cap bounds that pre-authorization work: at most
-500,000 candidate IDs per 1,000-value batch (`FastLookupFilter::MAX_POSTING_IDS`),
-5,000,000 per request (`AttributeFastLookupTool::MAX_CANDIDATE_IDS`), and 21 bytes
-of Redis posting payload per ID of the batch budget. It does not depend on what the
+500,000 candidate IDs per batch of up to 1,000 values
+(`FastLookupFilter::MAX_POSTING_IDS`), 5,000,000 per request
+(`AttributeFastLookupTool::MAX_CANDIDATE_IDS`), and 21 bytes of Redis posting
+payload per ID of the batch budget. It does not depend on what the
 caller may see; reaching it answers the generic 503 unavailable body and logs a
 warning with the reason. Very popular tokens are bounded to 500000 IDs and 8 MiB per
 posting; exceeding a storage bound prevents readiness rather than truncating the

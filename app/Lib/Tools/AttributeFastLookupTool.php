@@ -11,14 +11,12 @@ class AttributeFastLookupTool
     const MAX_REQUEST_BYTES = 16777216;
     const BATCH_SIZE = 1000;
     const MAX_BATCH_BYTES = 4194304;
-    /** Visible (input, event) pairs: the only result-size limit a caller can see. */
+    /** Visible (input, event) pairs. */
     const MAX_ROWS = 100000;
-    /**
-     * Pre-authorization candidate IDs one request may read from the shared
-     * index: a resource cap, independent of visibility and far above real use.
-     */
+    /** Pre-authorization index candidates, whatever the caller may see. */
     const MAX_CANDIDATE_IDS = 5000000;
-    const CHANGED_MESSAGE = 'The IOC index changed during this lookup; retry after it is ready.';
+    const CHANGED_MESSAGE =
+        'The IOC index changed during this lookup; retry after it is ready.';
 
     private $attribute;
     private $db;
@@ -34,8 +32,8 @@ class AttributeFastLookupTool
     /**
      * @return array Scoped status, with results only for a complete current index.
      * @throws InvalidArgumentException Invalid request or configuration.
-     * @throws OverflowException Complete visible results exceed the bounded row budget.
-     * @throws FastLookupResourceLimitException The request needs more candidate work than allowed.
+     * @throws OverflowException Visible results exceed the row budget.
+     * @throws FastLookupResourceLimitException Candidate work exceeds its cap.
      */
     public function lookup(array $user, array $request)
     {
@@ -46,10 +44,7 @@ class AttributeFastLookupTool
         return self::publicStatus($result);
     }
 
-    /**
-     * Index progress, generations, build errors and filter counters describe
-     * every organisation's data: only site admins see them.
-     */
+    /** Index details describe every organisation's data: admins only. */
     private static function publicStatus(array $status): array
     {
         $state = in_array($status['status'] ?? null, ['warming', 'updating', 'error'], true) ? $status['status'] : 'unavailable';
@@ -95,11 +90,9 @@ class AttributeFastLookupTool
         $prefixes = $filter->prefixLengths($snapshot['generation']);
         $prefixesRefreshed = false;
         foreach ($this->batches($values) as $batch) {
-            if ($rowCount === self::MAX_ROWS) {
-                throw new OverflowException('The IOC lookup exceeds the 100000-row resource limit; submit fewer values.');
-            }
             $tokens = $valueTool->queryTokens($batch, $scope['attribute_types'], $fallback, $weights, $prefixes['lengths']);
-            $budget = min(FastLookupFilter::MAX_POSTING_IDS, static::MAX_CANDIDATE_IDS - $candidateCount);
+            $budget = min(FastLookupFilter::MAX_POSTING_IDS,
+                static::MAX_CANDIDATE_IDS - $candidateCount);
             try {
                 $candidates = $filter->candidates($snapshot['generation'], $tokens, $budget,
                     self::hasRangeTokens($tokens) ? $prefixes['version'] : null);
@@ -174,8 +167,7 @@ class AttributeFastLookupTool
 
             // Fetch each expanded candidate once; ACLs, type, publication and
             // deletion are checked before any current component leaves SQL.
-            // Each ID maps to packed (position << 1 | kind) codes, which keeps
-            // a full candidate budget within tens of megabytes.
+            // Packed (position << 1 | kind) codes keep this compact.
             $expanded = [];
             foreach ($candidates as $index => $groups) {
                 foreach (['ip_range' => 0, 'domain' => 1] as $kind => $bit) {

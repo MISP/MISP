@@ -183,14 +183,16 @@ class AttributeFastLookupControllerTest extends TestCase
     public function testCandidateResourceCapLooksLikeAnyOutageAndIsLogged(): void
     {
         require_once __DIR__ . '/../Lib/Tools/FastLookupFilter.php';
+        $this->controller->request->data = ['value' => ['192.0.2.1', 'example.org']];
         $this->controller->MispAttribute->exception = new FastLookupResourceLimitException('The fastLookup candidate IDs exceed the per-request resource cap.');
         $this->assertRejected(503);
         $response = $this->controller->fastLookup();
         $this->assertSame('5', $response->headers['Retry-After']);
         $this->assertSame(['status' => 'error', 'scope' => FastLookupConfig::scope(),
             'message' => 'Fast lookup is unavailable. Contact your administrator.'], json_decode($response->body(), true));
-        $this->assertSame(['warning', 'fastLookup refused: The fastLookup candidate IDs exceed the per-request resource cap.'],
+        $this->assertSame(['warning', 'fastLookup refused for user 7 (2 values): The fastLookup candidate IDs exceed the per-request resource cap.'],
             $this->controller->logs[0]);
+        $this->assertStringNotContainsString('refused', $response->body());
     }
 
     public function testOtherFailuresStayGeneric503Errors(): void

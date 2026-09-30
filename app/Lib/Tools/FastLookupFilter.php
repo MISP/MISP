@@ -20,11 +20,7 @@ class FastLookupPrefixesChangedException extends FastLookupIndexUnavailableExcep
 {
 }
 
-/**
- * A lookup needs more pre-authorization candidate work than one request may
- * do. It is sized far above real use, never depends on what the caller may
- * see, and so must never be reported as a result-size limit.
- */
+/** Candidate work exceeds its cap; never a result-size limit. */
 class FastLookupResourceLimitException extends RuntimeException
 {
 }
@@ -79,7 +75,7 @@ class FastLookupFilter
     const INLINE_POSTING_BYTES = 64;
     const MAX_POSTING_BYTES = 8388608;
     const MAX_POSTING_IDS = 500000;
-    /** Posting bytes a candidate read may use per ID of its budget: a 19-digit ID, its comma and slack. */
+    /** Posting bytes per budgeted candidate ID. */
     const CANDIDATE_BYTES_PER_ID = 21;
     const MAX_TOKENS_PER_ATTRIBUTE = 1024;
     const FILTER_BATCH = 1000;
@@ -455,13 +451,15 @@ LUA
     }
 
     /**
-     * $maximumIds bounds the distinct (position, kind, ID) candidates of this
-     * call, and CANDIDATE_BYTES_PER_ID times it the posting bytes read, before
-     * any authorization; either overflow is a FastLookupResourceLimitException.
-     * A non-null $prefixVersion fails the lookup when the generation's prefix
-     * set has moved on.
+     * $maximumIds bounds this call's candidates and their posting bytes.
+     * A non-null $prefixVersion fails when the prefix set has moved on.
      */
-    public function candidates(string $generation, array $queryTokens, int $maximumIds = self::MAX_POSTING_IDS, ?string $prefixVersion = null): array
+    public function candidates(
+        string $generation,
+        array $queryTokens,
+        int $maximumIds = self::MAX_POSTING_IDS,
+        ?string $prefixVersion = null
+    ): array
     {
         $this->identifier($generation);
         if ($prefixVersion !== null && $prefixVersion !== '' && !ctype_digit($prefixVersion)) {

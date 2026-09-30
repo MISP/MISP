@@ -124,9 +124,14 @@ class AttributesController extends AppController
         } catch (InvalidArgumentException $e) {
             return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 400);
         } catch (FastLookupResourceLimitException $e) {
-            // Reported like any other outage: the cap counts IOCs the caller may not see.
-            $this->log('fastLookup refused: ' . $e->getMessage(), 'warning');
-            return $this->__fastLookupResponse($error + ['message' => __('Fast lookup is unavailable. Contact your administrator.')], 503);
+            // The cap counts IOCs the caller may not see: report an outage.
+            $values = $this->request->data['value'] ?? null;
+            $this->log(sprintf('fastLookup refused for user %s (%s values): %s',
+                $this->Auth->user()['id'] ?? '?',
+                is_array($values) ? count($values) : '?',
+                $e->getMessage()), 'warning');
+            $message = __('Fast lookup is unavailable. Contact your administrator.');
+            return $this->__fastLookupResponse($error + ['message' => $message], 503);
         } catch (OverflowException $e) {
             return $this->__fastLookupResponse($error + ['message' => $e->getMessage()], 413);
         } catch (RuntimeException $e) {

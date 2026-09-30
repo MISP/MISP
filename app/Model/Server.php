@@ -7078,7 +7078,7 @@ class Server extends AppModel
                 ),
                 'fast_lookup_max_values' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input and candidate-result safety limits still apply.'),
+                    'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input limit and the 100000 visible-match result limit still apply.'),
                     'value' => FastLookupConfig::DEFAULT_MAX_VALUES,
                     'test' => 'testFastLookupLimit',
                     'beforeHook' => 'fastLookupLimitBeforeHook',

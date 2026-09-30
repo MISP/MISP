@@ -400,16 +400,59 @@ class AttributeFastLookupTest extends PHPUnit\Framework\TestCase
         $tool->lookup([], ['value' => ['example.org']]);
     }
 
-    public function testExhaustedBudgetStopsBeforeAnotherCandidateBatch(): void
+    public function testExactlyMaxRowsInAnEarlierBatchStillAnswer(): void
     {
         $tool = $this->tool($attribute, $manager);
-        $attribute->db->responses = [array_map(function ($i) { return ['input_index' => 0, 'event_id' => (string)$i]; }, range(1, 100000)), []];
+        $attribute->db->responses = [array_map(function ($i) { return ['input_index' => 0, 'event_id' => (string)$i]; }, range(1, 100000)), [], [], []];
         $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 1000));
+        $result = $tool->lookup([], ['value' => $values]);
+        $this->assertSame('ready', $result['status']);
+        $this->assertCount(100000, $result['results']->{'ioc-0'}['event_ids']);
+        $this->assertCount(2, $manager->index->reads, 'The second batch was read.');
+    }
+
+    public function testMaxRowsPlusOneAcrossBatchesOverflows(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $attribute->db->responses = [array_map(function ($i) { return ['input_index' => 0, 'event_id' => (string)$i]; }, range(1, 100000)),
+            [], [['input_index' => 1000, 'event_id' => '1']], []];
+        $values = array_map(function ($i) { return 'ioc-' . $i; }, range(0, 1000));
+        $this->expectException(OverflowException::class);
+        $tool->lookup([], ['value' => $values]);
+    }
+
+    public function testFilterResourceLimitReachesTheControllerAs503(): void
+    {
+        $tool = $this->tool($attribute, $manager);
+        $manager->index = new class extends FastLookupTestFilter {
+            public function candidates($generation, array $tokens, $maximumIds = 100000, $prefixVersion = null)
+            {
+                $meta = ['schema' => FastLookupFilter::SCHEMA, 'live' => 'generation-one', 'building' => '', 'fingerprint' => 'f',
+                    'building_fingerprint' => '', 'revision' => '1', 'ready' => '1',
+                    'scope' => json_encode(['attribute_types' => FastLookupConfig::scope()['attribute_types'], 'published_only' => true])];
+                $redis = new class($meta) {
+                    private $meta;
+                    public function __construct($meta) { $this->meta = $meta; }
+                    public function hGetAll($key) { return $this->meta; }
+                    public function clearLastError() { return true; }
+                    public function getLastError() { return null; }
+                    public function eval($script, $args, $keys)
+                    {
+                        if (strpos($script, 'BF.MEXISTS') === false) {
+                            return ['1000000', '0.001', '1', '0', '1', '0', str_repeat('0', 33), str_repeat('0', 129), '0'];
+                        }
+                        return [0];
+                    }
+                };
+                $filter = new FastLookupFilter('test', FastLookupConfig::scope(), $redis);
+                return $filter->candidates($generation, $tokens, $maximumIds, $prefixVersion);
+            }
+        };
         try {
-            $tool->lookup([], ['value' => $values]);
-            $this->fail('An exhausted row budget must stop the lookup.');
-        } catch (OverflowException $e) {
-            $this->assertCount(1, $manager->index->reads, 'No second candidate batch was read.');
+            $tool->lookup(self::USER, ['value' => ['192.0.2.1']]);
+            $this->fail('The filter cap must propagate.');
+        } catch (FastLookupResourceLimitException $e) {
+            $this->assertNotInstanceOf(OverflowException::class, $e);
         }
     }
 
