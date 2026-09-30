@@ -366,6 +366,7 @@ class MispAttribute extends AppModel
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
+        'xlsx' => array('xlsx', 'XlsxExport', 'xlsx'),
         'xml' => array('xml', 'XmlExport', 'xml'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json')
@@ -2141,6 +2142,10 @@ class MispAttribute extends AppModel
             // 1. Deletion status - still not convinced by this one, but let's try. May move this further down the line, perhaps after 2.
             if (isset($options['deleted']) && $options['deleted'] === 'only') {
                 $conditions['AND'][] = ['Attribute.deleted' => 1];
+                if (!$user['Role']['perm_sync']) {
+                    // soft-deleted data is only shown to the event owner, as in fetchEvent()
+                    $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+                }
             } elseif (!$user['Role']['perm_sync'] || empty($options['deleted'])) {
                 $conditions['AND'][] = ['Attribute.deleted' => 0];
             }
@@ -2850,7 +2855,7 @@ class MispAttribute extends AppModel
         }
         $attribute = $this->find('first', array('conditions' => array('Attribute.id' => $id), 'recursive' => -1, 'contain' => array('Event')));
         if (!$user['Role']['perm_site_admin']) {
-            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] == $user['id']) || $user['Role']['perm_modify_org']))) {
                 return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
             }
         }
@@ -2880,7 +2885,7 @@ class MispAttribute extends AppModel
             if (!isset($attribute['distribution'])) {
                 $attribute['distribution'] = $defaultDistribution;
             }
-            unset($attribute['Attachment']);
+            unset($attribute['Attachment'], $attribute[$this->alias]);
             $this->create();
             $currentSave = $this->save($attribute);
             $saveResult = $saveResult && $currentSave;
@@ -3176,7 +3181,7 @@ class MispAttribute extends AppModel
             if (!empty($attribute['AttributeTag'])) {
                 $toSave = [];
                 foreach ($attribute['AttributeTag'] as $at) {
-                    unset($at['id']);
+                    unset($at['id'], $at[$this->AttributeTag->alias]);
                     $at['attribute_id'] = $this->id;
                     $at['event_id'] = $eventId;
                     $toSave[] = $at;
@@ -3329,6 +3334,7 @@ class MispAttribute extends AppModel
 
         // run the before validation massage at this point so we can skip validation in round 2
         foreach ($attributes as $k => $attribute) {
+            unset($attribute[$this->alias]);
             $attributes[$k] = $this->beforeValidateMassage($attribute);
         }
 
@@ -3783,7 +3789,11 @@ class MispAttribute extends AppModel
         if (empty($exportTool->mock_query_only)) {
             $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit, $skippedElementsCounter);
         }
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
@@ -4535,12 +4545,17 @@ class MispAttribute extends AppModel
             );
             return __('Job queued (job ID: %s).', $jobId);
         } else {
-            $result = $this->enrichment($options);
-            return __('#' . $result . ' attributes have been created during the enrichment process.');
+            $tagsRemoved = 0;
+            $result = $this->enrichment($options, $tagsRemoved);
+            $message = __('#' . $result . ' attributes have been created during the enrichment process.');
+            if ($tagsRemoved) {
+                $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $tagsRemoved, $tagsRemoved);
+            }
+            return $message;
         }
     }
 
-    public function enrichment($params)
+    public function enrichment($params, &$tagsRemoved = 0)
     {
         $option_fields = ['user', 'id', 'modules'];
         foreach ($option_fields as $option_field) {
@@ -4575,6 +4590,7 @@ class MispAttribute extends AppModel
             }
         }
         $attributes_added = 0;
+        $tagsRemoved = 0;
         $initial_objects = array();
         $event_id = $attribute['event_id'];
         $event = $this->Event->find('first', ['conditions' => ['Event.id' => $event_id], 'recursive' => -1]);
@@ -4617,6 +4633,17 @@ class MispAttribute extends AppModel
                     } else {
                         $attributes = $this->Event->handleModuleResult($result, $event_id);
                         foreach ($attributes as $a) {
+                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                            // The row may ask for tags to come off the attribute the event
+                            // already holds for this value. When it does hold one, the row
+                            // changes that attribute's tags instead of creating anything.
+                            if (!empty($a['remove_tags'])) {
+                                $removal = $this->Event->applyModuleTagChanges($params['user'], $event_id, $a['type'], $a['value'], $a['remove_tags'], empty($a['tags']) ? array() : $a['tags']);
+                                $tagsRemoved += $removal['removed'];
+                                if ($removal['matched']) {
+                                    continue;
+                                }
+                            }
                             $this->create();
                             $a['distribution'] = $attribute['distribution'];
                             $a['sharing_group_id'] = $attribute['sharing_group_id'];
@@ -4626,7 +4653,6 @@ class MispAttribute extends AppModel
                             } else {
                                 $a['comment'] = $comment;
                             }
-                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
                             $result = $this->save($a);
                             if ($result) {
                                 $attributes_added++;

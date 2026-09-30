@@ -1697,6 +1697,12 @@ class Server extends AppModel
                             $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = isset($result['value']) ? $result['value'] : '';
                         }
+                        // The module's own guard flags are part of its setting definition.
+                        foreach (['redacted', 'cli_only'] as $flag) {
+                            if (!empty($result[$flag])) {
+                                $setting[$flag] = true;
+                            }
+                        }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
                     }
                 }
@@ -2870,11 +2876,15 @@ class Server extends AppModel
             }
         }
 
-        if (isset($setting['level'])) {
-            $setting['name'] = $settingName;
-            if ($withOptions && isset($setting['optionsSource'])) {
-                $setting['options'] = $setting['optionsSource']();
-            }
+        // Only an individual setting can be addressed, never a whole branch:
+        // every caller treats the result as a leaf, and a branch carries no redaction flag.
+        if (!is_array($setting) || !isset($setting['level'])) {
+            return false;
+        }
+
+        $setting['name'] = $settingName;
+        if ($withOptions && isset($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
 
         return $setting;

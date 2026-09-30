@@ -111,6 +111,7 @@ class MispObject extends AppModel
         'description' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
+                'allowEmpty' => true,
                 'on' => 'create'
             ),
         ),
@@ -1231,6 +1232,7 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
                     $this->Event->Attribute->create();
+                    unset($newAttribute[$this->Event->Attribute->alias]);
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
@@ -1422,6 +1424,7 @@ class MispObject extends AppModel
         $object['id'] = $existingObject['Object']['id'];
         $object['uuid'] = $existingObject['Object']['uuid'];
         $object['event_id'] = $eventId;
+        unset($object[$this->alias]);
         if ($object['distribution'] == 4) {
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
@@ -1893,7 +1896,11 @@ class MispObject extends AppModel
             $params['page'] = 1;
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 

@@ -404,8 +404,9 @@ jobs:
           python tests/testlive_sync.py -v
           python tests/testlive_security.py -v
           python tests/testlive_ai_ux.py -v
+          python tests/testregressions.py -v
           # Suites that live in tests/ and drive the running instance over
-          # HTTP, the same way the three above do.
+          # HTTP, the same way the ones above do.
           python tests/testlive_dashboards.py -v
           python tests/testlive_workflows.py -v
           python tests/testlive_export_formats.py -v
