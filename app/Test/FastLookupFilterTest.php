@@ -355,11 +355,13 @@ class FastLookupFilterTest extends TestCase
     {
         return new class($replies) {
             public $calls = [];
+            public $arguments = [];
             private $replies;
             public function __construct(array $replies) { $this->replies = $replies; }
             public function __call($method, $args)
             {
                 $this->calls[] = $method;
+                $this->arguments[] = [$method, $args];
                 $reply = $this->replies[$method] ?? null;
                 if ($reply instanceof Throwable) { throw $reply; }
                 return $reply;
@@ -453,6 +455,56 @@ class FastLookupFilterTest extends TestCase
         $this->expectException(FastLookupIndexCorruptException::class);
         $mismatched = json_encode(['attribute_types' => ['hostname'], 'published_only' => true], JSON_THROW_ON_ERROR);
         $this->filter(null, $this->metadataDouble(['scope' => $mismatched]))->metadata();
+    }
+
+    // -- a full filter ---------------------------------------------------------
+
+    public function fullFilterReplies(): array
+    {
+        return [
+            'refused script' => [['eval' => false, 'getLastError' => 'Bloom filter is full']],
+            'script error thrown' => [['eval' => new RuntimeException('Bloom filter is full')]],
+        ];
+    }
+
+    /** @dataProvider fullFilterReplies */
+    public function testFullFilterFailsTheAddWithTheFullGeneration(array $replies): void
+    {
+        $redis = $this->recordingRedis($replies);
+        try {
+            $this->filter(null, $redis)->add('live1', [['id' => '1', 'tokens' => [$this->token('E')]]]);
+            $this->fail('A full filter must fail the add.');
+        } catch (FastLookupIndexFullException $e) {
+            $this->assertSame('live1', $e->generation);
+            $this->assertNotInstanceOf(FastLookupIndexCorruptException::class, $e);
+        }
+        $evals = array_values(array_filter($redis->arguments, function ($call) { return $call[0] === 'eval'; }));
+        $this->assertStringContainsString("return redis.error_reply('Bloom filter is full')", $evals[0][1][0]);
+    }
+
+    public function testFilterIsFullAtItsCapacity(): void
+    {
+        $this->assertFalse(FastLookupFilter::filterFull(1000, 999));
+        $this->assertTrue(FastLookupFilter::filterFull(1000, 1000));
+        $this->assertTrue(FastLookupFilter::filterFull(1000, 1001));
+    }
+
+    public function testCandidatesRefuseAFullGenerationBeforeProbing(): void
+    {
+        $redis = $this->recordingRedis([
+            'hGetAll' => ['live' => 'live1', 'fingerprint' => 'f'] + $this->validMetadataFields(),
+            'eval' => ['1000', '0.001', '1000', '0', '1', '0'],
+        ]);
+        try {
+            $this->filter(null, $redis)->candidates('live1', [[['token' => $this->token('E'), 'kind' => 'exact']]]);
+            $this->fail('A full generation must never answer.');
+        } catch (FastLookupIndexFullException $e) {
+            $this->assertSame('live1', $e->generation);
+        }
+        $probes = array_filter($redis->arguments, function ($call) {
+            return $call[0] === 'eval' && strpos($call[1][0], 'BF.MEXISTS') !== false;
+        });
+        $this->assertSame([], $probes);
     }
 }
 

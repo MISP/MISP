@@ -51,8 +51,8 @@ that names one is rejected:
 Use **Administration → Fast lookup index** (`/servers/fastLookup`) to inspect
 scope, progress and the filter status (tokens inserted, capacity, stale entries
 and configured false-positive rate), always shown with a warning once the
-filter holds more entries than its capacity; Redis memory statistics are shown
-on request. With background jobs enabled, the dashboard queues rebuild/resume jobs. Otherwise,
+filter reaches 80% of its capacity; Redis memory statistics are shown on
+request. With background jobs enabled, the dashboard queues rebuild/resume jobs. Otherwise,
 run these commands as the MISP service user from the installation root:
 
 ```bash
@@ -96,7 +96,17 @@ Redis holds one RedisBloom filter per generation (key prefix
 `misp:fast_lookup:bf1:<sha256(namespace)>:`, no TTL). The filter is a single
 `NONSCALING` `BF.RESERVE` holding every exact, range and domain token, sized to
 `max(1,000,000, 1.5 × 2 × in-scope attributes)`: two tokens per attribute
-headroom at 1.5x, with a 1,000,000-token floor. `BF.MEXISTS`/`BF.MADD` only
+headroom at 1.5x, with a 1,000,000-token floor, and never less than twice the
+tokens the live generation holds. A full filter refuses further tokens, and the
+write fails closed rather than dropping them: a full live generation stops
+serving, answering 503 until a larger rebuild replaces it, which is scheduled
+automatically, and a full rebuild restarts at twice its capacity: by itself up
+to three times in a row while nothing serves, otherwise when resumed. A
+generation whose inserted count reaches its capacity counts as full even when
+no add was refused, since earlier releases dropped the tokens a full filter
+refused without noticing; after upgrading, such a filter answers 503 and is
+replaced from the next worker batch. Upgrade every MISP server sharing the Redis together, as older
+releases keep dropping refused tokens silently. `BF.MEXISTS`/`BF.MADD` only
 prove absence; a token the filter cannot rule out still goes to SQL for exact
 values, or reads its postings for range/domain values, which SQL then
 revalidates. Range and domain attribute IDs live in listpack-sized bucket

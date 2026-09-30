@@ -59,6 +59,9 @@ $prefix = FastLookupFilter::PREFIX . hash('sha256', $namespace) . ':';
 $legacy = FastLookupFilter::LEGACY_PREFIX . hash('sha256', $namespace) . ':';
 $scope = ['attribute_types' => ['domain', 'ip-src'], 'published_only' => true];
 $filter = new FastLookupFilter($namespace, $scope, $proxy);
+$fullNamespace = 'contract-full-' . bin2hex(random_bytes(16));
+$fullPrefix = FastLookupFilter::PREFIX . hash('sha256', $fullNamespace) . ':';
+$tiny = new FastLookupFilter($fullNamespace, $scope, $proxy);
 $assertions = 0;
 $assert = static function ($condition, $message) use (&$assertions) {
     ++$assertions;
@@ -266,7 +269,50 @@ try {
     $redis->hSet($prefix . 'g:fourth:x:0', $domain, '*');
     $throws(static function () use ($filter, $domain) { $filter->add('fourth', [['id' => '999999999', 'type' => 'domain', 'tokens' => [$domain]]]); }, OverflowException::class, 'The posting cap is an explicit resource failure');
 
+    // A full NONSCALING filter refuses tokens: the add fails as full, and nothing it took before reads absent.
+    $tiny->reserve('full', str_repeat('u', 64), 40, 0.01, 1);
+    $accepted = [];
+    $full = null;
+    for ($i = 0; $i < 1000 && $full === null; ++$i) {
+        $t = $token('E', 'full-' . $i);
+        try {
+            $tiny->add('full', [['id' => (string)($i + 1), 'type' => 'domain', 'tokens' => [$t]]]);
+            $accepted[] = $t;
+        } catch (FastLookupIndexUnavailableException $e) {
+            $full = $e;
+        }
+    }
+    $assert($full instanceof FastLookupIndexFullException && $full->generation === 'full', 'A full filter fails the add as full: ' . ($full ? get_class($full) . ' ' . $full->getMessage() : 'never full'));
+    $assert(!$full instanceof FastLookupIndexCorruptException, 'A full filter is not corruption');
+    $fullInserted = $tiny->metadata()['generations']['full']['inserted'];
+    $assert($fullInserted >= 1 && $fullInserted <= count($accepted) + 1, "The tokens stored before the refusal are counted: $fullInserted");
+    $flags = $redis->rawCommand('BF.MEXISTS', $fullPrefix . 'g:full:bf', ...$accepted);
+    $assert(count($accepted) > 0 && $flags === array_fill(0, count($accepted), 1), 'No token taken before the refusal reads absent');
+    // A filter at its capacity never answers, since it may have refused tokens.
+    $assert($fullInserted === 40, "The full filter reached its capacity: $fullInserted");
+    $tiny->checkpoint('full-r1', false);
+    $tiny->activate('full', str_repeat('u', 64));
+    $tiny->checkpoint('full-r2', true);
+    $throws(static function () use ($tiny, $accepted) { $tiny->candidates('full', [[['token' => $accepted[0], 'kind' => 'exact']]]); },
+        FastLookupIndexFullException::class, 'A full filter fails the lookup as full');
+
+    // A filter an earlier release filled may have dropped tokens silently: at its capacity it never answers.
+    $tiny->reserve('oldfull', str_repeat('v', 64), 1000, 0.01, 1);
+    $oldProbe = [[['token' => $token('E', 'old-full'), 'kind' => 'exact']]];
+    $tiny->add('oldfull', [['id' => '1', 'type' => 'domain', 'tokens' => [$oldProbe[0][0]['token']]]]);
+    $tiny->checkpoint('of-r1', false);
+    $tiny->activate('oldfull', str_repeat('v', 64));
+    $tiny->checkpoint('of-r2', true);
+    $assert($tiny->candidates('oldfull', $oldProbe)[0]['exact'] === true, 'A filter below its capacity answers');
+    $redis->hSet($fullPrefix . 'g:oldfull:info', 'inserted', '1000');
+    try {
+        $tiny->candidates('oldfull', $oldProbe);
+        $assert(false, 'A filter at its capacity must never answer');
+    } catch (FastLookupIndexFullException $e) {
+        $assert($e->generation === 'oldfull', 'A filter at its capacity fails the lookup as full');
+    }
+
     echo json_encode(['assertions' => $assertions, 'redis_version' => $redis->info('server')['redis_version'], 'status' => 'passed'], JSON_PRETTY_PRINT), "\n";
 } finally {
-    foreach (array_chunk(array_merge($keys($prefix . '*'), $keys($legacy . '*')), 500) as $batch) { $redis->del($batch); }
+    foreach (array_chunk(array_merge($keys($prefix . '*'), $keys($legacy . '*'), $keys($fullPrefix . '*')), 500) as $batch) { $redis->del($batch); }
 }
