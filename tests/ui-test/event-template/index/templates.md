@@ -47,7 +47,7 @@ An active template is offered in Add Event, and nothing is offered when no templ
 ### Template inactive – not usable by its URL
 <a id="event-template-inactive-url"></a>
 
-An inactive template cannot be used by opening its URL (regression test for Bug 11)
+An inactive template cannot be used by opening its URL
 
 1. Log in to MISP as `user` of the organisation `ADMIN`.
 2. Go to `/event_templates/index`.

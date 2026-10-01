@@ -22,13 +22,10 @@ Roles:
 | 8   | [Tag name longer than 255 characters is silently cut](#bug-8) | Open | v2.5.48 | |
 | 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | v2.5.48 | |
 | 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | v2.5.48 | |
-| 11  | [Inactive event template can still be used by its URL](#bug-11) | Open | v2.5.48 | |
 | 12  | [Event template form: an invalid value gives an error that does not say which field](#bug-12) | Open | v2.5.48 | |
 | 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
 | 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
-| 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
 | 16  | [Creating an event report opens the old event page](#bug-16) | Open | v2.5.48 | |
-| 17  | [Sighting dated in the future is accepted](#bug-17) | Open | v2.5.48 | |
 | 19  | [Adding an attribute to an existing object does not add anything](#bug-19) | Open | v2.5.48 | |
 | 20  | [The correlation icon of an attribute does not toggle the correlation](#bug-20) | Open | v2.5.48 | |
 | 21  | [Attribute menu of an object is hidden behind the pagination bar](#bug-21) | Open | v2.5.48 | |
@@ -214,24 +211,6 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). **More filters** → **Default** = non-default → **Apply filters**: all warninglists are still listed. On a fresh install every warninglist is a default one, so `default:0` should return nothing; through the API `default:0` and `default:1` both return all of them. The **Enabled** filter of the same page works.
 - **Likely cause**: The **Default** filter is offered in `app/View/Themed/Overmind/Warninglists/index.ctp`, but `default` is not in the list of filters read by `WarninglistsController::index()` (`value`, `category`, `type`, `enabled`, `id`, `matchValue`), so it is dropped.
 
-### Bug 11 – Inactive event template can still be used by its URL
-
-<a id="bug-11"></a>
-
-**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
-
-#### Steps to reproduce
-
-1. As site admin, go to `/event_templates/index` and pick an inactive template (the library templates are inactive by default, e.g. `Suspicious domain triage`); note its ID.
-2. Log in as a user with the `User` role and check that this template is not offered in **Add Event** → **Use a template**.
-3. Go to `/event_templates/instantiate/<template id>`.
-4. Fill the mandatory fields and click **Create event**.
-
-- **Expected result**: The template is refused because it is inactive; no event is created.
-- **Actual result**: The event is created from the inactive template.
-- **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Confirmed through the API with a `User` account: posting the mandatory values to `/event_templates/instantiate/<id>` of an inactive template returns a new `event_id`. The list page says "Inactive templates are hidden from the "From template" picker", so hiding is the only protection.
-- **Likely cause**: `EventTemplatesController::instantiate()` loads the template with `__fetchForRead()` (which checks visibility only) and never checks `EventTemplate.active` before rendering the form or creating the event.
-
 ### Bug 12 – Event template form: an invalid value gives an error that does not say which field
 
 <a id="bug-12"></a>
@@ -282,22 +261,6 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). **Download as** → **CSV (NOT FOR EXCEL…)** downloads `misp.event.<id>.csv` with both formulas unchanged. Confirmed through the API (`/events/restSearch` with `returnFormat: csv`). The menu labels the format "CSV (NOT FOR EXCEL)", but values come from other organisations (sync, proposals, feeds), so a shared CSV can carry formulas. **Also affects:** every CSV output built with the same exporter: attribute `restSearch` in CSV, the CSV cached export on `/events/export`, and the deprecated `/events/csv`.
 - **Likely cause**: `app/Lib/Export/CsvExport.php` quotes the values but does not escape a leading formula character.
 
-### Bug 15 – Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached
-
-<a id="bug-15"></a>
-
-**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
-
-#### Steps to reproduce
-
-1. Disable the taxonomy `admiralty-scale` (`/taxonomies/index`) and the galaxy `Threat Actor` (`/galaxies/index`).
-2. Create an event with **Add Event** and one attribute, then attach the tag `admiralty-scale:source-reliability="b"` to the event and the cluster `misp-galaxy:threat-actor="APT29"` to the attribute (through the API `POST /tags/attachTagToObject`, or any path that is not the tag picker).
-
-- **Expected result**: Both are refused because their taxonomy / galaxy is disabled.
-- **Actual result**: Both are attached (HTTP 200 "Global tag … successfully attached").
-- **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API. Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
-- **Likely cause**: `attachTagToObject` (and `captureTag`) look the tag up by name only and never check that its taxonomy or galaxy is enabled; the enabled flag is only used to build the pickers.
-
 ### Bug 16 – Creating an event report opens the old event page
 
 <a id="bug-16"></a>
@@ -314,22 +277,6 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The browser goes to `/events/view/<event id>`, the old (non-Overmind) event page.
 - **Notes**: **Confirmed in the UI** (tester, 2026-10-01). Same kind of problem as Bug 13 (template creation and **Unpublish Event** also open `/events/view`).
 - **Likely cause**: `EventReportsController::add()` sets its redirect target to `['controller' => 'events', 'action' => 'view', $eventId]` without checking the theme, instead of `view2` in the Overmind theme.
-
-### Bug 17 – Sighting dated in the future is accepted
-
-<a id="bug-17"></a>
-
-**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
-
-#### Steps to reproduce
-
-1. Create an event with **Add Event** and add an attribute `ip-dst` `198.51.100.161`.
-2. Add a sighting with a date one year in the future (e.g. through **Advanced sightings**, or the API `POST /sightings/add` with a future `timestamp`).
-
-- **Expected result**: The sighting is refused (a value cannot have been seen in the future), or saved with the current date.
-- **Actual result**: The sighting is saved with the future date.
-- **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API. Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
-- **Likely cause**: The sighting save takes the given `timestamp` as `date_sighting` without checking it against the current time.
 
 ### Bug 19 – Adding an attribute to an existing object does not add anything
 

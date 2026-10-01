@@ -134,6 +134,6 @@ Disabling a taxonomy and a galaxy that are used on an event, an attribute and an
 9. Click **Edit Tags** on the event and search `admiralty-scale:`; click **Edit Galaxy Clusters** and search `APT29`.
 10. Enable `admiralty-scale` and `Threat Actor` again.
 
-**Expected:** the event page opens without error and still shows the tag and `APT28` on the event, the attribute and the object attribute; the pickers do not offer `admiralty-scale:` tags or `Threat Actor` clusters while they are disabled (see Bug 15).
+**Expected:** the event page opens without error and still shows the tag and `APT28` on the event, the attribute and the object attribute; the pickers do not offer `admiralty-scale:` tags or `Threat Actor` clusters while they are disabled.
 
 **Seeded data:** `QA disable taxonomy and galaxy` (tag `qa:taxonomy-galaxy-disabled-everywhere`): tag and cluster attached through the API to the event, the attribute `198.51.100.130` and the `domain-ip` object attribute. With `admiralty-scale` and `Threat Actor` disabled: the tags and the cluster were still listed everywhere (API and the event tags/galaxies cards), the Events list filtered on the tag still showed the event, and no new error.log entry. But a new tag `admiralty-scale:source-reliability="b"` and the cluster `APT29` could still be attached (HTTP 200). Both were enabled again afterwards.

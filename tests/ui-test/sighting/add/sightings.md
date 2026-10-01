@@ -83,7 +83,7 @@ A user of another organisation can add a sighting on a visible attribute
 ### Sighting – date in the future
 <a id="sighting-future"></a>
 
-A sighting dated in the future is refused (regression test for Bug 17)
+A sighting dated in the future is refused
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
