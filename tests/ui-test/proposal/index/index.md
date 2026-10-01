@@ -17,6 +17,7 @@ Roles:
 | 2 | [Proposals list – search](#proposal-index-search) | |
 | 3 | [Proposals list – View Event](#proposal-index-view-event) | |
 | 4 | [Events with proposals – actions menu](#proposal-event-index-actions) | |
+| 5 | [Events with proposals – select rows](#proposal-event-index-select) | |
 
 ---
 
@@ -71,3 +72,14 @@ The actions menu of the list of events with proposals offers actions (regression
 5. Click the **…** button of `QA proposal menu`.
 
 **Expected:** the menu shows at least **View**, which opens `/events/view2/<id>` of `QA proposal menu`.
+
+### Events with proposals – select rows
+<a id="proposal-event-index-select"></a>
+
+Ticking an event in the list of events with proposals shows the selection bar (regression test for Bug 19)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/proposalEventIndex`.
+3. Tick the checkbox of `QA proposal menu` (create it first as in "Events with proposals – actions menu").
+
+**Expected:** a selection bar "Selected items: 1" appears with at least one action, or the list has no checkbox column at all.

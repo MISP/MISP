@@ -30,6 +30,7 @@ Roles:
 | 16  | [The correlation icon of an attribute does not toggle the correlation](#bug-16) | Open | v2.5.48 | |
 | 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | v2.5.48 | |
 | 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | v2.5.48 | |
+| 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -349,6 +350,23 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The menu opens but is empty.
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): the menu opens with no entry. No other Overmind list has an empty actions menu.
 - **Likely cause**: In `app/View/Themed/Overmind/Events/proposal_event_index.ctp` the **Actions** column uses the `row_actions` element with `'actions' => []`, so the menu is drawn with nothing in it (the Events list defines View, Edit and Delete).
+
+### Bug 19 – Row checkboxes do nothing on some lists
+
+<a id="bug-19"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event**, add an attribute, click **Propose change** on it, change the value and click **Submit proposal**.
+2. Go to the list of events with proposals (`/events/proposalEventIndex`).
+3. Tick the checkbox of the event.
+
+- **Expected result**: A selection bar appears ("Selected items: 1") with actions for the selected rows, as on the Events list.
+- **Actual result**: Nothing happens: no selection bar, no action. The checkbox is ticked but cannot be used.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): after ticking a row, no new control appears on the page. On `/events/index` the same action shows "Selected items: 1" with **Export** and **Delete**. **Also affects** (checked in the browser, same result): the Attributes list (`/attributes/index`), the Users list (`/admin/users/index`) and the Proposals list (`/shadow_attributes/index`). The other lists checked (Galaxies, Tags, Taxonomies, Object templates, Warninglists, Noticelists, Organisations, Roles, Event templates, Auth keys, Event blocklists, Sharing groups, Correlation exclusions, Feeds) show the selection bar.
+- **Likely cause**: The selection bar (`genericElementsBS5/IndexTable/multi_select_toolbar.ctp`) is only drawn when the list declares at least one mass action (`mass_delete`, `mass_publish`, …) in its `filter_bar`; `Events/proposal_event_index.ctp` declares none (`'children' => []`) but still shows the checkbox column.
 
 # Recommendations
 
