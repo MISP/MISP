@@ -81,6 +81,7 @@ ui-test/
     builder/builder.md      build a template
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
+    check_list_selection.js checks Bugs 2 and 5 on list pages in a headless browser (Playwright)
   skill/
     misp-test-plan/SKILL.md Claude Code skill that writes tests and bugs in this exact format
 ```
@@ -267,6 +268,18 @@ MISP_KEY=<your key> python3 tests/ui-test/tools/seed_events.py --reports-only
 
 Use `MISP_URL=https://other-host:port` to target another local instance. Only Python 3 is needed
 (no extra package).
+
+## Checking list selection in a browser (`tools/check_list_selection.js`)
+
+Bugs 2 and 5 happen in the browser (JavaScript), so they cannot be seen through the API. This script
+logs in with a headless Chromium (Playwright), and on each list page given as argument ticks a row,
+switches to card view, then sorts by the first sortable column, and prints what happened:
+
+```
+MISP_EMAIL=<email> MISP_PASSWORD=<password> node tests/ui-test/tools/check_list_selection.js /events/index /tags/index
+```
+
+Each line is a JSON result, e.g. `"checkedInCard":false` (Bug 2) and `"checkedAfterSort":false` (Bug 5).
 
 ## Using the Claude Code skill
 
