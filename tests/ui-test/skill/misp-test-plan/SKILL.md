@@ -45,6 +45,7 @@ Write the markdown in **English**. Talk to the user in their own language.
        proposal/  add/add.md, index/index.md, review/review.md, cross-org/cross-org.md
        event/roles/permissions.md, tag/roles/permissions.md, admin/users/org-admin.md, warninglist/index/filters.md
        import-export/ freetext/freetext.md, import/import.md, export/export.md
+       sharing-group/ index/sharing-groups.md, visibility/visibility.md
        event-template/ index/templates.md, form/instantiate.md, builder/builder.md
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.

@@ -59,6 +59,9 @@ ui-test/
     freetext/freetext.md    freetext import
     import/import.md        Import Event (MISP JSON, STIX)
     export/export.md        Download as, CSV, STIX, cached exports
+  sharing-group/
+    index/sharing-groups.md create, emoji, edit by a member, delete while used
+    visibility/visibility.md who sees events and attributes in a sharing group
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template

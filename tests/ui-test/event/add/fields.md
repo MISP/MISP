@@ -95,12 +95,12 @@ The Add Event form offers the 4 distribution levels and saves the chosen one
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
 3. Click **Add Event** button
-4. Check that **Distribution** shows exactly 4 choices: **Your organisation only**, **This community only**, **Connected communities**, **All communities**.
+4. Check the **Distribution** choices: **Your organisation only**, **This community only**, **Connected communities**, **All communities**, plus **Sharing group** only if a sharing group exists.
 5. Type `QA distribution` in **Event Info**.
 6. In **Distribution**, select **This community only**.
 7. Click **Create Event Entry**.
 
-**Expected:** there is no **Sharing group** choice, the event is created, and its events/view page shows the distribution This community only.
+**Expected:** **Sharing group** is offered only when at least one sharing group exists (none at first, then `QA SG org A only` / `QA SG org A and B`, see `sharing-group/`), the event is created, and its events/view page shows the distribution This community only.
 
 ### Event add – extends an existing event
 <a id="event-add-extends"></a>
