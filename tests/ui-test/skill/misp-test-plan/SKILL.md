@@ -59,6 +59,7 @@ Write the markdown in **English**. Talk to the user in their own language.
    - **Never mention the seed script (`tools/seed_events.py`) or any tool inside a test.** Steps and `**Seeded data:**` describe the data itself (e.g. "create an event with 2,000 `ip-dst` attributes"), so anyone can reproduce the test by hand.
    - **Shared cause → list every place**: when a bug comes from a shared mechanism (same UI component, same form pattern, same DB charset/limit…), search the code/DB for every other place using it and add to **Notes** `**Also affects:** <pages/forms/fields>` (say "not yet checked one by one" when only found in the code). Verify the most common one when possible.
    - **Bug reports must be understandable without the local test instance**: steps start by creating the data they need ("Create an event with **Add Event** and add an attribute …"), never "open event #103", seeded names (`QA …`), test account names or instance IDs. Use `<id>` placeholders in URLs. Instance-specific evidence stays out of `bugs.md` (it may go in the test's `**Seeded data:**` line).
+   - **Priority and Difficulty** (columns of the `## Bugs` table): Priority **High** = a main feature is broken, data is lost or security risk; **Medium** = wrong or confusing behaviour with a workaround; **Low** = small or cosmetic. Difficulty from the cause found: **Easy** = one place, cause known; **Medium** = several places or cause still to find; **Hard** = redesign or data migration. Fixed bugs get Priority `–`.
    - **Read the target file(s) first** and take the next free number from their table.
    - **A. Row** → add it as the last row of the file's table.
    - **B. Section** → add it at the end of the file. One blank line between sections.
@@ -108,9 +109,9 @@ Roles:
 
 ## Bugs
 
-| # | Bug | Status | Version | Owner | 
-|---|-----|--------| ------- | ----- |
-| 1 | [<Bug title>](#bug-1) | Open | v2.5.48 | |
+| # | Bug | Status | Priority | Difficulty | Version | Owner | 
+|---|-----|--------|----------|------------| ------- | ----- |
+| 1 | [<Bug title>](#bug-1) | Open | Medium | Easy | v2.5.48 | |
 
 ---
 
@@ -124,7 +125,7 @@ Roles:
 **A. Row** (in the `## Bugs` table of `bugs.md`):
 
 ````markdown
-| N | [<Bug title>](#bug-N) | <Open/Fixed/...> | <vX.Y.Z> | <Owner or empty> |
+| N | [<Bug title>](#bug-N) | <Open/Fixed/...> | <High/Medium/Low> | <Easy/Medium/Hard> | <vX.Y.Z> | <Owner or empty> |
 ````
 
 **B. Section** (end of `bugs.md`):

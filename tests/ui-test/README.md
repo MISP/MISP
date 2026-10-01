@@ -182,10 +182,12 @@ The `#id` values come from the last seed run on the tester's instance; they chan
 
 ### Bug (in `bugs.md`)
 
+Each bug gets a **Priority** (High / Medium / Low) and a **Difficulty** (Easy / Medium / Hard) in the table; the meaning is written above the table in `bugs.md`.
+
 Row in the `## Bugs` table:
 
 ```markdown
-| N   | [<Bug title>](#bug-N) | Open | v2.5.48 | <Owner or empty> |
+| N   | [<Bug title>](#bug-N) | Open | <High/Medium/Low> | <Easy/Medium/Hard> | v2.5.48 | <Owner or empty> |
 ```
 
 Section, after the last bug and before `# Recommendations`:

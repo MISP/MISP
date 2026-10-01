@@ -10,36 +10,39 @@ Roles:
 
 ## Bugs
 
-| #   | Bug | Status | Version | Owner |
-| --- | --- | --- | --- | --- |
-| 1   | [CSRF error when creating an event with a future date](#bug-1) | Fixed | v2.5.48 | Thomas |
-| 2   | [Selected event loses its checkbox when switching between table and card view](#bug-2) | Open | v2.5.48 | |
-| 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | v2.5.48 | |
-| 4   | [Galaxy filter on the Events list is ignored](#bug-4) | Open | v2.5.48 | |
-| 5   | [Event selection is lost when sorting the Events list](#bug-5) | Open | v2.5.48 | |
-| 6   | [CSRF error when submitting a new object after Review](#bug-6) | Open | v2.5.48 | |
-| 7   | [Internal error when an emoji is saved in many text fields](#bug-7) | Open | v2.5.48 | |
-| 8   | [Tag name longer than 255 characters is silently cut](#bug-8) | Open | v2.5.48 | |
-| 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | v2.5.48 | |
-| 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | v2.5.48 | |
-| 11  | [Event template form: an invalid value gives an error that does not say which field](#bug-11) | Open | v2.5.48 | |
-| 12  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-12) | Open | v2.5.48 | |
-| 13  | [CSV export does not neutralise spreadsheet formulas](#bug-13) | Open | v2.5.48 | |
-| 14  | [Creating an event report opens the old event page](#bug-14) | Open | v2.5.48 | |
-| 15  | [Adding an attribute to an existing object does not add anything](#bug-15) | Open | v2.5.48 | |
-| 16  | [The correlation icon of an attribute does not toggle the correlation](#bug-16) | Open | v2.5.48 | |
-| 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | v2.5.48 | |
-| 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | v2.5.48 | |
-| 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | v2.5.48 | |
-| 20  | [A note can be saved without its required text](#bug-20) | Open | v2.5.48 | |
-| 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | v2.5.48 | |
-| 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | v2.5.48 | |
-| 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | v2.5.48 | |
-| 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | v2.5.48 | |
-| 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | v2.5.48 | |
-| 26  | [A refused form opens an unstyled page (no CSS, no menu)](#bug-26) | Open | v2.5.48 | |
-| 27  | [Add User: an empty form gives no message (it only appears after a reload)](#bug-27) | Open | v2.5.48 | |
-| 28  | [Documentation pages (/pages/display/…) give an internal error](#bug-28) | Open | v2.5.48 | |
+**Priority** (what to fix first): **High** = a main feature is broken, data is lost or there is a security risk · **Medium** = wrong or confusing behaviour with a workaround · **Low** = small or cosmetic problem.
+**Difficulty** (estimated fix effort, from the cause found): **Easy** = one place to change, the cause is known · **Medium** = several places or the exact cause still to find · **Hard** = needs a redesign or a data migration.
+
+| #   | Bug | Status | Priority | Difficulty | Version | Owner |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1   | [CSRF error when creating an event with a future date](#bug-1) | Fixed | – | Easy | v2.5.48 | Thomas |
+| 2   | [Selected event loses its checkbox when switching between table and card view](#bug-2) | Open | Medium | Easy | v2.5.48 |  |
+| 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | Medium | Easy | v2.5.48 |  |
+| 4   | [Galaxy filter on the Events list is ignored](#bug-4) | Open | High | Easy | v2.5.48 |  |
+| 5   | [Event selection is lost when sorting the Events list](#bug-5) | Open | Low | Medium | v2.5.48 |  |
+| 6   | [CSRF error when submitting a new object after Review](#bug-6) | Open | High | Medium | v2.5.48 |  |
+| 7   | [Internal error when an emoji is saved in many text fields](#bug-7) | Open | High | Medium | v2.5.48 |  |
+| 8   | [Tag name longer than 255 characters is silently cut](#bug-8) | Open | Low | Easy | v2.5.48 |  |
+| 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | Low | Easy | v2.5.48 |  |
+| 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | Low | Easy | v2.5.48 |  |
+| 11  | [Event template form: an invalid value gives an error that does not say which field](#bug-11) | Open | Medium | Medium | v2.5.48 |  |
+| 12  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-12) | Open | Medium | Easy | v2.5.48 |  |
+| 13  | [CSV export does not neutralise spreadsheet formulas](#bug-13) | Open | High | Easy | v2.5.48 |  |
+| 14  | [Creating an event report opens the old event page](#bug-14) | Open | Medium | Easy | v2.5.48 |  |
+| 15  | [Adding an attribute to an existing object does not add anything](#bug-15) | Open | High | Medium | v2.5.48 |  |
+| 16  | [The correlation icon of an attribute does not toggle the correlation](#bug-16) | Open | Medium | Easy | v2.5.48 |  |
+| 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | Low | Easy | v2.5.48 |  |
+| 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | Low | Easy | v2.5.48 |  |
+| 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | Low | Easy | v2.5.48 |  |
+| 20  | [A note can be saved without its required text](#bug-20) | Open | Medium | Easy | v2.5.48 |  |
+| 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | Medium | Medium | v2.5.48 |  |
+| 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | Low | Easy | v2.5.48 |  |
+| 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | High | Easy | v2.5.48 |  |
+| 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | Low | Easy | v2.5.48 |  |
+| 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | Medium | Medium | v2.5.48 |  |
+| 26  | [A refused form opens an unstyled page (no CSS, no menu)](#bug-26) | Open | Medium | Medium | v2.5.48 |  |
+| 27  | [Add User: an empty form gives no message (it only appears after a reload)](#bug-27) | Open | Medium | Easy | v2.5.48 |  |
+| 28  | [Documentation pages (/pages/display/…) give an internal error](#bug-28) | Open | Medium | Easy | v2.5.48 |  |
 
 ## E2E UI Tests
 
@@ -419,6 +422,8 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
   - Deep notes: `AnalystData::fetchChildNotesAndOpinions()` (`app/Model/AnalystData.php`) loads nested notes with `$depth = 2` and only sets `_max_depth_reached` when there are more; the old UI uses this flag to offer loading the rest (`View/Elements/genericElements/Analyst_data/thread.ctp`), but the Overmind thread ignores it.
   - Counters: the Overmind thread (`app/View/Themed/Overmind/Elements/AnalystData/thread.ctp`) prints `count($notes)` and `count($opinions)`, which only count the items directly attached to the event.
 
+![](https://hdoc.csirt-tooling.org/uploads/e54c8e9a-cdfb-4077-ad53-818b82433e27.png)
+
 ### Bug 22 – The "Full sightings list" button of the event page reloads the same page
 
 <a id="bug-22"></a>
@@ -455,6 +460,8 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
   - The **Advanced sightings** panel shows an error 400 with only `{}` as message.
 - **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). It is not a configuration problem: no sighting setting is changed on the instance (defaults), and adding sightings through the API works. Every request `POST /sightings/add/<attribute id>` answers HTTP 400 "The request has been black-holed"; error.log says `Blackhole exception when accessing /sightings/add/<id> (isRest: 1, action: add, unlockedActions: []): '_Token' was not found in request data.` (for the buttons and for the panel). Same mechanism as Bug 16 (correlation icon).
 - **Likely cause**: The buttons and the panel (`app/View/Themed/Overmind/Sightings/ajax/advanced.ctp`) send the POST from JavaScript without the CakePHP form token (`_Token`), and `add` is not in the unlocked actions of `SightingsController`, so the Security component black-holes the request. The panel then prints `JSON.stringify(data.errors || {})`, and as the answer has no `errors` field the user only sees `{}`.
+
+![](https://hdoc.csirt-tooling.org/uploads/3c811854-5cab-42cb-9f18-cc91d44ca8cb.png)
 
 ### Bug 24 – Object relationships list: "Remove Highlight" is never offered for selected rows
 
@@ -508,6 +515,10 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser and tester screenshot, Overmind, 2026-10-01): the page has 0 stylesheets and no menu. A valid expression (e.g. `/qa-valid/`) is saved and the next page is styled, so it only happens when the form is refused. **Also affects** (checked in the browser with a refused value, same raw page): **Add correlation exclusion** with an empty value (`/correlation_exclusions/add`), **Event blocklist** with an invalid UUID (`/event_blocklists/add`), **Add Tag** with a name already used (`/tags/add`), **Add Organisation** sent empty (`/admin/organisations/add`, also seen by a tester), **Add Bookmark** sent empty (`/bookmarks/add`, also seen by a tester). The same code is in more than 20 controllers (e.g. Auth keys, Collections, Correlation rules, Decaying models, Event reports, Galaxy clusters, Org blocklists), not checked one by one.
 - **Likely cause**: In the Overmind theme these add/edit actions always set `$this->layout = false` (e.g. `AllowedlistsController::admin_add()` and `admin_edit()`), because the form is meant to be shown in a modal. When the form is refused, the answer to the normal form POST is the form rendered without layout, so the browser shows it as a full page without CSS, menu or flash message.
 
+![](https://hdoc.csirt-tooling.org/uploads/1f5b4b8a-a705-4257-bfc5-806b9393966f.png)
+![](https://hdoc.csirt-tooling.org/uploads/db79ca8e-d7f8-4db9-bf3b-0deeddcb0394.png)
+![](https://hdoc.csirt-tooling.org/uploads/3d0702ee-ab50-47b5-ab43-46bcc3d6b393.png)
+
 ### Bug 27 – Add User: an empty form gives no message (it only appears after a reload)
 
 <a id="bug-27"></a>
@@ -540,6 +551,8 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
 - **Notes**: **Confirmed in the UI** (real browser and tester screenshot, Overmind, 2026-10-01). error.log shows `[Error] Call to a member function addInputType() on null` in `app/Controller/AppController.php`, line 256. **Also affects** (checked in the browser, all HTTP 500): every page served by `/pages/display/…`, e.g. `/pages/display/doc/md/categories_and_types` (the Markdown version linked from the page) and `/pages/display/administration`.
 - **Likely cause**: `AppController::beforeFilter()` now calls `$this->RequestHandler->addInputType('xml', …)` on every request (the XML input hardening around line 256), but `PagesController` does not load the RequestHandler component, so `$this->RequestHandler` is `null` and the call is fatal before the page is rendered.
+
+![](https://hdoc.csirt-tooling.org/uploads/bce99a61-c839-4cdf-a0a4-4497428be620.png)
 
 # Recommendations
 
