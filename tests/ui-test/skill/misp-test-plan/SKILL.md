@@ -18,7 +18,7 @@ Write the markdown in **English**. Talk to the user in their own language.
    - `Notes` → `None`.
    - `Likely cause` → only what was actually investigated (logs, code, repro). Otherwise write `Unknown`. Never guess.
    - Do not invent error text, versions or values.
-4. **Roles** are only: `user`, `site-admin`, `org-admin`. Put the role in backticks in the login step (`Log in to MISP as \`site-admin\`.`).
+4. **Roles** are only: `user`, `site-admin`, `org-admin`. Put the role in backticks in the login step (`Log in to MISP as \`site-admin\`.`). When the organisation matters (cross-organisation tests), add it: `Log in to MISP as \`user\` of the organisation \`QA-Org-B\`.` Test organisations: `ADMIN` (default) and `QA-Org-B`; accounts are listed in the README (never write passwords or keys in the repo).
 5. **Steps**: short plain sentences, one action per line, numbered. UI buttons/links in **bold** with their visible label. URLs/paths in backticks. Use concrete values when the user gives them.
 6. **Numbering**: bugs are numbered `1, 2, 3…`; anchor = `bug-N`. Tests are numbered too; anchor = short kebab-case slug of the test name (`event-add`, `attribute-delete`). If the next number is unknown, ask the user or read it from what they pasted.
 7. **What to produce depends on what the user gives:**
@@ -41,11 +41,15 @@ Write the markdown in **English**. Talk to the user in their own language.
        galaxy/    index/galaxies.md, cluster/clusters.md, cluster/relations.md
        object/    add/add.md, view/objects.md, templates/templates.md
        attribute/ add/add.md, add/batch.md, add/attachment.md, view/attributes.md, index/search.md
+       tag/       index/tags.md, local/local.md, collection/collections.md
+       proposal/  add/add.md, index/index.md, review/review.md, cross-org/cross-org.md
+       event/roles/permissions.md, tag/roles/permissions.md, admin/users/org-admin.md, warninglist/index/filters.md
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.
    - **All bugs go in `bugs.md`** (template 0b), never in a feature file.
    - **Recommendations / suggestions** ("ce serait cool de…", "recommandation") go in the `# Recommendations` section at the very bottom of `bugs.md` (template 3). No table row, no E2E test.
    - **Never mention the seed script (`tools/seed_events.py`) or any tool inside a test.** Steps and `**Seeded data:**` describe the data itself (e.g. "create an event with 2,000 `ip-dst` attributes"), so anyone can reproduce the test by hand.
+   - **Shared cause → list every place**: when a bug comes from a shared mechanism (same UI component, same form pattern, same DB charset/limit…), search the code/DB for every other place using it and add to **Notes** `**Also affects:** <pages/forms/fields>` (say "not yet checked one by one" when only found in the code). Verify the most common one when possible.
    - **Read the target file(s) first** and take the next free number from their table.
    - **A. Row** → add it as the last row of the file's table.
    - **B. Section** → add it at the end of the file. One blank line between sections.

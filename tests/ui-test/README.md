@@ -42,6 +42,19 @@ ui-test/
     add/attachment.md       attachments and malware samples
     view/attributes.md      event Attributes tab: edit, delete/restore, filter
     index/search.md         Attributes list across events
+  tag/
+    index/tags.md           tags: add, duplicates, length, colour, rename/delete while used, hidden, exportable
+    local/local.md          local tags and local-only tags
+    collection/collections.md  tag collections
+  proposal/
+    add/add.md              propose a change or a deletion
+    index/index.md          Proposals list (/shadow_attributes/index)
+    review/review.md        accept, discard, accept twice, attribute deleted meanwhile
+    cross-org/cross-org.md  proposals between two organisations
+  event/roles/permissions.md   visibility, edit and publish rights per role and organisation
+  tag/roles/permissions.md     global/local tags across organisations, restricted tags, tag editor
+  admin/users/org-admin.md     Org Admin limited to its own organisation
+  warninglist/index/filters.md Warninglists list filters
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/
@@ -63,7 +76,8 @@ New feature (e.g. attributes)? Create `attribute/<page>/<topic>.md` with the sam
 - Write in **English**, short plain sentences, **one action per step**.
 - UI buttons, links and fields in **bold** with their visible label (`**Add Event**`, `**Event Info**`).
 - URLs and values in `backticks` (`/events/index`, `QA minimal event`).
-- Roles are only `user`, `site-admin`, `org-admin`. For now all tests use `site-admin`.
+- Roles are only `user`, `site-admin`, `org-admin`. When the organisation matters, the login step says it:
+  ``Log in to MISP as `user` of the organisation `QA-Org-B`.``
 - Every test ends with one `**Expected:**` line that can be checked (what is shown, which page opens).
 - Never mention `tools/seed_events.py` (or any tool) inside a test: describe the data to create
   instead (e.g. "create an event with 2,000 `ip-dst` attributes").
@@ -165,6 +179,9 @@ Section, after the last bug and before `# Recommendations`:
 - **Likely cause**: <only what was really investigated (logs, code), or Unknown>
 ```
 
+When the cause is a shared mechanism (same component, same form pattern, same database setting),
+list in **Notes** every other place where the bug can happen, after `**Also affects:**`.
+
 The test that reproduces the bug says so in its description: `(regression test for Bug N)`.
 
 ### Recommendation (bottom of `bugs.md`, under `# Recommendations`)
@@ -180,6 +197,21 @@ The test that reproduces the bug says so in its description: `(regression test f
 - **Proposal**: <one or two sentences>
 - **Benefit**: <one sentence>
 ```
+
+## Test organisations and accounts
+
+The role tests need two organisations on the local instance:
+
+| Organisation | Account (email) | Role |
+|---|---|---|
+| `ADMIN` (default) | `admin@admin.test` | `site-admin` (admin) |
+| `ADMIN` | `qa-user-a@admin.test` | `user` (User) |
+| `ADMIN` | `qa-orgadmin-a@admin.test` | `org-admin` (Org Admin) |
+| `QA-Org-B` (local) | `qa-user-b@qa-org-b.test` | `user` (User) |
+| `QA-Org-B` (local) | `qa-orgadmin-b@qa-org-b.test` | `org-admin` (Org Admin) |
+
+Create them once as site admin (**Administration → Add Organisation / Add User**). Keep the passwords
+in a local file outside the repository — **never commit passwords or API keys**.
 
 ## Preparing a local instance (`tools/seed_events.py`)
 

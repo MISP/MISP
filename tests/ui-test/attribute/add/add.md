@@ -27,6 +27,7 @@ Roles:
 | 12 | [Attribute add – on a published event](#attribute-add-published-event) | |
 | 13 | [Attribute add – warninglist hit](#attribute-add-warninglist) | |
 | 14 | [Attribute add – correlation disabled](#attribute-add-no-correlation) | |
+| 15 | [Attribute add – emoji in the comment](#attribute-add-emoji-comment) | |
 
 ---
 
@@ -247,3 +248,18 @@ An attribute with correlation disabled does not correlate with other events
 12. Click **Add Attribute** to save.
 
 **Expected:** `QA correlation off 2` does not list `QA correlation off 1` in **Related Events**, and its attribute shows no correlation.
+
+### Attribute add – emoji in the comment
+<a id="attribute-add-emoji-comment"></a>
+
+An attribute comment with an emoji is saved without error (regression test for Bug 7)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA attribute emoji` with **Add Event** and stay on its detail page.
+4. Click **Add Attribute**.
+5. In **Category** select `Network activity`, in **Type** select `ip-dst`, and type `198.51.100.60` in **Value**.
+6. Type `QA comment 🚀` in **Contextual Comment**.
+7. Click **Add Attribute** to save.
+
+**Expected:** no "An Internal Error Has Occurred." page; the attribute is saved and its comment is shown as `QA comment 🚀`.
