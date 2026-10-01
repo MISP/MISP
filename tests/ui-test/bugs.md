@@ -27,6 +27,7 @@ Roles:
 | 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
 | 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
 | 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
+| 16  | [Internal error on /eventReports/viewRendered](#bug-16) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -292,6 +293,22 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: Both are attached (HTTP 200 "Global tag … successfully attached").
 - **Notes**: Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API on `QA disable taxonomy and galaxy` (#109). Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
 - **Likely cause**: `attachTagToObject` (and `captureTag`) look the tag up by name only and never check that its taxonomy or galaxy is enabled; the enabled flag is only used to build the pickers.
+
+### Bug 16 – Internal error on /eventReports/viewRendered
+
+<a id="bug-16"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Log in and open an event that has an event report (e.g. report #115).
+2. Go to `/eventReports/viewRendered/115`.
+
+- **Expected result**: The rendered report is shown, or the page does not exist.
+- **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
+- **Notes**: error.log shows `[MissingViewException] View file "EventReports/view_rendered.ctp" is missing.` The action is open to every user in the ACL (`'viewRendered' => array('*')`) but only the old `UiBeta` theme uses it; the Overmind UI does not link to it.
+- **Likely cause**: `EventReportsController::viewRendered()` renders `EventReports/view_rendered.ctp`, which exists neither in `app/View/EventReports/` nor in `app/View/Themed/Overmind/EventReports/`.
 
 # Recommendations
 

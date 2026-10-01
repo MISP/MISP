@@ -62,6 +62,9 @@ ui-test/
   sharing-group/
     index/sharing-groups.md create, emoji, edit by a member, delete while used
     visibility/visibility.md who sees events and attributes in a sharing group
+  event-report/
+    add/add.md              write reports: Markdown, HTML/scripts, big content, references
+    extract/extract.md      extract indicators, replacements, import from URL, PDF
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
