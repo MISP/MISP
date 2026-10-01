@@ -72,6 +72,10 @@ Some recommendations to get your PR merged quickly:
 - If the commit message contains all the information regarding the changes, it's easier for the maintainer to do the review. 
 - Avoid committing sensitive information, debugging code, or unrelated code in the PR.
 
+## Note for Automated Agents
+
+We value transparency and clarity in our contribution history. If you are an automated agent to generate a pull request or issue, please self-identify by adding 🤖🤖🤖 to the end of the PR title. Agent-generated contributions are subject to the same rigorous human review, testing requirements, and style guidelines as all other submissions. This attribution simply helps our maintainers understand the context and origin of the code.
+
 ## Contributing to a JSON library (objects, taxonomies, galaxy or warning-list)
 
 All of MISP's JSON format (galaxy, taxonomies, objects, or warning-lists) are described in a JSON Schema, named using the convention `schema_name.json`.
