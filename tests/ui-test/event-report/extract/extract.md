@@ -79,7 +79,7 @@ Downloading a report as PDF
 ### Report – old rendered view
 <a id="report-view-rendered"></a>
 
-The rendered-report URL does not give an internal error (regression test for Bug 16)
+The rendered-report URL does not give an internal error
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

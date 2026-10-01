@@ -19,6 +19,7 @@ Roles:
 | 4 | [Report – very large content](#report-large) | |
 | 5 | [Report – reference to an attribute](#report-reference) | |
 | 6 | [Report – delete and restore](#report-delete-restore) | |
+| 7 | [Report – page shown after creating](#report-add-redirect) | |
 
 ---
 
@@ -107,3 +108,15 @@ A deleted report can be restored
 5. Show the deleted reports and restore `QA to delete`.
 
 **Expected:** after the delete the report is marked deleted; after the restore it is back and readable.
+
+### Report – page shown after creating
+<a id="report-add-redirect"></a>
+
+After creating an event report, the Overmind event page stays open (regression test for Bug 16)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA report redirect` with **Add Event** and stay on its detail page.
+4. Open the **Reports** tab, create a report `QA report` with some text and submit it.
+
+**Expected:** the page is still `/events/view2/<id>` (Overmind layout) on the **Reports** tab and shows `QA report`; it does not go to `/events/view/<id>`.

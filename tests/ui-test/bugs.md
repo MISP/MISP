@@ -27,9 +27,8 @@ Roles:
 | 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
 | 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
 | 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
-| 16  | [Internal error on /eventReports/viewRendered](#bug-16) | Open | v2.5.48 | |
+| 16  | [Creating an event report opens the old event page](#bug-16) | Open | v2.5.48 | |
 | 17  | [Sighting dated in the future is accepted](#bug-17) | Open | v2.5.48 | |
-| 18  | [Settings with a list of values accept any value](#bug-18) | Open | v2.5.48 | |
 | 19  | [Adding an attribute to an existing object does not add anything](#bug-19) | Open | v2.5.48 | |
 | 20  | [The correlation icon of an attribute does not toggle the correlation](#bug-20) | Open | v2.5.48 | |
 | 21  | [Attribute menu of an object is hidden behind the pagination bar](#bug-21) | Open | v2.5.48 | |
@@ -180,7 +179,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: The tag is refused with a message that the name is too long.
 - **Actual result**: The tag is created, but its name is cut to 255 characters without any warning.
-- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). Through **Add Tag** with a 300-character name: the tag is created with a 255-character name (the field has no `maxlength`). Found through the API (`POST /tags/add` with a 300-character name returned a tag whose stored name has 255 characters), still to confirm in the UI.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). Through **Add Tag** with a 300-character name: the tag is created with a 255-character name (the field has no `maxlength`). Also seen through the API (`POST /tags/add`).
 - **Likely cause**: `tags.name` is `varchar(255)` and the `name` rules in `app/Model/Tag.php` only check that it is not empty and unique, so the database cuts the value.
 
 ### Bug 9 – Tags list: the "Not favourite" filter still shows favourite tags
@@ -299,7 +298,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API. Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
 - **Likely cause**: `attachTagToObject` (and `captureTag`) look the tag up by name only and never check that its taxonomy or galaxy is enabled; the enabled flag is only used to build the pickers.
 
-### Bug 16 – Internal error on /eventReports/viewRendered
+### Bug 16 – Creating an event report opens the old event page
 
 <a id="bug-16"></a>
 
@@ -307,13 +306,14 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Create an event with **Add Event**, add an event report to it and note the report ID.
-2. Go to `/eventReports/viewRendered/<report id>`.
+1. Create an event with **Add Event**.
+2. On the event page (`/events/view2/<event id>`), open the **Reports** tab.
+3. Create an event report and submit it.
 
-- **Expected result**: The rendered report is shown, or the page does not exist.
-- **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
-- **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. error.log shows `[MissingViewException] View file "EventReports/view_rendered.ctp" is missing.` The action is open to every user in the ACL (`'viewRendered' => array('*')`) but only the old `UiBeta` theme uses it; the Overmind UI does not link to it.
-- **Likely cause**: `EventReportsController::viewRendered()` renders `EventReports/view_rendered.ctp`, which exists neither in `app/View/EventReports/` nor in `app/View/Themed/Overmind/EventReports/`.
+- **Expected result**: The event page stays the Overmind one (`/events/view2/<event id>`, **Reports** tab) and shows the new report.
+- **Actual result**: The browser goes to `/events/view/<event id>`, the old (non-Overmind) event page.
+- **Notes**: **Confirmed in the UI** (tester, 2026-10-01). Same kind of problem as Bug 13 (template creation and **Unpublish Event** also open `/events/view`).
+- **Likely cause**: `EventReportsController::add()` sets its redirect target to `['controller' => 'events', 'action' => 'view', $eventId]` without checking the theme, instead of `view2` in the Overmind theme.
 
 ### Bug 17 – Sighting dated in the future is accepted
 
@@ -330,22 +330,6 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The sighting is saved with the future date.
 - **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API. Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
 - **Likely cause**: The sighting save takes the given `timestamp` as `date_sighting` without checking it against the current time.
-
-### Bug 18 – Settings with a list of values accept any value
-
-<a id="bug-18"></a>
-
-**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
-
-#### Steps to reproduce
-
-1. As site admin, set `MISP.default_event_distribution` to `9` (through the API `POST /servers/serverSettingsEdit/MISP.default_event_distribution` with `{"value": "9"}`, or the CLI).
-2. Open the server settings.
-
-- **Expected result**: `9` is refused, because the allowed values are `0` to `4`.
-- **Actual result**: "Field updated" and `'default_event_distribution' => '9'` is written to `config.php`.
-- **Notes**: **Not reproduced in the UI yet** — found through the API or a direct URL; to be tested in the UI. Confirmed through the API (set back to a valid value right after). The settings page uses a dropdown, so the UI hides the problem, but the API and the CLI write the bad value, and every new event would then get an invalid distribution. **Also affects** (same definition: a list of `options` but only the `testForEmpty` check): `default_attribute_distribution`, `default_event_threat_level`, `default_object_distribution`, `default_eventreport_distribution`, `default_analyst_data_distribution`, `default_galaxy_distribution`, `full_tags_on_event_index`.
-- **Likely cause**: In `app/Model/Server.php` these settings declare `'options'` but `'test' => 'testForEmpty'`; the save path never checks the value against `options`.
 
 ### Bug 19 – Adding an attribute to an existing object does not add anything
 

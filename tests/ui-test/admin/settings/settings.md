@@ -26,7 +26,7 @@ Roles:
 ### Setting – invalid value for a list setting
 <a id="admin-setting-invalid-option"></a>
 
-A setting with a fixed list of values refuses another value (regression test for Bug 18)
+A setting with a fixed list of values refuses another value
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/servers/serverSettings`.
