@@ -24,23 +24,6 @@ use PHPUnit\Framework\TestCase;
 
 // ---- Framework class stubs --------------------------------------
 
-if (!class_exists('ClassRegistry', false)) {
-    class ClassRegistry
-    {
-        public static $instances = [];
-        public static function init($name)
-        {
-            if (!isset(self::$instances[$name])) {
-                self::$instances[$name] = new PewPewFakeModel();
-            }
-            return self::$instances[$name];
-        }
-        public static function reset()
-        {
-            self::$instances = [];
-        }
-    }
-}
 
 class PewPewFakeModel
 {
@@ -85,6 +68,7 @@ class PewPewMapWidgetTest extends TestCase
     protected function setUp(): void
     {
         ClassRegistry::reset();
+        ClassRegistry::$factory = function ($name) { return new PewPewFakeModel(); };
         $this->eventTag = ClassRegistry::init('EventTag');
         // Centroid fixture covers all ISOs used across tests.
         $centroids = [
