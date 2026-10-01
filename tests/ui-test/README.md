@@ -74,6 +74,7 @@ ui-test/
     keys/auth-keys.md       read-only key, allowed IPs, expiration, own keys only
     password/password.md    password rules
     login/login.md          wrong password, brute force protection, logout
+  general/emoji/emoji.md       emoji in every text field (Bug 7)
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
