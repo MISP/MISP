@@ -29,7 +29,7 @@ Roles:
 ### Sighting – add
 <a id="sighting-add"></a>
 
-Adding a sighting to an attribute
+Adding a sighting to an attribute (regression test for Bug 23)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -43,7 +43,7 @@ Adding a sighting to an attribute
 ### Sighting – false positive
 <a id="sighting-false-positive"></a>
 
-Adding a false-positive sighting
+Adding a false-positive sighting (regression test for Bug 23)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
