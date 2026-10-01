@@ -373,6 +373,10 @@ echo $this->Form->create('User', [
                     'note' => __('Create the account now, but keep it from signing in.'),
                 ]) ?>
             </div>
+            <div class="mt-2">
+                <?= $this->Form->label('expiration', __('Account expiration (keep empty for no expiration)'), ['class' => 'form-label fw-semibold']) ?>
+                <?= $this->Form->text('expiration', ['class' => 'form-control bg-light', 'placeholder' => 'YYYY-MM-DD']) ?>
+            </div>
         </div>
 
     </div>

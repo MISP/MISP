@@ -98,6 +98,13 @@
             'checked' => isset($this->request->data['User']['contactalert']) ? $this->request->data['User']['contactalert'] : true
         ));
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
+        echo $this->Form->input('expiration', array(
+            'type' => 'text',
+            'div' => 'input clear',
+            'class' => 'datepicker',
+            'placeholder' => 'YYYY-MM-DD',
+            'label' => __('Account expiration (keep empty for no expiration)')
+        ));
         echo $this->Form->input('notify', array(
             'label' => __('Send credentials automatically'),
             'type' => 'checkbox',
