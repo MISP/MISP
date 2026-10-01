@@ -29,6 +29,7 @@ Roles:
 | 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
 | 16  | [Internal error on /eventReports/viewRendered](#bug-16) | Open | v2.5.48 | |
 | 17  | [Sighting dated in the future is accepted](#bug-17) | Open | v2.5.48 | |
+| 18  | [Settings with a list of values accept any value](#bug-18) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -327,6 +328,22 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API on `QA correlation A` (#113). Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
 - **Likely cause**: The sighting save takes the given `timestamp` as `date_sighting` without checking it against the current time.
 
+### Bug 18 – Settings with a list of values accept any value
+
+<a id="bug-18"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. As site admin, set `MISP.default_event_distribution` to `9` (through the API `POST /servers/serverSettingsEdit/MISP.default_event_distribution` with `{"value": "9"}`, or the CLI).
+2. Open the server settings.
+
+- **Expected result**: `9` is refused, because the allowed values are `0` to `4`.
+- **Actual result**: "Field updated" and `'default_event_distribution' => '9'` is written to `config.php`.
+- **Notes**: Confirmed on the instance and set back to `1` right after. The settings page uses a dropdown, so the UI hides the problem, but the API and the CLI write the bad value, and every new event would then get an invalid distribution. **Also affects** (same definition: a list of `options` but only the `testForEmpty` check): `default_attribute_distribution`, `default_event_threat_level`, `default_object_distribution`, `default_eventreport_distribution`, `default_analyst_data_distribution`, `default_galaxy_distribution`, `full_tags_on_event_index`.
+- **Likely cause**: In `app/Model/Server.php` these settings declare `'options'` but `'test' => 'testForEmpty'`; the save path never checks the value against `options`.
+
 # Recommendations
 
 ### Recommendation 1 – Filter the Events list by several tags or galaxies
@@ -355,7 +372,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
-- **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 12).
+- **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 12), "Could not add User" (email already used or invalid), "Could not delete Organisation" (still has users and events).
 - **Proposal**: Always return and show the validation error that caused the refusal (field + rule), in the UI and in the API.
 - **Benefit**: Users fix their input themselves instead of guessing or asking an admin to read the logs.
 

@@ -43,7 +43,7 @@ Write the markdown in **English**. Talk to the user in their own language.
        attribute/ add/add.md, add/batch.md, add/attachment.md, view/attributes.md, index/search.md
        tag/       index/tags.md, local/local.md, collection/collections.md
        proposal/  add/add.md, index/index.md, review/review.md, cross-org/cross-org.md
-       event/roles/permissions.md, tag/roles/permissions.md, admin/users/org-admin.md, warninglist/index/filters.md
+       event/roles/permissions.md, tag/roles/permissions.md, admin/users/org-admin.md, admin/users/users.md, admin/organisations/organisations.md, admin/settings/settings.md, warninglist/index/filters.md
        import-export/ freetext/freetext.md, import/import.md, export/export.md
        sharing-group/ index/sharing-groups.md, visibility/visibility.md
        event-report/ add/add.md, extract/extract.md

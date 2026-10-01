@@ -54,6 +54,9 @@ ui-test/
   event/roles/permissions.md   visibility, edit and publish rights per role and organisation
   tag/roles/permissions.md     global/local tags across organisations, restricted tags, tag editor
   admin/users/org-admin.md     Org Admin limited to its own organisation
+  admin/users/users.md         site admin: add, disable, role change
+  admin/organisations/organisations.md  delete while used, emoji
+  admin/settings/settings.md   settings validation, diagnostics, admin pages
   warninglist/index/filters.md Warninglists list filters
   import-export/
     freetext/freetext.md    freetext import
