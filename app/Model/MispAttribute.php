@@ -3799,7 +3799,6 @@ class MispAttribute extends AppModel
      */
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
-        $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
@@ -3847,7 +3846,6 @@ class MispAttribute extends AppModel
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
-            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             foreach ($results as $attribute) {
                 $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
@@ -3919,8 +3917,6 @@ class MispAttribute extends AppModel
                 }
                 $conditions['AND'][] = $temp;
             }
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
-            $this->allowedlist = $this->Allowedlist->getBlockedValues();
             $instanceString = 'MISP';
             if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
                 $this->Event->Orgc->id = Configure::read('MISP.host_org_id');
@@ -3931,7 +3927,7 @@ class MispAttribute extends AppModel
             $mispTypes = $export->getMispTypes($type);
             foreach ($mispTypes as $mispType) {
                 $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->allowedlist, $instanceString, $enforceWarninglist));
+                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $instanceString, $enforceWarninglist));
             }
         }
         natsort($intel);
@@ -3942,7 +3938,7 @@ class MispAttribute extends AppModel
         return $intel;
     }
 
-    private function __bro($user, $conditions, $valueField, $export, $allowedlist, $instanceString, $enforceWarninglist)
+    private function __bro($user, $conditions, $valueField, $export, $instanceString, $enforceWarninglist)
     {
         $attributes = $this->fetchAttributes(
             $user,
@@ -3960,7 +3956,7 @@ class MispAttribute extends AppModel
         $orgs = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
+        return $export->export($attributes, $orgs, $valueField, $instanceString);
     }
 
     private function id_to_uuid($id, $scope = 'Attribute')

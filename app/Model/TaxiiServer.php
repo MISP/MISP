@@ -21,7 +21,6 @@ class TaxiiServer extends AppModel
 
     private $Job = null;
     private $Event = null;
-    private $Allowedlist = null;
 
     public function beforeValidate($options = array())
     {
@@ -95,7 +94,6 @@ class TaxiiServer extends AppModel
         $exportTool = ['memory_scaling_factor' => $attribute_coefficient];
         $eventids_chunked = $this->Event->clusterEventIds($exportTool, $eventid);
         $i = 1;
-        $this->Allowedlist = ClassRegistry::init('Allowedlist');
         foreach ($eventids_chunked as $eventids) {
             $this->__pushEvents($user, $taxii_server, $filters, $eventids, $i, $jobId, $eventCount);
         }
@@ -118,8 +116,6 @@ class TaxiiServer extends AppModel
             unset($filters['tags']['NOT']);
         }
         $result = $this->Event->fetchEvent($user, $filters, true);
-        
-        $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
         $temporaryFolder = $this->temporaryFolder();
         $temporaryFolderPath = $temporaryFolder['dir']->path;
         $this->Job->id = $jobId;
