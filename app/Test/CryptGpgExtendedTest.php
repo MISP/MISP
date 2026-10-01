@@ -53,12 +53,29 @@ class GpgToolTest extends TestCase
     private function init(): CryptGpgExtended
     {
         require_once 'Crypt/GPG.php';
-        include __DIR__ . '/../Config/config.php';
+
+        // A missing or unconfigured GPG setup is an absent precondition, not a
+        // broken suite: skip rather than error, so running the documented
+        // `phpunit app/Test/` on a fresh checkout reports honestly.
+        $configFile = __DIR__ . '/../Config/config.php';
+        if (!is_file($configFile)) {
+            $this->markTestSkipped('app/Config/config.php is absent; GPG tests need a configured instance.');
+        }
+        include $configFile;
+
+        $homedir = $config['GnuPG']['homedir'] ?? '';
+        if ($homedir === '' || !is_dir($homedir)) {
+            $this->markTestSkipped('GnuPG.homedir is not configured; skipping GPG-backed tests.');
+        }
+        $binary = $config['GnuPG']['binary'] ?? '/usr/bin/gpg';
+        if (!is_file($binary)) {
+            $this->markTestSkipped(sprintf('gpg binary not found at %s; skipping GPG-backed tests.', $binary));
+        }
 
         $options = [
-            'homedir' => $config['GnuPG']['homedir'],
+            'homedir' => $homedir,
             'gpgconf' => $config['GnuPG']['gpgconf'] ?? null,
-            'binary' => $config['GnuPG']['binary'] ?? '/usr/bin/gpg',
+            'binary' => $binary,
         ];
         return new CryptGpgExtended($options);
     }
