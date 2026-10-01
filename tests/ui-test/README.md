@@ -55,6 +55,10 @@ ui-test/
   tag/roles/permissions.md     global/local tags across organisations, restricted tags, tag editor
   admin/users/org-admin.md     Org Admin limited to its own organisation
   warninglist/index/filters.md Warninglists list filters
+  event-template/
+    index/templates.md      active/inactive, duplicate, delete, library update, import/export
+    form/instantiate.md     create an event from a template
+    builder/builder.md      build a template
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/

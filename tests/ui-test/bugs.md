@@ -22,6 +22,7 @@ Roles:
 | 8   | [Tag name longer than 255 characters is silently cut](#bug-8) | Open | v2.5.48 | |
 | 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | v2.5.48 | |
 | 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | v2.5.48 | |
+| 11  | [Inactive event template can still be used by its URL](#bug-11) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -203,6 +204,24 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: All warninglists are listed.
 - **Notes**: Through the API: the instance has 225 warninglists, all default; `default:0` and `default:1` both return 225. The **Enabled** filter of the same page works (`enabled:1` returns 0, as none is enabled).
 - **Likely cause**: The **Default** filter is offered in `app/View/Themed/Overmind/Warninglists/index.ctp`, but `default` is not in the list of filters read by `WarninglistsController::index()` (`value`, `category`, `type`, `enabled`, `id`, `matchValue`), so it is dropped.
+
+### Bug 11 – Inactive event template can still be used by its URL
+
+<a id="bug-11"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Log in as a user with the `User` role.
+2. Check in `/event_templates/index` that `Suspicious domain triage` (#8) is inactive (it is not offered in **Use a template**).
+3. Go to `/event_templates/instantiate/8`.
+4. Fill the mandatory fields and click **Create event**.
+
+- **Expected result**: The template is refused because it is inactive; no event is created.
+- **Actual result**: The event is created from the inactive template.
+- **Notes**: Confirmed through the API: `qa-user-a` (role `User`) posted the mandatory values to `/event_templates/instantiate/8` and got `event_id: 105` (`Suspicious domain — qa-inactive.example`). The list page says "Inactive templates are hidden from the "From template" picker", so hiding is the only protection.
+- **Likely cause**: `EventTemplatesController::instantiate()` loads the template with `__fetchForRead()` (which checks visibility only) and never checks `EventTemplate.active` before rendering the form or creating the event.
 
 # Recommendations
 
