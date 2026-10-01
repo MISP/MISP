@@ -140,6 +140,35 @@ class BroExport
 
     private $whitelist = null;
 
+	/**
+	 * The '#fields ...' line that opens a Bro/Zeek intel file.
+	 *
+	 * Every other class in app/Lib/Export exposes its header through this
+	 * method; BroExport held the same string in a public property instead, so
+	 * callers had to know it was the one export tool to reach into rather than
+	 * call. The property is kept so nothing outside the repository breaks.
+	 *
+	 * No trailing newline: separator() supplies it, exactly as it does between
+	 * the rules that follow.
+	 */
+	public function header($options = array())
+	{
+		return $this->header;
+	}
+
+	/**
+	 * Deliberately a no-op.
+	 *
+	 * 'bro' is not present in any model's $validFormats, so restSearch() never
+	 * reaches this class - MispAttribute::bro() and Job.php call export()
+	 * directly instead. Implementing this method would mean deciding how a
+	 * single event maps onto Bro intel lines, which is a feature, not a fix.
+	 *
+	 * Do NOT add 'bro' to a $validFormats map until it is implemented: with
+	 * this returning null, restSearch()'s `if ($temp !== '')` guard is true, so
+	 * every event would append an empty line and the export would silently
+	 * yield a header and nothing else.
+	 */
 	public function handler($data, $options = array())
 	{
 
