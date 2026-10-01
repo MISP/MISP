@@ -127,6 +127,19 @@ class AttributesController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        // The "More filters" yes/no controls, shared with the event view.
+        // Kept out of $filters: they are not restSearch parameters, and the
+        // search token and the export links are built from $filters.
+        $yesNoFilters = [];
+        foreach (['toIDS', 'analystData'] as $yesNoKey) {
+            $yesNoValue = (int)($this->request->params['named'][$yesNoKey]
+                ?? ($this->request->query[$yesNoKey] ?? 0));
+            if ($yesNoValue === 1 || $yesNoValue === 2) {
+                $yesNoFilters[$yesNoKey] = $yesNoValue === 1;
+            }
+        }
+        $excludeWarninglistHits = (int)($this->request->params['named']['warning']
+            ?? ($this->request->query['warning'] ?? 0)) === 2;
         // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
         $filters = $this->__massageGalaxyFilter($filters);
         // The index filter bar searches for a substring.
@@ -188,6 +201,12 @@ class AttributesController extends AppController
         if (!empty($filters['email'])) {
             $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
         }
+        if (isset($yesNoFilters['toIDS'])) {
+            $conditions['AND'][] = ['Attribute.to_ids' => $yesNoFilters['toIDS'] ? 1 : 0];
+        }
+        if (isset($yesNoFilters['analystData'])) {
+            $conditions['AND'][] = $this->MispAttribute->analystDataCondition($user, $yesNoFilters['analystData']);
+        }
         $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
         if (!empty($filters['direction'])) {
             $params['direction'] = $filters['direction'];
@@ -216,12 +235,17 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             $this->paginate['conditions'] = $conditions;
-            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+            $hasNextPage = null;
+            if ($excludeWarninglistHits) {
+                list($attributes, $hasNextPage) = $this->__fetchAttributesWithoutWarninglistHits($user, $params);
+            } else {
+                $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+            }
             App::uses('CustomPaginationTool', 'Tools');
             $customPagination = new CustomPaginationTool();
             $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
-            if (count($attributes) >= $params['limit']) {
-                $params['nextPage'] = true;
+            if ($hasNextPage !== null || count($attributes) >= $params['limit']) {
+                $params['nextPage'] = $hasNextPage ?? true;
                 $params['prevPage'] = ($params['page'] > 1) ? true : false;
                 $params['current'] = count($attributes);
             }
@@ -264,6 +288,14 @@ class AttributesController extends AppController
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
+        if (!empty($attributes)) {
+            $withAnalystData = $this->MispAttribute->attachAnalystDataBulk(
+                array_column($attributes, 'Attribute')
+            );
+            foreach ($withAnalystData as $k => $withData) {
+                $attributes[$k]['Attribute'] = $withData;
+            }
+        }
         $exports = array_keys($this->MispAttribute->validFormats);
         $this->set('exports', $exports);
         $request_filters = array_diff_key($request_filters, array_flip(['direction', 'page', 'limit', 'sort']));
@@ -362,27 +394,48 @@ class AttributesController extends AppController
      */
     private function __setIndexFilterOptions(array $orgTable)
     {
-        $categoryKeys = array_keys($this->MispAttribute->categoryDefinitions);
-        $this->set('categoryOptions', ['' => ''] + array_combine($categoryKeys, $categoryKeys));
-        $typeKeys = array_keys($this->MispAttribute->typeDefinitions);
-        sort($typeKeys);
-        $this->set('typeOptions', ['' => ''] + array_combine($typeKeys, $typeKeys));
+        $this->set($this->MispAttribute->indexFilterOptions());
 
         $orgNames = array_column($orgTable, 'name');
         sort($orgNames);
         $this->set('orgOptions', ['' => ''] + array_combine($orgNames, $orgNames));
+    }
 
-        $this->set('tagOptions', ['' => ''] + $this->MispAttribute->AttributeTag->Tag->find('list', [
-            'fields' => ['Tag.name', 'Tag.name'],
-            'conditions' => ['Tag.is_galaxy' => 0],
-            'order' => ['Tag.name' => 'ASC'],
-        ]));
-
-        $this->loadModel('Galaxy');
-        $this->set('galaxyOptions', ['' => ''] + $this->Galaxy->find('list', [
-            'fields' => ['Galaxy.type', 'Galaxy.name'],
-            'order' => ['Galaxy.name' => 'ASC'],
-        ]));
+    /**
+     * One page of the index with the rows a warninglist flags left out. The
+     * rows are read in order until the page is full, so every page holds
+     * $params['limit'] rows and whether a next one exists is known for sure.
+     *
+     * @param array $user
+     * @param array $params fetchAttributes() options, page and limit included
+     * @return array [rows of the page, whether a next page exists]
+     */
+    private function __fetchAttributesWithoutWarninglistHits(array $user, array $params)
+    {
+        $limit = (int)$params['limit'];
+        $toSkip = (max(1, (int)$params['page']) - 1) * $limit;
+        $batchSize = 500;
+        $params['includeWarninglistHits'] = 1;
+        $params['limit'] = $batchSize;
+        $params['page'] = 1;
+        $skipped = 0;
+        $kept = [];
+        do {
+            $batch = $this->MispAttribute->fetchAttributes($user, $params);
+            foreach ($batch as $row) {
+                if (!empty($row['Attribute']['warnings'])) {
+                    continue;
+                }
+                if ($skipped < $toSkip) {
+                    $skipped++;
+                    continue;
+                }
+                $kept[] = $row;
+            }
+            $params['page']++;
+            // one row beyond the page tells there is a next one
+        } while (count($batch) === $batchSize && count($kept) <= $limit);
+        return [array_slice($kept, 0, $limit), count($kept) > $limit];
     }
 
     public function add($eventId = false)

@@ -1902,6 +1902,113 @@ class MispAttribute extends AppModel
         return $attribute;
     }
 
+    /**
+     * Condition keeping the attributes that carry (or, with $has false, do
+     * not carry) a note, an opinion or a relationship the user can see — the
+     * same set the analyst data column counts.
+     *
+     * @param array $user
+     * @param bool $has
+     * @return string
+     */
+    public function analystDataCondition(array $user, $has)
+    {
+        $sgids = empty($user['Role']['perm_site_admin'])
+            ? $this->SharingGroup->authorizedIds($user)
+            : null;
+        $subQueries = [];
+        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
+            $Model = ClassRegistry::init($type);
+            $typeConditions = [$type . '.object_type' => 'Attribute'];
+            if ($sgids !== null) {
+                $typeConditions['OR'] = [
+                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
+                    $type . '.org_uuid' => $user['Organisation']['uuid'],
+                    $type . '.distribution' => [1, 2, 3],
+                    'AND' => [
+                        $type . '.distribution' => 4,
+                        $type . '.sharing_group_id' => $sgids,
+                    ],
+                ];
+            }
+            $subQueries[] = $this->subQueryGenerator(
+                $Model,
+                [
+                    'fields' => [$type . '.object_uuid'],
+                    'conditions' => $typeConditions,
+                ],
+                $this->alias . '.uuid',
+                !$has
+            )[0];
+        }
+        return '(' . implode($has ? ' OR ' : ' AND ', $subQueries) . ')';
+    }
+
+    /**
+     * Condition keeping the attributes tagged with $tagNames (exact names) or,
+     * with $galaxyType, with any cluster of that galaxy.
+     *
+     * @param array|string|null $tagNames
+     * @param string|null $galaxyType
+     * @param array|null $eventIds scope of the attribute_tags lookup
+     * @return string
+     */
+    public function tagCondition($tagNames, $galaxyType = null, $eventIds = null)
+    {
+        $tagConditions = [];
+        if (!empty($tagNames)) {
+            $tagConditions['Tag.name'] = $tagNames;
+        }
+        if (!empty($galaxyType)) {
+            $tagConditions['Tag.name LIKE'] =
+                'misp-galaxy:' . $galaxyType . '="%';
+        }
+        if ($eventIds !== null) {
+            $tagConditions['AttributeTag.event_id'] = $eventIds;
+        }
+        return $this->subQueryGenerator(
+            $this->AttributeTag,
+            [
+                'fields' => ['AttributeTag.attribute_id'],
+                'conditions' => $tagConditions,
+                'joins' => [[
+                    'table' => 'tags',
+                    'alias' => 'Tag',
+                    'type' => 'INNER',
+                    'conditions' => ['Tag.id = AttributeTag.tag_id'],
+                ]],
+            ],
+            $this->alias . '.id'
+        )[0];
+    }
+
+    /**
+     * Option lists of the attribute indexes' "More filters" panel, shared by
+     * the global index and the event view so both offer the same choices.
+     *
+     * @return array view var name => [value => label], each led by ''
+     */
+    public function indexFilterOptions()
+    {
+        $categoryKeys = array_keys($this->categoryDefinitions);
+        $typeKeys = array_keys($this->typeDefinitions);
+        sort($typeKeys);
+        return [
+            'categoryOptions' => ['' => '']
+                + array_combine($categoryKeys, $categoryKeys),
+            'typeOptions' => ['' => ''] + array_combine($typeKeys, $typeKeys),
+            'tagOptions' => ['' => ''] + $this->AttributeTag->Tag->find('list', [
+                'fields' => ['Tag.name', 'Tag.name'],
+                'conditions' => ['Tag.is_galaxy' => 0],
+                'order' => ['Tag.name' => 'ASC'],
+            ]),
+            'galaxyOptions' => ['' => ''] + ClassRegistry::init('Galaxy')->find('list', [
+                'fields' => ['Galaxy.type', 'Galaxy.name'],
+                'order' => ['Galaxy.name' => 'ASC'],
+            ]),
+        ];
+    }
+
     public function buildConditions($user)
     {
         $cacheKey = ($user['Role']['perm_site_admin']

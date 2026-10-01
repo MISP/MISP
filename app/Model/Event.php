@@ -1989,6 +1989,11 @@ class Event extends AppModel
      *   - category (string|null)
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
+     *   - correlation, feed, warning, analystData (int|null, 1=has related
+     *     events / feed hits / warninglist hits / analyst data, 2=has none)
+     *   - tags (string|string[]|null) exact tag names
+     *   - galaxy (string|null) galaxy type, any of its clusters
+     *   - org (string|null) creator org name of the event a row belongs to
      *   - searchFor (string|null) substring search over value, uuid and
      *     comment
      *   - eventIds (int[]|null) extended / extending view: every event whose
@@ -2025,6 +2030,24 @@ class Event extends AppModel
             : array_values(array_unique(array_map(
                 'intval', (array)$options['eventIds']
             )));
+
+        // Creator org: only tells rows apart in an extended view, where the
+        // merged events can come from different organisations.
+        if (!empty($options['org'])) {
+            $eventIds = $this->find('column', [
+                'fields' => ['Event.id'],
+                'conditions' => [
+                    'Event.id' => $eventIds,
+                    'Orgc.name' => $options['org'],
+                ],
+                'joins' => [[
+                    'table' => 'organisations',
+                    'alias' => 'Orgc',
+                    'type' => 'INNER',
+                    'conditions' => ['Orgc.id = Event.orgc_id'],
+                ]],
+            ]) ?: [-1];
+        }
 
         // Base conditions
         $conditions = [
@@ -2078,6 +2101,24 @@ class Event extends AppModel
                 'Attribute.uuid LIKE' => $needle,
                 'Attribute.comment LIKE' => $needle,
             ]];
+        }
+
+        $analystData = (int)($options['analystData'] ?? 0);
+        if ($analystData === 1 || $analystData === 2) {
+            $conditions[] = $this->Attribute->analystDataCondition(
+                $user,
+                $analystData === 1
+            );
+        }
+        if (!empty($options['tags'])) {
+            $conditions[] = $this->Attribute->tagCondition(
+                $options['tags'], null, $eventIds
+            );
+        }
+        if (!empty($options['galaxy'])) {
+            $conditions[] = $this->Attribute->tagCondition(
+                null, $options['galaxy'], $eventIds
+            );
         }
 
         // Proposals filter. The toggle narrows the list down to what carries
@@ -2148,6 +2189,22 @@ class Event extends AppModel
                 $this->__attributeIdsMatchingWarninglist(
                     $conditions,
                     (int)$options['warninglist']
+                );
+        }
+
+        // Yes/no filters on what __enrichAttributes() computes (1 = has, 2 =
+        // has not). Same reason as above for resolving them last.
+        $hitFilters = [];
+        foreach (['warning', 'feed', 'correlation'] as $hitKey) {
+            $hitValue = (int)($options[$hitKey] ?? 0);
+            if ($hitValue === 1 || $hitValue === 2) {
+                $hitFilters[$hitKey] = $hitValue === 1;
+            }
+        }
+        if (!empty($hitFilters)) {
+            $conditions['Attribute.id'] =
+                $this->__attributeIdsMatchingHits(
+                    $user, $eventId, $conditions, $hitFilters
                 );
         }
 
@@ -2467,6 +2524,94 @@ class Event extends AppModel
     }
 
     /**
+     * Ids of the attributes selected by $conditions whose warninglist, feed
+     * and correlation hits match $wanted, a map of 'warning' / 'feed' /
+     * 'correlation' => whether the attribute must have one.
+     *
+     * Like __attributeIdsMatchingWarninglist(), the hits are computed in PHP
+     * (warninglists, the redis feed cache, the correlation ACL), so the
+     * candidates are walked in id-ordered batches to keep memory bounded on a
+     * very large event.
+     *
+     * @param array $user
+     * @param int $eventId primary event, the one correlations are seen from
+     * @param array $conditions Attribute conditions of the caller's query
+     * @param array $wanted
+     * @return array Attribute ids; [-1] when nothing matches
+     */
+    private function __attributeIdsMatchingHits(
+        array $user,
+        $eventId,
+        array $conditions,
+        array $wanted
+    ) {
+        if (isset($wanted['warning']) && !isset($this->Warninglist)) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
+        }
+        $sgids = isset($wanted['correlation'])
+            ? $this->SharingGroup->authorizedIds($user)
+            : [];
+
+        $ids = [];
+        $lastId = 0;
+        do {
+            $batchConditions = $conditions;
+            $batchConditions['Attribute.id >'] = $lastId;
+            $batch = $this->Attribute->find('all', [
+                'conditions' => $batchConditions,
+                'fields' => [
+                    'Attribute.id',
+                    'Attribute.type',
+                    'Attribute.value',
+                    'Attribute.to_ids',
+                    'Attribute.disable_correlation',
+                ],
+                'order' => ['Attribute.id' => 'ASC'],
+                'limit' => 5000,
+                'recursive' => -1,
+            ]);
+            if (empty($batch)) {
+                break;
+            }
+            $flat = array_column($batch, 'Attribute');
+            unset($batch);
+            $lastId = (int)end($flat)['id'];
+
+            if (isset($wanted['warning'])) {
+                $this->Warninglist->attachWarninglistToAttributes($flat);
+            }
+            if (isset($wanted['feed'])) {
+                $flat = $this->__attachFeedAndServerHits(
+                    $flat, $user, $eventId
+                );
+            }
+            $correlations = isset($wanted['correlation'])
+                ? $this->Attribute->Correlation->getAttributeCorrelations(
+                    $user, $eventId, $sgids, array_column($flat, 'id')
+                )
+                : [];
+
+            foreach ($flat as $attribute) {
+                $hits = [
+                    'warning' => !empty($attribute['warnings']),
+                    'feed' => !empty($attribute['Feed'])
+                        || !empty($attribute['Server'])
+                        || !empty($attribute['FeedHit']),
+                    'correlation' => !empty($correlations[$attribute['id']]),
+                ];
+                foreach ($wanted as $key => $mustHave) {
+                    if ($hits[$key] !== $mustHave) {
+                        continue 2;
+                    }
+                }
+                $ids[] = $attribute['id'];
+            }
+        } while (count($flat) === 5000);
+
+        return empty($ids) ? [-1] : $ids;
+    }
+
+    /**
      * Conditions selecting the standalone "new attribute" proposals of an
      * event view (ShadowAttribute.old_id = 0), narrowed by the same column
      * filters as the attribute list itself.
@@ -2496,6 +2641,22 @@ class Event extends AppModel
         }
         if (!empty($options['type'])) {
             $conditions['ShadowAttribute.type'] = $options['type'];
+        }
+        if (isset($options['toIDS']) && $options['toIDS'] != 0) {
+            $conditions['ShadowAttribute.to_ids'] =
+                $options['toIDS'] == 2 ? 0 : 1;
+        }
+        // A proposal carries no tag, hit or analyst data of its own, so a
+        // filter asking for one leaves it out.
+        $requiresSomething = !empty($options['tags'])
+            || !empty($options['galaxy']);
+        foreach (['correlation', 'feed', 'warning', 'analystData'] as $key) {
+            if ((int)($options[$key] ?? 0) === 1) {
+                $requiresSomething = true;
+            }
+        }
+        if ($requiresSomething) {
+            $conditions['ShadowAttribute.id'] = -1;
         }
         if (!empty($options['searchFor'])) {
             $needle = '%' . $options['searchFor'] . '%';
@@ -3126,6 +3287,46 @@ class Event extends AppModel
     }
 
     /**
+     * Attach feed hits, and server hits for the users allowed to see them.
+     *
+     * @param array $attributes Flat array of attributes
+     * @param array $user
+     * @param int $eventId
+     * @return array
+     */
+    private function __attachFeedAndServerHits(
+        array $attributes,
+        array $user,
+        $eventId
+    ) {
+        if (!isset($this->Feed)) {
+            $this->Feed = ClassRegistry::init('Feed');
+        }
+        $eventShell = ['Event' => ['id' => $eventId]];
+        $attributes = $this->Feed->attachFeedCorrelations(
+            $attributes, $user,
+            $eventShell, false, 'Feed'
+        );
+        if (
+            $user['Role']['perm_site_admin'] ||
+            $user['org_id'] == Configure::read(
+                'MISP.host_org_id'
+            ) ||
+            Configure::read(
+                'MISP.show_server_correlations_for_all_users',
+                false
+            )
+        ) {
+            $attributes = $this->Feed
+                ->attachFeedCorrelations(
+                    $attributes, $user,
+                    $eventShell, false, 'Server'
+                );
+        }
+        return $attributes;
+    }
+
+    /**
      * Enrich a flat array of attributes with warninglist
      * hits, feed/server correlations, attribute
      * correlations, and sighting data.
@@ -3164,31 +3365,9 @@ class Event extends AppModel
             $attributes
         );
 
-        // Feed and server correlations
-        if (!isset($this->Feed)) {
-            $this->Feed = ClassRegistry::init('Feed');
-        }
-        $eventShell = ['Event' => ['id' => $eventId]];
-        $attributes = $this->Feed->attachFeedCorrelations(
-            $attributes, $user,
-            $eventShell, false, 'Feed'
+        $attributes = $this->__attachFeedAndServerHits(
+            $attributes, $user, $eventId
         );
-        if (
-            $user['Role']['perm_site_admin'] ||
-            $user['org_id'] == Configure::read(
-                'MISP.host_org_id'
-            ) ||
-            Configure::read(
-                'MISP.show_server_correlations_for_all_users',
-                false
-            )
-        ) {
-            $attributes = $this->Feed
-                ->attachFeedCorrelations(
-                    $attributes, $user,
-                    $eventShell, false, 'Server'
-                );
-        }
 
         // Attribute correlations
         $attributeIds = array_column($attributes, 'id');
