@@ -404,11 +404,11 @@ class ObjectsController extends AppController
             $body['id'] = (int)$result;
         } else {
             $body['errors'] = $error ?: __('Object could not be saved.');
-            // csrfUseOnce is on, so the token the form posted has just been spent.
-            // The form stays on screen after a rejected save, so it is handed the
-            // token generated for this request or the next attempt blackholes.
-            $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
         }
+        // csrfUseOnce is on, so the token the form posted has just been spent.
+        // A rejected save leaves the form up and needs it for the next attempt;
+        // an accepted one still has the relationships to post.
+        $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
         return new CakeResponse([
             'body' => json_encode($body),
             'status' => 200,
@@ -651,7 +651,14 @@ class ObjectsController extends AppController
                 if ($this->request->is('ajax')) {
                     if (is_numeric($objectToSave)) {
                         $this->MispObject->Event->unpublishEvent($event);
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Object attributes saved.'))), 'status'=>200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array(
+                            'saved' => true,
+                            'success' => __('Object attributes saved.'),
+                            // The relationship step posts against this id once the
+                            // save comes back, and with this token.
+                            'id' => (int)$object['Object']['id'],
+                            'csrfToken' => $this->request->params['_Token']['key'] ?? null,
+                        )), 'status'=>200, 'type' => 'json'));
                     } else {
                         return new CakeResponse(array('body'=> json_encode(array(
                             'saved' => false,
@@ -710,6 +717,21 @@ class ObjectsController extends AppController
             $this->layout = false;
         }
         $this->set('templateList', []);
+        // The relationship step lists what the object already points at, so that
+        // an edit can drop one.
+        $this->set('existingReferences', $this->MispObject->ObjectReference->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'ObjectReference.object_id' => $object['Object']['id'],
+                'ObjectReference.deleted' => 0,
+            ],
+            'fields' => [
+                'ObjectReference.id', 'ObjectReference.referenced_id',
+                'ObjectReference.referenced_uuid', 'ObjectReference.referenced_type',
+                'ObjectReference.relationship_type', 'ObjectReference.comment',
+            ],
+            'order' => ['ObjectReference.id' => 'ASC'],
+        ]));
         $this->render('add');
     }
 

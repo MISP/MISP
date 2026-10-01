@@ -420,7 +420,7 @@ $this->Form->unlockField('Attribute');
 
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-outline-object" id="objRelationshipBtn">
-                            <i class="fas fa-link me-1"></i><?= __('Add relationship') ?>
+                            <i class="fas fa-link me-1"></i><?= __('Edit relationships') ?>
                         </button>
                         <button type="button" class="btn btn-object ov-obj-review-btn" id="objReviewBtn">
                             <i class="fas fa-eye me-1"></i><?= __('Review') ?>
@@ -560,6 +560,18 @@ $this->Form->unlockField('Attribute');
         . '/' . $template['ObjectTemplate']['id'],
     'relationshipTargetsUrl' => $baseurl . '/objectReferences/targets/' . $eventId,
     'relationshipAddUrl' => $baseurl . '/objectReferences/add/',
+    'relationshipDeleteUrl' => $baseurl . '/objectReferences/delete/',
+    'existingRelationships' => array_map(function ($row) {
+        $reference = $row['ObjectReference'];
+        return [
+            'id' => $reference['id'],
+            'type' => $reference['relationship_type'],
+            'uuid' => $reference['referenced_uuid'],
+            'kind' => (int)$reference['referenced_type'] === 1 ? __('object') : __('attribute'),
+            'label' => substr((string)$reference['referenced_uuid'], 0, 8),
+            'comment' => $reference['comment'],
+        ];
+    }, array_values($existingReferences ?? [])),
     'distributionLevels' => (object)$distributionData['levels'],
     'template' => [
         'id' => (string)$template['ObjectTemplate']['id'],
