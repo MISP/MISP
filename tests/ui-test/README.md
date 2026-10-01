@@ -78,7 +78,7 @@ ui-test/
   analyst-data/notes/notes.md  notes: add, edit, required text
   general/emoji/emoji.md       emoji in every text field (Bug 7)
   general/ui/ui.md             JavaScript errors, phone width, dark mode on the main pages
-  general/limits/limits.md     too long text in forms and searches (Bug 3)
+  general/limits/limits.md     too long text in forms and searches (Bug 25)
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template

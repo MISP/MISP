@@ -14,7 +14,7 @@ Roles:
 | --- | --- | --- | --- | --- |
 | 1   | [CSRF error when creating an event with a future date](#bug-1) | Fixed | v2.5.48 | Thomas |
 | 2   | [Selected event loses its checkbox when switching between table and card view](#bug-2) | Open | v2.5.48 | |
-| 3   | [Too long text in a form field gives an internal error (no length limit)](#bug-3) | Open | v2.5.48 | |
+| 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | v2.5.48 | |
 | 4   | [Galaxy filter on the Events list is ignored](#bug-4) | Open | v2.5.48 | |
 | 5   | [Event selection is lost when sorting the Events list](#bug-5) | Open | v2.5.48 | |
 | 6   | [CSRF error when submitting a new object after Review](#bug-6) | Open | v2.5.48 | |
@@ -36,6 +36,7 @@ Roles:
 | 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | v2.5.48 | |
 | 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | v2.5.48 | |
 | 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | v2.5.48 | |
+| 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -80,7 +81,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). It also happens the other way round (select in card view, then switch to table view). **Also affects:** every list built with the same table/card component (`app/View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp`) that has row checkboxes — 63 list pages. **Confirmed in a real browser (Playwright, 2026-10-01) on 14 lists:** `/events/index`, `/attributes/index`, `/galaxies/index`, `/tags/index`, `/taxonomies/index`, `/objectTemplates/index`, `/warninglists/index`, `/noticelists/index`, `/organisations/index`, `/admin/users/index`, `/roles/index`, `/event_templates/index`, `/auth_keys/index`, `/event_blocklists/index` — in each, the ticked row is unticked in card view (it is still ticked when going back to table view). Lists that were empty on the test instance (Feeds, Sharing Groups, Correlation exclusions, Workflows, Servers, Jobs) could not be checked.
 - **Likely cause**: The table view and the card view are two separate lists, each with its own checkboxes. `setView()` in `app/webroot/js/mispOvermind.js` only hides one list and shows the other; it does not copy the ticked checkboxes to the list that becomes visible.
 
-### Bug 3 – Too long text in a form field gives an internal error (no length limit)
+### Bug 3 – Internal error when Event Info is longer than the database limit
 
 <a id="bug-3"></a>
 
@@ -91,12 +92,11 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 1. On the Events list page, click **Add Event**.
 2. Paste a very long text (more than 65,535 characters) in **Event Info**.
 3. Click **Create Event Entry**.
-4. Go to `/correlation_exclusions/add`, paste the same text in the value field and save.
 
 - **Expected result**: The form refuses the text and shows a clear message about the maximum length.
-- **Actual result**: Error page "An Internal Error Has Occurred." - nothing is saved.
-- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01) for **Event Info** and the correlation exclusion value. error.log shows `SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column '…'`. Checked in the browser: on 17 add forms, almost no text field has a `maxlength` (only the tag collection name, 255, and the warninglist name, 60). **Also affects** (70,000 characters sent through the same routes as the forms, each gives HTTP 500; no partial row is left): attribute comment, object comment, event report name, tag collection description, galaxy name and description, organisation name and description, sharing group name, warninglist description, feed name, role name, correlation exclusion value, event blocklist comment, object relationship name and description. Not affected: attribute value (refused with a message) and tag name (cut, see Bug 8). **Search fields too:** the search boxes have no `maxlength` and the search text is put in the URL; a search of 20,000 characters on the Events list gets **414 Request-URI Too Large** from nginx (the page shows nothing, a tester saw the nginx 414 page).
-- **Likely cause**: The database runs in strict mode (`STRICT_TRANS_TABLES`), so a value longer than its column is rejected with a PDOException, which MISP shows as an internal error. The models only check that the fields are not empty (e.g. the `info` rule in `app/Model/Event.php`), and the Overmind forms and search boxes have no `maxlength`, so nothing stops the too-long value before the database (or before nginx for the search URL).
+- **Actual result**: Error page "An Internal Error Has Occurred." - event not created.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). The Add Event modal has no `maxlength` and shows "An Internal Error Has Occurred." error.log shows: `SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'info' at row 1`. The same problem exists in many other forms and in the searches, see Bug 25.
+- **Likely cause**: `events.info` is a MySQL `TEXT` column (max 65,535 bytes). The `info` validation rule in `app/Model/Event.php` only checks that the value is not empty, and the **Event Info** field has no `maxlength`, so the too-long value reaches the database and the PDOException is shown as an internal error.
 
 ### Bug 4 – Galaxy filter on the Events list is ignored
 
@@ -469,6 +469,24 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The selection bar only offers **Highlight**, whatever rows are ticked; the highlight cannot be removed for several rows at once.
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): with the highlighted relationship `shares` ticked, with a normal one ticked, and with both, only **Highlight** is shown. The checkboxes of this list have no `data-highlight` attribute. **Also affects:** probably the Taxonomies list (`/taxonomies/index`), which has the same configuration (found in the code, not checked in the UI: no taxonomy is highlighted on the test instance).
 - **Likely cause**: In `app/View/Themed/Overmind/ObjectRelationships/index.ctp`, `'highlight_path' => 'highlighted'` is set on the **Actions** column, not on the `checkbox` column. The checkbox element (`genericElementsBS5/IndexTable/Fields/checkbox.ctp`) only writes `data-highlight` when its own field has `highlight_path`, so `updateMultiSelectToolbar()` in `mispOvermind.js` never sees a highlighted row and keeps **Remove Highlight** hidden.
+
+### Bug 25 – No length limit on form fields and searches: internal error or 414
+
+<a id="bug-25"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Go to `/correlation_exclusions/add`, paste a text of 70,000 characters in the value field and save.
+2. Go to the Events list (`/events/index`), paste a text of 20,000 characters in **Search by info, ID or UUID** and press Enter.
+
+- **Expected result**: The form refuses the too long text with a message (or the field does not accept more characters), and the search box limits the length or shows a message.
+- **Actual result**:
+  - Step 1: error page "An Internal Error Has Occurred." - nothing saved.
+  - Step 2: the search fails with **414 Request-URI Too Large** from nginx (the page shows nothing, or the nginx 414 page).
+- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01) for the correlation exclusion value and the Events list search. Checked in the browser: on 17 add forms, almost no text field has a `maxlength` (only the tag collection name, 255, and the warninglist name, 60), and the search boxes have none. **Also affects** (70,000 characters sent through the same routes as the forms, each gives HTTP 500; no partial row is left): attribute comment, object comment, event report name, tag collection description, galaxy name and description, organisation name and description, sharing group name, warninglist description, feed name, role name, event blocklist comment, object relationship name and description. Not affected: attribute value (refused with a message); tag name (cut, see Bug 8); Event Info is Bug 3.
+- **Likely cause**: The database runs in strict mode (`STRICT_TRANS_TABLES`), so a value longer than its column is rejected with a PDOException, which MISP shows as an internal error. The models only check that the fields are not empty, and the Overmind forms and search boxes have no `maxlength`; the search text is put in the URL, so a very long search goes over the nginx URL limit.
 
 # Recommendations
 
