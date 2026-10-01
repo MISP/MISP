@@ -344,6 +344,9 @@ class TaxonomiesController extends AppController
             }
         }
         if ($this->_isRest()) {
+            if ($flashType === 'error') {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'update', false, $message, $this->response->type());
+            }
             return $this->RestResponse->saveSuccessResponse('Taxonomy', 'update', false, $this->response->type(), $message);
         } else {
             $this->Flash->{$flashType}($message);
