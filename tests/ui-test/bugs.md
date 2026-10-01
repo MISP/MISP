@@ -28,6 +28,7 @@ Roles:
 | 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
 | 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
 | 16  | [Internal error on /eventReports/viewRendered](#bug-16) | Open | v2.5.48 | |
+| 17  | [Sighting dated in the future is accepted](#bug-17) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -309,6 +310,22 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
 - **Notes**: error.log shows `[MissingViewException] View file "EventReports/view_rendered.ctp" is missing.` The action is open to every user in the ACL (`'viewRendered' => array('*')`) but only the old `UiBeta` theme uses it; the Overmind UI does not link to it.
 - **Likely cause**: `EventReportsController::viewRendered()` renders `EventReports/view_rendered.ctp`, which exists neither in `app/View/EventReports/` nor in `app/View/Themed/Overmind/EventReports/`.
+
+### Bug 17 – Sighting dated in the future is accepted
+
+<a id="bug-17"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Open an event and choose an attribute (e.g. `198.51.100.161` in `QA correlation A`).
+2. Add a sighting with a date one year in the future (e.g. through **Advanced sightings**, or the API `POST /sightings/add` with a future `timestamp`).
+
+- **Expected result**: The sighting is refused (a value cannot have been seen in the future), or saved with the current date.
+- **Actual result**: The sighting is saved with the future date.
+- **Notes**: Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API on `QA correlation A` (#113). Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
+- **Likely cause**: The sighting save takes the given `timestamp` as `date_sighting` without checking it against the current time.
 
 # Recommendations
 

@@ -65,6 +65,8 @@ ui-test/
   event-report/
     add/add.md              write reports: Markdown, HTML/scripts, big content, references
     extract/extract.md      extract indicators, replacements, import from URL, PDF
+  sighting/add/sightings.md   sightings: add, false positive, by value, other org, future date, delete
+  correlation/correlations/correlations.md  correlations, exclusions, top correlations
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
