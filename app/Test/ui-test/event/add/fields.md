@@ -24,6 +24,9 @@ Roles:
 | 9 | [Event add – special characters](#event-add-unicode) | |
 | 10 | [Event add – HTML in Event Info](#event-add-html) | |
 | 11 | [Event add – shown in event list](#event-add-in-list) | |
+| 12 | [Event add – extends an unknown UUID](#event-add-extends-unknown-uuid) | |
+| 13 | [Event add – Event Info with line breaks](#event-add-multiline-info) | |
+| 14 | [Event add – extreme dates](#event-add-extreme-dates) | |
 
 ---
 
@@ -186,3 +189,49 @@ A newly created event appears at the top of the event list as unpublished
 6. Go to `/events/index`.
 
 **Expected:** `QA list check` is shown first in the event list, with your organisation and as not published.
+
+### Event add – extends an unknown UUID
+<a id="event-add-extends-unknown-uuid"></a>
+
+Event creation that extends a valid UUID which is not on this instance
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event** button
+4. Type `QA extends unknown UUID` in **Event Info**.
+5. Type `11111111-2222-3333-4444-555555555555` in **Extends**.
+6. Click **Create Event Entry**.
+
+**Expected:** the event is created (or refused with a clear message), and its events/view page opens without error.
+
+### Event add – Event Info with line breaks
+<a id="event-add-multiline-info"></a>
+
+Event creation with an Event Info on several lines
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event** button
+4. Type `QA line 1`, press Shift+Enter, then type `QA line 2` in **Event Info**.
+5. Click **Create Event Entry**.
+6. Go to `/events/index`.
+
+**Expected:** the event is created and the Event Info is shown readably on the events/view page and in the Events list, without breaking the layout.
+
+### Event add – extreme dates
+<a id="event-add-extreme-dates"></a>
+
+Event creation with very old and very far dates
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event** button
+4. Type `QA date 1900` in **Event Info**.
+5. Type `01/01/1900` in **Event Date (UTC)**.
+6. Click **Create Event Entry**.
+7. Go to `/events/index` and click **Add Event** button
+8. Type `QA date 9999` in **Event Info**.
+9. Type `31/12/9999` in **Event Date (UTC)**.
+10. Click **Create Event Entry**.
+
+**Expected:** each event is created with the typed date, or refused with a clear message; no error page is shown.

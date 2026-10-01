@@ -1,0 +1,193 @@
+# MISP Web UI tests
+
+Plain-language test cases and bug reports for the MISP web UI (Overmind theme).
+
+Every test is written as short numbered steps (where to go, what to click, what to type) so that
+**a person or an AI agent can replay it exactly**. The files are plain Markdown and can be pasted
+into HedgeDoc as they are.
+
+## Folder structure
+
+```
+ui-test/
+  README.md                 this file
+  bugs.md                   all bugs + "# Recommendations" at the bottom
+  event/                    one folder per feature
+    index/                  one subfolder per page (Events list)
+      filters.md            one file per topic
+      selection.md
+    add/                    Add Event form
+      fields.md             normal creation cases
+      validation.md         refused / edge-case input
+    edit/                   Edit Event form
+      edit.md
+    view/                   event detail page
+      actions.md            publish, delete, tags, extends…
+  tools/
+    seed_events.py          resets a LOCAL instance and creates the events used by the tests
+  skill/
+    misp-test-plan/SKILL.md Claude Code skill that writes tests and bugs in this exact format
+```
+
+Where to put something:
+
+| You have… | Put it in |
+|---|---|
+| A test | The file matching its **feature / page / topic** (e.g. a test on the Events list filters → `event/index/filters.md`). If no file fits, create one (template below). |
+| A bug | `bugs.md`, **and** a test that reproduces it in the matching test file. |
+| An idea / improvement | `bugs.md`, section `# Recommendations` at the bottom. No test needed. |
+
+New feature (e.g. attributes)? Create `attribute/<page>/<topic>.md` with the same layout.
+
+## Rules
+
+- Write in **English**, short plain sentences, **one action per step**.
+- UI buttons, links and fields in **bold** with their visible label (`**Add Event**`, `**Event Info**`).
+- URLs and values in `backticks` (`/events/index`, `QA minimal event`).
+- Roles are only `user`, `site-admin`, `org-admin`. For now all tests use `site-admin`.
+- Every test ends with one `**Expected:**` line that can be checked (what is shown, which page opens).
+- Do not add extra sections, fields or emojis. Do not remove a field: if something is unknown use
+  `Notes: None` / `Likely cause: Unknown` (never guess a cause).
+- Numbering restarts at 1 in each file. Add new rows at the end of the table and new sections at the
+  end of the file. Do not renumber or edit other people's entries.
+- Test something that makes sense: basic flows and cases that can break (validation, limits,
+  concurrency, odd URLs). Do not write "click the button and check the modal opens" tests.
+
+## Templates
+
+### Test file (only when creating a new file)
+
+````markdown
+# MISP Web UI – <Feature Page – Topic> Tests  <img src="https://hdoc.csirt-tooling.org/uploads/5381daed-33a6-4785-b452-101cae85291f.png" width="50">
+
+ <a id="navigation"></a>
+ 
+ 
+Roles: 
+- user
+- site-admin
+- org-admin
+
+
+## E2E UI Tests
+
+| # | Test | Owner | 
+|---| ---- | ----- |
+| 1 | [<Test name>](#<test-slug>) | |
+
+---
+
+
+# E2E Tests
+
+<test sections>
+````
+
+### Test
+
+Row in the file's table:
+
+```markdown
+| N | [<Test name>](#<test-slug>) | <Owner or empty> |
+```
+
+Section at the end of the file (`<test-slug>` = short kebab-case name, unique in the repo):
+
+```markdown
+### <Test name>
+<a id="<test-slug>"></a>
+
+<One-line description of the flow>
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event** button
+4. <action>
+5. <action>
+
+**Expected:** <one sentence: what happens and which page opens>
+```
+
+### Bug (in `bugs.md`)
+
+Row in the `## Bugs` table:
+
+```markdown
+| N   | [<Bug title>](#bug-N) | Open | v2.5.48 | <Owner or empty> |
+```
+
+Section, after the last bug and before `# Recommendations`:
+
+```markdown
+### Bug N – <Bug title>
+
+<a id="bug-N"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. <action>
+2. <action>
+
+- **Expected result**: <one sentence>
+- **Actual result**: <one sentence, exact error text if any>
+- **Notes**: <when it happens / when it does not, or None>
+- **Likely cause**: <only what was really investigated (logs, code), or Unknown>
+```
+
+The test that reproduces the bug says so in its description: `(regression test for Bug N)`.
+
+### Recommendation (bottom of `bugs.md`, under `# Recommendations`)
+
+```markdown
+### Recommendation N – <Short title>
+
+<a id="recommendation-N"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+- **Current behaviour**: <one sentence>
+- **Proposal**: <one or two sentences>
+- **Benefit**: <one sentence>
+```
+
+## Preparing a local instance (`tools/seed_events.py`)
+
+> **Warning:** with `--yes` this script **deletes every event** of the instance it points to.
+> Use it only on your own local test instance (default `https://localhost:8443`).
+
+It deletes all events, then creates the events needed by the tricky tests. Each event gets a custom
+tag `qa:<test-slug>` (e.g. `qa:event-extends-cycle`), so you can find the event for a test by
+filtering the Events list on that tag. It also creates `qa:unused-tag`, attached to no event.
+At the end it prints, for each case, whether the server **accepted or refused** it.
+
+1. Create an API key in MISP: **My Profile → Auth keys**.
+2. From the root of the MISP repository, do a dry run (lists the events, deletes nothing):
+   ```
+   MISP_KEY=<your key> python3 app/Test/ui-test/tools/seed_events.py
+   ```
+3. Reset and seed:
+   ```
+   MISP_KEY=<your key> python3 app/Test/ui-test/tools/seed_events.py --yes
+   ```
+
+Use `MISP_URL=https://other-host:port` to target another local instance. Only Python 3 is needed
+(no extra package).
+
+## Using the Claude Code skill
+
+`skill/misp-test-plan/SKILL.md` teaches Claude Code this exact format. Install it once:
+
+```
+mkdir -p ~/.claude/skills && cp -r app/Test/ui-test/skill/misp-test-plan ~/.claude/skills/
+```
+
+Then describe a test or a bug to Claude Code in plain words, for example:
+
+- "New bug: on the Events list, the Galaxy filter shows all events."
+- "Add a test: edit an event and set a date in the future."
+- "Recommendation: a Go to top button on long pages."
+
+Claude writes the entry in the right file and format: for a bug, it adds the bug in `bugs.md`
+**and** the matching test; for a test, only the test; for an idea, a recommendation.

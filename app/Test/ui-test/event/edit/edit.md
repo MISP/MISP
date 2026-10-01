@@ -17,6 +17,9 @@ Roles:
 | 2 | [Event edit – future date](#event-edit-future-date) | |
 | 3 | [Event edit – Event Info over the database limit](#event-edit-info-too-long) | |
 | 4 | [Event edit – extends itself](#event-edit-extends-itself) | |
+| 5 | [Event edit – two tabs at the same time](#event-edit-concurrent) | |
+| 6 | [Event edit – event deleted meanwhile](#event-edit-deleted) | |
+| 7 | [Event edit – logged out before saving](#event-edit-logged-out) | |
 
 ---
 
@@ -80,3 +83,46 @@ Edit an event so that it extends its own ID
 7. Click **Save Changes**.
 
 **Expected:** the event is not saved and a message explains that an event cannot extend itself; no error page is shown.
+
+### Event edit – two tabs at the same time
+<a id="event-edit-concurrent"></a>
+
+Two users editing the same event at the same time
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA concurrent edit` (create it first with **Add Event** if it does not exist).
+4. Click **Edit Event**.
+5. Open the same event in a second browser tab and click **Edit Event**.
+6. In the second tab, change **Event Info** to `QA edit tab 2` and click **Save Changes**.
+7. In the first tab, change **Event Info** to `QA edit tab 1` and click **Save Changes**.
+
+**Expected:** the first tab warns that the event was changed in the meantime, instead of silently overwriting `QA edit tab 2`.
+
+### Event edit – event deleted meanwhile
+<a id="event-edit-deleted"></a>
+
+Saving the edit form of an event that was deleted in another tab
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA edit deleted` (create it first with **Add Event** if it does not exist).
+4. Click **Edit Event**.
+5. Open the same event in a second browser tab, click **Delete Event** and confirm.
+6. In the first tab, change **Event Info** and click **Save Changes**.
+
+**Expected:** a clear message says the event does not exist anymore; no "An Internal Error Has Occurred." page and no event is re-created.
+
+### Event edit – logged out before saving
+<a id="event-edit-logged-out"></a>
+
+Saving the edit form after the session was closed in another tab
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA edit logged out` (create it first with **Add Event** if it does not exist).
+4. Click **Edit Event**.
+5. Open MISP in a second browser tab and log out.
+6. In the first tab, change **Event Info** and click **Save Changes**.
+
+**Expected:** the login page is shown with a clear message; no CSRF or internal error page, and the event is not changed.

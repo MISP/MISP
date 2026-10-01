@@ -18,6 +18,11 @@ Roles:
 | 3 | [Event delete](#event-delete) | |
 | 4 | [Event delete – event extended by another](#event-delete-extended) | |
 | 5 | [Event tags and galaxy clusters](#event-tags-galaxies) | |
+| 6 | [Event unpublish – page shown after unpublishing](#event-unpublish-redirect) | |
+| 7 | [Event view – event that does not exist](#event-view-not-found) | |
+| 8 | [Event view – invalid ID](#event-view-invalid-id) | |
+| 9 | [Event view – open by UUID](#event-view-uuid) | |
+| 10 | [Event extends – two events extending each other](#event-extends-cycle) | |
 
 ---
 
@@ -97,3 +102,64 @@ Add a tag and a galaxy cluster to an event, then remove them
 7. Click **Remove galaxy** on the cluster.
 
 **Expected:** the tag and the cluster are shown on the events/view page after adding, and are gone after removing; no error is shown.
+
+### Event unpublish – page shown after unpublishing
+<a id="event-unpublish-redirect"></a>
+
+After unpublishing, the user lands on the Overmind event detail page
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA unpublish redirect` (create it first with **Add Event** if it does not exist).
+4. Click **Publish Event** and confirm.
+5. Click **Unpublish Event** and confirm.
+
+**Expected:** the event detail page opens at `/events/view2/<id>` in the Overmind layout, and the event is shown as Unpublished.
+
+### Event view – event that does not exist
+<a id="event-view-not-found"></a>
+
+Opening the detail page of an event ID that does not exist
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/view2/999999`.
+
+**Expected:** a clear "Invalid event" (not found) message is shown; no "An Internal Error Has Occurred." page.
+
+### Event view – invalid ID
+<a id="event-view-invalid-id"></a>
+
+Opening the detail page with text instead of an event ID
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/view2/abc`.
+
+**Expected:** a clear "Invalid event" (not found) message is shown; no "An Internal Error Has Occurred." page.
+
+### Event view – open by UUID
+<a id="event-view-uuid"></a>
+
+Opening an event detail page with its UUID instead of its ID
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA view by UUID` (create it first with **Add Event** if it does not exist).
+4. Copy the event UUID shown on the events/view page.
+5. Go to `/events/view2/<copied UUID>`.
+
+**Expected:** the same event detail page opens.
+
+### Event extends – two events extending each other
+<a id="event-extends-cycle"></a>
+
+Two events that extend each other do not break the detail pages
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA cycle A` with **Add Event** and note its ID.
+4. Create an event `QA cycle B` with **Extends** set to the ID of `QA cycle A`, and note its ID.
+5. Open `QA cycle A` and click **Edit Event**.
+6. Type the ID of `QA cycle B` in **Extends** and click **Save Changes**.
+7. Open `QA cycle A`, then open `QA cycle B`.
+
+**Expected:** either the second extension is refused with a clear message, or both detail pages open normally without loop, freeze or error.

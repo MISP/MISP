@@ -18,6 +18,8 @@ Roles:
 | 3 | [Event index – date range reversed](#event-index-date-reversed) | |
 | 4 | [Event index – search with special characters](#event-index-search-special) | |
 | 5 | [Event index – page out of range](#event-index-page-out-of-range) | |
+| 6 | [Event index – search with a single match](#event-index-search-single) | |
+| 7 | [Event index – combined filters](#event-index-combined-filters) | |
 
 ---
 
@@ -81,3 +83,31 @@ Opening a page number that does not exist
 2. Go to `/events/index/page:9999`.
 
 **Expected:** an empty list or the last page is shown; no error page is shown.
+
+### Event index – search with a single match
+<a id="event-index-search-single"></a>
+
+A search that matches exactly one event opens that event
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event named `QA unique search 7f3k` with **Add Event**.
+4. Go to `/events/index`.
+5. Type `QA unique search 7f3k` in the search bar of the Events list.
+6. Press Enter.
+
+**Expected:** the detail page of `QA unique search 7f3k` opens at `/events/view2/<id>` in the Overmind layout.
+
+### Event index – combined filters
+<a id="event-index-combined-filters"></a>
+
+Two filters applied together only keep events matching both
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **More filters**.
+4. In **Tags**, select `tlp:green`.
+5. In **Published**, select **Published**.
+6. Apply the filters.
+
+**Expected:** only published events with the tag `tlp:green` are listed; removing one filter shows more events again.
