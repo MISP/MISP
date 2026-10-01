@@ -16,6 +16,7 @@ Roles:
 | 1 | [Main pages – no JavaScript error](#general-ui-js-errors) | |
 | 2 | [Main pages – phone width](#general-ui-mobile) | |
 | 3 | [Main pages – dark mode](#general-ui-dark-mode) | |
+| 4 | [Refused form – page keeps its style](#general-ui-refused-form) | |
 
 ---
 
@@ -62,3 +63,16 @@ Dark mode is applied on every main page
 **Expected:** every page is dark (dark background, readable text), with no white block left.
 
 **Seeded data:** No data needed. Checked with Playwright (dark mode stored in the browser): every page has the dark theme and a dark background (`rgb(33, 37, 41)`); white blocks inside the pages are still to check by eye.
+
+### Refused form – page keeps its style
+<a id="general-ui-refused-form"></a>
+
+When a form is refused, the user stays on a styled page with the reason (regression test for Bug 26)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/admin/allowedlists/index`.
+3. Click **Add**, type `e.e.e.e` in **Expression** and click **Add Entry**.
+4. Go to `/correlation_exclusions/index`, click **Add Exclusion**, leave the value empty and save.
+5. Go to `/tags/index`, click **Add Tag**, type `tlp:green` (already used) in **Tag Name** and click **Add Tag**.
+
+**Expected:** after each refused form, the page keeps the Overmind style and menu (or the window stays open) and a message explains why it was refused.

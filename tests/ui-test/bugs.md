@@ -37,6 +37,7 @@ Roles:
 | 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | v2.5.48 | |
 | 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | v2.5.48 | |
 | 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | v2.5.48 | |
+| 26  | [A refused form opens an unstyled page (no CSS, no menu)](#bug-26) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -487,6 +488,23 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
   - Step 2: the search fails with **414 Request-URI Too Large** from nginx (the page shows nothing, or the nginx 414 page).
 - **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01) for the correlation exclusion value and the Events list search. Checked in the browser: on 17 add forms, almost no text field has a `maxlength` (only the tag collection name, 255, and the warninglist name, 60), and the search boxes have none. **Also affects** (70,000 characters sent through the same routes as the forms, each gives HTTP 500; no partial row is left): attribute comment, object comment, event report name, tag collection description, galaxy name and description, organisation name and description, sharing group name, warninglist description, feed name, role name, event blocklist comment, object relationship name and description. Not affected: attribute value (refused with a message); tag name (cut, see Bug 8); Event Info is Bug 3.
 - **Likely cause**: The database runs in strict mode (`STRICT_TRANS_TABLES`), so a value longer than its column is rejected with a PDOException, which MISP shows as an internal error. The models only check that the fields are not empty, and the Overmind forms and search boxes have no `maxlength`; the search text is put in the URL, so a very long search goes over the nginx URL limit.
+
+### Bug 26 – A refused form opens an unstyled page (no CSS, no menu)
+
+<a id="bug-26"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Go to the Allowedlist page (`/admin/allowedlists/index`) and click **Add**.
+2. Type an invalid expression, e.g. `e.e.e.e` (no delimiters), in **Expression**.
+3. Click **Add Entry**.
+
+- **Expected result**: The form stays in the Overmind page (or its window) and says why the expression is refused.
+- **Actual result**: The browser goes to `/admin/allowedlists/add`, a raw page without any style and without the MISP menu, showing the empty form again; no clear message tells what is wrong.
+- **Notes**: **Confirmed in the UI** (real browser and tester screenshot, Overmind, 2026-10-01): the page has 0 stylesheets and no menu. A valid expression (e.g. `/qa-valid/`) is saved and the next page is styled, so it only happens when the form is refused. **Also affects** (checked in the browser with a refused value, same raw page): **Add correlation exclusion** with an empty value (`/correlation_exclusions/add`), **Event blocklist** with an invalid UUID (`/event_blocklists/add`), **Add Tag** with a name already used (`/tags/add`). The same code is in more than 20 controllers (e.g. Auth keys, Bookmarks, Collections, Correlation rules, Decaying models, Event reports, Galaxy clusters, Org blocklists), not checked one by one.
+- **Likely cause**: In the Overmind theme these add/edit actions always set `$this->layout = false` (e.g. `AllowedlistsController::admin_add()` and `admin_edit()`), because the form is meant to be shown in a modal. When the form is refused, the answer to the normal form POST is the form rendered without layout, so the browser shows it as a full page without CSS, menu or flash message.
 
 # Recommendations
 
