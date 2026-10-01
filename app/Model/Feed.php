@@ -464,6 +464,31 @@ class Feed extends AppModel
         return $resultArray;
     }
 
+    /**
+     * Conditions restricting a feed listing to the feeds $user may see.
+     *
+     * Single source for the rule FeedsController::__canViewFeed applies to
+     * one feed: site admins and members of the host organisation see every
+     * feed, everyone else sees only the ones flagged lookup_visible. An
+     * empty array means "no restriction".
+     *
+     * @param array $user
+     * @return array
+     */
+    public function visibleConditions(array $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return array();
+        }
+        $hostOrgId = (int)Configure::read('MISP.host_org_id');
+        // Both sides cast: org_id arrives from the database as a string, and
+        // an unset host_org_id casts to 0, which matches no organisation.
+        if (!empty($hostOrgId) && (int)$user['org_id'] === $hostOrgId) {
+            return array();
+        }
+        return array('Feed.lookup_visible' => 1);
+    }
+
     public function getFreetextFeedCorrelations($data, $feedId, array $user)
     {
         $values = array();
@@ -473,10 +498,24 @@ class Feed extends AppModel
         $this->Attribute = ClassRegistry::init('Attribute');
         $redis = $this->setupRedis();
         if ($redis !== false) {
+            // `url` is deliberately absent. The whole row is pushed into
+            // $data[...]['feed_correlations'] below and returned to the
+            // caller by the REST branch of FeedsController::__previewFreetext.
+            // Nothing renders or reads the URL: it was disclosure with no
+            // consumer.
+            //
+            // The listing is also scoped to what the caller may see. Without
+            // visibleConditions() this query reached across every cached feed
+            // on the instance - __canViewFeed gates which feed you may
+            // preview, but placed no restriction on which feeds appear inside
+            // that preview's payload, so a public feed disclosed the names of
+            // feeds the instance had marked as not disclosable.
+            $conditions = array('Feed.id !=' => $feedId);
+            $conditions = array_merge($conditions, $this->visibleConditions($user));
             $feeds = $this->find('all', array(
                 'recursive' => -1,
-                'conditions' => array('Feed.id !=' => $feedId),
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                'conditions' => $conditions,
+                'fields' => array('id', 'name', 'provider', 'source_format')
             ));
             foreach ($feeds as $k => $v) {
                 if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {

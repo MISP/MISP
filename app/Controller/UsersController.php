@@ -51,6 +51,22 @@ class UsersController extends AppController
         // hash _validatePost() compares against. It sends the page's CSRF token in
         // the X-CSRF-Token header instead.
         $this->_csrfTokenHeaderOnly(['request_API']);
+        // register, forgot and password_reset are the actions a REST client
+        // reaches holding no credential at all - PyMISP's register_user() posts
+        // JSON with neither an API key nor a session, so the credential-based
+        // exemption in AppController never applies to it. Form security guards a
+        // session against a request a cross-origin page made the browser send;
+        // a request with no session has nothing to guard, and routing one
+        // through a victim's browser gains an attacker nothing curl would not.
+        // A caller that does hold a session keeps both checks, as everywhere
+        // else, and none of the three actions reads that session anyway.
+        if (
+            $this->_isRest() &&
+            empty($this->Auth->user()) &&
+            in_array($this->request->params['action'], ['register', 'forgot', 'password_reset'], true)
+        ) {
+            $this->Security->unlockedActions[] = $this->request->params['action'];
+        }
     }
 
     public function view($id = null)
@@ -116,7 +132,7 @@ class UsersController extends AppController
 
     public function request_API()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (Configure::read('MISP.disable_emailing')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
         }
@@ -946,7 +962,7 @@ class UsersController extends AppController
         $this->set('currentId', $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             $abortPost = false;
             if (!$this->_isRest() || empty($this->request->header('Authorization'))) {
@@ -1264,7 +1280,7 @@ class UsersController extends AppController
             }
             $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password', 'User.totp', 'User.hotp_counter'],
+                'fields' => ['User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
                 'recursive' => -1,
             ]);
             if ($unauth_user) {
@@ -1651,7 +1667,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             if (empty($this->request->data['User']['subject']) || empty($this->request->data['User']['body'])) {
                 $message = 'Both the subject and the body have to be set.';
@@ -1848,15 +1864,14 @@ class UsersController extends AppController
             }
             $secret = $user['totp'];
             $totp = \OTPHP\TOTP::create($secret);
-            $hotp = \OTPHP\HOTP::create($secret);
-            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+            $now = time();
+            if ($totp->verify(trim($this->request->data['User']['otp']), $now) && $this->__claimTotpStep($user['id'], $totp, $now)) {
                 // OTP is correct, we login the user with CakePHP
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
-            } elseif (isset($user['hotp_counter']) && $hotp->verify(trim($this->request->data['User']['otp']), $user['hotp_counter'])) {
-                // HOTP is correct, update the counter and login
-                $this->User->id = $user['id'];
-                $this->User->saveField('hotp_counter', $user['hotp_counter']+1);
+            } elseif (isset($user['hotp_counter']) && $this->__consumeHotp($user['id'], trim($this->request->data['User']['otp']))) {
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
             } else {
@@ -1870,6 +1885,50 @@ class UsersController extends AppController
         // GET Request or wrong OTP, just show the form
         $this->set('totp', $user['totp']? true : false);
         $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    /**
+     * A TOTP code is valid for its whole period; remember the period it was spent
+     * in so the same code cannot log in a second time.
+     */
+    private function __claimTotpStep($userId, \OTPHP\TOTP $totp, $timestamp)
+    {
+        $step = intdiv($timestamp - $totp->getEpoch(), $totp->getPeriod());
+        $key = 'misp:otp:totp_used:' . $userId . ':' . $step;
+        return (bool)RedisTool::init()->set($key, 1, ['nx', 'ex' => 3 * $totp->getPeriod()]);
+    }
+
+    /**
+     * Verify a paper token against the stored counter, not the one cached in the
+     * session at password time, and burn it under a lock so it works only once.
+     */
+    private function __consumeHotp($userId, $otp)
+    {
+        $redis = RedisTool::init();
+        $lock = 'misp:otp:hotp_lock:' . $userId;
+        if (!$redis->set($lock, 1, ['nx', 'ex' => 10])) {
+            return false;
+        }
+        try {
+            $stored = $this->User->find('first', [
+                'conditions' => ['User.id' => $userId],
+                'fields' => ['User.totp', 'User.hotp_counter'],
+                'recursive' => -1,
+            ]);
+            if (empty($stored['User']['totp']) || !isset($stored['User']['hotp_counter'])) {
+                return false;
+            }
+            $counter = (int)$stored['User']['hotp_counter'];
+            $hotp = \OTPHP\HOTP::create($stored['User']['totp']);
+            if (!$hotp->verify($otp, $counter)) {
+                return false;
+            }
+            $this->User->id = $userId;
+            $this->User->saveField('hotp_counter', $counter + 1);
+            return true;
+        } finally {
+            $redis->del($lock);
+        }
     }
 
     public function hotp()
@@ -2028,9 +2087,12 @@ class UsersController extends AppController
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp))) {
-                // we invalidate the previously generated OTP
-                $redis->del('misp:otp:' . $user_id);
+            if (
+                !empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp)) &&
+                // only the request whose delete removed the code may use it
+                $redis->del('misp:otp:' . $user_id) === 1
+            ) {
+                $this->Session->delete('email_otp_user');
                 // We login the user with CakePHP
                 $this->Auth->login($user);
                 $this->_postlogin();
@@ -2300,7 +2362,7 @@ class UsersController extends AppController
         $orgs = $this->User->Organisation->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+            'fields' => array('id', 'name', 'uuid', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
         ));
         $orgs = array_column(array_column($orgs, 'Organisation'), null, 'id');
         $users = $this->User->find('all', array(
@@ -2328,9 +2390,25 @@ class UsersController extends AppController
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
         // f*** php
         uksort($orgs, 'strcasecmp');
+        // Flag orgs that have a logo. Logos live under files/img/orgs (moved out of
+        // webroot long ago) and are named by id, name or uuid, so mirror the lookup
+        // getOrgLogo() serves from. realpath() + the prefix check reject a value that
+        // escapes the directory - e.g. an org name of '../../../../AI-marketing' - so
+        // reviving this flag does not reintroduce the org-name path traversal.
+        $logoPath = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
+        $logoBase = realpath($logoPath);
         foreach ($orgs as $k => $value) {
-            if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
-                $orgs[$k]['logo'] = true;
+            foreach (['id', 'name', 'uuid'] as $field) {
+                if (empty($value[$field])) {
+                    continue;
+                }
+                foreach (['png', 'svg'] as $extension) {
+                    $candidate = realpath($logoPath . $value[$field] . '.' . $extension);
+                    if ($candidate !== false && $logoBase !== false && str_starts_with($candidate, $logoBase . DS)) {
+                        $orgs[$k]['logo'] = true;
+                        break 2;
+                    }
+                }
             }
         }
         if ($this->_isRest()) {

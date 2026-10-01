@@ -1559,6 +1559,12 @@ class Server extends AppModel
                             $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = isset($result['value']) ? $result['value'] : '';
                         }
+                        // The module's own guard flags are part of its setting definition.
+                        foreach (['redacted', 'cli_only'] as $flag) {
+                            if (!empty($result[$flag])) {
+                                $setting[$flag] = true;
+                            }
+                        }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
                     }
                 }
@@ -2605,11 +2611,15 @@ class Server extends AppModel
             }
         }
 
-        if (isset($setting['level'])) {
-            $setting['name'] = $settingName;
-            if ($withOptions && isset($setting['optionsSource'])) {
-                $setting['options'] = $setting['optionsSource']();
-            }
+        // Only an individual setting can be addressed, never a whole branch:
+        // every caller treats the result as a leaf, and a branch carries no redaction flag.
+        if (!is_array($setting) || !isset($setting['level'])) {
+            return false;
+        }
+
+        $setting['name'] = $settingName;
+        if ($withOptions && isset($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
 
         return $setting;
@@ -7059,7 +7069,7 @@ class Server extends AppModel
                 ),
                 'eventreport_enable_arbitrary_urls' => array(
                     'level' => 0,
-                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server or, for HTML imports, by the misp-modules host, so any internal IP reachable from either - including loopback and cloud metadata endpoints - becomes reachable by the requesting user. This is NOT limited to site admins: the import action requires only perm_add, which the default user role carries. Enable this only where every user holding perm_add is trusted with that network position.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

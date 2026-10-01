@@ -122,6 +122,31 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * Model::set() treats a non-empty key matching the model alias as the record and drops the
+     * other top-level scalars, so a flat record carrying an injected alias key is saved in place
+     * of the sanitised one. Which half such a payload means cannot be told apart here: refuse it.
+     */
+    public function save($data = null, $validate = true, $fieldList = array())
+    {
+        if (is_array($data) && !empty($data[$this->alias]) && is_array($data[$this->alias])) {
+            foreach ($data as $key => $value) {
+                if ($key !== $this->alias && !is_array($value)) {
+                    $this->log(
+                        sprintf(
+                            'Refused a %s save: the record is flat but also carries a nested %s key.',
+                            $this->alias,
+                            $this->alias
+                        ),
+                        LOG_WARNING
+                    );
+                    return false;
+                }
+            }
+        }
+        return parent::save($data, $validate, $fieldList);
+    }
+
     public function dbiq()
     {
         if (!empty($this->dbiq)) {

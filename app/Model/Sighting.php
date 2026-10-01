@@ -188,7 +188,7 @@ class Sighting extends AppModel
             } else if (isset($user['org_id'])) {
                 $orgId = $user['org_id'];
             }
-            unset($sighting['id']);
+            unset($sighting['id'], $sighting[$this->alias]);
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;

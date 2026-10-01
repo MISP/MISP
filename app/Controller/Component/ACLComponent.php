@@ -258,7 +258,7 @@ class ACLComponent extends Component
             'getProxyMISPElements' => array('*'),
             'extractAllFromReport' => array('perm_add'),
             'extractFromReport' => array('perm_add'),
-            'replaceSuggestionInReport' => array('*'),
+            'replaceSuggestionInReport' => array('perm_add'),
             'importReportFromUrl' => array('perm_add'),
             'sendToLLM' => ['perm_add'],
             'configureTemplateVariable' => ['perm_add'],
@@ -814,7 +814,7 @@ class ACLComponent extends Component
             'saveElementSorting' => array('perm_template'),
             'submitEventPopulation' => array('perm_add'),
             'templateChoices' => array('*'),
-            'uploadFile' => array('*'),
+            'uploadFile' => array('perm_add'),
             'view' => array('*'),
         ),
         'threads' => array(

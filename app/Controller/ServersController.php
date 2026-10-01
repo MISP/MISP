@@ -760,7 +760,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -843,7 +843,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -1440,8 +1440,9 @@ class ServersController extends AppController
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
-                            "remote_id" => $remote_event['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".(int)$remote_event['id'],
+                            "remote_id" => (int)$remote_event['id'],
+                            "exception" => null,
                         );
                     }
                 }
@@ -1467,7 +1468,7 @@ class ServersController extends AppController
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? (int)$remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
@@ -1658,6 +1659,15 @@ class ServersController extends AppController
                 throw new NotFoundException(__('Invalid type.'));
             }
             App::uses('File', 'Utility');
+            // $filename is a raw route parameter. Strip any path component
+            // before joining, exactly as uploadFile() below already does, so
+            // the target cannot leave the type's own directory. basename()
+            // leaves '.' and '..' as-is and both resolve to a directory, so
+            // reject them rather than handing a directory to File::delete().
+            $filename = basename($filename);
+            if ($filename === '' || $filename === '.' || $filename === '..') {
+                throw new NotFoundException(__('Invalid filename.'));
+            }
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
                 $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
@@ -2070,7 +2080,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2114,7 +2124,7 @@ class ServersController extends AppController
 
     public function updateJSON()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $results = [];
         foreach ($this->Server->updateJSON() as $type => $result) {
             $results[$type] = $results['success'];
@@ -2361,7 +2371,7 @@ class ServersController extends AppController
 
     public function removeOrphanedCorrelations()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

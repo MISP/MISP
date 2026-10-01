@@ -1231,7 +1231,7 @@ class AttributesController extends AppController
                 'fields' => array('Attribute.id', 'Attribute.event_id'),
                 'contain' => array(
                     'Event' => array(
-                        'fields' => array('Event.orgc_id')
+                        'fields' => array('Event.orgc_id', 'Event.user_id')
                     )
                 )
         ));
@@ -1281,7 +1281,7 @@ class AttributesController extends AppController
         // check each of them and return a json object with the successful deletes and the failed ones.
         if ($this->_isRest()) {
             if (empty($this->request->data['Attribute'])) {
-                $this->request->data['Attribute'] = $this->request->data;
+                $this->request->data = array('Attribute' => $this->request->data);
             }
             if (isset($this->request->data['Attribute']['id'])) {
                 $ids = $this->request->data['Attribute']['id'];
@@ -3154,7 +3154,7 @@ class AttributesController extends AppController
         $this->layout = null;
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('object', $attribute[0]['Attribute']);
-        $this->set('seed', $seed);
+        $this->set('seed', (int)$seed ?: mt_rand());
     }
 
     public function enrich($id)

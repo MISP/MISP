@@ -490,7 +490,19 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
-        $this->__beforeSaveData = $this->data['Event'];
+        // remember the stored distribution/SG so afterSave can tell whether
+        // this save actually changed them and refresh the correlations if so
+        $this->__beforeSaveData = null;
+        if (!empty($this->data['Event']['id'])) {
+            $stored = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Event.id' => $this->data['Event']['id']],
+                'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+            ]);
+            if (!empty($stored)) {
+                $this->__beforeSaveData = $stored['Event'];
+            }
+        }
 
         $trigger_id = 'event-before-save';
         if ($this->isTriggerCallable($trigger_id)) {
@@ -747,12 +759,14 @@ class Event extends AppModel
             return [];
         }
         // now look up the event data for these attributes
+        // the correlation row's distribution columns are a snapshot and carry no
+        // published flag, so scope the events themselves
+        $conditions = $this->createEventConditions($user);
+        $conditions['Event.id'] = $relatedEventIds;
         $relatedEvents =  $this->find(
             'all',
             [
-                'conditions' => [
-                    'Event.id' => $relatedEventIds
-                ],
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'order' => 'date DESC',
                 'fields' => [
@@ -1122,14 +1136,14 @@ class Event extends AppModel
                 $data['EventReport'][$key] = $this->__updateEventReportForSync($report, $server);
                 if (empty($data['EventReport'][$key])) {
                     unset($data['EventReport'][$key]);
+                } else {
+                    $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
                 }
             }
             $data['EventReport'] = array_values($data['EventReport']);
         }
         if (isset($data['EventReport']) && empty($data['EventReport'])) {
             unset($data['EventReport']);
-        } else {
-            $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
         }
         return $data;
     }
@@ -1387,6 +1401,21 @@ class Event extends AppModel
                 'table' => 'event_reports',
                 'foreign_key' => 'event_id',
                 'value' => $id
+            ),
+            array(
+                'table' => 'event_graph',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => '1_event_id',
+                'value' => $id
             )
         );
         if ($thread_id) {
@@ -1413,8 +1442,36 @@ class Event extends AppModel
             );
         }
 
+        // rows keyed by the event's reports or attributes rather than the event itself,
+        // looked up before the raw deletes below remove their parents
+        $reportIds = $this->EventReport->find('column', [
+            'conditions' => ['EventReport.event_id' => $id],
+            'fields' => ['EventReport.id'],
+        ]);
+        $AttachmentScan = $this->loadAttachmentScan();
+        $scanTypes = ['attachment', 'malware-sample'];
+        $scannedIds = [
+            AttachmentScan::TYPE_ATTRIBUTE => $this->Attribute->find('column', [
+                'conditions' => ['Attribute.event_id' => $id, 'Attribute.type' => $scanTypes],
+                'fields' => ['Attribute.id'],
+            ]),
+            AttachmentScan::TYPE_SHADOW_ATTRIBUTE => $this->ShadowAttribute->find('column', [
+                'conditions' => ['ShadowAttribute.event_id' => $id, 'ShadowAttribute.type' => $scanTypes],
+                'fields' => ['ShadowAttribute.id'],
+            ]),
+        ];
+
         $db = $this->getDataSource();
         $db->begin();
+        if (!empty($reportIds)) {
+            $this->EventReport->EventReportTag->deleteAll(['EventReportTag.event_report_id' => $reportIds], false);
+        }
+        foreach ($scannedIds as $type => $ids) {
+            if (!empty($ids)) {
+                $AttachmentScan->deleteAll(['AttachmentScan.type' => $type, 'AttachmentScan.attribute_id' => $ids], false);
+            }
+        }
+        ClassRegistry::init('FuzzyCorrelateSsdeep')->purge($id);
         $connection = $db->getConnection();
         foreach ($relations as $relation) {
             $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
@@ -1870,7 +1927,7 @@ class Event extends AppModel
                 $attributeCondSelect => $user['org_id']
             );
 
-            $conditionsObjects['AND'][0]['OR'] = array(
+            $objectAclCondition = array('OR' => array(
                 array('AND' => array(
                     'Object.distribution >' => 0,
                     'Object.distribution !=' => 4,
@@ -1880,7 +1937,8 @@ class Event extends AppModel
                     'Object.sharing_group_id' => $sgids,
                 )),
                 $objectCondSelect => $user['org_id']
-            );
+            ));
+            $conditionsObjects['AND'][0] = $objectAclCondition;
 
             $conditionsEventReport['AND'][0]['OR'] = array(
                 array('AND' => array(
@@ -1894,7 +1952,7 @@ class Event extends AppModel
                 $eventReportCondSelect => $user['org_id']
             );
         }
-        if ($options['distribution']) {
+        if (isset($options['distribution'])) {
             $conditions['AND'][] = array('Event.distribution' => $options['distribution']);
             $conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
             $conditionsObjects['AND'][] = array('Object.distribution' => $options['distribution']);
@@ -2060,6 +2118,30 @@ class Event extends AppModel
             );
         }
         if ($flatten) {
+            if (!$isSiteAdmin) {
+                // flattened object attributes still have to pass the object ACL that the
+                // dropped Object contain would have enforced - that condition only. The
+                // rest of the contain (soft-delete state, the distribution filters) says
+                // which objects are listed, not which attributes may be seen.
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    array(
+                        'fields' => array('Object.id'),
+                        'recursive' => -1,
+                        'conditions' => array(
+                            'Object.id = Attribute.object_id',
+                            $objectAclCondition,
+                        ),
+                    ),
+                    'Attribute.object_id'
+                );
+                $params['contain']['Attribute']['conditions']['AND'][] = array(
+                    'OR' => array(
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ),
+                );
+            }
             unset($params['contain']['Object']);
         }
         if ($options['noEventReports']) {
@@ -4122,6 +4204,7 @@ class Event extends AppModel
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
                 foreach ($data['Event']['EventTag'] as $et) {
+                    unset($et['id'], $et[$this->EventTag->alias]);
                     $et['event_id'] = $this->id;
                     $toSave[] = $et;
                 }
@@ -6421,6 +6504,12 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
+            if ($distribution == 4) {
+                // The legacy STIX 1 script takes no sharing group;
+                // set it here so _add() and _edit() both see it.
+                // The STIX 2 script already carries the same value.
+                $data['Event']['sharing_group_id'] = $sharingGroupId;
+            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -6535,7 +6624,7 @@ class Event extends AppModel
                 ProcessTool::pythonBin(),
                 $scriptFile,
                 $file,
-                Configure::read('MISP.default_event_distribution'),
+                $distribution,
                 Configure::read('MISP.default_attribute_distribution'),
                 $this->__getTagNamesFromSynonyms($scriptDir)
             ];
@@ -6957,6 +7046,7 @@ class Event extends AppModel
                             }
                         }
                     }
+                    unset($attribute[$model->alias]);
                     $saved_attribute = $model->save($attribute, ['parentEvent' => $event]);
                     if ($saved_attribute) {
                         $results[] = $saved_attribute;
@@ -7087,6 +7177,7 @@ class Event extends AppModel
                     $attribute = $this->Attribute->onDemandEncrypt($attribute);
                 }
                 $attribute['event_id'] = $id;
+                unset($attribute[$this->Attribute->alias]);
                 if ($this->Attribute->save($attribute)) {
                     $saved_attributes++;
                     if (!empty($attribute['Tag'])) {
@@ -7203,6 +7294,7 @@ class Event extends AppModel
                             // initialObject matching, never to target this save) so it cannot
                             // redirect save() onto an arbitrary object row in another event.
                             unset($object['id']);
+                            unset($object[$this->Object->alias]);
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
@@ -7226,6 +7318,7 @@ class Event extends AppModel
                         // New object only; strip any client id so it cannot redirect save()
                         // onto an arbitrary object row (no fieldList here).
                         unset($object['id']);
+                        unset($object[$this->Object->alias]);
                         if ($this->Object->save($object)) {
                             $object_id = $this->Object->id;
                             $saved_objects++;
@@ -7308,6 +7401,7 @@ class Event extends AppModel
                 // not strip it) - matching the attribute and object loops above.
                 unset($report['id']);
                 $report['event_id'] = $id;
+                unset($report[$this->EventReport->alias]);
                 if ($this->EventReport->save($report)) {
                     $saved_reports++;
                 } else {
@@ -7501,6 +7595,7 @@ class Event extends AppModel
         // cannot redirect save() onto an arbitrary attribute (object_id/event_id are forced
         // above, but the primary key is not, and there is no fieldList here).
         unset($attribute['id']);
+        unset($attribute[$this->Attribute->alias]);
         $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {

@@ -11,6 +11,13 @@ class Galaxy extends AppModel
 
     public $recursive = -1;
 
+    /**
+     * A galaxy's icon is a Font Awesome icon name and nothing else. It reaches
+     * the correlation graph as a class token, so anything outside this
+     * alphabet is refused on save and dropped on capture.
+     */
+    const ICON_NAME_PATTERN = '/^[a-z0-9-]*$/';
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
@@ -42,6 +49,14 @@ class Galaxy extends AppModel
             'required' => false,
             'allowEmpty' => true
         ),
+        'icon' => array(
+            'iconName' => array(
+                'rule' => array('custom', self::ICON_NAME_PATTERN),
+                'message' => 'The icon must be a Font Awesome icon name: lowercase letters, digits and dashes only',
+                'required' => false,
+                'allowEmpty' => true,
+            ),
+        ),
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -49,6 +64,15 @@ class Galaxy extends AppModel
         parent::__construct();
         $this->schema();
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_galaxy_distribution') ?? 1;
+    }
+
+    /**
+     * @param mixed $icon
+     * @return bool True for an empty icon or a Font Awesome icon name
+     */
+    public static function isValidIconName($icon)
+    {
+        return is_string($icon) && preg_match(self::ICON_NAME_PATTERN, $icon) === 1;
     }
 
 
@@ -400,6 +424,10 @@ class Galaxy extends AppModel
 
         $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
         $galaxy = $galaxy['Galaxy'];
+        if (isset($galaxy['icon']) && !self::isValidIconName($galaxy['icon'])) {
+            // A peer's icon that is not an icon name is never stored
+            $galaxy['icon'] = '';
+        }
         $existingGalaxy = $this->find('first', [
             'recursive' => -1,
             'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],

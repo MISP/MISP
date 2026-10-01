@@ -96,7 +96,7 @@ class Module_misp_module extends WorkflowBaseActionModule
     {
         $param = [
             'id' => Inflector::slug(Inflector::underscore($paramName)),
-            'label' => Inflector::humanize($paramName),
+            'label' => h(Inflector::humanize($paramName)),
             'placeholder' => $moduleParam['value'] ?? '',
         ];
         if ($moduleParam['type'] == 'hash_path') {

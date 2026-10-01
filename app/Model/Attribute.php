@@ -1839,6 +1839,10 @@ class Attribute extends AppModel
     
         if (isset($options['deleted']) && $options['deleted'] === 'only') {
             $conditions['AND']['Attribute.deleted'] = 1;
+            if (!$user['Role']['perm_sync']) {
+                // soft-deleted data is only shown to the event owner, as in fetchEvent()
+                $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+            }
         } elseif (!$user['Role']['perm_sync'] || empty($options['deleted'])) {
             $conditions['AND']['Attribute.deleted'] = 0;
         }
@@ -2439,7 +2443,7 @@ class Attribute extends AppModel
         }
         $attribute = $this->find('first', array('conditions' => array('Attribute.id' => $id), 'recursive' => -1, 'contain' => array('Event')));
         if (!$user['Role']['perm_site_admin']) {
-            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+            if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] == $user['id']) || $user['Role']['perm_modify_org']))) {
                 return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
             }
         }
@@ -2469,7 +2473,7 @@ class Attribute extends AppModel
             if (!isset($attribute['distribution'])) {
                 $attribute['distribution'] = $defaultDistribution;
             }
-            unset($attribute['Attachment']);
+            unset($attribute['Attachment'], $attribute[$this->alias]);
             $this->create();
             $currentSave = $this->save($attribute);
             $saveResult = $saveResult && $currentSave;
@@ -2745,7 +2749,7 @@ class Attribute extends AppModel
             if (!empty($attribute['AttributeTag'])) {
                 $toSave = [];
                 foreach ($attribute['AttributeTag'] as $at) {
-                    unset($at['id']);
+                    unset($at['id'], $at[$this->AttributeTag->alias]);
                     $at['attribute_id'] = $this->id;
                     $at['event_id'] = $eventId;
                     $toSave[] = $at;
@@ -2887,6 +2891,7 @@ class Attribute extends AppModel
 
         // run the beforevalidation massage at this point so we can skip validation in round 2
         foreach ($attributes as $k => $attribute) {
+            unset($attribute[$this->alias]);
             $attributes[$k] = $this->beforeValidateMassage($attribute);
         }
 

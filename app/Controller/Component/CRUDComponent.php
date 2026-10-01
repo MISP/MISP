@@ -76,8 +76,12 @@ class CRUDComponent extends Component
         $data = [];
         if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
             $input = $this->Controller->request->data;
-            if (empty($input[$modelName])) {
+            if (empty($input[$modelName]) || !is_array($input[$modelName])) {
                 $input = [$modelName => $input];
+            } else {
+                // A flat body can survive alongside the model's own block, for instance when the
+                // controller promotes harvested parameters into it. The block is the record.
+                $input = [$modelName => $input[$modelName]];
             }
             if (!empty($params['override'])) {
                 foreach ($params['override'] as $field => $value) {

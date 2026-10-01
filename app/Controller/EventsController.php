@@ -2389,7 +2389,7 @@ class EventsController extends AppController
             $fingerprint = null;
             if (!empty($this->request->data)) {
                 if (empty($this->request->data['Event'])) {
-                    $this->request->data['Event'] = $this->request->data;
+                    $this->request->data = array('Event' => $this->request->data);
                 }
                 if (!empty($this->request->data['Event']['filecontent'])) {
                     $data = $this->request->data['Event']['filecontent'];
@@ -3032,7 +3032,7 @@ class EventsController extends AppController
     {
         if ($this->request->is(['post', 'put', 'delete'])) {
             if (isset($this->request->data['id'])) {
-                $this->request->data['Event'] = $this->request->data;
+                $this->request->data = array('Event' => $this->request->data);
             }
             if (!isset($id) && isset($this->request->data['Event']['id'])) {
                 $idList = $this->request->data['Event']['id'];
@@ -5444,13 +5444,17 @@ class EventsController extends AppController
         }
 
         if ($model === 'Object') {
+            // The enrichment result view and its side menu need the event's
+            // identity (id, uuid, ownership) on top of the distribution.
             $object = $this->Event->Object->fetchObjects($this->Auth->user(), [
                 'conditions' => [
                     'Object.id' => $id
                 ],
                 'flatten' => 1,
                 'includeEventTags' => 1,
-                'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
+                'contain' => ['Event' => ['fields' => [
+                    'id', 'uuid', 'info', 'user_id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'
+                ]]],
             ]);
             if (empty($object)) {
                 throw new MethodNotAllowedException(__('Object not found or you are not authorised to see it.'));
@@ -5601,7 +5605,7 @@ class EventsController extends AppController
         if (empty($event['Attribute']) && empty($event['Object'])) {
             throw new NotImplementedException(__('No Attribute or Object returned by the module.'));
         } else {
-            $importComment = !empty($result['comment']) ? $result['comment'] : $object[0]['Object']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+            $importComment = !empty($result['comment']) ? $result['comment'] : $object[0]['Object']['name'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
             $this->set('importComment', $importComment);
             $event['Event'] = $object[0]['Event'];
             $org_name = $this->Event->Orgc->find('first', array(
@@ -5609,8 +5613,8 @@ class EventsController extends AppController
                 'fields' => array('Orgc.name')
             ));
             $event['Event']['orgc_name'] = $org_name['Orgc']['name'];
-            if ($attribute[0]['Object']['id']) {
-                $object_id = $attribute[0]['Object']['id'];
+            if (!empty($object[0]['Object']['id'])) {
+                $object_id = $object[0]['Object']['id'];
                 $initial_object = $this->Event->fetchInitialObject($event_id, $object_id);
                 if (!empty($initial_object)) {
                     $event['initialObject'] = $initial_object;
@@ -6402,7 +6406,7 @@ class EventsController extends AppController
         // already reach it by postButton/postLink; without this guard a bodyless
         // GET is never CSRF-validated (SecurityComponent::startup computes
         // $hasData false for one), so an <img src> was enough to fire it.
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $eventIds = $this->Event->find('list', array(
             'conditions' => array('Event.published' => 1),
             'fields' => array('Event.id', 'Event.uuid'),

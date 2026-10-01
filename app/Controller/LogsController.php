@@ -360,7 +360,7 @@ class LogsController extends AppController
 
     public function pruneUpdateLogs()
     {
-        $this->request->allowMethod(['post']);
+        $this->_requirePostUnlessApiKey();
         $this->Log->pruneUpdateLogsRouter($this->Auth->user());
         if (Configure::read('MISP.background_jobs')) {
             $this->Flash->success('The pruning job is queued.');
