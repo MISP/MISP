@@ -165,11 +165,11 @@ At the end it prints, for each case, whether the server **accepted or refused** 
 1. Create an API key in MISP: **My Profile → Auth keys**.
 2. From the root of the MISP repository, do a dry run (lists the events, deletes nothing):
    ```
-   MISP_KEY=<your key> python3 app/Test/ui-test/tools/seed_events.py
+   MISP_KEY=<your key> python3 tests/ui-test/tools/seed_events.py
    ```
 3. Reset and seed:
    ```
-   MISP_KEY=<your key> python3 app/Test/ui-test/tools/seed_events.py --yes
+   MISP_KEY=<your key> python3 tests/ui-test/tools/seed_events.py --yes
    ```
 
 Use `MISP_URL=https://other-host:port` to target another local instance. Only Python 3 is needed
@@ -180,7 +180,7 @@ Use `MISP_URL=https://other-host:port` to target another local instance. Only Py
 `skill/misp-test-plan/SKILL.md` teaches Claude Code this exact format. Install it once:
 
 ```
-mkdir -p ~/.claude/skills && cp -r app/Test/ui-test/skill/misp-test-plan ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r tests/ui-test/skill/misp-test-plan ~/.claude/skills/
 ```
 
 Then describe a test or a bug to Claude Code in plain words, for example:

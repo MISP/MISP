@@ -2,11 +2,11 @@
 """Reset the local MISP instance and seed the events used by the tricky UI tests.
 
 Usage:
-    MISP_KEY=<your API key> python3 app/Test/ui-test/tools/seed_events.py           # dry run: shows what would be deleted
-    MISP_KEY=<your API key> python3 app/Test/ui-test/tools/seed_events.py --yes     # delete ALL events, then seed
+    MISP_KEY=<your API key> python3 tests/ui-test/tools/seed_events.py           # dry run: shows what would be deleted
+    MISP_KEY=<your API key> python3 tests/ui-test/tools/seed_events.py --yes     # delete ALL events, then seed
 
 Every seeded event gets a custom tag `qa:<test-slug>` matching the test in
-app/Test/ui-test/event/..., so it is easy to find the event for a test.
+tests/ui-test/event/..., so it is easy to find the event for a test.
 """
 import json
 import os
@@ -39,9 +39,12 @@ def call(method, path, body=None):
 
 
 def ensure_tag(name, colour='#7c3aed'):
-    call('POST', '/tags/add', {'Tag': {'name': name, 'colour': colour, 'exportable': True}})
-    _, found = call('GET', '/tags/search/' + urllib.request.quote(name, safe=''))
-    for t in found or []:
+    status, added = call('POST', '/tags/add', {'Tag': {'name': name, 'colour': colour, 'exportable': True}})
+    if status == 200 and isinstance(added, dict) and 'Tag' in added:
+        return added['Tag']['id']
+    # Already exists: the GET /tags/search/<name> form does not match names with ':', the POST one does
+    _, found = call('POST', '/tags/search', {'tag': name})
+    for t in found if isinstance(found, list) else []:
         tag = t.get('Tag', t)
         if tag.get('name') == name:
             return tag['id']
@@ -121,7 +124,7 @@ def main():
 
     # add/fields.md - created through the API to see how the server reacts
     add_event('QA extends unknown UUID', ['qa:event-add-extends-unknown-uuid'],
-              extends='11111111-2222-3333-4444-555555555555', test='event-add-extends-unknown-uuid')
+              extends='7c9e6679-7425-40de-944b-e07fc1f90ae7', test='event-add-extends-unknown-uuid')
     add_event('QA line 1\nQA line 2', ['qa:event-add-multiline-info'], test='event-add-multiline-info')
     add_event('QA date 1900', ['qa:event-add-extreme-dates'], date='1900-01-01', test='event-add-extreme-dates')
     add_event('QA date 9999', ['qa:event-add-extreme-dates'], date='9999-12-31', test='event-add-extreme-dates')

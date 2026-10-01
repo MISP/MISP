@@ -1,6 +1,6 @@
 ---
 name: misp-test-plan
-description: Turn a MISP web UI bug (-> bug + matching E2E test) or an E2E test (-> test only) the user describes (often informally, in any language) and write it, in the exact structure, directly into the local files in app/Test/ui-test/ of the MISP repository (tests in feature/page folders like event/add/fields.md, bugs in bugs.md; copied into HedgeDoc), in English. Use whenever the user reports a MISP/Overmind bug ("j'ai un bug", "nouveau bug", "ajoute ce bug"), describes a test to add ("nouveau test", "ajoute un test", "test e2e"), pastes a MISP error page, or asks for the test plan / bug report structure.
+description: Turn a MISP web UI bug (-> bug + matching E2E test) or an E2E test (-> test only) the user describes (often informally, in any language) and write it, in the exact structure, directly into the local files in tests/ui-test/ of the MISP repository (tests in feature/page folders like event/add/fields.md, bugs in bugs.md; copied into HedgeDoc), in English. Use whenever the user reports a MISP/Overmind bug ("j'ai un bug", "nouveau bug", "ajoute ce bug"), describes a test to add ("nouveau test", "ajoute un test", "test e2e"), pastes a MISP error page, or asks for the test plan / bug report structure.
 ---
 
 # MISP Web UI – Test Plan & Results
@@ -24,7 +24,7 @@ Write the markdown in **English**. Talk to the user in their own language.
 7. **What to produce depends on what the user gives:**
    - **The user reports a bug** → produce **BOTH**: the bug (template 1) **AND** an E2E test that reproduces it (template 2). The test's steps follow the bug's steps with concrete values, and its **Expected:** is the correct behaviour (the bug's Expected result).
    - **The user gives a test** → produce **ONLY** the test (template 2). No bug.
-8. **Output = write directly into the local files** in `app/Test/ui-test/ (in the MISP repository)`. The files can be copy-pasted into HedgeDoc.
+8. **Output = write directly into the local files** in `tests/ui-test/ (in the MISP repository)`. The files can be copy-pasted into HedgeDoc.
    - **Tests are organised by feature folder → page subfolder → topic file**, e.g.:
      ```
      ui-test/

@@ -199,7 +199,7 @@ Event creation that extends a valid UUID which is not on this instance
 2. Go to `/events/index`.
 3. Click **Add Event** button
 4. Type `QA extends unknown UUID` in **Event Info**.
-5. Type `11111111-2222-3333-4444-555555555555` in **Extends**.
+5. Type `7c9e6679-7425-40de-944b-e07fc1f90ae7` in **Extends**.
 6. Click **Create Event Entry**.
 
 **Expected:** the event is created (or refused with a clear message), and its events/view page opens without error.

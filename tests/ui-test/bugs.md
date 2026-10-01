@@ -20,7 +20,7 @@ Roles:
 
 ## E2E UI Tests
 
-https://github.com/MISP/MISP/tree/ui_test/app/Test/ui-test
+https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 ---
 
