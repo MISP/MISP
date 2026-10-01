@@ -33,6 +33,7 @@ Roles:
 | 18 | [Event index – selection kept when switching view](#event-index-selection-switch-view) | |
 | 19 | [Event add – Event Info over the database limit](#event-add-info-too-long) | |
 | 20 | [Event index – filter by galaxy](#event-index-filter-galaxy) | |
+| 21 | [Event index – selection kept when sorting](#event-index-selection-sort) | |
 
 ---
 
@@ -317,3 +318,15 @@ Filtering the Events list by a galaxy that no event uses shows no event (regress
 5. Apply the filter.
 
 **Expected:** the Events list is empty.
+
+### Event index – selection kept when sorting
+<a id="event-index-selection-sort"></a>
+
+A selected event stays selected after sorting the Events list by a column (regression test for Bug 5)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Tick the checkbox of the first event.
+4. Click the **Date** column header to sort the list.
+
+**Expected:** the event is still ticked and still counted in the selection.

@@ -16,6 +16,7 @@ Roles:
 | 2   | [Selected event loses its checkbox when switching between table and card view](#bug-2) | Open | v2.5.48 | |
 | 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | v2.5.48 | |
 | 4   | [Galaxy filter on the Events list is ignored](#bug-4) | Open | v2.5.48 | |
+| 5   | [Event selection is lost when sorting the Events list](#bug-5) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -96,6 +97,23 @@ https://github.com/MISP/MISP/tree/ui_test/app/Test/ui-test
 - **Likely cause**: The filter adds `searchgalaxy:<name>` to the URL (`app/webroot/js/mispOvermind.js`), but `__setIndexFilterConditions()` in `app/Controller/EventsController.php` has no `galaxy` case, so the value falls into `default: continue 2;` and is silently ignored.
 
 
+### Bug 5 – Event selection is lost when sorting the Events list
+
+<a id="bug-5"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Go to the Events list page (`/events/index`).
+2. Tick the checkbox of one event.
+3. Click a column header to sort the list (sort icon `<>`).
+
+- **Expected result**: The event stays selected after the list is sorted.
+- **Actual result**: The event is unselected, both in the selection and in its checkbox.
+- **Notes**: Not sure it is a bug: it may be an intended choice.
+- **Likely cause**: Column headers are pagination sort links (`$paginator->sort()` in `genericElementsBS5/IndexTable/headers.ctp`) that reload the list. The selection only exists in the page (it is not stored anywhere), so it is reset when the list reloads.
+
 # Recommendations
 
 ### Recommendation 1 – Filter the Events list by several tags or galaxies
@@ -107,3 +125,13 @@ https://github.com/MISP/MISP/tree/ui_test/app/Test/ui-test
 - **Current behaviour**: The filters on the Events list (`/events/index`) accept only one tag and one galaxy at a time.
 - **Proposal**: Allow selecting several tags and several galaxies in the same filter, with a choice between **AND** (the event must have all of them) and **OR** (the event must have at least one of them).
 - **Benefit**: Analysts can find events matching a combination of tags/galaxies in one search instead of filtering several times.
+
+### Recommendation 2 – Add a "Go to top" button
+
+<a id="recommendation-2"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+- **Current behaviour**: On long pages (e.g. the Events list or an event with many attributes), there is no quick way to go back to the top of the page.
+- **Proposal**: Add a floating **Go to top** button that appears after scrolling down and brings the user back to the top of the page.
+- **Benefit**: Faster navigation on long pages, without scrolling back up manually.
