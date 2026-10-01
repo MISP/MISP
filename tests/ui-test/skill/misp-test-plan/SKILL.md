@@ -39,6 +39,7 @@ Write the markdown in **English**. Talk to the user in their own language.
          view/    actions.md, performance.md    (event detail page: publish, delete, tags…, large events)
        taxonomy/  index/actions.md, view/tags.md, tagging/exclusive.md
        galaxy/    index/galaxies.md, cluster/clusters.md, cluster/relations.md
+       object/    add/add.md, view/objects.md, templates/templates.md
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.
    - **All bugs go in `bugs.md`** (template 0b), never in a feature file.

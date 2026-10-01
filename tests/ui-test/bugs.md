@@ -17,6 +17,7 @@ Roles:
 | 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | v2.5.48 | |
 | 4   | [Galaxy filter on the Events list is ignored](#bug-4) | Open | v2.5.48 | |
 | 5   | [Event selection is lost when sorting the Events list](#bug-5) | Open | v2.5.48 | |
+| 6   | [CSRF error when submitting a new object after Review](#bug-6) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -113,6 +114,24 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The event is unselected, both in the selection and in its checkbox.
 - **Notes**: Not sure it is a bug: it may be an intended choice.
 - **Likely cause**: Column headers are pagination sort links (`$paginator->sort()` in `genericElementsBS5/IndexTable/headers.ctp`) that reload the list. The selection only exists in the page (it is not stored anywhere), so it is reset when the list reloads.
+
+### Bug 6 – CSRF error when submitting a new object after Review
+
+<a id="bug-6"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Open an event and click **Add Object**.
+2. Select any template (e.g. `nova-rule` or `scrippsco2-c13-daily`) and click **Next**.
+3. On the **Object** step, scroll to the bottom of the form.
+4. Click **Review**, then **Submit**.
+
+- **Expected result**: The object is saved, or a clear message says which fields are missing.
+- **Actual result**: Error page "You have tripped the cross-site request forgery protection of MISP" - object not saved.
+- **Notes**: Happened with two different templates (`nova-rule`, `scrippsco2-c13-daily`), so it does not depend on the template. error.log shows: `Blackhole exception when accessing /objects/add/45/333 (isRest: 0, action: add, unlockedActions: ["revise_object","get_row"]): The request has been black-holed`.
+- **Likely cause**: The POST to `/objects/add` is rejected by CakePHP's Security component (black-hole = form considered tampered), which MISP shows as a CSRF error. The form contains locked hidden fields (`first_seen` and `last_seen` in `app/View/Themed/Overmind/Objects/add.ctp`) that the page's JavaScript fills, the same pattern as Bug 1.
 
 # Recommendations
 

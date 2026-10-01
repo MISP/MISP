@@ -32,6 +32,10 @@ ui-test/
     index/galaxies.md       custom galaxy, disable, delete, import
     cluster/clusters.md     add, fork, rename, delete/restore, publish
     cluster/relations.md    relationships between clusters
+  object/
+    add/add.md              Add Object form: requirements, invalid values, duplicates
+    view/objects.md         event Objects tab: edit, delete, filter, correlation
+    templates/templates.md  object templates: deactivate, update, search
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/
