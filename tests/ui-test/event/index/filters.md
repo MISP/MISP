@@ -90,16 +90,16 @@ Opening a page number that does not exist
 ### Event index – search with a single match
 <a id="event-index-search-single"></a>
 
-A search that matches exactly one event opens that event (regression test for Bug 13)
+A search that matches exactly one event shows only that event
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
 3. Create an event named `QA unique search 7f3k` with **Add Event**.
 4. Go to `/events/index`.
-5. Type `QA unique search 7f3k` in the search bar of the Events list.
+5. Type `QA unique search 7f3k` in **Search by info, ID or UUID**.
 6. Press Enter.
 
-**Expected:** the detail page of `QA unique search 7f3k` opens at `/events/view2/<id>` in the Overmind layout.
+**Expected:** the Events list shows only `QA unique search 7f3k`.
 
 **Seeded data:** `QA unique search 7f3k`, tag `qa:event-index-search-single`. It is the only event with this name.
 

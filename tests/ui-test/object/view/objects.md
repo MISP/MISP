@@ -21,6 +21,7 @@ Roles:
 | 6 | [Object filter](#object-filter) | |
 | 7 | [Object correlation between events](#object-correlation) | |
 | 8 | [Object edit – add a new attribute](#object-edit-add-attribute) | |
+| 9 | [Object card – attribute menu](#object-card-attribute-menu) | |
 
 ---
 
@@ -156,3 +157,16 @@ Filling an empty field when editing an object adds the attribute (regression tes
 7. Click **Review**, then **Submit**.
 
 **Expected:** the object shows both `qa-object.example` and `198.51.100.180`.
+
+### Object card – attribute menu
+<a id="object-card-attribute-menu"></a>
+
+The menu of an attribute in an object card is fully visible (regression test for Bug 21)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA object menu` with **Add Event**, and add a `domain-ip` object with the domain `qa-menu.example`.
+4. Go to the **Objects** tab and switch to card view.
+5. Click the **⋮** button of the attribute `qa-menu.example`.
+
+**Expected:** every entry of the menu is visible and clickable; the pagination bar does not cover it.
