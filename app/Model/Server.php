@@ -286,7 +286,14 @@ class Server extends AppModel
                 'fields' => array('Event.uuid'),
             ));
             return array_intersect($eventIds, $localEventUuids);
-        } elseif (is_numeric($technique)) {
+        } elseif (is_int($technique) || ctype_digit((string)$technique)) {
+            // A remote event ID must be a clean integer. `is_numeric()` used to accept
+            // any numeric literal and `intval()` then coerced it, so '1e3' silently
+            // pulled event 1000, '3.9' and '3abc' pulled event 3, and only strings that
+            // happen to coerce to 0 were rejected. `ctype_digit()` on the string form
+            // accepts exactly the digit-only ids real callers pass (the `(string)` cast
+            // is required: ctype_digit() applied to an int argument is deprecated and
+            // interprets small ints as ASCII codepoints, so ctype_digit(3) is false).
             return array(intval($technique));
         } elseif (Validation::uuid($technique)) {
             return array($technique);
