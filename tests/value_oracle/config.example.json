@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:5007",
+  "verify_tls": false,
+  "timeout": 900,
+  "users": {
+    "admin": "<site admin API key>",
+    "lesser": "<API key of a non-admin user in another org>"
+  },
+  "store": "~/value_oracle_snapshots"
+}
