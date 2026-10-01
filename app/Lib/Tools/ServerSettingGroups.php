@@ -358,6 +358,7 @@ class ServerSettingGroups
                     'MISP.disable_seen_ips_authkeys',
                     'MISP.log_new_audit',
                     'MISP.log_new_audit_compress',
+                    'MISP.log_skip_email_encryption_failures',
                 ),
             ),
             array(
