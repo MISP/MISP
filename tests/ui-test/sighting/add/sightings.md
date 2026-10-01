@@ -19,6 +19,7 @@ Roles:
 | 4 | [Sighting – from another organisation](#sighting-other-org) | |
 | 5 | [Sighting – date in the future](#sighting-future) | |
 | 6 | [Sighting – delete](#sighting-delete) | |
+| 7 | [Sightings card – full list button](#sighting-card-full-list) | |
 
 ---
 
@@ -105,3 +106,15 @@ Deleting a sighting
 4. Open the sightings of `198.51.100.160`, click **Delete sighting** on one of them and confirm.
 
 **Expected:** the sighting is removed and the count goes down by one.
+
+### Sightings card – full list button
+<a id="sighting-card-full-list"></a>
+
+The button of the Sightings card opens the full list of sightings (regression test for Bug 22)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA sightings card` with **Add Event**, add an attribute `ip-dst` `198.51.100.210` and click **Add sighting** on it.
+4. On the event page, click the button **Full sightings list** (external link icon) of the **Sightings** card.
+
+**Expected:** a page listing the sightings of `QA sightings card` opens (with the sighting on `198.51.100.210`); the event page is not just reloaded.

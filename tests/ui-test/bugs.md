@@ -33,6 +33,7 @@ Roles:
 | 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | v2.5.48 | |
 | 20  | [A note can be saved without its required text](#bug-20) | Open | v2.5.48 | |
 | 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | v2.5.48 | |
+| 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -411,6 +412,23 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Likely cause**:
   - Deep notes: `AnalystData::fetchChildNotesAndOpinions()` (`app/Model/AnalystData.php`) loads nested notes with `$depth = 2` and only sets `_max_depth_reached` when there are more; the old UI uses this flag to offer loading the rest (`View/Elements/genericElements/Analyst_data/thread.ctp`), but the Overmind thread ignores it.
   - Counters: the Overmind thread (`app/View/Themed/Overmind/Elements/AnalystData/thread.ctp`) prints `count($notes)` and `count($opinions)`, which only count the items directly attached to the event.
+
+### Bug 22 – The "Full sightings list" button of the event page reloads the same page
+
+<a id="bug-22"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event** (with or without sightings).
+2. On the event page, find the **Sightings** card ("No sightings" when there is none).
+3. Click its button (external link icon, title **Full sightings list**).
+
+- **Expected result**: The full list of the sightings of the event opens.
+- **Actual result**: The same event page is reloaded.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): the button has `href=""` and clicking it reloads `/events/view2/<id>`. It happens with and without sightings. No other card of the event page has an empty link.
+- **Likely cause**: In `app/View/Themed/Overmind/Elements/Events/View/event_sightings.ctp` the button is written `<a href="" … title="Full sightings list">`: the link target was never filled in.
 
 # Recommendations
 
