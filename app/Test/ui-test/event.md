@@ -32,6 +32,7 @@ Roles:
 | 17 | [Event add – extends an unknown event ID](#event-add-extends-unknown-id) | |
 | 18 | [Event index – selection kept when switching view](#event-index-selection-switch-view) | |
 | 19 | [Event add – Event Info over the database limit](#event-add-info-too-long) | |
+| 20 | [Event index – filter by galaxy](#event-index-filter-galaxy) | |
 
 ---
 
@@ -303,3 +304,16 @@ Event creation with an Event Info longer than 65,535 characters is refused with 
 5. Click **Create Event Entry**.
 
 **Expected:** the event is not created, no "An Internal Error Has Occurred." page is shown, and a message explains that **Event Info** is too long.
+
+### Event index – filter by galaxy
+<a id="event-index-filter-galaxy"></a>
+
+Filtering the Events list by a galaxy that no event uses shows no event (regression test for Bug 4)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the filters.
+4. In **Galaxy**, select a galaxy that is attached to none of the events.
+5. Apply the filter.
+
+**Expected:** the Events list is empty.
