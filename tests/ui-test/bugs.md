@@ -25,6 +25,8 @@ Roles:
 | 11  | [Inactive event template can still be used by its URL](#bug-11) | Open | v2.5.48 | |
 | 12  | [Event template form: an invalid value gives an error that does not say which field](#bug-12) | Open | v2.5.48 | |
 | 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
+| 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
+| 15  | [Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached](#bug-15) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -257,6 +259,39 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The browser goes to `/events/view/<id>`, which renders the old (non-Overmind) event page.
 - **Notes**: Checked on the instance: `/events/view/103` returns the old event page (old markup, 150 kB) while `/events/view2/103` is the Overmind page. **Also affects** (found in the code, they redirect to `view` without checking the theme): **Unpublish Event** (`EventsController::unpublish()`), a quick search on the Events list that matches only one event (`EventsController::index()`), and **Remove pivot** (`EventsController::removePivot()`). **Publish Event** does check the theme and opens `view2`.
 - **Likely cause**: `app/webroot/js/event-templates/user_form.js` sends the user to `cfg.baseurl + '/events/view/' + event_id`, and the controller actions listed above call `redirect(['action' => 'view', …])` instead of using `view2` when the theme is Overmind; `/events/view` itself does not forward to `view2`.
+
+### Bug 14 – CSV export does not neutralise spreadsheet formulas
+
+<a id="bug-14"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Add to an event an attribute with the comment `=HYPERLINK("http://qa-csv.example","click")` and another with the comment `+cmd|calc`.
+2. Use **Download as** → **CSV (NOT FOR EXCEL)**.
+3. Open the file.
+
+- **Expected result**: Cells starting with `=`, `+`, `-` or `@` are neutralised (e.g. prefixed with `'`), so a spreadsheet does not run them.
+- **Actual result**: The comments are written unchanged, so a spreadsheet opening the file runs them as formulas.
+- **Notes**: Confirmed through the API (`/events/restSearch` with `returnFormat: csv`) on `QA export csv formula` (#108). The menu labels the format "CSV (NOT FOR EXCEL)", but values come from other organisations (sync, proposals, feeds), so a shared CSV can carry formulas. **Also affects:** every CSV output built with the same exporter: attribute `restSearch` in CSV, the CSV cached export on `/events/export`, and the deprecated `/events/csv`.
+- **Likely cause**: `app/Lib/Export/CsvExport.php` quotes the values but does not escape a leading formula character.
+
+### Bug 15 – Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached
+
+<a id="bug-15"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Disable the taxonomy `admiralty-scale` (`/taxonomies/index`) and the galaxy `Threat Actor` (`/galaxies/index`).
+2. Attach the tag `admiralty-scale:source-reliability="b"` to an event, and the cluster `misp-galaxy:threat-actor="APT29"` to an attribute (through the API `POST /tags/attachTagToObject`, or any path that is not the tag picker).
+
+- **Expected result**: Both are refused because their taxonomy / galaxy is disabled.
+- **Actual result**: Both are attached (HTTP 200 "Global tag … successfully attached").
+- **Notes**: Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API on `QA disable taxonomy and galaxy` (#109). Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
+- **Likely cause**: `attachTagToObject` (and `captureTag`) look the tag up by name only and never check that its taxonomy or galaxy is enabled; the enabled flag is only used to build the pickers.
 
 # Recommendations
 

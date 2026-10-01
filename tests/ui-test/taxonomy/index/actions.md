@@ -19,6 +19,7 @@ Roles:
 | 4 | [Taxonomy required – publish with the required tag](#taxonomy-required-publish-tagged) | |
 | 5 | [Taxonomy disabled – tag already on an event](#taxonomy-disabled-tag-on-event) | |
 | 6 | [Taxonomy update](#taxonomy-update) | |
+| 7 | [Taxonomy and galaxy disabled – tags on event, attribute and object](#taxonomy-galaxy-disabled-everywhere) | |
 
 ---
 
@@ -116,3 +117,23 @@ Updating the taxonomies keeps the enabled taxonomies and their settings
 5. Reload the page.
 
 **Expected:** a success message is shown, no taxonomy disappears, and the same taxonomies are still **Enabled**.
+
+### Taxonomy and galaxy disabled – tags on event, attribute and object
+<a id="taxonomy-galaxy-disabled-everywhere"></a>
+
+Disabling a taxonomy and a galaxy that are used on an event, an attribute and an object attribute
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA disable taxonomy and galaxy` with **Add Event**.
+4. Add the tag `admiralty-scale:source-reliability="a"` and the cluster `APT28` (Threat Actor) to the event.
+5. Add an attribute `ip-dst` `198.51.100.130` and give it the same tag and cluster.
+6. Add a `domain-ip` object with the domain `qa-disable.example` and give its attribute the same tag and cluster.
+7. Go to `/taxonomies/index` and click **Disable** on `admiralty-scale`; go to `/galaxies/index` and click **Disable** on `Threat Actor`.
+8. Open `QA disable taxonomy and galaxy` and check the tags and galaxies of the event, the attribute and the object.
+9. Click **Edit Tags** on the event and search `admiralty-scale:`; click **Edit Galaxy Clusters** and search `APT29`.
+10. Enable `admiralty-scale` and `Threat Actor` again.
+
+**Expected:** the event page opens without error and still shows the tag and `APT28` on the event, the attribute and the object attribute; the pickers do not offer `admiralty-scale:` tags or `Threat Actor` clusters while they are disabled (see Bug 15).
+
+**Seeded data:** `QA disable taxonomy and galaxy` (#109, tag `qa:taxonomy-galaxy-disabled-everywhere`): tag and cluster attached through the API to the event, the attribute `198.51.100.130` and the `domain-ip` object attribute. With `admiralty-scale` and `Threat Actor` disabled: the tags and the cluster were still listed everywhere (API and the event tags/galaxies cards), the Events list filtered on the tag still showed the event, and no new error.log entry. But a new tag `admiralty-scale:source-reliability="b"` and the cluster `APT29` could still be attached (HTTP 200). Both were enabled again afterwards.
