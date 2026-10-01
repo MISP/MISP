@@ -39,6 +39,7 @@ Roles:
 | 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | v2.5.48 | |
 | 26  | [A refused form opens an unstyled page (no CSS, no menu)](#bug-26) | Open | v2.5.48 | |
 | 27  | [Add User: an empty form gives no message (it only appears after a reload)](#bug-27) | Open | v2.5.48 | |
+| 28  | [Documentation pages (/pages/display/…) give an internal error](#bug-28) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -523,6 +524,22 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: After step 2 nothing visible happens: no message, no field marked. After the reload, the page shows "The user could not be saved. Invalid organisation."
 - **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). The form has 6 required fields (4 of them invalid for the browser), but the browser check is turned off and the request is still sent. The message seen after the reload only names the organisation, although the email and the other required fields are empty too.
 - **Likely cause**: The form is built with `'novalidate' => true` (`app/View/Themed/Overmind/Users/admin_add.ctp`), so the browser does not stop the submit, and its script sends it with `fetch()` and re-renders the window with the returned form, which has no inline errors. `UsersController` reports the problem with `Flash->error()`, a session message that is only displayed on the next full page load.
+
+### Bug 28 – Documentation pages (/pages/display/…) give an internal error
+
+<a id="bug-28"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Log in.
+2. Go to the categories and types documentation (`/pages/display/doc/categories_and_types`, also reachable from the **Resources** menu).
+
+- **Expected result**: The documentation page is shown.
+- **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
+- **Notes**: **Confirmed in the UI** (real browser and tester screenshot, Overmind, 2026-10-01). error.log shows `[Error] Call to a member function addInputType() on null` in `app/Controller/AppController.php`, line 256. **Also affects** (checked in the browser, all HTTP 500): every page served by `/pages/display/…`, e.g. `/pages/display/doc/md/categories_and_types` (the Markdown version linked from the page) and `/pages/display/administration`.
+- **Likely cause**: `AppController::beforeFilter()` now calls `$this->RequestHandler->addInputType('xml', …)` on every request (the XML input hardening around line 256), but `PagesController` does not load the RequestHandler component, so `$this->RequestHandler` is `null` and the call is fatal before the page is rendered.
 
 # Recommendations
 

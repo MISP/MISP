@@ -17,6 +17,7 @@ Roles:
 | 2 | [Main pages – phone width](#general-ui-mobile) | |
 | 3 | [Main pages – dark mode](#general-ui-dark-mode) | |
 | 4 | [Refused form – page keeps its style](#general-ui-refused-form) | |
+| 5 | [Documentation pages open](#general-ui-doc-pages) | |
 
 ---
 
@@ -77,3 +78,17 @@ When a form is refused, the user stays on a styled page with the reason (regress
 6. Go to `/organisations/index`, click **Add Organisation**, leave every field empty and click **Add organisation**.
 
 **Expected:** after each refused form, the page keeps the Overmind style and menu (or the window stays open) and a message explains why it was refused.
+
+### Documentation pages open
+<a id="general-ui-doc-pages"></a>
+
+The documentation pages of the Resources menu open without error (regression test for Bug 28)
+
+1. Log in to MISP as `user` of the organisation `ADMIN`.
+2. Go to `/events/index`.
+3. In the **Resources** menu, open the categories and types documentation (`/pages/display/doc/categories_and_types`).
+4. Click the link to its Markdown version (`/pages/display/doc/md/categories_and_types`).
+
+**Expected:** both pages show the documentation; no "An Internal Error Has Occurred." page.
+
+**Seeded data:** No data needed. Checked in a browser on 2026-10-01: both URLs, and every other `/pages/display/…` URL tried, answer HTTP 500.
