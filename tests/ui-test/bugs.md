@@ -38,6 +38,7 @@ Roles:
 | 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | v2.5.48 | |
 | 25  | [No length limit on form fields and searches: internal error or 414](#bug-25) | Open | v2.5.48 | |
 | 26  | [A refused form opens an unstyled page (no CSS, no menu)](#bug-26) | Open | v2.5.48 | |
+| 27  | [Add User: an empty form gives no message (it only appears after a reload)](#bug-27) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -505,6 +506,23 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The browser goes to `/admin/allowedlists/add`, a raw page without any style and without the MISP menu, showing the empty form again; no clear message tells what is wrong.
 - **Notes**: **Confirmed in the UI** (real browser and tester screenshot, Overmind, 2026-10-01): the page has 0 stylesheets and no menu. A valid expression (e.g. `/qa-valid/`) is saved and the next page is styled, so it only happens when the form is refused. **Also affects** (checked in the browser with a refused value, same raw page): **Add correlation exclusion** with an empty value (`/correlation_exclusions/add`), **Event blocklist** with an invalid UUID (`/event_blocklists/add`), **Add Tag** with a name already used (`/tags/add`), **Add Organisation** sent empty (`/admin/organisations/add`, also seen by a tester). The same code is in more than 20 controllers (e.g. Auth keys, Bookmarks, Collections, Correlation rules, Decaying models, Event reports, Galaxy clusters, Org blocklists), not checked one by one.
 - **Likely cause**: In the Overmind theme these add/edit actions always set `$this->layout = false` (e.g. `AllowedlistsController::admin_add()` and `admin_edit()`), because the form is meant to be shown in a modal. When the form is refused, the answer to the normal form POST is the form rendered without layout, so the browser shows it as a full page without CSS, menu or flash message.
+
+### Bug 27 – Add User: an empty form gives no message (it only appears after a reload)
+
+<a id="bug-27"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Go to the Users list (`/admin/users/index`) and click **Add User**.
+2. Leave every field empty and click **Create User**.
+3. Reload the page.
+
+- **Expected result**: After step 2, the window shows which required fields are missing (email, organisation, role…), and the browser marks the required fields.
+- **Actual result**: After step 2 nothing visible happens: no message, no field marked. After the reload, the page shows "The user could not be saved. Invalid organisation."
+- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). The form has 6 required fields (4 of them invalid for the browser), but the browser check is turned off and the request is still sent. The message seen after the reload only names the organisation, although the email and the other required fields are empty too.
+- **Likely cause**: The form is built with `'novalidate' => true` (`app/View/Themed/Overmind/Users/admin_add.ctp`), so the browser does not stop the submit, and its script sends it with `fetch()` and re-renders the window with the returned form, which has no inline errors. `UsersController` reports the problem with `Flash->error()`, a session message that is only displayed on the next full page load.
 
 # Recommendations
 

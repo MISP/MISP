@@ -18,6 +18,7 @@ Roles:
 | 3 | [User add – invalid email](#admin-user-invalid-email) | |
 | 4 | [User disable](#admin-user-disable) | |
 | 5 | [User role change – Read Only](#admin-user-role-read-only) | |
+| 6 | [User add – empty form](#admin-user-empty-form) | |
 
 ---
 
@@ -92,3 +93,17 @@ Changing a user to Read Only removes the right to create
 **Expected:** as Read Only, **Add Event** is not offered or refused with "You do not have permission to use this functionality."
 
 **Seeded data:** Through the API, with the role `Read Only`, `qa-user-a` creating an event got HTTP 403 with that message; the role was set back to `User`.
+
+### User add – empty form
+<a id="admin-user-empty-form"></a>
+
+Submitting Add User without filling anything shows what is missing in the window (regression test for Bug 27)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/admin/users/index`.
+3. Click **Add User**.
+4. Leave every field empty and click **Create User**.
+
+**Expected:** the window stays open and shows a message for each missing required field (email, organisation, role…); no message appears only after reloading the page.
+
+**Seeded data:** No data needed. Checked in a browser on 2026-10-01: nothing is shown in the window; after a reload the page shows "The user could not be saved. Invalid organisation."
