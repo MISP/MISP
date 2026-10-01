@@ -1,26 +1,37 @@
-# MISP Web UI – Bugs  <img src="https://hdoc.csirt-tooling.org/uploads/5381daed-33a6-4785-b452-101cae85291f.png" width="50">
+# MISP Web UI – Test Plan & Results
 
- <a id="navigation"></a>
- 
- 
+<a id="navigation"></a>
+
+Roles:
+
+- user
+- site-admin
+- org-admin
 
 ## Bugs
 
-| # | Bug | Status | Version | Owner | 
-|---|-----|--------| ------- | ----- |
-| 1 | [CSRF error when creating an event with a future date](#bug-1) | Fixed | v2.5.48 | Thomas |
-| 2 | [Invalid Extends value: event not saved and no reason shown](#bug-2) | Open | v2.5.48 | |
+| #   | Bug | Status | Version | Owner |
+| --- | --- | --- | --- | --- |
+| 1   | [CSRF error when creating an event with a future date](#bug-1) | Fixed | v2.5.48 | Thomas |
+| 2   | [Selected event loses its checkbox when switching between table and card view](#bug-2) | Open | v2.5.48 | |
+| 3   | [Internal error when Event Info is longer than the database limit](#bug-3) | Open | v2.5.48 | |
+
+## E2E UI Tests
+
+https://github.com/MISP/MISP/tree/ui_test/app/Test/ui-test
 
 ---
 
-
 # Bugs
+
 ### Bug 1 – CSRF error when creating an event with a future date
+
 <a id="bug-1"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
 #### Steps to reproduce
+
 1. On the Events list page, click **Create an event**.
 2. Enter a title.
 3. Set a date later than today (e.g. 2030).
@@ -31,18 +42,36 @@
 - **Notes**: It only happens when the date is changed. With the default date (today), the event is created normally.
 - **Likely cause**: The date is stored in a hidden form field that CakePHP locks. When the date picker changes its value, MISP rejects the form as tampered and shows a misleading CSRF error.
 
-### Bug 2 – Invalid Extends value: event not saved and no reason shown
+### Bug 2 – Selected event loses its checkbox when switching between table and card view
+
 <a id="bug-2"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
 #### Steps to reproduce
-1. On the Events list page, click **Add Event**.
-2. Type a title in **Event Info**.
-3. Type `999999` (an event ID that does not exist) in **Extends**.
-4. Click **Create Event Entry**.
 
-- **Expected result**: The form stays open and says why the event cannot be saved ("Invalid event ID provided.").
-- **Actual result**: The page goes back to the Events list with only "The event could not be saved. Please, try again." and everything typed in the form is lost.
-- **Notes**: Found by reading the code, not yet reproduced in the UI. The same happens for any server-side validation error (e.g. Extends = `abc`).
-- **Likely cause**: In `EventsController::add()`, when the save fails with the Overmind theme, MISP shows a generic flash message and redirects to `/events/index`. The validation errors returned by `Event::_add()` (`$validationErrors`) are never shown and the form data is dropped.
+1. Go to the Events list page (`/events/index`) in table view.
+2. Tick the checkbox of one event.
+3. Switch to card view.
+
+- **Expected result**: The event is still ticked in card view.
+- **Actual result**: The selection still counts the event as selected, but its checkbox is not ticked anymore in card view.
+- **Notes**: It also happens the other way round (select in card view, then switch to table view).
+- **Likely cause**: The table view and the card view are two separate lists, each with its own checkboxes. `setView()` in `app/webroot/js/mispOvermind.js` only hides one list and shows the other; it does not copy the ticked checkboxes to the list that becomes visible.
+
+### Bug 3 – Internal error when Event Info is longer than the database limit
+
+<a id="bug-3"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. On the Events list page, click **Add Event**.
+2. Paste a very long text (more than 65,535 characters) in **Event Info**.
+3. Click **Create Event Entry**.
+
+- **Expected result**: The form refuses the text and shows a clear message about the maximum length.
+- **Actual result**: Error page "An Internal Error Has Occurred." - event not created.
+- **Notes**: There is no length limit or check on **Event Info** in the form. error.log shows: `SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'info' at row 1`.
+- **Likely cause**: `events.info` is a MySQL `TEXT` column (max 65,535 bytes). The `info` validation rule in `app/Model/Event.php` only checks that the value is not empty, and the **Event Info** field has no `maxlength`, so the too-long value reaches the database and the PDOException is shown as an internal error.

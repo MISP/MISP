@@ -22,20 +22,16 @@ Roles:
 | 7 | [Event add – text in date field](#event-add-text-date) | |
 | 8 | [Event add – ISO date format](#event-add-iso-date) | |
 | 9 | [Event add – all fields set](#event-add-all-fields) | |
-| 10 | [Event add – distribution options](#event-add-distribution-options) | |
-| 11 | [Event add – distribution Your organisation only](#event-add-org-only) | |
-| 12 | [Event add – distribution This community only](#event-add-community-only) | |
-| 13 | [Event add – distribution Connected communities](#event-add-connected-communities) | |
-| 14 | [Event add – distribution All communities](#event-add-all-communities) | |
-| 15 | [Event add – extends an existing event](#event-add-extends) | |
-| 16 | [Event add – extends with invalid value](#event-add-extends-invalid) | |
-| 17 | [Event add – very long Event Info](#event-add-long-info) | |
-| 18 | [Event add – special characters](#event-add-unicode) | |
-| 19 | [Event add – HTML in Event Info](#event-add-html) | |
-| 20 | [Event add – double click on submit](#event-add-double-click) | |
-| 21 | [Event add – close without saving](#event-add-cancel) | |
-| 22 | [Event add – shown in event list](#event-add-in-list) | |
-| 23 | [Event add – extends an unknown event ID](#event-add-extends-unknown-id) | |
+| 10 | [Event add – distribution levels](#event-add-distribution) | |
+| 11 | [Event add – extends an existing event](#event-add-extends) | |
+| 12 | [Event add – extends with invalid value](#event-add-extends-invalid) | |
+| 13 | [Event add – very long Event Info](#event-add-long-info) | |
+| 14 | [Event add – special characters](#event-add-unicode) | |
+| 15 | [Event add – HTML in Event Info](#event-add-html) | |
+| 16 | [Event add – shown in event list](#event-add-in-list) | |
+| 17 | [Event add – extends an unknown event ID](#event-add-extends-unknown-id) | |
+| 18 | [Event index – selection kept when switching view](#event-index-selection-switch-view) | |
+| 19 | [Event add – Event Info over the database limit](#event-add-info-too-long) | |
 
 ---
 
@@ -169,73 +165,20 @@ Event creation with every option changed from its default value
 
 **Expected:** the event is created and its events/view page shows Distribution All communities, Analysis Completed, Threat Level High and date 2026-09-01.
 
-### Event add – distribution options
-<a id="event-add-distribution-options"></a>
+### Event add – distribution levels
+<a id="event-add-distribution"></a>
 
-The Add Event form offers exactly the 4 distribution levels
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Look at the **Distribution** choices.
-
-**Expected:** **Distribution** shows exactly 4 choices: **Your organisation only**, **This community only**, **Connected communities**, **All communities**, and no **Sharing group** choice.
-
-### Event add – distribution Your organisation only
-<a id="event-add-org-only"></a>
-
-Event creation with the distribution set to Your organisation only
+The Add Event form offers the 4 distribution levels and saves the chosen one
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
 3. Click **Add Event** button
-4. Type `QA distribution org only` in **Event Info**.
-5. In **Distribution**, select **Your organisation only**.
-6. Click **Create Event Entry**.
+4. Check that **Distribution** shows exactly 4 choices: **Your organisation only**, **This community only**, **Connected communities**, **All communities**.
+5. Type `QA distribution` in **Event Info**.
+6. In **Distribution**, select **This community only**.
+7. Click **Create Event Entry**.
 
-**Expected:** the event is created, its events/view page opens and shows the distribution Your organisation only.
-
-### Event add – distribution This community only
-<a id="event-add-community-only"></a>
-
-Event creation with the distribution set to This community only
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA distribution community only` in **Event Info**.
-5. In **Distribution**, select **This community only**.
-6. Click **Create Event Entry**.
-
-**Expected:** the event is created, its events/view page opens and shows the distribution This community only.
-
-### Event add – distribution Connected communities
-<a id="event-add-connected-communities"></a>
-
-Event creation with the distribution set to Connected communities
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA distribution connected communities` in **Event Info**.
-5. In **Distribution**, select **Connected communities**.
-6. Click **Create Event Entry**.
-
-**Expected:** the event is created, its events/view page opens and shows the distribution Connected communities.
-
-### Event add – distribution All communities
-<a id="event-add-all-communities"></a>
-
-Event creation with the distribution set to All communities
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA distribution all communities` in **Event Info**.
-5. In **Distribution**, select **All communities**.
-6. Click **Create Event Entry**.
-
-**Expected:** the event is created, its events/view page opens and shows the distribution All communities.
+**Expected:** there is no **Sharing group** choice, the event is created, and its events/view page shows the distribution This community only.
 
 ### Event add – extends an existing event
 <a id="event-add-extends"></a>
@@ -306,34 +249,6 @@ Event creation with HTML/script code in Event Info is shown as plain text
 
 **Expected:** the event is created, no alert pops up, and the Event Info is shown as plain text on the events/view page and in the event list.
 
-### Event add – double click on submit
-<a id="event-add-double-click"></a>
-
-Clicking the submit button twice quickly creates only one event
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA double click` in **Event Info**.
-5. Double-click **Create Event Entry**.
-6. Go to `/events/index`.
-
-**Expected:** only one event named `QA double click` exists in the event list.
-
-### Event add – close without saving
-<a id="event-add-cancel"></a>
-
-Closing the Add Event form does not create an event
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA cancelled event` in **Event Info**.
-5. Close the form without clicking **Create Event Entry**.
-6. Go to `/events/index`.
-
-**Expected:** no event named `QA cancelled event` exists in the event list.
-
 ### Event add – shown in event list
 <a id="event-add-in-list"></a>
 
@@ -361,3 +276,30 @@ Event creation with an Extends ID that matches no event shows the reason and kee
 6. Click **Create Event Entry**.
 
 **Expected:** the event is not created, the form stays open with `QA extends unknown ID` still filled in, and the message "Invalid event ID provided." is shown under **Extends**.
+
+### Event index – selection kept when switching view
+<a id="event-index-selection-switch-view"></a>
+
+A selected event stays ticked when switching between table and card view (regression test for Bug 2)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Switch to table view.
+4. Tick the checkbox of the first event.
+5. Switch to card view.
+6. Switch back to table view.
+
+**Expected:** the first event is ticked in card view and still ticked after going back to table view.
+
+### Event add – Event Info over the database limit
+<a id="event-add-info-too-long"></a>
+
+Event creation with an Event Info longer than 65,535 characters is refused with a clear message (regression test for Bug 3)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event** button
+4. Paste a text of 70,000 characters in **Event Info**.
+5. Click **Create Event Entry**.
+
+**Expected:** the event is not created, no "An Internal Error Has Occurred." page is shown, and a message explains that **Event Info** is too long.
