@@ -19,6 +19,14 @@ class AnalystDataBehavior extends ModelBehavior
     // Return the analystData of the current type for a given UUID (this only checks the ACL of the analystData, NOT of the parent.)
     public function fetchForUuid(Model $Model, $uuid, $user = null)
     {
+        // A null user means there is no ACL context to evaluate. Every branch
+        // below assumes one - SharingGroup::authorizedIds() is typed
+        // `array $user` and raises a fatal TypeError on null, and the
+        // Organisation lookups would fail too. Nothing is visible without a
+        // user, so return nothing rather than dying.
+        if (empty($user)) {
+            return [];
+        }
         $conditions = [
             'object_uuid' => $uuid
         ];
@@ -49,6 +57,14 @@ class AnalystDataBehavior extends ModelBehavior
     // Return the analystData of the current type for a given UUID (this only checks the ACL of the analystData, NOT of the parent.)
     public function fetchForUuids(Model $Model, $uuids, $user = null)
     {
+        // A null user means there is no ACL context to evaluate. Every branch
+        // below assumes one - SharingGroup::authorizedIds() is typed
+        // `array $user` and raises a fatal TypeError on null, and the
+        // Organisation lookups would fail too. Nothing is visible without a
+        // user, so return nothing rather than dying.
+        if (empty($user)) {
+            return [];
+        }
         $conditions = [
             'object_uuid' => $uuids
         ];
