@@ -47,6 +47,39 @@ Roles:
 | 27  | [Event selection is lost when sorting the Events list](#bug-27) | <span style="background:#dc3545;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">Open</span> | <span style="background:#198754;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">Low</span> | <span style="background:#ffc107;color:#212529;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">Medium</span> | v2.5.48 |  |
 | 28  | [CSRF error when creating an event with a future date](#bug-28) | <span style="background:#198754;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">Fixed</span> | <span style="background:#6c757d;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">–</span> | <span style="background:#198754;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">Easy</span> | v2.5.48 | Thomas |
 
+### Fix tracking
+
+Tick a bug when its fix is merged, then change its **Status** badge to **Fixed** in the table above.
+
+- [ ] [Bug 1](#bug-1) – Galaxy filter on the Events list is ignored
+- [ ] [Bug 2](#bug-2) – CSV export does not neutralise spreadsheet formulas
+- [ ] [Bug 3](#bug-3) – Adding a sighting from the UI fails (sighting buttons and Advanced sightings)
+- [ ] [Bug 4](#bug-4) – CSRF error when submitting a new object after Review
+- [ ] [Bug 5](#bug-5) – Internal error when an emoji is saved in many text fields
+- [ ] [Bug 6](#bug-6) – Adding an attribute to an existing object does not add anything
+- [ ] [Bug 7](#bug-7) – Selected event loses its checkbox when switching between table and card view
+- [ ] [Bug 8](#bug-8) – Internal error when Event Info is longer than the database limit
+- [ ] [Bug 9](#bug-9) – Some actions open the old event page /events/view instead of the Overmind one
+- [ ] [Bug 10](#bug-10) – Creating an event report opens the old event page
+- [ ] [Bug 11](#bug-11) – The correlation icon of an attribute does not toggle the correlation
+- [ ] [Bug 12](#bug-12) – A note can be saved without its required text
+- [ ] [Bug 13](#bug-13) – Add User: an empty form gives no message (it only appears after a reload)
+- [ ] [Bug 14](#bug-14) – Documentation pages (/pages/display/…) give an internal error
+- [ ] [Bug 15](#bug-15) – Event template form: an invalid value gives an error that does not say which field
+- [ ] [Bug 16](#bug-16) – Nested analyst data: deep notes are not shown and the counters are wrong
+- [ ] [Bug 17](#bug-17) – No length limit on form fields and searches: internal error or 414
+- [ ] [Bug 18](#bug-18) – A refused form opens an unstyled page (no CSS, no menu)
+- [ ] [Bug 19](#bug-19) – Tag name longer than 255 characters is silently cut
+- [ ] [Bug 20](#bug-20) – Tags list: the "Not favourite" filter still shows favourite tags
+- [ ] [Bug 21](#bug-21) – Warninglists list: the "Default" filter is ignored
+- [ ] [Bug 22](#bug-22) – Attribute menu of an object is hidden behind the pagination bar
+- [ ] [Bug 23](#bug-23) – Events with proposals list: the actions menu is empty
+- [ ] [Bug 24](#bug-24) – Row checkboxes do nothing on some lists
+- [ ] [Bug 25](#bug-25) – The "Full sightings list" button of the event page reloads the same page
+- [ ] [Bug 26](#bug-26) – Object relationships list: "Remove Highlight" is never offered for selected rows
+- [ ] [Bug 27](#bug-27) – Event selection is lost when sorting the Events list
+- [x] [Bug 28](#bug-28) – CSRF error when creating an event with a future date
+
 ## E2E UI Tests
 
 https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
