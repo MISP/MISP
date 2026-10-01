@@ -42,7 +42,7 @@ An active template is offered in Add Event, and nothing is offered when no templ
 
 **Expected:** with no active template, Add Event shows no **Use a template** block; with `Suspicious domain triage` active, the block is shown and the picker offers `Suspicious domain triage`.
 
-**Seeded data:** No data needed. Checked on the Add Event page as `qa-orgadmin-a`: no **Use a template** block while all 10 templates were inactive, block shown once `Suspicious domain triage` (#8) was made active (then made inactive again).
+**Seeded data:** No data needed. Checked on the Add Event page as `qa-orgadmin-a`: no **Use a template** block while all 10 templates were inactive, block shown once `Suspicious domain triage` was made active (then made inactive again).
 
 ### Template inactive – not usable by its URL
 <a id="event-template-inactive-url"></a>
@@ -51,13 +51,13 @@ An inactive template cannot be used by opening its URL (regression test for Bug 
 
 1. Log in to MISP as `user` of the organisation `ADMIN`.
 2. Go to `/event_templates/index`.
-3. Check that `Suspicious domain triage` (#8) is inactive.
-4. Go to `/event_templates/instantiate/8`.
+3. Check that `Suspicious domain triage` is inactive.
+4. Go to `/event_templates/instantiate/<id>` (`<id>` = ID of `Suspicious domain triage` in `/event_templates/index`).
 5. Fill the mandatory fields (`domain` = `qa-inactive.example`, `date_observed` = today, `tlp` = `tlp:green`) and click **Create event**.
 
 **Expected:** the form is refused (the template is inactive) and no event is created.
 
-**Seeded data:** Template #8 `Suspicious domain triage` is inactive. Through the API, `qa-user-a` (role `User`) posted the mandatory values to `/event_templates/instantiate/8` and the event `Suspicious domain — qa-inactive.example` (#105, tag `qa:event-template-inactive-url`) was created.
+**Seeded data:** The template `Suspicious domain triage` is inactive. Through the API, `qa-user-a` (role `User`) posted the mandatory values to `/event_templates/instantiate/<id>` (`<id>` = ID of `Suspicious domain triage` in `/event_templates/index`) and the event `Suspicious domain — qa-inactive.example` (tag `qa:event-template-inactive-url`) was created.
 
 ### Template duplicate
 <a id="event-template-duplicate"></a>
@@ -99,7 +99,7 @@ Editing a library template: warned overwrite, and kept only when it is no longer
 
 **Expected:** the notice says the next update overwrites the edits unless **Library-managed** is unticked; after step 5 the template is listed as **Updated** and its description is back to the library one; after step 7 it is listed under **Skipped (forked)** and keeps `QA edited`.
 
-**Seeded data:** No data needed. Through the API: description of `Vulnerability disclosure` (#10) changed to `QA edited description` with **Library-managed** still on, then `/event_templates/update` listed it under `updated` and restored the library description (version 3), as the notice announces.
+**Seeded data:** No data needed. Through the API: description of `Vulnerability disclosure` changed to `QA edited description` with **Library-managed** still on, then `/event_templates/update` listed it under `updated` and restored the library description (version 3), as the notice announces.
 
 ### Template export and import – same UUID
 <a id="event-template-import-conflict"></a>

@@ -34,4 +34,4 @@ The detail page of a large event loads in a reasonable time and stays usable
 
 **Expected:** the page is usable in less than 5 seconds, the attributes are paginated, the next page loads, and the search finds the attribute; no error or frozen page.
 
-**Seeded data:** `QA big event` (#98), tag `qa:event-view-big-event`, 2,000 `ip-dst` attributes (one is `198.51.100.250`). Through the API, `/events/view/98` answers in about 0.25 s; the UI page time is still to measure.
+**Seeded data:** `QA big event`, tag `qa:event-view-big-event`, 2,000 `ip-dst` attributes (one is `198.51.100.250`). Through the API, `/events/view/<id>` answers in about 0.25 s; the UI page time is still to measure.

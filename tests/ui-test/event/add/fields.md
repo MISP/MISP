@@ -145,7 +145,7 @@ Event creation that extends a valid UUID which is not on this instance
 
 **Expected:** the event is created (or refused with a clear message), and its events/view page opens without error.
 
-**Seeded data:** `QA extends unknown UUID` (#25), tag `qa:event-add-extends-unknown-uuid`, created through the API with **Extends** = `7c9e6679-7425-40de-944b-e07fc1f90ae7`. Result: accepted. Note: a badly formed UUID such as `11111111-2222-3333-4444-555555555555` is refused with "Please provide a valid UUID".
+**Seeded data:** `QA extends unknown UUID`, tag `qa:event-add-extends-unknown-uuid`, created through the API with **Extends** = `7c9e6679-7425-40de-944b-e07fc1f90ae7`. Result: accepted. Note: a badly formed UUID such as `11111111-2222-3333-4444-555555555555` is refused with "Please provide a valid UUID".
 
 ### Event add – Event Info with line breaks
 <a id="event-add-multiline-info"></a>
@@ -161,7 +161,7 @@ Event creation with an Event Info on several lines
 
 **Expected:** the event is created and the Event Info is shown readably on the events/view page and in the Events list, without breaking the layout.
 
-**Seeded data:** `QA line 1` / `QA line 2` (#22), tag `qa:event-add-multiline-info`, created through the API: accepted, the line break is stored.
+**Seeded data:** `QA line 1` / `QA line 2`, tag `qa:event-add-multiline-info`, created through the API: accepted, the line break is stored.
 
 ### Event add – extreme dates
 <a id="event-add-extreme-dates"></a>
@@ -181,4 +181,4 @@ Event creation with very old and very far dates
 
 **Expected:** each event is created with the typed date, or refused with a clear message; no error page is shown.
 
-**Seeded data:** `QA date 1900` (#23, date 1900-01-01) and `QA date 9999` (#24, date 9999-12-31), tag `qa:event-add-extreme-dates`, created through the API: both accepted with these dates.
+**Seeded data:** `QA date 1900` (date 1900-01-01) and `QA date 9999` (date 9999-12-31), tag `qa:event-add-extreme-dates`, created through the API: both accepted with these dates.

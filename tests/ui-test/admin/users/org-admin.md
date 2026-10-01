@@ -41,8 +41,8 @@ An organisation admin cannot edit a user of another organisation
 
 1. Log in to MISP as `org-admin` of the organisation `QA-Org-B`.
 2. Go to `/admin/users/index`.
-3. Go to `/admin/users/edit/3` (`qa-user-a@admin.test`, organisation `ADMIN`).
+3. Go to `/admin/users/edit/<id>`, where `<id>` is the ID of `qa-user-a@admin.test` (organisation `ADMIN`, ask the site admin).
 
 **Expected:** the page shows "Invalid user" and nothing can be changed.
 
-**Seeded data:** User #3 `qa-user-a@admin.test` in `ADMIN`. Through the API, `qa-orgadmin-b` gets HTTP 404 "Invalid user".
+**Seeded data:** The user `qa-user-a@admin.test` in `ADMIN`. Through the API, `qa-orgadmin-b` gets HTTP 404 "Invalid user".

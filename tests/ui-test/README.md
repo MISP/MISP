@@ -204,6 +204,10 @@ Section, after the last bug and before `# Recommendations`:
 - **Likely cause**: <only what was really investigated (logs, code), or Unknown>
 ```
 
+A bug must be understandable by anyone, without the test instance: the steps create their own data
+("Create an event with **Add Event** …"), with no event IDs, seeded `QA …` names or test accounts; use
+`<id>` in URLs.
+
 When the cause is a shared mechanism (same component, same form pattern, same database setting),
 list in **Notes** every other place where the bug can happen, after `**Also affects:**`.
 

@@ -36,7 +36,7 @@ Indicators written in a report become attributes
 
 **Expected:** the attributes `198.51.100.151`, `qa-report.example` and `44d88612fea8a8f36de82e1278abb02f` are added to the event.
 
-**Seeded data:** Through the API (`extractAllFromReport`), these 3 attributes were added to `QA event reports` (#112) in 1.5 s.
+**Seeded data:** Through the API (`extractAllFromReport`), these 3 attributes were added to `QA event reports` in 1.5 s.
 
 ### Report – replacements are reviewed
 <a id="report-extract-review"></a>
@@ -83,7 +83,7 @@ The rendered-report URL does not give an internal error (regression test for Bug
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
-3. Go to `/eventReports/viewRendered/115`.
+3. Go to `/eventReports/viewRendered/<report id>` (ID of any event report, e.g. `<b>QA report</b> 🚀`).
 
 **Expected:** the report is shown, or the page is not found; no "An Internal Error Has Occurred." page.
 

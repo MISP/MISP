@@ -20,6 +20,7 @@ Roles:
 | 5 | [Object delete – several selected](#object-delete-selected) | |
 | 6 | [Object filter](#object-filter) | |
 | 7 | [Object correlation between events](#object-correlation) | |
+| 8 | [Object edit – add a new attribute](#object-edit-add-attribute) | |
 
 ---
 
@@ -140,3 +141,18 @@ The same IP in objects of two events correlates the events
 11. Click **Review**, then **Submit**.
 
 **Expected:** `QA correlation 2` lists `QA correlation 1` in **Related Events**, and the ip attribute shows a correlation.
+
+### Object edit – add a new attribute
+<a id="object-edit-add-attribute"></a>
+
+Filling an empty field when editing an object adds the attribute (regression test for Bug 19)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA object add attribute` with **Add Event** and stay on its detail page.
+4. Click **Add Object**, select the template `domain-ip`, type `qa-object.example` in **domain**, then click **Review** and **Submit**.
+5. In the **Objects** tab, click **Edit object** on this object.
+6. Type `198.51.100.180` in **ip**.
+7. Click **Review**, then **Submit**.
+
+**Expected:** the object shows both `qa-object.example` and `198.51.100.180`.

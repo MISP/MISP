@@ -35,7 +35,7 @@ Two events with the same value are related
 
 **Expected:** **Related Events** lists `QA correlation B`, and the attribute `198.51.100.160` shows a correlation to it.
 
-**Seeded data:** `QA correlation A` (#113) and `QA correlation B` (#114) both contain `198.51.100.160`. Through the API, A lists B in its related events.
+**Seeded data:** `QA correlation A` and `QA correlation B` both contain `198.51.100.160`. Through the API, A lists B in its related events.
 
 ### Correlation exclusion – existing correlations
 <a id="correlation-exclusion-cleanup"></a>

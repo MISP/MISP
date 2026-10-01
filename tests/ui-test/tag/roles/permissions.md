@@ -35,7 +35,7 @@ Only the creator organisation can change the global tags of an event
 
 **Expected:** the tag is refused with "Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags."
 
-**Seeded data:** `QA roles community event` (#102, org `ADMIN`, distribution **This community only**, tag `qa:tag-roles-global-other-org`). Through the API, `qa-user-b` got exactly this message (HTTP 403).
+**Seeded data:** `QA roles community event` (org `ADMIN`, distribution **This community only**, tag `qa:tag-roles-global-other-org`). Through the API, `qa-user-b` got exactly this message (HTTP 403).
 
 ### Local tag on another organisation's event
 <a id="tag-roles-local-other-org"></a>
@@ -49,7 +49,7 @@ A local tag on an event of another organisation
 
 **Expected:** the local tag is attached (local tags are only for your own organisation), or it is refused with a message that explains why.
 
-**Seeded data:** `QA roles community event` (#102, org `ADMIN`, distribution **This community only**, tag `qa:tag-roles-local-other-org`). Through the API, `qa-user-b` was refused with only "Could not attachTagToObject Tag" (HTTP 403), which does not explain why.
+**Seeded data:** `QA roles community event` (org `ADMIN`, distribution **This community only**, tag `qa:tag-roles-local-other-org`). Through the API, `qa-user-b` was refused with only "Could not attachTagToObject Tag" (HTTP 403), which does not explain why.
 
 ### Tag restricted to an organisation
 <a id="tag-roles-restricted-org"></a>
@@ -64,7 +64,7 @@ A tag "Taggable by organisation" can only be used by that organisation
 
 **Expected:** `qa:org-a-only` is not offered (or refused) for `QA-Org-B`, and is offered for `ADMIN`.
 
-**Seeded data:** Tag `qa:org-a-only` (Taggable by organisation `ADMIN`). Through the API, `qa-user-b` could not attach it (HTTP 403 "Could not attachTagToObject Tag") and `qa-user-a` attached it to `QA roles org only event` (#103).
+**Seeded data:** Tag `qa:org-a-only` (Taggable by organisation `ADMIN`). Through the API, `qa-user-b` could not attach it (HTTP 403 "Could not attachTagToObject Tag") and `qa-user-a` attached it to `QA roles org only event`.
 
 ### Tag create – User role
 <a id="tag-roles-create-user"></a>

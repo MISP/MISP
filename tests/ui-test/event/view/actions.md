@@ -42,7 +42,7 @@ Publish an event, then unpublish it (regression test for Bug 13)
 
 **Expected:** after each action the event detail page opens at `/events/view2/<id>` in the Overmind layout; it shows Published after publishing and Unpublished after unpublishing.
 
-**Seeded data:** Use `QA unpublish redirect` (#7, already published), tag `qa:event-publish-unpublish`: click **Unpublish Event** first, then **Publish Event**.
+**Seeded data:** Use `QA unpublish redirect` (already published), tag `qa:event-publish-unpublish`: click **Unpublish Event** first, then **Publish Event**.
 
 ### Event publish – empty event
 <a id="event-publish-empty"></a>
@@ -88,7 +88,7 @@ Delete an event that another event extends
 
 **Expected:** `QA child` opens normally, without error, even though the event it extended was deleted.
 
-**Seeded data:** `QA parent` (#11) and `QA child` (#12, extends `QA parent`), tag `qa:event-delete-extended`. Created through the API, both accepted.
+**Seeded data:** `QA parent` and `QA child` (extends `QA parent`), tag `qa:event-delete-extended`. Created through the API, both accepted.
 
 ### Event tags and galaxy clusters
 <a id="event-tags-galaxies"></a>
@@ -130,7 +130,7 @@ Opening an event detail page with its UUID instead of its ID
 
 **Expected:** the same event detail page opens.
 
-**Seeded data:** `QA view by UUID` (#8), tag `qa:event-view-uuid`.
+**Seeded data:** `QA view by UUID`, tag `qa:event-view-uuid`.
 
 ### Event extends – two events extending each other
 <a id="event-extends-cycle"></a>
@@ -147,4 +147,4 @@ Two events that extend each other do not break the detail pages
 
 **Expected:** either the second extension is refused with a clear message, or both detail pages open normally without loop, freeze or error.
 
-**Seeded data:** `QA cycle A` (#9) and `QA cycle B` (#10), tag `qa:event-extends-cycle`. Created through the API: A, then B with **Extends** = A, then edited A with **Extends** = B. Result: the server accepted it, so A extends B and B extends A. Still to check in the UI: both detail pages open without loop or error.
+**Seeded data:** `QA cycle A` and `QA cycle B`, tag `qa:event-extends-cycle`. Created through the API: A, then B with **Extends** = A, then edited A with **Extends** = B. Result: the server accepted it, so A extends B and B extends A. Still to check in the UI: both detail pages open without loop or error.

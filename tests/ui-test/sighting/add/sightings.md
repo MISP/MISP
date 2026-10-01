@@ -37,7 +37,7 @@ Adding a sighting to an attribute
 
 **Expected:** the sighting count of the attribute goes up by one and the sighting is listed with your organisation and the current date.
 
-**Seeded data:** `QA correlation A` (#113) with `198.51.100.160` (also in `QA correlation B` (#114)) and `198.51.100.161`. Through the API, a sighting on `198.51.100.160` was saved (HTTP 200).
+**Seeded data:** `QA correlation A` with `198.51.100.160` (also in `QA correlation B`) and `198.51.100.161`. Through the API, a sighting on `198.51.100.160` was saved (HTTP 200).
 
 ### Sighting – false positive
 <a id="sighting-false-positive"></a>

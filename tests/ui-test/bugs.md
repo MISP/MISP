@@ -30,6 +30,8 @@ Roles:
 | 16  | [Internal error on /eventReports/viewRendered](#bug-16) | Open | v2.5.48 | |
 | 17  | [Sighting dated in the future is accepted](#bug-17) | Open | v2.5.48 | |
 | 18  | [Settings with a list of values accept any value](#bug-18) | Open | v2.5.48 | |
+| 19  | [Adding an attribute to an existing object does not add anything](#bug-19) | Open | v2.5.48 | |
+| 20  | [The correlation icon of an attribute does not toggle the correlation](#bug-20) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -142,7 +144,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: The object is saved, or a clear message says which fields are missing.
 - **Actual result**: Error page "You have tripped the cross-site request forgery protection of MISP" - object not saved.
-- **Notes**: Happened with two different templates (`nova-rule`, `scrippsco2-c13-daily`), so it does not depend on the template. error.log shows: `Blackhole exception when accessing /objects/add/45/333 (isRest: 0, action: add, unlockedActions: ["revise_object","get_row"]): The request has been black-holed`. **Also affects:** the other forms with the same locked hidden fields filled by JavaScript: **Add/Edit Attribute** (`first_seen`, `last_seen` in `Overmind/Attributes/add.ctp`), **Edit Object** (same form as Add Object), and **Add/Edit Event** (`date` in `Overmind/Events/add.ctp`, Bug 1). None of them unlocks these fields.
+- **Notes**: Happened with two different templates (`nova-rule`, `scrippsco2-c13-daily`), so it does not depend on the template. error.log shows (example): `Blackhole exception when accessing /objects/add/<event id>/<template id> (isRest: 0, action: add, unlockedActions: ["revise_object","get_row"]): The request has been black-holed`. **Also affects:** the other forms with the same locked hidden fields filled by JavaScript: **Add/Edit Attribute** (`first_seen`, `last_seen` in `Overmind/Attributes/add.ctp`), **Edit Object** (same form as Add Object), and **Add/Edit Event** (`date` in `Overmind/Events/add.ctp`, Bug 1). None of them unlocks these fields.
 - **Likely cause**: The POST to `/objects/add` is rejected by CakePHP's Security component (black-hole = form considered tampered), which MISP shows as a CSRF error. The form contains locked hidden fields (`first_seen` and `last_seen` in `app/View/Themed/Overmind/Objects/add.ctp`) that the page's JavaScript fills, the same pattern as Bug 1.
 
 ### Bug 7 – Internal error when an emoji is saved in many text fields
@@ -153,7 +155,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Open an event and click **Add Attribute**.
+1. Create an event with **Add Event** and click **Add Attribute**.
 2. In **Category** select `Network activity`, in **Type** select `ip-dst`, and type `198.51.100.60` in **Value**.
 3. Type `QA comment 🚀` in **Contextual Comment**.
 4. Click **Add Attribute** to save.
@@ -193,7 +195,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: Only the tags that are not favourite are listed.
 - **Actual result**: All tags are listed, the favourite ones included. **Favourite only** (`favouritesOnly:1`) works.
-- **Notes**: Through the API: 181 tags in total, 1 favourite; `favouritesOnly:1` returns 1 tag, `favouritesOnly:0` returns all 181. **Also affects:** the same **Favourite** filter on the Tag Collections list (`/tag_collections/index`): `TagCollectionsController` never reads `favouritesOnly`, so both choices are probably ignored there (found in the code, not yet checked: no collection exists on the test instance).
+- **Notes**: Checked through the API with one favourite tag: `favouritesOnly:1` returns only that tag, `favouritesOnly:0` returns every tag, the favourite one included. **Also affects:** the same **Favourite** filter on the Tag Collections list (`/tag_collections/index`): `TagCollectionsController` never reads `favouritesOnly`, so both choices are probably ignored there (found in the code, not yet checked).
 - **Likely cause**: In `TagsController::index()` the filter is applied only `if (!empty($passedArgsArray['favouritesOnly']))`; the value `'0'` is "empty" in PHP, so no condition is added, and there is no branch that excludes the favourite tags.
 
 ### Bug 10 – Warninglists list: the "Default" filter is ignored
@@ -209,7 +211,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: Only the warninglists that are not default (custom ones) are listed.
 - **Actual result**: All warninglists are listed.
-- **Notes**: Through the API: the instance has 225 warninglists, all default; `default:0` and `default:1` both return 225. The **Enabled** filter of the same page works (`enabled:1` returns 0, as none is enabled).
+- **Notes**: On a fresh install every warninglist is a default one, so `default:0` should return nothing; through the API `default:0` and `default:1` both return all of them. The **Enabled** filter of the same page works.
 - **Likely cause**: The **Default** filter is offered in `app/View/Themed/Overmind/Warninglists/index.ctp`, but `default` is not in the list of filters read by `WarninglistsController::index()` (`value`, `category`, `type`, `enabled`, `id`, `matchValue`), so it is dropped.
 
 ### Bug 11 – Inactive event template can still be used by its URL
@@ -220,14 +222,14 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Log in as a user with the `User` role.
-2. Check in `/event_templates/index` that `Suspicious domain triage` (#8) is inactive (it is not offered in **Use a template**).
-3. Go to `/event_templates/instantiate/8`.
+1. As site admin, go to `/event_templates/index` and pick an inactive template (the library templates are inactive by default, e.g. `Suspicious domain triage`); note its ID.
+2. Log in as a user with the `User` role and check that this template is not offered in **Add Event** → **Use a template**.
+3. Go to `/event_templates/instantiate/<template id>`.
 4. Fill the mandatory fields and click **Create event**.
 
 - **Expected result**: The template is refused because it is inactive; no event is created.
 - **Actual result**: The event is created from the inactive template.
-- **Notes**: Confirmed through the API: `qa-user-a` (role `User`) posted the mandatory values to `/event_templates/instantiate/8` and got `event_id: 105` (`Suspicious domain — qa-inactive.example`). The list page says "Inactive templates are hidden from the "From template" picker", so hiding is the only protection.
+- **Notes**: Confirmed through the API with a `User` account: posting the mandatory values to `/event_templates/instantiate/<id>` of an inactive template returns a new `event_id`. The list page says "Inactive templates are hidden from the "From template" picker", so hiding is the only protection.
 - **Likely cause**: `EventTemplatesController::instantiate()` loads the template with `__fetchForRead()` (which checks visibility only) and never checks `EventTemplate.active` before rendering the form or creating the event.
 
 ### Bug 12 – Event template form: an invalid value gives an error that does not say which field
@@ -244,7 +246,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: The form says that `domain` is not a valid domain name.
 - **Actual result**: The event is not created and the only messages are "Some attributes or objects were dropped during event creation." and "expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows".
-- **Notes**: Confirmed through the API (`POST /event_templates/instantiate/8`, HTTP 403). The rollback works: no partial event is left. A template user (often a reporter, not an admin) cannot read the audit log to find the reason.
+- **Notes**: Confirmed through the API (`POST /event_templates/instantiate/<id>`, HTTP 403). The rollback works: no partial event is left. A template user (often a reporter, not an admin) cannot read the audit log to find the reason.
 - **Likely cause**: `app/Lib/Tools/EventTemplateInstantiator.php` only counts the saved attributes against the expected ones and returns a generic message; the validation error of the dropped attribute is not passed back to the form.
 
 ### Bug 13 – Some actions open the old event page /events/view instead of the Overmind one
@@ -260,7 +262,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: The new event opens on the Overmind event page `/events/view2/<id>`.
 - **Actual result**: The browser goes to `/events/view/<id>`, which renders the old (non-Overmind) event page.
-- **Notes**: Checked on the instance: `/events/view/103` returns the old event page (old markup, 150 kB) while `/events/view2/103` is the Overmind page. **Also affects** (found in the code, they redirect to `view` without checking the theme): **Unpublish Event** (`EventsController::unpublish()`), a quick search on the Events list that matches only one event (`EventsController::index()`), and **Remove pivot** (`EventsController::removePivot()`). **Publish Event** does check the theme and opens `view2`.
+- **Notes**: For any event, `/events/view/<id>` returns the old event page while `/events/view2/<id>` is the Overmind page (checked in the Overmind theme). **Also affects** (found in the code, they redirect to `view` without checking the theme): **Unpublish Event** (`EventsController::unpublish()`), a quick search on the Events list that matches only one event (`EventsController::index()`), and **Remove pivot** (`EventsController::removePivot()`). **Publish Event** does check the theme and opens `view2`.
 - **Likely cause**: `app/webroot/js/event-templates/user_form.js` sends the user to `cfg.baseurl + '/events/view/' + event_id`, and the controller actions listed above call `redirect(['action' => 'view', …])` instead of using `view2` when the theme is Overmind; `/events/view` itself does not forward to `view2`.
 
 ### Bug 14 – CSV export does not neutralise spreadsheet formulas
@@ -271,13 +273,13 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Add to an event an attribute with the comment `=HYPERLINK("http://qa-csv.example","click")` and another with the comment `+cmd|calc`.
+1. Create an event with **Add Event**, and add an attribute (e.g. `ip-dst` `198.51.100.122`) with the comment `=HYPERLINK("http://qa-csv.example","click")` and another attribute with the comment `+cmd|calc`.
 2. Use **Download as** → **CSV (NOT FOR EXCEL)**.
 3. Open the file.
 
 - **Expected result**: Cells starting with `=`, `+`, `-` or `@` are neutralised (e.g. prefixed with `'`), so a spreadsheet does not run them.
 - **Actual result**: The comments are written unchanged, so a spreadsheet opening the file runs them as formulas.
-- **Notes**: Confirmed through the API (`/events/restSearch` with `returnFormat: csv`) on `QA export csv formula` (#108). The menu labels the format "CSV (NOT FOR EXCEL)", but values come from other organisations (sync, proposals, feeds), so a shared CSV can carry formulas. **Also affects:** every CSV output built with the same exporter: attribute `restSearch` in CSV, the CSV cached export on `/events/export`, and the deprecated `/events/csv`.
+- **Notes**: Confirmed through the API (`/events/restSearch` with `returnFormat: csv`). The menu labels the format "CSV (NOT FOR EXCEL)", but values come from other organisations (sync, proposals, feeds), so a shared CSV can carry formulas. **Also affects:** every CSV output built with the same exporter: attribute `restSearch` in CSV, the CSV cached export on `/events/export`, and the deprecated `/events/csv`.
 - **Likely cause**: `app/Lib/Export/CsvExport.php` quotes the values but does not escape a leading formula character.
 
 ### Bug 15 – Tags of a disabled taxonomy and clusters of a disabled galaxy can still be attached
@@ -289,11 +291,11 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 #### Steps to reproduce
 
 1. Disable the taxonomy `admiralty-scale` (`/taxonomies/index`) and the galaxy `Threat Actor` (`/galaxies/index`).
-2. Attach the tag `admiralty-scale:source-reliability="b"` to an event, and the cluster `misp-galaxy:threat-actor="APT29"` to an attribute (through the API `POST /tags/attachTagToObject`, or any path that is not the tag picker).
+2. Create an event with **Add Event** and one attribute, then attach the tag `admiralty-scale:source-reliability="b"` to the event and the cluster `misp-galaxy:threat-actor="APT29"` to the attribute (through the API `POST /tags/attachTagToObject`, or any path that is not the tag picker).
 
 - **Expected result**: Both are refused because their taxonomy / galaxy is disabled.
 - **Actual result**: Both are attached (HTTP 200 "Global tag … successfully attached").
-- **Notes**: Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API on `QA disable taxonomy and galaxy` (#109). Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
+- **Notes**: Not sure it is a bug: disabling may only be meant to hide the values from the pickers. Confirmed through the API. Tags already attached before disabling stay and are displayed correctly, which is fine. **Also affects:** probably every path that attaches tags without the picker: tag collections, freetext import with tags, event import, workflows (found by reasoning, not yet checked one by one).
 - **Likely cause**: `attachTagToObject` (and `captureTag`) look the tag up by name only and never check that its taxonomy or galaxy is enabled; the enabled flag is only used to build the pickers.
 
 ### Bug 16 – Internal error on /eventReports/viewRendered
@@ -304,8 +306,8 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Log in and open an event that has an event report (e.g. report #115).
-2. Go to `/eventReports/viewRendered/115`.
+1. Create an event with **Add Event**, add an event report to it and note the report ID.
+2. Go to `/eventReports/viewRendered/<report id>`.
 
 - **Expected result**: The rendered report is shown, or the page does not exist.
 - **Actual result**: "An Internal Error Has Occurred." (HTTP 500).
@@ -320,12 +322,12 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 #### Steps to reproduce
 
-1. Open an event and choose an attribute (e.g. `198.51.100.161` in `QA correlation A`).
+1. Create an event with **Add Event** and add an attribute `ip-dst` `198.51.100.161`.
 2. Add a sighting with a date one year in the future (e.g. through **Advanced sightings**, or the API `POST /sightings/add` with a future `timestamp`).
 
 - **Expected result**: The sighting is refused (a value cannot have been seen in the future), or saved with the current date.
 - **Actual result**: The sighting is saved with the future date.
-- **Notes**: Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API on `QA correlation A` (#113). Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
+- **Notes**: Not sure it is a bug, but a future sighting distorts the "last seen" information and the sighting graphs. Confirmed through the API. Also seen: a sighting with an invalid type (`9`) is refused with the message "Could not add the Sighting. Reason: Invalid type, please change it before you POST 1000000 sightings." but with HTTP 200.
 - **Likely cause**: The sighting save takes the given `timestamp` as `date_sighting` without checking it against the current time.
 
 ### Bug 18 – Settings with a list of values accept any value
@@ -341,8 +343,44 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: `9` is refused, because the allowed values are `0` to `4`.
 - **Actual result**: "Field updated" and `'default_event_distribution' => '9'` is written to `config.php`.
-- **Notes**: Confirmed on the instance and set back to `1` right after. The settings page uses a dropdown, so the UI hides the problem, but the API and the CLI write the bad value, and every new event would then get an invalid distribution. **Also affects** (same definition: a list of `options` but only the `testForEmpty` check): `default_attribute_distribution`, `default_event_threat_level`, `default_object_distribution`, `default_eventreport_distribution`, `default_analyst_data_distribution`, `default_galaxy_distribution`, `full_tags_on_event_index`.
+- **Notes**: Confirmed through the API (set back to a valid value right after). The settings page uses a dropdown, so the UI hides the problem, but the API and the CLI write the bad value, and every new event would then get an invalid distribution. **Also affects** (same definition: a list of `options` but only the `testForEmpty` check): `default_attribute_distribution`, `default_event_threat_level`, `default_object_distribution`, `default_eventreport_distribution`, `default_analyst_data_distribution`, `default_galaxy_distribution`, `full_tags_on_event_index`.
 - **Likely cause**: In `app/Model/Server.php` these settings declare `'options'` but `'test' => 'testForEmpty'`; the save path never checks the value against `options`.
+
+### Bug 19 – Adding an attribute to an existing object does not add anything
+
+<a id="bug-19"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event**.
+2. Click **Add Object**, choose the template `domain-ip`, fill only `domain` = `qa-object.example`, then **Review** and **Submit**.
+3. Go to the **Objects** tab and click **Edit object** on this object.
+4. Type `198.51.100.180` in the empty field `ip`.
+5. Click **Review**, then **Submit**.
+
+- **Expected result**: The object now has the new attribute `ip` = `198.51.100.180`.
+- **Actual result**: Nothing is added, neither to the object nor to the event.
+- **Notes**: Changing the value of an attribute that already exists in the object is saved correctly; only new attributes are lost. The same happens when several new attributes are filled at once.
+- **Likely cause**: Unknown
+
+### Bug 20 – The correlation icon of an attribute does not toggle the correlation
+
+<a id="bug-20"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event** and add an attribute `ip-dst` `198.51.100.181` (or an object with an attribute).
+2. In the Attributes tab, click the correlation icon (`chain-link`) of the attribute.
+3. In the confirmation window, choose **Disable correlation** (or **Enable correlation**).
+
+- **Expected result**: The correlation of the attribute is disabled (or enabled) and the icon changes.
+- **Actual result**: The state does not change and the message `error: undefined` is shown.
+- **Notes**: The IDS toggle works. The correlation can still be changed by editing the attribute or the object. Reproduced in a browser: the request `POST /attributes/toggleCorrelation/<id>` answers HTTP 400 "The request has been black-holed". **Also affects:** every place that shows this icon (attributes of the event, attributes inside objects, the Attributes list), as they all use the same element.
+- **Likely cause**: The icon (`app/View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/Fields/correlate.ctp`) sends a POST with an empty body and only an `X-CSRF-Token` header; `toggleCorrelation` is not in the unlocked actions of `AttributesController`, so CakePHP's Security component black-holes it. The answer has neither `saved` nor `errors`, so the script shows `error: undefined`.
 
 # Recommendations
 
@@ -375,4 +413,11 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 12), "Could not add User" (email already used or invalid), "Could not delete Organisation" (still has users and events).
 - **Proposal**: Always return and show the validation error that caused the refusal (field + rule), in the UI and in the API.
 - **Benefit**: Users fix their input themselves instead of guessing or asking an admin to read the logs.
+
+# Missing Features (compared to the default UI)
+
+1. Create a relationship between two objects within an event.
+2. Group one or more orphan attributes to create an object.
+3. Visual indication of existing analyst data.
+   - **Notes**: Only tested with analyst data relationships.
 

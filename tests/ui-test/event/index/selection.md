@@ -62,4 +62,4 @@ Delete several events at once from the Events list
 
 **Expected:** both events are deleted and are no longer in the Events list.
 
-**Seeded data:** `QA mass delete 1` (#17) and `QA mass delete 2` (#18), tag `qa:event-index-mass-delete`.
+**Seeded data:** `QA mass delete 1` and `QA mass delete 2`, tag `qa:event-index-mass-delete`.

@@ -36,7 +36,7 @@ Downloading an event as MISP JSON
 
 **Expected:** the file is valid JSON and contains the event and all its attributes.
 
-**Seeded data:** `QA export csv formula` (#108). Through the API, the JSON export answers in about 0.2 s.
+**Seeded data:** `QA export csv formula`. Through the API, the JSON export answers in about 0.2 s.
 
 ### Export – CSV formulas
 <a id="export-csv-formula"></a>
@@ -50,7 +50,7 @@ Values starting with = or + are neutralised in the CSV export (regression test f
 
 **Expected:** the comments `=HYPERLINK("http://qa-csv.example","click")` and `+cmd|calc` are written so that a spreadsheet does not run them (e.g. prefixed with `'`).
 
-**Seeded data:** `QA export csv formula` (#108, tag `qa:export-csv-formula`) has two attributes with these comments. Through the API, the CSV export writes them unchanged (see Bug 14).
+**Seeded data:** `QA export csv formula` (tag `qa:export-csv-formula`) has two attributes with these comments. Through the API, the CSV export writes them unchanged (see Bug 14).
 
 ### Export – STIX 2
 <a id="export-stix2"></a>
@@ -63,7 +63,7 @@ Downloading an event as STIX 2
 
 **Expected:** a valid STIX 2 bundle is downloaded; no error page.
 
-**Seeded data:** Through the API, the STIX 2 export of #108 answers in about 2.2 s (21 kB).
+**Seeded data:** Through the API, the STIX 2 export of `QA export csv formula` answers in about 2.2 s (21 kB).
 
 ### Export – several events
 <a id="export-selected"></a>

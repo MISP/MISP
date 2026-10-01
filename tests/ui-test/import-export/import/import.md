@@ -49,7 +49,7 @@ Importing an event that already exists on the instance
 
 **Expected:** the import is refused with a clear message that the event already exists (the API answers "Event already exists, if you would like to edit it, use the url in the location header."); no duplicate event.
 
-**Seeded data:** `QA export csv formula` (#108, tag `qa:export-csv-formula`). Through the API, adding its exported JSON again is refused with HTTP 404 and that message.
+**Seeded data:** `QA export csv formula` (tag `qa:export-csv-formula`). Through the API, adding its exported JSON again is refused with HTTP 404 and that message.
 
 ### Import – invalid file
 <a id="import-invalid"></a>

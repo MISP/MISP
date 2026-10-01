@@ -35,7 +35,7 @@ Creating a sharing group and adding a second organisation
 
 **Expected:** the sharing group is listed with its 2 organisations and can be chosen as **Sharing group** in **Add Event**.
 
-**Seeded data:** `QA SG org A and B` (#2, members `ADMIN` and `QA-Org-B`), created through the API.
+**Seeded data:** `QA SG org A and B` (members `ADMIN` and `QA-Org-B`), created through the API.
 
 ### Sharing group – emoji in the name
 <a id="sg-emoji"></a>
@@ -58,11 +58,11 @@ A member organisation that did not create the sharing group cannot edit it
 1. Log in to MISP as `user` of the organisation `QA-Org-B`.
 2. Go to `/sharing_groups/index`.
 3. Open `QA SG org A and B` and look for **Edit**.
-4. Go to `/sharing_groups/edit/2`.
+4. Go to `/sharing_groups/edit/<id>` (`<id>` = ID of `QA SG org A and B`).
 
 **Expected:** no **Edit** is offered and the edit page is refused with "You do not have permission to use this functionality."
 
-**Seeded data:** `QA SG org A and B` (#2, members `ADMIN` and `QA-Org-B`). Through the API, `qa-user-b` is refused (HTTP 403) and only sees `QA SG org A and B` in the list (not `QA SG org A only`).
+**Seeded data:** `QA SG org A and B` (members `ADMIN` and `QA-Org-B`). Through the API, `qa-user-b` is refused (HTTP 403) and only sees `QA SG org A and B` in the list (not `QA SG org A only`).
 
 ### Sharing group – delete while used
 <a id="sg-delete-used"></a>
@@ -75,4 +75,4 @@ Deleting a sharing group that is used by an event
 
 **Expected:** the deletion is refused with a message that says the sharing group is still used by events (not only "Could not delete SharingGroup").
 
-**Seeded data:** `QA SG org A only` (#1, member `ADMIN`) is used by `QA SG event org A only` (#110). Through the API the deletion is refused with HTTP 403 "Could not delete SharingGroup", without the reason.
+**Seeded data:** `QA SG org A only` (member `ADMIN`) is used by `QA SG event org A only`. Through the API the deletion is refused with HTTP 403 "Could not delete SharingGroup", without the reason.

@@ -50,7 +50,7 @@ HTML and scripts in a report are shown as text and never run
 
 **Expected:** no alert pops up; `<script>…</script>` and `<img … onerror=…>` are shown as text; `click me` does not run JavaScript.
 
-**Seeded data:** `QA event reports` (#112) has the report `<b>QA report</b> 🚀` (#115, tag of the event `qa:report-xss`) whose content contains `<script>alert('qa-script')</script>`, `<img src=x onerror=…>`, `[click me](javascript:…)` and `![img](javascript:…)`. Checked as `qa-orgadmin-a`: the report page and the event page send the content escaped (`<\/script>` inside JSON) and the Markdown renderer runs with HTML off; the final rendering is still to check in a browser.
+**Seeded data:** `QA event reports` has the report `<b>QA report</b> 🚀` (tag of the event `qa:report-xss`) whose content contains `<script>alert('qa-script')</script>`, `<img src=x onerror=…>`, `[click me](javascript:…)` and `![img](javascript:…)`. Checked as `qa-orgadmin-a`: the report page and the event page send the content escaped (`<\/script>` inside JSON) and the Markdown renderer runs with HTML off; the final rendering is still to check in a browser.
 
 ### Report – name with HTML and emoji
 <a id="report-name"></a>
@@ -79,7 +79,7 @@ A report of 3 MB stays usable
 
 **Expected:** the report opens and saves in a few seconds, without freezing the browser.
 
-**Seeded data:** `QA event reports` (#112) has `QA big report` (#116, about 3 MB). Through the API it was saved in 0.3 s and read back in 0.3 s; the time in the browser is still to measure.
+**Seeded data:** `QA event reports` has `QA big report` (about 3 MB). Through the API it was saved in 0.3 s and read back in 0.3 s; the time in the browser is still to measure.
 
 ### Report – reference to an attribute
 <a id="report-reference"></a>

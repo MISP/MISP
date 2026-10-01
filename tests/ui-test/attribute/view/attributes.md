@@ -18,6 +18,7 @@ Roles:
 | 3 | [Attribute soft-delete and restore](#attribute-soft-delete-restore) | |
 | 4 | [Attribute delete – correlation removed](#attribute-delete-correlation) | |
 | 5 | [Attribute filter in an event](#attribute-filter-event) | |
+| 6 | [Attribute correlation icon](#attribute-correlation-toggle) | |
 
 ---
 
@@ -105,3 +106,18 @@ Filtering the attributes of an event by value
 10. Type `alpha` in the attribute filter of the Attributes tab.
 
 **Expected:** only `qa-alpha.example` is shown; clearing the filter shows both again.
+
+### Attribute correlation icon
+<a id="attribute-correlation-toggle"></a>
+
+The correlation icon disables and enables the correlation of an attribute (regression test for Bug 20)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA correlation toggle` with **Add Event** and add an attribute `ip-dst` `198.51.100.181`.
+4. In the Attributes tab, click the correlation icon (`chain-link`) of `198.51.100.181` and choose **Disable correlation**.
+5. Click the icon again and choose **Enable correlation**.
+
+**Expected:** after step 4 the message "Correlation disabled" is shown and the icon turns grey; after step 5 "Correlation enabled" is shown; no `error: undefined` message.
+
+**Seeded data:** No data needed. Reproduced in a browser as `org-admin`: the request `POST /attributes/toggleCorrelation/<id>` answered HTTP 400 "The request has been black-holed" (see Bug 20).
