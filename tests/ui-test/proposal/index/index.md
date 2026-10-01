@@ -16,6 +16,7 @@ Roles:
 | 1 | [Proposals list – my organisation's events](#proposal-index-own-org) | |
 | 2 | [Proposals list – search](#proposal-index-search) | |
 | 3 | [Proposals list – View Event](#proposal-index-view-event) | |
+| 4 | [Events with proposals – actions menu](#proposal-event-index-actions) | |
 
 ---
 
@@ -57,3 +58,16 @@ The View Event action opens the event on the proposed attribute
 3. Click **View Event** on a proposal.
 
 **Expected:** the event detail page opens at `/events/view2/<id>` and shows the attribute the proposal is about.
+
+### Events with proposals – actions menu
+<a id="proposal-event-index-actions"></a>
+
+The actions menu of the list of events with proposals offers actions (regression test for Bug 18)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA proposal menu` with **Add Event**, add an attribute `ip-dst` `198.51.100.200`, click **Propose change** on it, change the value to `198.51.100.201` and click **Submit proposal**.
+4. Go to `/events/proposalEventIndex`.
+5. Click the **…** button of `QA proposal menu`.
+
+**Expected:** the menu shows at least **View**, which opens `/events/view2/<id>` of `QA proposal menu`.

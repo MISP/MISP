@@ -29,6 +29,7 @@ Roles:
 | 15  | [Adding an attribute to an existing object does not add anything](#bug-15) | Open | v2.5.48 | |
 | 16  | [The correlation icon of an attribute does not toggle the correlation](#bug-16) | Open | v2.5.48 | |
 | 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | v2.5.48 | |
+| 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -330,6 +331,24 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The pagination bar ("Page 1 of 1, showing …") is drawn over the menu and hides the entries between **Edit** and **Add note**.
 - **Notes**: **Confirmed in the UI** (screenshot of a tester, 2026-10-01). Seen with an object that is the last one of the page, so the menu goes down over the pagination bar.
 - **Likely cause**: Unknown
+
+### Bug 18 – Events with proposals list: the actions menu is empty
+
+<a id="bug-18"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event** and add an attribute (e.g. `ip-dst` `198.51.100.200`).
+2. Click **Propose change** on the attribute, change the value and click **Submit proposal**.
+3. Go to the list of events with proposals (`/events/proposalEventIndex`).
+4. Click the **…** (actions) button of the event.
+
+- **Expected result**: The menu offers actions for the event (at least **View**).
+- **Actual result**: The menu opens but is empty.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): the menu opens with no entry. No other Overmind list has an empty actions menu.
+- **Likely cause**: In `app/View/Themed/Overmind/Events/proposal_event_index.ctp` the **Actions** column uses the `row_actions` element with `'actions' => []`, so the menu is drawn with nothing in it (the Events list defines View, Edit and Delete).
 
 # Recommendations
 
