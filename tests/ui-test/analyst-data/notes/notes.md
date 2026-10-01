@@ -16,6 +16,8 @@ Roles:
 | 1 | [Note – add without text](#analyst-note-add-empty) | |
 | 2 | [Note – edit to an empty text](#analyst-note-edit-empty) | |
 | 3 | [Note – add with text](#analyst-note-add) | |
+| 4 | [Note – four nested levels](#analyst-note-nested) | |
+| 5 | [Note – counter with nested notes](#analyst-note-counter) | |
 
 ---
 
@@ -58,3 +60,34 @@ Adding a normal note to an event
 4. Type `QA analyst note text` in **Note** and click **Create Note**.
 
 **Expected:** the message "Note added." is shown and the note `QA analyst note text` is listed under **Analyst data** → **Notes** of the event.
+
+### Note – four nested levels
+<a id="analyst-note-nested"></a>
+
+Notes answered four levels deep are all shown (regression test for Bug 21)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA nested notes` with **Add Event** and stay on its detail page.
+4. Click **Add note**, type `QA level 1` and click **Create Note**.
+5. In the menu of `QA level 1`, click **Add note**, type `QA level 2` and click **Create Note**.
+6. Do the same on `QA level 2` with `QA level 3`, then on `QA level 3` with `QA level 4`.
+7. Reload the page.
+
+**Expected:** `QA level 1`, `QA level 2`, `QA level 3` and `QA level 4` are all shown, each one under the previous one (or a link shows the deeper notes).
+
+**Seeded data:** `QA nested notes`, built through the UI on 2026-10-01: levels 1 to 4 saved with the right parents, but `QA level 4` is not shown on the event page.
+
+### Note – counter with nested notes
+<a id="analyst-note-counter"></a>
+
+The Notes counter of the event reflects the notes of the thread (regression test for Bug 22)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open `QA nested notes` (see "Note – four nested levels").
+4. Look at the counter of the **Analyst data** → **Notes** block.
+
+**Expected:** the counter shows the number of notes of the thread, or says that it counts the first level only.
+
+**Seeded data:** Checked on 2026-10-01: the counter shows **NOTES (1)** with 4 nested notes.
