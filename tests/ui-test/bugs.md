@@ -23,6 +23,8 @@ Roles:
 | 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | v2.5.48 | |
 | 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | v2.5.48 | |
 | 11  | [Inactive event template can still be used by its URL](#bug-11) | Open | v2.5.48 | |
+| 12  | [Event template form: an invalid value gives an error that does not say which field](#bug-12) | Open | v2.5.48 | |
+| 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -222,6 +224,39 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: The event is created from the inactive template.
 - **Notes**: Confirmed through the API: `qa-user-a` (role `User`) posted the mandatory values to `/event_templates/instantiate/8` and got `event_id: 105` (`Suspicious domain — qa-inactive.example`). The list page says "Inactive templates are hidden from the "From template" picker", so hiding is the only protection.
 - **Likely cause**: `EventTemplatesController::instantiate()` loads the template with `__fetchForRead()` (which checks visibility only) and never checks `EventTemplate.active` before rendering the form or creating the event.
+
+### Bug 12 – Event template form: an invalid value gives an error that does not say which field
+
+<a id="bug-12"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Make the event template `Suspicious domain triage` active and open it with **Use a template** from **Add Event**.
+2. Type `not a domain!` in `domain`, fill the other mandatory fields.
+3. Click **Create event**.
+
+- **Expected result**: The form says that `domain` is not a valid domain name.
+- **Actual result**: The event is not created and the only messages are "Some attributes or objects were dropped during event creation." and "expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows".
+- **Notes**: Confirmed through the API (`POST /event_templates/instantiate/8`, HTTP 403). The rollback works: no partial event is left. A template user (often a reporter, not an admin) cannot read the audit log to find the reason.
+- **Likely cause**: `app/Lib/Tools/EventTemplateInstantiator.php` only counts the saved attributes against the expected ones and returns a generic message; the validation error of the dropped attribute is not passed back to the form.
+
+### Bug 13 – Some actions open the old event page /events/view instead of the Overmind one
+
+<a id="bug-13"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Make an event template active, open it with **Use a template** from **Add Event**.
+2. Fill the mandatory fields and click **Create event**.
+
+- **Expected result**: The new event opens on the Overmind event page `/events/view2/<id>`.
+- **Actual result**: The browser goes to `/events/view/<id>`, which renders the old (non-Overmind) event page.
+- **Notes**: Checked on the instance: `/events/view/103` returns the old event page (old markup, 150 kB) while `/events/view2/103` is the Overmind page. **Also affects** (found in the code, they redirect to `view` without checking the theme): **Unpublish Event** (`EventsController::unpublish()`), a quick search on the Events list that matches only one event (`EventsController::index()`), and **Remove pivot** (`EventsController::removePivot()`). **Publish Event** does check the theme and opens `view2`.
+- **Likely cause**: `app/webroot/js/event-templates/user_form.js` sends the user to `cfg.baseurl + '/events/view/' + event_id`, and the controller actions listed above call `redirect(['action' => 'view', …])` instead of using `view2` when the theme is Overmind; `/events/view` itself does not forward to `view2`.
 
 # Recommendations
 

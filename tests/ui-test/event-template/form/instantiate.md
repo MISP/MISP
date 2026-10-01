@@ -18,6 +18,7 @@ Roles:
 | 3 | [Template form – invalid value](#event-template-invalid-value) | |
 | 4 | [Template form – preview](#event-template-preview) | |
 | 5 | [Template form – user of another organisation](#event-template-other-org) | |
+| 6 | [Template form – page shown after creation](#event-template-redirect) | |
 
 ---
 
@@ -60,7 +61,9 @@ A value refused by the server shows the reason and keeps what was typed
 3. Go to `/events/index`, click **Add Event**, click **Use a template** and choose `Suspicious domain triage` (make it **Active** first in `/event_templates/index` if needed).
 4. Type `not a domain!` in `domain`, fill the other mandatory fields and click **Create event**.
 
-**Expected:** no event is created, the reason is shown, and the form keeps the typed values (it does not go back to the template page with an empty form).
+**Expected:** no event is created, the message names the invalid field (`domain`) and why, and the form keeps the typed values.
+
+**Seeded data:** No data needed. Through the API, `not a domain!` in `domain` was refused and nothing was created (rollback works), but the only reasons given are "Some attributes or objects were dropped during event creation." and "expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows" (see Bug 12). The form sends the request in JavaScript and shows the errors in a panel, so the typed values stay on the page.
 
 ### Template form – preview
 <a id="event-template-preview"></a>
@@ -85,3 +88,15 @@ A user of another organisation can use a community template
 4. Fill the mandatory fields and click **Create event**.
 
 **Expected:** the event is created and belongs to `QA-Org-B`, not to the organisation that owns the template.
+
+### Template form – page shown after creation
+<a id="event-template-redirect"></a>
+
+After creating an event from a template, the Overmind event page opens (regression test for Bug 13)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Click **Add Event**, click **Use a template** and choose `Suspicious domain triage` (make it **Active** first in `/event_templates/index` if needed).
+4. Fill the mandatory fields and click **Create event**.
+
+**Expected:** the new event opens at `/events/view2/<id>` in the Overmind layout, not at `/events/view/<id>`.

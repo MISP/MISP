@@ -90,7 +90,7 @@ Opening a page number that does not exist
 ### Event index – search with a single match
 <a id="event-index-search-single"></a>
 
-A search that matches exactly one event opens that event
+A search that matches exactly one event opens that event (regression test for Bug 13)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

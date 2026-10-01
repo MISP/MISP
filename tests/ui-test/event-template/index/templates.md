@@ -42,6 +42,8 @@ An active template is offered in Add Event, and nothing is offered when no templ
 
 **Expected:** with no active template, Add Event shows no **Use a template** block; with `Suspicious domain triage` active, the block is shown and the picker offers `Suspicious domain triage`.
 
+**Seeded data:** No data needed. Checked on the Add Event page as `qa-orgadmin-a`: no **Use a template** block while all 10 templates were inactive, block shown once `Suspicious domain triage` (#8) was made active (then made inactive again).
+
 ### Template inactive – not usable by its URL
 <a id="event-template-inactive-url"></a>
 
@@ -85,14 +87,19 @@ Deleting a library-managed template warns that the library update brings it back
 ### Template library update – edited template
 <a id="event-template-update-forked"></a>
 
-A library template edited locally is not overwritten by the library update
+Editing a library template: warned overwrite, and kept only when it is no longer library-managed
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/event_templates/index`.
-3. Click **Edit** on `Vulnerability disclosure`, change its description to `QA edited` and save.
-4. Click **Update from library**.
+3. Click **Edit** on `Vulnerability disclosure` and read the **Library-managed template** notice.
+4. Change its description to `QA edited`, keep **Library-managed** ticked and save.
+5. Click **Update from library**.
+6. Click **Edit** on `Vulnerability disclosure` again, change its description to `QA edited`, untick **Library-managed** and save.
+7. Click **Update from library**.
 
-**Expected:** `Vulnerability disclosure` is listed under **Skipped (forked)** and still has the description `QA edited`.
+**Expected:** the notice says the next update overwrites the edits unless **Library-managed** is unticked; after step 5 the template is listed as **Updated** and its description is back to the library one; after step 7 it is listed under **Skipped (forked)** and keeps `QA edited`.
+
+**Seeded data:** No data needed. Through the API: description of `Vulnerability disclosure` (#10) changed to `QA edited description` with **Library-managed** still on, then `/event_templates/update` listed it under `updated` and restored the library description (version 3), as the notice announces.
 
 ### Template export and import – same UUID
 <a id="event-template-import-conflict"></a>
