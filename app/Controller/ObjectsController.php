@@ -25,6 +25,10 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
+        // The delete confirmation posts an empty body through fetch(), so there is
+        // no field hash for _validatePost() to compare and it can only blackhole.
+        // CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete']);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -400,6 +404,10 @@ class ObjectsController extends AppController
             $body['id'] = (int)$result;
         } else {
             $body['errors'] = $error ?: __('Object could not be saved.');
+            // csrfUseOnce is on, so the token the form posted has just been spent.
+            // The form stays on screen after a rejected save, so it is handed the
+            // token generated for this request or the next attempt blackholes.
+            $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
         }
         return new CakeResponse([
             'body' => json_encode($body),
@@ -645,7 +653,11 @@ class ObjectsController extends AppController
                         $this->MispObject->Event->unpublishEvent($event);
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Object attributes saved.'))), 'status'=>200, 'type' => 'json'));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array(
+                            'saved' => false,
+                            'errors' => $error_message,
+                            'csrfToken' => $this->request->params['_Token']['key'] ?? null,
+                        )), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
                     if (is_numeric($objectToSave)) {

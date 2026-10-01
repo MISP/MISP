@@ -418,13 +418,86 @@ $this->Form->unlockField('Attribute');
 
                     <div id="last-row" class="d-none" data-last-row="<?= h($lastRow) ?>"></div>
 
-                    <div class="d-flex justify-content-end">
-                        <button type="button" class="btn btn-object" id="objReviewBtn">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-object" id="objRelationshipBtn">
+                            <i class="fas fa-link me-1"></i><?= __('Add relationship') ?>
+                        </button>
+                        <button type="button" class="btn btn-object ov-obj-review-btn" id="objReviewBtn">
                             <i class="fas fa-eye me-1"></i><?= __('Review') ?>
                             <i class="fas fa-chevron-down ms-1"></i>
                         </button>
                     </div>
 
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== RELATIONSHIPS (optional) ===== -->
+        <div class="accordion-item border mb-2 rounded shadow-sm">
+            <h2 class="accordion-header" id="objHeadingRel">
+                <button class="accordion-button ov-accordion-static collapsed rounded"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="objCollapseRel">
+                    <span class="badge bg-object me-2"><?= $isEdit ? '2' : '3' ?></span>
+                    <?= __('Relationships') ?>
+                    <span class="badge rounded-pill ov-obj-step-badge fw-normal ms-2">
+                        <?= __('optional') ?>
+                    </span>
+                </button>
+            </h2>
+            <div id="objCollapseRel" class="accordion-collapse collapse" aria-labelledby="objHeadingRel">
+                <div class="accordion-body">
+
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('A relationship points this object at another object or attribute of the event. They are created once the object itself is saved.'),
+                        'class' => 'mb-3',
+                    ]) ?>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Relationship type'),
+                                'for' => 'objRelType',
+                            ]) ?>
+                            <select id="objRelType" class="form-select"></select>
+                            <input type="text" id="objRelTypeCustom"
+                                   class="form-control mt-2 d-none"
+                                   placeholder="<?= __('Custom relationship type') ?>">
+                        </div>
+                        <div class="col-md-5">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Target'),
+                                'for' => 'objRelTarget',
+                            ]) ?>
+                            <select id="objRelTarget" class="form-select"></select>
+                        </div>
+                        <div class="col-md-3">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Comment'),
+                                'for' => 'objRelComment',
+                            ]) ?>
+                            <input type="text" id="objRelComment" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-sm btn-object" id="objRelAddBtn" disabled>
+                            <i class="fas fa-plus me-1"></i><?= __('Add this relationship') ?>
+                        </button>
+                    </div>
+
+                    <div id="objRelList" class="mt-3"></div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-object ov-obj-review-btn">
+                            <i class="fas fa-eye me-1"></i><?= __('Review') ?>
+                            <i class="fas fa-chevron-down ms-1"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -436,7 +509,7 @@ $this->Form->unlockField('Attribute');
                         type="button"
                         aria-expanded="false"
                         aria-controls="objCollapse3">
-                    <span class="badge bg-object me-2"><?= $isEdit ? '2' : '3' ?></span>
+                    <span class="badge bg-object me-2"><?= $isEdit ? '3' : '4' ?></span>
                     <?= __('Review') ?>
                 </button>
             </h2>
@@ -485,6 +558,8 @@ $this->Form->unlockField('Attribute');
     'pickerUrl' => $pickerUrl,
     'similarUrl' => $baseurl . '/objects/similar_objects/' . $eventId
         . '/' . $template['ObjectTemplate']['id'],
+    'relationshipTargetsUrl' => $baseurl . '/objectReferences/targets/' . $eventId,
+    'relationshipAddUrl' => $baseurl . '/objectReferences/add/',
     'distributionLevels' => (object)$distributionData['levels'],
     'template' => [
         'id' => (string)$template['ObjectTemplate']['id'],

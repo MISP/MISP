@@ -101,85 +101,10 @@ class ObjectReferencesController extends AppController
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
             }
 
-            $user = $this->Auth->user();
-            $attributeConditions = array('Attribute.deleted' => 0, 'Attribute.object_id' => 0);
-            $objectConditions = array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0);
-            $objectAttributeConditions = array('Attribute.deleted' => 0);
-            if (empty($user['Role']['perm_site_admin'])) {
-                $ownEventId = (int)$object['Event']['id'];
-                $sgids = $this->ObjectReference->Object->SharingGroup->authorizedIds($user);
-                $attributeConditions[] = array(
-                    'OR' => array(
-                        'Attribute.event_id' => $ownEventId,
-                        'Attribute.distribution' => array(1, 2, 3, 5),
-                        array('Attribute.distribution' => 4, 'Attribute.sharing_group_id' => $sgids),
-                    )
-                );
-                $objectConditions[] = array(
-                    'OR' => array(
-                        'Object.event_id' => $ownEventId,
-                        'Object.distribution' => array(1, 2, 3, 5),
-                        array('Object.distribution' => 4, 'Object.sharing_group_id' => $sgids),
-                    )
-                );
-                $objectAttributeConditions[] = array(
-                    'OR' => array(
-                        'Attribute.event_id' => $ownEventId,
-                        'Attribute.distribution' => array(1, 2, 3, 5),
-                        array('Attribute.distribution' => 4, 'Attribute.sharing_group_id' => $sgids),
-                    )
-                );
-            }
-            $events = $this->ObjectReference->Object->Event->find('all', array(
-                'conditions' => array(
-                    'OR' => array(
-                        'Event.id' => $object['Event']['id'],
-                        'AND' => array(
-                            'Event.uuid' => $object['Event']['extends_uuid'],
-                            $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
-                        )
-                    ),
-                ),
-                'recursive' => -1,
-                'fields' => array('Event.id'),
-                'contain' => array(
-                    'Attribute' => array(
-                        'conditions' => $attributeConditions,
-                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
-                    ),
-                    'Object' => array(
-                        'conditions' => $objectConditions,
-                        'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
-                        'Attribute' => array(
-                            'conditions' => $objectAttributeConditions,
-                            'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
-                        )
-                    )
-                )
-            ));
-            $event = $events[0];
-            for ($i = 1; $i < count($events); $i++) {
-                $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
-                $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
-            }
-            $toRearrange = array('Attribute', 'Object');
-            foreach ($toRearrange as $d) {
-                if (!empty($event[$d])) {
-                    $temp = array();
-                    foreach ($event[$d] as $data) {
-                        $temp[$data['uuid']] = $data;
-                    }
-                    $event[$d] = $temp;
-                }
-            }
-            $this->loadModel('ObjectRelationship');
-            $relationships = $this->ObjectRelationship->find('column', array(
-                'recursive' => -1,
-                'fields' => ['name'],
-            ));
-            $relationships = array_combine($relationships, $relationships);
-            $relationships['custom'] = 'custom';
-            ksort($relationships);
+            list($event, $relationships) = $this->__referenceChoices(
+                $object,
+                $object['Object']['id']
+            );
             $this->set('relationships', $relationships);
             $this->set('event', $event);
             $this->set('objectId', $object['Object']['id']);
@@ -359,4 +284,220 @@ class ObjectReferencesController extends AppController
         $this->layout = false;
         $this->render('ajax/bulkAdd');
     }
+
+    /**
+     * The same choices add() renders, as JSON, for an object that does not exist
+     * yet — the add-object form builds its relationships before the object it
+     * would hang them off has been saved.
+     *
+     * @param int $eventId
+     * @return CakeResponse
+     */
+    public function targets($eventId)
+    {
+        $user = $this->Auth->user();
+        $event = $this->ObjectReference->Object->Event->fetchSimpleEvent($user, $eventId, [
+            'fields' => ['Event.id', 'Event.orgc_id', 'Event.user_id', 'Event.extends_uuid'],
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+
+        $eventId = (int)$event['Event']['id'];
+        $search = trim((string)($this->request->query('searchTerm') ?? ''));
+        $limit = 50;
+
+        $reach = $this->__referenceReachConditions($user, $eventId);
+
+        $objectConditions = ['Object.deleted' => 0, 'Object.event_id' => $eventId];
+        $attributeConditions = ['Attribute.deleted' => 0, 'Attribute.event_id' => $eventId];
+        if ($reach !== null) {
+            $objectConditions[] = $reach['object'];
+            $attributeConditions[] = $reach['attribute'];
+        }
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $objectConditions[] = ['OR' => [
+                'Object.name LIKE' => $like,
+                'Object.uuid LIKE' => $like,
+                'Object.comment LIKE' => $like,
+            ]];
+            $attributeConditions[] = ['OR' => [
+                'Attribute.value1 LIKE' => $like,
+                'Attribute.value2 LIKE' => $like,
+                'Attribute.uuid LIKE' => $like,
+            ]];
+        }
+
+        $objects = $this->ObjectReference->Object->find('all', [
+            'recursive' => -1,
+            'conditions' => $objectConditions,
+            'fields' => ['Object.uuid', 'Object.name', 'Object.meta-category'],
+            'order' => ['Object.id' => 'desc'],
+            'limit' => $limit,
+        ]);
+        $attributes = $this->ObjectReference->Object->Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => $attributeConditions,
+            'fields' => ['Attribute.uuid', 'Attribute.value1', 'Attribute.value2',
+                         'Attribute.type', 'Attribute.category'],
+            'order' => ['Attribute.id' => 'desc'],
+            'limit' => $limit,
+        ]);
+
+        $targets = [];
+        foreach ($objects as $row) {
+            $targets[] = [
+                'uuid' => $row['Object']['uuid'],
+                'kind' => 'object',
+                'label' => $row['Object']['name'],
+                'context' => $row['Object']['meta-category'],
+            ];
+        }
+        foreach ($attributes as $row) {
+            $value = $row['Attribute']['value1'];
+            if ($row['Attribute']['value2'] !== '') {
+                $value .= '|' . $row['Attribute']['value2'];
+            }
+            $targets[] = [
+                'uuid' => $row['Attribute']['uuid'],
+                'kind' => 'attribute',
+                'label' => $value,
+                'context' => $row['Attribute']['category'] . '/' . $row['Attribute']['type'],
+            ];
+        }
+
+        $this->loadModel('ObjectRelationship');
+        $relationships = $this->ObjectRelationship->find('column', [
+            'recursive' => -1,
+            'fields' => ['name'],
+            'order' => ['name' => 'asc'],
+        ]);
+        $relationships[] = 'custom';
+
+        return new CakeResponse([
+            'body' => json_encode([
+                'relationships' => $relationships,
+                'targets' => $targets,
+                'truncated' => count($objects) >= $limit || count($attributes) >= $limit,
+            ]),
+            'status' => 200,
+            'type' => 'json',
+        ]);
+    }
+
+    /**
+     * What a user may point a reference at, beyond their own event: anything
+     * shared with them. Site admins are held to nothing, which is the null.
+     *
+     * @param array $user
+     * @param int $ownEventId
+     * @return array|null ['attribute' => …, 'object' => …] OR conditions
+     */
+    private function __referenceReachConditions(array $user, $ownEventId)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return null;
+        }
+        $sgids = $this->ObjectReference->Object->SharingGroup->authorizedIds($user);
+        $shared = array(
+            'distribution' => array(1, 2, 3, 5),
+        );
+        return array(
+            'attribute' => array('OR' => array(
+                'Attribute.event_id' => $ownEventId,
+                'Attribute.distribution' => $shared['distribution'],
+                array('Attribute.distribution' => 4, 'Attribute.sharing_group_id' => $sgids),
+            )),
+            'object' => array('OR' => array(
+                'Object.event_id' => $ownEventId,
+                'Object.distribution' => $shared['distribution'],
+                array('Object.distribution' => 4, 'Object.sharing_group_id' => $sgids),
+            )),
+        );
+    }
+
+    /**
+     * Everything the reference form offers: the event's objects and attributes
+     * as possible targets, keyed by uuid, and the relationship vocabulary.
+     *
+     * Shared by add() and targets() so that both answer with exactly the same
+     * set — the distribution rules a non site-admin is held to are the point of
+     * this, and they must not drift between the two.
+     *
+     * @param array $object the object the reference starts from, with its Event
+     * @param int|false $excludeObjectId an object to leave out, itself for add()
+     * @return array [$event, $relationships]
+     */
+    private function __referenceChoices(array $object, $excludeObjectId = false)
+    {
+        $user = $this->Auth->user();
+        $attributeConditions = array('Attribute.deleted' => 0, 'Attribute.object_id' => 0);
+        $objectConditions = array('Object.deleted' => 0);
+        if ($excludeObjectId !== false) {
+            $objectConditions['NOT'] = array('Object.id' => $excludeObjectId);
+        }
+        $objectAttributeConditions = array('Attribute.deleted' => 0);
+        $reach = $this->__referenceReachConditions($user, (int)$object['Event']['id']);
+        if ($reach !== null) {
+            $attributeConditions[] = $reach['attribute'];
+            $objectConditions[] = $reach['object'];
+            $objectAttributeConditions[] = $reach['attribute'];
+        }
+        $events = $this->ObjectReference->Object->Event->find('all', array(
+            'conditions' => array(
+                'OR' => array(
+                    'Event.id' => $object['Event']['id'],
+                    'AND' => array(
+                        'Event.uuid' => $object['Event']['extends_uuid'],
+                        $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
+                    )
+                ),
+            ),
+            'recursive' => -1,
+            'fields' => array('Event.id'),
+            'contain' => array(
+                'Attribute' => array(
+                    'conditions' => $attributeConditions,
+                    'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                ),
+                'Object' => array(
+                    'conditions' => $objectConditions,
+                    'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
+                    'Attribute' => array(
+                        'conditions' => $objectAttributeConditions,
+                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                    )
+                )
+            )
+        ));
+        $event = $events[0];
+        for ($i = 1; $i < count($events); $i++) {
+            $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
+            $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
+        }
+        $toRearrange = array('Attribute', 'Object');
+        foreach ($toRearrange as $d) {
+            if (!empty($event[$d])) {
+                $temp = array();
+                foreach ($event[$d] as $data) {
+                    $temp[$data['uuid']] = $data;
+                }
+                $event[$d] = $temp;
+            }
+        }
+        $this->loadModel('ObjectRelationship');
+        $relationships = $this->ObjectRelationship->find('column', array(
+            'recursive' => -1,
+            'fields' => ['name'],
+        ));
+        $relationships = array_combine($relationships, $relationships);
+        $relationships['custom'] = 'custom';
+        ksort($relationships);
+        return [$event, $relationships];
+    }
+
 }

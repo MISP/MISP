@@ -155,7 +155,9 @@ body[data-controller="users"][data-action="change_pw"] {
 
 
 
-.loading {
+/* TomSelect puts `loading` on its wrapper while a server-side search is in
+   flight, so this full-screen overlay cannot answer to that name alone. */
+.ov-loading-overlay {
     display: none;
     position: fixed;
     top: 50%;
@@ -4519,4 +4521,20 @@ tr.evt-extension-row td:first-child {
 
 .ov-obj-similar-match {
     font-size: .75rem;
+}
+
+/* A card whose value the server refused. The mark clears as soon as the value
+   is edited, so it never outlives the problem it describes. */
+.ov-obj-row.ov-obj-row-invalid {
+    border-left-color: var(--bs-danger);
+}
+
+.ov-obj-row-invalid .Attribute_value {
+    border-color: var(--bs-danger);
+}
+
+.ov-obj-row-error {
+    margin-top: .25rem;
+    color: var(--bs-danger);
+    font-size: .72rem;
 }

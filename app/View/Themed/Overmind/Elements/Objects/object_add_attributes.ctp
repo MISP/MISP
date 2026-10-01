@@ -50,7 +50,8 @@ $initDist = !empty($element['distribution'])
             'type' => 'hidden', 'value' => $element['object_relation'],
             'label' => false, 'div' => false,
         ]) ?>
-        <?php if ($action === 'edit'): ?>
+
+        <?php if ($action === 'edit' && empty($blank)): ?>
         <?= $this->Form->input('Attribute.' . $k . '.uuid', [
             'type' => 'hidden',
             'value' => !empty($element['uuid']) ? $element['uuid'] : '',

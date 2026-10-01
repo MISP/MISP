@@ -64,8 +64,10 @@ foreach ($tabs as $i => $tab) {
                         <?= h($tab['title']) ?>
                     <?php endif; ?>
 
-                    <?php if (!empty($tab['count'])): ?>
-                        <span> (<?= h($tab['count']) ?>) </span>
+                    <?php if (isset($tab['count'])): ?>
+                        <span class="ov-tab-count" data-tab-count="<?= h($tab['id']) ?>">
+                            (<?= h($tab['count']) ?>)
+                        </span>
                     <?php endif; ?>
                 </a>
             </li>

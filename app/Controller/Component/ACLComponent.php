@@ -633,6 +633,7 @@ class ACLComponent extends Component
             'createFromFreetext' => ['perm_add'],
         ),
         'objectReferences' => array(
+            'targets' => array('AND' => ['perm_add', 'theming_enabled']),
             'add' => array('perm_add'),
             'bulkAdd' => array('perm_add'),
             'delete' => array('perm_add'),

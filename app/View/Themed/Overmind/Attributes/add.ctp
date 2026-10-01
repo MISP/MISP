@@ -25,6 +25,13 @@ $correlIconStyle = $disableCorrelChecked
     ? 'color:#adb5bd;opacity:.7;'
     : 'color:#198754;opacity:1;';
 
+/*
+ * An attribute inside an object takes its category and type from the object's
+ * template, so neither can be changed here.
+ */
+$lockedByObject = $isEdit && !empty($objectAttribute);
+$lockedMessage  = __('Category and type come from the object template and cannot be changed on an attribute that belongs to an object.');
+
 echo $this->Form->create('Attribute', ['novalidate' => true]);
 ?>
 
@@ -52,12 +59,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         <?= __('REQUIRED') ?>
                     </span>
                 </div>
-                <?= $this->Form->select('category', $categories, [
-                    'id'    => 'AttributeCategory',
-                    'class' => 'form-select',
-                    'value' => $currentCat,
-                    'empty' => __('(choose one)'),
-                ]) ?>
+                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
+                    <?= $this->Form->select('category', $categories, array_filter([
+                        'id'    => 'AttributeCategory',
+                        'class' => 'form-select',
+                        'value' => $currentCat,
+                        'empty' => __('(choose one)'),
+                        'disabled' => $lockedByObject,
+                        'data-locked' => $lockedByObject ? '1' : null,
+                    ], function ($v) { return $v !== null && $v !== false; })) ?>
+                </span>
                 <div id="notice_category" class="mt-2"
                      style="display:none;overflow:hidden;"></div>
             </div>
@@ -71,13 +82,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         <?= __('REQUIRED') ?>
                     </span>
                 </div>
-                <?= $this->Form->select('type', $types, [
-                    'id'       => 'AttributeType',
-                    'class'    => 'form-select',
-                    'value'    => $currentType,
-                    'empty'    => __('(choose category first)'),
-                    'disabled' => ($isEdit && !empty($attachment)),
-                ]) ?>
+                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
+                    <?= $this->Form->select('type', $types, array_filter([
+                        'id'       => 'AttributeType',
+                        'class'    => 'form-select',
+                        'value'    => $currentType,
+                        'empty'    => __('(choose category first)'),
+                        'disabled' => ($isEdit && !empty($attachment)) || $lockedByObject,
+                        'data-locked' => $lockedByObject ? '1' : null,
+                    ], function ($v) { return $v !== null && $v !== false; })) ?>
+                </span>
                 <div id="notice_type" class="mt-2" style="display:none;"></div>
             </div>
 

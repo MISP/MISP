@@ -197,6 +197,35 @@ function returnToEventView(eventId) {
 }
 
 /**
+ * Write a figure into a view_layout tab's title.
+ *
+ * The count is rendered server-side once and then goes stale the moment anything
+ * is added or removed, so whatever knows the new figure calls this. The tab must
+ * have been rendered with a `count` key, even a zero one, or there is no span to
+ * write into.
+ *
+ * @param {string} tabId  the tab's id, e.g. 'objects'
+ * @param {number} count
+ */
+function setTabCount(tabId, count) {
+    const el = document.querySelector('.ov-tab-count[data-tab-count="' + tabId + '"]');
+    if (el) { el.textContent = '(' + count + ')'; }
+}
+
+/**
+ * Read it back, so a caller that only knows it removed one row can say so.
+ *
+ * @param {string} tabId
+ * @return {number|null} null when the tab carries no count
+ */
+function getTabCount(tabId) {
+    const el = document.querySelector('.ov-tab-count[data-tab-count="' + tabId + '"]');
+    if (!el) { return null; }
+    const n = parseInt(el.textContent.replace(/[^0-9-]/g, ''), 10);
+    return isNaN(n) ? null : n;
+}
+
+/**
  * Reload whichever event-view index tab is currently shown.
  *
  * Where the tag, galaxy and relationship modals are opened from an attribute
@@ -1345,7 +1374,7 @@ function openEventTemplateLibraryUpdatePopup() {
 }
 
 async function submitEventTemplatesLibraryUpdate() {
-    const loadingIcons = document.querySelectorAll('.loading');
+    const loadingIcons = document.querySelectorAll('.ov-loading-overlay');
     loadingIcons.forEach(el => el.style.display = 'block');
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
@@ -5188,8 +5217,11 @@ function initAttributeForm(currentDist, isEdit) {
         while (typeEl.options.length) { typeEl.remove(0); }
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
-        typeEl.value    = nextVal;
-        typeEl.disabled = false;
+        typeEl.value = nextVal;
+        /* An attribute inside an object has its type fixed by the template, so
+         * refilling the list must not hand it back. */
+        var locked = typeEl.dataset.locked === '1';
+        typeEl.disabled = locked;
 
         if (typeEl.tomselect) {
             var ts = typeEl.tomselect;
@@ -5199,6 +5231,7 @@ function initAttributeForm(currentDist, isEdit) {
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
             ts.setValue(nextVal, true);
             ts.refreshItems();
+            if (locked) { ts.disable(); }
         }
 
         formTypeChanged('Attribute');
@@ -7274,6 +7307,7 @@ function initObjectAddForm(container, payloadEl) {
 
         if (p.value) {
             p.value.addEventListener('input', function () {
+                clearRowError(row);
                 splitPastedLines();
                 syncSave();
             });
@@ -7528,6 +7562,89 @@ function initObjectAddForm(container, payloadEl) {
         };
     }
 
+    /* ---- what is wrong with the form ------------------------------------- */
+
+    function clearRowError(row) {
+        row.classList.remove('ov-obj-row-invalid');
+        var line = row.querySelector('.ov-obj-row-error');
+        if (line) { line.remove(); }
+    }
+
+    function clearRowErrors() {
+        form.querySelectorAll('.attribute_row').forEach(clearRowError);
+    }
+
+    function markRowError(row, message) {
+        clearRowError(row);
+        row.classList.add('ov-obj-row-invalid');
+        var body = row.querySelector('.card-body');
+        if (!body) { return; }
+        var line = document.createElement('div');
+        line.className = 'ov-obj-row-error';
+        line.textContent = message;
+        body.appendChild(line);
+    }
+
+    /* The format of a value is the server's to judge — the same endpoint the
+     * attribute form checks against, one call per filled card. */
+    function validateValues() {
+        var rows = savedRows().filter(function (row) { return rowValue(row) !== ''; });
+        if (!rows.length || typeof baseurl === 'undefined') {
+            return Promise.resolve([]);
+        }
+        return Promise.all(rows.map(function (row) {
+            var params = new URLSearchParams();
+            params.set('type', describeRow(row).type);
+            params.set('value', rowValue(row));
+            return fetch(baseurl + '/attributes/validateValue', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    return (res && res.valid === false)
+                        ? { row: row, message: res.message || 'Invalid value.' }
+                        : null;
+                })
+                /* A check that cannot run must not block a save the server would
+                 * have accepted; it will have the last word anyway. */
+                .catch(function () { return null; });
+        })).then(function (list) {
+            return list.filter(Boolean);
+        });
+    }
+
+    /* Requirements first — they are instant and tell the user what is missing —
+     * then the value formats. Resolves to whether the form is good to go. */
+    function runChecks() {
+        clearError();
+        clearRowErrors();
+
+        var problem = requirementMessage();
+        if (problem) {
+            showError(problem);
+            return Promise.resolve(false);
+        }
+        return validateValues().then(function (bad) {
+            if (!bad.length) { return true; }
+            bad.forEach(function (item) { markRowError(item.row, item.message); });
+            var names = bad.map(function (item) {
+                return item.row.dataset.objectRelation;
+            });
+            showError(bad.length === 1
+                ? names[0] + ': ' + bad[0].message
+                : bad.length + ' attributes have an invalid value: ' + names.join(', '));
+            bad[0].row.scrollIntoView({ block: 'nearest' });
+            return false;
+        });
+    }
+
     /* ---- required fields ------------------------------------------------ */
 
     function missingRequirements() {
@@ -7603,15 +7720,16 @@ function initObjectAddForm(container, payloadEl) {
             + '</tr></thead><tbody>';
 
         rows.forEach(function (a) {
-            html += '<tr>'
-                + '<td class="text-break">' + distBadgeHtml(a.distribution, false)
-                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
+            var value = distBadgeHtml(a.distribution, false)
                 + ' ' + escapeHtml(a.value || '—')
                 + (a.comment
                     ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
                         + escapeHtml(a.comment) + '</div>'
-                    : '')
-                + '</td>'
+                    : '');
+
+            html += '<tr>'
+                + '<td class="text-break">' + value + '</td>'
+                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
                 + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
                 + '<td class="text-center"><i class="fas fa-shield-halved '
                 + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
@@ -7698,17 +7816,227 @@ function initObjectAddForm(container, payloadEl) {
             .catch(function () { box.innerHTML = ''; });
     }
 
-    /* ---- navigation between the two steps ------------------------------- */
+    /* ---- relationships (optional step) ---------------------------------- */
 
-    var reviewBtn = container.querySelector('#objReviewBtn');
-    if (reviewBtn) {
-        reviewBtn.addEventListener('click', function () {
-            buildReview();
-            fetchSimilar();
-            var el = container.querySelector('#objCollapse3');
+    /* Kept until the object exists: a reference needs something to hang off, and
+     * the object has no id until it is saved. */
+    var pendingRelationships = [];
+    var relationshipsLoaded = false;
+
+    var relBtn = container.querySelector('#objRelationshipBtn');
+    var relTypeEl = container.querySelector('#objRelType');
+    var relCustomEl = container.querySelector('#objRelTypeCustom');
+    var relTargetEl = container.querySelector('#objRelTarget');
+    var relCommentEl = container.querySelector('#objRelComment');
+    var relAddBtn = container.querySelector('#objRelAddBtn');
+    var relListEl = container.querySelector('#objRelList');
+
+    function relTypeValue() {
+        var picked = relTypeEl ? relTypeEl.value : '';
+        if (picked === 'custom') {
+            return relCustomEl ? relCustomEl.value.trim() : '';
+        }
+        return picked;
+    }
+
+    function syncRelAddBtn() {
+        if (!relAddBtn) { return; }
+        relAddBtn.disabled = !(relTypeValue() && relTargetEl && relTargetEl.value);
+    }
+
+    function renderRelationships() {
+        if (!relListEl) { return; }
+        if (!pendingRelationships.length) {
+            relListEl.innerHTML = '';
+            return;
+        }
+        var html = '<ul class="list-group">';
+        pendingRelationships.forEach(function (rel, i) {
+            html += '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
+                + '<span class="badge bg-object">' + escapeHtml(rel.type) + '</span>'
+                + '<span class="text-muted small">' + escapeHtml(rel.kind) + '</span>'
+                + '<span class="text-break">' + escapeHtml(rel.label) + '</span>'
+                + (rel.comment
+                    ? '<span class="text-muted fst-italic small">'
+                        + escapeHtml(rel.comment) + '</span>'
+                    : '')
+                + '<button type="button" class="btn btn-sm ov-obj-row-remove ms-auto"'
+                + ' data-drop-rel="' + i + '" title="' + 'Remove' + '">'
+                + '<i class="fas fa-trash"></i></button>'
+                + '</li>';
+        });
+        relListEl.innerHTML = html + '</ul>';
+    }
+
+    if (relListEl) {
+        relListEl.addEventListener('click', function (event) {
+            var btn = event.target.closest('[data-drop-rel]');
+            if (!btn) { return; }
+            pendingRelationships.splice(parseInt(btn.dataset.dropRel, 10), 1);
+            renderRelationships();
+        });
+    }
+
+    /* The choices are fetched the first time the step is opened, not with the
+     * form: an event's objects and attributes are none of the add form's
+     * business until somebody asks for a relationship. */
+    function loadRelationshipChoices() {
+        if (relationshipsLoaded || !data.relationshipTargetsUrl) {
+            return Promise.resolve();
+        }
+        relationshipsLoaded = true;
+        return fetch(data.relationshipTargetsUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                (res.relationships || []).forEach(function (name) {
+                    relTypeEl.add(new Option(name, name));
+                });
+                if (typeof TomSelect !== 'undefined') {
+                    var relTypeSelect = new TomSelect(relTypeEl, { create: false, placeholder: 'Relationship type' });
+                    relTypeSelect.clear(true);
+                    initRelationshipTargetSelect(res.targets || []);
+                } else {
+                    (res.targets || []).forEach(function (target) {
+                        relTargetEl.add(new Option(target.label, target.uuid));
+                    });
+                }
+                syncRelAddBtn();
+            })
+            .catch(function () {
+                relationshipsLoaded = false;
+                showError('Could not load the relationship choices.');
+            });
+    }
+
+    /* Typing searches the event server-side — the list is capped, so a big event
+     * is found by searching rather than by scrolling. */
+    function initRelationshipTargetSelect(initial) {
+        var ts = new TomSelect(relTargetEl, {
+            valueField: 'uuid',
+            labelField: 'label',
+            searchField: ['label', 'context', 'uuid'],
+            options: initial,
+            create: false,
+            placeholder: 'Search the event for an object or attribute',
+            load: function (query, callback) {
+                fetch(data.relationshipTargetsUrl + '?searchTerm=' + encodeURIComponent(query), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) { callback(res.targets || []); })
+                    .catch(function () { callback(); });
+            },
+            render: {
+                option: function (item, escape) {
+                    return '<div class="py-1">'
+                        + '<span class="badge bg-secondary me-1">' + escape(item.kind) + '</span>'
+                        + escape(item.label)
+                        + '<div class="text-muted small">' + escape(item.context) + '</div>'
+                        + '</div>';
+                },
+                item: function (item, escape) { return '<div>' + escape(item.label) + '</div>'; }
+            },
+            onChange: syncRelAddBtn
+        });
+        relTargetEl.tomselect = ts;
+    }
+
+    if (relBtn) {
+        relBtn.addEventListener('click', function () {
+            loadRelationshipChoices();
+            var el = container.querySelector('#objCollapseRel');
             if (el) { bootstrap.Collapse.getOrCreateInstance(el).show(); }
         });
     }
+
+    if (relTypeEl) {
+        relTypeEl.addEventListener('change', function () {
+            if (relCustomEl) {
+                relCustomEl.classList.toggle('d-none', relTypeEl.value !== 'custom');
+            }
+            syncRelAddBtn();
+        });
+    }
+    if (relCustomEl) { relCustomEl.addEventListener('input', syncRelAddBtn); }
+
+    if (relAddBtn) {
+        relAddBtn.addEventListener('click', function () {
+            var type = relTypeValue();
+            var uuid = relTargetEl ? relTargetEl.value : '';
+            if (!type || !uuid) { return; }
+            var option = relTargetEl.tomselect
+                ? relTargetEl.tomselect.options[uuid]
+                : null;
+            pendingRelationships.push({
+                type: type,
+                uuid: uuid,
+                kind: option ? option.kind : '',
+                label: option ? option.label : uuid,
+                comment: relCommentEl ? relCommentEl.value.trim() : ''
+            });
+            renderRelationships();
+            if (relCommentEl) { relCommentEl.value = ''; }
+            if (relTargetEl.tomselect) { relTargetEl.tomselect.clear(); }
+            syncRelAddBtn();
+        });
+    }
+
+    /* Posted one by one once the object has an id. A reference that fails is
+     * reported rather than swallowed — the object itself is already saved, so
+     * silently dropping it would leave the user believing otherwise. */
+    function createRelationships(objectId) {
+        if (!pendingRelationships.length || !data.relationshipAddUrl) {
+            return Promise.resolve([]);
+        }
+        return Promise.all(pendingRelationships.map(function (rel) {
+            var body = new URLSearchParams();
+            body.set('data[ObjectReference][referenced_uuid]', rel.uuid);
+            body.set('data[ObjectReference][relationship_type]', rel.type);
+            body.set('data[ObjectReference][comment]', rel.comment);
+            return fetch(data.relationshipAddUrl + encodeURIComponent(objectId), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': typeof getCsrfToken === 'function' ? getCsrfToken() : ''
+                },
+                body: body.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) { return (res && res.saved) ? null : rel; })
+                .catch(function () { return rel; });
+        })).then(function (list) {
+            return list.filter(Boolean);
+        });
+    }
+
+    /* ---- navigation between the two steps ------------------------------- */
+
+    /* There is one of these at the end of each step the user can stop on, so the
+     * handler works off the class and holds them all while the checks run. */
+    var reviewBtns = container.querySelectorAll('.ov-obj-review-btn');
+    reviewBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            /* Reviewing is where problems surface: if the form is not sound the
+             * user stays on it, next to the fields to fix, rather than being sent
+             * to a summary of something that cannot be saved. */
+            reviewBtns.forEach(function (b) { b.disabled = true; });
+            runChecks()
+                .then(function (sound) {
+                    if (!sound) { return; }
+                    buildReview();
+                    fetchSimilar();
+                    var el = container.querySelector('#objCollapse3');
+                    if (el) { bootstrap.Collapse.getOrCreateInstance(el).show(); }
+                })
+                .then(function () {
+                    reviewBtns.forEach(function (b) { b.disabled = false; });
+                });
+        });
+    });
 
     var backBtn = container.querySelector('#objPrevBtn3');
     if (backBtn) {
@@ -7728,6 +8056,38 @@ function initObjectAddForm(container, payloadEl) {
 
     /* ---- submit ---------------------------------------------------------- */
 
+    /* Land on the objects tab, the way the controller's redirect used to. Which
+     * tab was open decides how: the objects one only needs its contents
+     * refreshed, any other has to be switched to — its own shown.bs.tab is what
+     * fetches the fragment. Reloading the page instead would drop the user back
+     * on whichever tab they started from, with the new object out of sight.
+     * @return {boolean} whether the event view took care of it
+     */
+    function showObjectsTab() {
+        var btn = document.querySelector(
+            '.nav-link[data-bs-toggle="tab"][href="#tab-objects"]'
+        );
+        if (!btn) { return false; }
+        var pane = document.querySelector('#tab-objects .ajax-tab-content');
+
+        if (!btn.classList.contains('active')) {
+            /* loadAjaxContainer() serves a fragment once and then caches it on
+             * data-loaded, so a tab that had already been opened would come back
+             * exactly as it was, without the object just added. */
+            if (pane) { delete pane.dataset.loaded; }
+            bootstrap.Tab.getOrCreateInstance(btn).show();
+            return true;
+        }
+        if (reloadEventViewIndexTab()) { return true; }
+
+        if (pane && typeof loadAjaxContainer === 'function') {
+            delete pane.dataset.loaded;
+            loadAjaxContainer(pane);
+            return true;
+        }
+        return false;
+    }
+
     /* Posting through fetch() keeps the event view standing: a rejected save
      * leaves this form exactly as the user left it, and an accepted one reloads
      * the objects tab rather than the whole page. */
@@ -7736,16 +8096,20 @@ function initObjectAddForm(container, payloadEl) {
     form.addEventListener('submit', function (event) {
         if (event.defaultPrevented) { return; }
         event.preventDefault();
-        clearError();
-
-        var problem = requirementMessage();
-        if (problem) {
-            showError(problem);
-            buildReview();
-            return;
-        }
 
         if (submitBtn) { submitBtn.disabled = true; }
+        /* The same checks Review runs, because a save can be asked for without
+         * ever opening it. */
+        runChecks().then(function (sound) {
+            if (!sound) {
+                if (submitBtn) { submitBtn.disabled = false; }
+                return;
+            }
+            sendForm();
+        });
+    });
+
+    function sendForm() {
 
         /* No `Accept: application/json` here: _isRest() reads that header, and the
          * REST branch of add()/edit() answers in a different shape and with a
@@ -7759,22 +8123,40 @@ function initObjectAddForm(container, payloadEl) {
             .then(function (result) {
                 if (!result || !result.saved) {
                     if (submitBtn) { submitBtn.disabled = false; }
+                    /* csrfUseOnce spends the token this post carried, and the form
+                     * stays up, so the next attempt needs the replacement. */
+                    if (result && result.csrfToken) {
+                        var field = form.querySelector('input[name="data[_Token][key]"]');
+                        if (field) { field.value = result.csrfToken; }
+                    }
                     showError((result && result.errors) || 'Object could not be saved.');
                     return;
                 }
-                var modalEl = document.getElementById('mainModal');
-                var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-                if (modal) { modal.hide(); }
-                showToast(result.success || 'Object saved.', 'success');
-                if (!reloadEventViewIndexTab()) {
-                    window.location.reload();
-                }
+                /* The object exists now, so its relationships can be hung off it. */
+                createRelationships(result.id).then(function (failed) {
+                    var modalEl = document.getElementById('mainModal');
+                    var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                    if (modal) { modal.hide(); }
+
+                    showToast(result.success || 'Object saved.', 'success');
+                    if (failed.length) {
+                        showToast(failed.length + ' relationship'
+                            + (failed.length === 1 ? '' : 's')
+                            + ' could not be created: '
+                            + failed.map(function (r) { return r.type; }).join(', '),
+                            'danger');
+                    }
+                    if (!showObjectsTab()) {
+                        window.location.href = baseurl + '/events/view2/'
+                            + encodeURIComponent(data.eventId) + '#tab-objects';
+                    }
+                });
             })
             .catch(function () {
                 if (submitBtn) { submitBtn.disabled = false; }
                 showError('Request failed — please try again.');
             });
-    });
+    }
 }
 
 /* A full-page render of objects/add or objects/edit - a rejected save on a
