@@ -24,6 +24,14 @@ ui-test/
     view/                   event detail page
       actions.md            publish, delete, tags, extends…
       performance.md        large events
+  taxonomy/
+    index/actions.md        enable/disable, required, update
+    view/tags.md            enable all tags, disable one tag
+    tagging/exclusive.md    exclusive taxonomies (tlp)
+  galaxy/
+    index/galaxies.md       custom galaxy, disable, delete, import
+    cluster/clusters.md     add, fork, rename, delete/restore, publish
+    cluster/relations.md    relationships between clusters
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/
@@ -47,6 +55,8 @@ New feature (e.g. attributes)? Create `attribute/<page>/<topic>.md` with the sam
 - URLs and values in `backticks` (`/events/index`, `QA minimal event`).
 - Roles are only `user`, `site-admin`, `org-admin`. For now all tests use `site-admin`.
 - Every test ends with one `**Expected:**` line that can be checked (what is shown, which page opens).
+- Never mention `tools/seed_events.py` (or any tool) inside a test: describe the data to create
+  instead (e.g. "create an event with 2,000 `ip-dst` attributes").
 - Do not add extra sections, fields or emojis. Do not remove a field: if something is unknown use
   `Notes: None` / `Likely cause: Unknown` (never guess a cause).
 - Numbering restarts at 1 in each file. Add new rows at the end of the table and new sections at the
@@ -109,7 +119,7 @@ Section at the end of the file (`<test-slug>` = short kebab-case name, unique in
 **Expected:** <one sentence: what happens and which page opens>
 ```
 
-Optional, only when the test data was created on a local instance (e.g. by `tools/seed_events.py`), one line right after **Expected:**:
+Optional, only when the test data was created on a local instance, one line right after **Expected:**:
 
 ```markdown
 **Seeded data:** <events created (name, #id), their `qa:<test-slug>` tag, the steps done to create them, and what the server showed (accepted / refused + message)>

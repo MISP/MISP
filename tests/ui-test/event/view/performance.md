@@ -27,7 +27,7 @@ The detail page of a large event loads in a reasonable time and stays usable
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
-3. Open the event `QA big event` (2,000 attributes, created by `tools/seed_events.py`).
+3. Open the event `QA big event`. If it does not exist, create it with **Add Event** and add 2,000 attributes of type `ip-dst` (one of them with the value `198.51.100.250`).
 4. Measure the time until the attribute list is displayed.
 5. Go to the next page of attributes.
 6. Search for `198.51.100.250` in the attribute search.

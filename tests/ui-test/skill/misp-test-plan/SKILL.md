@@ -37,10 +37,13 @@ Write the markdown in **English**. Talk to the user in their own language.
          add/     fields.md, validation.md      (Add Event form)
          edit/    edit.md                       (Edit Event form)
          view/    actions.md, performance.md    (event detail page: publish, delete, tags…, large events)
+       taxonomy/  index/actions.md, view/tags.md, tagging/exclusive.md
+       galaxy/    index/galaxies.md, cluster/clusters.md, cluster/relations.md
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.
    - **All bugs go in `bugs.md`** (template 0b), never in a feature file.
    - **Recommendations / suggestions** ("ce serait cool de…", "recommandation") go in the `# Recommendations` section at the very bottom of `bugs.md` (template 3). No table row, no E2E test.
+   - **Never mention the seed script (`tools/seed_events.py`) or any tool inside a test.** Steps and `**Seeded data:**` describe the data itself (e.g. "create an event with 2,000 `ip-dst` attributes"), so anyone can reproduce the test by hand.
    - **Read the target file(s) first** and take the next free number from their table.
    - **A. Row** → add it as the last row of the file's table.
    - **B. Section** → add it at the end of the file. One blank line between sections.

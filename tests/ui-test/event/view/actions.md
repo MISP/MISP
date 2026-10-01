@@ -147,4 +147,4 @@ Two events that extend each other do not break the detail pages
 
 **Expected:** either the second extension is refused with a clear message, or both detail pages open normally without loop, freeze or error.
 
-**Seeded data:** `QA cycle A` (#9) and `QA cycle B` (#10), tag `qa:event-extends-cycle`. Done by `tools/seed_events.py`: created A, created B with **Extends** = A, then edited A with **Extends** = B. Result: the server accepted it, so A extends B and B extends A. Still to check in the UI: both detail pages open without loop or error.
+**Seeded data:** `QA cycle A` (#9) and `QA cycle B` (#10), tag `qa:event-extends-cycle`. Created through the API: A, then B with **Extends** = A, then edited A with **Extends** = B. Result: the server accepted it, so A extends B and B extends A. Still to check in the UI: both detail pages open without loop or error.
