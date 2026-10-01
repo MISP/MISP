@@ -381,32 +381,12 @@ class AnalystData extends AppModel
 
     public function deduceType(string $uuid)
     {
-        foreach ($this->valid_targets as $valid_target) {
-            $this->{$valid_target} = ClassRegistry::init($valid_target);
-            $result = $this->$valid_target->find('first', [
-                'conditions' => [$valid_target.'.uuid' => $uuid],
-                'recursive' => -1
-            ]);
-            if (!empty($result)) {
-                return $valid_target;
-            }
-        }
-        throw new NotFoundException(__('Invalid UUID'));
+        return $this->deduceTypeFromUuid($uuid, self::valid_targets);
     }
 
     public function getAnalystDataTypeFromUUID($uuid)
     {
-        foreach (self::ANALYST_DATA_TYPES as $type) {
-            $this->{$type} = ClassRegistry::init($type);
-            $result = $this->{$type}->find('first', [
-                'conditions' => [$type.'.uuid' => $uuid],
-                'recursive' => -1
-            ]);
-            if (!empty($result)) {
-                return $type;
-            }
-        }
-        throw new NotFoundException(__('Invalid UUID'));
+        return $this->deduceTypeFromUuid($uuid, self::ANALYST_DATA_TYPES);
     }
 
     public function deduceAnalystDataType(array $analystData)

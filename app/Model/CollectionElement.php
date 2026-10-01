@@ -132,17 +132,7 @@ class CollectionElement extends AppModel
 
     public function deduceType(string $uuid)
     {
-        foreach ($this->valid_types as $valid_type) {
-            $this->{$valid_type} = ClassRegistry::init($valid_type);
-            $result = $this->$valid_type->find('first', [
-                'conditions' => [$valid_type.'.uuid' => $uuid],
-                'recursive' => -1
-            ]);
-            if (!empty($result)) {
-                return $valid_type;
-            }
-        }
-        throw new NotFoundException(__('Invalid UUID'));
+        return $this->deduceTypeFromUuid($uuid, $this->valid_types);
     }
 
     /*
