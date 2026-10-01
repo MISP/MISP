@@ -47,31 +47,38 @@ class UsersEvolutionWidget
             throw new InvalidArgumentException("Number of days, weeks or months must be a number between 1 and 180.");
         }
 
+        // Users without a creation date are counted in every bucket, exactly as the
+        // previous per-bucket `date_created IS NULL OR date_created <= $time` condition did.
+        $undatedUsers = $this->User->find('count', array(
+            'recursive' => -1,
+            'conditions' => array('date_created' => null)
+        ));
+        $creationTimes = $this->User->find('column', array(
+            'recursive' => -1,
+            'conditions' => array('NOT' => array('date_created' => null)),
+            'fields' => array('User.date_created')
+        ));
+        $creationTimes = array_map('intval', $creationTimes);
+        sort($creationTimes);
+
         $data = array();
         $data['data'] = array();
+        // $itemTime strictly decreases with every iteration, so a single backwards
+        // moving pointer yields the number of users created at or before each bucket.
+        $pointer = count($creationTimes);
         // Add total users data for all timestamps
         for ($i = 0; $i < $limit; $i++) {
             $itemTime = strtotime('- ' . $i . $delta, $endOfDay);
+            while ($pointer > 0 && $creationTimes[$pointer - 1] > $itemTime) {
+                $pointer--;
+            }
             $item = array();
             $item['date'] = strftime('%Y-%m-%d', $itemTime);
-            $item['users'] = $this->usersAtTime($itemTime);
+            $item['users'] = $undatedUsers + $pointer;
             $data['data'][] = $item;
         }
 
         return $data;
-    }
-
-    private function usersAtTime($time)
-    {
-        return $this->User->find('count', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'OR' => array(
-                    array('date_created' => null),
-                    array('date_created <=' => $time),
-                )
-            )
-        ));
     }
 
     public function checkPermissions($user)
