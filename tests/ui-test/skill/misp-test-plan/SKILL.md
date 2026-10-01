@@ -39,7 +39,7 @@ Write the markdown in **English**. Talk to the user in their own language.
          view/    actions.md, performance.md    (event detail page: publish, delete, tags…, large events)
        taxonomy/  index/actions.md, view/tags.md, tagging/exclusive.md
        galaxy/    index/galaxies.md, cluster/clusters.md, cluster/relations.md
-       object/    add/add.md, view/objects.md, templates/templates.md
+       object/    add/add.md, view/objects.md, templates/templates.md, relationships/relationships.md
        attribute/ add/add.md, add/batch.md, add/attachment.md, view/attributes.md, index/search.md
        tag/       index/tags.md, local/local.md, collection/collections.md
        proposal/  add/add.md, index/index.md, review/review.md, cross-org/cross-org.md

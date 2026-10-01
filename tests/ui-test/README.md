@@ -36,6 +36,7 @@ ui-test/
     add/add.md              Add Object form: requirements, invalid values, duplicates
     view/objects.md         event Objects tab: edit, delete, filter, correlation
     templates/templates.md  object templates: deactivate, update, search
+    relationships/relationships.md  object relationships list: highlight
   attribute/
     add/add.md              Add Attribute form: validation, normalisation, duplicates, first seen
     add/batch.md            batch import

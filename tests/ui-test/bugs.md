@@ -35,6 +35,7 @@ Roles:
 | 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | v2.5.48 | |
 | 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | v2.5.48 | |
 | 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | v2.5.48 | |
+| 24  | [Object relationships list: "Remove Highlight" is never offered for selected rows](#bug-24) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -451,6 +452,23 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). It is not a configuration problem: no sighting setting is changed on the instance (defaults), and adding sightings through the API works. Every request `POST /sightings/add/<attribute id>` answers HTTP 400 "The request has been black-holed"; error.log says `Blackhole exception when accessing /sightings/add/<id> (isRest: 1, action: add, unlockedActions: []): '_Token' was not found in request data.` (for the buttons and for the panel). Same mechanism as Bug 16 (correlation icon).
 - **Likely cause**: The buttons and the panel (`app/View/Themed/Overmind/Sightings/ajax/advanced.ctp`) send the POST from JavaScript without the CakePHP form token (`_Token`), and `add` is not in the unlocked actions of `SightingsController`, so the Security component black-holes the request. The panel then prints `JSON.stringify(data.errors || {})`, and as the answer has no `errors` field the user only sees `{}`.
 
+### Bug 24 – Object relationships list: "Remove Highlight" is never offered for selected rows
+
+<a id="bug-24"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Go to the Object relationships list (`/object_relationships/index`).
+2. Highlight one relationship (e.g. `shares`) with its **Highlight** action.
+3. Tick the checkbox of this highlighted relationship.
+
+- **Expected result**: The selection bar offers **Remove Highlight** (and **Highlight** only for rows that are not highlighted).
+- **Actual result**: The selection bar only offers **Highlight**, whatever rows are ticked; the highlight cannot be removed for several rows at once.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): with the highlighted relationship `shares` ticked, with a normal one ticked, and with both, only **Highlight** is shown. The checkboxes of this list have no `data-highlight` attribute. **Also affects:** probably the Taxonomies list (`/taxonomies/index`), which has the same configuration (found in the code, not checked in the UI: no taxonomy is highlighted on the test instance).
+- **Likely cause**: In `app/View/Themed/Overmind/ObjectRelationships/index.ctp`, `'highlight_path' => 'highlighted'` is set on the **Actions** column, not on the `checkbox` column. The checkbox element (`genericElementsBS5/IndexTable/Fields/checkbox.ctp`) only writes `data-highlight` when its own field has `highlight_path`, so `updateMultiSelectToolbar()` in `mispOvermind.js` never sees a highlighted row and keeps **Remove Highlight** hidden.
+
 # Recommendations
 
 ### Recommendation 1 – Filter the Events list by several tags or galaxies
@@ -482,6 +500,26 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 11), "Could not add User" (email already used or invalid), "Could not delete Organisation" (still has users and events).
 - **Proposal**: Always return and show the validation error that caused the refusal (field + rule), in the UI and in the API.
 - **Benefit**: Users fix their input themselves instead of guessing or asking an admin to read the logs.
+
+### Recommendation 4 – Filter the Object relationships list by highlighted / not highlighted
+
+<a id="recommendation-4"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+- **Current behaviour**: The Object relationships list (`/object_relationships/index`) has no filter on the **Highlighted** state; with 300+ relationships, the highlighted ones can only be found by sorting the column.
+- **Proposal**: Add a **Highlighted** filter (highlighted / not highlighted) in **More filters**, like the **Enabled** or **Published** filters of other lists.
+- **Benefit**: Admins can see and manage the highlighted relationships (the ones offered first in the object reference picker) in one click.
+
+### Recommendation 5 – Show a newly created object relationship first
+
+<a id="recommendation-5"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+- **Current behaviour**: The Object relationships list is sorted by name (A to Z), so a relationship that was just created appears at its alphabetical place, e.g. on page 6 at the end of the list.
+- **Proposal**: After creating a relationship, open it (or the list filtered on it), or offer a sort by creation date / ID with the newest first.
+- **Benefit**: The user can check right away what was created, without browsing several pages.
 
 # Missing Features (compared to the default UI)
 
