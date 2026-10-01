@@ -31,6 +31,7 @@ Roles:
 | 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | v2.5.48 | |
 | 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | v2.5.48 | |
 | 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | v2.5.48 | |
+| 20  | [A note can be saved without its required text](#bug-20) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -367,6 +368,24 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Actual result**: Nothing happens: no selection bar, no action. The checkbox is ticked but cannot be used.
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): after ticking a row, no new control appears on the page. On `/events/index` the same action shows "Selected items: 1" with **Export** and **Delete**. **Also affects** (checked in the browser, same result): the Attributes list (`/attributes/index`), the Users list (`/admin/users/index`) and the Proposals list (`/shadow_attributes/index`). The other lists checked (Galaxies, Tags, Taxonomies, Object templates, Warninglists, Noticelists, Organisations, Roles, Event templates, Auth keys, Event blocklists, Sharing groups, Correlation exclusions, Feeds) show the selection bar.
 - **Likely cause**: The selection bar (`genericElementsBS5/IndexTable/multi_select_toolbar.ctp`) is only drawn when the list declares at least one mass action (`mass_delete`, `mass_publish`, …) in its `filter_bar`; `Events/proposal_event_index.ctp` declares none (`'children' => []`) but still shows the checkbox column.
+
+### Bug 20 – A note can be saved without its required text
+
+<a id="bug-20"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+#### Steps to reproduce
+
+1. Create an event with **Add Event**.
+2. On the event page, open **Analyst data** and click **Add note**.
+3. Leave **Note** (marked **REQUIRED**) empty and click **Create Note**.
+4. Open the note again with **Edit**, type a text and save; then edit it again, delete the whole text and save.
+
+- **Expected result**: An empty note is refused with a message under **Note**, both when adding and when editing.
+- **Actual result**: "Note added." — an empty note is created; and an existing note is saved with an empty text, without any error.
+- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01), for **Add note** and for **Edit**. The **Note** textarea is labelled **REQUIRED** but has no `required` attribute. **Also affects:** opinions probably accept empty values too (`Opinion` has no validation rule either; found in the code, not checked in the UI). Relationships are validated.
+- **Likely cause**: `app/Model/Note.php` declares `$childValidate = []`, so nothing on the server checks that `note` is filled, and the form (`app/View/Themed/Overmind/AnalystData/add.ctp`) does not mark the field as required for the browser.
 
 # Recommendations
 

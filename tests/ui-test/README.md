@@ -74,6 +74,7 @@ ui-test/
     keys/auth-keys.md       read-only key, allowed IPs, expiration, own keys only
     password/password.md    password rules
     login/login.md          wrong password, brute force protection, logout
+  analyst-data/notes/notes.md  notes: add, edit, required text
   general/emoji/emoji.md       emoji in every text field (Bug 7)
   general/ui/ui.md             JavaScript errors, phone width, dark mode on the main pages
   event-template/

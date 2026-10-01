@@ -49,6 +49,7 @@ Write the markdown in **English**. Talk to the user in their own language.
        event-report/ add/add.md, extract/extract.md
        sighting/add/sightings.md, correlation/correlations/correlations.md
        account/   keys/auth-keys.md, password/password.md, login/login.md
+       analyst-data/ notes/notes.md
        general/   emoji/emoji.md, ui/ui.md (checks across the whole UI)
        event-template/ index/templates.md, form/instantiate.md, builder/builder.md
      ```
