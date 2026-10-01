@@ -142,9 +142,15 @@ class Module_tag_operation extends WorkflowBaseActionModule
                 $tags = $this->genTagObjectsFromTagNames($tagAttached, $options);
                 $updatedRData = $this->_addTag($tags, 'attribute', $roamingData->getData(), $attribute);
                 $roamingData->setData($updatedRData);
-                $this->_buildFastLookupForRoamingData($roamingData->getData());
             }
             $success = $success || !empty($saveSuccess);
+        }
+        // _addTag() only rewrites the Tag/_allTags entries of attributes that
+        // are already indexed, so the fast lookup arrays are unchanged by each
+        // iteration. Rebuilding them once after the loop instead of on every
+        // iteration avoids walking the whole event per tagged attribute.
+        if ($success) {
+            $this->_buildFastLookupForRoamingData($roamingData->getData());
         }
         return $success;
     }
@@ -159,9 +165,14 @@ class Module_tag_operation extends WorkflowBaseActionModule
                 $tags = $this->genTagObjectsFromTagNames($tagDetached, $options);
                 $updatedRData = $this->_removeTag($tags, 'attribute', $roamingData->getData(), $attribute);
                 $roamingData->setData($updatedRData);
-                $this->_buildFastLookupForRoamingData($roamingData->getData());
             }
             $success = $success || !empty($saveSuccess);
+        }
+        // See __addTagsToAttributes(): _removeTag() likewise leaves the
+        // attribute indexes untouched, so one rebuild after the loop is
+        // equivalent to one per iteration.
+        if ($success) {
+            $this->_buildFastLookupForRoamingData($roamingData->getData());
         }
         return $success;
     }
