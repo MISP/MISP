@@ -77,6 +77,19 @@ if (isset($headerCountText)) {
 }
 
 /*
+ * `$headerDescription` is a string, or — like an action's 'tab' — one line per
+ * view_layout tab: ['' => shown when the active tab has none of its own,
+ * '<tab id>' => ...]. Both are printed raw, as the plain string always was.
+ */
+$headerDescriptions = is_array($headerDescription ?? null)
+    ? $headerDescription
+    : ['' => $headerDescription ?? null];
+$headerDescriptions = array_filter($headerDescriptions, function ($text) {
+    return $text !== null && $text !== '';
+});
+$headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true])) > 0;
+
+/*
  * ==============================================================
  * Header action strip
  * ==============================================================
@@ -377,10 +390,28 @@ if (!empty($headerActions)) {
                 <?php endif; ?>
             </div>
 
-            <?php if (!empty($headerDescription)): ?>
+            <?php if (!$headerDescriptionTabbed && !empty($headerDescriptions[''])): ?>
                 <p class="text-muted mt-1" style="font-size:0.85rem;">
-                    <?= $headerDescription ?>
+                    <?= $headerDescriptions[''] ?>
                 </p>
+            <?php elseif ($headerDescriptionTabbed): ?>
+                <div>
+                    <?php foreach ($headerDescriptions as $tabId => $text): ?>
+                        <?php if ($tabId === ''): continue; endif; ?>
+                        <p class="text-muted mt-1 d-none" style="font-size:0.85rem;"
+                           data-header-tab="<?= h($tabId) ?>">
+                            <?= $text ?>
+                        </p>
+                    <?php endforeach; ?>
+                    <?php if (!empty($headerDescriptions[''])): ?>
+                        <p class="text-muted mt-1" style="font-size:0.85rem;"
+                           data-header-tab-fallback>
+                            <?= $headerDescriptions[''] ?>
+                        </p>
+                    <?php else: ?>
+                        <div style="height: 0.5rem;" data-header-tab-fallback></div>
+                    <?php endif; ?>
+                </div>
             <?php else: //small space, just to match the size of the Flash messages ?>
                 <div style="height: 0.5rem;"></div>
             <?php endif; ?>

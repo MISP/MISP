@@ -155,7 +155,9 @@ body[data-controller="users"][data-action="change_pw"] {
 
 
 
-.loading {
+/* TomSelect puts `loading` on its wrapper while a server-side search is in
+   flight, so this full-screen overlay cannot answer to that name alone. */
+.ov-loading-overlay {
     display: none;
     position: fixed;
     top: 50%;
@@ -578,6 +580,166 @@ body[data-controller="users"][data-action="change_pw"] {
 /* Object index — mass-select gutter. */
 .accordion-header.obj-header:has(> .accordion-button:not(.collapsed)) {
     background-color: var(--bs-accordion-active-bg);
+}
+
+/* Object index — header line (Elements/Objects/object_header.ctp), shared by
+   the accordion and the card view. */
+.ov-obj-head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    min-width: 0;
+    margin-right: .5rem;
+    text-align: start;
+}
+.ov-obj-dist {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .6rem;
+    font-size: .95rem;
+    color: var(--ov-dist-ink);
+    background: var(--ov-dist-bg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ov-dist-ink) 18%, transparent);
+}
+.ov-obj-title {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.ov-obj-name {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+.ov-obj-deleted {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .1rem .45rem;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-danger-text-emphasis);
+    background: var(--bs-danger-bg-subtle);
+}
+.ov-obj-first {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    min-width: 0;
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.ov-obj-first-rel {
+    flex-shrink: 0;
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.ov-obj-first-val {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--bs-font-monospace);
+    color: var(--bs-body-color);
+}
+.ov-obj-meta {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .15rem .55rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+}
+.ov-obj-meta-version {
+    padding-left: .4rem;
+    border-left: 1px solid var(--bs-border-color);
+    font-family: var(--bs-font-monospace);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ov-obj-taxonomy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.5rem;
+}
+.ov-obj-taxonomy-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    min-width: 0;
+}
+.ov-obj-taxonomy-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ov-obj-taxonomy-empty {
+    color: var(--bs-tertiary-color);
+}
+.ov-obj-aside {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-left: auto;
+}
+.ov-obj-count {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-primary-text-emphasis);
+    background: var(--bs-primary-bg-subtle);
+}
+.ov-obj-date {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 575.98px) {
+    .ov-obj-meta,
+    .ov-obj-date {
+        display: none;
+    }
 }
 
 /* Switching between the table and the card view swaps one block for the other
@@ -2895,6 +3057,7 @@ tr.evt-extension-row td:first-child {
 
 /* Invalid: the same red on whichever of the two shapes the field wears. */
 .ov-form-line.is-invalid-field,
+.ov-form-line.is-invalid,
 .ov-form-box.is-invalid-field {
     border-color: var(--bs-danger);
 }
@@ -2910,6 +3073,295 @@ tr.evt-extension-row td:first-child {
 
 .ov-field-error i {
     font-size: .7rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DATE FIELD  (Elements/genericElementsBS5/Forms/date_field)
+   The typed box and its calendar popover. --ov-date-accent is
+   the modal's accent; everything else reads Bootstrap's own
+   variables, so dark mode needs nothing of its own but the shadow.
+   ═══════════════════════════════════════════════════════════ */
+.ov-date {
+    --ov-date-accent: var(--bs-primary);
+    position: relative;
+}
+
+.ov-date-box {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .3rem .35rem .3rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-date-box:focus-within,
+.ov-date.is-open .ov-date-box {
+    border-color: var(--ov-date-accent);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-date-accent) 18%, transparent);
+}
+
+.ov-date-box.is-invalid {
+    border-color: var(--bs-danger);
+    box-shadow: none;
+}
+
+.ov-date-glyph {
+    color: var(--ov-date-accent);
+    font-size: .85rem;
+}
+
+.ov-date-input {
+    flex: 1;
+    min-width: 0;
+    padding: .15rem 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--bs-body-color);
+    font-size: .925rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-date-utc {
+    padding: .1rem .4rem;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.ov-date-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-date-btn:hover {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+}
+
+.ov-date.is-open [data-date-toggle] i {
+    transform: rotate(180deg);
+}
+
+.ov-date-btn i {
+    transition: transform .15s ease;
+}
+
+.ov-date-pop {
+    position: fixed;
+    z-index: 1090;
+    width: 18.5rem;
+    padding: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .75rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .14);
+    animation: ov-date-in .12s ease-out;
+}
+
+[data-bs-theme="dark"] .ov-date-pop {
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .5);
+}
+
+@keyframes ov-date-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+.ov-date-head {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: .5rem;
+}
+
+.ov-date-title,
+.ov-date-nav,
+.ov-date-day,
+.ov-date-cell,
+.ov-date-link {
+    border: 0;
+    background: transparent;
+    color: var(--bs-body-color);
+}
+
+.ov-date-title {
+    flex: 1;
+    padding: .3rem .5rem;
+    border-radius: var(--bs-border-radius);
+    font-weight: 600;
+    font-size: .9rem;
+    text-transform: capitalize;
+}
+
+.ov-date-nav {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-date-title:hover,
+.ov-date-nav:hover,
+.ov-date-link:hover {
+    background: var(--bs-secondary-bg);
+}
+
+.ov-date-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.ov-date-body.is-months,
+.ov-date-body.is-years {
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35rem;
+}
+
+.ov-date-weekday {
+    padding: .2rem 0 .35rem;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 600;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.ov-date-day {
+    aspect-ratio: 1;
+    border-radius: .5rem;
+    font-size: .85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-date-cell {
+    padding: .65rem 0;
+    border-radius: .5rem;
+    font-size: .85rem;
+    text-transform: capitalize;
+}
+
+.ov-date-day:hover:not(:disabled),
+.ov-date-cell:hover {
+    background: color-mix(in srgb, var(--ov-date-accent) 12%, transparent);
+}
+
+.ov-date-day.is-other {
+    color: var(--bs-tertiary-color);
+}
+
+.ov-date-day.is-today,
+.ov-date-cell.is-today {
+    box-shadow: inset 0 0 0 1px var(--ov-date-accent);
+    color: var(--ov-date-accent);
+    font-weight: 600;
+}
+
+.ov-date-day.is-selected,
+.ov-date-cell.is-selected,
+.ov-date-day.is-selected:hover,
+.ov-date-cell.is-selected:hover {
+    background: var(--ov-date-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.ov-date-day:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+}
+
+.ov-date-day:focus-visible,
+.ov-date-cell:focus-visible,
+.ov-date-title:focus-visible,
+.ov-date-nav:focus-visible {
+    outline: 2px solid var(--ov-date-accent);
+    outline-offset: 1px;
+}
+
+.ov-date-time {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.ov-date-time-label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+}
+
+.ov-date-time-fields {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+}
+
+.ov-date-time-part {
+    width: 2.4rem;
+    padding: .25rem 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    outline: none;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .85rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.ov-date-time-part:focus {
+    border-color: var(--ov-date-accent);
+}
+
+.ov-date-time-sep {
+    color: var(--bs-secondary-color);
+}
+
+.ov-date-foot {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.ov-date-link {
+    padding: .25rem .55rem;
+    border-radius: var(--bs-border-radius-sm);
+    color: var(--ov-date-accent);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.ov-date-done {
+    padding: .25rem .8rem;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: var(--ov-date-accent);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3895,4 +4347,354 @@ tr.evt-extension-row td:first-child {
 [data-bs-theme="dark"] .ov-raw-table { color: #adb5bd; }
 [data-bs-theme="dark"] .ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
     background: rgba(110, 168, 254, .32);
+}
+
+/* ==========================================================================
+   Object add/edit form
+   The row's tiles, tints and borders live here rather than inline: the JS only
+   toggles `is-on`, so the lit and unlit colours are stated once instead of
+   once per render path, and dark mode gets a say.
+   ========================================================================== */
+
+.ov-obj-step-badge {
+    background: rgba(var(--bs-object-rgb), .12);
+    color: var(--bs-object);
+}
+
+.ov-obj-step-badge.is-on {
+    background: var(--bs-object);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .ov-obj-step-badge {
+    background: rgba(var(--bs-object-rgb), .28);
+    color: #e9ecef;
+}
+
+.ov-obj-template-bar {
+    background: rgba(var(--bs-object-rgb), .05);
+    border: 1px solid var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .ov-obj-template-bar {
+    background: rgba(var(--bs-object-rgb), .18);
+}
+
+/* Takes the room the badges and the button leave, on one line - a template
+ * description runs to a couple of hundred characters and would otherwise wrap
+ * the bar into three rows. The full text stays in the title attribute. */
+.ov-obj-template-desc {
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: .78rem;
+}
+
+/* The step headers are labels, not controls - nothing collapses on click, and
+ * an always-open one must not wear Bootstrap's active-accordion blue either. */
+.accordion-button.ov-accordion-static,
+.accordion-button.ov-accordion-static:not(.collapsed) {
+    cursor: default;
+    pointer-events: none;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    box-shadow: none;
+}
+
+.accordion-button.ov-accordion-static::after {
+    display: none;
+}
+
+/* The object accent is dark enough that an outline button drawn in it
+ * disappears against a dark background. */
+[data-bs-theme="dark"] .btn-outline-object {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: rgba(var(--bs-emphasis-color-rgb), .35);
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-hover-bg: rgba(var(--bs-emphasis-color-rgb), .12);
+    --bs-btn-hover-border-color: rgba(var(--bs-emphasis-color-rgb), .5);
+    --bs-btn-active-color: var(--bs-body-color);
+    --bs-btn-active-bg: rgba(var(--bs-emphasis-color-rgb), .18);
+    --bs-btn-active-border-color: rgba(var(--bs-emphasis-color-rgb), .5);
+}
+
+/* -- one attribute row --------------------------------------------------- */
+
+.ov-obj-row {
+    border-left: 3px solid var(--bs-object);
+}
+
+.ov-obj-row-header {
+    background: rgba(var(--bs-object-rgb), .04);
+}
+
+[data-bs-theme="dark"] .ov-obj-row-header {
+    background: rgba(var(--bs-object-rgb), .22);
+}
+
+.ov-obj-row-footer {
+    background: rgba(var(--bs-emphasis-color-rgb), .015);
+}
+
+.ov-obj-row-name {
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--bs-object);
+}
+
+[data-bs-theme="dark"] .ov-obj-row-name {
+    color: var(--bs-body-color);
+}
+
+.ov-obj-required {
+    font-size: .5rem;
+    vertical-align: super;
+}
+
+.ov-obj-row-type {
+    font-size: .62rem;
+}
+
+.ov-obj-row-desc {
+    font-size: .7rem;
+}
+
+.ov-obj-row-label {
+    font-size: .65rem;
+    white-space: nowrap;
+}
+
+.ov-obj-row-select {
+    width: auto;
+    font-size: .75rem;
+}
+
+/* TomSelect copies the select's classes onto its wrapper, so the row selects
+ * keep their size from .ov-obj-row-select and only need their innards tightened
+ * to stop the footer growing a row taller than the native controls were. */
+.ov-obj-row .ts-wrapper.form-select-sm {
+    min-width: 12rem;
+    padding: 0;
+}
+
+.ov-obj-row .ts-wrapper .ts-control {
+    min-height: calc(1.5em + .5rem + 2px);
+    padding: .15rem 1.75rem .15rem .5rem;
+    border: 0;
+    background: transparent;
+    font-size: .75rem;
+    line-height: 1.4;
+}
+
+.ov-obj-row .ts-wrapper.single .ts-control input {
+    font-size: .75rem;
+}
+
+.ov-obj-row .ts-dropdown {
+    font-size: .75rem;
+}
+
+/* The sharing-group slot collapses with its wrapper, never with the select. */
+.ov-obj-sg-wrap {
+    display: inline-block;
+}
+
+.ov-obj-row-comment {
+    font-size: .8rem;
+    resize: vertical;
+}
+
+.ov-obj-row .Attribute_value {
+    resize: vertical;
+}
+
+/* -- IDS / Correlate tiles ------------------------------------------------ */
+
+.ov-obj-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: 0;
+    padding: .25rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: .72rem;
+    cursor: pointer;
+    user-select: none;
+    color: var(--bs-secondary-color);
+    transition: border-color .15s, background .15s, color .15s;
+}
+
+.ov-obj-toggle > i {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-obj-toggle-input {
+    display: none;
+}
+
+.ov-obj-toggle.is-locked {
+    opacity: .4;
+    pointer-events: none;
+}
+
+.ov-obj-toggle-ids.is-on {
+    border-color: var(--bs-warning);
+    background: rgba(var(--bs-warning-rgb), .08);
+}
+
+.ov-obj-toggle-ids.is-on > i {
+    color: var(--bs-warning);
+}
+
+.ov-obj-toggle-corr.is-on {
+    border-color: var(--bs-success);
+    background: rgba(var(--bs-success-rgb), .08);
+}
+
+.ov-obj-toggle-corr.is-on > i {
+    color: var(--bs-success);
+}
+
+/* One icon per state, so nothing has to swap a class from JavaScript. */
+.ov-obj-toggle .ov-toggle-on-icon {
+    display: none;
+}
+
+.ov-obj-toggle.is-on .ov-toggle-on-icon {
+    display: inline-block;
+}
+
+.ov-obj-toggle.is-on .ov-toggle-off-icon {
+    display: none;
+}
+
+/* -- attribute groups and their palettes ---------------------------------- */
+
+.ov-obj-group-label {
+    margin-bottom: .5rem;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+/* Empty until something is picked, so it must not reserve space. */
+.ov-obj-cards:empty {
+    display: none;
+}
+
+.ov-obj-palette {
+    border-style: dashed;
+    transition: border-color .15s, border-style .15s;
+}
+
+/* Dashed while the requiredOneOf rule is still open, solid once it is met.
+ * The colour goes through --bs-card-border-color because that is the variable
+ * .card resolves its border from; setting border-color here loses to it. */
+.ov-obj-palette.is-satisfied {
+    --bs-card-border-color: var(--bs-success);
+    border-style: solid;
+}
+
+.ov-obj-palette.is-satisfied .ov-obj-palette-header {
+    background: rgba(var(--bs-success-rgb), .08);
+}
+
+.ov-obj-palette.is-satisfied .ov-obj-palette-header > i {
+    color: var(--bs-success) !important;
+}
+
+.ov-obj-palette-header {
+    background: rgba(var(--bs-object-rgb), .04);
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .ov-obj-palette-header {
+    background: rgba(var(--bs-object-rgb), .22);
+}
+
+/* One pick per relation. The type rides along because two relations often
+ * differ only by it, and the description is the button's title. */
+.ov-obj-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    transition: border-color .15s, background .15s;
+}
+
+.ov-obj-pick:hover:not(:disabled) {
+    border-color: var(--bs-object);
+    background: rgba(var(--bs-object-rgb), .08);
+    color: var(--bs-body-color);
+}
+
+.ov-obj-pick > i {
+    font-size: .62rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-obj-pick:disabled {
+    opacity: .45;
+}
+
+.ov-obj-pick-type {
+    padding: 0 .3rem;
+    border-radius: var(--bs-border-radius-sm);
+    background: rgba(var(--bs-emphasis-color-rgb), .07);
+    color: var(--bs-secondary-color);
+    font-size: .62rem;
+}
+
+.ov-obj-pick-multi {
+    opacity: .6;
+}
+
+.ov-obj-row-remove {
+    padding: .1rem .35rem;
+    border: 0;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    line-height: 1;
+    opacity: .55;
+    transition: color .15s, opacity .15s;
+}
+
+.ov-obj-row-remove:hover,
+.ov-obj-row-remove:focus-visible {
+    color: var(--bs-danger);
+    opacity: 1;
+}
+
+/* -- Review: similar objects --------------------------------------------- */
+
+.ov-obj-similar {
+    border-left: 3px solid var(--bs-warning);
+}
+
+.ov-obj-similar-match {
+    font-size: .75rem;
+}
+
+/* A card whose value the server refused. The mark clears as soon as the value
+   is edited, so it never outlives the problem it describes. */
+.ov-obj-row.ov-obj-row-invalid {
+    border-left-color: var(--bs-danger);
+}
+
+.ov-obj-row-invalid .Attribute_value {
+    border-color: var(--bs-danger);
+}
+
+.ov-obj-row-error {
+    margin-top: .25rem;
+    color: var(--bs-danger);
+    font-size: .72rem;
 }

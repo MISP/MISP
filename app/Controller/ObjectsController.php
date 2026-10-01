@@ -23,8 +23,12 @@ class ObjectsController extends AppController
     {
         parent::beforeFilter();
         if (!$this->_isRest()) {
-            $this->Security->unlockedActions = array('revise_object', 'get_row');
+            $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
+        // The delete confirmation posts an empty body through fetch(), so there is
+        // no field hash for _validatePost() to compare and it can only blackhole.
+        // CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete']);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -286,6 +290,8 @@ class ObjectsController extends AppController
                     } else {
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
                     }
+                } elseif ($this->request->is('ajax')) {
+                    return $this->__objectSaveJsonResponse($result, $error);
                 } else {
                     if (is_numeric($result)) {
                         $this->Flash->success('Object saved.');
@@ -305,28 +311,14 @@ class ObjectsController extends AppController
             } else {
                 return $this->RestResponse->viewData($orgs, $this->response->type());
             }
+        } elseif ($this->request->is('post') && $this->request->is('ajax')) {
+            // Pre-validation rejected the object before it reached saveObject().
+            return $this->__objectSaveJsonResponse(false, $error);
         } else {
             if (!empty($error) && !empty($template)) {
                 $this->Flash->error($error);
             }
-            $templateList = $this->MispObject->ObjectTemplate->find(
-                'all',
-                [
-                    'recursive' => -1,
-                    'fields' => [
-                        'ObjectTemplate.id',
-                        'ObjectTemplate.name',
-                        'ObjectTemplate.meta-category',
-                        'ObjectTemplate.description',
-                        'ObjectTemplate.version',
-                    ],
-                    'order' => [
-                        'ObjectTemplate.meta-category',
-                        'ObjectTemplate.name',
-                    ],
-                ]
-            );
-            $this->set('templateList', $templateList);
+            $this->set('templateList', empty($template) ? $this->__templatePickerList() : []);
             if (!empty($template)) {
                 $template = $this->MispObject->prepareTemplate(
                     $template,
@@ -343,6 +335,167 @@ class ObjectsController extends AppController
             $this->set('action', 'add');
             $this->set('template', $template);
         }
+    }
+
+    /**
+     * The templates offered by the add form's picker.
+     *
+     * Only the active ones: a version bump inserts a new row and deactivates the
+     * previous one, so an unfiltered list grows a second homonymous entry per
+     * bump and picking the wrong one binds the object to a stale template.
+     *
+     * @return array
+     */
+    private function __templatePickerList()
+    {
+        $templates = $this->MispObject->ObjectTemplate->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['ObjectTemplate.active' => 1],
+                'fields' => [
+                    'ObjectTemplate.id',
+                    'ObjectTemplate.uuid',
+                    'ObjectTemplate.name',
+                    'ObjectTemplate.meta-category',
+                    'ObjectTemplate.description',
+                    'ObjectTemplate.version',
+                ],
+                'order' => [
+                    'ObjectTemplate.meta-category',
+                    'ObjectTemplate.name',
+                ],
+            ]
+        );
+
+        // A version bump inserts a row and deactivates the previous one, so the
+        // active flag is what normally leaves one row per template. Nothing in
+        // the schema enforces it though, and setActive() is a toggle any admin
+        // can reach, so the highest version per uuid is picked here rather than
+        // trusted. A template whose every version is inactive stays out: that is
+        // a deliberate choice, not an inconsistency.
+        $latest = [];
+        foreach ($templates as $template) {
+            $uuid = $template['ObjectTemplate']['uuid'];
+            if (
+                !isset($latest[$uuid]) ||
+                (int)$template['ObjectTemplate']['version'] > (int)$latest[$uuid]['ObjectTemplate']['version']
+            ) {
+                $latest[$uuid] = $template;
+            }
+        }
+
+        return array_values($latest);
+    }
+
+    /**
+     * The verdict the Overmind add/edit modal reads back from its fetch() submit.
+     *
+     * @param mixed $result Object id on success, anything else on failure
+     * @param string|false $error
+     * @return CakeResponse
+     */
+    private function __objectSaveJsonResponse($result, $error)
+    {
+        $saved = is_numeric($result);
+        $body = ['saved' => $saved];
+        if ($saved) {
+            $body['success'] = __('Object saved.');
+            $body['id'] = (int)$result;
+        } else {
+            $body['errors'] = $error ?: __('Object could not be saved.');
+            // csrfUseOnce is on, so the token the form posted has just been spent.
+            // The form stays on screen after a rejected save, so it is handed the
+            // token generated for this request or the next attempt blackholes.
+            $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
+        }
+        return new CakeResponse([
+            'body' => json_encode($body),
+            'status' => 200,
+            'type' => 'json',
+        ]);
+    }
+
+    /**
+     * Objects in this event that overlap the one being composed.
+     *
+     * The legacy add form reached `findSimilarObjects()` through revise_object;
+     * the Overmind modal asks for it from its review step instead, so that an
+     * analyst is warned about a duplicate before the save rather than after it.
+     *
+     * Unlocked like revise_object, and for the same reason: the form it is called
+     * from grows rows client-side, so it cannot produce a matching field hash.
+     * It reads nothing it is not already allowed to read and writes nothing.
+     *
+     * @param int $eventId
+     * @param int $templateId
+     * @param int $threshold
+     * @return CakeResponse
+     */
+    public function similar_objects($eventId, $templateId, $threshold = 15)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via POST requests.'));
+        }
+        $user = $this->Auth->user();
+        $event = $this->MispObject->Event->fetchSimpleEvent($user, $eventId, ['contain' => ['Orgc']]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+        $template = $this->MispObject->ObjectTemplate->find('first', [
+            'conditions' => ['ObjectTemplate.id' => $templateId],
+            'recursive' => -1,
+            'contain' => ['ObjectTemplateElement'],
+        ]);
+        if (empty($template)) {
+            throw new NotFoundException(__('Invalid template.'));
+        }
+        $posted = $this->MispObject->attributeCleanup($this->request->data);
+        $attributes = empty($posted['Attribute']) ? [] : $posted['Attribute'];
+        if (empty($attributes)) {
+            return new CakeResponse([
+                'body' => json_encode(['count' => 0, 'objects' => []]),
+                'status' => 200,
+                'type' => 'json',
+            ]);
+        }
+        list($count, $similarObjects) = $this->MispObject->findSimilarObjects(
+            $user,
+            $event['Event']['id'],
+            $attributes,
+            $template,
+            $threshold
+        );
+        $postedValues = array_flip(array_column($attributes, 'value'));
+        $digest = [];
+        foreach ($similarObjects as $similarObject) {
+            $matching = [];
+            foreach ($similarObject['Attribute'] as $attribute) {
+                if (!isset($postedValues[$attribute['value']])) {
+                    continue;
+                }
+                $matching[] = [
+                    'object_relation' => $attribute['object_relation'],
+                    'value' => $attribute['value'],
+                ];
+            }
+            $digest[] = [
+                'id' => $similarObject['Object']['id'],
+                'uuid' => $similarObject['Object']['uuid'],
+                'name' => $similarObject['Object']['name'],
+                'comment' => $similarObject['Object']['comment'],
+                'similarity_amount' => $similarObject['Object']['similarity_amount'],
+                'attributes' => $matching,
+            ];
+        }
+        return new CakeResponse([
+            'body' => json_encode(['count' => $count, 'objects' => $digest]),
+            'status' => 200,
+            'type' => 'json',
+        ]);
     }
 
     public function get_row($template_id, $object_relation, $k)
@@ -500,7 +653,11 @@ class ObjectsController extends AppController
                         $this->MispObject->Event->unpublishEvent($event);
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Object attributes saved.'))), 'status'=>200, 'type' => 'json'));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array(
+                            'saved' => false,
+                            'errors' => $error_message,
+                            'csrfToken' => $this->request->params['_Token']['key'] ?? null,
+                        )), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
                     if (is_numeric($objectToSave)) {
@@ -549,9 +706,10 @@ class ObjectsController extends AppController
         $this->set('object', $object);
         $this->set('update_template_available', $update_template_available);
         $this->set('newer_template_version', empty($templateData['newer_template_version']) ? false : $templateData['newer_template_version']);
-        if($this->theme === "Overmind") {
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
+        $this->set('templateList', []);
         $this->render('add');
     }
 
@@ -1108,6 +1266,15 @@ class ObjectsController extends AppController
             }
             return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
         } else {
+            if ($this->theme === 'Overmind') {
+                $this->redirect([
+                    'controller' => 'events',
+                    'action' => 'view2',
+                    $object['Object']['event_id'],
+                    'searchFor' => $object['Object']['uuid'],
+                    '#' => 'tab-objects',
+                ]);
+            }
             $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }

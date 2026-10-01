@@ -40,11 +40,23 @@ if (strlen($pwRegexBody) >= 2 && $pwRegexBody[0] === '/') {
  * the right, the whole row clickable. Same shape as the scope tile on the
  * organisation form, at the density a grid of eight of them needs.
  *
- * $opts: note, icon, accent (see ModalAccent), disabled, col, id.
+ * $opts: note, icon, accent (see ModalAccent), checked (null leaves the
+ * FormHelper default), disabled, col, id.
  */
 $switchTile = function ($field, $label, array $opts = []) {
     $disabled = !empty($opts['disabled']);
     $accent = $this->ModalAccent->get($opts['accent'] ?? 'primary');
+    $checkbox = [
+        'class' => 'form-check-input ms-0',
+        'id' => $opts['id'] ?? ('sw_' . $field),
+        'role' => 'switch',
+        'hiddenField' => true,
+        'disabled' => $disabled,
+        'style' => 'width:2.4rem; height:1.2rem; cursor:' . ($disabled ? 'not-allowed' : 'pointer') . ';',
+    ];
+    if (isset($opts['checked'])) {
+        $checkbox['checked'] = (bool)$opts['checked'];
+    }
 
     return sprintf(
         '<div class="%s">'
@@ -65,14 +77,7 @@ $switchTile = function ($field, $label, array $opts = []) {
         empty($opts['note'])
             ? ''
             : '<span class="text-muted d-block" style="font-size:.7rem; line-height:1.3;">' . h($opts['note']) . '</span>',
-        $this->Form->checkbox($field, [
-            'class' => 'form-check-input ms-0',
-            'id' => $opts['id'] ?? ('sw_' . $field),
-            'role' => 'switch',
-            'hiddenField' => true,
-            'disabled' => $disabled,
-            'style' => 'width:2.4rem; height:1.2rem; cursor:' . ($disabled ? 'not-allowed' : 'pointer') . ';',
-        ])
+        $this->Form->checkbox($field, $checkbox)
     );
 };
 
@@ -339,6 +344,7 @@ echo $this->Form->create('User', [
             <div class="row g-2">
                 <?= $switchTile('termsaccepted', __('Terms accepted'), [
                     'icon' => 'fas fa-file-signature',
+                    'note' => __('Turn off to ask the user to accept the terms again.'),
                 ]) ?>
                 <?= $switchTile('change_pw', __('Must change password'), [
                     'icon' => 'fas fa-key',
@@ -369,12 +375,15 @@ echo $this->Form->create('User', [
                 ]) ?>
                 <?= $switchTile('notification_daily', __('Daily digest'), [
                     'icon' => 'fas fa-calendar-day',
+                    'note' => __('One summary a day of the events this account can see.'),
                 ]) ?>
                 <?= $switchTile('notification_weekly', __('Weekly digest'), [
                     'icon' => 'fas fa-calendar-week',
+                    'note' => __('The same summary, once a week.'),
                 ]) ?>
                 <?= $switchTile('notification_monthly', __('Monthly digest'), [
                     'icon' => 'fas fa-calendar-days',
+                    'note' => __('The same summary, once a month.'),
                 ]) ?>
             </div>
         </div>
@@ -410,7 +419,7 @@ echo $this->Form->create('User', [
 <?= $this->element('genericElementsBS5/Forms/modal_footer', [
     'bleed' => true,
     'isEdit' => true,
-    'meta' => [['label' => __('Connected as'), 'value' => $u['email']]],
+    'meta' => [['label' => __('User'), 'id' => $id]],
     'submit' => ['label' => __('Save changes'), 'icon' => 'fas fa-check'],
 ]) ?>
 
@@ -447,7 +456,7 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
         boot();
     }
 
-    // Toggle the password fields with the "Set a new password" switch.
+    // ── Toggles (password / sync server / external auth) ──────────
     var enablePw = document.getElementById('adminEnablePassword');
     var pwFields = document.getElementById('adminPasswordFields');
     function togglePw() {
@@ -456,7 +465,6 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
     if (enablePw) { enablePw.addEventListener('change', togglePw); }
     togglePw();
 
-    // Show the sync-server picker only when the selected role is a sync role.
     var roleSel = document.getElementById('adminRoleId');
     var syncBlock = document.getElementById('syncServersBlock');
     var syncIds = <?= json_encode($syncRoleIds) ?>;
@@ -468,7 +476,6 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
     if (roleSel) { roleSel.addEventListener('change', toggleSync); }
     toggleSync();
 
-    // External-auth toggle (CustomAuth plugin): swap password section for key.
     var extReq = document.getElementById('adminExternalAuthReq');
     var extBlock = document.getElementById('externalAuthKeyBlock');
     var pwSection = document.getElementById('adminPasswordSection');

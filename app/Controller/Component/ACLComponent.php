@@ -627,11 +627,13 @@ class ACLComponent extends Component
             'proposeObjectsFromAttributes' => array('*'),
             'groupAttributesIntoObject' => array('perm_add'),
             'revise_object' => array('perm_add'),
+            'similar_objects' => array('AND' => ['perm_add', 'theming_enabled']),
             'view' => array('*'),
             'viewAnalystData' => ['*'],
             'createFromFreetext' => ['perm_add'],
         ),
         'objectReferences' => array(
+            'targets' => array('AND' => ['perm_add', 'theming_enabled']),
             'add' => array('perm_add'),
             'bulkAdd' => array('perm_add'),
             'delete' => array('perm_add'),

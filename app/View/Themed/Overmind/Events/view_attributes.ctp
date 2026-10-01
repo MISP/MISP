@@ -130,6 +130,11 @@ echo $this->element('Attributes/index', [
                     if (old.src) { s.src = old.src; } else { s.textContent = old.textContent; }
                     document.head.appendChild(s); document.head.removeChild(s);
                 });
+                // Same step as loadAjaxContainer(): without it the filters
+                // come back as native selects nobody can type into.
+                if (typeof initTopbarFilterSelects === 'function') {
+                    initTopbarFilterSelects(container);
+                }
                 // The bar renders the term back into #filterField itself, and
                 // it has to be there *before* the draft reads its state — a
                 // value poked in afterwards leaves the summary saying there is

@@ -1,17 +1,6 @@
 <div class="card mb-3 shadow-sm">
     <div class="card-body p-4">
 
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
-            </div>
-
-            <div class="fw-semibold fs-5">
-                <?= h($data['TaxiiServer']['name'] ?? '') ?>
-            </div>
-        </div>
-
         <!-- DESCRIPTION -->
         <div class="mb-4">
             <div class="text-muted small text-uppercase fw-bold mb-1">
@@ -88,11 +77,11 @@
                 <!-- BASE URL -->
                 <div class="col-md-6">
                     <div class="text-muted small text-uppercase fw-bold mb-1">
-                        <?= __('Base URL') ?>
+                        <?= __('Discovery URL') ?>
                     </div>
 
                     <?= $this->element('genericElementsBS5/Badges/links', [
-                        'links' => [$data['TaxiiServer']['baseurl'] ?? ''],
+                        'links' => array_filter([$data['TaxiiServer']['discovery_url'] ?? '']),
                         'object' => $data['TaxiiServer']
                     ]); ?>
                 </div>
@@ -103,7 +92,7 @@
                         <?= __('API Root') ?>
                     </div>
                     <div class="bg-white border rounded-3 px-3 py-2 fw-medium text-truncate shadow-xs">
-                        <?= h($data['TaxiiServer']['api_root'] ?? '-') ?>
+                        <?= h(($data['TaxiiServer']['api_root'] ?? '') ?: '-') ?>
                     </div>
                 </div>
 
@@ -113,7 +102,7 @@
                         <?= __('Collection') ?>
                     </div>
                     <div class="bg-white border rounded-3 px-3 py-2 fw-medium text-truncate shadow-xs">
-                        <?= h($data['TaxiiServer']['collection'] ?? '-') ?>
+                        <?= h(($data['TaxiiServer']['collection'] ?? '') ?: '-') ?>
                     </div>
                 </div>
 

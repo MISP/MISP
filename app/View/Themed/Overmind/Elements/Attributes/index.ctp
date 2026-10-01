@@ -61,7 +61,6 @@ $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
 // offered when the matching services plugin is enabled and the user can add data.
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
-// Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
 $inEventView = empty($show_event_id) && !empty($event['Event']['id']);
 // Extended / extending event view: rows can belong to any event of the merged
 // set, so each one says where it comes from and wears its origin's accent.
@@ -248,7 +247,6 @@ $fields = array_merge($fields, [
         'relationship_inbound_path' => $path('RelationshipInbound'),
         'uuid_path' => $path('uuid'),
         'object_type' => 'Attribute',
-        'requirement' => $inEventView,
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
     ],
@@ -389,11 +387,14 @@ $fields = array_merge($fields, [
  */
 
 $children = [
-    [
-        'type' => 'search',
-        'button' => 'Search',
-        'placeholder' => __('Filter by attribute value'),
-    ]
+    array_merge(
+        [
+            'type' => 'search',
+            'button' => 'Search',
+            'placeholder' => __('Filter by attribute value, UUID or comment'),
+        ],
+        $inEventView ? ['mode' => 'legacy', 'name' => 'searchFor'] : []
+    )
 ];
 
 // Inside an event the attribute tab reloads itself over ajax and drives its own
@@ -436,68 +437,17 @@ if (!empty($show_filters)) {
     ]);
 }
 
-if (empty($show_event_id) && !empty($event['Event']['id'])) {
-    // Event view: only category and type are supported by viewAttributes
-    $children = array_merge($children, [
-        [
-            'type' => 'more_filters',
-            'label' => __('More filters'),
-            'children' => [
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Category'),
-                    'name' => 'category',
-                    'options' => ['' => ''] + ($categoryOptions ?? [])
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Type'),
-                    'name' => 'type',
-                    'options' => ['' => ''] + ($typeOptions ?? [])
-                ],
-            ]
-        ]
-    ]);
-} else {
-    $children = array_merge($children, [
-        [
-            'type' => 'more_filters',
-            'label' => __('More filters'),
-            'children' => [
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Category'),
-                    'name' => 'category',
-                    'options' => $categoryOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Type'),
-                    'name' => 'type',
-                    'options' => $typeOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Creator Org'),
-                    'name' => 'org',
-                    'options' => $orgOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Tags'),
-                    'name' => 'tags',
-                    'options' => $tagOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Galaxy'),
-                    'name' => 'galaxy',
-                    'options' => $galaxyOptions ?? []
-                ]
-            ]
-        ]
-    ]);
-}
+App::uses('AttributeFilterPanel', 'Tools');
+$moreFilterChildren = AttributeFilterPanel::children(
+    compact('categoryOptions', 'typeOptions', 'orgOptions', 'tagOptions')
+        + ['galaxyOptions' => $galaxyOptions ?? null],
+    $inEventView
+);
+$children[] = [
+    'type' => 'more_filters',
+    'label' => __('More filters'),
+    'children' => $moreFilterChildren,
+];
 
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $attrEventId     = $event['Event']['id'];
