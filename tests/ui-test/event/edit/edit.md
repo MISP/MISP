@@ -20,6 +20,8 @@ Roles:
 | 5 | [Event edit – two tabs at the same time](#event-edit-concurrent) | |
 | 6 | [Event edit – event deleted meanwhile](#event-edit-deleted) | |
 | 7 | [Event edit – logged out before saving](#event-edit-logged-out) | |
+| 8 | [Event edit – published event](#event-edit-published) | |
+| 9 | [Event edit – empty Event Info](#event-edit-empty-info) | |
 
 ---
 
@@ -99,6 +101,8 @@ Two users editing the same event at the same time
 
 **Expected:** the first tab warns that the event was changed in the meantime, instead of silently overwriting `QA edit tab 2`.
 
+**Seeded data:** `QA concurrent edit` (#19), tag `qa:event-edit-concurrent`. The edit code does not check if the event changed in the meantime, so the last save probably wins without warning.
+
 ### Event edit – event deleted meanwhile
 <a id="event-edit-deleted"></a>
 
@@ -113,6 +117,8 @@ Saving the edit form of an event that was deleted in another tab
 
 **Expected:** a clear message says the event does not exist anymore; no "An Internal Error Has Occurred." page and no event is re-created.
 
+**Seeded data:** `QA edit deleted` (#20), tag `qa:event-edit-deleted`.
+
 ### Event edit – logged out before saving
 <a id="event-edit-logged-out"></a>
 
@@ -126,3 +132,38 @@ Saving the edit form after the session was closed in another tab
 6. In the first tab, change **Event Info** and click **Save Changes**.
 
 **Expected:** the login page is shown with a clear message; no CSRF or internal error page, and the event is not changed.
+
+**Seeded data:** `QA edit logged out` (#21), tag `qa:event-edit-logged-out`.
+
+### Event edit – published event
+<a id="event-edit-published"></a>
+
+Editing a published event unpublishes it, so the change is not shared before a new publish
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA edit published` (create it first with **Add Event** if it does not exist).
+4. Check that the event is shown as Published.
+5. Click **Edit Event**.
+6. Replace **Event Info** with `QA edit published – changed`.
+7. Click **Save Changes**.
+
+**Expected:** the event is saved and is now shown as Unpublished, with a way to publish it again.
+
+**Seeded data:** `QA edit published` (#26, published), tag `qa:event-edit-published`. In the code, saving the edit form sets `published = 0`.
+
+### Event edit – empty Event Info
+<a id="event-edit-empty-info"></a>
+
+Saving an event with an empty Event Info is refused
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Open the event `QA edit empty info` (create it first with **Add Event** if it does not exist).
+4. Click **Edit Event**.
+5. Delete all the text in **Event Info**.
+6. Click **Save Changes**.
+
+**Expected:** the event is not saved, the form stays open and the message "Please provide a name for the event." is shown under **Event Info**.
+
+**Seeded data:** `QA edit empty info` (#27), tag `qa:event-edit-empty-info`.

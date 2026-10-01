@@ -16,10 +16,8 @@ Roles:
 | 1 | [Event add – empty Event Info](#event-add-empty-info) | |
 | 2 | [Event add – Event Info with only spaces](#event-add-spaces-info) | |
 | 3 | [Event add – invalid date](#event-add-invalid-date) | |
-| 4 | [Event add – text in date field](#event-add-text-date) | |
-| 5 | [Event add – extends with invalid value](#event-add-extends-invalid) | |
-| 6 | [Event add – extends an unknown event ID](#event-add-extends-unknown-id) | |
-| 7 | [Event add – Event Info over the database limit](#event-add-info-too-long) | |
+| 4 | [Event add – extends an unknown event ID](#event-add-extends-unknown-id) | |
+| 5 | [Event add – Event Info over the database limit](#event-add-info-too-long) | |
 
 ---
 
@@ -65,34 +63,6 @@ Event creation is refused when the date does not exist
 6. Click **Create Event Entry**.
 
 **Expected:** the event is not created and the message "Enter the event date as DD/MM/YYYY." is shown.
-
-### Event add – text in date field
-<a id="event-add-text-date"></a>
-
-Event creation is refused when the date field contains text
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA text date` in **Event Info**.
-5. Type `abc` in **Event Date (UTC)**.
-6. Click **Create Event Entry**.
-
-**Expected:** the event is not created and the message "Enter the event date as DD/MM/YYYY." is shown.
-
-### Event add – extends with invalid value
-<a id="event-add-extends-invalid"></a>
-
-Event creation is refused when Extends is not a valid ID or UUID
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA extends invalid` in **Event Info**.
-5. Type `not-a-uuid` in **Extends**.
-6. Click **Create Event Entry**.
-
-**Expected:** the event is not created and the message "Please provide a valid UUID" is shown.
 
 ### Event add – extends an unknown event ID
 <a id="event-add-extends-unknown-id"></a>

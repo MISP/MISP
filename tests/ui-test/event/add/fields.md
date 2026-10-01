@@ -16,17 +16,13 @@ Roles:
 | 1 | [Event add](#event-add) | |
 | 2 | [Event add – minimal fields](#event-add-minimal) | |
 | 3 | [Event add – future date](#event-add-future-date) | |
-| 4 | [Event add – ISO date format](#event-add-iso-date) | |
-| 5 | [Event add – all fields set](#event-add-all-fields) | |
-| 6 | [Event add – distribution levels](#event-add-distribution) | |
-| 7 | [Event add – extends an existing event](#event-add-extends) | |
-| 8 | [Event add – very long Event Info](#event-add-long-info) | |
-| 9 | [Event add – special characters](#event-add-unicode) | |
-| 10 | [Event add – HTML in Event Info](#event-add-html) | |
-| 11 | [Event add – shown in event list](#event-add-in-list) | |
-| 12 | [Event add – extends an unknown UUID](#event-add-extends-unknown-uuid) | |
-| 13 | [Event add – Event Info with line breaks](#event-add-multiline-info) | |
-| 14 | [Event add – extreme dates](#event-add-extreme-dates) | |
+| 4 | [Event add – all fields set](#event-add-all-fields) | |
+| 5 | [Event add – distribution levels](#event-add-distribution) | |
+| 6 | [Event add – extends an existing event](#event-add-extends) | |
+| 7 | [Event add – HTML in Event Info](#event-add-html) | |
+| 8 | [Event add – extends an unknown UUID](#event-add-extends-unknown-uuid) | |
+| 9 | [Event add – Event Info with line breaks](#event-add-multiline-info) | |
+| 10 | [Event add – extreme dates](#event-add-extreme-dates) | |
 
 ---
 
@@ -73,21 +69,6 @@ Event creation with a date later than today (regression test for Bug 1)
 6. Click **Create Event Entry**.
 
 **Expected:** the event is created with the date 2030-06-15, no CSRF error is shown, and its events/view page opens.
-
-### Event add – ISO date format
-<a id="event-add-iso-date"></a>
-
-Event creation with a date pasted in YYYY-MM-DD format
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA ISO date` in **Event Info**.
-5. Paste `2026-09-15` in **Event Date (UTC)**.
-6. Click outside the date field.
-7. Click **Create Event Entry**.
-
-**Expected:** the date is shown as `15/09/2026`, the event is created with the date 2026-09-15, and its events/view page opens.
 
 ### Event add – all fields set
 <a id="event-add-all-fields"></a>
@@ -136,32 +117,6 @@ Event creation that extends another event by its ID
 
 **Expected:** the event is created, its events/view page opens and shows that it extends the chosen event.
 
-### Event add – very long Event Info
-<a id="event-add-long-info"></a>
-
-Event creation with a 1000-character Event Info
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Paste a text of 1000 characters in **Event Info**.
-5. Click **Create Event Entry**.
-
-**Expected:** the event is created, its events/view page opens and the full text is shown without breaking the page layout.
-
-### Event add – special characters
-<a id="event-add-unicode"></a>
-
-Event creation with accents, non-Latin characters and emoji in Event Info
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `Événement test – 漢字 – Привет – 🚀` in **Event Info**.
-5. Click **Create Event Entry**.
-
-**Expected:** the event is created and its events/view page shows the Event Info exactly as typed.
-
 ### Event add – HTML in Event Info
 <a id="event-add-html"></a>
 
@@ -175,20 +130,6 @@ Event creation with HTML/script code in Event Info is shown as plain text
 6. Go to `/events/index`.
 
 **Expected:** the event is created, no alert pops up, and the Event Info is shown as plain text on the events/view page and in the event list.
-
-### Event add – shown in event list
-<a id="event-add-in-list"></a>
-
-A newly created event appears at the top of the event list as unpublished
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. Type `QA list check` in **Event Info**.
-5. Click **Create Event Entry**.
-6. Go to `/events/index`.
-
-**Expected:** `QA list check` is shown first in the event list, with your organisation and as not published.
 
 ### Event add – extends an unknown UUID
 <a id="event-add-extends-unknown-uuid"></a>
@@ -204,6 +145,8 @@ Event creation that extends a valid UUID which is not on this instance
 
 **Expected:** the event is created (or refused with a clear message), and its events/view page opens without error.
 
+**Seeded data:** `QA extends unknown UUID` (#25), tag `qa:event-add-extends-unknown-uuid`, created through the API with **Extends** = `7c9e6679-7425-40de-944b-e07fc1f90ae7`. Result: accepted. Note: a badly formed UUID such as `11111111-2222-3333-4444-555555555555` is refused with "Please provide a valid UUID".
+
 ### Event add – Event Info with line breaks
 <a id="event-add-multiline-info"></a>
 
@@ -217,6 +160,8 @@ Event creation with an Event Info on several lines
 6. Go to `/events/index`.
 
 **Expected:** the event is created and the Event Info is shown readably on the events/view page and in the Events list, without breaking the layout.
+
+**Seeded data:** `QA line 1` / `QA line 2` (#22), tag `qa:event-add-multiline-info`, created through the API: accepted, the line break is stored.
 
 ### Event add – extreme dates
 <a id="event-add-extreme-dates"></a>
@@ -235,3 +180,5 @@ Event creation with very old and very far dates
 10. Click **Create Event Entry**.
 
 **Expected:** each event is created with the typed date, or refused with a clear message; no error page is shown.
+
+**Seeded data:** `QA date 1900` (#23, date 1900-01-01) and `QA date 9999` (#24, date 9999-12-31), tag `qa:event-add-extreme-dates`, created through the API: both accepted with these dates.

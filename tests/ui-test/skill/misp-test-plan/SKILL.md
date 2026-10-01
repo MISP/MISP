@@ -12,7 +12,7 @@ Write the markdown in **English**. Talk to the user in their own language.
 ## Hard rules (never break them)
 
 1. **Follow the templates below exactly.** Same heading levels (`#`, `###`, `####`), same order, same bold labels, same punctuation (`**Expected result**:` for bugs, `**Expected:**` for tests), same `<a id>` placement (on the line right **after** the `###` heading).
-2. **Add nothing**: no extra sections, no extra fields, no emojis, no image placeholders, no "Back to top" link, no Playwright section, no comments. Only exception: if the user gives an image URL, put `![](URL)` on its own line right after the line it illustrates.
+2. **Add nothing** (except the optional `**Seeded data:**` line when you created the test data yourself — then always add it): no extra sections, no extra fields, no emojis, no image placeholders, no "Back to top" link, no Playwright section, no comments. Only exception: if the user gives an image URL, put `![](URL)` on its own line right after the line it illustrates.
 3. **Forget nothing**: every field of the template is present. If information is missing:
    - Bug `Status` → `Open` (unless told otherwise). `Owner` → leave the cell empty. `Version` → the MISP version from Environment; if unknown, ask the user.
    - `Notes` → `None`.
@@ -36,7 +36,7 @@ Write the markdown in **English**. Talk to the user in their own language.
          index/   filters.md, selection.md      (Events list page)
          add/     fields.md, validation.md      (Add Event form)
          edit/    edit.md                       (Edit Event form)
-         view/    actions.md                    (event detail page: publish, delete, tags…)
+         view/    actions.md, performance.md    (event detail page: publish, delete, tags…, large events)
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.
    - **All bugs go in `bugs.md`** (template 0b), never in a feature file.
@@ -49,6 +49,7 @@ Write the markdown in **English**. Talk to the user in their own language.
    - In chat, say briefly what was added (file, numbers, titles). Do not repeat the markdown unless asked.
    - If the user pastes a newer version of a file, overwrite that file with it first, then add.
 9. Fix typos in what you write (e.g. `side-admin` → `site-admin`), but never change the meaning and never touch existing content of the file.
+10. **Seeded data**: when a tricky test needs data on a local instance, add it to `tools/seed_events.py` with the tag `qa:<test-slug>` (same as the test anchor), then run `seed_events.py --reports-only` so every seeded event gets an Event Report `Test – <test name>` (GitHub link to the test + description + steps + expected + seeded data).
 
 ## Template 0a – Test file (e.g. `event/add/fields.md`), only when creating it
 
@@ -152,6 +153,14 @@ Roles:
 
 **Expected:** <one sentence: what happens and which page opens>
 ````
+
+Optional, only when the test data was created on a local instance (e.g. by `tools/seed_events.py`), one line right after **Expected:**:
+
+````markdown
+**Seeded data:** <events created (name, #id), their `qa:<test-slug>` tag, the steps done to create them, and what the server showed (accepted / refused + message)>
+````
+
+The `#id` values come from the last seed run on the tester's instance; they change when the script is run again — use the `qa:<test-slug>` tag to find the events.
 
 ## Template 3 – Recommendation (bottom of `bugs.md`, under `# Recommendations`)
 

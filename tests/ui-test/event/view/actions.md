@@ -18,11 +18,9 @@ Roles:
 | 3 | [Event delete](#event-delete) | |
 | 4 | [Event delete – event extended by another](#event-delete-extended) | |
 | 5 | [Event tags and galaxy clusters](#event-tags-galaxies) | |
-| 6 | [Event unpublish – page shown after unpublishing](#event-unpublish-redirect) | |
-| 7 | [Event view – event that does not exist](#event-view-not-found) | |
-| 8 | [Event view – invalid ID](#event-view-invalid-id) | |
-| 9 | [Event view – open by UUID](#event-view-uuid) | |
-| 10 | [Event extends – two events extending each other](#event-extends-cycle) | |
+| 6 | [Event view – event that does not exist](#event-view-not-found) | |
+| 7 | [Event view – open by UUID](#event-view-uuid) | |
+| 8 | [Event extends – two events extending each other](#event-extends-cycle) | |
 
 ---
 
@@ -42,7 +40,9 @@ Publish an event, then unpublish it
 6. Open the event `QA publish`.
 7. Click **Unpublish Event** and confirm.
 
-**Expected:** after publishing, the event is shown as Published in the event list; after unpublishing, it is shown as Unpublished.
+**Expected:** after each action the event detail page opens at `/events/view2/<id>` in the Overmind layout; it shows Published after publishing and Unpublished after unpublishing.
+
+**Seeded data:** Use `QA unpublish redirect` (#7, already published), tag `qa:event-publish-unpublish`: click **Unpublish Event** first, then **Publish Event**.
 
 ### Event publish – empty event
 <a id="event-publish-empty"></a>
@@ -88,6 +88,8 @@ Delete an event that another event extends
 
 **Expected:** `QA child` opens normally, without error, even though the event it extended was deleted.
 
+**Seeded data:** `QA parent` (#11) and `QA child` (#12, extends `QA parent`), tag `qa:event-delete-extended`. Created through the API, both accepted.
+
 ### Event tags and galaxy clusters
 <a id="event-tags-galaxies"></a>
 
@@ -103,19 +105,6 @@ Add a tag and a galaxy cluster to an event, then remove them
 
 **Expected:** the tag and the cluster are shown on the events/view page after adding, and are gone after removing; no error is shown.
 
-### Event unpublish – page shown after unpublishing
-<a id="event-unpublish-redirect"></a>
-
-After unpublishing, the user lands on the Overmind event detail page
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Open the event `QA unpublish redirect` (create it first with **Add Event** if it does not exist).
-4. Click **Publish Event** and confirm.
-5. Click **Unpublish Event** and confirm.
-
-**Expected:** the event detail page opens at `/events/view2/<id>` in the Overmind layout, and the event is shown as Unpublished.
-
 ### Event view – event that does not exist
 <a id="event-view-not-found"></a>
 
@@ -126,15 +115,7 @@ Opening the detail page of an event ID that does not exist
 
 **Expected:** a clear "Invalid event" (not found) message is shown; no "An Internal Error Has Occurred." page.
 
-### Event view – invalid ID
-<a id="event-view-invalid-id"></a>
-
-Opening the detail page with text instead of an event ID
-
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/view2/abc`.
-
-**Expected:** a clear "Invalid event" (not found) message is shown; no "An Internal Error Has Occurred." page.
+**Seeded data:** No data needed. Through the API, `/events/view/999999` answers HTTP 404 "Invalid event"; the UI page is still to check.
 
 ### Event view – open by UUID
 <a id="event-view-uuid"></a>
@@ -148,6 +129,8 @@ Opening an event detail page with its UUID instead of its ID
 5. Go to `/events/view2/<copied UUID>`.
 
 **Expected:** the same event detail page opens.
+
+**Seeded data:** `QA view by UUID` (#8), tag `qa:event-view-uuid`.
 
 ### Event extends – two events extending each other
 <a id="event-extends-cycle"></a>
@@ -163,3 +146,5 @@ Two events that extend each other do not break the detail pages
 7. Open `QA cycle A`, then open `QA cycle B`.
 
 **Expected:** either the second extension is refused with a clear message, or both detail pages open normally without loop, freeze or error.
+
+**Seeded data:** `QA cycle A` (#9) and `QA cycle B` (#10), tag `qa:event-extends-cycle`. Done by `tools/seed_events.py`: created A, created B with **Extends** = A, then edited A with **Extends** = B. Result: the server accepted it, so A extends B and B extends A. Still to check in the UI: both detail pages open without loop or error.

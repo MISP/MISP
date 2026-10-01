@@ -4,12 +4,18 @@
 Usage:
     MISP_KEY=<your API key> python3 tests/ui-test/tools/seed_events.py           # dry run: shows what would be deleted
     MISP_KEY=<your API key> python3 tests/ui-test/tools/seed_events.py --yes     # delete ALL events, then seed
+    MISP_KEY=<your API key> python3 tests/ui-test/tools/seed_events.py --reports-only  # only (re)attach the test reports
+
+Each seeded event also gets an Event Report "Test – <test name>" with the GitHub link to the test,
+its description, steps, expected result and seeded data.
 
 Every seeded event gets a custom tag `qa:<test-slug>` matching the test in
 tests/ui-test/event/..., so it is easy to find the event for a test.
 """
+import glob
 import json
 import os
+import re
 import ssl
 import sys
 import urllib.error
@@ -17,6 +23,8 @@ import urllib.request
 
 URL = os.environ.get('MISP_URL', 'https://localhost:8443').rstrip('/')
 KEY = os.environ.get('MISP_KEY')
+GITHUB = os.environ.get('GITHUB_TESTS_URL', 'https://github.com/MISP/MISP/blob/ui_test/tests/ui-test').rstrip('/')
+TESTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 CTX = ssl._create_unverified_context()  # local instance, self-signed certificate
 
 
@@ -72,6 +80,64 @@ def add_event(info, tags=(), date='2026-10-01', extends=None, publish=False, tes
     return ev
 
 
+def seed_review_cases():
+    """Events added during the event test review (edit, pagination, performance)."""
+    # edit/edit.md
+    add_event('QA edit published', ['qa:event-edit-published'], publish=True, test='event-edit-published')
+    add_event('QA edit empty info', ['qa:event-edit-empty-info'], test='event-edit-empty-info')
+    # index/filters.md: 70 events, more than one page (60 per page)
+    for i in range(1, 71):
+        add_event(f'QA page filter {i:02d}', ['qa:event-index-filter-pagination'], test='event-index-filter-pagination')
+    # view/performance.md: one event with 2,000 attributes
+    big = add_event('QA big event', ['qa:event-view-big-event'], test='event-view-big-event')
+    if big:
+        values = ['198.51.100.250'] + [f'10.{i // 250}.{i % 250}.1' for i in range(1999)]
+        attrs = [{'type': 'ip-dst', 'category': 'Network activity', 'value': v, 'to_ids': False} for v in values]
+        status, res = call('POST', f"/attributes/add/{big['id']}", attrs)
+        count = len(res.get('Attribute', [])) if isinstance(res, dict) else 0
+        results.append(('event-view-big-event', 'QA big event attributes',
+                        f'{count} attribute(s) added (HTTP {status})'))
+
+
+def load_tests():
+    """Map each test slug to (relative file path, test name, section markdown)."""
+    tests = {}
+    for path in sorted(glob.glob(os.path.join(TESTS_DIR, '*', '**', '*.md'), recursive=True)):
+        rel = os.path.relpath(path, TESTS_DIR)
+        text = open(path, encoding='utf-8').read()
+        if '\n# E2E Tests\n' not in text:
+            continue
+        for sec in re.split(r'(?=^### )', text.split('\n# E2E Tests\n', 1)[1], flags=re.M):
+            m = re.match(r'### (.+)\n<a id="([^"]+)"></a>\n', sec)
+            if m:
+                tests[m.group(2)] = (rel, m.group(1), sec[m.end():].strip())
+    return tests
+
+
+def attach_reports():
+    """Add to every qa:<slug> event an Event Report with the test name, its GitHub link and its content."""
+    tests = load_tests()
+    added = 0
+    for slug, (rel, name, body) in tests.items():
+        status, res = call('POST', '/events/restSearch',
+                           {'tags': [f'qa:{slug}'], 'metadata': True, 'returnFormat': 'json'})
+        events = res.get('response', []) if isinstance(res, dict) else []
+        if not events:
+            continue
+        url = f'{GITHUB}/{rel}#{slug}'
+        content = f'# {name}\n\n**Test:** [{rel}#{slug}]({url})\n\n{body}\n'
+        for e in events:
+            eid = e['Event']['id']
+            _, existing = call('GET', f'/eventReports/index/event_id:{eid}')
+            names = [r.get('EventReport', r).get('name') for r in existing] if isinstance(existing, list) else []
+            if f'Test – {name}' in names:
+                continue
+            status, _ = call('POST', f'/eventReports/add/{eid}',
+                             {'EventReport': {'name': f'Test – {name}', 'distribution': 5, 'content': content}})
+            added += status == 200
+    print(f'Added {added} test report(s).')
+
+
 def main():
     if not KEY:
         raise SystemExit('Set MISP_KEY to your API key (Global Actions > My Profile > Auth keys).')
@@ -81,6 +147,9 @@ def main():
     print(f'{len(events)} event(s) on {URL}:')
     for e in events:
         print(f"  - #{e['id']} {e['info'][:70]!r}")
+    if '--reports-only' in sys.argv:
+        attach_reports()
+        return
     if '--yes' not in sys.argv:
         print('\nDry run. Re-run with --yes to delete ALL these events and seed the QA events.')
         return
@@ -93,7 +162,7 @@ def main():
     ensure_tag('qa:unused-tag', '#9e9e9e')
 
     # view/actions.md
-    add_event('QA unpublish redirect', ['qa:event-unpublish-redirect'], publish=True, test='event-unpublish-redirect')
+    add_event('QA unpublish redirect', ['qa:event-publish-unpublish'], publish=True, test='event-publish-unpublish')
     add_event('QA view by UUID', ['qa:event-view-uuid'], test='event-view-uuid')
     a = add_event('QA cycle A', ['qa:event-extends-cycle'], test='event-extends-cycle')
     if a:
@@ -128,6 +197,9 @@ def main():
     add_event('QA line 1\nQA line 2', ['qa:event-add-multiline-info'], test='event-add-multiline-info')
     add_event('QA date 1900', ['qa:event-add-extreme-dates'], date='1900-01-01', test='event-add-extreme-dates')
     add_event('QA date 9999', ['qa:event-add-extreme-dates'], date='9999-12-31', test='event-add-extreme-dates')
+
+    seed_review_cases()
+    attach_reports()
 
     print('\nResults:')
     for test, info, outcome in results:

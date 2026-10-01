@@ -44,7 +44,7 @@ A selected event stays selected after sorting the Events list by a column (regre
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
 3. Tick the checkbox of the first event.
-4. Click the **Created** column header to sort the list.
+4. Click the **ID** column header to sort the list.
 
 **Expected:** the event is still ticked and still counted in the selection.
 
@@ -61,3 +61,5 @@ Delete several events at once from the Events list
 6. Click **Delete** in the selection toolbar and confirm.
 
 **Expected:** both events are deleted and are no longer in the Events list.
+
+**Seeded data:** `QA mass delete 1` (#17) and `QA mass delete 2` (#18), tag `qa:event-index-mass-delete`.

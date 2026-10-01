@@ -23,6 +23,7 @@ ui-test/
       edit.md
     view/                   event detail page
       actions.md            publish, delete, tags, extends…
+      performance.md        large events
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/
@@ -108,6 +109,14 @@ Section at the end of the file (`<test-slug>` = short kebab-case name, unique in
 **Expected:** <one sentence: what happens and which page opens>
 ```
 
+Optional, only when the test data was created on a local instance (e.g. by `tools/seed_events.py`), one line right after **Expected:**:
+
+```markdown
+**Seeded data:** <events created (name, #id), their `qa:<test-slug>` tag, the steps done to create them, and what the server showed (accepted / refused + message)>
+```
+
+The `#id` values come from the last seed run on the tester's instance; they change when the script is run again — use the `qa:<test-slug>` tag to find the events.
+
 ### Bug (in `bugs.md`)
 
 Row in the `## Bugs` table:
@@ -161,6 +170,14 @@ It deletes all events, then creates the events needed by the tricky tests. Each 
 tag `qa:<test-slug>` (e.g. `qa:event-extends-cycle`), so you can find the event for a test by
 filtering the Events list on that tag. It also creates `qa:unused-tag`, attached to no event.
 At the end it prints, for each case, whether the server **accepted or refused** it.
+
+Every seeded event also gets an **Event Report** named `Test – <test name>` with the GitHub link to the
+test, its description, steps, expected result and seeded data, so the reason of each event is visible
+inside MISP. After adding or changing tests, refresh the reports without touching the events:
+
+```
+MISP_KEY=<your key> python3 tests/ui-test/tools/seed_events.py --reports-only
+```
 
 1. Create an API key in MISP: **My Profile → Auth keys**.
 2. From the root of the MISP repository, do a dry run (lists the events, deletes nothing):
