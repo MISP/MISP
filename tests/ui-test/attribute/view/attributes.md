@@ -19,6 +19,7 @@ Roles:
 | 4 | [Attribute delete – correlation removed](#attribute-delete-correlation) | |
 | 5 | [Attribute filter in an event](#attribute-filter-event) | |
 | 6 | [Attribute correlation icon](#attribute-correlation-toggle) | |
+| 7 | [Attributes tab – select attributes](#attribute-tab-select) | |
 
 ---
 
@@ -121,3 +122,16 @@ The correlation icon disables and enables the correlation of an attribute (regre
 **Expected:** after step 4 the message "Correlation disabled" is shown and the icon turns grey; after step 5 "Correlation enabled" is shown; no `error: undefined` message.
 
 **Seeded data:** No data needed. Reproduced in a browser as `org-admin`: the request `POST /attributes/toggleCorrelation/<id>` answered HTTP 400 "The request has been black-holed" (see Bug 16).
+
+### Attributes tab – select attributes
+<a id="attribute-tab-select"></a>
+
+Ticking attributes in the Attributes tab of an event shows the selection bar (regression test for Bug 19)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA attribute select` with **Add Event** and add two attributes `ip-dst` `198.51.100.220` and `198.51.100.221`.
+4. In the Attributes tab, tick `198.51.100.220`.
+5. Tick the header checkbox to select all attributes.
+
+**Expected:** a selection bar appears with the number of selected attributes and actions for them (e.g. delete, tag), as in the **Objects** tab.
