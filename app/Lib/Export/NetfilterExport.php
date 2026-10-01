@@ -36,8 +36,8 @@ class NetfilterExport
         if ($options['scope'] === 'Event') {
             $result = array();
             foreach ($data['Attribute'] as $attribute) {
-                if (in_array($data['Attribute']['type'], array_keys($this->__attributeTypeMappings))) {
-                    $result[] = $this->__convertToRule($data['Attribute'], $action);
+                if (in_array($attribute['type'], array_keys($this->__attributeTypeMappings))) {
+                    $result[] = $this->__convertToRule($attribute, $action);
                 }
             }
             return implode($this->separator(), $result) . "\n";
