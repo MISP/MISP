@@ -23,6 +23,7 @@ class SightingsController extends AppController
             $values = false;
             $timestamp = false;
             $error = false;
+            $filters = false;
             if ($id === 'stix') {
                 $result = $this->Sighting->handleStixSighting(file_get_contents('php://input'));
                 if ($result['success']) {
@@ -68,9 +69,9 @@ class SightingsController extends AppController
             if (!$error) {
                 $publish_sighting = !empty(Configure::read('Sightings_enable_realtime_publish'));
                 $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, $publish_sighting, false, $filters);
-            }
-            if (!is_numeric($result)) {
-                $error = $result;
+                if (!is_numeric($result)) {
+                    $error = $result;
+                }
             }
             if ($this->request->is('ajax')) {
                 if ($error) {
