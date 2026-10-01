@@ -34,7 +34,7 @@ Roles:
 | 20  | [A note can be saved without its required text](#bug-20) | Open | v2.5.48 | |
 | 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | v2.5.48 | |
 | 22  | [The "Full sightings list" button of the event page reloads the same page](#bug-22) | Open | v2.5.48 | |
-| 23  | [The sighting buttons of an attribute (like / false positive) fail with "Failed to add sighting"](#bug-23) | Open | v2.5.48 | |
+| 23  | [Adding a sighting from the UI fails (sighting buttons and Advanced sightings)](#bug-23) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -431,7 +431,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01): the button has `href=""` and clicking it reloads `/events/view2/<id>`. It happens with and without sightings. No other card of the event page has an empty link.
 - **Likely cause**: In `app/View/Themed/Overmind/Elements/Events/View/event_sightings.ctp` the button is written `<a href="" … title="Full sightings list">`: the link target was never filled in.
 
-### Bug 23 – The sighting buttons of an attribute (like / false positive) fail with "Failed to add sighting"
+### Bug 23 – Adding a sighting from the UI fails (sighting buttons and Advanced sightings)
 
 <a id="bug-23"></a>
 
@@ -442,11 +442,14 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 1. Create an event with **Add Event** and add an attribute `ip-dst` `198.51.100.230`.
 2. In the Attributes tab, click the green thumbs-up button **Add sighting** of the attribute.
 3. Click the red thumbs-down button **Mark as false positive** of the attribute.
+4. Click the button **Advanced sightings** of the attribute and, in the panel, click **Add** (with or without filling the fields).
 
-- **Expected result**: A sighting (then a false positive) is added and the counters next to the buttons go up.
-- **Actual result**: Both clicks show "Failed to add sighting" and nothing is added.
-- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). It is not a configuration problem: no sighting setting is changed on the instance (defaults), and adding sightings through the API works. The request `POST /sightings/add/<attribute id>` answers HTTP 400 "The request has been black-holed"; error.log says `Blackhole exception when accessing /sightings/add/<id> (isRest: 1, action: add, unlockedActions: []): '_Token' was not found in request data.` Same mechanism as Bug 16 (correlation icon). The **Advanced sightings** form was not checked.
-- **Likely cause**: The buttons send the POST from JavaScript without the CakePHP form token (`_Token`), and `add` is not in the unlocked actions of `SightingsController`, so the Security component black-holes the request.
+- **Expected result**: A sighting (then a false positive, then the advanced sighting) is added and the counters go up; with empty fields the panel either uses the default values or says which field is missing.
+- **Actual result**:
+  - The two thumb buttons show "Failed to add sighting" and nothing is added.
+  - The **Advanced sightings** panel shows an error 400 with only `{}` as message.
+- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). It is not a configuration problem: no sighting setting is changed on the instance (defaults), and adding sightings through the API works. Every request `POST /sightings/add/<attribute id>` answers HTTP 400 "The request has been black-holed"; error.log says `Blackhole exception when accessing /sightings/add/<id> (isRest: 1, action: add, unlockedActions: []): '_Token' was not found in request data.` (for the buttons and for the panel). Same mechanism as Bug 16 (correlation icon).
+- **Likely cause**: The buttons and the panel (`app/View/Themed/Overmind/Sightings/ajax/advanced.ctp`) send the POST from JavaScript without the CakePHP form token (`_Token`), and `add` is not in the unlocked actions of `SightingsController`, so the Security component black-holes the request. The panel then prints `JSON.stringify(data.errors || {})`, and as the answer has no `errors` field the user only sees `{}`.
 
 # Recommendations
 

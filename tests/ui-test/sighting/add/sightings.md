@@ -20,6 +20,7 @@ Roles:
 | 5 | [Sighting – date in the future](#sighting-future) | |
 | 6 | [Sighting – delete](#sighting-delete) | |
 | 7 | [Sightings card – full list button](#sighting-card-full-list) | |
+| 8 | [Advanced sightings – empty form](#sighting-advanced-empty) | |
 
 ---
 
@@ -84,7 +85,7 @@ A user of another organisation can add a sighting on a visible attribute
 ### Sighting – date in the future
 <a id="sighting-future"></a>
 
-A sighting dated in the future is refused
+A sighting dated in the future is refused (uses **Advanced sightings**, see Bug 23)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -118,3 +119,16 @@ The button of the Sightings card opens the full list of sightings (regression te
 4. On the event page, click the button **Full sightings list** (external link icon) of the **Sightings** card.
 
 **Expected:** a page listing the sightings of `QA sightings card` opens (with the sighting on `198.51.100.210`); the event page is not just reloaded.
+
+### Advanced sightings – empty form
+<a id="sighting-advanced-empty"></a>
+
+Adding a sighting from the Advanced sightings panel without filling anything (regression test for Bug 23)
+
+1. Log in to MISP as `site-admin`.
+2. Go to `/events/index`.
+3. Create an event `QA advanced sighting` with **Add Event** and add an attribute `ip-dst` `198.51.100.231`.
+4. In the Attributes tab, click **Advanced sightings** on `198.51.100.231`.
+5. Leave every field as it is and click **Add**.
+
+**Expected:** a sighting is added with the default values (today, your organisation), or a clear message names the missing field; no error 400 and no `{}` message.
