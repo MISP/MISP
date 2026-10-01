@@ -148,7 +148,7 @@ Adding an object to a published event unpublishes it
 ### Object add – review then submit
 <a id="object-add-review-submit"></a>
 
-Submitting a new object after the Review step saves it without CSRF error (regression test for Bug 6)
+Submitting a new object after the Review step saves it without CSRF error (regression test for Bug 4)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

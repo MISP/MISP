@@ -56,7 +56,7 @@ Creating a tag collection with tags and a galaxy cluster
 ### Collection add – emoji in the name
 <a id="tag-collection-emoji"></a>
 
-A collection name with an emoji is saved without error (regression test for Bug 7)
+A collection name with an emoji is saved without error (regression test for Bug 5)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/tag_collections/index`.

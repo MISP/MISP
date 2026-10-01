@@ -27,7 +27,7 @@ Roles:
 ### Note – add without text
 <a id="analyst-note-add-empty"></a>
 
-A note without text is refused (regression test for Bug 20)
+A note without text is refused (regression test for Bug 12)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -40,7 +40,7 @@ A note without text is refused (regression test for Bug 20)
 ### Note – edit to an empty text
 <a id="analyst-note-edit-empty"></a>
 
-Removing the whole text of an existing note is refused (regression test for Bug 20)
+Removing the whole text of an existing note is refused (regression test for Bug 12)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -64,7 +64,7 @@ Adding a normal note to an event
 ### Note – four nested levels
 <a id="analyst-note-nested"></a>
 
-Notes answered four levels deep are all shown (regression test for Bug 21)
+Notes answered four levels deep are all shown (regression test for Bug 16)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -81,7 +81,7 @@ Notes answered four levels deep are all shown (regression test for Bug 21)
 ### Analyst data – counters with nested items
 <a id="analyst-note-counter"></a>
 
-The Notes and Opinions counters reflect the nested notes (regression test for Bug 21)
+The Notes and Opinions counters reflect the nested notes (regression test for Bug 16)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

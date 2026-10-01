@@ -30,7 +30,7 @@ Roles:
 ### Event index – filter by galaxy
 <a id="event-index-filter-galaxy"></a>
 
-Filtering the Events list by a galaxy that no event uses shows no event (regression test for Bug 4)
+Filtering the Events list by a galaxy that no event uses shows no event (regression test for Bug 1)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -43,7 +43,7 @@ Filtering the Events list by a galaxy that no event uses shows no event (regress
 ### Event index – filter by tag
 <a id="event-index-filter-tag"></a>
 
-Filtering the Events list by a tag that no event uses shows no event (control case for Bug 4)
+Filtering the Events list by a tag that no event uses shows no event (control case for Bug 1)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

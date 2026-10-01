@@ -37,7 +37,7 @@ An organisation with users or events cannot be deleted
 ### Organisation add – emoji in the name
 <a id="admin-org-emoji"></a>
 
-An organisation name with an emoji (checks Bug 7 on organisations)
+An organisation name with an emoji (checks Bug 5 on organisations)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/organisations/index`.

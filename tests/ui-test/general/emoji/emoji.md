@@ -23,7 +23,7 @@ Roles:
 ### Emoji in every text field
 <a id="general-emoji-fields"></a>
 
-Every form saves a text with an emoji without error (regression test for Bug 7)
+Every form saves a text with an emoji without error (regression test for Bug 5)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -36,4 +36,4 @@ Every form saves a text with an emoji without error (regression test for Bug 7)
 
 **Expected:** every item is saved and shown with its emoji; no "An Internal Error Has Occurred." page.
 
-**Seeded data:** No data left on the instance. Through the API on 2026-10-01, every item of steps 3 to 7 gave HTTP 500, except the Event Info `QA emoji 🚀` (saved). See Bug 7 for the full list.
+**Seeded data:** No data left on the instance. Through the API on 2026-10-01, every item of steps 3 to 7 gave HTTP 500, except the Event Info `QA emoji 🚀` (saved). See Bug 5 for the full list.

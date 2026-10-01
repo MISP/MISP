@@ -24,7 +24,7 @@ Roles:
 ### Warninglist list – Default filter
 <a id="warninglist-index-default-filter"></a>
 
-The "Default" filter separates default and custom warninglists (regression test for Bug 10)
+The "Default" filter separates default and custom warninglists (regression test for Bug 21)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/warninglists/index`.

@@ -70,7 +70,7 @@ A tag name that only differs by case is a duplicate
 ### Tag add – name longer than 255 characters
 <a id="tag-add-too-long"></a>
 
-A tag name longer than the database limit is refused, not cut (regression test for Bug 8)
+A tag name longer than the database limit is refused, not cut (regression test for Bug 19)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/tags/index`.
@@ -165,7 +165,7 @@ A tag that is not exportable is left out of the event export
 ### Tag list – Not favourite filter
 <a id="tag-index-not-favourite"></a>
 
-The "Not favourite" filter hides the favourite tags (regression test for Bug 9)
+The "Not favourite" filter hides the favourite tags (regression test for Bug 20)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/tags/index`.

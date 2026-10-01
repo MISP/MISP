@@ -76,16 +76,16 @@ ui-test/
     password/password.md    password rules
     login/login.md          wrong password, brute force protection, logout
   analyst-data/notes/notes.md  notes: add, edit, required text
-  general/emoji/emoji.md       emoji in every text field (Bug 7)
+  general/emoji/emoji.md       emoji in every text field (Bug 5)
   general/ui/ui.md             JavaScript errors, phone width, dark mode on the main pages
-  general/limits/limits.md     too long text in forms and searches (Bug 25)
+  general/limits/limits.md     too long text in forms and searches (Bug 17)
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
     builder/builder.md      build a template
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
-    check_list_selection.js checks Bugs 2 and 5 on list pages in a headless browser (Playwright)
+    check_list_selection.js checks Bugs 7 and 27 on list pages in a headless browser (Playwright)
   skill/
     misp-test-plan/SKILL.md Claude Code skill that writes tests and bugs in this exact format
 ```
@@ -182,7 +182,7 @@ The `#id` values come from the last seed run on the tester's instance; they chan
 
 ### Bug (in `bugs.md`)
 
-Each bug gets a **Priority** (High / Medium / Low) and a **Difficulty** (Easy / Medium / Hard) in the table; the meaning is written above the table in `bugs.md`.
+Each bug gets a **Priority** (High / Medium / Low) and a **Difficulty** (Easy / Medium / Hard) in the table, shown as coloured badges (red / yellow / green); the meaning is written above the table in `bugs.md`. Bugs are sorted by priority, then difficulty, and numbered in that order: a new bug is inserted at its place and the following bugs are renumbered (anchors and "Bug N" references in the tests too).
 
 Row in the `## Bugs` table:
 
@@ -281,7 +281,7 @@ Use `MISP_URL=https://other-host:port` to target another local instance. Only Py
 
 ## Checking list selection in a browser (`tools/check_list_selection.js`)
 
-Bugs 2 and 5 happen in the browser (JavaScript), so they cannot be seen through the API. This script
+Bugs 7 and 27 happen in the browser (JavaScript), so they cannot be seen through the API. This script
 logs in with a headless Chromium (Playwright), and on each list page given as argument ticks a row,
 switches to card view, then sorts by the first sortable column, and prints what happened:
 
@@ -289,7 +289,7 @@ switches to card view, then sorts by the first sortable column, and prints what 
 MISP_EMAIL=<email> MISP_PASSWORD=<password> node tests/ui-test/tools/check_list_selection.js /events/index /tags/index
 ```
 
-Each line is a JSON result, e.g. `"checkedInCard":false` (Bug 2) and `"checkedAfterSort":false` (Bug 5).
+Each line is a JSON result, e.g. `"checkedInCard":false` (Bug 7) and `"checkedAfterSort":false` (Bug 27).
 
 ## Using the Claude Code skill
 

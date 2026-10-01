@@ -67,7 +67,7 @@ Event creation is refused when the date does not exist
 ### Event add – extends an unknown event ID
 <a id="event-add-extends-unknown-id"></a>
 
-Event creation with an Extends ID that matches no event shows the reason and keeps the form (regression test for Bug 2)
+Event creation with an Extends ID that matches no event shows the reason and keeps the form (regression test for Bug 7)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -81,7 +81,7 @@ Event creation with an Extends ID that matches no event shows the reason and kee
 ### Event add – Event Info over the database limit
 <a id="event-add-info-too-long"></a>
 
-Event creation with an Event Info longer than 65,535 characters is refused with a clear message (regression test for Bug 3)
+Event creation with an Event Info longer than 65,535 characters is refused with a clear message (regression test for Bug 8)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

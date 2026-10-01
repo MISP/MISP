@@ -30,7 +30,7 @@ Roles:
 ### Sighting – add
 <a id="sighting-add"></a>
 
-Adding a sighting to an attribute (regression test for Bug 23)
+Adding a sighting to an attribute (regression test for Bug 3)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -44,7 +44,7 @@ Adding a sighting to an attribute (regression test for Bug 23)
 ### Sighting – false positive
 <a id="sighting-false-positive"></a>
 
-Adding a false-positive sighting (regression test for Bug 23)
+Adding a false-positive sighting (regression test for Bug 3)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -85,7 +85,7 @@ A user of another organisation can add a sighting on a visible attribute
 ### Sighting – date in the future
 <a id="sighting-future"></a>
 
-A sighting dated in the future is refused (uses **Advanced sightings**, see Bug 23)
+A sighting dated in the future is refused (uses **Advanced sightings**, see Bug 3)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -111,7 +111,7 @@ Deleting a sighting
 ### Sightings card – full list button
 <a id="sighting-card-full-list"></a>
 
-The button of the Sightings card opens the full list of sightings (regression test for Bug 22)
+The button of the Sightings card opens the full list of sightings (regression test for Bug 25)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -123,7 +123,7 @@ The button of the Sightings card opens the full list of sightings (regression te
 ### Advanced sightings – empty form
 <a id="sighting-advanced-empty"></a>
 
-Adding a sighting from the Advanced sightings panel without filling anything (regression test for Bug 23)
+Adding a sighting from the Advanced sightings panel without filling anything (regression test for Bug 3)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

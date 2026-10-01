@@ -25,7 +25,7 @@ Roles:
 ### Event index – selection kept when switching view
 <a id="event-index-selection-switch-view"></a>
 
-A selected event stays ticked when switching between table and card view (regression test for Bug 2)
+A selected event stays ticked when switching between table and card view (regression test for Bug 7)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -39,7 +39,7 @@ A selected event stays ticked when switching between table and card view (regres
 ### Event index – selection kept when sorting
 <a id="event-index-selection-sort"></a>
 
-A selected event stays selected after sorting the Events list by a column (regression test for Bug 5)
+A selected event stays selected after sorting the Events list by a column (regression test for Bug 27)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

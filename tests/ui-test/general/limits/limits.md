@@ -25,7 +25,7 @@ Roles:
 ### Too long text in add forms
 <a id="general-limits-forms"></a>
 
-Every add form refuses a too long text with a message instead of an internal error (regression test for Bug 25)
+Every add form refuses a too long text with a message instead of an internal error (regression test for Bug 17)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -39,7 +39,7 @@ Every add form refuses a too long text with a message instead of an internal err
 ### Correlation exclusion – too long value
 <a id="general-limits-correlation-exclusion"></a>
 
-A too long correlation exclusion value is refused with a message (regression test for Bug 25)
+A too long correlation exclusion value is refused with a message (regression test for Bug 17)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/correlation_exclusions/add`.
@@ -50,7 +50,7 @@ A too long correlation exclusion value is refused with a message (regression tes
 ### Too long search
 <a id="general-limits-search"></a>
 
-A very long search text is refused or cut instead of breaking the request (regression test for Bug 25)
+A very long search text is refused or cut instead of breaking the request (regression test for Bug 17)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

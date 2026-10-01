@@ -59,7 +59,7 @@ Event creation with only the Event Info field filled, all other fields left on d
 ### Event add – future date
 <a id="event-add-future-date"></a>
 
-Event creation with a date later than today (regression test for Bug 1)
+Event creation with a date later than today (regression test for Bug 28)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

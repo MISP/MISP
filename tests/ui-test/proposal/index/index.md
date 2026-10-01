@@ -63,7 +63,7 @@ The View Event action opens the event on the proposed attribute
 ### Events with proposals – actions menu
 <a id="proposal-event-index-actions"></a>
 
-The actions menu of the list of events with proposals offers actions (regression test for Bug 18)
+The actions menu of the list of events with proposals offers actions (regression test for Bug 23)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -76,7 +76,7 @@ The actions menu of the list of events with proposals offers actions (regression
 ### Events with proposals – select rows
 <a id="proposal-event-index-select"></a>
 
-Ticking an event in the list of events with proposals shows the selection bar (regression test for Bug 19)
+Ticking an event in the list of events with proposals shows the selection bar (regression test for Bug 24)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/proposalEventIndex`.

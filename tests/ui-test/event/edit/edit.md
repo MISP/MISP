@@ -46,7 +46,7 @@ Edit the Event Info and Threat Level of an existing event
 ### Event edit – future date
 <a id="event-edit-future-date"></a>
 
-Edit an event and set a date later than today (checks Bug 1 also on edit)
+Edit an event and set a date later than today (checks Bug 28 also on edit)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -60,7 +60,7 @@ Edit an event and set a date later than today (checks Bug 1 also on edit)
 ### Event edit – Event Info over the database limit
 <a id="event-edit-info-too-long"></a>
 
-Edit an event with an Event Info longer than 65,535 characters (checks Bug 3 also on edit)
+Edit an event with an Event Info longer than 65,535 characters (checks Bug 8 also on edit)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

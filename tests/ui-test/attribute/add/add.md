@@ -156,7 +156,7 @@ A domain with non-ASCII characters is stored in punycode
 ### Attribute add – with First Seen
 <a id="attribute-add-first-seen"></a>
 
-Saving an attribute with a First Seen date does not trigger a CSRF error (same hidden-field pattern as Bug 1 and Bug 6)
+Saving an attribute with a First Seen date does not trigger a CSRF error (same hidden-field pattern as Bug 28 and Bug 4)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -252,7 +252,7 @@ An attribute with correlation disabled does not correlate with other events
 ### Attribute add – emoji in the comment
 <a id="attribute-add-emoji-comment"></a>
 
-An attribute comment with an emoji is saved without error (regression test for Bug 7)
+An attribute comment with an emoji is saved without error (regression test for Bug 5)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

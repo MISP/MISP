@@ -85,7 +85,7 @@ Submitting a proposal without changing anything
 ### Proposal – emoji in the comment
 <a id="proposal-emoji-comment"></a>
 
-A proposal with an emoji in its comment is saved without error (checks Bug 7 on proposals)
+A proposal with an emoji in its comment is saved without error (checks Bug 5 on proposals)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

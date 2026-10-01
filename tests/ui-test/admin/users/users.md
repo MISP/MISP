@@ -97,7 +97,7 @@ Changing a user to Read Only removes the right to create
 ### User add – empty form
 <a id="admin-user-empty-form"></a>
 
-Submitting Add User without filling anything shows what is missing in the window (regression test for Bug 27)
+Submitting Add User without filling anything shows what is missing in the window (regression test for Bug 13)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/admin/users/index`.

@@ -68,7 +68,7 @@ Dark mode is applied on every main page
 ### Refused form – page keeps its style
 <a id="general-ui-refused-form"></a>
 
-When a form is refused, the user stays on a styled page with the reason (regression test for Bug 26)
+When a form is refused, the user stays on a styled page with the reason (regression test for Bug 18)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/admin/allowedlists/index`.
@@ -83,7 +83,7 @@ When a form is refused, the user stays on a styled page with the reason (regress
 ### Documentation pages open
 <a id="general-ui-doc-pages"></a>
 
-The documentation pages of the Resources menu open without error (regression test for Bug 28)
+The documentation pages of the Resources menu open without error (regression test for Bug 14)
 
 1. Log in to MISP as `user` of the organisation `ADMIN`.
 2. Go to `/events/index`.

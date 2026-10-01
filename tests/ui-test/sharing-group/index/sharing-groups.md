@@ -40,7 +40,7 @@ Creating a sharing group and adding a second organisation
 ### Sharing group – emoji in the name
 <a id="sg-emoji"></a>
 
-A sharing group name with an emoji is saved without error (checks Bug 7 on sharing groups)
+A sharing group name with an emoji is saved without error (checks Bug 5 on sharing groups)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/sharing_groups/index`.
@@ -48,7 +48,7 @@ A sharing group name with an emoji is saved without error (checks Bug 7 on shari
 
 **Expected:** no "An Internal Error Has Occurred." page; the sharing group is created with its emoji.
 
-**Seeded data:** Through the API, creating `QA SG 🚀` gives HTTP 500 "An Internal Error Has Occurred." (Bug 7: `sharing_groups.name` is `utf8mb3`).
+**Seeded data:** Through the API, creating `QA SG 🚀` gives HTTP 500 "An Internal Error Has Occurred." (Bug 5: `sharing_groups.name` is `utf8mb3`).
 
 ### Sharing group – member cannot edit it
 <a id="sg-edit-other-org"></a>

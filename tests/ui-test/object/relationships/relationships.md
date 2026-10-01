@@ -24,7 +24,7 @@ Roles:
 ### Object relationships – remove highlight for selected rows
 <a id="object-relationships-remove-highlight"></a>
 
-Ticking a highlighted relationship offers Remove Highlight (regression test for Bug 24)
+Ticking a highlighted relationship offers Remove Highlight (regression test for Bug 26)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/object_relationships/index`.
