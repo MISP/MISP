@@ -348,3 +348,14 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Current behaviour**: On long pages (e.g. the Events list or an event with many attributes), there is no quick way to go back to the top of the page.
 - **Proposal**: Add a floating **Go to top** button that appears after scrolling down and brings the user back to the top of the page.
 - **Benefit**: Faster navigation on long pages, without scrolling back up manually.
+
+### Recommendation 3 – Say why an action was refused
+
+<a id="recommendation-3"></a>
+
+**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
+
+- **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 12).
+- **Proposal**: Always return and show the validation error that caused the refusal (field + rule), in the UI and in the API.
+- **Benefit**: Users fix their input themselves instead of guessing or asking an admin to read the logs.
+

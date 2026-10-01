@@ -67,6 +67,10 @@ ui-test/
     extract/extract.md      extract indicators, replacements, import from URL, PDF
   sighting/add/sightings.md   sightings: add, false positive, by value, other org, future date, delete
   correlation/correlations/correlations.md  correlations, exclusions, top correlations
+  account/
+    keys/auth-keys.md       read-only key, allowed IPs, expiration, own keys only
+    password/password.md    password rules
+    login/login.md          wrong password, brute force protection, logout
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
