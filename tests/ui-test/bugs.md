@@ -32,8 +32,7 @@ Roles:
 | 18  | [Events with proposals list: the actions menu is empty](#bug-18) | Open | v2.5.48 | |
 | 19  | [Row checkboxes do nothing on some lists](#bug-19) | Open | v2.5.48 | |
 | 20  | [A note can be saved without its required text](#bug-20) | Open | v2.5.48 | |
-| 21  | [A note added at the 4th level is saved but not shown](#bug-21) | Open | v2.5.48 | |
-| 22  | [Analyst data counters (Notes, Opinions) ignore nested items](#bug-22) | Open | v2.5.48 | |
+| 21  | [Nested analyst data: deep notes are not shown and the counters are wrong](#bug-21) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -389,7 +388,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01), for **Add note** and for **Edit**. The **Note** textarea is labelled **REQUIRED** but has no `required` attribute. **Also affects:** opinions probably accept empty values too (`Opinion` has no validation rule either; found in the code, not checked in the UI). Relationships are validated.
 - **Likely cause**: `app/Model/Note.php` declares `$childValidate = []`, so nothing on the server checks that `note` is filled, and the form (`app/View/Themed/Overmind/AnalystData/add.ctp`) does not mark the field as required for the browser.
 
-### Bug 21 – A note added at the 4th level is saved but not shown
+### Bug 21 – Nested analyst data: deep notes are not shown and the counters are wrong
 
 <a id="bug-21"></a>
 
@@ -401,30 +400,17 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 2. On the event page, click **Add note**, type `QA level 1` and click **Create Note**.
 3. On the note `QA level 1`, click **Add note** (in its menu), type `QA level 2` and click **Create Note**.
 4. Do the same on `QA level 2` with `QA level 3`, then on `QA level 3` with `QA level 4`.
-5. Reload the event page.
+5. Click **Add opinion** twice to add two opinions to the event, and add a note to one of them.
+6. Reload the event page and look at the **Analyst data** block.
 
-- **Expected result**: The four notes are shown, each one under the previous one.
-- **Actual result**: "Note added." is shown for `QA level 4`, but `QA level 4` is not shown anywhere on the event page; levels 1 to 3 are shown.
-- **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). In the database `QA level 4` is attached to `QA level 3`, as expected: the note exists but cannot be seen or answered from the event page. A tester also saw a 4th note placed under the 2nd one.
-- **Likely cause**: `AnalystData::fetchChildNotesAndOpinions()` (`app/Model/AnalystData.php`) loads nested notes with `$depth = 2` and only sets `_max_depth_reached` when there are more; the old UI uses this flag to offer loading the rest (`View/Elements/genericElements/Analyst_data/thread.ctp`), but the Overmind thread (`View/Themed/Overmind/Elements/AnalystData/thread.ctp`) ignores it.
-
-### Bug 22 – Analyst data counters (Notes, Opinions) ignore nested items
-
-<a id="bug-22"></a>
-
-**Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
-
-#### Steps to reproduce
-
-1. Create an event with **Add Event**.
-2. Add a note to the event, then add a note to this note, and a note to that one (3 notes in a chain).
-3. Add two opinions to the event, and add a note to one of these opinions.
-4. Look at the **Analyst data** block of the event.
-
-- **Expected result**: The counters show how many notes and opinions the thread contains (here 4 notes and 2 opinions), or say clearly that they count only the first level.
-- **Actual result**: **Notes (1)** and **Opinions (2)**: the notes added under other notes or under opinions are not counted anywhere.
-- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01): **NOTES (1)** with 4 nested notes; **Opinions (2)** while notes are nested inside the opinions. The counters therefore do not tell how much analyst data the event really has. Not sure it is a bug: the counters may be meant for the first level only.
-- **Likely cause**: The Overmind thread (`app/View/Themed/Overmind/Elements/AnalystData/thread.ctp`) prints `count($notes)` and `count($opinions)`, which only count the items directly attached to the event, not their children.
+- **Expected result**: Every note is shown under its parent, and the counters show how many notes and opinions the thread contains.
+- **Actual result**:
+  - "Note added." is shown for `QA level 4`, but `QA level 4` is not shown anywhere on the event page (levels 1 to 3 are shown).
+  - The counters show **Notes (1)** and **Opinions (2)**: the notes nested under notes or under opinions are not counted.
+- **Notes**: **Confirmed in the UI** (real browser and tester, Overmind, 2026-10-01). In the database `QA level 4` is attached to `QA level 3`, as expected: the note exists but cannot be seen or answered from the event page. A tester also saw a 4th note placed under the 2nd one. For the counters, it may be intended that they count the first level only, but then nothing on the page tells how much analyst data the event really has.
+- **Likely cause**:
+  - Deep notes: `AnalystData::fetchChildNotesAndOpinions()` (`app/Model/AnalystData.php`) loads nested notes with `$depth = 2` and only sets `_max_depth_reached` when there are more; the old UI uses this flag to offer loading the rest (`View/Elements/genericElements/Analyst_data/thread.ctp`), but the Overmind thread ignores it.
+  - Counters: the Overmind thread (`app/View/Themed/Overmind/Elements/AnalystData/thread.ctp`) prints `count($notes)` and `count($opinions)`, which only count the items directly attached to the event.
 
 # Recommendations
 

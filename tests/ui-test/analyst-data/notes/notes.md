@@ -81,7 +81,7 @@ Notes answered four levels deep are all shown (regression test for Bug 21)
 ### Analyst data – counters with nested items
 <a id="analyst-note-counter"></a>
 
-The Notes and Opinions counters reflect the nested notes (regression test for Bug 22)
+The Notes and Opinions counters reflect the nested notes (regression test for Bug 21)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
