@@ -228,6 +228,13 @@ var formInfoValues = {};
 
 var typeArray = {
         'tag' : <?php echo $tagJSON; ?>,
+        'sharinggroup' : <?php
+            $sharingGroupJSON = array();
+            foreach ($sharingGroups as $sharingGroupId => $sharingGroupName) {
+                $sharingGroupJSON[] = array('id' => $sharingGroupId, 'value' => $sharingGroupName);
+            }
+            echo json_encode($sharingGroupJSON, JSON_HEX_TAG);
+        ?>,
         'published' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'is_extension' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'is_extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
@@ -272,7 +279,7 @@ var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution
 
 var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp", "is_extension", "is_extended"];
 
-var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
+var typedFields = ["tag", "sharinggroup", "threatlevel", "distribution", "analysis"];
 
 if (showorg == 1) {
     allFields.push("org");
