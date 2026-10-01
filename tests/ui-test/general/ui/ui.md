@@ -74,5 +74,6 @@ When a form is refused, the user stays on a styled page with the reason (regress
 3. Click **Add**, type `e.e.e.e` in **Expression** and click **Add Entry**.
 4. Go to `/correlation_exclusions/index`, click **Add Exclusion**, leave the value empty and save.
 5. Go to `/tags/index`, click **Add Tag**, type `tlp:green` (already used) in **Tag Name** and click **Add Tag**.
+6. Go to `/organisations/index`, click **Add Organisation**, leave every field empty and click **Add organisation**.
 
 **Expected:** after each refused form, the page keeps the Overmind style and menu (or the window stays open) and a message explains why it was refused.
