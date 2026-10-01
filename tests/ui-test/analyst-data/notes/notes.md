@@ -17,7 +17,7 @@ Roles:
 | 2 | [Note – edit to an empty text](#analyst-note-edit-empty) | |
 | 3 | [Note – add with text](#analyst-note-add) | |
 | 4 | [Note – four nested levels](#analyst-note-nested) | |
-| 5 | [Note – counter with nested notes](#analyst-note-counter) | |
+| 5 | [Analyst data – counters with nested items](#analyst-note-counter) | |
 
 ---
 
@@ -78,16 +78,17 @@ Notes answered four levels deep are all shown (regression test for Bug 21)
 
 **Seeded data:** `QA nested notes`, built through the UI on 2026-10-01: levels 1 to 4 saved with the right parents, but `QA level 4` is not shown on the event page.
 
-### Note – counter with nested notes
+### Analyst data – counters with nested items
 <a id="analyst-note-counter"></a>
 
-The Notes counter of the event reflects the notes of the thread (regression test for Bug 22)
+The Notes and Opinions counters reflect the nested notes (regression test for Bug 22)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
 3. Open `QA nested notes` (see "Note – four nested levels").
-4. Look at the counter of the **Analyst data** → **Notes** block.
+4. Click **Add opinion** twice to add two opinions to the event, then add a note `QA note on opinion` to one of them.
+5. Look at the counters of the **Analyst data** block.
 
-**Expected:** the counter shows the number of notes of the thread, or says that it counts the first level only.
+**Expected:** the counters show all the notes and opinions of the thread (notes under notes and under opinions included), or say that they count the first level only.
 
-**Seeded data:** Checked on 2026-10-01: the counter shows **NOTES (1)** with 4 nested notes.
+**Seeded data:** Checked on 2026-10-01: **NOTES (1)** with 4 nested notes; a tester saw **Opinions (2)** with notes nested inside the opinions.
