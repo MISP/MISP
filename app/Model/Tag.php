@@ -1066,7 +1066,11 @@ class Tag extends AppModel
     public function getCustomTagsForPicker($user)
     {
         $taxonomy = ClassRegistry::init('Taxonomy');
-        $customRaw = $taxonomy->getAllTaxonomyTags(true, $user, true, true, false);
+        $customRaw = $taxonomy->getAllTaxonomyTags([
+            'inverse' => true,
+            'user' => $user,
+            'full' => true,
+        ]);
 
         $tags = [];
         foreach ($customRaw as $entry) {
