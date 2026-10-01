@@ -1,0 +1,51 @@
+[
+    {
+        "CryptographicKey": [],
+        "Event": {
+            "analysis": 0,
+            "attribute_count": 3,
+            "date": "<time>",
+            "disable_correlation": false,
+            "distribution": 3,
+            "event_creator_email": "admin@admin.test",
+            "extends_uuid": "",
+            "first_publication": 0,
+            "id": "<id:1>",
+            "info": "fetchEvent characterization",
+            "locked": false,
+            "org_id": "<id:2>",
+            "orgc_id": "<id:2>",
+            "proposal_email_lock": false,
+            "protected": null,
+            "publish_timestamp": 0,
+            "published": false,
+            "sharing_group_id": 0,
+            "threat_level_id": 1,
+            "timestamp": "<time>",
+            "user_id": "<id:3>",
+            "uuid": "<id:4>"
+        },
+        "EventTag": [],
+        "Galaxy": [],
+        "Org": {
+            "id": "<id:2>",
+            "local": true,
+            "name": "ORGNAME",
+            "uuid": "<id:5>"
+        },
+        "Orgc": {
+            "id": "<id:2>",
+            "local": true,
+            "name": "ORGNAME",
+            "uuid": "<id:5>"
+        },
+        "RelatedEvent": [],
+        "ThreatLevel": {
+            "id": "<id:6>",
+            "name": "High"
+        },
+        "User": {
+            "email": "admin@admin.test"
+        }
+    }
+]
