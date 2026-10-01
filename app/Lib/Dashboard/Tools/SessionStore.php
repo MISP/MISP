@@ -160,14 +160,33 @@ class SessionStore
             $this->redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
             $it = null;
             while (($keys = $this->redis->scan($it, $this->prefix . '*', 500)) !== false) {
-                foreach ($keys as $key) {
-                    if ($processed++ >= self::SCAN_CAP) {
-                        return;
-                    }
-                    $uid = $this->extractUserId($this->redis->get($key));
+                $remaining = self::SCAN_CAP - $processed;
+                if ($remaining <= 0) {
+                    return;
+                }
+                // Trim the page to the remaining cap *before* fetching, so the
+                // mid-page truncation semantics stay identical to the old
+                // per-key walk (exactly SCAN_CAP keys are ever inspected).
+                $page = count($keys) > $remaining ? array_slice($keys, 0, $remaining) : $keys;
+                if (empty($page)) {
+                    continue;
+                }
+                $processed += count($page);
+                // One MGET per SCAN page instead of one GET per key. phpredis
+                // returns values aligned to the input order, false for keys
+                // that vanished between the SCAN and the MGET.
+                $values = $this->redis->mget($page);
+                if (!is_array($values)) {
+                    return;
+                }
+                foreach ($page as $i => $key) {
+                    $uid = $this->extractUserId(isset($values[$i]) ? $values[$i] : false);
                     if ($uid !== null) {
                         $cb($key, $uid);
                     }
+                }
+                if (count($page) < count($keys)) {
+                    return;
                 }
             }
         } catch (Exception $e) {
