@@ -36,6 +36,12 @@ ui-test/
     add/add.md              Add Object form: requirements, invalid values, duplicates
     view/objects.md         event Objects tab: edit, delete, filter, correlation
     templates/templates.md  object templates: deactivate, update, search
+  attribute/
+    add/add.md              Add Attribute form: validation, normalisation, duplicates, first seen
+    add/batch.md            batch import
+    add/attachment.md       attachments and malware samples
+    view/attributes.md      event Attributes tab: edit, delete/restore, filter
+    index/search.md         Attributes list across events
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
   skill/
