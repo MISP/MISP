@@ -1204,6 +1204,12 @@ function editSelectedAttributes(event) {
     simplePopup(baseurl + "/attributes/getMassEditForm/" + event, 'POST', data);
 }
 
+function enrichSelectedAttributes(event) {
+    var selectedAttributeIds = getSelected();
+    var data = { selected_ids: selectedAttributeIds }
+    simplePopup(baseurl + "/attributes/getMassEnrichForm/" + event, 'POST', data);
+}
+
 function addSelectedTaxonomies(taxonomy) {
     $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
