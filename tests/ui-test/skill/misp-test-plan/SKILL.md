@@ -61,7 +61,7 @@ Write the markdown in **English**. Talk to the user in their own language.
    - **Bug reports must be understandable without the local test instance**: steps start by creating the data they need ("Create an event with **Add Event** and add an attribute …"), never "open event #103", seeded names (`QA …`), test account names or instance IDs. Use `<id>` placeholders in URLs. Instance-specific evidence stays out of `bugs.md` (it may go in the test's `**Seeded data:**` line).
    - **Priority and Difficulty** (columns of the `## Bugs` table): Priority **High** = a main feature is broken, data is lost or security risk; **Medium** = wrong or confusing behaviour with a workaround; **Low** = small or cosmetic. Difficulty from the cause found: **Easy** = one place, cause known; **Medium** = several places or cause still to find; **Hard** = redesign or data migration. Fixed bugs get Priority `–`.
    - **Bug table order and badges**: in `bugs.md` the bugs are sorted by Priority (High, Medium, Low; Fixed last), then Difficulty (Easy before Medium before Hard), and numbered 1, 2, 3… in that order. A new bug is inserted at its place and **all bugs after it are renumbered** (table, `### Bug N` headings, `bug-N` anchors, every "Bug N" in `bugs.md`, the tests and the README). Status / Priority / Difficulty are written as coloured badges: `<span style="background:#dc3545;color:#fff;padding:2px 8px;border-radius:10px;font-size:85%;font-weight:600">High</span>` — red `#dc3545` for Open / High / Hard, yellow `#ffc107` (text `#212529`) for Medium, green `#198754` for Fixed / Low / Easy, grey `#6c757d` for `–`.
-   - **Done column**: the first column of the bug table is a checkbox, `<input type="checkbox" disabled>` (open) or `<input type="checkbox" disabled checked>` (fixed). When the user says a bug is fixed, add `checked` **and** change its Status badge to the green Fixed one. (A click on the box in HedgeDoc is not saved, only the text is.)
+   - **Done column**: the first column of the bug table is `⬜` (not fixed) or `✅` (fixed); HedgeDoc does not render HTML checkboxes. When the user says a bug is fixed, replace `⬜` by `✅` **and** change its Status badge to the green Fixed one.
    - **Read the target file(s) first** and take the next free number from their table.
    - **A. Row** → add it as the last row of the file's table.
    - **B. Section** → add it at the end of the file. One blank line between sections.
@@ -113,7 +113,7 @@ Roles:
 
 | Done | # | Bug | Status | Priority | Difficulty | Version | Owner | 
 |:---:|---|-----|--------|----------|------------| ------- | ----- |
-| <input type="checkbox" disabled> | 1 | [<Bug title>](#bug-1) | Open | Medium | Easy | v2.5.48 | |
+| ⬜ | 1 | [<Bug title>](#bug-1) | Open | Medium | Easy | v2.5.48 | |
 
 ---
 
@@ -127,7 +127,7 @@ Roles:
 **A. Row** (in the `## Bugs` table of `bugs.md`):
 
 ````markdown
-| <input type="checkbox" disabled> | N | [<Bug title>](#bug-N) | <Open/Fixed/...> | <High/Medium/Low> | <Easy/Medium/Hard> | <vX.Y.Z> | <Owner or empty> |
+| ⬜ | N | [<Bug title>](#bug-N) | <Open/Fixed/...> | <High/Medium/Low> | <Easy/Medium/Hard> | <vX.Y.Z> | <Owner or empty> |
 ````
 
 **B. Section** (end of `bugs.md`):

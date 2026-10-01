@@ -187,7 +187,7 @@ Each bug gets a **Priority** (High / Medium / Low) and a **Difficulty** (Easy / 
 Row in the `## Bugs` table:
 
 ```markdown
-| <input type="checkbox" disabled> | N   | [<Bug title>](#bug-N) | Open | <High/Medium/Low> | <Easy/Medium/Hard> | v2.5.48 | <Owner or empty> |
+| ⬜ | N   | [<Bug title>](#bug-N) | Open | <High/Medium/Low> | <Easy/Medium/Hard> | v2.5.48 | <Owner or empty> |
 ```
 
 Section, after the last bug and before `# Recommendations`:
