@@ -79,7 +79,7 @@ A report of 3 MB stays usable
 
 **Expected:** the report opens and saves in a few seconds, without freezing the browser.
 
-**Seeded data:** `QA event reports` has `QA big report` (about 3 MB). Through the API it was saved in 0.3 s and read back in 0.3 s; the time in the browser is still to measure.
+**Seeded data:** `QA event reports` has `QA big report` (about 3 MB). Through the API it was saved in 0.3 s and read back in 0.3 s; in a browser (Playwright) the report page shows its text after about 4.4 s.
 
 ### Report – reference to an attribute
 <a id="report-reference"></a>
