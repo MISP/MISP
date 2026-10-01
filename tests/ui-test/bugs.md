@@ -22,13 +22,13 @@ Roles:
 | 8   | [Tag name longer than 255 characters is silently cut](#bug-8) | Open | v2.5.48 | |
 | 9   | [Tags list: the "Not favourite" filter still shows favourite tags](#bug-9) | Open | v2.5.48 | |
 | 10  | [Warninglists list: the "Default" filter is ignored](#bug-10) | Open | v2.5.48 | |
-| 12  | [Event template form: an invalid value gives an error that does not say which field](#bug-12) | Open | v2.5.48 | |
-| 13  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-13) | Open | v2.5.48 | |
-| 14  | [CSV export does not neutralise spreadsheet formulas](#bug-14) | Open | v2.5.48 | |
-| 16  | [Creating an event report opens the old event page](#bug-16) | Open | v2.5.48 | |
-| 19  | [Adding an attribute to an existing object does not add anything](#bug-19) | Open | v2.5.48 | |
-| 20  | [The correlation icon of an attribute does not toggle the correlation](#bug-20) | Open | v2.5.48 | |
-| 21  | [Attribute menu of an object is hidden behind the pagination bar](#bug-21) | Open | v2.5.48 | |
+| 11  | [Event template form: an invalid value gives an error that does not say which field](#bug-11) | Open | v2.5.48 | |
+| 12  | [Some actions open the old event page /events/view instead of the Overmind one](#bug-12) | Open | v2.5.48 | |
+| 13  | [CSV export does not neutralise spreadsheet formulas](#bug-13) | Open | v2.5.48 | |
+| 14  | [Creating an event report opens the old event page](#bug-14) | Open | v2.5.48 | |
+| 15  | [Adding an attribute to an existing object does not add anything](#bug-15) | Open | v2.5.48 | |
+| 16  | [The correlation icon of an attribute does not toggle the correlation](#bug-16) | Open | v2.5.48 | |
+| 17  | [Attribute menu of an object is hidden behind the pagination bar](#bug-17) | Open | v2.5.48 | |
 
 ## E2E UI Tests
 
@@ -211,9 +211,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). **More filters** → **Default** = non-default → **Apply filters**: all warninglists are still listed. On a fresh install every warninglist is a default one, so `default:0` should return nothing; through the API `default:0` and `default:1` both return all of them. The **Enabled** filter of the same page works.
 - **Likely cause**: The **Default** filter is offered in `app/View/Themed/Overmind/Warninglists/index.ctp`, but `default` is not in the list of filters read by `WarninglistsController::index()` (`value`, `category`, `type`, `enabled`, `id`, `matchValue`), so it is dropped.
 
-### Bug 12 – Event template form: an invalid value gives an error that does not say which field
+### Bug 11 – Event template form: an invalid value gives an error that does not say which field
 
-<a id="bug-12"></a>
+<a id="bug-11"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -228,9 +228,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). The template form shows only "Could not create event: Some attributes or objects were dropped during event creation. expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows". Confirmed through the API (`POST /event_templates/instantiate/<id>`, HTTP 403). The rollback works: no partial event is left. A template user (often a reporter, not an admin) cannot read the audit log to find the reason.
 - **Likely cause**: `app/Lib/Tools/EventTemplateInstantiator.php` only counts the saved attributes against the expected ones and returns a generic message; the validation error of the dropped attribute is not passed back to the form.
 
-### Bug 13 – Some actions open the old event page /events/view instead of the Overmind one
+### Bug 12 – Some actions open the old event page /events/view instead of the Overmind one
 
-<a id="bug-13"></a>
+<a id="bug-12"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -244,9 +244,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). For any event, `/events/view/<id>` returns the old event page while `/events/view2/<id>` is the Overmind page (checked in the Overmind theme). **Also affects** (checked in the UI): **Unpublish Event** opens `/events/view/<id>`, while **Publish Event** opens `/events/view2/<id>`. The search of the Events list is not affected (it filters the list and stays on it).
 - **Likely cause**: `app/webroot/js/event-templates/user_form.js` sends the user to `cfg.baseurl + '/events/view/' + event_id`, and `EventsController::unpublish()` calls `redirect(['action' => 'view', …])` instead of using `view2` when the theme is Overmind; `/events/view` itself does not forward to `view2`.
 
-### Bug 14 – CSV export does not neutralise spreadsheet formulas
+### Bug 13 – CSV export does not neutralise spreadsheet formulas
 
-<a id="bug-14"></a>
+<a id="bug-13"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -261,9 +261,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). **Download as** → **CSV (NOT FOR EXCEL…)** downloads `misp.event.<id>.csv` with both formulas unchanged. Confirmed through the API (`/events/restSearch` with `returnFormat: csv`). The menu labels the format "CSV (NOT FOR EXCEL)", but values come from other organisations (sync, proposals, feeds), so a shared CSV can carry formulas. **Also affects:** every CSV output built with the same exporter: attribute `restSearch` in CSV, the CSV cached export on `/events/export`, and the deprecated `/events/csv`.
 - **Likely cause**: `app/Lib/Export/CsvExport.php` quotes the values but does not escape a leading formula character.
 
-### Bug 16 – Creating an event report opens the old event page
+### Bug 14 – Creating an event report opens the old event page
 
-<a id="bug-16"></a>
+<a id="bug-14"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -275,12 +275,12 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 - **Expected result**: The event page stays the Overmind one (`/events/view2/<event id>`, **Reports** tab) and shows the new report.
 - **Actual result**: The browser goes to `/events/view/<event id>`, the old (non-Overmind) event page.
-- **Notes**: **Confirmed in the UI** (tester, 2026-10-01). Same kind of problem as Bug 13 (template creation and **Unpublish Event** also open `/events/view`).
+- **Notes**: **Confirmed in the UI** (tester, 2026-10-01). Same kind of problem as Bug 12 (template creation and **Unpublish Event** also open `/events/view`).
 - **Likely cause**: `EventReportsController::add()` sets its redirect target to `['controller' => 'events', 'action' => 'view', $eventId]` without checking the theme, instead of `view2` in the Overmind theme.
 
-### Bug 19 – Adding an attribute to an existing object does not add anything
+### Bug 15 – Adding an attribute to an existing object does not add anything
 
-<a id="bug-19"></a>
+<a id="bug-15"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -297,9 +297,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). "Object saved." is shown but the new attribute is not in the object. Changing the value of an attribute that already exists in the object is saved correctly; only new attributes are lost. The same happens when several new attributes are filled at once.
 - **Likely cause**: Unknown
 
-### Bug 20 – The correlation icon of an attribute does not toggle the correlation
+### Bug 16 – The correlation icon of an attribute does not toggle the correlation
 
-<a id="bug-20"></a>
+<a id="bug-16"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -314,9 +314,9 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 - **Notes**: **Confirmed in the UI** (real browser, Overmind, 2026-10-01). Clicking the icon and confirming shows "Error: undefined" and the correlation does not change. The IDS toggle works. The correlation can still be changed by editing the attribute or the object. Reproduced in a browser: the request `POST /attributes/toggleCorrelation/<id>` answers HTTP 400 "The request has been black-holed". **Also affects:** every place that shows this icon (attributes of the event, attributes inside objects, the Attributes list), as they all use the same element.
 - **Likely cause**: The icon (`app/View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/Fields/correlate.ctp`) sends a POST with an empty body and only an `X-CSRF-Token` header; `toggleCorrelation` is not in the unlocked actions of `AttributesController`, so CakePHP's Security component black-holes it. The answer has neither `saved` nor `errors`, so the script shows `error: undefined`.
 
-### Bug 21 – Attribute menu of an object is hidden behind the pagination bar
+### Bug 17 – Attribute menu of an object is hidden behind the pagination bar
 
-<a id="bug-21"></a>
+<a id="bug-17"></a>
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
@@ -359,7 +359,7 @@ https://github.com/MISP/MISP/tree/ui_test/tests/ui-test
 
 **Environment:** MISP v2.5.48 (misp-docker) · Overmind UI theme
 
-- **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 12), "Could not add User" (email already used or invalid), "Could not delete Organisation" (still has users and events).
+- **Current behaviour**: Many refusals only say "Could not …" without the reason, e.g. "Could not add auth_key" (invalid IP range), "Could not change_pw User" (password too short), "Could not delete SharingGroup" (still used by events), "Could not add correlation_exclusion" (value already excluded), "Could not attachTagToObject Tag" (tag not allowed for this organisation), "Some attributes or objects were dropped during event creation" (Bug 11), "Could not add User" (email already used or invalid), "Could not delete Organisation" (still has users and events).
 - **Proposal**: Always return and show the validation error that caused the refusal (field + rule), in the UI and in the API.
 - **Benefit**: Users fix their input themselves instead of guessing or asking an admin to read the logs.
 

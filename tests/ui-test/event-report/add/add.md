@@ -112,7 +112,7 @@ A deleted report can be restored
 ### Report – page shown after creating
 <a id="report-add-redirect"></a>
 
-After creating an event report, the Overmind event page stays open (regression test for Bug 16)
+After creating an event report, the Overmind event page stays open (regression test for Bug 14)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

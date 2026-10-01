@@ -41,7 +41,7 @@ Downloading an event as MISP JSON
 ### Export – CSV formulas
 <a id="export-csv-formula"></a>
 
-Values starting with = or + are neutralised in the CSV export (regression test for Bug 14)
+Values starting with = or + are neutralised in the CSV export (regression test for Bug 13)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -50,7 +50,7 @@ Values starting with = or + are neutralised in the CSV export (regression test f
 
 **Expected:** the comments `=HYPERLINK("http://qa-csv.example","click")` and `+cmd|calc` are written so that a spreadsheet does not run them (e.g. prefixed with `'`).
 
-**Seeded data:** `QA export csv formula` (tag `qa:export-csv-formula`) has two attributes with these comments. Through the API, the CSV export writes them unchanged (see Bug 14).
+**Seeded data:** `QA export csv formula` (tag `qa:export-csv-formula`) has two attributes with these comments. Through the API, the CSV export writes them unchanged (see Bug 13).
 
 ### Export – STIX 2
 <a id="export-stix2"></a>

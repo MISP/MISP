@@ -146,7 +146,7 @@ The same IP in objects of two events correlates the events
 ### Object edit – add a new attribute
 <a id="object-edit-add-attribute"></a>
 
-Filling an empty field when editing an object adds the attribute (regression test for Bug 19)
+Filling an empty field when editing an object adds the attribute (regression test for Bug 15)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -161,7 +161,7 @@ Filling an empty field when editing an object adds the attribute (regression tes
 ### Object card – attribute menu
 <a id="object-card-attribute-menu"></a>
 
-The menu of an attribute in an object card is fully visible (regression test for Bug 21)
+The menu of an attribute in an object card is fully visible (regression test for Bug 17)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

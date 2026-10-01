@@ -30,7 +30,7 @@ Roles:
 ### Event publish and unpublish
 <a id="event-publish-unpublish"></a>
 
-Publish an event, then unpublish it (regression test for Bug 13)
+Publish an event, then unpublish it (regression test for Bug 12)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.

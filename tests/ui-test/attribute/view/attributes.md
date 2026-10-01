@@ -110,7 +110,7 @@ Filtering the attributes of an event by value
 ### Attribute correlation icon
 <a id="attribute-correlation-toggle"></a>
 
-The correlation icon disables and enables the correlation of an attribute (regression test for Bug 20)
+The correlation icon disables and enables the correlation of an attribute (regression test for Bug 16)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
@@ -120,4 +120,4 @@ The correlation icon disables and enables the correlation of an attribute (regre
 
 **Expected:** after step 4 the message "Correlation disabled" is shown and the icon turns grey; after step 5 "Correlation enabled" is shown; no `error: undefined` message.
 
-**Seeded data:** No data needed. Reproduced in a browser as `org-admin`: the request `POST /attributes/toggleCorrelation/<id>` answered HTTP 400 "The request has been black-holed" (see Bug 20).
+**Seeded data:** No data needed. Reproduced in a browser as `org-admin`: the request `POST /attributes/toggleCorrelation/<id>` answered HTTP 400 "The request has been black-holed" (see Bug 16).

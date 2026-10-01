@@ -63,7 +63,7 @@ A value refused by the server shows the reason and keeps what was typed
 
 **Expected:** no event is created, the message names the invalid field (`domain`) and why, and the form keeps the typed values.
 
-**Seeded data:** No data needed. Through the API, `not a domain!` in `domain` was refused and nothing was created (rollback works), but the only reasons given are "Some attributes or objects were dropped during event creation." and "expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows" (see Bug 12). The form sends the request in JavaScript and shows the errors in a panel, so the typed values stay on the page.
+**Seeded data:** No data needed. Through the API, `not a domain!` in `domain` was refused and nothing was created (rollback works), but the only reasons given are "Some attributes or objects were dropped during event creation." and "expected 2 top-level attribute(s), saved 1 — see audit log for dropped rows" (see Bug 11). The form sends the request in JavaScript and shows the errors in a panel, so the typed values stay on the page.
 
 ### Template form – preview
 <a id="event-template-preview"></a>
@@ -92,7 +92,7 @@ A user of another organisation can use a community template
 ### Template form – page shown after creation
 <a id="event-template-redirect"></a>
 
-After creating an event from a template, the Overmind event page opens (regression test for Bug 13)
+After creating an event from a template, the Overmind event page opens (regression test for Bug 12)
 
 1. Log in to MISP as `site-admin`.
 2. Go to `/events/index`.
