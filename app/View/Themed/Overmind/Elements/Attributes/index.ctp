@@ -437,38 +437,12 @@ if (!empty($show_filters)) {
     ]);
 }
 
-/*
- * One "More filters" panel for both attribute indexes, so a filter sits at the
- * same place in either. A filter is left out where it would be too costly:
- * related events and feed hits are worked out in PHP, which an event can
- * afford but the instance-wide index cannot.
- */
-$yesNo = ['' => __('Any'), '1' => __('Yes'), '2' => __('No')];
-$moreFilters = [
-    ['name' => 'category', 'label' => __('Category'), 'options' => $categoryOptions, 'col' => 3],
-    ['name' => 'type', 'label' => __('Type'), 'options' => $typeOptions, 'col' => 3],
-    ['name' => 'org', 'label' => __('Creator Org'), 'options' => $orgOptions, 'col' => 2],
-    ['name' => 'tags', 'label' => __('Tags'), 'options' => $tagOptions, 'col' => 2],
-    ['name' => 'galaxy', 'label' => __('Galaxy'), 'options' => $galaxyOptions ?? null, 'col' => 2],
-    ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo],
-    ['name' => 'correlation', 'label' => __('Related events'), 'options' => $yesNo, 'eventOnly' => true],
-    ['name' => 'feed', 'label' => __('Feed hits'), 'options' => $yesNo, 'eventOnly' => true],
-    ['name' => 'analystData', 'label' => __('Analyst data'), 'options' => $yesNo],
-    ['name' => 'warning', 'label' => __('Matches a warninglist'), 'options' => $inEventView ? $yesNo : ['' => __('Any'), '2' => __('No')]],
-];
-$moreFilterChildren = [];
-foreach ($moreFilters as $moreFilter) {
-    if (empty($moreFilter['options']) || (!empty($moreFilter['eventOnly']) && !$inEventView)) {
-        continue;
-    }
-    $moreFilterChildren[] = [
-        'type' => 'dropdown',
-        'label' => $moreFilter['label'],
-        'name' => $moreFilter['name'],
-        'options' => ['' => __('Any')] + $moreFilter['options'],
-        'col' => $moreFilter['col'] ?? 2,
-    ];
-}
+App::uses('AttributeFilterPanel', 'Tools');
+$moreFilterChildren = AttributeFilterPanel::children(
+    compact('categoryOptions', 'typeOptions', 'orgOptions', 'tagOptions')
+        + ['galaxyOptions' => $galaxyOptions ?? null],
+    $inEventView
+);
 $children[] = [
     'type' => 'more_filters',
     'label' => __('More filters'),

@@ -155,6 +155,7 @@ function openModal(url, size = 'xl') {
             initChoiceFields(container);
             initJsonFields(container);
             initDateFields(container);
+            keepTabOnFormReturn(container);
             initPgpKeyLookup(container);
             initCollectionForm(container);
             initTemplateElementForm(container);
@@ -167,6 +168,28 @@ function openModal(url, size = 'xl') {
             let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mainModal'));
             modal.show();
         });
+}
+
+/**
+ * Bring a modal form back to the tab it was opened from.
+ *
+ * A modal form posts as a plain navigation and the server answers with a
+ * redirect to the referer, which never carries the fragment - so the event
+ * view came back on its first tab. A redirect whose Location has no fragment
+ * inherits the one of the URL that was requested, so putting the active tab
+ * (view_layout keeps it in location.hash) on the form's action is enough.
+ * The fragment is never sent, and fetch() ignores it.
+ *
+ * @param {ParentNode} container the modal body
+ */
+function keepTabOnFormReturn(container) {
+    const hash = /^#tab-[\w-]+$/.test(window.location.hash) ? window.location.hash : '';
+    if (!hash) return;
+    container.querySelectorAll('form[action]').forEach(function (form) {
+        const action = form.getAttribute('action');
+        if (action === '' || action.indexOf('#') !== -1) return;
+        form.setAttribute('action', action + hash);
+    });
 }
 
 /**
@@ -486,6 +509,7 @@ function renderMainModalContent(html) {
     if (typeof initDateFields === 'function') {
         initDateFields(container);
     }
+    keepTabOnFormReturn(container);
     if (typeof initObjectForm === 'function') {
         initObjectForm(container);
     }

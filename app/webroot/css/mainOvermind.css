@@ -582,6 +582,166 @@ body[data-controller="users"][data-action="change_pw"] {
     background-color: var(--bs-accordion-active-bg);
 }
 
+/* Object index — header line (Elements/Objects/object_header.ctp), shared by
+   the accordion and the card view. */
+.ov-obj-head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    min-width: 0;
+    margin-right: .5rem;
+    text-align: start;
+}
+.ov-obj-dist {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .6rem;
+    font-size: .95rem;
+    color: var(--ov-dist-ink);
+    background: var(--ov-dist-bg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ov-dist-ink) 18%, transparent);
+}
+.ov-obj-title {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.ov-obj-name {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+.ov-obj-deleted {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .1rem .45rem;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-danger-text-emphasis);
+    background: var(--bs-danger-bg-subtle);
+}
+.ov-obj-first {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    min-width: 0;
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.ov-obj-first-rel {
+    flex-shrink: 0;
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.ov-obj-first-val {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--bs-font-monospace);
+    color: var(--bs-body-color);
+}
+.ov-obj-meta {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .15rem .55rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+}
+.ov-obj-meta-version {
+    padding-left: .4rem;
+    border-left: 1px solid var(--bs-border-color);
+    font-family: var(--bs-font-monospace);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ov-obj-taxonomy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.5rem;
+}
+.ov-obj-taxonomy-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    min-width: 0;
+}
+.ov-obj-taxonomy-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ov-obj-taxonomy-empty {
+    color: var(--bs-tertiary-color);
+}
+.ov-obj-aside {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-left: auto;
+}
+.ov-obj-count {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-primary-text-emphasis);
+    background: var(--bs-primary-bg-subtle);
+}
+.ov-obj-date {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 575.98px) {
+    .ov-obj-meta,
+    .ov-obj-date {
+        display: none;
+    }
+}
+
 /* Switching between the table and the card view swaps one block for the other
    in place (d-none), which reads as a jump cut. The incoming block fades up
    over the outgoing one's footprint; the outgoing one is not animated out, so

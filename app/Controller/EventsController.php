@@ -2591,20 +2591,7 @@ class EventsController extends AppController
             'recursive' => -1,
         ]));
 
-        $this->set($this->Event->Attribute->indexFilterOptions());
-        $orgNames = array_values($this->Event->Orgc->find('list', [
-            'fields' => ['Orgc.id', 'Orgc.name'],
-            'conditions' => [
-                'Orgc.id' => array_column($extensionSet['events'], 'orgc_id'),
-            ],
-            'order' => ['Orgc.name' => 'ASC'],
-        ]));
-        $this->set(
-            'orgOptions',
-            count($orgNames) > 1
-                ? ['' => ''] + array_combine($orgNames, $orgNames)
-                : []
-        );
+        $this->__setAttributeFilterOptions($extensionSet);
 
         $this->layout = false;
     }
@@ -2644,6 +2631,8 @@ class EventsController extends AppController
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
+            'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
+            'correlation', 'feed', 'warning', 'analystData',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2720,7 +2709,49 @@ class EventsController extends AppController
             ],
             'recursive' => -1,
         ]));
+        $this->__setAttributeFilterOptions($extensionSet);
+        $this->loadModel('ObjectTemplate');
+        $templateNames = $this->ObjectTemplate->find('column', [
+            'fields' => ['ObjectTemplate.name'],
+            'conditions' => ['ObjectTemplate.active' => 1],
+            'unique' => true,
+            'order' => ['ObjectTemplate.name' => 'ASC'],
+        ]);
+        $this->set('templateOptions', array_combine($templateNames, $templateNames));
+        $metaCategories = $this->ObjectTemplate->find('column', [
+            'fields' => ['ObjectTemplate.meta-category'],
+            'conditions' => ['ObjectTemplate.active' => 1],
+            'unique' => true,
+            'order' => ['ObjectTemplate.meta-category' => 'ASC'],
+        ]);
+        $this->set('metaCategoryOptions', array_combine($metaCategories, $metaCategories));
         $this->layout = false;
+    }
+
+    /**
+     * Option lists of the "More filters" panel of an event's attribute and
+     * object tabs. Creator Org is only offered when the extended view mixes
+     * events of several organisations.
+     *
+     * @param array $extensionSet see Event::getExtensionEventSet()
+     * @return void
+     */
+    private function __setAttributeFilterOptions(array $extensionSet)
+    {
+        $this->set($this->Event->Attribute->indexFilterOptions());
+        $orgNames = array_values($this->Event->Orgc->find('list', [
+            'fields' => ['Orgc.id', 'Orgc.name'],
+            'conditions' => [
+                'Orgc.id' => array_column($extensionSet['events'], 'orgc_id'),
+            ],
+            'order' => ['Orgc.name' => 'ASC'],
+        ]));
+        $this->set(
+            'orgOptions',
+            count($orgNames) > 1
+                ? ['' => ''] + array_combine($orgNames, $orgNames)
+                : []
+        );
     }
 
     /**

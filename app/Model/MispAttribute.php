@@ -1905,13 +1905,16 @@ class MispAttribute extends AppModel
     /**
      * Condition keeping the attributes that carry (or, with $has false, do
      * not carry) a note, an opinion or a relationship the user can see — the
-     * same set the analyst data column counts.
+     * same set the analyst data column counts. $objectType and $uuidField
+     * point it at another kind of parent, an object for instance.
      *
      * @param array $user
      * @param bool $has
+     * @param string $objectType the analyst data's object_type
+     * @param string|null $uuidField column holding that object's uuid
      * @return string
      */
-    public function analystDataCondition(array $user, $has)
+    public function analystDataCondition(array $user, $has, $objectType = 'Attribute', $uuidField = null)
     {
         $sgids = empty($user['Role']['perm_site_admin'])
             ? $this->SharingGroup->authorizedIds($user)
@@ -1919,7 +1922,7 @@ class MispAttribute extends AppModel
         $subQueries = [];
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
             $Model = ClassRegistry::init($type);
-            $typeConditions = [$type . '.object_type' => 'Attribute'];
+            $typeConditions = [$type . '.object_type' => $objectType];
             if ($sgids !== null) {
                 $typeConditions['OR'] = [
                     $type . '.orgc_uuid' => $user['Organisation']['uuid'],
@@ -1937,7 +1940,7 @@ class MispAttribute extends AppModel
                     'fields' => [$type . '.object_uuid'],
                     'conditions' => $typeConditions,
                 ],
-                $this->alias . '.uuid',
+                $uuidField ?? $this->alias . '.uuid',
                 !$has
             )[0];
         }
