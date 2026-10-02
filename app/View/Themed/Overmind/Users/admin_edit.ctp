@@ -604,7 +604,7 @@ if (!$advancedAuthkeys && isset($u['authkey'])) {
                 var d = null;
                 try { d = JSON.parse(res.text); } catch (err) { d = null; }
                 if (d && d.success) {
-                    window.location.href = '<?= $baseurl ?>/admin/users/index';
+                    window.location.href = '<?= $baseurl ?>/admin/users/view/<?= (int)$currentId ?>';
                     return;
                 }
                 if (d) { showErrors(d); return; }

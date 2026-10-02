@@ -15,6 +15,9 @@
  *   $mayModify         bool
  * Optional params:
  *   $headerEyebrow     string  small uppercase label (default "Tags")
+ *   $title             string  modal title (default "Edit Tags")
+ *   $description       string  one line under the title
+ *   $saveLabel         string  submit label (default "Save Tags")
  *   $reloadHook        string  window['<hook>' + uid] fn called after save;
  *                              falls back to the attribute-index reload.
  */
@@ -87,8 +90,9 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => 'tag',
     'eyebrow' => $headerEyebrow,
-    'title' => __('Edit Tags'),
+    'title' => $title ?? __('Edit Tags'),
     'titleIcon' => 'fas fa-pen-to-square',
+    'description' => $description ?? '',
     'icon' => 'misp-icon misp-icon-tag misp-simple',
 ]) ?>
 
@@ -112,7 +116,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
         'accent' => 'tag',
         'align' => 'end',
         'submit' => $mayModify ? [
-            'label' => __('Save Tags'),
+            'label' => $saveLabel ?? __('Save Tags'),
             'icon' => 'fas fa-save',
             'id' => 'edit-tags-save-btn',
             'type' => 'button',

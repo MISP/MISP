@@ -13,7 +13,10 @@ class ObjectReferencesController extends AppController
         parent::beforeFilter();
         // The event pivot explorer posts hand-built JSON to add(), so it sends
         // the CSRF token as the X-CSRF-Token header instead of _Token fields.
-        $this->_csrfTokenHeaderOnly(['add']);
+        // add() takes a hand-built body, delete() takes none at all; neither can
+        // produce the field hash _validatePost() wants, so both carry the token
+        // in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['add', 'delete']);
     }
 
     public $paginate = array(

@@ -246,6 +246,21 @@ $foldChildren = empty($objects) ? [] : [
                     ]) ?>
 
                 </button>
+
+                <?php
+                /*
+                 * Outside the accordion button on purpose: a link inside it would
+                 * collapse the card on the way to its target.
+                 */
+                $objRefs = $object['ObjectReference'] ?? [];
+                ?>
+                <?php if (!empty($objRefs)): ?>
+                    <?= $this->element('Objects/object_relationships', [
+                        'references' => $objRefs,
+                        'objId' => $objId,
+                        'eventId' => $object['event_id'] ?? null,
+                    ]) ?>
+                <?php endif; ?>
             </h2>
 
             <!-- Card body -->
@@ -267,15 +282,6 @@ $foldChildren = empty($objects) ? [] : [
                     ): ?>
                     <div class="px-3 py-2 bg-light border-bottom
                                 d-flex flex-wrap align-items-center gap-2 small text-muted">
-                        <?php if (!empty($object['comment'])): ?>
-                            <span class="card card-link-item bg-white w-100">
-                                <div class="card-body p-1 text-truncate">
-                                    <i class="fas fa-comment"></i>
-                                    <?= h($object['comment']) ?>
-                                </div>
-                            </span>
-                        <?php endif; ?>
-                        <?= $this->element('Objects/object_taxonomy', ['object' => $object]) ?>
                         <?php if (!empty($object['uuid'])): ?>
                             <span class="d-inline-flex align-items-center gap-1">
                                 <i class="fas fa-fingerprint me-1"></i>
@@ -290,6 +296,15 @@ $foldChildren = empty($objects) ? [] : [
                                 </button>
                             </span>
                         <?php endif; ?>
+                        <?php if (!empty($object['comment'])): ?>
+                            <span class="card card-link-item bg-white w-100">
+                                <div class="card-body p-1 text-truncate">
+                                    <i class="fas fa-comment"></i>
+                                    <?= h($object['comment']) ?>
+                                </div>
+                            </span>
+                        <?php endif; ?>
+                        <?= $this->element('Objects/object_taxonomy', ['object' => $object]) ?>
                         <?php
                             $fmtSeen = function ($value) {
                                 $dt = date_create((string)$value);

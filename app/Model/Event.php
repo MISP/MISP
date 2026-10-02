@@ -3368,6 +3368,36 @@ class Event extends AppModel
         }
         unset($obj);
 
+        /*
+         * References, in one query for the whole page rather than one per object:
+         * the card header shows how many an object carries and what they point at.
+         */
+        $references = $this->Object->ObjectReference->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'ObjectReference.object_id' => $objectIds,
+                'ObjectReference.deleted' => 0,
+            ],
+            'fields' => [
+                'ObjectReference.object_id',
+                'ObjectReference.referenced_id',
+                'ObjectReference.referenced_uuid',
+                'ObjectReference.referenced_type',
+                'ObjectReference.relationship_type',
+                'ObjectReference.comment',
+            ],
+            'order' => ['ObjectReference.id' => 'ASC'],
+        ]);
+        $referencesByObject = [];
+        foreach ($references as $reference) {
+            $row = $reference['ObjectReference'];
+            $referencesByObject[$row['object_id']][] = $row;
+        }
+        foreach ($flat as $objId => &$obj) {
+            $obj['ObjectReference'] = $referencesByObject[$objId] ?? [];
+        }
+        unset($obj);
+
         // Move each object-attribute's is_galaxy tags into a ['Galaxy'] array
         $galaxyMap = [];
         $galaxyFlat = [];

@@ -492,6 +492,26 @@ $filterBar = [
     'soft_delete' => '/deleteSelection',
 ];
 
+// Mass actions beside delete. A soft-deleted row can only be deleted for good,
+// and edit / object / relationship are scoped to the event whose page this is,
+// so an extended view (rows from several events) offers tagging only.
+$massActions = [];
+$showingDeleted = !empty($this->request->params['named']['deleted']);
+if ($inEventView && !$showingDeleted) {
+    $massEventId = (int)$event['Event']['id'];
+    if ($_canModify && !$inExtensionView) {
+        $massActions['mass_edit'] = '/attributes/getMassEditForm/' . $massEventId;
+    }
+    if ($canTagAttr) {
+        $massActions['mass_tag'] = '/attributes/tagSelection';
+        $massActions['mass_cluster'] = '/attributes/galaxySelection';
+    }
+    if ($_canModify && !$inExtensionView) {
+        $massActions['mass_object'] = '/objects/proposeObjectsFromAttributes/' . $massEventId;
+        $massActions['mass_relationship'] = '/objectReferences/bulkAdd/' . $massEventId;
+    }
+}
+
 if (!$inEventView) {
     $filterBar['transport'] = 'query';
     $queryFilters = array_diff_key(
@@ -536,16 +556,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     $origin['palette']['badgeBorder']
                 );
             },
-            'filter_bar' => $filterBar + [
-                // 'mass_edit' => 1,
-                // 'mass_tag' => 1,
-                // 'mass_local_tag' => 1,
-                // 'mass_cluster' => 1,
-                // 'mass_local_cluster' => 1,
-                // 'mass_object' => 1,
-                // 'mass_relationship' =>1,
-                // 'mass_sighting' =>1,
-            ],
+            'filter_bar' => $filterBar + $massActions,
             'fields' => $fields,
         ]
     ],

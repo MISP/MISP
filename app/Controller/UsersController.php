@@ -1219,6 +1219,9 @@ class UsersController extends AppController
                         return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view', $this->User->id));
+                        }
                         $this->redirect(array('action' => 'index'));
                     }
                 } else {

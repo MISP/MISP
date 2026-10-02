@@ -26,7 +26,7 @@ $idsOn    = !empty($element['to_ids']);
 $corrOff  = !empty($element['disable_correlation']);
 $corrDis  = in_array($element['type'], MispAttribute::NON_CORRELATING_TYPES, true);
 $corrOn   = !$corrOff && !$corrDis;
-$initDist = !empty($element['distribution'])
+$initDist = isset($element['distribution']) && $element['distribution'] !== ''
     ? (int)$element['distribution']
     : (int)$distributionData['initial'];
 ?>

@@ -166,6 +166,8 @@ class ObjectsController extends AppController
         }
         $error = false;
         $template = false;
+        $groupIds = $this->_isRest() ? [] : $this->__groupSourceIds();
+        $groupMessage = null;
         if (!empty($templateId) || !$this->_isRest()) {
             $templates = $this->MispObject->ObjectTemplate->find('all', array(
                 'conditions' => array('ObjectTemplate.id' => $templateId),
@@ -262,9 +264,13 @@ class ObjectsController extends AppController
                     if (!empty($object['Attribute'])) {
                         $this->__validateAttributeSharingGroups($object['Attribute']);
                     }
+                    unset($object['Object']['group_attribute_ids']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($event);
+                        if (!empty($groupIds)) {
+                            $groupMessage = $this->__absorbGroupedAttributes($event, $result, $groupIds);
+                        }
                     } else {
                         $object_validation_errors = array();
                         foreach($result as $field => $field_errors) {
@@ -291,10 +297,10 @@ class ObjectsController extends AppController
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
                     }
                 } elseif ($this->request->is('ajax')) {
-                    return $this->__objectSaveJsonResponse($result, $error);
+                    return $this->__objectSaveJsonResponse($result, $error, $groupMessage);
                 } else {
                     if (is_numeric($result)) {
-                        $this->Flash->success('Object saved.');
+                        $this->Flash->success($groupMessage ?? 'Object saved.');
                         if ($this->theme === 'Overmind') {
                             $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId, '#' => 'tab-objects'));
                         } else {
@@ -319,11 +325,19 @@ class ObjectsController extends AppController
                 $this->Flash->error($error);
             }
             $this->set('templateList', empty($template) ? $this->__templatePickerList() : []);
+            $seed = $this->request->data;
+            if (!empty($template) && !empty($groupIds)) {
+                $group = $this->__groupSeed($eventId, $template, $groupIds);
+                // A rejected save re-renders what was posted, not the selection.
+                if (!$this->request->is('post')) {
+                    $seed = ['Attribute' => $group['rows']];
+                }
+                $this->set('groupSource', $group + [
+                    'hardDelete' => empty($event['Event']['publish_timestamp']),
+                ]);
+            }
             if (!empty($template)) {
-                $template = $this->MispObject->prepareTemplate(
-                    $template,
-                    $this->request->data
-                );
+                $template = $this->MispObject->prepareTemplate($template, $seed);
                 $enabledRows = array_keys($template['ObjectTemplateElement']);
             } else {
                 $enabledRows = [];
@@ -395,25 +409,184 @@ class ObjectsController extends AppController
      * @param string|false $error
      * @return CakeResponse
      */
-    private function __objectSaveJsonResponse($result, $error)
+    private function __objectSaveJsonResponse($result, $error, $message = null)
     {
         $saved = is_numeric($result);
         $body = ['saved' => $saved];
         if ($saved) {
-            $body['success'] = __('Object saved.');
+            $body['success'] = $message ?? __('Object saved.');
             $body['id'] = (int)$result;
         } else {
             $body['errors'] = $error ?: __('Object could not be saved.');
-            // csrfUseOnce is on, so the token the form posted has just been spent.
-            // The form stays on screen after a rejected save, so it is handed the
-            // token generated for this request or the next attempt blackholes.
-            $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
         }
+        // csrfUseOnce is on, so the token the form posted has just been spent.
+        // A rejected save leaves the form up and needs it for the next attempt;
+        // an accepted one still has the relationships to post.
+        $body['csrfToken'] = $this->request->params['_Token']['key'] ?? null;
         return new CakeResponse([
             'body' => json_encode($body),
             'status' => 200,
             'type' => 'json',
         ]);
+    }
+
+    /**
+     * The loose attributes an object is being composed from: `?group=1,2,3` on
+     * the form, then the field the form carries them in.
+     *
+     * @return int[]
+     */
+    private function __groupSourceIds()
+    {
+        $raw = $this->request->is('post')
+            ? json_decode($this->request->data['Object']['group_attribute_ids'] ?? '[]', true)
+            : explode(',', (string)($this->request->query['group'] ?? ''));
+        return array_values(array_unique(array_filter(array_map('intval', (array)$raw))));
+    }
+
+    /**
+     * One add-form row per selected attribute, each on the first relation of
+     * the template its type fits that is still free (or takes several).
+     * Attachments are left out: their file cannot be carried into the form.
+     *
+     * @param int   $eventId
+     * @param array $template with its ObjectTemplateElement rows
+     * @param int[] $ids
+     * @return array rows, ids (the attributes placed), skipped
+     */
+    private function __groupSeed($eventId, array $template, array $ids)
+    {
+        $Attribute = $this->MispObject->Attribute;
+        $attributes = $Attribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => [
+                'Attribute.id' => $ids,
+                'Attribute.event_id' => $eventId,
+                'Attribute.object_id' => 0,
+                'Attribute.deleted' => 0,
+            ],
+            'flatten' => true,
+        ]);
+        $rows = [];
+        $placed = [];
+        $skipped = [];
+        $used = [];
+        foreach ($attributes as $attribute) {
+            $a = $attribute['Attribute'];
+            if ($Attribute->typeIsAttachment($a['type'])) {
+                $skipped[] = ['value' => $a['value'], 'type' => $a['type'], 'reason' => 'attachment'];
+                continue;
+            }
+            $element = null;
+            foreach ($template['ObjectTemplateElement'] as $candidate) {
+                if ($candidate['type'] === $a['type']
+                    && (!empty($candidate['multiple']) || empty($used[$candidate['object_relation']]))) {
+                    $element = $candidate;
+                    break;
+                }
+            }
+            if ($element === null) {
+                $skipped[] = ['value' => $a['value'], 'type' => $a['type'], 'reason' => 'type'];
+                continue;
+            }
+            $used[$element['object_relation']] = true;
+            $placed[] = (int)$a['id'];
+            $rows[] = [
+                'object_relation' => $element['object_relation'],
+                'type' => $a['type'],
+                'value' => $a['value'],
+                'category' => $a['category'],
+                'to_ids' => $a['to_ids'],
+                'comment' => $a['comment'],
+                'disable_correlation' => $a['disable_correlation'],
+                'distribution' => $a['distribution'],
+                'sharing_group_id' => $a['sharing_group_id'],
+            ];
+        }
+        return ['rows' => $rows, 'ids' => $placed, 'skipped' => $skipped];
+    }
+
+    /**
+     * After an object composed from loose attributes is saved: each source
+     * whose value made it into the object unchanged hands its tags and
+     * sightings to its counterpart there and is deleted - for good if the event
+     * was never published, as groupAttributesIntoObject() does. A source edited
+     * or dropped in the form stays as it was.
+     *
+     * @param array $event
+     * @param int   $objectId
+     * @param int[] $sourceIds
+     * @return string what happened, for the save message
+     */
+    private function __absorbGroupedAttributes(array $event, $objectId, array $sourceIds)
+    {
+        $user = $this->Auth->user();
+        $eventId = (int)$event['Event']['id'];
+        $Attribute = $this->MispObject->Attribute;
+        $sources = $Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'Attribute.id' => $sourceIds,
+                'Attribute.event_id' => $eventId,
+                'Attribute.object_id' => 0,
+                'Attribute.deleted' => 0,
+            ],
+        ]);
+        $counterparts = [];
+        foreach ($Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => ['Attribute.object_id' => $objectId, 'Attribute.deleted' => 0],
+        ]) as $created) {
+            $counterparts[$created['Attribute']['type'] . '|' . $created['Attribute']['value']][]
+                = (int)$created['Attribute']['id'];
+        }
+
+        $hard = empty($event['Event']['publish_timestamp']);
+        $AttributeTag = $Attribute->AttributeTag;
+        $Sighting = ClassRegistry::init('Sighting');
+        $moved = 0;
+        foreach ($sources as $source) {
+            $key = $source['Attribute']['type'] . '|' . $source['Attribute']['value'];
+            if (empty($counterparts[$key])) {
+                continue;
+            }
+            $oldId = (int)$source['Attribute']['id'];
+            $newId = array_shift($counterparts[$key]);
+            $tags = $AttributeTag->find('all', [
+                'recursive' => -1,
+                'conditions' => ['AttributeTag.attribute_id' => $oldId],
+            ]);
+            foreach ($tags as $tag) {
+                $AttributeTag->attachTagToAttribute(
+                    $newId,
+                    $eventId,
+                    $tag['AttributeTag']['tag_id'],
+                    !empty($tag['AttributeTag']['local']),
+                    $tag['AttributeTag']['relationship_type'] ?: false
+                );
+            }
+            $Sighting->updateAll(
+                ['Sighting.attribute_id' => $newId],
+                ['Sighting.attribute_id' => $oldId]
+            );
+            if ($Attribute->deleteAttribute($oldId, $user, $hard)) {
+                $moved++;
+            }
+        }
+
+        $message = __n(
+            'Object saved: %s attribute moved into it.',
+            'Object saved: %s attributes moved into it.',
+            $moved, $moved
+        );
+        $left = count($sourceIds) - $moved;
+        if ($left > 0) {
+            $message .= ' ' . __n(
+                '%s was changed or left out in the form and stays as it was.',
+                '%s were changed or left out in the form and stay as they were.',
+                $left, $left
+            );
+        }
+        return $message;
     }
 
     /**
@@ -651,7 +824,14 @@ class ObjectsController extends AppController
                 if ($this->request->is('ajax')) {
                     if (is_numeric($objectToSave)) {
                         $this->MispObject->Event->unpublishEvent($event);
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Object attributes saved.'))), 'status'=>200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array(
+                            'saved' => true,
+                            'success' => __('Object attributes saved.'),
+                            // The relationship step posts against this id once the
+                            // save comes back, and with this token.
+                            'id' => (int)$object['Object']['id'],
+                            'csrfToken' => $this->request->params['_Token']['key'] ?? null,
+                        )), 'status'=>200, 'type' => 'json'));
                     } else {
                         return new CakeResponse(array('body'=> json_encode(array(
                             'saved' => false,
@@ -710,6 +890,21 @@ class ObjectsController extends AppController
             $this->layout = false;
         }
         $this->set('templateList', []);
+        // The relationship step lists what the object already points at, so that
+        // an edit can drop one.
+        $this->set('existingReferences', $this->MispObject->ObjectReference->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'ObjectReference.object_id' => $object['Object']['id'],
+                'ObjectReference.deleted' => 0,
+            ],
+            'fields' => [
+                'ObjectReference.id', 'ObjectReference.referenced_id',
+                'ObjectReference.referenced_uuid', 'ObjectReference.referenced_type',
+                'ObjectReference.relationship_type', 'ObjectReference.comment',
+            ],
+            'order' => ['ObjectReference.id' => 'ASC'],
+        ]));
         $this->render('add');
     }
 
@@ -1494,6 +1689,10 @@ class ObjectsController extends AppController
         $this->set('potential_templates', $res['templates']);
         $this->set('selected_types', $res['types']);
         $this->set('event_id', $eventId);
+        if ($this->theme === 'Overmind') {
+            $this->set('selectedAttributeIds', $selectedAttributes);
+            $this->layout = false;
+        }
     }
 
     public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
@@ -1504,7 +1703,8 @@ class ObjectsController extends AppController
 
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
+            // Event::afterSave(), reached through unpublishEvent(), reads the distribution pair
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp', 'Event.distribution', 'Event.sharing_group_id'),
             'conditions' => array('Event.id' => $event_id)
         ));
         if (empty($event)) {

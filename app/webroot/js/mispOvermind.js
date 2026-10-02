@@ -7728,14 +7728,26 @@ function initObjectAddForm(container, payloadEl) {
             return rows;
         }
 
-        var html = '<div class="d-flex align-items-center gap-2 flex-wrap mb-2">'
-            + distBadgeHtml(dist, true, data.distributionLevels)
-            + '<span class="fw-semibold">' + escapeHtml(data.template.name) + '</span>'
-            + '<span class="badge rounded-pill text-bg-light border text-secondary fw-normal">'
-            + escapeHtml(data.template.meta) + '</span>'
-            + '<span class="badge bg-secondary-subtle text-secondary">'
-            + rows.length + (rows.length === 1 ? ' attribute' : ' attributes')
-            + '</span></div>';
+        /* Same markup as Elements/Objects/object_header.ctp, so the summary reads
+         * like the card the object will become rather than like a second design. */
+        var distCfg = DIST_MAP[dist] || DIST_MAP[0];
+        var html = '<div class="ov-obj-head mb-2">'
+            + '<span class="ov-obj-dist" style="--ov-dist-bg:' + distCfg.bg
+            + ';--ov-dist-ink:' + distCfg.color + ';">'
+            + '<i class="' + distCfg.icon + '"></i></span>'
+            + '<span class="ov-obj-title">'
+            + '<span class="ov-obj-name">'
+            + '<span class="text-truncate">' + escapeHtml(data.template.name) + '</span>'
+            + '<span class="ov-obj-meta">' + escapeHtml(data.template.meta)
+            + '<span class="ov-obj-meta-version">v' + escapeHtml(data.template.version)
+            + '</span></span>'
+            + '</span></span>'
+            + '<span class="ov-obj-aside">'
+            + '<span class="ov-obj-count">'
+            + '<span class="misp-icon misp-icon-attribute misp-simple"></span> '
+            + rows.length + '</span>'
+            + '</span>'
+            + '</div>';
 
         html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
             + '<thead class="table-light"><tr>'
@@ -7765,6 +7777,8 @@ function initObjectAddForm(container, payloadEl) {
 
         html += '</tbody></table></div>';
 
+        html += relationshipsSummary();
+
         var problem = requirementMessage();
         if (problem) {
             html += '<div class="alert alert-warning py-2 mb-0">'
@@ -7774,6 +7788,38 @@ function initObjectAddForm(container, payloadEl) {
 
         body.innerHTML = html;
         return rows;
+    }
+
+    /* What the object will point at once saved: the ones it already has, plus
+     * the ones this form is about to create. */
+    function relationshipsSummary() {
+        var all = savedRelationships.map(function (rel) {
+            return { rel: rel, note: '' };
+        }).concat(pendingRelationships.map(function (rel) {
+            return { rel: rel, note: 'to be created' };
+        }));
+        if (!all.length) { return ''; }
+
+        var html = '<div class="ov-obj-group-label mt-3">'
+            + '<i class="fas fa-link me-1"></i>'
+            + (all.length === 1 ? '1 relationship' : all.length + ' relationships')
+            + '</div><ul class="list-group mb-3">';
+        all.forEach(function (entry) {
+            html += '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
+                + '<span class="badge bg-object">' + escapeHtml(entry.rel.type) + '</span>'
+                + '<span class="text-muted small">' + escapeHtml(entry.rel.kind) + '</span>'
+                + '<span class="text-break">' + escapeHtml(entry.rel.label) + '</span>'
+                + (entry.rel.comment
+                    ? '<span class="text-muted fst-italic small">'
+                        + escapeHtml(entry.rel.comment) + '</span>'
+                    : '')
+                + (entry.note
+                    ? '<span class="badge bg-secondary-subtle text-secondary ms-auto">'
+                        + escapeHtml(entry.note) + '</span>'
+                    : '')
+                + '</li>';
+        });
+        return html + '</ul>';
     }
 
     /* ---- similar objects ------------------------------------------------ */
@@ -7845,6 +7891,9 @@ function initObjectAddForm(container, payloadEl) {
     /* Kept until the object exists: a reference needs something to hang off, and
      * the object has no id until it is saved. */
     var pendingRelationships = [];
+    /* Already on the object (edit mode). These have an id, so removing one is a
+     * request rather than a splice. */
+    var savedRelationships = (data.existingRelationships || []).slice();
     var relationshipsLoaded = false;
 
     var relBtn = container.querySelector('#objRelationshipBtn');
@@ -7868,38 +7917,81 @@ function initObjectAddForm(container, payloadEl) {
         relAddBtn.disabled = !(relTypeValue() && relTargetEl && relTargetEl.value);
     }
 
+    function relationshipRow(rel, attr, note) {
+        return '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
+            + '<span class="badge bg-object">' + escapeHtml(rel.type) + '</span>'
+            + '<span class="text-muted small">' + escapeHtml(rel.kind) + '</span>'
+            + '<span class="text-break">' + escapeHtml(rel.label) + '</span>'
+            + (rel.comment
+                ? '<span class="text-muted fst-italic small">'
+                    + escapeHtml(rel.comment) + '</span>'
+                : '')
+            + (note
+                ? '<span class="badge bg-secondary-subtle text-secondary">'
+                    + escapeHtml(note) + '</span>'
+                : '')
+            + '<button type="button" class="btn btn-sm ov-obj-row-remove ms-auto"'
+            + ' ' + attr + ' title="Remove this relationship">'
+            + '<i class="fas fa-trash"></i></button>'
+            + '</li>';
+    }
+
     function renderRelationships() {
         if (!relListEl) { return; }
-        if (!pendingRelationships.length) {
+        if (!savedRelationships.length && !pendingRelationships.length) {
             relListEl.innerHTML = '';
             return;
         }
         var html = '<ul class="list-group">';
+        savedRelationships.forEach(function (rel) {
+            html += relationshipRow(rel, 'data-saved-rel="' + escapeHtml(rel.id) + '"', '');
+        });
         pendingRelationships.forEach(function (rel, i) {
-            html += '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
-                + '<span class="badge bg-object">' + escapeHtml(rel.type) + '</span>'
-                + '<span class="text-muted small">' + escapeHtml(rel.kind) + '</span>'
-                + '<span class="text-break">' + escapeHtml(rel.label) + '</span>'
-                + (rel.comment
-                    ? '<span class="text-muted fst-italic small">'
-                        + escapeHtml(rel.comment) + '</span>'
-                    : '')
-                + '<button type="button" class="btn btn-sm ov-obj-row-remove ms-auto"'
-                + ' data-drop-rel="' + i + '" title="' + 'Remove' + '">'
-                + '<i class="fas fa-trash"></i></button>'
-                + '</li>';
+            html += relationshipRow(rel, 'data-drop-rel="' + i + '"', 'pending');
         });
         relListEl.innerHTML = html + '</ul>';
     }
 
     if (relListEl) {
         relListEl.addEventListener('click', function (event) {
-            var btn = event.target.closest('[data-drop-rel]');
-            if (!btn) { return; }
-            pendingRelationships.splice(parseInt(btn.dataset.dropRel, 10), 1);
-            renderRelationships();
+            var drop = event.target.closest('[data-drop-rel]');
+            if (drop) {
+                pendingRelationships.splice(parseInt(drop.dataset.dropRel, 10), 1);
+                renderRelationships();
+                return;
+            }
+            /* One that already exists has to be deleted server-side. */
+            var saved = event.target.closest('[data-saved-rel]');
+            if (!saved || !data.relationshipDeleteUrl) { return; }
+            var id = saved.dataset.savedRel;
+            saved.disabled = true;
+            fetch(data.relationshipDeleteUrl + encodeURIComponent(id), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': typeof getCsrfToken === 'function' ? getCsrfToken() : ''
+                }
+            })
+                .then(function (r) { return r.ok ? r.json() : { saved: false }; })
+                .then(function (res) {
+                    if (!res || !res.saved) {
+                        saved.disabled = false;
+                        showError('The relationship could not be removed.');
+                        return;
+                    }
+                    savedRelationships = savedRelationships.filter(function (rel) {
+                        return String(rel.id) !== String(id);
+                    });
+                    renderRelationships();
+                })
+                .catch(function () {
+                    saved.disabled = false;
+                    showError('The relationship could not be removed.');
+                });
         });
     }
+    renderRelationships();
 
     /* The choices are fetched the first time the step is opened, not with the
      * form: an event's objects and attributes are none of the add form's
@@ -8010,10 +8102,19 @@ function initObjectAddForm(container, payloadEl) {
     /* Posted one by one once the object has an id. A reference that fails is
      * reported rather than swallowed — the object itself is already saved, so
      * silently dropping it would leave the user believing otherwise. */
-    function createRelationships(objectId) {
+    function createRelationships(objectId, csrfToken) {
         if (!pendingRelationships.length || !data.relationshipAddUrl) {
             return Promise.resolve([]);
         }
+        if (!objectId) {
+            return Promise.resolve(pendingRelationships.map(function (rel) {
+                return { rel: rel, reason: 'the object id did not come back' };
+            }));
+        }
+        /* The token the save answered with, not the page's: csrfUseOnce means the
+         * one the layout rendered may long since have been spent or evicted. */
+        var token = csrfToken
+            || (typeof getCsrfToken === 'function' ? getCsrfToken() : '');
         return Promise.all(pendingRelationships.map(function (rel) {
             var body = new URLSearchParams();
             body.set('data[ObjectReference][referenced_uuid]', rel.uuid);
@@ -8025,13 +8126,28 @@ function initObjectAddForm(container, payloadEl) {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-Token': typeof getCsrfToken === 'function' ? getCsrfToken() : ''
+                    'X-CSRF-Token': token
                 },
                 body: body.toString()
             })
-                .then(function (r) { return r.json(); })
-                .then(function (res) { return (res && res.saved) ? null : rel; })
-                .catch(function () { return rel; });
+                .then(function (r) {
+                    /* A blackholed post answers with an error page, not JSON, so
+                     * the status is what says what happened. */
+                    if (!r.ok) {
+                        return { saved: false, errors: 'HTTP ' + r.status };
+                    }
+                    return r.json().catch(function () {
+                        return { saved: false, errors: 'unreadable answer' };
+                    });
+                })
+                .then(function (res) {
+                    return (res && res.saved)
+                        ? null
+                        : { rel: rel, reason: (res && res.errors) || 'refused' };
+                })
+                .catch(function () {
+                    return { rel: rel, reason: 'request failed' };
+                });
         })).then(function (list) {
             return list.filter(Boolean);
         });
@@ -8157,17 +8273,25 @@ function initObjectAddForm(container, payloadEl) {
                     return;
                 }
                 /* The object exists now, so its relationships can be hung off it. */
-                createRelationships(result.id).then(function (failed) {
+                createRelationships(result.id, result.csrfToken).then(function (failed) {
                     var modalEl = document.getElementById('mainModal');
                     var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
                     if (modal) { modal.hide(); }
 
                     showToast(result.success || 'Object saved.', 'success');
+                    /* Composed from loose attributes: those moved out of the
+                     * attributes tab, whose cached fragment would still list them. */
+                    if (form.querySelector('[name="data[Object][group_attribute_ids]"]')) {
+                        var attrsPane = document.querySelector('.ajax-tab-content[data-url*="viewAttributes"]');
+                        if (attrsPane) { delete attrsPane.dataset.loaded; }
+                    }
                     if (failed.length) {
                         showToast(failed.length + ' relationship'
                             + (failed.length === 1 ? '' : 's')
-                            + ' could not be created: '
-                            + failed.map(function (r) { return r.type; }).join(', '),
+                            + ' could not be created — '
+                            + failed.map(function (f) {
+                                return f.rel.type + ': ' + f.reason;
+                            }).join('; '),
                             'danger');
                     }
                     if (!showObjectsTab()) {
