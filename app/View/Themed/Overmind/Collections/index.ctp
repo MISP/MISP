@@ -48,6 +48,7 @@ $fields = [
         'name' => __('Name'),
         'sort' => 'Collection.name',
         'data_path' => 'Collection.name, Collection.description',
+        'distribution_path' => 'Collection.distribution',
         'element' => 'name_description',
         'card_section' => 'title',
         'display_in' => ['table', 'card']

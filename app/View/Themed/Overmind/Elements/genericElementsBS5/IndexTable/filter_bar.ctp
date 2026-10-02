@@ -313,6 +313,7 @@ $activeTotal = count(array_diff_key(
         ?>
     </div>
 
+    <?php foreach ($filter_bar['children'] as $child): ?>
     <?php if ($child['type'] === 'button_group'): ?>
         <div class="btn-group flex-shrink-0" role="group"<?php
             if (!empty($child['label'])): ?> aria-label="<?= h($child['label']) ?>"<?php
@@ -345,6 +346,7 @@ $activeTotal = count(array_diff_key(
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <?php endforeach; ?>
 
     <div class="btn-group" role="group" data-tour="index-view">
 
