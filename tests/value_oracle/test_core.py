@@ -135,6 +135,16 @@ class CaseTest(unittest.TestCase):
         self.assertEqual((201, {'made': True}),
                          (result['status'], result['value']))
 
+    def test_runner_meta_is_kept_outside_the_value(self):
+        case = core.Case('c', run=lambda client: (
+            200, {'plan': 'ref'}, {'timings': {'sql_ms': 5}}))
+        result = case.execute(None)
+        self.assertEqual({'plan': 'ref'}, result['value'])
+        self.assertEqual({'sql_ms': 5}, result['meta']['timings'])
+        other = dict(result, meta=dict(result['meta'],
+                                       timings={'sql_ms': 50}))
+        self.assertEqual([], core.compare_results(result, other))
+
 
 class StoreTest(unittest.TestCase):
     def setUp(self):
@@ -155,6 +165,8 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(result['value'], store.load('suite', 'c')['value'])
         self.assertEqual(['c'], store.case_names('suite'))
         self.assertIsNone(store.load('suite', 'missing'))
+        self.assertEqual({}, store.load_meta('suite', 'c'))
+        self.assertIsNone(store.load_meta('suite', 'missing'))
 
     def test_invalid_label(self):
         with self.assertRaises(core.OracleError):

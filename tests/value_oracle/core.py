@@ -130,7 +130,9 @@ class Case:
     accept: str = 'application/json'
     description: str = ''
     # A custom runner replaces the single request: run(client) returns
-    # (status, value). Used for multi-request cases such as write round-trips.
+    # (status, value) or (status, value, meta), meta being kept beside the
+    # recorded value but never compared. Used for multi-request cases such as
+    # write round-trips.
     run: Optional[Callable[[Client], tuple]] = None
 
     def __post_init__(self):
@@ -142,8 +144,12 @@ class Case:
 
     def execute(self, client):
         started = time.monotonic()
+        extra = None
         if self.run is not None:
-            status, value = self.run(client)
+            outcome = self.run(client)
+            status, value = outcome[0], outcome[1]
+            if len(outcome) > 2:
+                extra = outcome[2]
         else:
             response = client.request(
                 self.method, self.path, self.body, self.user, self.accept)
@@ -155,16 +161,19 @@ class Case:
                     'extract_error': '%s: %s' % (type(e).__name__, e),
                     'body_head': response.text()[:500],
                 }
+        meta = {
+            'elapsed_ms': round((time.monotonic() - started) * 1000),
+            'method': self.method,
+            'path': self.path,
+            'user': self.user,
+        }
+        if extra:
+            meta.update(extra)
         return {
             'case': self.name,
             'status': status,
             'value': value,
-            'meta': {
-                'elapsed_ms': round((time.monotonic() - started) * 1000),
-                'method': self.method,
-                'path': self.path,
-                'user': self.user,
-            },
+            'meta': meta,
         }
 
 
@@ -320,6 +329,14 @@ class Store:
 
         stored['value'] = internalise(stored['value'])
         return stored
+
+    def load_meta(self, suite, case):
+        """The case's meta alone, without reading its blobs."""
+        path = self._case_path(suite, case)
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return json.load(f).get('meta', {})
 
     def case_names(self, suite):
         directory = os.path.join(self.dir, suite)

@@ -13,12 +13,7 @@ Timestamps inside the run's own time window and the id of the added proposal
 are masked.
 """
 
-import json
-import os
-import subprocess
-import tempfile
-import time
-
+import phpunit
 from core import Case
 from suites.restsearch import load_fixtures
 
@@ -36,27 +31,10 @@ TEST_FILE = 'Test/AttributePayloadOracleTest.php'
 OUTPUT_TAIL = 2000
 
 
-def phpunit(app_dir, request):
+def capture_payloads(app_dir, request):
     """Runs the capture test; returns (exit code, output, payloads or None,
     started, finished)."""
-    with tempfile.TemporaryDirectory() as tmp:
-        request = dict(request, out=os.path.join(tmp, 'payloads.json'))
-        request_file = os.path.join(tmp, 'request.json')
-        with open(request_file, 'w') as f:
-            json.dump(request, f)
-        started = time.time()
-        run = subprocess.run(
-            [os.path.join(app_dir, 'Vendor', 'bin', 'phpunit'),
-             os.path.join(app_dir, TEST_FILE)],
-            env=dict(os.environ, VALUE_ORACLE_PAYLOADS=request_file),
-            capture_output=True, text=True)
-        finished = time.time()
-        payloads = None
-        if os.path.exists(request['out']):
-            with open(request['out']) as f:
-                payloads = json.load(f)
-        return (run.returncode, run.stdout + run.stderr, payloads, started,
-                finished)
+    return phpunit.run(app_dir, TEST_FILE, 'VALUE_ORACLE_PAYLOADS', request)
 
 
 def normalise(value, started, finished, new_ids=(), key=None):
@@ -79,7 +57,7 @@ def normalise(value, started, finished, new_ids=(), key=None):
 class Capture:
     """Runs PHPUnit on first use and hands each case its part."""
 
-    def __init__(self, app_dir, request, runner=phpunit):
+    def __init__(self, app_dir, request, runner=capture_payloads):
         self.app_dir = app_dir
         self.request = request
         self.runner = runner

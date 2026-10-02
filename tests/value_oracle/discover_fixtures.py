@@ -206,6 +206,21 @@ QUERIES = {
         JOIN events e ON e.id = x.eid JOIN events o ON o.id = x.other
         WHERE e.distribution = 3 AND o.distribution = 0
           AND e.orgc_id <> o.orgc_id AND e.attribute_count <= 2000""",
+    # Plans sample (suites/plans.py): an event of the size class of the
+    # exploration's correlation probe (EXP section 4, shape E), and an IPv4
+    # address inside a stored CIDR block.
+    'plan_correlation_event': """
+        SELECT event_id FROM attributes GROUP BY event_id
+        HAVING COUNT(*) BETWEEN 20000 AND 30000
+        ORDER BY COUNT(*) DESC, event_id LIMIT 1""",
+    'plan_ip_in_cidr': """
+        SELECT INET_NTOA(INET_ATON(SUBSTRING_INDEX(value1, '/', 1)) + 1)
+        FROM attributes
+        WHERE type IN ('ip-src', 'ip-dst') AND deleted = 0
+          AND disable_correlation = 0 AND value1 LIKE '%.%/%'
+          AND CAST(SUBSTRING_INDEX(value1, '/', -1) AS UNSIGNED)
+              BETWEEN 8 AND 30
+        ORDER BY id LIMIT 1""",
 }
 
 

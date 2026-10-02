@@ -6,14 +6,7 @@
  * tests/value_oracle. Every write runs in a transaction that is rolled back.
  */
 
-$appDir = dirname(__DIR__);
-set_include_path(
-    $appDir . DIRECTORY_SEPARATOR . 'Lib' . DIRECTORY_SEPARATOR . 'cakephp' .
-    DIRECTORY_SEPARATOR . 'lib' . PATH_SEPARATOR . get_include_path()
-);
-require_once 'Cake/Console/ShellDispatcher.php';
-new ShellDispatcher(['cake', 'PayloadOracle', '-working', $appDir]);
-unset($appDir);
+require_once __DIR__ . '/OracleBootstrap.php';
 
 App::uses('MispAttribute', 'Model');
 App::uses('ShadowAttribute', 'Model');

@@ -8,6 +8,8 @@ Usage:
     oracle.py record SUITE[,SUITE...] --label LABEL [--case GLOB]
     oracle.py compare SUITE[,SUITE...] --baseline LABEL
                       [--current LABEL] [--save LABEL] [--case GLOB]
+    oracle.py timings SUITE[,SUITE...] --baseline LABEL [--current LABEL]
+                      [--case GLOB]
     oracle.py restore [--yes]
     oracle.py selftest
 
@@ -16,9 +18,11 @@ users {name: api key}, store, optional verify_tls and timeout) comes from
 --config or $VALUE_ORACLE_CONFIG; see config.example.json. Exit status is
 non-zero when anything differs, is missing or fails. restore resets the
 instance to the configured dump and needs the config's "restore" section.
+timings lists how long recorded cases took, which compare never looks at.
 """
 
 import argparse
+import fnmatch
 import importlib
 import os
 import pkgutil
@@ -156,6 +160,42 @@ def compare_suite(name, config, args, baseline, current_store, client, save,
                 name, orphan))
 
 
+def cmd_timings(args):
+    """Elapsed time per recorded case, plus the SQL time of the value
+    statements where the suite measured it (plans), side by side for two
+    labels."""
+    config = load_config(args)
+    labels = [args.baseline] + ([args.current] if args.current else [])
+    stores = [core.Store(config.store, label) for label in labels]
+    print('%-52s %s%s' % ('case', ''.join('%16s' % l for l in labels),
+                          '   ratio' if args.current else ''))
+    for name in args.suites.split(','):
+        names = set()
+        for store in stores:
+            names.update(store.case_names(name))
+        for case in sorted(n for n in names
+                           if fnmatch.fnmatch(n, args.case)):
+            metas = [store.load_meta(name, case) for store in stores]
+            cells = [timing_cell(meta) for meta in metas]
+            line = '%-52s %s' % ('%s/%s' % (name, case),
+                                 ''.join('%16s' % c for c in cells))
+            elapsed = [(m or {}).get('elapsed_ms') for m in metas]
+            if args.current and elapsed[0] and elapsed[1] is not None:
+                line += '%8.2f' % (elapsed[1] / elapsed[0])
+            print(line)
+    return 0
+
+
+def timing_cell(meta):
+    if meta is None:
+        return '-'
+    cell = '%d' % meta.get('elapsed_ms', 0)
+    sql = meta.get('timings', {}).get('value_sql_ms')
+    if sql is not None:
+        cell += ' (%d)' % sql
+    return cell
+
+
 def cmd_restore(args):
     config = load_config(args)
     restorer = restore.Restorer(config.restore)
@@ -197,6 +237,13 @@ def main(argv=None):
     p.add_argument('--save')
     p.add_argument('--case', default='*')
     p.set_defaults(func=cmd_compare)
+
+    p = sub.add_parser('timings')
+    p.add_argument('suites')
+    p.add_argument('--baseline', required=True)
+    p.add_argument('--current')
+    p.add_argument('--case', default='*')
+    p.set_defaults(func=cmd_timings)
 
     p = sub.add_parser('restore')
     p.add_argument('--yes', action='store_true')
