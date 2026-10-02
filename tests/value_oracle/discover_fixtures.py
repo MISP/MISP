@@ -144,6 +144,41 @@ QUERIES = {
         LIMIT 1""",
     'export_largest': """
         SELECT id FROM events ORDER BY attribute_count DESC, id LIMIT 1""",
+    # REST sample: one attribute, object or event per shape (suites/rest.py).
+    'rest_attribute_composite': """
+        SELECT MIN(id) FROM attributes
+        WHERE type = 'ip-dst|port' AND deleted = 0 AND object_id = 0""",
+    'rest_attribute_object': """
+        SELECT MIN(a.id) FROM attributes a JOIN objects o ON o.id = a.object_id
+        WHERE a.deleted = 0 AND o.deleted = 0""",
+    'rest_attribute_malware': """
+        SELECT MIN(id) FROM attributes
+        WHERE type = 'malware-sample' AND deleted = 0 AND object_id > 0""",
+    'rest_attribute_proposed': """
+        SELECT MIN(s.old_id) FROM shadow_attributes s
+        JOIN attributes a ON a.id = s.old_id
+        WHERE s.deleted = 0 AND a.deleted = 0 AND s.proposal_to_delete = 0""",
+    'rest_attribute_deleted': """
+        SELECT MIN(a.id) FROM attributes a JOIN events e ON e.id = a.event_id
+        WHERE a.deleted = 1 AND e.distribution = 3""",
+    'rest_attribute_org_only': """
+        SELECT MIN(id) FROM attributes WHERE deleted = 0 AND event_id = (
+            SELECT id FROM events WHERE distribution = 0
+            ORDER BY attribute_count DESC, id LIMIT 1)""",
+    'rest_object_malware': """
+        SELECT MIN(object_id) FROM attributes
+        WHERE type = 'malware-sample' AND deleted = 0 AND object_id > 0""",
+    'rest_object_org_only': """
+        SELECT MIN(o.id) FROM objects o JOIN events e ON e.id = o.event_id
+        WHERE o.deleted = 0 AND o.distribution = 0 AND e.distribution > 0
+          AND e.published = 1""",
+    'rest_attachment_event': """
+        SELECT event_id FROM attributes
+        WHERE type IN ('attachment', 'malware-sample') AND deleted = 0
+        GROUP BY event_id ORDER BY COUNT(*) DESC, event_id LIMIT 1""",
+    'rest_proposal': """
+        SELECT MIN(id) FROM shadow_attributes
+        WHERE deleted = 0 AND old_id > 0""",
 }
 
 
