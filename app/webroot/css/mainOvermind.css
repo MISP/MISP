@@ -3934,6 +3934,21 @@ tr.evt-extension-row td:first-child {
     box-shadow: none;
 }
 
+/* The user view's identity card: the role's disc beside the field table, one
+   above the other once the page is too narrow for both. Bootstrap ships no
+   responsive border utility, so the rule that separates the two has to move
+   from the bottom edge to the right edge here rather than in the markup. */
+.ov-identity-aside {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+@media (min-width: 768px) {
+    .ov-identity-aside {
+        border-bottom: 0;
+        border-right: 1px solid var(--bs-border-color);
+    }
+}
+
 /* A folded key (PGP, S/MIME): the summary is the control, and the body is
    capped rather than letting a 4 kB armoured block run the page long. `pre`
    would otherwise scroll sideways — a key has no spaces to wrap at, hence
