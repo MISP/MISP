@@ -305,6 +305,9 @@ class MispAttribute extends AppModel
     ];
 
     // skip Correlation for the following types
+    // An attachment whose file name carries one of these is shown as a picture
+    const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
     const NON_CORRELATING_TYPES = [
         'comment',
         'http-method',
@@ -1138,7 +1141,7 @@ class MispAttribute extends AppModel
     public function isImage(array $attribute)
     {
         return $attribute['type'] === 'attachment' &&
-            Validation::extension($attribute['value'], ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            Validation::extension($attribute['value'], self::IMAGE_EXTENSIONS);
     }
 
     /**
