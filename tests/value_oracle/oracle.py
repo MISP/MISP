@@ -57,6 +57,15 @@ def load_cases(name, config, pattern):
     return core.select(cases, pattern)
 
 
+def teardown(name, config):
+    """Runs the suite's optional teardown(config), which undoes what its
+    cases changed on the instance."""
+    hook = getattr(importlib.import_module('suites.' + name), 'teardown',
+                   None)
+    if hook is not None:
+        hook(config)
+
+
 def cmd_list(args):
     config = load_config(args)
     for name in suite_names():
@@ -73,15 +82,18 @@ def cmd_record(args):
     store = core.Store(config.store, args.label)
     failed = 0
     for name in args.suites.split(','):
-        for case in load_cases(name, config, args.case):
-            result = case.execute(client)
-            store.save(name, result)
-            flag = 'ok' if 200 <= result['status'] < 300 else 'HTTP'
-            if flag != 'ok':
-                failed += 1
-            print('%-4s %s/%s (%s, %d ms)' % (
-                flag, name, case.name, result['status'],
-                result['meta']['elapsed_ms']))
+        try:
+            for case in load_cases(name, config, args.case):
+                result = case.execute(client)
+                store.save(name, result)
+                flag = 'ok' if 200 <= result['status'] < 300 else 'HTTP'
+                if flag != 'ok':
+                    failed += 1
+                print('%-4s %s/%s (%s, %d ms)' % (
+                    flag, name, case.name, result['status'],
+                    result['meta']['elapsed_ms']))
+        finally:
+            teardown(name, config)
     print('recorded into %s%s' % (
         store.dir, '; %d non-2xx' % failed if failed else ''))
     return 0
@@ -96,42 +108,52 @@ def cmd_compare(args):
     client = core.Client(config) if current_store is None else None
     totals = {'PASS': 0, 'DIFF': 0, 'NEW': 0, 'GONE': 0}
     for name in args.suites.split(','):
-        cases = load_cases(name, config, args.case)
-        seen = set()
-        for case in cases:
-            seen.add(case.name)
-            base = baseline.load(name, case.name)
-            if current_store is not None:
-                current = current_store.load(name, case.name)
-                if current is None:
-                    totals['GONE'] += 1
-                    print('GONE %s/%s (not in %s)' % (
-                        name, case.name, args.current))
-                    continue
-            else:
-                current = case.execute(client)
-                if save is not None:
-                    save.save(name, current)
-            if base is None:
-                totals['NEW'] += 1
-                print('NEW  %s/%s (no baseline)' % (name, case.name))
-                continue
-            lines = core.compare_results(base, current)
-            if lines:
-                totals['DIFF'] += 1
-                print('DIFF %s/%s' % (name, case.name))
-                for line in lines:
-                    print('     ' + line)
-            else:
-                totals['PASS'] += 1
-                print('PASS %s/%s' % (name, case.name))
-        if args.case == '*':
-            for orphan in sorted(set(baseline.case_names(name)) - seen):
-                totals['GONE'] += 1
-                print('GONE %s/%s (in baseline, no longer defined)' % (
-                    name, orphan))
+        try:
+            compare_suite(name, config, args, baseline, current_store, client,
+                          save, totals)
+        finally:
+            if current_store is None:
+                teardown(name, config)
     print(' '.join('%s=%d' % kv for kv in totals.items()))
     return 0 if totals['DIFF'] + totals['NEW'] + totals['GONE'] == 0 else 1
+
+
+def compare_suite(name, config, args, baseline, current_store, client, save,
+                  totals):
+    cases = load_cases(name, config, args.case)
+    seen = set()
+    for case in cases:
+        seen.add(case.name)
+        base = baseline.load(name, case.name)
+        if current_store is not None:
+            current = current_store.load(name, case.name)
+            if current is None:
+                totals['GONE'] += 1
+                print('GONE %s/%s (not in %s)' % (
+                    name, case.name, args.current))
+                continue
+        else:
+            current = case.execute(client)
+            if save is not None:
+                save.save(name, current)
+        if base is None:
+            totals['NEW'] += 1
+            print('NEW  %s/%s (no baseline)' % (name, case.name))
+            continue
+        lines = core.compare_results(base, current)
+        if lines:
+            totals['DIFF'] += 1
+            print('DIFF %s/%s' % (name, case.name))
+            for line in lines:
+                print('     ' + line)
+        else:
+            totals['PASS'] += 1
+            print('PASS %s/%s' % (name, case.name))
+    if args.case == '*':
+        for orphan in sorted(set(baseline.case_names(name)) - seen):
+            totals['GONE'] += 1
+            print('GONE %s/%s (in baseline, no longer defined)' % (
+                name, orphan))
 
 
 def cmd_restore(args):

@@ -184,6 +184,28 @@ QUERIES = {
         JOIN attribute_tags t ON t.attribute_id = a.id
         JOIN sightings s ON s.attribute_id = a.id
         WHERE a.deleted = 0""",
+    # Correlation sample (suites/correlations.py); run after a full
+    # recorrelation, which the dump's correlation tables predate.
+    'correlation_event_dense': """
+        SELECT x.eid FROM (
+            SELECT event_id AS eid FROM default_correlations
+            UNION ALL SELECT 1_event_id FROM default_correlations) x
+        JOIN events e ON e.id = x.eid WHERE e.attribute_count <= 2000
+        GROUP BY x.eid ORDER BY COUNT(*) DESC, x.eid LIMIT 1""",
+    'correlation_event_cidr': """
+        SELECT MIN(a.event_id) FROM attributes a
+        WHERE a.deleted = 0 AND a.type IN ('ip-src', 'ip-dst')
+          AND a.value1 LIKE '%/%' AND a.id IN (
+            SELECT attribute_id FROM default_correlations
+            UNION SELECT 1_attribute_id FROM default_correlations)""",
+    'correlation_event_restricted': """
+        SELECT MIN(x.eid) FROM (
+            SELECT event_id AS eid, 1_event_id AS other
+            FROM default_correlations
+            UNION ALL SELECT 1_event_id, event_id FROM default_correlations) x
+        JOIN events e ON e.id = x.eid JOIN events o ON o.id = x.other
+        WHERE e.distribution = 3 AND o.distribution = 0
+          AND e.orgc_id <> o.orgc_id AND e.attribute_count <= 2000""",
 }
 
 
