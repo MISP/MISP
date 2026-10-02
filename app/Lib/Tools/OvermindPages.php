@@ -70,7 +70,7 @@ class OvermindPages
         // Workflows
         'workflows' => array(
             'index', 'triggers', 'adhoc', 'add', 'edit', 'executeWorkflow',
-            'moduleIndex', 'massToggleTrigger',
+            'moduleIndex', 'moduleView', 'massToggleTrigger',
             'massToggleModule', 'toggleDebugMode'
         ),
         'workflowBlueprints' => array(

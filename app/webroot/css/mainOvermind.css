@@ -2082,6 +2082,55 @@ tr.evt-extension-row td:first-child {
     .wf-scope .wf-feeds::after { display: none; }
 }
 
+
+
+
+/* Workflow module view: a neutral chip for scopes, types and option values. */
+.ov-wf-chip {
+    font-size: .72rem;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    border: 1px solid var(--bs-border-color);
+}
+
+/* Read-only Drawflow canvas of the execution path. drawflow-default.css sets
+   its palette on :root in light colours only, so it is re-pointed here. */
+.ov-wf-graph {
+    height: 480px;
+    position: relative;
+    overflow: hidden;
+    --dfBackgroundColor: var(--bs-body-bg);
+    --dfNodeBackgroundColor: var(--bs-body-bg);
+    --dfNodeTextColor: var(--bs-body-color);
+    --dfNodeHoverBackgroundColor: var(--bs-body-bg);
+    --dfNodeHoverTextColor: var(--bs-body-color);
+    --dfNodeSelectedBackgroundColor: var(--bs-body-bg);
+    --dfNodeSelectedTextColor: var(--bs-body-color);
+    --dfNodeBorderSize: 1px;
+    --dfNodeBorderColor: var(--bs-border-color);
+    --dfInputBackgroundColor: var(--bs-body-bg);
+    --dfOutputBackgroundColor: var(--bs-body-bg);
+    --dfInputBorderColor: var(--bs-secondary-color);
+    --dfOutputBorderColor: var(--bs-secondary-color);
+}
+
+.ov-wf-graph .drawflow-node {
+    cursor: default;
+}
+
+.ov-wf-node {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: 0 .75rem;
+    white-space: nowrap;
+}
+
+.ov-wf-node img {
+    filter: grayscale(1);
+}
+
+
 /* ============================================================
    SERVER SETTINGS  (servers/serverSettings — Overmind)
    Scoped under .ss-scope so nothing leaks into other pages.
