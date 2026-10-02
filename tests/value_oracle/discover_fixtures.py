@@ -179,6 +179,11 @@ QUERIES = {
     'rest_proposal': """
         SELECT MIN(id) FROM shadow_attributes
         WHERE deleted = 0 AND old_id > 0""",
+    'payload_attribute_tagged': """
+        SELECT MIN(a.id) FROM attributes a
+        JOIN attribute_tags t ON t.attribute_id = a.id
+        JOIN sightings s ON s.attribute_id = a.id
+        WHERE a.deleted = 0""",
 }
 
 
