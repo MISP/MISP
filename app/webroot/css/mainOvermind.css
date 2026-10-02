@@ -4698,3 +4698,34 @@ tr.evt-extension-row td:first-child {
     color: var(--bs-danger);
     font-size: .72rem;
 }
+
+/* The relationship count in an object card's header. It sits outside the
+   accordion button so its menu can link out without collapsing the card. */
+.ov-obj-rel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .1rem .45rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-pill);
+    background: rgba(var(--bs-object-rgb), .06);
+    color: var(--bs-body-color);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.ov-obj-rel-badge:hover,
+.ov-obj-rel-badge[aria-expanded="true"] {
+    border-color: var(--bs-object);
+    background: rgba(var(--bs-object-rgb), .14);
+    color: var(--bs-body-color);
+}
+
+.ov-obj-rel-badge > i {
+    font-size: .66rem;
+    opacity: .75;
+}
+
+[data-bs-theme="dark"] .ov-obj-rel-badge {
+    background: rgba(var(--bs-object-rgb), .28);
+}

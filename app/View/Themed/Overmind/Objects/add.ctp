@@ -13,6 +13,13 @@ $action       = $action ?? 'add';
 $isEdit       = $action === 'edit';
 
 $pickerUrl = $baseurl . '/objects/add/' . $eventId;
+// Composed from the attribute index's "Object" mass action: the way back is the
+// list of templates the selection fits, not the whole picker.
+$groupSource = $groupSource ?? null;
+if (!empty($groupSource)) {
+    $pickerUrl = $baseurl . '/objects/proposeObjectsFromAttributes/' . $eventId
+        . '/' . json_encode($groupSource['ids']);
+}
 
 if (!$hasTemplate):
 
@@ -135,6 +142,12 @@ echo $this->Form->create('Object', [
  */
 $this->Form->unlockField('Attribute');
 
+if (!empty($groupSource)) {
+    echo $this->Form->hidden('Object.group_attribute_ids', [
+        'value' => json_encode($groupSource['ids']),
+    ]);
+}
+
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
@@ -173,6 +186,40 @@ $this->Form->unlockField('Attribute');
             </button>
         <?php endif; ?>
     </div>
+
+    <?php if (!empty($groupSource)):
+        $placed = count($groupSource['ids']);
+    ?>
+        <div class="alert alert-info d-flex gap-2 small mb-4">
+            <i class="fas fa-object-group mt-1"></i>
+            <div>
+                <div>
+                    <?= __n(
+                        'The selected attribute is filled in below.',
+                        'The %s selected attributes are filled in below.',
+                        $placed, $placed
+                    ) ?>
+                    <?= $groupSource['hardDelete']
+                        ? __('Once the object is saved, each one kept as it is moves into it, tags and sightings included, and is deleted for good from the loose attributes (the event was never published).')
+                        : __('Once the object is saved, each one kept as it is moves into it, tags and sightings included, and is soft-deleted from the loose attributes.') ?>
+                    <?= __('One you remove or edit here stays where it is.') ?>
+                </div>
+                <?php if (!empty($groupSource['skipped'])): ?>
+                    <div class="mt-1">
+                        <?= __('Left out:') ?>
+                        <?php foreach ($groupSource['skipped'] as $skipped): ?>
+                            <span class="badge text-bg-light border font-monospace"
+                                  title="<?= h($skipped['reason'] === 'attachment'
+                                      ? __('An attachment cannot be carried into the form.')
+                                      : __('This template has no free relation of this type.')) ?>">
+                                <?= h($skipped['type']) ?>: <?= h(mb_strimwidth($skipped['value'], 0, 40, '…')) ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="accordion" id="objectAccordion">
 

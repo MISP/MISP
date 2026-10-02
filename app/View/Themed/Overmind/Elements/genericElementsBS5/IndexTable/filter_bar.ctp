@@ -457,6 +457,7 @@ if ($explicitActive !== null) {
 
 <?php
 $hasMassActions = !empty($filter_bar['delete'])
+    || !empty($filter_bar['soft_delete'])
     || !empty($filter_bar['fetch'])
     || !empty($filter_bar['accept'])
     || !empty($filter_bar['discard'])

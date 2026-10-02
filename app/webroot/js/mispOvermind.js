@@ -8279,6 +8279,12 @@ function initObjectAddForm(container, payloadEl) {
                     if (modal) { modal.hide(); }
 
                     showToast(result.success || 'Object saved.', 'success');
+                    /* Composed from loose attributes: those moved out of the
+                     * attributes tab, whose cached fragment would still list them. */
+                    if (form.querySelector('[name="data[Object][group_attribute_ids]"]')) {
+                        var attrsPane = document.querySelector('.ajax-tab-content[data-url*="viewAttributes"]');
+                        if (attrsPane) { delete attrsPane.dataset.loaded; }
+                    }
                     if (failed.length) {
                         showToast(failed.length + ' relationship'
                             + (failed.length === 1 ? '' : 's')

@@ -50,7 +50,8 @@ class AttributesController extends AppController
         $this->_csrfTokenHeaderOnly([
             'editAttributeTags', 'editAttributeGalaxies',
             'editAttributeTagRelationships', 'editAttributeGalaxyRelationships',
-            'editField',
+            'editField', 'tagSelection', 'galaxySelection',
+            'delete', 'deleteSelection', 'restore', 'toggleCorrelation',
         ]);
 
         // permit reuse of CSRF tokens on the search page.
@@ -1665,8 +1666,12 @@ class AttributesController extends AppController
         }
     }
 
-    public function getMassEditForm($eventId)
+    public function getMassEditForm($eventId, $selectedIds = '[]')
     {
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')
+            && $this->request->is('get')) {
+            return $this->__overmindMassEditForm($eventId, $selectedIds);
+        }
         if (!$this->request->is('ajax') || !$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This method can only be accessed via AJAX and POST.'));
         }
@@ -1793,6 +1798,49 @@ class AttributesController extends AppController
         $this->render('ajax/attributeEditMassForm');
     }
 
+    /**
+     * The Overmind mass-edit modal, posting to editSelected(). Tags and
+     * clusters have mass actions of their own, so it leaves them out.
+     *
+     * @param int    $eventId
+     * @param string $selectedIds JSON list of attribute IDs
+     */
+    private function __overmindMassEditForm($eventId, $selectedIds)
+    {
+        $user = $this->Auth->user();
+        $event = $this->MispAttribute->Event->fetchSimpleEvent($user, $eventId, [
+            'fields' => ['id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp'],
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.id' => $this->__selectionIds($selectedIds),
+                'Attribute.event_id' => $event['Event']['id'],
+                'Attribute.deleted' => 0,
+            ],
+            'flatten' => true,
+        ]);
+        if (empty($attributes)) {
+            throw new NotFoundException(__('No attribute selected.'));
+        }
+
+        $this->set('eventId', (int)$event['Event']['id']);
+        $this->set('selectedAttributeIds', array_map(
+            'intval', array_column(array_column($attributes, 'Attribute'), 'id')
+        ));
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->set('sharingGroups', $this->MispAttribute->SharingGroup->fetchAllAuthorised(
+            $user, 'name', true
+        ));
+        $this->layout = false;
+        $this->render('ajax/attribute_edit_mass_form');
+    }
+
     public function editSelected($eventId)
     {
         $this->request->allowMethod(['post']);
@@ -1800,7 +1848,8 @@ class AttributesController extends AppController
         $event = $this->MispAttribute->Event->find('first', array(
             'conditions' => array('id' => $eventId),
             'recursive' => -1,
-            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'uuid')
+            // Event::afterSave(), reached through unpublishEvent(), reads the distribution pair
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'uuid', 'distribution', 'sharing_group_id')
         ));
         if (!$event) {
             throw new NotFoundException(__('Invalid event'));
@@ -3104,78 +3153,8 @@ class AttributesController extends AppController
         }
 
         /* ── GET: build the category-keyed option lists for the modal ── */
-        $tagModel = $this->MispAttribute->AttributeTag->Tag;
-
-        /* All Tags: non-galaxy, visible, globally attachable */
-        $allConditions                   = $tagModel->createConditions($user);
-        $allConditions['Tag.is_galaxy']  = 0;
-        $allConditions['Tag.hide_tag']   = 0;
-        $allConditions['Tag.local_only'] = 0;
-        $allRaw = $tagModel->find('all', [
-            'conditions' => $allConditions,
-            'recursive'  => -1,
-            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
-            'order'      => ['Tag.name asc'],
-        ]);
-        $allTags = [];
-        foreach ($allRaw as $t) {
-            $allTags[] = [
-                'id'     => (int)$t['Tag']['id'],
-                'name'   => $t['Tag']['name'],
-                'colour' => $t['Tag']['colour'] ?: '#0088cc',
-            ];
-        }
-
-        /* Custom Tags: tags that do not belong to any taxonomy */
-        $this->loadModel('Taxonomy');
-        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
-            true, $user, true, true, false
-        );
-        $customTags = [];
-        foreach ($customRaw as $t) {
-            $tag = $t['Tag'];
-            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
-                continue;
-            }
-            $customTags[] = [
-                'id'     => (int)$tag['id'],
-                'name'   => $tag['name'],
-                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
-            ];
-        }
-
-        /* One category per enabled taxonomy, with its enabled tags */
-        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
-
-        /* Tag Collections: each expands to its member tags */
-        $this->loadModel('TagCollection');
-        $collRaw = $this->TagCollection->fetchTagCollection($user, [
-            'contain' => [
-                'TagCollectionTag' => [
-                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
-                ],
-            ],
-        ]);
-        $tagCollections = [];
-        foreach ($collRaw as $c) {
-            $members = [];
-            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
-                $tg = $cct['Tag'] ?? null;
-                if (empty($tg) || !empty($tg['hide_tag'])) {
-                    continue;
-                }
-                $members[] = [
-                    'id'     => (int)$tg['id'],
-                    'name'   => $tg['name'],
-                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
-                ];
-            }
-            $tagCollections[] = [
-                'id'   => (int)$c['TagCollection']['id'],
-                'name' => $c['TagCollection']['name'],
-                'tags' => $members,
-            ];
-        }
+        list($allTags, $customTags, $tagCollections, $taxonomies)
+            = $this->__tagPickerOptions($user);
 
         /* Currently attached non-galaxy tags, split by locality (pre-selected) */
         $currentGlobalTags = [];
@@ -3351,6 +3330,497 @@ class AttributesController extends AppController
 
         /* ── GET: build the modal ── */
         /* Galaxy list for the per-galaxy category buttons */
+        $galaxyList = $this->__galaxyPickerList();
+
+        $this->set('currentGlobalClusters', $currentGlobalClusters);
+        $this->set('currentLocalClusters',  $currentLocalClusters);
+        $this->set('galaxyList',            $galaxyList);
+        $this->set('attributeId',           $attributeId);
+        $this->set('mayModify',             $mayModify);
+        $this->layout = false;
+    }
+
+    /**
+     * Overmind mass action: the tags of every selected attribute.
+     *
+     * GET  → the shared tag-picker modal, opened on the tags the selection
+     *        already carries; one only some of them carry says how many.
+     * POST → JSON { global_ids, local_ids }, the wanted state. Against what the
+     *        selection carries: a tag added is attached to every attribute, one
+     *        removed is detached from every attribute, one left alone stays as
+     *        it is — on some of them only, if that is how it was.
+     *
+     * @param string $ids JSON list of attribute IDs
+     */
+    public function tagSelection($ids = '[]')
+    {
+        $user = $this->Auth->user();
+        $attributes = $this->__selectedAttributesWithTags($user, $ids);
+        $carried = $this->__carriedTags($attributes);
+
+        if (!$this->request->is('post')) {
+            list($allTags, $customTags, $tagCollections, $taxonomies)
+                = $this->__tagPickerOptions($user);
+            $this->set(compact(
+                'allTags', 'customTags', 'tagCollections', 'taxonomies'
+            ));
+            $total = count($attributes);
+            $this->set('currentGlobalTags', $this->__carriedEntries($carried[0], $total));
+            $this->set('currentLocalTags', $this->__carriedEntries($carried[1], $total));
+            $this->set('selectionIds', array_keys($attributes));
+            $this->layout = false;
+            return;
+        }
+
+        list($toAdd, $toRemove) = $this->__selectionDiff($carried);
+        if (empty(array_filter($toAdd)) && empty(array_filter($toRemove))) {
+            return $this->__selectionResponse(true, __('Nothing to change.'));
+        }
+        $Tag = $this->MispAttribute->AttributeTag->Tag;
+        $conditions = $Tag->createConditions($user);
+        $conditions['Tag.id'] = array_merge($toAdd[0], $toAdd[1]);
+        $tagNames = empty($conditions['Tag.id']) ? [] : $Tag->find('list', [
+            'conditions' => $conditions,
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+
+        $this->loadModel('Taxonomy');
+        $AttributeTag = $this->MispAttribute->AttributeTag;
+        $changed = 0;
+        $refused = 0;
+        foreach ($attributes as $attributeId => $attribute) {
+            $eventId = $attribute['Attribute']['event_id'];
+            $onAttribute = [];
+            $namesByLocality = [0 => [], 1 => []];
+            foreach ($attribute['AttributeTag'] as $attributeTag) {
+                if (!empty($attributeTag['Tag']['is_galaxy'])) {
+                    continue;
+                }
+                $local = empty($attributeTag['local']) ? 0 : 1;
+                $onAttribute[(int)$attributeTag['tag_id']] = $local;
+                $namesByLocality[$local][(int)$attributeTag['tag_id']] = $attributeTag['Tag']['name'];
+            }
+            $touched = false;
+            $touch = false;
+            // Removals first: a tag moved between global and local is both.
+            foreach ($toRemove as $local => $tagIds) {
+                foreach ($tagIds as $tagId) {
+                    if (!isset($onAttribute[$tagId]) || $onAttribute[$tagId] !== $local) {
+                        continue;
+                    }
+                    if (!$this->__canModifyTag($attribute, (bool)$local)) {
+                        $refused++;
+                        continue;
+                    }
+                    $AttributeTag->detachTagFromAttribute($attributeId, $eventId, $tagId, (bool)$local);
+                    unset($onAttribute[$tagId], $namesByLocality[$local][$tagId]);
+                    $touched = true;
+                    $touch = $touch || !$local;
+                }
+            }
+            foreach ($toAdd as $local => $tagIds) {
+                foreach ($tagIds as $tagId) {
+                    if (isset($onAttribute[$tagId])) {
+                        continue;
+                    }
+                    $allowed = isset($tagNames[$tagId])
+                        && $this->__canModifyTag($attribute, (bool)$local)
+                        && $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy(
+                            $tagNames[$tagId], array_values($namesByLocality[$local])
+                        );
+                    if (!$allowed || !$AttributeTag->attachTagToAttribute(
+                        $attributeId, $eventId, $tagId, (bool)$local
+                    )) {
+                        $refused++;
+                        continue;
+                    }
+                    $onAttribute[$tagId] = $local;
+                    $namesByLocality[$local][$tagId] = $tagNames[$tagId];
+                    $touched = true;
+                    $touch = $touch || !$local;
+                }
+            }
+            if ($touch) {
+                $this->MispAttribute->touch($attribute);
+            }
+            $changed += $touched ? 1 : 0;
+        }
+
+        return $this->__selectionOutcome($changed, $refused, false);
+    }
+
+    /**
+     * Overmind mass action: the galaxy clusters of every selected attribute.
+     * Same rules as tagSelection(), on cluster IDs.
+     *
+     * @param string $ids JSON list of attribute IDs
+     */
+    public function galaxySelection($ids = '[]')
+    {
+        $user = $this->Auth->user();
+        $attributes = $this->__selectedAttributesWithTags($user, $ids);
+        $carried = $this->__carriedClusters($attributes, $user);
+
+        if (!$this->request->is('post')) {
+            $total = count($attributes);
+            $this->set('galaxyList', $this->__galaxyPickerList());
+            $this->set('currentGlobalClusters', $this->__carriedEntries($carried[0], $total));
+            $this->set('currentLocalClusters', $this->__carriedEntries($carried[1], $total));
+            $this->set('selectionIds', array_keys($attributes));
+            $this->layout = false;
+            return;
+        }
+
+        list($toAdd, $toRemove) = $this->__selectionDiff($carried);
+        if (empty(array_filter($toAdd)) && empty(array_filter($toRemove))) {
+            return $this->__selectionResponse(true, __('Nothing to change.'));
+        }
+
+        $this->loadModel('Galaxy');
+        $changed = 0;
+        $refused = 0;
+        foreach ($attributes as $attributeId => $attribute) {
+            $onAttribute = $carried['byAttribute'][$attributeId] ?? [];
+            $touched = false;
+            foreach ($toRemove as $local => $clusterIds) {
+                foreach ($clusterIds as $clusterId) {
+                    if (!isset($onAttribute[$clusterId]) || $onAttribute[$clusterId] !== $local) {
+                        continue;
+                    }
+                    if (!$this->__canModifyTag($attribute, (bool)$local)) {
+                        $refused++;
+                        continue;
+                    }
+                    try {
+                        $this->Galaxy->detachCluster($user, 'attribute', $attributeId, $clusterId);
+                    } catch (Exception $e) {
+                        $refused++;
+                        continue;
+                    }
+                    unset($onAttribute[$clusterId]);
+                    $touched = true;
+                }
+            }
+            foreach ($toAdd as $local => $clusterIds) {
+                foreach ($clusterIds as $clusterId) {
+                    if (isset($onAttribute[$clusterId])) {
+                        continue;
+                    }
+                    if (!$this->__canModifyTag($attribute, (bool)$local)) {
+                        $refused++;
+                        continue;
+                    }
+                    try {
+                        $result = $this->Galaxy->attachCluster(
+                            $user, 'attribute', $attribute, $clusterId, (bool)$local
+                        );
+                    } catch (Exception $e) {
+                        $refused++;
+                        continue;
+                    }
+                    if ($result === 'Cluster attached.') {
+                        $onAttribute[$clusterId] = $local;
+                        $touched = true;
+                    } elseif ($result !== 'Cluster already attached.') {
+                        $refused++;
+                    }
+                }
+            }
+            $changed += $touched ? 1 : 0;
+        }
+
+        return $this->__selectionOutcome($changed, $refused, true);
+    }
+
+    /**
+     * The selected attributes the user can see, keyed by ID, each with its
+     * Event (for the permission checks) and its AttributeTag rows.
+     *
+     * @param array  $user
+     * @param string $ids JSON list of attribute IDs
+     * @return array
+     */
+    private function __selectedAttributesWithTags(array $user, $ids)
+    {
+        $idList = $this->__selectionIds($ids);
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.id' => $idList,
+                'Attribute.deleted' => 0,
+            ],
+            'flatten' => true,
+        ]);
+        if (empty($attributes)) {
+            throw new NotFoundException(__('No attribute selected.'));
+        }
+        $byId = [];
+        foreach ($attributes as $attribute) {
+            $attribute['AttributeTag'] = $attribute['AttributeTag'] ?? [];
+            $byId[(int)$attribute['Attribute']['id']] = $attribute;
+        }
+        return $byId;
+    }
+
+    /**
+     * The non-galaxy tags the selection carries, per locality.
+     *
+     * @param array $attributes
+     * @return array [0 => [tagId => [entry, count]], 1 => [...]]
+     */
+    private function __carriedTags(array $attributes)
+    {
+        $carried = [0 => [], 1 => []];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute['AttributeTag'] as $attributeTag) {
+                $tag = $attributeTag['Tag'];
+                if (!empty($tag['is_galaxy'])) {
+                    continue;
+                }
+                $local = empty($attributeTag['local']) ? 0 : 1;
+                $carried[$local][(int)$tag['id']][0] = [
+                    'id' => (int)$tag['id'],
+                    'name' => $tag['name'],
+                    'colour' => $tag['colour'] ?: '#0088cc',
+                ];
+                $carried[$local][(int)$tag['id']][1]
+                    = ($carried[$local][(int)$tag['id']][1] ?? 0) + 1;
+            }
+        }
+        return $carried;
+    }
+
+    /**
+     * The galaxy clusters the selection carries, per locality, plus which
+     * attribute carries which (cluster ID => locality) for the POST.
+     *
+     * @param array $attributes
+     * @param array $user
+     * @return array
+     */
+    private function __carriedClusters(array $attributes, array $user)
+    {
+        $tagRows = [];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute['AttributeTag'] as $attributeTag) {
+                $tagRows[$attributeTag['Tag']['id']] = $attributeTag;
+            }
+        }
+        $clustersByTagId = $this->_clustersByTagId(array_values($tagRows), $user);
+        $carried = [0 => [], 1 => [], 'byAttribute' => []];
+        foreach ($attributes as $attributeId => $attribute) {
+            foreach ($attribute['AttributeTag'] as $attributeTag) {
+                $cluster = $clustersByTagId[$attributeTag['Tag']['id']] ?? null;
+                if ($cluster === null) {
+                    continue;
+                }
+                $clusterId = (int)$cluster['id'];
+                $local = empty($attributeTag['local']) ? 0 : 1;
+                $galaxyName = $cluster['Galaxy']['name'] ?? '';
+                $carried[$local][$clusterId][0] = [
+                    'id' => $clusterId,
+                    'name' => $cluster['value'],
+                    'galaxy' => $galaxyName,
+                    'hue' => GalaxyColour::hue($galaxyName),
+                ];
+                $carried[$local][$clusterId][1] = ($carried[$local][$clusterId][1] ?? 0) + 1;
+                $carried['byAttribute'][$attributeId][$clusterId] = $local;
+            }
+        }
+        return $carried;
+    }
+
+    /**
+     * Picker entries for what the selection carries; one that only part of the
+     * selection carries says how many.
+     *
+     * @param array $carried tagOrClusterId => [entry, count]
+     * @param int   $total   attributes in the selection
+     * @return array
+     */
+    private function __carriedEntries(array $carried, $total)
+    {
+        $entries = [];
+        foreach ($carried as list($entry, $count)) {
+            if ($count < $total) {
+                $entry['name'] .= sprintf(' · %d/%d', $count, $total);
+            }
+            $entries[] = $entry;
+        }
+        return $entries;
+    }
+
+    /**
+     * What the posted state adds and removes against what the selection carries.
+     *
+     * @param array $carried from __carriedTags() / __carriedClusters()
+     * @return array [toAdd, toRemove], each [0 => ids, 1 => ids]
+     */
+    private function __selectionDiff(array $carried)
+    {
+        $wanted = [
+            0 => $this->__postedIds('global_ids'),
+            1 => $this->__postedIds('local_ids'),
+        ];
+        $toAdd = [];
+        $toRemove = [];
+        foreach ([0, 1] as $local) {
+            $current = array_keys($carried[$local]);
+            $toAdd[$local] = array_values(array_diff($wanted[$local], $current));
+            $toRemove[$local] = array_values(array_diff($current, $wanted[$local]));
+        }
+        return [$toAdd, $toRemove];
+    }
+
+    /**
+     * @param string|int $ids A JSON list of IDs, or a single numeric ID
+     * @return int[]
+     */
+    private function __selectionIds($ids)
+    {
+        $idList = is_numeric($ids) ? [$ids] : $this->_jsonDecode($ids);
+        $idList = is_array($idList)
+            ? array_values(array_unique(array_filter(array_map('intval', $idList))))
+            : [];
+        if (empty($idList)) {
+            throw new NotFoundException(__('No attribute selected.'));
+        }
+        return $idList;
+    }
+
+    /**
+     * @param string $key
+     * @return int[]
+     */
+    private function __postedIds($key)
+    {
+        return array_values(array_unique(array_filter(
+            array_map('intval', (array)($this->request->data[$key] ?? []))
+        )));
+    }
+
+    private function __selectionResponse($saved, $message)
+    {
+        return new CakeResponse([
+            'body' => json_encode(
+                $saved
+                    ? ['saved' => true, 'success' => $message, 'check_publish' => true]
+                    : ['saved' => false, 'errors' => $message]
+            ),
+            'status' => 200,
+            'type' => 'json',
+        ]);
+    }
+
+    /**
+     * @param int  $changed  Attributes whose tags/clusters changed
+     * @param int  $refused  Tags/clusters that could not be attached or removed
+     * @param bool $isGalaxy
+     * @return CakeResponse
+     */
+    private function __selectionOutcome($changed, $refused, $isGalaxy)
+    {
+        $message = $isGalaxy
+            ? __n('Clusters updated on %s attribute.', 'Clusters updated on %s attributes.', $changed, $changed)
+            : __n('Tags updated on %s attribute.', 'Tags updated on %s attributes.', $changed, $changed);
+        if ($refused > 0) {
+            $message .= ' ' . ($isGalaxy
+                ? __n('%s cluster change was refused.', '%s cluster changes were refused.', $refused, $refused)
+                : __n('%s tag change was refused.', '%s tag changes were refused.', $refused, $refused));
+        }
+        return $this->__selectionResponse($changed > 0, $message);
+    }
+
+    /**
+     * The option lists the tag-picker modal offers.
+     *
+     * @param array $user
+     * @return array [allTags, customTags, tagCollections, taxonomies]
+     */
+    private function __tagPickerOptions(array $user)
+    {
+        $tagModel = $this->MispAttribute->AttributeTag->Tag;
+
+        /* All Tags: non-galaxy, visible, globally attachable */
+        $allConditions                   = $tagModel->createConditions($user);
+        $allConditions['Tag.is_galaxy']  = 0;
+        $allConditions['Tag.hide_tag']   = 0;
+        $allConditions['Tag.local_only'] = 0;
+        $allRaw = $tagModel->find('all', [
+            'conditions' => $allConditions,
+            'recursive'  => -1,
+            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
+            'order'      => ['Tag.name asc'],
+        ]);
+        $allTags = [];
+        foreach ($allRaw as $t) {
+            $allTags[] = [
+                'id'     => (int)$t['Tag']['id'],
+                'name'   => $t['Tag']['name'],
+                'colour' => $t['Tag']['colour'] ?: '#0088cc',
+            ];
+        }
+
+        /* Custom Tags: tags that do not belong to any taxonomy */
+        $this->loadModel('Taxonomy');
+        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
+            true, $user, true, true, false
+        );
+        $customTags = [];
+        foreach ($customRaw as $t) {
+            $tag = $t['Tag'];
+            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
+                continue;
+            }
+            $customTags[] = [
+                'id'     => (int)$tag['id'],
+                'name'   => $tag['name'],
+                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+            ];
+        }
+
+        /* One category per enabled taxonomy, with its enabled tags */
+        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
+
+        /* Tag Collections: each expands to its member tags */
+        $this->loadModel('TagCollection');
+        $collRaw = $this->TagCollection->fetchTagCollection($user, [
+            'contain' => [
+                'TagCollectionTag' => [
+                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
+                ],
+            ],
+        ]);
+        $tagCollections = [];
+        foreach ($collRaw as $c) {
+            $members = [];
+            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
+                $tg = $cct['Tag'] ?? null;
+                if (empty($tg) || !empty($tg['hide_tag'])) {
+                    continue;
+                }
+                $members[] = [
+                    'id'     => (int)$tg['id'],
+                    'name'   => $tg['name'],
+                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
+                ];
+            }
+            $tagCollections[] = [
+                'id'   => (int)$c['TagCollection']['id'],
+                'name' => $c['TagCollection']['name'],
+                'tags' => $members,
+            ];
+        }
+
+        return [$allTags, $customTags, $tagCollections, $taxonomies];
+    }
+
+    /**
+     * The per-galaxy category buttons of the galaxy-picker modal.
+     *
+     * @return array
+     */
+    private function __galaxyPickerList()
+    {
         $this->loadModel('Galaxy');
         $galaxyRows = $this->Galaxy->find('all', [
             'recursive' => -1,
@@ -3366,12 +3836,7 @@ class AttributesController extends AppController
             ];
         }
 
-        $this->set('currentGlobalClusters', $currentGlobalClusters);
-        $this->set('currentLocalClusters',  $currentLocalClusters);
-        $this->set('galaxyList',            $galaxyList);
-        $this->set('attributeId',           $attributeId);
-        $this->set('mayModify',             $mayModify);
-        $this->layout = false;
+        return $galaxyList;
     }
 
     /**

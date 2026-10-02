@@ -125,6 +125,9 @@ echo $this->element('Attributes/index', [
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 container.innerHTML = html;
+                // The rows come back unchecked, so the selection must too.
+                if (typeof selectedItems !== 'undefined') { selectedItems.clear(); }
+                if (typeof updateMultiSelectToolbar === 'function') { updateMultiSelectToolbar(); }
                 container.querySelectorAll('script').forEach(function (old) {
                     var s = document.createElement('script');
                     if (old.src) { s.src = old.src; } else { s.textContent = old.textContent; }
