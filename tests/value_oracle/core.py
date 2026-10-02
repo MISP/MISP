@@ -24,6 +24,8 @@ INLINE_LIMIT = 256 * 1024
 CASE_NAME = re.compile(r'^[A-Za-z0-9_.-]+$')
 DIFF_LIMIT = 20
 TEXT_DIFF_LINES = 40
+TEXT_DIFF_WINDOW = 2000
+LINE_CLIP = 240
 SAMPLE = 10
 
 
@@ -65,6 +67,15 @@ class Response:
     status: int
     headers: dict
     body: bytes
+    # Wall-clock bounds of the request, for masking generation timestamps.
+    started: float = 0.0
+    finished: float = 0.0
+
+    def header(self, name, default=None):
+        for k, v in self.headers.items():
+            if k.lower() == name.lower():
+                return v
+        return default
 
     def text(self):
         return self.body.decode('utf-8', errors='replace')
@@ -97,13 +108,15 @@ class Client:
         req = urllib.request.Request(
             self.config.url + path, data=data, headers=headers,
             method=method)
+        started = time.time()
         try:
             with urllib.request.urlopen(
                     req, timeout=self.config.timeout,
                     context=self.context) as r:
-                return Response(r.status, dict(r.headers), r.read())
+                status, headers, body = r.status, dict(r.headers), r.read()
         except urllib.error.HTTPError as e:
-            return Response(e.code, dict(e.headers), e.read())
+            status, headers, body = e.code, dict(e.headers), e.read()
+        return Response(status, headers, body, started, time.time())
 
 
 @dataclass
@@ -362,14 +375,59 @@ def diff(a, b, path='$', out=None):
     elif isinstance(a, str) and ('\n' in a or '\n' in b
                                  or len(a) > 200 or len(b) > 200):
         if a != b:
-            lines = list(difflib.unified_diff(
-                a.splitlines(), b.splitlines(), 'baseline', 'current',
-                lineterm='', n=1))
-            out.append('%s: text differs (%d diff lines)' % (path, len(lines)))
-            out.extend('    ' + l for l in lines[:TEXT_DIFF_LINES])
+            _diff_text(a, b, path, out)
     elif a != b:
         out.append('%s: %s -> %s' % (path, _short(a), _short(b)))
     return out
+
+
+def _clip(line, column=0):
+    if len(line) <= LINE_CLIP:
+        return line
+    start = max(0, min(column - LINE_CLIP // 3, len(line) - LINE_CLIP))
+    return '%s%s%s' % ('...' if start else '',
+                       line[start:start + LINE_CLIP],
+                       '...' if start + LINE_CLIP < len(line) else '')
+
+
+def _first_difference(x, y):
+    for i, (p, q) in enumerate(zip(x, y)):
+        if p != q:
+            return i
+    return min(len(x), len(y))
+
+
+def _diff_text(a, b, path, out):
+    """Line diff of the region between the common head and tail. Large
+    exports stay cheap to compare, and long lines (single-line JSON) are
+    clipped around their first differing column."""
+    la, lb = a.splitlines(), b.splitlines()
+    limit = min(len(la), len(lb))
+    head = 0
+    while head < limit and la[head] == lb[head]:
+        head += 1
+    tail = 0
+    while tail < limit - head and la[-1 - tail] == lb[-1 - tail]:
+        tail += 1
+    ma = la[head:len(la) - tail][:TEXT_DIFF_WINDOW]
+    mb = lb[head:len(lb) - tail][:TEXT_DIFF_WINDOW]
+    out.append('%s: text differs from line %d (%d -> %d lines)' % (
+        path, head + 1, len(la), len(lb)))
+    shown = []
+    matcher = difflib.SequenceMatcher(None, ma, mb, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            continue
+        shown.append('@@ line %d' % (head + i1 + 1))
+        removed, added = ma[i1:i2], mb[j1:j2]
+        columns = [_first_difference(x, y) for x, y in zip(removed, added)]
+        shown.extend('-' + _clip(x, columns[i] if i < len(columns) else 0)
+                     for i, x in enumerate(removed))
+        shown.extend('+' + _clip(y, columns[i] if i < len(columns) else 0)
+                     for i, y in enumerate(added))
+        if len(shown) >= TEXT_DIFF_LINES:
+            break
+    out.extend('    ' + l for l in shown[:TEXT_DIFF_LINES])
 
 
 def _diff_scalar_lists(a, b, path, out):

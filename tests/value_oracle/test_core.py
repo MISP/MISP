@@ -91,6 +91,22 @@ class DiffTest(unittest.TestCase):
         self.assertIn('    -b', lines)
         self.assertIn('    +B', lines)
 
+    def test_text_reports_absolute_line(self):
+        a = '\n'.join(str(i) for i in range(50000))
+        b = a.replace('\n40000\n', '\n4000x\n')
+        lines = core.diff(a, b)
+        self.assertIn('from line 40001', lines[0])
+        self.assertIn('    @@ line 40001', lines)
+        self.assertIn('    -40000', lines)
+
+    def test_text_long_line_is_clipped_at_difference(self):
+        a = 'x' * 100000 + 'OLD' + 'y' * 1000
+        b = 'x' * 100000 + 'NEW' + 'y' * 1000
+        lines = core.diff(a, b)
+        removed = [l for l in lines if l.startswith('    -')][0]
+        self.assertIn('OLD', removed)
+        self.assertLess(len(removed), core.LINE_CLIP + 20)
+
     def test_limit(self):
         a = {str(i): i for i in range(100)}
         b = {str(i): i + 1 for i in range(100)}

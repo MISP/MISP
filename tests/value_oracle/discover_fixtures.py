@@ -6,10 +6,11 @@ The values exercise the value-matching edge cases (case variants, values
 present in both value slots, long values sharing a 64-character prefix,
 proposals, deleted rows, ...). Run once against the baseline schema; suites
 read the result through the config's "fixtures" path, so every later
-comparison uses exactly the same inputs.
+comparison uses exactly the same inputs. A re-run only adds picks missing
+from an existing file; --refresh recomputes all of them.
 
 Usage:
-    discover_fixtures.py [--config PATH] [--out PATH]
+    discover_fixtures.py [--config PATH] [--out PATH] [--refresh]
 """
 
 import argparse
@@ -96,6 +97,53 @@ QUERIES = {
     'proposal_value': """
         SELECT value1 FROM shadow_attributes
         WHERE deleted = 0 AND value1 <> '' ORDER BY id LIMIT 1""",
+    # Export sample: one event per shape, see suites/exports.py.
+    'export_small': f"""
+        SELECT a.event_id FROM attributes a JOIN events e ON e.id = a.event_id
+        WHERE a.{LIVE} AND e.published = 1 AND e.distribution = 3
+          AND e.attribute_count BETWEEN 15 AND 60
+        GROUP BY a.event_id
+        HAVING SUM(a.type LIKE '%|%') > 2 AND SUM(a.object_id > 0) > 3
+           AND SUM(a.to_ids) > 5
+        ORDER BY COUNT(DISTINCT a.type) DESC, a.event_id LIMIT 1""",
+    'export_composite': f"""
+        SELECT a.event_id FROM attributes a JOIN events e ON e.id = a.event_id
+        WHERE a.{LIVE} AND e.published = 1 AND e.distribution = 3
+          AND e.attribute_count BETWEEN 300 AND 3000
+        GROUP BY a.event_id HAVING SUM(a.type LIKE '%|%') > 0.8 * COUNT(*)
+        ORDER BY COUNT(DISTINCT IF(a.type LIKE '%|%', a.type, NULL)) DESC,
+                 MIN(e.attribute_count), a.event_id LIMIT 1""",
+    'export_objects': """
+        SELECT o.event_id FROM objects o JOIN events e ON e.id = o.event_id
+        WHERE o.deleted = 0 AND e.published = 1 AND e.distribution = 3
+          AND e.attribute_count <= 6000
+        GROUP BY o.event_id HAVING COUNT(DISTINCT o.name) > 1
+        ORDER BY COUNT(*) DESC, o.event_id LIMIT 1""",
+    'export_object_acl': """
+        SELECT o.event_id FROM objects o JOIN events e ON e.id = o.event_id
+        WHERE o.deleted = 0 AND o.distribution = 0 AND e.distribution > 0
+          AND e.published = 1
+        GROUP BY o.event_id ORDER BY MIN(e.attribute_count), o.event_id
+        LIMIT 1""",
+    'export_object_distribution': """
+        SELECT event_id FROM objects WHERE deleted = 0
+        GROUP BY event_id HAVING MAX(distribution) < 5
+        ORDER BY COUNT(*) DESC, event_id LIMIT 1""",
+    'export_proposals': """
+        SELECT s.event_id FROM shadow_attributes s
+        JOIN events e ON e.id = s.event_id
+        WHERE s.deleted = 0 AND e.attribute_count <= 1000
+        GROUP BY s.event_id
+        HAVING SUM(s.old_id = 0) > 0 AND SUM(s.old_id > 0) > 0
+        ORDER BY COUNT(*) DESC, s.event_id LIMIT 1""",
+    'export_proposal_delete': """
+        SELECT s.event_id FROM shadow_attributes s
+        JOIN events e ON e.id = s.event_id
+        WHERE s.deleted = 0 AND s.proposal_to_delete = 1
+        GROUP BY s.event_id ORDER BY MIN(e.attribute_count), s.event_id
+        LIMIT 1""",
+    'export_largest': """
+        SELECT id FROM events ORDER BY attribute_count DESC, id LIMIT 1""",
 }
 
 
@@ -144,6 +192,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     parser.add_argument('--config')
     parser.add_argument('--out')
+    parser.add_argument('--refresh', action='store_true',
+                        help='recompute picks already in the output file')
     args = parser.parse_args(argv)
     path = args.config or os.environ.get('VALUE_ORACLE_CONFIG')
     if not path:
@@ -156,13 +206,19 @@ def main(argv=None):
     db = restore.Restorer(config.restore)
 
     found = {}
+    if os.path.exists(out) and not args.refresh:
+        with open(out) as f:
+            found = json.load(f)
     for name, sql in QUERIES.items():
+        if name in found:
+            continue
         found[name] = first_value(db, sql)
-        print('%-20s %s' % (name, (found[name] or '-')[:70].replace(
+        print('%-26s %s' % (name, (found[name] or '-')[:70].replace(
             '\n', ' ')))
-    sample = first_value(db, EVENT_SAMPLE)
-    found['event_sample'] = sample.split(',') if sample else None
-    if found.get('ip_common'):
+    if 'event_sample' not in found:
+        sample = first_value(db, EVENT_SAMPLE)
+        found['event_sample'] = sample.split(',') if sample else None
+    if found.get('ip_common') and 'ip_event' not in found:
         found['ip_event'] = first_value(
             db, "SELECT MIN(event_id) FROM attributes WHERE value1 = '%s'"
             % found['ip_common'].replace("'", "''"))
