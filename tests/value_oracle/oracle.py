@@ -8,12 +8,14 @@ Usage:
     oracle.py record SUITE[,SUITE...] --label LABEL [--case GLOB]
     oracle.py compare SUITE[,SUITE...] --baseline LABEL
                       [--current LABEL] [--save LABEL] [--case GLOB]
+    oracle.py restore [--yes]
     oracle.py selftest
 
 Without --current, compare runs the cases live. The config (JSON: url,
 users {name: api key}, store, optional verify_tls and timeout) comes from
 --config or $VALUE_ORACLE_CONFIG; see config.example.json. Exit status is
-non-zero when anything differs, is missing or fails.
+non-zero when anything differs, is missing or fails. restore resets the
+instance to the configured dump and needs the config's "restore" section.
 """
 
 import argparse
@@ -28,6 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import core  # noqa: E402
+import restore  # noqa: E402
 import suites  # noqa: E402
 
 
@@ -131,6 +134,20 @@ def cmd_compare(args):
     return 0 if totals['DIFF'] + totals['NEW'] + totals['GONE'] == 0 else 1
 
 
+def cmd_restore(args):
+    config = load_config(args)
+    restorer = restore.Restorer(config.restore)
+    target = config.restore['database']
+    if not args.yes:
+        answer = input('Overwrite database %s and its Redis state? [y/N] '
+                       % target)
+        if answer.strip().lower() != 'y':
+            print('aborted')
+            return 1
+    restorer.run()
+    return 0
+
+
 def cmd_selftest(args):
     tests = unittest.defaultTestLoader.discover(HERE, pattern='test_*.py')
     result = unittest.TextTestRunner(verbosity=1).run(tests)
@@ -158,6 +175,10 @@ def main(argv=None):
     p.add_argument('--save')
     p.add_argument('--case', default='*')
     p.set_defaults(func=cmd_compare)
+
+    p = sub.add_parser('restore')
+    p.add_argument('--yes', action='store_true')
+    p.set_defaults(func=cmd_restore)
 
     sub.add_parser('selftest').set_defaults(func=cmd_selftest)
 

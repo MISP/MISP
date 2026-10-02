@@ -6,5 +6,15 @@
     "admin": "<site admin API key>",
     "lesser": "<API key of a non-admin user in another org>"
   },
-  "store": "~/value_oracle_snapshots"
+  "store": "~/value_oracle_snapshots",
+  "restore": {
+    "dump": "~/value_oracle/baseline.sql.gz",
+    "database": "<test database, never a live one>",
+    "mysql_user": "<user>",
+    "mysql_password": "<password>",
+    "redis_db": 15,
+    "supervisor_url": "http://<user>:<password>@localhost:9001/RPC2",
+    "supervisor_group": "misp-workers",
+    "app_dir": "/var/www/MISP/app"
+  }
 }

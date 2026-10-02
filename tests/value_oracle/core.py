@@ -38,6 +38,8 @@ class Config:
     store: str
     verify_tls: bool = True
     timeout: int = 900
+    restore: Optional[dict] = None
+    fixtures: Optional[str] = None
 
     @classmethod
     def load(cls, path):
@@ -53,6 +55,8 @@ class Config:
             store=os.path.expanduser(raw['store']),
             verify_tls=raw.get('verify_tls', True),
             timeout=int(raw.get('timeout', 900)),
+            restore=raw.get('restore'),
+            fixtures=raw.get('fixtures'),
         )
 
 
@@ -205,6 +209,26 @@ def ids_at(path, cast=int):
     def extract(response):
         return sorted(cast(v) for v in pick(response.json(), path))
     return extract
+
+
+def ordered_ids_at(path, cast=int):
+    """Id list in response order, for cases where ordering is the contract."""
+    def extract(response):
+        return [cast(v) for v in pick(response.json(), path)]
+    return extract
+
+
+def ids_by_path(paths, cast=int):
+    """{name: sorted id list} for several paths of one response."""
+    def extract(response):
+        body = response.json()
+        return {name: sorted(cast(v) for v in pick(body, path))
+                for name, path in paths.items()}
+    return extract
+
+
+def count_body(response):
+    return int(response.text().strip())
 
 
 def json_without(drop=(), mask=()):
