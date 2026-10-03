@@ -49,9 +49,16 @@ $theme-colors: map-merge($theme-colors, $misp-colors);
 @import "bootstrap/scss/helpers";
 @import "bootstrap/scss/utilities/api";
 
+// A dark-only theme has no light palette, so its page always takes the
+// dark values.
+$misp-tokens-page: $misp-tokens;
+@if $misp-theme-mode == "dark" {
+  $misp-tokens-page: $misp-tokens-dark;
+}
+
 :root,
 [data-bs-theme="light"] {
-  @each $name, $value in $misp-tokens {
+  @each $name, $value in $misp-tokens-page {
     --misp-#{$name}: #{$value};
   }
 }

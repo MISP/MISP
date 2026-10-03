@@ -51,6 +51,8 @@ Create `themes/<name>/` with two files.
   variables.
 - To tune a MISP colour for a theme, set it before `misp-bootstrap`, e.g.
   `$misp-object: #8a7f7e;`. The full list is in `scss/_misp-colors.scss`.
+- A dark theme can instead set `$misp-lift-colors: true;`, which lightens
+  every MISP colour that would fall below 3:1 on its background.
 - The build warns when a MISP colour is below 3:1 against the theme's
   background. Either tune it, or accept it in `theme.json`:
   `"contrast_accepted": {"light": ["type"], "dark": ["object"]}`.
@@ -61,4 +63,8 @@ Themes never load fonts from a third party. A font is bundled by adding an
 `@font-face` partial under `scss/fonts/` whose `url()`s point at
 `../../fonts/themes/<file>.woff2`, with the matching `@fontsource` package
 pinned in `package.json`. The build copies every referenced file from
-`node_modules/@fontsource/*/files/`.
+`node_modules/@fontsource/*/files/`, with the package's license beside it as
+`<package>-LICENSE.txt`.
+
+The partials in `scss/fonts/` carry `@fontsource`'s own `unicode-range`
+values, so a browser only downloads the subsets a page actually uses.

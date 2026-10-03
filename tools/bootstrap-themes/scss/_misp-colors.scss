@@ -29,6 +29,18 @@ $misp-colors: (
   "enrichment":  $misp-enrichment
 ) !default;
 
+// A dark theme can set this to lighten every colour that would fall below
+// 3:1 on its background, instead of tuning each one by hand.
+$misp-lift-colors: false !default;
+
+@if $misp-lift-colors {
+  $lifted: ();
+  @each $name, $value in $misp-colors {
+    $lifted: map-merge($lifted, ($name: misp-tint-for($value, $body-bg)));
+  }
+  $misp-colors: $lifted;
+}
+
 // Colours that only need a custom property, not utilities: a colour and the
 // pale background it sits on. Emitted as --misp-<name>.
 $misp-warninglist:            #9d174d !default;

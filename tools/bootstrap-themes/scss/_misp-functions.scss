@@ -12,6 +12,18 @@ $enable-dark-mode: $misp-theme-mode == "both";
 
 // The smallest shade of $color, in 5% steps, that white text reaches
 // $min-ratio against.
+// The smallest tint of $color, in 5% steps, that reaches $min-ratio against
+// $background.
+@function misp-tint-for($color, $background, $min-ratio: 3) {
+  $tint: 0%;
+  $result: $color;
+  @while contrast-ratio($result, $background) < $min-ratio and $tint < 100% {
+    $tint: $tint + 5%;
+    $result: tint-color($color, $tint);
+  }
+  @return $result;
+}
+
 @function misp-shade-for-white($color, $min-ratio: 4.5) {
   $shade: 0%;
   $result: $color;

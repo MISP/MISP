@@ -1,0 +1,9 @@
+{
+    "label": "Darkly",
+    "description": "Flatly's dark counterpart.",
+    "mode": "dark",
+    "fonts": [
+        "Lato"
+    ],
+    "hide_from_users": false
+}

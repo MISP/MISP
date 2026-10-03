@@ -82,12 +82,13 @@ function compile(name, meta) {
     return { css: result.css, warnings };
 }
 
+// The font file and the package it ships in, whose license goes with it.
 function findFont(file) {
     const fontsource = path.join(nodeModules, '@fontsource');
     for (const pkg of fs.readdirSync(fontsource)) {
         const candidate = path.join(fontsource, pkg, 'files', file);
         if (fs.existsSync(candidate)) {
-            return candidate;
+            return { source: candidate, pkg };
         }
     }
     throw new Error(`font ${file} is not in any @fontsource package`);
@@ -134,8 +135,14 @@ for (const name of names) {
     const meta = readMeta(name);
     const { css, warnings } = compile(name, meta);
     for (const font of fontsReferenced(css)) {
-        fs.copyFileSync(findFont(font), path.join(fontOut, font));
-        fontsWritten.add(font);
+        const { source, pkg } = findFont(font);
+        fs.copyFileSync(source, path.join(fontOut, font));
+        const license = `${pkg}-LICENSE.txt`;
+        fs.copyFileSync(
+            path.join(nodeModules, '@fontsource', pkg, 'LICENSE'),
+            path.join(fontOut, license)
+        );
+        fontsWritten.add(font).add(license);
     }
     fs.writeFileSync(path.join(cssOut, `${name}.min.css`), css + '\n');
     const { contrast_accepted, ...published } = meta;
@@ -158,5 +165,6 @@ for (const name of names) {
 prune(cssOut, cssWritten);
 prune(fontOut, fontsWritten);
 
-console.log(`${names.length} themes, ${fontsWritten.size} font files, `
+const fontCount = [...fontsWritten].filter((f) => f.endsWith('.woff2')).length;
+console.log(`${names.length} themes, ${fontCount} font files, `
     + `${warningCount} warnings`);
