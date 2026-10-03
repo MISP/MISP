@@ -1020,7 +1020,16 @@ th .sort-icon::before {
 
 [data-misp-mode="dark"] {
     /*--primary: #0B394A; */
-    --galaxy-alpha: 0.92;
+    --galaxy-alpha: 0.16;
+    --galaxy-text-l: 80%;
+    --galaxy-border-l: 38%;
+    --galaxy-header-l: 78%;
+    --galaxy-sub-l: 70%;
+    --galaxy-section-alpha: 0.08;
+    --galaxy-section-border-l: 32%;
+    --galaxy-tint-alpha: 0.2;
+    --galaxy-tint-icon-l: 74%;
+    --galaxy-sheen: 0.04;
 }
 
 /* Backgrounds */

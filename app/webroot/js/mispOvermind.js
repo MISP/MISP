@@ -3199,9 +3199,9 @@ function initTagPickerSection(root, catData, initTags, options) {
 function galaxyBadgeStyle(hue) {
     hue = (hue == null) ? 270 : hue;
     return 'background-color:hsla(' + hue + ',65%,55%,var(--galaxy-alpha,0.12));'
-        + 'color:hsl(' + hue + ',65%,28%);'
-        + 'border:1px solid hsl(' + hue + ',55%,65%);'
-        + 'background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        + 'color:hsl(' + hue + ',65%,var(--galaxy-text-l,28%));'
+        + 'border:1px solid hsl(' + hue + ',55%,var(--galaxy-border-l,65%));'
+        + 'background-image:linear-gradient(145deg,rgba(255,255,255,var(--galaxy-sheen,0.15)) 0%,'
         + 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);'
         + 'white-space:normal;word-wrap:break-word;text-align:left;max-width:260px;';
 }
