@@ -54,4 +54,97 @@ class MispTheme
         }
         return $themes;
     }
+
+    const DEFAULT_BOOTSTRAP_THEME = 'overmind';
+
+    const BOOTSTRAP_THEME_MODES = ['light', 'dark', 'both'];
+
+    /** @var array|null */
+    private static $bootstrapThemes = null;
+
+    /**
+     * The Bootstrap stylesheets built by tools/bootstrap-themes, discovered from
+     * the metadata file the build writes beside each one.
+     *
+     * @return array name => ['name', 'label', 'description', 'mode', 'hide_from_users']
+     */
+    public static function getBootstrapThemes()
+    {
+        if (self::$bootstrapThemes !== null) {
+            return self::$bootstrapThemes;
+        }
+        $themes = [];
+        $dir = WWW_ROOT . 'css' . DS . 'themes' . DS;
+        foreach (glob($dir . '*.json') ?: [] as $file) {
+            $name = basename($file, '.json');
+            if (!self::isBootstrapThemeName($name) || !is_file($dir . $name . '.min.css')) {
+                continue;
+            }
+            $meta = json_decode(file_get_contents($file), true);
+            if (!is_array($meta) || !in_array($meta['mode'] ?? null, self::BOOTSTRAP_THEME_MODES, true)) {
+                continue;
+            }
+            $themes[$name] = [
+                'name' => $name,
+                'label' => !empty($meta['label']) ? $meta['label'] : $name,
+                'description' => $meta['description'] ?? '',
+                'mode' => $meta['mode'],
+                'hide_from_users' => !empty($meta['hide_from_users']),
+            ];
+        }
+        ksort($themes);
+        return self::$bootstrapThemes = $themes;
+    }
+
+    /**
+     * @param mixed $name
+     * @return bool
+     */
+    public static function isBootstrapTheme($name)
+    {
+        return self::isBootstrapThemeName($name) && isset(self::getBootstrapThemes()[$name]);
+    }
+
+    /**
+     * The Bootstrap theme a page renders with: the user's choice, else the
+     * instance default, else Overmind. A name that no longer resolves to a built
+     * theme falls through to the next.
+     *
+     * @param array|null $user
+     * @return array The theme's metadata plus 'css', its path under css/
+     */
+    public static function bootstrapTheme($user = null)
+    {
+        $candidates = [];
+        if (!empty($user['id'])) {
+            $candidates[] = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], 'ui_bootstrap_theme');
+        }
+        $candidates[] = Configure::read('MISP.default_bootstrap_theme');
+        $candidates[] = self::DEFAULT_BOOTSTRAP_THEME;
+
+        $themes = self::getBootstrapThemes();
+        foreach ($candidates as $name) {
+            if (self::isBootstrapThemeName($name) && isset($themes[$name])) {
+                return $themes[$name] + ['css' => 'themes/' . $name . '.min'];
+            }
+        }
+        // No build output at all: keep the page styled.
+        return [
+            'name' => self::DEFAULT_BOOTSTRAP_THEME,
+            'label' => 'Overmind',
+            'description' => '',
+            'mode' => 'both',
+            'hide_from_users' => false,
+            'css' => 'themes/' . self::DEFAULT_BOOTSTRAP_THEME . '.min',
+        ];
+    }
+
+    /**
+     * @param mixed $name
+     * @return bool
+     */
+    private static function isBootstrapThemeName($name)
+    {
+        return is_string($name) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $name) === 1;
+    }
 }

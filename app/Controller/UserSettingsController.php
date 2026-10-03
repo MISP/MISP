@@ -35,17 +35,19 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // These four are only ever reached by hand-built same-origin AJAX from
+        // These five are only ever reached by hand-built same-origin AJAX from
         // the menu/navbar, so they cannot produce the field hash _validatePost()
         // wants - but they can and do carry the page's CSRF token in the
         // X-CSRF-Token header, so keep that check rather than unlocking both.
-        // Nothing here has a hidden field worth hashing: setTheme and
-        // setEventTemplateUserFormMode take an allowlisted URL argument,
-        // eventIndexColumnToggle a column name, and setHomePage a single path
-        // the user picks anyway and which setSetting() validates server-side.
+        // Nothing here has a hidden field worth hashing: setTheme,
+        // setBootstrapTheme and setEventTemplateUserFormMode take an
+        // allowlisted URL argument, eventIndexColumnToggle a column name, and
+        // setHomePage a single path the user picks anyway and which
+        // setSetting() validates server-side.
         $this->_csrfTokenHeaderOnly([
             'eventIndexColumnToggle',
             'setTheme',
+            'setBootstrapTheme',
             'setHomePage',
             'setEventTemplateUserFormMode',
         ]);
@@ -597,6 +599,30 @@ class UserSettingsController extends AppController
             $message = __('Failed to set %s theme.', $theme);
             return $this->RestResponse->saveFailResponse('UserSettings', 'setTheme', false, $message, 'json');
         }
+    }
+
+    /**
+     * Set the Bootstrap stylesheet the current user's pages render with.
+     */
+    public function setBootstrapTheme($name)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        if (!MispTheme::isBootstrapTheme($name)) {
+            throw new BadRequestException(__('Invalid Bootstrap theme provided.'));
+        }
+        $label = MispTheme::getBootstrapThemes()[$name]['label'];
+
+        $result = $this->UserSetting->setSettingInternal(
+            $this->Auth->user('id'), 'ui_bootstrap_theme', $name
+        );
+        if ($result) {
+            $message = __('%s theme set. The page will now reload.', $label);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setBootstrapTheme', false, 'json', $message);
+        }
+        $message = __('Failed to set %s theme.', $label);
+        return $this->RestResponse->saveFailResponse('UserSettings', 'setBootstrapTheme', false, $message, 'json');
     }
 
     /**

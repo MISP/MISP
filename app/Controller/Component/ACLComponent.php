@@ -1058,6 +1058,7 @@ class ACLComponent extends Component
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
             'setTheme' => ['*'],
+            'setBootstrapTheme' => ['*'],
             'setEventTemplateUserFormMode' => ['*']
         ),
         'warninglists' => array(

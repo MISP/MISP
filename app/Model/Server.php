@@ -1893,6 +1893,12 @@ class Server extends AppModel
         return array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
     }
 
+    public function loadAvailableBootstrapThemes()
+    {
+        App::uses('MispTheme', 'Lib/MispTheme');
+        return array_column(MispTheme::getBootstrapThemes(), 'label', 'name');
+    }
+
     public function testLanguage($value)
     {
         $languages = $this->loadAvailableLanguages();
@@ -2011,6 +2017,17 @@ class Server extends AppModel
         $themes = $this->loadAvailableThemes();
         if (!isset($themes[$value])) {
             return __('Invalid theme.');
+        }
+        return true;
+    }
+
+    public function testBootstrapTheme($value)
+    {
+        if ($value === '' || $value === null) {
+            return true;
+        }
+        if (!isset($this->loadAvailableBootstrapThemes()[$value])) {
+            return __('Invalid Bootstrap theme.');
         }
         return true;
     }
@@ -5881,6 +5898,17 @@ class Server extends AppModel
                     },
                     'null' => true,
                     'cli_only' => 1
+                ),
+                'default_bootstrap_theme' => array(
+                    'level' => 2,
+                    'description' => __('The Bootstrap theme pages render with under the Overmind UI, for users who have not chosen one themselves.'),
+                    'value' => '',
+                    'test' => 'testBootstrapTheme',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableBootstrapThemes();
+                    },
+                    'null' => true,
                 ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
