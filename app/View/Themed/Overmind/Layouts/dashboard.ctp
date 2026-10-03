@@ -108,6 +108,7 @@ $initialMode = $bootstrapTheme['mode'] === 'dark' ? 'dark' : 'light';
                     'themesEnabled' => $themesEnabled,
                     'darkModeToggle' => $bootstrapTheme['mode'] === 'both',
                     'bootstrapTheme' => $bootstrapTheme['name'],
+                    'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
                 ];
                 $menus = $this->Navbar->build($context);
                 echo $this->element('navbar', [

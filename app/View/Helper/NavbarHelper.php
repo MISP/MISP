@@ -1043,6 +1043,7 @@ class NavbarHelper extends AppHelper {
     private function buildBootstrapThemeItems(array $context)
     {
         $current = $context['bootstrapTheme'] ?? null;
+        $chosen = !empty($context['bootstrapThemeChosen']);
         $modes = [
             'light' => ['icon' => 'fas fa-sun', 'label' => __('Light')],
             'dark' => ['icon' => 'fas fa-moon', 'label' => __('Dark')],
@@ -1051,7 +1052,7 @@ class NavbarHelper extends AppHelper {
 
         $items = [];
         foreach (MispTheme::getBootstrapThemes() as $name => $theme) {
-            if ($theme['hide_from_users'] && $name !== $current) {
+            if ($theme['hide_from_users'] && !($chosen && $name === $current)) {
                 continue;
             }
             $items[] = [
@@ -1061,13 +1062,26 @@ class NavbarHelper extends AppHelper {
                 'description' => $theme['description'],
                 'modeIcon' => $modes[$theme['mode']]['icon'],
                 'modeLabel' => $modes[$theme['mode']]['label'],
-                'on' => $name === $current,
+                'on' => $chosen && $name === $current,
             ];
         }
         if (count($items) < 2) {
             return [];
         }
-        array_unshift($items, ['type' => 'header', 'label' => __('Appearance')]);
+        $default = MispTheme::bootstrapTheme();
+        array_unshift(
+            $items,
+            ['type' => 'header', 'label' => __('Appearance')],
+            [
+                'type' => 'bootstrapTheme',
+                'theme' => '',
+                'label' => __('Instance default (%s)', $default['label']),
+                'description' => __('Follow the theme your administrator picks for this instance.'),
+                'modeIcon' => $modes[$default['mode']]['icon'],
+                'modeLabel' => $modes[$default['mode']]['label'],
+                'on' => !$chosen,
+            ]
+        );
         return $items;
     }
 

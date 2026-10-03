@@ -602,12 +602,25 @@ class UserSettingsController extends AppController
     }
 
     /**
-     * Set the Bootstrap stylesheet the current user's pages render with.
+     * Set the Bootstrap stylesheet the current user's pages render with. With
+     * no name, the user's choice is cleared and the instance default applies.
      */
-    public function setBootstrapTheme($name)
+    public function setBootstrapTheme($name = null)
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        if ($name === null || $name === '') {
+            $result = $this->UserSetting->deleteAll([
+                'UserSetting.user_id' => $this->Auth->user('id'),
+                'UserSetting.setting' => 'ui_bootstrap_theme',
+            ], false);
+            if ($result) {
+                $message = __('Theme set to the instance default. The page will now reload.');
+                return $this->RestResponse->saveSuccessResponse('UserSettings', 'setBootstrapTheme', false, 'json', $message);
+            }
+            $message = __('Failed to reset the theme.');
+            return $this->RestResponse->saveFailResponse('UserSettings', 'setBootstrapTheme', false, $message, 'json');
         }
         if (!MispTheme::isBootstrapTheme($name)) {
             throw new BadRequestException(__('Invalid Bootstrap theme provided.'));

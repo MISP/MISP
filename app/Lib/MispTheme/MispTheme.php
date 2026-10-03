@@ -111,21 +111,25 @@ class MispTheme
      * theme falls through to the next.
      *
      * @param array|null $user
-     * @return array The theme's metadata plus 'css', its path under css/
+     * @return array The theme's metadata plus 'css', its path under css/, and
+     *  'userChoice', whether it is the user's own setting
      */
     public static function bootstrapTheme($user = null)
     {
         $candidates = [];
         if (!empty($user['id'])) {
-            $candidates[] = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], 'ui_bootstrap_theme');
+            $candidates['user'] = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], 'ui_bootstrap_theme');
         }
-        $candidates[] = Configure::read('MISP.default_bootstrap_theme');
-        $candidates[] = self::DEFAULT_BOOTSTRAP_THEME;
+        $candidates['instance'] = Configure::read('MISP.default_bootstrap_theme');
+        $candidates['fallback'] = self::DEFAULT_BOOTSTRAP_THEME;
 
         $themes = self::getBootstrapThemes();
-        foreach ($candidates as $name) {
+        foreach ($candidates as $source => $name) {
             if (self::isBootstrapThemeName($name) && isset($themes[$name])) {
-                return $themes[$name] + ['css' => 'themes/' . $name . '.min'];
+                return $themes[$name] + [
+                    'css' => 'themes/' . $name . '.min',
+                    'userChoice' => $source === 'user',
+                ];
             }
         }
         // No build output at all: keep the page styled.
@@ -136,6 +140,7 @@ class MispTheme
             'mode' => 'both',
             'hide_from_users' => false,
             'css' => 'themes/' . self::DEFAULT_BOOTSTRAP_THEME . '.min',
+            'userChoice' => false,
         ];
     }
 
