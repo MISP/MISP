@@ -59,6 +59,31 @@
             });
         });
 
+        document.querySelectorAll('.set-bootstrap-theme').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (this.getAttribute('aria-current') === 'true') {
+                    return;
+                }
+                const theme = encodeURIComponent(String(this.dataset.theme || ''));
+                fetch('<?= $baseurl ?>/user_settings/setBootstrapTheme/' + theme, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Server Error');
+                    location.reload();
+                })
+                .catch(() => {
+                    showToast(<?= json_encode(__('Failed to change the theme. Please try again.')) ?>, 'danger');
+                });
+            });
+        });
+
         document.querySelectorAll('.toggle-dark-mode').forEach(function(button) {
             button.addEventListener('click', function(e) {
                 e.preventDefault();

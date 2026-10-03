@@ -160,6 +160,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         'theme' => $theme ?? null,
                         'themesEnabled' => $themesEnabled ?? false,
                         'darkModeToggle' => $hasDarkToggle,
+                        'bootstrapTheme' => $bootstrapTheme['name'],
                     ];
                     echo $this->element('navbar', [
                         'menus' => $this->Navbar->build($context),

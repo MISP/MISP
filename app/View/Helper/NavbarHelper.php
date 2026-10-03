@@ -1,6 +1,7 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
 App::uses('Router', 'Routing');
+App::uses('MispTheme', 'Lib/MispTheme');
 
 class NavbarHelper extends AppHelper {
 
@@ -989,7 +990,7 @@ class NavbarHelper extends AppHelper {
         extract($context);
         $user_icon = !empty($me['Role']['perm_site_admin']) ? 'misp-icon misp-icon-user3 misp-simple' : 'misp-icon misp-icon-user1 misp-simple';
 
-        $profileChildren = [];
+        $profileChildren = $this->buildBootstrapThemeItems($context);
         // Only a Bootstrap theme with both a light and a dark palette has
         // anything to toggle.
         if ($context['darkModeToggle'] ?? true) {
@@ -1000,6 +1001,7 @@ class NavbarHelper extends AppHelper {
             ];
         }
         $profileChildren = array_merge($profileChildren, [
+            ['divider' => true],
             [
                 'type' => 'tutorial',
                 'label' => __('Replay the tutorial'),
@@ -1037,6 +1039,37 @@ class NavbarHelper extends AppHelper {
 
     }
 
+
+    private function buildBootstrapThemeItems(array $context)
+    {
+        $current = $context['bootstrapTheme'] ?? null;
+        $modes = [
+            'light' => ['icon' => 'fas fa-sun', 'label' => __('Light')],
+            'dark' => ['icon' => 'fas fa-moon', 'label' => __('Dark')],
+            'both' => ['icon' => 'fas fa-circle-half-stroke', 'label' => __('Light and dark')],
+        ];
+
+        $items = [];
+        foreach (MispTheme::getBootstrapThemes() as $name => $theme) {
+            if ($theme['hide_from_users'] && $name !== $current) {
+                continue;
+            }
+            $items[] = [
+                'type' => 'bootstrapTheme',
+                'theme' => $name,
+                'label' => $theme['label'],
+                'description' => $theme['description'],
+                'modeIcon' => $modes[$theme['mode']]['icon'],
+                'modeLabel' => $modes[$theme['mode']]['label'],
+                'on' => $name === $current,
+            ];
+        }
+        if (count($items) < 2) {
+            return [];
+        }
+        array_unshift($items, ['type' => 'header', 'label' => __('Appearance')]);
+        return $items;
+    }
 
     /**
      * Recursively filter menu items based on requirement and children visibility

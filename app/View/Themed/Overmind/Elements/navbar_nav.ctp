@@ -66,6 +66,23 @@
                             <?php endforeach; ?>
                         </ul>
                     </li>
+                <?php elseif (!empty($child['type']) && $child['type'] === 'header'): ?>
+                    <li><h6 class="dropdown-header"><?= h($child['label']) ?></h6></li>
+                <?php elseif (!empty($child['type']) && $child['type'] === 'bootstrapTheme'): ?>
+                    <li>
+                        <a class="dropdown-item set-bootstrap-theme" href="#"
+                           data-theme="<?= h($child['theme']) ?>"
+                           title="<?= h($child['description']) ?>"<?= $child['on'] ? ' aria-current="true"' : '' ?>>
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div>
+                                    <i class="fas fa-check fa-fw<?= $child['on'] ? '' : ' invisible' ?>"></i>
+                                    <span><?= h($child['label']) ?></span>
+                                </div>
+                                <i class="<?= h($child['modeIcon']) ?> fa-fw text-body-secondary ms-3"
+                                   title="<?= h($child['modeLabel']) ?>"></i>
+                            </div>
+                        </a>
+                    </li>
                 <?php elseif (!empty($child['type']) && $child['type'] === 'darkMode'): ?>
                     <li>
                         <a class="dropdown-item toggle-dark-mode" href="#">
