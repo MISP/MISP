@@ -33,3 +33,23 @@ $enable-dark-mode: $misp-theme-mode == "both";
   }
   @return $result;
 }
+
+// A primary that already reads at 3:1 stays the accent. One that doesn't is
+// only a surface colour, so it's tinted, or shaded on a light page, to 4.5:1.
+@function misp-accent-for($color, $background) {
+  @if contrast-ratio($color, $background) >= 3 {
+    @return $color;
+  }
+  $lighten: luminance($background) < .5;
+  $step: 0%;
+  $result: $color;
+  @while contrast-ratio($result, $background) < 4.5 and $step < 100% {
+    $step: $step + 5%;
+    @if $lighten {
+      $result: tint-color($color, $step);
+    } @else {
+      $result: shade-color($color, $step);
+    }
+  }
+  @return $result;
+}

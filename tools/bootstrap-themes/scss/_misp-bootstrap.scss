@@ -71,6 +71,10 @@ $misp-tokens-page: $misp-tokens;
   }
 }
 
+.text-accent {
+  color: var(--misp-accent) !important;
+}
+
 // Badges and icons need 3:1 against the page. Tune a colour that falls short
 // in the theme's entry file, or accept it in theme.json.
 @mixin misp-warn-contrast($background, $label) {

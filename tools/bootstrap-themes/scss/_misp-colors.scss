@@ -48,12 +48,22 @@ $misp-warninglist-soft:       #fce7f3 !default;
 $misp-warninglist-dark:       #f9a8d4 !default;
 $misp-warninglist-soft-dark:  mix($misp-warninglist, $body-bg-dark, 22%) !default;
 
+// The primary as a text colour, for icons, labels and headings.
+$misp-accent-dark-bg: $body-bg-dark;
+@if $misp-theme-mode == "dark" {
+  $misp-accent-dark-bg: $body-bg;
+}
+$misp-accent:       misp-accent-for($primary, $body-bg) !default;
+$misp-accent-dark:  misp-accent-for($primary, $misp-accent-dark-bg) !default;
+
 $misp-tokens: (
   "warninglist":      $misp-warninglist,
-  "warninglist-soft": $misp-warninglist-soft
+  "warninglist-soft": $misp-warninglist-soft,
+  "accent":           $misp-accent
 ) !default;
 
 $misp-tokens-dark: (
   "warninglist":      $misp-warninglist-dark,
-  "warninglist-soft": $misp-warninglist-soft-dark
+  "warninglist-soft": $misp-warninglist-soft-dark,
+  "accent":           $misp-accent-dark
 ) !default;
