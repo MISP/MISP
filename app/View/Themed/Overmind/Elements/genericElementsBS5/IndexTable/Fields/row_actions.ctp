@@ -11,6 +11,9 @@ $renderIcon = function ($icon) {
     $icon = (string)$icon;
     $isFullClass = strpos($icon, ' ') !== false || strpos($icon, 'misp-icon') !== false;
     $cls = $isFullClass ? $icon : 'fas fa-' . $icon;
+    if (strpos($cls, 'fa-') !== false) {
+        $cls .= ' fa-fw';
+    }
     return '<i class="' . h($cls) . ' me-2"></i>';
 };
 
@@ -149,8 +152,10 @@ if ($field['data_path'] === 'Event.id') {
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','md');">
-                                <?= $renderIcon($iconClass) ?>
-                                <?= h($label) ?>
+                                <div>
+                                    <?= $renderIcon($iconClass) ?>
+                                    <?= h($label) ?>
+                                </div>
                             </a>
                         <?php else: ?>
                             <?= $this->Form->postLink(
@@ -191,8 +196,10 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
                            href="#"
                            onclick="event.preventDefault(); <?= h($onclick) ?>">
+                            <div>
                                 <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
+                            </div>
                         </a>
 
                     <?php elseif ($action['type'] === 'copy'): ?>
@@ -203,8 +210,10 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="dropdown-item <?= h($action['class'] ?? '') ?>"
                            href="#"
                            onclick="event.preventDefault(); copyValueToClipboard('<?= h($copyValue) ?>', '<?= h($copyMessage) ?>');">
-                            <?= $renderIcon($action['icon']) ?>
-                            <?= h($action['label']) ?>
+                            <div>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
+                            </div>
                         </a>
 
                     <?php elseif ($action['type'] === 'postLink'): ?>

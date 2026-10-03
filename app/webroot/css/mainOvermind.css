@@ -189,6 +189,17 @@ body[data-controller="users"][data-action="change_pw"] {
     color: #fff;
 }
 
+/* A destructive item hovers red, not teal under red text. */
+.dropdown-item.text-danger:hover,
+.dropdown-item.text-danger:focus-visible,
+.dropdown-item.text-danger:active {
+    background-color: var(--bs-danger);
+    color: #fff !important;
+}
+[data-misp-mode="dark"] .dropdown-item.text-danger:not(:hover):not(:focus-visible):not(:active) {
+    color: var(--bs-danger-text-emphasis) !important;
+}
+
 /* Open main dropdown when hovering */
 .navbar .dropdown:hover > .dropdown-menu {
     display: block;
