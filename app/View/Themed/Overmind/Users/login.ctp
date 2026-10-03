@@ -5,7 +5,7 @@
 
 <div class="d-flex align-items-center justify-content-center overflow-y-auto" style="position: fixed; inset: 0;">
     <div class="col-md-auto" style="max-width: 500px; width: 100%;">
-        <div class="card shadow-lg p-4" style="background-color: #ffffff">
+        <div class="card shadow-lg p-4" data-bs-theme="light" style="background-color: #ffffff">
             <!-- Welcome message -->
             <div class="mb-4 text-center">
                 <h2 class="fw-bold">
