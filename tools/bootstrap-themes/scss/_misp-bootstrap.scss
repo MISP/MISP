@@ -4,6 +4,22 @@
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/variables-dark";
 
+// Bootswatch's dark themes keep Bootstrap's light secondary and tertiary
+// backgrounds and its black emphasis colour. MISP uses them as surfaces and
+// text (the page is .bg-light, mapped to the tertiary), so they follow the
+// theme's own page colour instead.
+@if $misp-theme-mode == "dark" {
+  @if lightness($body-emphasis-color) < 50% {
+    $body-emphasis-color: $white;
+  }
+  @if lightness($body-tertiary-bg) > 50% {
+    $body-tertiary-bg: shade-color($body-bg, 20%);
+  }
+  @if lightness($body-secondary-bg) > 50% {
+    $body-secondary-bg: tint-color($body-bg, 10%);
+  }
+}
+
 // After variables-dark, so the colour defaults can read $body-bg-dark.
 @import "misp-colors";
 
@@ -73,6 +89,27 @@ $misp-tokens-page: $misp-tokens;
 
 .text-accent {
   color: var(--misp-accent) !important;
+}
+
+// MISP colours double as text. One too dark to read on a dark page is lifted
+// for its .text- utility only; badges and buttons keep the colour itself.
+@mixin misp-readable-text($background) {
+  @each $name, $value in $misp-colors {
+    @if contrast-ratio($value, $background) < 3 {
+      .text-#{$name} {
+        color: rgba(misp-readable-for($value, $background), var(--#{$prefix}text-opacity, 1)) !important;
+      }
+    }
+  }
+}
+
+@if $misp-theme-mode == "dark" {
+  @include misp-readable-text($body-bg);
+}
+@if $misp-theme-mode == "both" {
+  @include color-mode(dark, true) {
+    @include misp-readable-text($body-bg-dark);
+  }
 }
 
 // Badges and icons need 3:1 against the page. Tune a colour that falls short

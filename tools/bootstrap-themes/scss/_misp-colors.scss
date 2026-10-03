@@ -29,18 +29,6 @@ $misp-colors: (
   "enrichment":  $misp-enrichment
 ) !default;
 
-// A dark theme can set this to lighten every colour that would fall below
-// 3:1 on its background, instead of tuning each one by hand.
-$misp-lift-colors: false !default;
-
-@if $misp-lift-colors {
-  $lifted: ();
-  @each $name, $value in $misp-colors {
-    $lifted: map-merge($lifted, ($name: misp-readable-for($value, $body-bg)));
-  }
-  $misp-colors: $lifted;
-}
-
 // The page background in dark mode: a dark-only theme's is $body-bg.
 $misp-dark-page-bg: $body-bg-dark;
 @if $misp-theme-mode == "dark" {

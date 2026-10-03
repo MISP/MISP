@@ -3,5 +3,8 @@
     "description": "Dark grey and steel, in the system font.",
     "mode": "dark",
     "fonts": [],
-    "hide_from_users": false
+    "hide_from_users": false,
+    "contrast_accepted": {
+        "dark": ["object", "sighting", "analystData", "enrichment"]
+    }
 }
