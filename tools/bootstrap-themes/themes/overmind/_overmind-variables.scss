@@ -1,0 +1,7 @@
+$primary:   #1892B1;
+$secondary: #95A3B3;
+
+// Colours whose buttons carry white text. Teal and the rest are too light for
+// white to reach 4.5:1, so the button background alone is darkened until it
+// does; the brand colour stays as is everywhere else.
+$overmind-white-text-buttons: ("primary", "tag", "galaxy", "report");

@@ -1,0 +1,17 @@
+@each $name in $overmind-white-text-buttons {
+  $color: map-get($theme-colors, $name);
+  $background: misp-shade-for-white($color);
+
+  .btn-#{$name} {
+    @include button-variant($background, $background);
+  }
+
+  .btn-outline-#{$name} {
+    @include button-outline-variant(
+      $color,
+      $color-hover: color-contrast($background),
+      $active-background: $background,
+      $active-border: $background
+    );
+  }
+}
