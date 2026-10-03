@@ -914,6 +914,27 @@ th .sort-icon::before {
     background: #fff2cd;
 }
 
+[data-misp-mode="dark"] .btn-danger-subtle,
+[data-misp-mode="dark"] .btn-success-subtle,
+[data-misp-mode="dark"] .btn-warning-subtle {
+    --subtle-tone: var(--bs-danger);
+    background: color-mix(in srgb, var(--subtle-tone) 18%, var(--bs-body-bg));
+    color: var(--bs-danger-text-emphasis) !important;
+}
+[data-misp-mode="dark"] .btn-success-subtle {
+    --subtle-tone: var(--bs-success);
+    color: var(--bs-success-text-emphasis) !important;
+}
+[data-misp-mode="dark"] .btn-warning-subtle {
+    --subtle-tone: var(--bs-warning);
+    color: var(--bs-warning-text-emphasis) !important;
+}
+[data-misp-mode="dark"] .btn-danger-subtle:hover,
+[data-misp-mode="dark"] .btn-success-subtle:hover,
+[data-misp-mode="dark"] .btn-warning-subtle:hover {
+    background: color-mix(in srgb, var(--subtle-tone) 28%, var(--bs-body-bg));
+}
+
 
 
 
