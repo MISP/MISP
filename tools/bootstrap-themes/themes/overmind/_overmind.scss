@@ -15,3 +15,19 @@
     );
   }
 }
+
+@include color-mode(dark, true) {
+  .dropdown-menu {
+    --#{$prefix}dropdown-bg: #{$body-secondary-bg-dark};
+  }
+
+  // A MISP colour too dark to read as text on the dark surface is lifted for
+  // its text utility only; badges and buttons keep the colour itself.
+  @each $name, $value in $misp-colors {
+    @if contrast-ratio($value, $body-bg-dark) < 3 {
+      .text-#{$name} {
+        color: rgba(misp-readable-for($value, $body-bg-dark), var(--#{$prefix}text-opacity, 1)) !important;
+      }
+    }
+  }
+}

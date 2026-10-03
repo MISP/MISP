@@ -5,3 +5,33 @@ $secondary: #95A3B3;
 // white to reach 4.5:1, so the button background alone is darkened until it
 // does; the brand colour stays as is everywhere else.
 $overmind-white-text-buttons: ("primary", "tag", "galaxy", "report");
+
+// Dark palette: blue-teal near-blacks keyed to the primary. As in light mode,
+// cards, inputs and tables sit on $body-bg, one step above the page, which
+// is .bg-light and so the tertiary background.
+$overmind-dark-page:     #131b1f;
+$overmind-dark-surface:  #1a2429;
+$overmind-dark-raised:   #212d33;
+
+$body-bg-dark:                  $overmind-dark-surface;
+$body-tertiary-bg-dark:         $overmind-dark-page;
+$body-secondary-bg-dark:        $overmind-dark-raised;
+$body-color-dark:               #d3dde1;
+$border-color-dark:             #33444c;
+$border-color-translucent-dark: rgba($body-color-dark, .17);
+
+$primary-bg-subtle-dark:       mix($primary, $body-bg-dark, 20%);
+$primary-border-subtle-dark:   mix($primary, $body-bg-dark, 45%);
+$secondary-bg-subtle-dark:     mix($secondary, $body-bg-dark, 16%);
+$secondary-border-subtle-dark: mix($secondary, $body-bg-dark, 40%);
+$success-bg-subtle-dark:       mix(#198754, $body-bg-dark, 20%);
+$success-border-subtle-dark:   mix(#198754, $body-bg-dark, 45%);
+$info-bg-subtle-dark:          mix(#0dcaf0, $body-bg-dark, 16%);
+$info-border-subtle-dark:      mix(#0dcaf0, $body-bg-dark, 40%);
+$warning-bg-subtle-dark:       mix(#ffc107, $body-bg-dark, 16%);
+$warning-border-subtle-dark:   mix(#ffc107, $body-bg-dark, 40%);
+$danger-bg-subtle-dark:        mix(#dc3545, $body-bg-dark, 20%);
+$danger-border-subtle-dark:    mix(#dc3545, $body-bg-dark, 45%);
+
+// The teal is under 4.5:1 for small labels on a dark card.
+$misp-accent-dark: tint-color($primary, 40%);
