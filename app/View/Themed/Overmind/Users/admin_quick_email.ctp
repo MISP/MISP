@@ -42,7 +42,7 @@ echo $this->Form->create('User', [
 
         <!-- SUBJECT -->
         <div>
-            <label for="UserSubject" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+            <label for="UserSubject" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                 <?= __('Subject') ?>
             </label>
             <?= $this->Form->input('subject', [
@@ -57,7 +57,7 @@ echo $this->Form->create('User', [
 
         <!-- BODY -->
         <div>
-            <label for="UserBody" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+            <label for="UserBody" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                 <?= __('Message') ?>
             </label>
             <?= $this->Form->input('body', [

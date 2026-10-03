@@ -228,7 +228,7 @@
 
             <!-- Template name -->
             <div class="w-100">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Template Name') ?>
@@ -325,7 +325,7 @@
 
             <!-- PALETTE -->
             <div class="col-lg-2 col-md-3">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-accent fw-bold text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Add Element') ?>
                 </div>
@@ -345,7 +345,7 @@
 
             <!-- CANVAS -->
             <div class="col-lg-5 col-md-4">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Structure') ?>
@@ -405,7 +405,7 @@
 
             <!-- PROPERTIES -->
             <div class="col-lg-5 col-md-5">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-accent fw-bold text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Properties') ?>
                 </div>

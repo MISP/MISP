@@ -215,7 +215,7 @@ if (empty($list) && !$filterActive) {
     <div class="container-fluid mt-4">
         <div class="card border-0 shadow-sm">
             <div class="card-body text-center py-5">
-                <div class="mb-3 text-primary" style="font-size:3rem;">
+                <div class="mb-3 text-accent" style="font-size:3rem;">
                     <i class="fas fa-clipboard-list"></i>
                 </div>
                 <h4 class="mb-2"><?= __('No event templates yet') ?></h4>

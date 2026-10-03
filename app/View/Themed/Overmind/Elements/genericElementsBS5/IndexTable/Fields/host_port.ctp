@@ -19,7 +19,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 
 <div class="d-inline-flex align-items-center shadow-sm rounded-pill bg-white border overflow-hidden p-1">
     <div class="px-2 d-flex align-items-center">
-        <i class="fas fa-server text-primary small me-2"></i>
+        <i class="fas fa-server text-accent small me-2"></i>
         <span class="fw-bold text-dark" style="font-family: 'Monaco', 'Consolas', monospace; font-size: 0.9rem;">
             <?= h($host) ?>
         </span>

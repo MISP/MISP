@@ -59,7 +59,7 @@ function downloadResponse(btn) {
     URL.revokeObjectURL(url);
 
     const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check text-primary"></i>';
+    btn.innerHTML = '<i class="fas fa-check text-accent"></i>';
     const tooltip = bootstrap.Tooltip.getInstance(btn);
     if (tooltip) {
         btn.setAttribute('data-bs-original-title', 'Downloaded!');

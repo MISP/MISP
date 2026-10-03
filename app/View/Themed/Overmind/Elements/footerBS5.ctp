@@ -37,7 +37,7 @@
         <div class="col text-center">
             <span>
                 <?= h(Configure::read('MISP.footermidleft')); ?> 
-                Powered by <a href="https://github.com/MISP/MISP" rel="noopener" class="text-primary">MISP <?= isset($me['id']) ? h($mispVersionFull) : '' ?></a> 
+                Powered by <a href="https://github.com/MISP/MISP" rel="noopener">MISP <?= isset($me['id']) ? h($mispVersionFull) : '' ?></a> 
                 <?= h(Configure::read('MISP.footermidright')); ?> - <?= $this->Time->time(time()) ?>
             </span>
         </div>

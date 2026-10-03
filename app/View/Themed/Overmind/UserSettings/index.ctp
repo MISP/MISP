@@ -62,7 +62,7 @@ $fields = [
         'element' => 'custom',
         'function' => function (array $row) {
             $setting = $row['UserSetting']['setting'] ?? '';
-            return '<code class="text-primary">' . h($setting) . '</code>';
+            return '<code class="text-accent">' . h($setting) . '</code>';
         },
         'card_section' => 'title',
         'display_in' => ['table', 'card'],

@@ -1485,11 +1485,11 @@ function toggleSecret(fieldId, btn) {
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.replace('fa-eye', 'fa-eye-slash');
-        btn.classList.add('text-primary');
+        btn.classList.add('text-accent');
     } else {
         input.type = 'password';
         icon.classList.replace('fa-eye-slash', 'fa-eye');
-        btn.classList.remove('text-primary');
+        btn.classList.remove('text-accent');
     }
 }
 
@@ -1852,7 +1852,7 @@ function copyToClipboard(btn, text) {
     const originalHtml = btn.innerHTML;
 
     const proceedCopy = () => {
-        btn.innerHTML = '<i class="fas fa-check text-primary"></i>';
+        btn.innerHTML = '<i class="fas fa-check text-accent"></i>';
 
         const tooltip = bootstrap.Tooltip.getInstance(btn);
         if (tooltip) {
@@ -1939,11 +1939,11 @@ function toggleFormats(button, containerId) {
     if (isExpanding) {
         button.innerHTML = '<i class="fas fa-minus small me-1"></i>';
         button.classList.replace('bg-dark', 'bg-primary');
-        button.classList.replace('text-primary', 'text-dark');
+        button.classList.replace('text-accent', 'text-dark');
     } else {
         button.innerHTML = '<i class="fas fa-plus small me-1"></i>' + extraFormats.length;
         button.classList.replace('bg-primary', 'bg-dark');
-        button.classList.replace('text-dark', 'text-primary');
+        button.classList.replace('text-dark', 'text-accent');
     }
 }
 
@@ -6274,7 +6274,7 @@ function initIndexFilterDraft(root, opts) {
         if (busy && !overlay) {
             overlay = document.createElement('div');
             overlay.className = 'index-results-overlay';
-            overlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+            overlay.innerHTML = '<div class="spinner-border text-accent" role="status"></div>';
             results.appendChild(overlay);
         } else if (!busy && overlay) {
             overlay.remove();

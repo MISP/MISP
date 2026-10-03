@@ -34,7 +34,7 @@ $title = $count > 1 ? __('Delete %s Galaxy Clusters', $count) : __('Delete Galax
 
     <ul class="small text-muted mb-3">
         <li>
-            <strong class="text-primary"><?= __('Soft-deleting') ?></strong>
+            <strong class="text-accent"><?= __('Soft-deleting') ?></strong>
             <?= __('a cluster propagates the deletion to other instances and lets you restore it in the future.') ?>
         </li>
         <li>

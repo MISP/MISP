@@ -274,7 +274,7 @@ $cardHead = function ($icon, $title, $subtitle) {
     return sprintf(
         '<div class="p-3 border-bottom">
             <div class="d-flex align-items-center gap-2">
-                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 p-2 bg-primary-subtle text-primary">
+                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 p-2 bg-primary-subtle text-primary-emphasis">
                     <i class="%s fa-fw"></i>
                 </div>
                 <div>

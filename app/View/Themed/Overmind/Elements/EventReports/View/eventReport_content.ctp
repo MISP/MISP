@@ -355,7 +355,7 @@ if ($aiExtractUrl !== null) {
             <div class="modal-header">
                 <h5 class="modal-title d-flex align-items-center gap-2"
                     id="er-llm-modal-label">
-                    <i class="fas fa-robot text-primary"></i>
+                    <i class="fas fa-robot text-accent"></i>
                     <?= __('Send to LLM') ?>
                 </h5>
                 <button type="button"

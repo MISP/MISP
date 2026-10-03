@@ -1,5 +1,5 @@
 <div class="p-3 border-bottom d-flex align-items-center gap-2">
-    <i class="fas fa-database text-primary"></i>
+    <i class="fas fa-database text-accent"></i>
     <span class="fw-bold"><?= __('SQL queries') ?></span>
     <?php if (!empty($queryLog['log'])): ?>
         <span class="badge text-bg-secondary"><?= count($queryLog['log']) ?></span>

@@ -112,7 +112,7 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-envelope text-primary"></i>
+                    <i class="fas fa-envelope text-accent"></i>
                     <?= h($data['email'] ?? '') ?>
                 </div>
             </div>
@@ -173,7 +173,7 @@
                 </div>
 
                 <!-- Key content -->
-                <pre class="mb-0 p-3 text-primary small" style="max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-break: break-all;"><?= h($data['pgp_key']) ?></pre>
+                <pre class="mb-0 p-3 text-accent small" style="max-height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-break: break-all;"><?= h($data['pgp_key']) ?></pre>
 
             </div>
         </div>

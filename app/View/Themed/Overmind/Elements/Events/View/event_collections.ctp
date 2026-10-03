@@ -96,7 +96,7 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
                 }
 
                 var icon = document.createElement('i');
-                icon.className = 'fas fa-folder text-primary flex-shrink-0';
+                icon.className = 'fas fa-folder text-accent flex-shrink-0';
                 row.appendChild(icon);
 
                 var name = document.createElement('span');

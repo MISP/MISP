@@ -345,7 +345,7 @@ $submitRow = function ($label, $icon = 'fas fa-file-import') {
 
     <!-- ── IMPORT SPINNER (shown while a section is submitting) ──── -->
     <div id="importEventSpinner" class="d-none text-center py-5">
-        <div class="spinner-border text-primary mb-3" role="status"
+        <div class="spinner-border text-accent mb-3" role="status"
              style="width:3rem; height:3rem;">
             <span class="visually-hidden"><?= __('Loading…') ?></span>
         </div>

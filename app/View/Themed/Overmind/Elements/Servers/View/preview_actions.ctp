@@ -34,7 +34,7 @@ echo $this->Form->postLink('', $pullUrl, [
 function previewFetchEvent() {
     var body =
         '<div class="d-flex align-items-start gap-3">'
-        + '<i class="fas fa-arrow-circle-down fa-2x mt-1 text-primary"></i>'
+        + '<i class="fas fa-arrow-circle-down fa-2x mt-1 text-accent"></i>'
         + '<p class="mb-0 text-muted small">' + <?= json_encode($confirmBody) ?> + '</p>'
         + '</div>'
         <?php if (!$isPublished): ?>

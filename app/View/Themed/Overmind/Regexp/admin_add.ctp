@@ -27,7 +27,7 @@ echo $this->Form->create('Regexp', [
 
         <!-- ── REGEXP ──────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Expression') ?>

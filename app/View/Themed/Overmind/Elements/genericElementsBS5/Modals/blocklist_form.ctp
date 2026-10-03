@@ -49,7 +49,7 @@ echo $this->Form->create($model, [
         <!-- ── UUID(S) ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= h($uuidLabel) ?>

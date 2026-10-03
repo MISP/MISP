@@ -20,7 +20,7 @@ $permMeta = [
 <div class="container-fluid my-3">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h4 class="mb-0 fw-semibold">
-            <i class="fas fa-user-check text-primary me-2"></i><?= __('Accept registrations') ?>
+            <i class="fas fa-user-check text-accent me-2"></i><?= __('Accept registrations') ?>
         </h4>
         <span class="badge text-bg-secondary">
             <?= __n('%d request', '%d requests', count($registrations), count($registrations)) ?>
@@ -54,7 +54,7 @@ $permMeta = [
         ?>
             <div class="card shadow-sm">
                 <div class="card-header d-flex align-items-center gap-2 bg-light">
-                    <i class="fas fa-user-plus text-primary"></i>
+                    <i class="fas fa-user-plus text-accent"></i>
                     <span class="fw-semibold"><?= h($email) ?></span>
                 </div>
                 <div class="card-body">

@@ -106,7 +106,7 @@ $itemActions = function ($item, $type) use ($baseurl, $me) {
             '<div class="dropdown">'
             . '<button class="btn btn-sm btn-light p-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' . h(__('Add analyst data')) . '"><i class="fas fa-plus"></i></button>'
             . '<ul class="dropdown-menu dropdown-menu-end shadow-sm">'
-            . $addItem('Note', 'text-primary misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
+            . $addItem('Note', 'text-accent misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
             . $addItem('Opinion', 'text-success misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion'))
             . $addItem('Relationship', 'text-correlation fas fa-diagram-project', __('Add relationship'))
             . '</ul></div>';

@@ -20,7 +20,7 @@ $maxHeightStyle = !empty($maxHeight) ? 'max-height: ' . h($maxHeight) . '; overf
 
         <div class="d-flex align-items-center fs-5">
             <?php if (!empty($icon)): ?>
-            <i class="fas fa-<?= h($icon) ?> me-2 text-primary"></i>
+            <i class="fas fa-<?= h($icon) ?> me-2 text-accent"></i>
             <?php endif; ?>
             <strong><?= h($title) ?></strong>
         </div>

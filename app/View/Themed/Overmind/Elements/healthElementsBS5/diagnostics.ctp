@@ -359,7 +359,7 @@ $openCard('puzzle-piece', '#6f42c1', __('PHP extensions'),
                     <td><span class="ss-setting-name"><?= h($extension) ?></span></td>
                     <td>
                         <?= $info['required']
-                            ? '<i class="fas fa-check text-primary" title="' . h(__('Required')) . '"></i>'
+                            ? '<i class="fas fa-check text-accent" title="' . h(__('Required')) . '"></i>'
                             : '<i class="fas fa-minus text-muted" title="' . h(__('Optional')) . '"></i>' ?>
                     </td>
                     <td class="text-muted" style="font-size:.76rem;"><?= $info['info'] ?></td>
@@ -417,7 +417,7 @@ $openCard('cubes', '#795548', __('PHP dependencies'),
                     <td><span class="ss-setting-name"><?= h($dependency) ?></span></td>
                     <td>
                         <?= $info['required']
-                            ? '<i class="fas fa-check text-primary" title="' . h(__('Required')) . '"></i>'
+                            ? '<i class="fas fa-check text-accent" title="' . h(__('Required')) . '"></i>'
                             : '<i class="fas fa-minus text-muted" title="' . h(__('Optional')) . '"></i>' ?>
                     </td>
                     <td class="text-muted" style="font-size:.76rem;"><?= $info['info'] ?></td>

@@ -129,7 +129,7 @@
                         <label for="UserOtp"><?= __('OTP') ?></label>
                     </div>
                     <div class="alert alert-secondary d-flex align-items-center small mb-3" role="alert">
-                        <i class="fa-solid fa-info-circle me-2 text-primary"></i>
+                        <i class="fa-solid fa-info-circle me-2 text-accent"></i>
                         <div>
                             <?= __('Visit') ?>
                             <a href="<?= h(Configure::read('LinOTPAuth.baseUrl')) ?>/selfservice"

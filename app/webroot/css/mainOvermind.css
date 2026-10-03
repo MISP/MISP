@@ -1137,7 +1137,7 @@ th .sort-icon::before {
 
 
 .nav-view.active {
-    color: var(--primary) !important;
+    color: var(--misp-accent) !important;
 }
 
 .nav-ajax.active {
@@ -1207,10 +1207,10 @@ th .sort-icon::before {
     z-index: 1;
 }
 .tl-meta-link { cursor: pointer; }
-.tl-meta-link:hover { text-decoration: underline !important; color: var(--primary, #4f46e5) !important; }
+.tl-meta-link:hover { text-decoration: underline !important; color: var(--bs-link-hover-color) !important; }
 
 .breadcrumb-controller-link:hover {
-    color: var(--primary) !important;
+    color: var(--bs-link-hover-color) !important;
     text-decoration: underline !important;
 }
 
@@ -2624,7 +2624,7 @@ tr.evt-extension-row td:first-child {
 }
 
 .srv-card[data-srv-state="ok"] {
-    --srv-accent: var(--primary);
+    --srv-accent: var(--misp-accent);
     --srv-dot: var(--bs-success);
 }
 
@@ -3574,7 +3574,7 @@ tr.evt-extension-row td:first-child {
     flex-shrink: 0;
     margin: 0;
     font-size: .72rem;
-    color: var(--primary);
+    color: var(--misp-accent);
     cursor: help;
 }
 

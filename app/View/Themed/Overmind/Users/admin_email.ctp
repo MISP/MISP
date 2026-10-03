@@ -34,7 +34,7 @@ echo $this->Form->create('User', [
 
             <!-- ACTION -->
             <div>
-                <label for="UserAction" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserAction" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Action') ?>
                 </label>
                 <?= $this->Form->select('action', $actionOptions, [
@@ -50,7 +50,7 @@ echo $this->Form->create('User', [
 
             <!-- SUBJECT (custom message only) -->
             <div id="omSubjectField">
-                <label for="UserSubject" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserSubject" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Subject') ?>
                 </label>
                 <?= $this->Form->text('subject', [
@@ -63,7 +63,7 @@ echo $this->Form->create('User', [
 
             <!-- RECIPIENT -->
             <div>
-                <label for="UserRecipient" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserRecipient" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Recipients') ?>
                 </label>
                 <?= $this->Form->select('recipient', $recipientOptions, [
@@ -76,7 +76,7 @@ echo $this->Form->create('User', [
 
             <!-- SINGLE USER -->
             <div id="omRecipientEmailField">
-                <label for="UserRecipientEmailList" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserRecipientEmailList" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Recipient email') ?>
                 </label>
                 <?= $this->Form->select('recipientEmailList', $recipientEmail, [
@@ -89,7 +89,7 @@ echo $this->Form->create('User', [
 
             <!-- ORGANISATION -->
             <div id="omOrgNameField">
-                <label for="UserOrgNameList" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserOrgNameList" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Recipient organisation') ?>
                 </label>
                 <?= $this->Form->select('orgNameList', $orgName, [
@@ -113,7 +113,7 @@ echo $this->Form->create('User', [
 
             <!-- MESSAGE -->
             <div id="omMessageField">
-                <label for="UserMessage" class="text-primary fw-bold text-uppercase mb-1" style="font-size:.65rem;">
+                <label for="UserMessage" class="text-accent fw-bold text-uppercase mb-1" style="font-size:.65rem;">
                     <?= __('Message') ?>
                 </label>
                 <?= $this->Form->textarea('message', [

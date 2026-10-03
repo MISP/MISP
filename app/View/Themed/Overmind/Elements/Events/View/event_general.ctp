@@ -155,7 +155,7 @@ $this->set('headerDescription', $headerDescription);
                             <?php $logo = $this->OrgImg->getOrgLogoV2($orgc, 24); ?>
                             <?= $logo !== '' ? $logo : '<i class="misp-icon misp-icon-organisation misp-simple text-muted"></i>' ?>
                             <a href="<?= h($baseurl . '/organisations/view/' . $orgc['id']) ?>"
-                               class="text-decoration-none fw-semibold text-primary text-truncate min-w-0"><?= h($orgc['name'] ?? '') ?>
+                               class="text-decoration-none fw-semibold text-truncate min-w-0"><?= h($orgc['name'] ?? '') ?>
                             </a>
                         </div>
                         <?php $email = h($user['email'] ?? ''); ?>
@@ -188,7 +188,7 @@ $this->set('headerDescription', $headerDescription);
                             <div class = "py-1">
                                 <a href="<?= h($baseurl . '/sharingGroups/view/' . ($sg['id'] ?? '')) ?>"
                                 class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold mw-100">
-                                    <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
+                                    <span class="misp-icon misp-icon-sharing-group misp-hexagone text-accent"></span>
                                     <span class="text-truncate min-w-0"><?= h($sg['name'] ?? '') ?></span>
                                 </a>
                             </div>

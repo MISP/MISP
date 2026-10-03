@@ -85,7 +85,7 @@ echo $this->Form->create('CollectionElement', [
         <!-- ── ELEMENT BEING ATTACHED ───────-->
         <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 js-picker-existing<?= $startsNew ? ' d-none' : '' ?>"
              role="alert" style="border-color:var(--bs-primary) !important;">
-            <i class="fas fa-link text-primary"></i>
+            <i class="fas fa-link text-accent"></i>
             <div class="flex-grow-1">
                 <div class="fw-semibold" style="font-size:.85rem;">
                     <?= __('This %s will be attached', h($elementType)) ?>

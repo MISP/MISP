@@ -29,7 +29,7 @@ $canViewTaxonomy = !empty($taxonomy['id']) && $this->Acl->canAccess('taxonomies'
 
 <div class="ms-4 mt-1">
     <?php if ($canViewTaxonomy): ?>
-        <a class="text-primary text-decoration-none d-flex align-items-center small "
+        <a class="text-decoration-none d-flex align-items-center small "
             href="<?= $baseurl ?>/taxonomies/view/<?= (int)$taxonomy['id'] ?>"
             title="<?= __('View the %s taxonomy', $namespace) ?>"
             aria-label="<?= __('View the %s taxonomy', $namespace) ?>">

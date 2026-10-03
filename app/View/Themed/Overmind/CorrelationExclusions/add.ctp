@@ -25,7 +25,7 @@ echo $this->Form->create('CorrelationExclusion', [
         <!-- ── VALUE ───────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Value') ?>
@@ -64,7 +64,7 @@ echo $this->Form->create('CorrelationExclusion', [
                 <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-2 small"
                      style="background:rgba(24,146,177,.05);
                             border:1px solid rgba(24,146,177,.25);">
-                    <i class="fas fa-circle-info text-primary mt-1"
+                    <i class="fas fa-circle-info text-accent mt-1"
                        style="font-size:.7rem;"></i>
                     <div class="text-muted">
                         <?= __('A leading or trailing %s makes the match partial:', '<code>%</code>') ?>

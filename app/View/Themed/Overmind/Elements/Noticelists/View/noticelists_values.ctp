@@ -58,7 +58,7 @@ $entries = $data['Noticelist']['NoticelistEntry'] ?? [];
 
                         <div class="col-md-2 d-flex flex-wrap gap-1">
                             <?php foreach ($values as $v): ?>
-                                <span class="badge bg-primary-subtle text-primary border">
+                                <span class="badge bg-primary-subtle text-primary-emphasis border">
                                     <?= h($v) ?>
                                 </span>
                             <?php endforeach; ?>

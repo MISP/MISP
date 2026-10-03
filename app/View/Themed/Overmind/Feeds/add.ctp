@@ -142,7 +142,7 @@ echo $this->Form->create('Feed', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 ">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Feed Name') ?>
@@ -163,7 +163,7 @@ echo $this->Form->create('Feed', [
 
         <!-- ── SOURCE ──────────────────────────────────────────── -->
         <div class="w-100 ">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Source') ?>
@@ -494,7 +494,7 @@ echo $this->Form->create('Feed', [
             <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-2 small"
                  style="background:rgba(24,146,177,.05);
                         border:1px solid rgba(24,146,177,.25);">
-                <i class="fas fa-circle-info text-primary mt-1"
+                <i class="fas fa-circle-info text-accent mt-1"
                    style="font-size:.7rem;"></i>
                 <div class="text-muted">
                     <?= __('%s and %s take tag or organisation names under %s and %s; %s is appended to the event index query.', '<code>tags</code>', '<code>orgs</code>', '<code>OR</code>', '<code>NOT</code>', '<code>url_params</code>') ?>

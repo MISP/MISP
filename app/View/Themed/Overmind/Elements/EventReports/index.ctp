@@ -126,7 +126,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-accent misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])

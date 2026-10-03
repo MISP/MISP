@@ -1,6 +1,6 @@
 <?php if (!empty($api_info['description'])): ?>
     <div class="d-flex align-items-center justify-content-between mb-2">
-        <h6 class="mb-0 fw-bold text-primary">
+        <h6 class="mb-0 fw-bold text-accent">
             <?= __('Description') ?>
         </h6>
     </div>

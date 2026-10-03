@@ -123,7 +123,7 @@
             </tbody>
             <thead class="table-light">
                 <tr>
-                    <th><a class="small text-primary ms-1" style="cursor:pointer" onclick="addHeaderRow()"> + <?= __('Add Header') ?></a></th>
+                    <th><a class="small ms-1" style="cursor:pointer" onclick="addHeaderRow()"> + <?= __('Add Header') ?></a></th>
                     <th></th>
                     <th></th>
                 </tr>

@@ -57,7 +57,7 @@ echo $this->Form->create('Collection', [
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 ">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Collection Name') ?>
@@ -131,7 +131,7 @@ echo $this->Form->create('Collection', [
             <!-- ── ATTACH TARGET ───────────────────────────────── -->
             <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
                  role="alert" style="border-color:var(--primary) !important;">
-                <i class="fas fa-link text-primary"></i>
+                <i class="fas fa-link text-accent"></i>
                 <div class="flex-grow-1">
                     <div class="fw-semibold" style="font-size:.85rem;">
                         <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>

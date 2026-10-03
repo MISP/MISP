@@ -272,7 +272,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-accent misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {

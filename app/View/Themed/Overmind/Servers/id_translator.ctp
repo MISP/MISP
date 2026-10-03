@@ -1,7 +1,7 @@
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h2 class="fw-bold"><i class="fas fa-exchange-alt text-primary me-2"></i><?= __('Event ID Translator') ?></h2>
+            <h2 class="fw-bold"><i class="fas fa-exchange-alt text-accent me-2"></i><?= __('Event ID Translator') ?></h2>
             <p class="text-muted"><?= __('Convert local IDs to remote sync server IDs in a few clicks.') ?></p>
         </div>
     </div>
@@ -65,7 +65,7 @@
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-primary">
                         <div class="card-body">
-                            <h6 class="text-uppercase fw-bold text-primary mb-3"><?= __('Local Source') ?></h6>
+                            <h6 class="text-uppercase fw-bold text-accent mb-3"><?= __('Local Source') ?></h6>
                             <div class="mb-3">
                                 <label class="text-muted small d-block"><?= __('Event Info') ?></label>
                                 <span class="fw-semibold"><?= h($local_event['Event']['info']) ?></span>
@@ -114,7 +114,7 @@
                                         <a href="<?= $baseurl ?>/events/view2/<?= $local_event['Event']['id'] ?>"
                                         class="btn btn-light btn-sm rounded-pill"
                                         target="_blank">
-                                            <i class="fas fa-eye text-primary"></i>
+                                            <i class="fas fa-eye text-accent"></i>
                                         </a>
                                     </div>
 

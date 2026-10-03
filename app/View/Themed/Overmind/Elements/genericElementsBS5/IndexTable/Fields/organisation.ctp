@@ -61,7 +61,7 @@ $description = $showDescription && !empty($org['description']) ? trim($org['desc
 
         <?php if (!empty($id)): ?>
             <a href="<?= $baseurl ?>/organisations/view/<?= h($id) ?>"
-                class="text-decoration-none fw-semibold text-primary">
+                class="text-decoration-none fw-semibold">
                 <?= h($org['name']) ?>
             </a>
         <?php else: ?>

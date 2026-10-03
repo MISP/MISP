@@ -176,7 +176,7 @@ $this->set('headerActions', [
 
                             <div class="alert alert-light border py-2 mb-0" role="alert"
                                  style="font-size:.78rem;">
-                                <i class="fas fa-circle-info me-1 text-primary"></i>
+                                <i class="fas fa-circle-info me-1 text-accent"></i>
                                 <?= __('This writes to the container\'s writable layer: a %s or an image rebuild wipes it. Make it stick by rebuilding the image from the current checkout, or by adding the install to your startup customisation script.',
                                     '<code>docker compose down</code>') ?>
                             </div>
@@ -204,7 +204,7 @@ $this->set('headerActions', [
                     <?php if (!$isSiteAdmin): ?>
                         <div class="alert alert-light border mt-3 mb-0" role="alert"
                              style="font-size:.8rem;">
-                            <i class="fas fa-circle-info me-1 text-primary"></i>
+                            <i class="fas fa-circle-info me-1 text-accent"></i>
                             <?= __('You do not have the privileges to fix this yourself — contact your MISP administrator.') ?>
                         </div>
                     <?php endif; ?>

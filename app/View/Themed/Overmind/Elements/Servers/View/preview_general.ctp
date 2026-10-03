@@ -149,7 +149,7 @@ $stats = [
                         ]); ?>
                         <?php if ($distribution === 4 && !empty($sg['name'])): ?>
                             <span class="d-inline-flex align-items-center gap-1 small">
-                                <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
+                                <span class="misp-icon misp-icon-sharing-group misp-hexagone text-accent"></span>
                                 <?= h($sg['name']) ?>
                             </span>
                         <?php endif; ?>

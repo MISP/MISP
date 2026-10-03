@@ -28,7 +28,7 @@
                 </h4>
                 <!-- Self-registration message -->
                 <?php if (!empty($message)): ?>
-                    <i class="fa-solid fa-info-circle text-primary mb-1"
+                    <i class="fa-solid fa-info-circle text-accent mb-1"
                     tabindex="0"
                     title="<?= h($message) ?>"
                     aria-label="<?= h($message) ?>"></i>

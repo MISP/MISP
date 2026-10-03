@@ -104,7 +104,7 @@ $this->set('headerActions', empty($me['Role']['perm_auth']) ? [] : [
 
     <!-- ── what this page does ──────────────────────────────────────────── -->
     <div class="alert alert-light border d-flex align-items-start gap-3 shadow-sm mb-4">
-        <i class="fa-solid fa-circle-info fa-lg mt-1 text-primary"></i>
+        <i class="fa-solid fa-circle-info fa-lg mt-1 text-accent"></i>
         <div class="small mb-0">
             <?= __('Exports automatically generate signatures for intrusion detection '
                 . 'systems. An attribute is only picked up when its <strong>IDS</strong> '

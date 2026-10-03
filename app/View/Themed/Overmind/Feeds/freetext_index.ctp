@@ -102,7 +102,7 @@ $fields = [
             $badges = '';
             foreach ($row['correlations'] as $eventId) {
                 $badges .= '<a href="' . $baseurl . '/events/view2/' . (int)$eventId . '"'
-                    . ' class="badge rounded-pill bg-light text-primary border text-decoration-none"'
+                    . ' class="badge rounded-pill bg-light text-primary-emphasis border text-decoration-none"'
                     . ' title="' . h($correlatingEventInfos[$eventId] ?? '') . '">'
                     . (int)$eventId . '</a>';
             }

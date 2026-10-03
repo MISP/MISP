@@ -66,7 +66,7 @@ $urlAdd    = $baseurl . '/sightings/add/' . $safeId;
     <div id="sightingAdvContent"
          style="max-height:80vh;overflow-y:auto;overflow-x:auto;">
         <div class="d-flex justify-content-center align-items-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-accent" role="status">
                 <span class="visually-hidden"><?= __('Loading…') ?></span>
             </div>
         </div>
@@ -126,7 +126,7 @@ $urlAdd    = $baseurl . '/sightings/add/' . $safeId;
     function loadRemote(url) {
         contentEl.innerHTML =
             '<div class="d-flex justify-content-center align-items-center py-5">'
-            + '<div class="spinner-border text-primary" role="status">'
+            + '<div class="spinner-border text-accent" role="status">'
             + '<span class="visually-hidden"><?= __('Loading…') ?></span>'
             + '</div></div>';
 

@@ -48,7 +48,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Blueprint Name') ?>
@@ -127,7 +127,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
             <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-3 small"
                  style="background:rgba(24,146,177,.05);
                         border:1px solid rgba(24,146,177,.25);">
-                <i class="fas fa-circle-info text-primary mt-1"
+                <i class="fas fa-circle-info text-accent mt-1"
                    style="font-size:.7rem;"></i>
                 <div class="text-muted">
                     <?= __('Nest %s, %s and %s branches to combine filters — a value can be a single value or a list.', '<code>OR</code>', '<code>AND</code>', '<code>NOT</code>') ?>

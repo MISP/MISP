@@ -26,7 +26,7 @@ echo $this->Form->create('TemplateElementData', [
 
                 <!-- ELEMENT DEFINITION -->
                 <div class="mb-4">
-                    <?= $this->Form->label('element_definition', __('Element Type'), ['class' => 'form-label fw-semibold text-primary']) ?>
+                    <?= $this->Form->label('element_definition', __('Element Type'), ['class' => 'form-label fw-semibold text-accent']) ?>
                     <?= $this->Form->select('element_definition', [
                         'attribute' => __('Attribute'),
                         'file' => __('File'),
