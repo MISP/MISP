@@ -1,32 +1,21 @@
+/* Short names for the colours the Bootstrap theme defines. New code should use
+   the --bs-* and --misp-* names directly. */
 :root {
-    --primary: #1892B1;
-    --event: #1892B1;
-    --object: #524948; /* AB713A */
-    --attribute: #97CC04;
-    --tag: #DB6A47;
-    --galaxy: #8B5CF6;
-    --report: #4DA167;
-    --sighting: #890096;
-    --correlation: #E67F0D;
-    --category: #EF476F;
-    --type: #06D6A0;
-    --analystData: #8F2D56;
-    --enrichment: #48435C;
-    --warninglist: #9d174d;
-    --warninglist-soft: #fce7f3;
-    --bs-link-color: var(--primary);
-    --bs-link-hover-color: var(--primary);
-    --bs-link-hover-color-rgb: 24, 146, 177;
-    --bs-link-color-rgb: 24, 146, 177;
-}
-
-.pagination {
-    --bs-pagination-active-bg: var(--primary);
-    --bs-pagination-active-border-color: var(--primary);
-}
-
-.dropdown-item {
-    --bs-dropdown-link-active-bg: var(--primary);
+    --primary: var(--bs-primary);
+    --event: var(--bs-event);
+    --object: var(--bs-object);
+    --attribute: var(--bs-attribute);
+    --tag: var(--bs-tag);
+    --galaxy: var(--bs-galaxy);
+    --report: var(--bs-report);
+    --sighting: var(--bs-sighting);
+    --correlation: var(--bs-correlation);
+    --category: var(--bs-category);
+    --type: var(--bs-type);
+    --analystData: var(--bs-analystData);
+    --enrichment: var(--bs-enrichment);
+    --warninglist: var(--misp-warninglist);
+    --warninglist-soft: var(--misp-warninglist-soft);
 }
 
 .min-w-0 {
@@ -88,36 +77,6 @@ body[data-controller="users"][data-action="change_pw"] {
 .btn.active{
     color: #e9ecef;
 }
-
-.btn.show,
-.btn-primary,
-.btn-tag,
-.btn-galaxy,
-.btn-report,
-.btn.show:hover,
-.btn-primary:hover,
-.btn-primary:focus,
-.btn-primary:active,
-.btn-outline-primary:active,
-.btn-outline-primary:hover,
-.btn-tag:hover,
-.btn-tag:focus,
-.btn-tag:active,
-.btn-outline-tag:active,
-.btn-outline-tag:hover,
-.btn-galaxy:hover,
-.btn-galaxy:focus,
-.btn-galaxy:active,
-.btn-outline-galaxy:active,
-.btn-outline-galaxy:hover
-.btn-report:hover,
-.btn-report:focus,
-.btn-report:active,
-.btn-outline-report:active,
-.btn-outline-report:hover{
-    color: #fff !important;
-}
-
 
 .btn-light{
     color:var(--primary);
@@ -439,11 +398,6 @@ body[data-controller="users"][data-action="change_pw"] {
     background-color: var(--primary);
 }
 
-
-.form-check-input:checked {
-    background-color: var(--primary);
-    border-color: var(--primary);
-}
 /* =======================================================
    Flash Custom CSS
 ======================================================= */
@@ -550,12 +504,12 @@ body[data-controller="users"][data-action="change_pw"] {
 /* Grid tiers above Bootstrap's largest.
    Bootstrap 5 stops at xxl (1400px), so on a 27" or an ultrawide the card grid
    keeps its xxl count across the whole second half of the viewport. Adding the
-   tier to $grid-breakpoints and recompiling bootstrap5-custom.scss would
-   regenerate EVERY responsive utility for it (the whole spacing, display, flex
-   and text API, tens of KB) for the one family we actually need, so the two
+   tier to $grid-breakpoints in tools/bootstrap-themes would regenerate EVERY
+   responsive utility for it (the whole spacing, display, flex and text API,
+   tens of KB, in every theme) for the one family we actually need, so the two
    tiers are hand-written here and cover row-cols only — what `cards_per_row`
-   emits in the index card view. mainOvermind.css is loaded after
-   bootstrap5-custom.min.css, so at equal specificity these win over the xxl
+   emits in the index card view. mainOvermind.css is loaded after the
+   Bootstrap theme's stylesheet, so at equal specificity these win over the xxl
    rules they extend. Extend this block if a layout ever needs another family;
    do not fork the Bootstrap build for it. */
 
@@ -816,7 +770,7 @@ th .sort-icon::before {
     font-size: 13px; 
 }
 
-[data-bs-theme="dark"] .custom-code-text  {
+[data-misp-mode="dark"] .custom-code-text  {
     color: #6cff9a !important;
 }
 
@@ -927,7 +881,7 @@ th .sort-icon::before {
     background-color: #b56ef8 !important;
 }
 
-[data-bs-theme="dark"] 
+[data-misp-mode="dark"] 
 .default-color {
     color: #ddbefa !important;
 }
@@ -1064,61 +1018,61 @@ th .sort-icon::before {
  * Dark mode: switch colors between light/dark
  * ============================================== */
 
-[data-bs-theme="dark"] {
+[data-misp-mode="dark"] {
     /*--primary: #0B394A; */
     --galaxy-alpha: 0.92;
 }
 
 /* Backgrounds */
-[data-bs-theme="dark"] .bg-light {
+[data-misp-mode="dark"] .bg-light {
     background-color: var(--bs-dark) !important;
     color: var(--bs-light) !important;
 }
-[data-bs-theme="dark"] .bg-dark {
+[data-misp-mode="dark"] .bg-dark {
     background-color: var(--bs-light) !important;
     color: var(--bs-dark) !important;
 }
-[data-bs-theme="dark"] .bg-white {
+[data-misp-mode="dark"] .bg-white {
     background-color: var(--bs-body-bg) !important;
 }
-[data-bs-theme="dark"] .bg-black {
+[data-misp-mode="dark"] .bg-black {
     background-color: var(--bs-body-color) !important;
 }
 
 /* Text */
-[data-bs-theme="dark"] .text-dark {
+[data-misp-mode="dark"] .text-dark {
     color: var(--bs-light) !important;
 }
-[data-bs-theme="dark"] .text-light {
+[data-misp-mode="dark"] .text-light {
     color: var(--bs-dark) !important;
 }
-[data-bs-theme="dark"] .text-white {
+[data-misp-mode="dark"] .text-white {
     color: var(--bs-dark) !important;
 }
-[data-bs-theme="dark"] .text-black {
+[data-misp-mode="dark"] .text-black {
     color: var(--bs-light) !important;
 }
 
 /* Text + background combinés */
-[data-bs-theme="dark"] .text-bg-light {
+[data-misp-mode="dark"] .text-bg-light {
     color: var(--bs-light) !important;
     background-color: var(--bs-dark) !important;
 }
-[data-bs-theme="dark"] .text-bg-dark {
+[data-misp-mode="dark"] .text-bg-dark {
     color: var(--bs-dark) !important;
     background-color: var(--bs-light) !important;
 }
 
 /* Borders */
-[data-bs-theme="dark"] .border-light {
+[data-misp-mode="dark"] .border-light {
     border-color: var(--bs-dark) !important;
 }
-[data-bs-theme="dark"] .border-dark {
+[data-misp-mode="dark"] .border-dark {
     border-color: var(--bs-light) !important;
 }
 
 /* Buttons */
-[data-bs-theme="dark"] .btn-light {
+[data-misp-mode="dark"] .btn-light {
     --bs-btn-color: var(--bs-light);
     --bs-btn-bg: var(--bs-gray-800);
     --bs-btn-border-color: var(--bs-gray-800);
@@ -1129,7 +1083,7 @@ th .sort-icon::before {
     --bs-btn-disabled-bg: var(--bs-gray-800);
     --bs-btn-disabled-color: var(--bs-gray-500);
 }
-[data-bs-theme="dark"] .btn-dark {
+[data-misp-mode="dark"] .btn-dark {
     --bs-btn-color: var(--bs-dark);
     --bs-btn-bg: var(--bs-gray-200);
     --bs-btn-border-color: var(--bs-gray-200);
@@ -1139,7 +1093,7 @@ th .sort-icon::before {
     --bs-btn-active-bg: var(--bs-gray-400);
     --bs-btn-disabled-bg: var(--bs-gray-200);
 }
-[data-bs-theme="dark"] .btn-outline-light {
+[data-misp-mode="dark"] .btn-outline-light {
     --bs-btn-color: var(--bs-gray-400);
     --bs-btn-border-color: var(--bs-gray-600);
     --bs-btn-hover-color: var(--bs-light);
@@ -1148,7 +1102,7 @@ th .sort-icon::before {
     --bs-btn-active-bg: var(--bs-gray-700);
     --bs-btn-active-color: var(--bs-light);
 }
-[data-bs-theme="dark"] .btn-outline-dark {
+[data-misp-mode="dark"] .btn-outline-dark {
     --bs-btn-color: var(--bs-gray-300);
     --bs-btn-border-color: var(--bs-gray-300);
     --bs-btn-hover-color: var(--bs-dark);
@@ -1159,13 +1113,13 @@ th .sort-icon::before {
 }
 
 /* Tables */
-[data-bs-theme="dark"] .table-light {
+[data-misp-mode="dark"] .table-light {
     --bs-table-color: var(--bs-body-color);
     --bs-table-bg: var(--bs-gray-800);
     --bs-table-border-color: var(--bs-gray-700);
     --bs-table-hover-bg: var(--bs-gray-700);
 }
-[data-bs-theme="dark"] .table-dark {
+[data-misp-mode="dark"] .table-dark {
     --bs-table-color: var(--bs-dark);
     --bs-table-bg: var(--bs-gray-200);
     --bs-table-border-color: var(--bs-gray-300);
@@ -1173,10 +1127,10 @@ th .sort-icon::before {
 }
 
 /* Links */
-[data-bs-theme="dark"] .link-light {
+[data-misp-mode="dark"] .link-light {
     color: var(--bs-gray-600) !important;
 }
-[data-bs-theme="dark"] .link-dark {
+[data-misp-mode="dark"] .link-dark {
     color: var(--bs-gray-300) !important;
 }
 
@@ -1784,7 +1738,7 @@ tr.evt-extension-row td:first-child {
     border: 1px solid hsl(var(--h) 65% 80%);
 }
 .ct-page a.ct-chip:hover { filter: brightness(.94); }
-[data-bs-theme="dark"] .ct-page .ct-chip {
+[data-misp-mode="dark"] .ct-page .ct-chip {
     background: hsl(var(--h) 45% 20%);
     color: hsl(var(--h) 75% 80%);
     border-color: hsl(var(--h) 40% 34%);
@@ -1825,12 +1779,12 @@ tr.evt-extension-row td:first-child {
     writing-mode: vertical-rl; transform: rotate(180deg);
     cursor: pointer; color: hsl(var(--h) 55% 40%);
 }
-[data-bs-theme="dark"] .ct-page .ct-vhead { color: hsl(var(--h) 70% 72%); }
+[data-misp-mode="dark"] .ct-page .ct-vhead { color: hsl(var(--h) 70% 72%); }
 .ct-page .ct-dot {
     display: inline-block; width: .6rem; height: .6rem;
     border-radius: 50%; background: hsl(var(--h) 62% 47%);
 }
-[data-bs-theme="dark"] .ct-page .ct-dot { background: hsl(var(--h) 68% 60%); }
+[data-misp-mode="dark"] .ct-page .ct-dot { background: hsl(var(--h) 68% 60%); }
 
 .ct-page .ct-flash { animation: ctFlash 1.6s ease; }
 @keyframes ctFlash {
@@ -1878,7 +1832,7 @@ tr.evt-extension-row td:first-child {
     color: hsl(var(--h) 60% 28%);
     border: 1px solid hsl(var(--h) 65% 80%);
 }
-[data-bs-theme="dark"] .dm-types .dm-chip {
+[data-misp-mode="dark"] .dm-types .dm-chip {
     background: hsl(var(--h) 45% 20%);
     color: hsl(var(--h) 75% 80%);
     border-color: hsl(var(--h) 40% 34%);
@@ -2497,7 +2451,7 @@ tr.evt-extension-row td:first-child {
     color: hsl(var(--h) 55% 40%);
     background: hsl(var(--h) 60% 50% / .12);
 }
-[data-bs-theme="dark"] .ex-icon {
+[data-misp-mode="dark"] .ex-icon {
     color: hsl(var(--h) 70% 70%);
     background: hsl(var(--h) 60% 60% / .16);
 }
@@ -3047,7 +3001,7 @@ tr.evt-extension-row td:first-child {
     color: var(--bs-secondary-color);
 }
 
-[data-bs-theme="dark"] .ov-choice-icon {
+[data-misp-mode="dark"] .ov-choice-icon {
     color: color-mix(in srgb, var(--ov-choice-tone) 35%, #fff);
     background: color-mix(in srgb, var(--ov-choice-tone) 30%, transparent);
 }
@@ -3223,7 +3177,7 @@ tr.evt-extension-row td:first-child {
     animation: ov-date-in .12s ease-out;
 }
 
-[data-bs-theme="dark"] .ov-date-pop {
+[data-misp-mode="dark"] .ov-date-pop {
     box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .5);
 }
 
@@ -4206,7 +4160,7 @@ tr.evt-extension-row td:first-child {
     overflow-wrap: anywhere;
 }
 
-[data-bs-theme="dark"] .ov-md-objattr .ov-md-el-rel {
+[data-misp-mode="dark"] .ov-md-objattr .ov-md-el-rel {
     background: var(--bs-tertiary-bg);
 }
 
@@ -4398,18 +4352,18 @@ tr.evt-extension-row td:first-child {
 .ov-raw-bold { font-weight: 700; }
 .ov-raw-italic { font-style: italic; }
 
-[data-bs-theme="dark"] .ov-raw-heading { color: #b197fc; }
-[data-bs-theme="dark"] .ov-raw-misp-attribute { color: #74c0fc; }
-[data-bs-theme="dark"] .ov-raw-misp-object { color: #8cb4e8; }
-[data-bs-theme="dark"] .ov-raw-misp-tag { color: #63e6be; }
-[data-bs-theme="dark"] .ov-raw-misp-galaxymatrix { color: #ffa94d; }
-[data-bs-theme="dark"] .ov-raw-tvar { color: #faa2c1; }
-[data-bs-theme="dark"] .ov-raw-code,
-[data-bs-theme="dark"] .ov-raw-fence { color: #eebefa; }
-[data-bs-theme="dark"] .ov-raw-link { color: #74c0fc; }
-[data-bs-theme="dark"] .ov-raw-bullet { color: #ffa94d; }
-[data-bs-theme="dark"] .ov-raw-table { color: #adb5bd; }
-[data-bs-theme="dark"] .ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
+[data-misp-mode="dark"] .ov-raw-heading { color: #b197fc; }
+[data-misp-mode="dark"] .ov-raw-misp-attribute { color: #74c0fc; }
+[data-misp-mode="dark"] .ov-raw-misp-object { color: #8cb4e8; }
+[data-misp-mode="dark"] .ov-raw-misp-tag { color: #63e6be; }
+[data-misp-mode="dark"] .ov-raw-misp-galaxymatrix { color: #ffa94d; }
+[data-misp-mode="dark"] .ov-raw-tvar { color: #faa2c1; }
+[data-misp-mode="dark"] .ov-raw-code,
+[data-misp-mode="dark"] .ov-raw-fence { color: #eebefa; }
+[data-misp-mode="dark"] .ov-raw-link { color: #74c0fc; }
+[data-misp-mode="dark"] .ov-raw-bullet { color: #ffa94d; }
+[data-misp-mode="dark"] .ov-raw-table { color: #adb5bd; }
+[data-misp-mode="dark"] .ov-raw-wrap[data-raw-highlight="1"] > .ov-raw-input::selection {
     background: rgba(110, 168, 254, .32);
 }
 
@@ -4430,7 +4384,7 @@ tr.evt-extension-row td:first-child {
     color: #fff;
 }
 
-[data-bs-theme="dark"] .ov-obj-step-badge {
+[data-misp-mode="dark"] .ov-obj-step-badge {
     background: rgba(var(--bs-object-rgb), .28);
     color: #e9ecef;
 }
@@ -4440,7 +4394,7 @@ tr.evt-extension-row td:first-child {
     border: 1px solid var(--bs-border-color);
 }
 
-[data-bs-theme="dark"] .ov-obj-template-bar {
+[data-misp-mode="dark"] .ov-obj-template-bar {
     background: rgba(var(--bs-object-rgb), .18);
 }
 
@@ -4470,7 +4424,7 @@ tr.evt-extension-row td:first-child {
 
 /* The object accent is dark enough that an outline button drawn in it
  * disappears against a dark background. */
-[data-bs-theme="dark"] .btn-outline-object {
+[data-misp-mode="dark"] .btn-outline-object {
     --bs-btn-color: var(--bs-body-color);
     --bs-btn-border-color: rgba(var(--bs-emphasis-color-rgb), .35);
     --bs-btn-hover-color: var(--bs-body-color);
@@ -4491,7 +4445,7 @@ tr.evt-extension-row td:first-child {
     background: rgba(var(--bs-object-rgb), .04);
 }
 
-[data-bs-theme="dark"] .ov-obj-row-header {
+[data-misp-mode="dark"] .ov-obj-row-header {
     background: rgba(var(--bs-object-rgb), .22);
 }
 
@@ -4506,7 +4460,7 @@ tr.evt-extension-row td:first-child {
     color: var(--bs-object);
 }
 
-[data-bs-theme="dark"] .ov-obj-row-name {
+[data-misp-mode="dark"] .ov-obj-row-name {
     color: var(--bs-body-color);
 }
 
@@ -4677,7 +4631,7 @@ tr.evt-extension-row td:first-child {
     font-weight: 600;
 }
 
-[data-bs-theme="dark"] .ov-obj-palette-header {
+[data-misp-mode="dark"] .ov-obj-palette-header {
     background: rgba(var(--bs-object-rgb), .22);
 }
 
@@ -4790,6 +4744,6 @@ tr.evt-extension-row td:first-child {
     opacity: .75;
 }
 
-[data-bs-theme="dark"] .ov-obj-rel-badge {
+[data-misp-mode="dark"] .ov-obj-rel-badge {
     background: rgba(var(--bs-object-rgb), .28);
 }

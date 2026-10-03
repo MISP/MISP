@@ -23,7 +23,7 @@
     pointer-events: none;
 }
 
-[data-bs-theme="dark"] .onboarding-spotlight {
+[data-misp-mode="dark"] .onboarding-spotlight {
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72),
                 0 0 0 3px var(--onb-accent);
 }
