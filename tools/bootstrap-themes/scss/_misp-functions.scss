@@ -12,18 +12,6 @@ $enable-dark-mode: $misp-theme-mode == "both";
 
 // The smallest shade of $color, in 5% steps, that white text reaches
 // $min-ratio against.
-// The smallest tint of $color, in 5% steps, that reaches $min-ratio against
-// $background.
-@function misp-tint-for($color, $background, $min-ratio: 3) {
-  $tint: 0%;
-  $result: $color;
-  @while contrast-ratio($result, $background) < $min-ratio and $tint < 100% {
-    $tint: $tint + 5%;
-    $result: tint-color($color, $tint);
-  }
-  @return $result;
-}
-
 @function misp-shade-for-white($color, $min-ratio: 4.5) {
   $shade: 0%;
   $result: $color;
@@ -34,9 +22,9 @@ $enable-dark-mode: $misp-theme-mode == "both";
   @return $result;
 }
 
-// A primary that already reads at 3:1 stays the accent. One that doesn't is
-// only a surface colour, so it's tinted, or shaded on a light page, to 4.5:1.
-@function misp-accent-for($color, $background) {
+// A colour that already reads at 3:1 is kept. One that doesn't is tinted, or
+// shaded on a light page, to 4.5:1, since it is also used as text.
+@function misp-readable-for($color, $background) {
   @if contrast-ratio($color, $background) >= 3 {
     @return $color;
   }

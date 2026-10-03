@@ -36,9 +36,15 @@ $misp-lift-colors: false !default;
 @if $misp-lift-colors {
   $lifted: ();
   @each $name, $value in $misp-colors {
-    $lifted: map-merge($lifted, ($name: misp-tint-for($value, $body-bg)));
+    $lifted: map-merge($lifted, ($name: misp-readable-for($value, $body-bg)));
   }
   $misp-colors: $lifted;
+}
+
+// The page background in dark mode: a dark-only theme's is $body-bg.
+$misp-dark-page-bg: $body-bg-dark;
+@if $misp-theme-mode == "dark" {
+  $misp-dark-page-bg: $body-bg;
 }
 
 // Colours that only need a custom property, not utilities: a colour and the
@@ -46,15 +52,11 @@ $misp-lift-colors: false !default;
 $misp-warninglist:            #9d174d !default;
 $misp-warninglist-soft:       #fce7f3 !default;
 $misp-warninglist-dark:       #f9a8d4 !default;
-$misp-warninglist-soft-dark:  mix($misp-warninglist, $body-bg-dark, 22%) !default;
+$misp-warninglist-soft-dark:  mix($misp-warninglist, $misp-dark-page-bg, 22%) !default;
 
 // The primary as a text colour, for icons, labels and headings.
-$misp-accent-dark-bg: $body-bg-dark;
-@if $misp-theme-mode == "dark" {
-  $misp-accent-dark-bg: $body-bg;
-}
-$misp-accent:       misp-accent-for($primary, $body-bg) !default;
-$misp-accent-dark:  misp-accent-for($primary, $misp-accent-dark-bg) !default;
+$misp-accent:       misp-readable-for($primary, $body-bg) !default;
+$misp-accent-dark:  misp-readable-for($primary, $misp-dark-page-bg) !default;
 
 $misp-tokens: (
   "warninglist":      $misp-warninglist,
