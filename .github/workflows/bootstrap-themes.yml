@@ -1,0 +1,49 @@
+name: bootstrap-themes
+
+# The Bootstrap stylesheets under app/webroot/css/themes are compiled from
+# tools/bootstrap-themes and committed. Rebuild them and fail if the committed
+# output is not what the source produces.
+on:
+  push:
+    branches: [ '2.5', develop ]
+    paths:
+      - 'tools/bootstrap-themes/**'
+      - 'app/webroot/css/themes/**'
+      - 'app/webroot/fonts/themes/**'
+      - '.github/workflows/bootstrap-themes.yml'
+  pull_request:
+    branches: [ '2.5', develop ]
+    paths:
+      - 'tools/bootstrap-themes/**'
+      - 'app/webroot/css/themes/**'
+      - 'app/webroot/fonts/themes/**'
+      - '.github/workflows/bootstrap-themes.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/bootstrap-themes/package-lock.json
+
+      - name: Build the themes
+        working-directory: tools/bootstrap-themes
+        run: |
+          npm ci
+          npm run build
+
+      - name: Committed output matches the build
+        run: |
+          changes=$(git status --porcelain -- app/webroot/css/themes app/webroot/fonts/themes)
+          if [ -n "$changes" ]; then
+            echo "The committed theme output differs from a fresh build:"
+            echo "$changes"
+            git --no-pager diff --stat -- app/webroot/css/themes app/webroot/fonts/themes
+            echo "Run 'npm ci && npm run build' in tools/bootstrap-themes and commit the result."
+            exit 1
+          fi
