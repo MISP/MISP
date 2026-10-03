@@ -355,6 +355,9 @@ class AppController extends Controller
                     }
                 }
                 $this->set('theme', $currentTheme);
+                if ($currentTheme === 'Overmind') {
+                    $this->set('bootstrapTheme', MispTheme::bootstrapTheme($this->Auth->user()));
+                }
                 $availableThemes = MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug'));
                 $this->set('themes', $availableThemes);
 

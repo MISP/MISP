@@ -563,7 +563,8 @@ if ($aiExtractUrl !== null) {
 
         var version = <?= json_encode($queryVersion ?? '') ?>;
         var suffix  = version ? ('?v=' + encodeURIComponent(version)) : '';
-        var sheets  = ['bootstrap5-custom.min', 'mainOvermind', 'fontawesome7.min'];
+        // Printed in Overmind's light palette whatever the page's theme is.
+        var sheets  = ['themes/overmind.min', 'mainOvermind', 'fontawesome7.min'];
         var links   = sheets.map(function (name) {
             return '<link rel="stylesheet" href="'
                 + baseurl + '/css/' + name + '.css' + suffix + '">';

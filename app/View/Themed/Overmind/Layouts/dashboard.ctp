@@ -30,9 +30,14 @@
  * midnight overlay) is loaded after mainOvermind so its tokens
  * and selectors win where they overlap.
  */
+App::uses('MispTheme', 'Lib/MispTheme');
+$bootstrapTheme = $bootstrapTheme ?? MispTheme::bootstrapTheme($me ?? null);
+// The dashboard's dark appearance is its own midnight overlay, not the
+// Bootstrap dark palette, so a theme with both palettes renders light here.
+$initialMode = $bootstrapTheme['mode'] === 'dark' ? 'dark' : 'light';
 ?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>" data-misp-mode="<?= h($initialMode) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -42,7 +47,7 @@
     <?php echo $this->element('dashboard/theme_boot'); /* DD-51 no-FOUC light/dark boot */ ?>
     <?php
         $css = [
-            ['bootstrap5-custom.min', ['preload' => true]],
+            [$bootstrapTheme['css'], ['preload' => true]],
             ['tom-select.bootstrap5.min', ['preload' => true]],
             ['mainOvermind', ['preload' => true]],
             ['fontawesome7.min', ['preload' => true]],
@@ -101,6 +106,7 @@
                     'themes' => $themes,
                     'theme' => $theme,
                     'themesEnabled' => $themesEnabled,
+                    'darkModeToggle' => $bootstrapTheme['mode'] === 'both',
                 ];
                 $menus = $this->Navbar->build($context);
                 echo $this->element('navbar', [

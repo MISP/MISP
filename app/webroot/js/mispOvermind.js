@@ -8,6 +8,7 @@ function toggleDarkMode() {
     const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     const next = !isDark;
     document.documentElement.setAttribute('data-bs-theme', next ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-misp-mode', next ? 'dark' : 'light');
     localStorage.setItem('darkMode', next);
     updateDarkModeUI(next);
 }

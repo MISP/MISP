@@ -989,12 +989,17 @@ class NavbarHelper extends AppHelper {
         extract($context);
         $user_icon = !empty($me['Role']['perm_site_admin']) ? 'misp-icon misp-icon-user3 misp-simple' : 'misp-icon misp-icon-user1 misp-simple';
 
-        $profileChildren = [
-            [
+        $profileChildren = [];
+        // Only a Bootstrap theme with both a light and a dark palette has
+        // anything to toggle.
+        if ($context['darkModeToggle'] ?? true) {
+            $profileChildren[] = [
                 'type' => 'darkMode',
                 'label' => __('Dark mode'),
                 'icon'  => 'fas fa-moon',
-            ],
+            ];
+        }
+        $profileChildren = array_merge($profileChildren, [
             [
                 'type' => 'tutorial',
                 'label' => __('Replay the tutorial'),
@@ -1015,7 +1020,7 @@ class NavbarHelper extends AppHelper {
                 'action' => 'logout',
                 'icon' => 'fas fa-right-from-bracket'
             ]
-        ];
+        ]);
 
         $orgLogo = $this->OrgImg->getOrgLogoV2($me, 20);
 

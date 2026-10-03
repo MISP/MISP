@@ -6,6 +6,15 @@
 // Load the Overmind page registry in order to decide which asset stack to emit.
 App::uses('OvermindPages', 'Tools');
 App::uses('I18n', 'I18n');
+App::uses('MispTheme', 'Lib/MispTheme');
+
+// Set by AppController; resolved here too for pages rendered without it,
+// such as error pages.
+$bootstrapTheme = $bootstrapTheme ?? MispTheme::bootstrapTheme($me ?? null);
+// A theme with both palettes starts light and the boot script below may
+// switch it; a single-mode theme is that mode, with no dark-mode toggle.
+$hasDarkToggle = $bootstrapTheme['mode'] === 'both';
+$initialMode = $hasDarkToggle ? 'light' : $bootstrapTheme['mode'];
 
 $currentController = $this->params['controller'];
 $currentAction = $this->params['action'];
@@ -61,7 +70,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
 
 <!DOCTYPE html>
-<html lang="<?= h($htmlLang) ?>">
+<html lang="<?= h($htmlLang) ?>" data-misp-mode="<?= h($initialMode) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -72,7 +81,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         if ($useBootstrap5) {
             // Order matters: more specific stylesheets must come after more generic ones, so that they can override them.
             $css = [
-                ['bootstrap5-custom.min', ['preload' => true]],
+                [$bootstrapTheme['css'], ['preload' => true]],
                 ['tom-select.bootstrap5.min', ['preload' => true]],
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
@@ -121,7 +130,11 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             }
         </style>
     <?php endif; ?>
+    <?php if (!$useBootstrap5): ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
+    <?php elseif ($hasDarkToggle): ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){var r=document.documentElement;r.setAttribute('data-bs-theme','dark');r.setAttribute('data-misp-mode','dark');}})()</script>
+    <?php endif; ?>
 </head>
 <body class="bg-light" data-controller="<?= h($currentController) ?>" data-action="<?= h($currentAction) ?>">
     <div class="main-wrapper">
@@ -146,6 +159,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         'themes' => $themes ?? [],
                         'theme' => $theme ?? null,
                         'themesEnabled' => $themesEnabled ?? false,
+                        'darkModeToggle' => $hasDarkToggle,
                     ];
                     echo $this->element('navbar', [
                         'menus' => $this->Navbar->build($context),
