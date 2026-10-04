@@ -46,9 +46,10 @@ App::uses('ConnectionManager', 'Model');
  * - **Expression methods** (dateOf, unixTimestamp, fromUnixtime,
  *   formatYearMonth, regexpMatch) return a fragment with no trailing semicolon,
  *   to be embedded in a larger query or in a `fields` array.
- * - **Statement methods** (optimizeTable, upsert, resetSequence) return a
- *   complete statement ending in a semicolon, matching what the grammars
- *   produce. resetSequence returns null where the engine has nothing to do.
+ * - **Statement methods** (optimizeTable, upsert, insertIgnore,
+ *   resetSequence) return a complete statement ending in a semicolon,
+ *   matching what the grammars produce. resetSequence returns null where the
+ *   engine has nothing to do.
  *
  * ## Where the two engines still differ in more than spelling
  *
@@ -62,8 +63,9 @@ App::uses('ConnectionManager', 'Model');
  *   unless NO_BACKSLASH_ESCAPES is set, while PostgreSQL's standard_conforming_
  *   strings leaves it literal. A pattern with backslashes is not the same
  *   pattern on both engines, and no amount of quoting makes it so.
- * - upsert() needs a unique constraint over the conflict columns on
- *   PostgreSQL, where MySQL will match whichever unique key it likes.
+ * - upsert() and insertIgnore() need a unique constraint over the conflict
+ *   columns on PostgreSQL, where MySQL will match whichever unique key it
+ *   likes. A collision on any other key still fails on PostgreSQL.
  * - optimizeTable() renders `VACUUM ANALYZE` on PostgreSQL, which cannot run
  *   inside a transaction block.
  */
@@ -288,6 +290,47 @@ class SqlDialect
             implode(', ', $conflict),
             implode(', ', $assignments)
         );
+    }
+
+    /**
+     * Complete an INSERT so that a row colliding with an existing key is
+     * skipped instead of failing, leaving the existing row as it was.
+     *
+     * MySQL's half is a no-op `ON DUPLICATE KEY UPDATE`, not `INSERT IGNORE`:
+     * IGNORE also downgrades every other error to a warning, so a value too
+     * long for its column would be truncated and stored, and a NULL in a NOT
+     * NULL column replaced by the type's default. Only duplicate keys are
+     * meant to be absorbed here.
+     *
+     * The conflict columns are required for the same reason as in upsert(),
+     * and the same `FROM t ON CONFLICT` parse trap applies. Neither engine
+     * gives back the auto-increment ids it reserved for the skipped rows, so a
+     * caller that expects many collisions should select first and insert only
+     * what is missing.
+     *
+     * @param string $insert A complete INSERT statement, with or without its
+     *   trailing semicolon.
+     * @param array $conflictColumns The columns whose uniqueness is being
+     *   violated.
+     * @return string One statement.
+     * @throws InvalidArgumentException When the column list is empty.
+     */
+    public function insertIgnore($insert, array $conflictColumns)
+    {
+        if (empty($conflictColumns)) {
+            throw new InvalidArgumentException(
+                'An insert-ignore needs the columns it conflicts on. MySQL infers them, PostgreSQL cannot.'
+            );
+        }
+        $insert = rtrim(rtrim(trim($insert), ';'));
+        $conflict = array();
+        foreach ($conflictColumns as $column) {
+            $conflict[] = $this->db->name($column);
+        }
+        if ($this->isMysql()) {
+            return sprintf('%s ON DUPLICATE KEY UPDATE %s = %s;', $insert, $conflict[0], $conflict[0]);
+        }
+        return sprintf('%s ON CONFLICT (%s) DO NOTHING;', $insert, implode(', ', $conflict));
     }
 
     /**

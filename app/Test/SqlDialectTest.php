@@ -221,6 +221,7 @@ class SqlDialectTest extends TestCase
         $this->assertStringEndsWith(';', $this->pgsql->optimizeTable('t'));
         $this->assertStringEndsWith(';', $this->pgsql->resetSequence('t', 'id'));
         $this->assertStringEndsWith(';', $this->pgsql->upsert('INSERT INTO t (a) VALUES (1)', array('a'), array('a')));
+        $this->assertStringEndsWith(';', $this->pgsql->insertIgnore('INSERT INTO t (a) VALUES (1)', array('a')));
     }
 
     // ------------------------------------------------------------ statements
@@ -310,6 +311,68 @@ class SqlDialectTest extends TestCase
         $this->expectException('InvalidArgumentException');
         $this->expectExceptionMessage('at least one column to update');
         $this->pgsql->upsert('INSERT INTO t (a) VALUES (1)', array('a'), array());
+    }
+
+    /**
+     * The value-dictionary intern, as AttributeValue::internMany() issues it.
+     * Never `INSERT IGNORE` on MySQL: it would store a too-long value
+     * truncated, under a hash computed over the full one.
+     */
+    public function testInsertIgnoreAppendsTheEnginesConflictClause()
+    {
+        $insert = "INSERT INTO attribute_values (value, hash) VALUES ('a', 0x01), ('b', 0x02)";
+
+        $this->assertSame(
+            $insert . ' ON DUPLICATE KEY UPDATE `hash` = `hash`;',
+            $this->mysql->insertIgnore($insert, array('hash'))
+        );
+        $this->assertSame(
+            $insert . ' ON CONFLICT ("hash") DO NOTHING;',
+            $this->pgsql->insertIgnore($insert, array('hash'))
+        );
+        $this->assertStringNotContainsString('IGNORE', $this->mysql->insertIgnore($insert, array('hash')));
+    }
+
+    /**
+     * MySQL needs only one column for its no-op assignment; PostgreSQL needs
+     * all of them to name the constraint.
+     */
+    public function testInsertIgnoreWithACompositeKey()
+    {
+        $insert = 'INSERT INTO t (a, b, c) SELECT a, b, c FROM s WHERE true';
+
+        $this->assertSame(
+            $insert . ' ON DUPLICATE KEY UPDATE `a` = `a`;',
+            $this->mysql->insertIgnore($insert, array('a', 'b'))
+        );
+        $this->assertSame(
+            $insert . ' ON CONFLICT ("a", "b") DO NOTHING;',
+            $this->pgsql->insertIgnore($insert, array('a', 'b'))
+        );
+    }
+
+    public function testInsertIgnoreTrimsATrailingSemicolonFromTheInsert()
+    {
+        $this->assertSame(
+            'INSERT INTO t (a) VALUES (1), (2) ON DUPLICATE KEY UPDATE `a` = `a`;',
+            $this->mysql->insertIgnore("INSERT INTO t (a) VALUES (1), (2) ;\n", array('a'))
+        );
+        $this->assertSame(
+            'INSERT INTO t (a) VALUES (1), (2) ON CONFLICT ("a") DO NOTHING;',
+            $this->pgsql->insertIgnore("  INSERT INTO t (a) VALUES (1), (2);", array('a'))
+        );
+    }
+
+    public function testInsertIgnoreRefusesToGuessTheConflictColumnsOnEitherEngine()
+    {
+        foreach (array($this->mysql, $this->pgsql) as $dialect) {
+            try {
+                $dialect->insertIgnore('INSERT INTO t (a) VALUES (1)', array());
+                $this->fail('An insert-ignore with no conflict columns should have been refused.');
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('PostgreSQL cannot', $e->getMessage());
+            }
+        }
     }
 
     /**
