@@ -201,6 +201,33 @@ class SqlDialectTest extends TestCase
     }
 
     /**
+     * The bytes a hash is made of are rarely valid UTF-8, so they never travel
+     * as quoted text.
+     */
+    public function testBinaryLiteralIsHexOnBothEngines()
+    {
+        $bytes = "\x00\xff'a";
+        $this->assertSame("X'00ff2761'", $this->mysql->binaryLiteral($bytes));
+        $this->assertSame("decode('00ff2761', 'hex')", $this->pgsql->binaryLiteral($bytes));
+        $this->assertSame("X''", $this->mysql->binaryLiteral(''));
+    }
+
+    /**
+     * MariaDB has no `FOR SHARE`, and PostgreSQL's READ COMMITTED needs no lock
+     * to see what other sessions committed.
+     */
+    public function testCurrentReadLocksOnMysqlOnly()
+    {
+        $select = "SELECT id FROM t WHERE h IN (X'00');\n";
+        $this->assertSame(
+            "SELECT id FROM t WHERE h IN (X'00') LOCK IN SHARE MODE",
+            $this->mysql->currentRead($select)
+        );
+        $this->assertStringNotContainsString('FOR SHARE', $this->mysql->currentRead($select));
+        $this->assertSame('SELECT id FROM t WHERE h = 1', $this->pgsql->currentRead('SELECT id FROM t WHERE h = 1;'));
+    }
+
+    /**
      * An expression is a fragment: it gets embedded in a larger query or in a
      * CakePHP `fields` array, so a trailing semicolon would be a syntax error
      * rather than a harmless flourish. Statements are the other way round.
@@ -213,6 +240,8 @@ class SqlDialectTest extends TestCase
             $this->pgsql->fromUnixtime('t'),
             $this->pgsql->formatYearMonth('created'),
             $this->pgsql->regexpMatch('col', 'x'),
+            $this->pgsql->binaryLiteral('x'),
+            $this->pgsql->currentRead('SELECT 1;'),
         );
         foreach ($expressions as $expression) {
             $this->assertStringEndsNotWith(';', $expression);

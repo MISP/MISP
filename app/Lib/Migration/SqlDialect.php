@@ -44,8 +44,9 @@ App::uses('ConnectionManager', 'Model');
  * The methods split into two kinds, and the return values say which is which:
  *
  * - **Expression methods** (dateOf, unixTimestamp, fromUnixtime,
- *   formatYearMonth, regexpMatch) return a fragment with no trailing semicolon,
- *   to be embedded in a larger query or in a `fields` array.
+ *   formatYearMonth, regexpMatch, binaryLiteral) return a fragment with no
+ *   trailing semicolon, to be embedded in a larger query or in a `fields`
+ *   array. currentRead returns a whole SELECT, also without one.
  * - **Statement methods** (optimizeTable, upsert, insertIgnore,
  *   resetSequence) return a complete statement ending in a semicolon,
  *   matching what the grammars produce. resetSequence returns null where the
@@ -204,6 +205,49 @@ class SqlDialect
             return sprintf('%s REGEXP %s', $expr, $quoted);
         }
         return sprintf('%s ~ %s', $expr, $quoted);
+    }
+
+    /**
+     * A binary string as a hex literal.
+     *
+     * Quoting raw bytes through value() would send them as text in the
+     * connection's character set, where a byte sequence that is not valid
+     * UTF-8 can be rejected or altered before it reaches a binary column.
+     *
+     * @param string $bytes
+     * @return string
+     */
+    public function binaryLiteral($bytes)
+    {
+        $hex = bin2hex($bytes);
+        if ($this->isMysql()) {
+            return sprintf("X'%s'", $hex);
+        }
+        return sprintf("decode('%s', 'hex')", $hex);
+    }
+
+    /**
+     * A SELECT that sees every row committed before it starts, even inside an
+     * open REPEATABLE READ transaction, whose snapshot would hide rows another
+     * session committed since.
+     *
+     * MySQL gets a locking read, `LOCK IN SHARE MODE` rather than `FOR SHARE`,
+     * which MariaDB does not have. Its shared locks last until the transaction
+     * ends. PostgreSQL's default READ COMMITTED already gives every statement a
+     * fresh snapshot, so the select comes back unchanged: `FOR SHARE` would
+     * write a lock into every row it returns, and under REPEATABLE READ it
+     * still would not see rows inserted after the snapshot.
+     *
+     * @param string $select A SELECT, with or without its trailing semicolon.
+     * @return string The SELECT without a trailing semicolon.
+     */
+    public function currentRead($select)
+    {
+        $select = rtrim(rtrim(trim($select), ';'));
+        if ($this->isMysql()) {
+            return $select . ' LOCK IN SHARE MODE';
+        }
+        return $select;
     }
 
     // ------------------------------------------------------------- statements
