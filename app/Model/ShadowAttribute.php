@@ -6,6 +6,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('MispAttribute', 'Model');
 
 /**
  * @property Event $Event
@@ -396,6 +397,7 @@ class ShadowAttribute extends AppModel
             if (!empty($proposal['last_seen'])) {
                 $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
             }
+            MispAttribute::stripValueIds($proposal);
         }
         return $results;
     }

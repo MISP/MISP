@@ -539,8 +539,31 @@ class MispAttribute extends AppModel
             if (!empty($attribute['last_seen'])) {
                 $attribute['last_seen'] = $this->microTimestampToIso($attribute['last_seen']);
             }
+            self::stripValueIds($attribute);
         }
         return $results;
+    }
+
+    /**
+     * Value ids are internal to this instance and never leave it.
+     *
+     * @param mixed $data One row, or the list of rows an association returns.
+     * @return void
+     */
+    public static function stripValueIds(&$data)
+    {
+        if (!is_array($data)) {
+            return;
+        }
+        if (!array_key_exists(0, $data)) {
+            unset($data['value1_id'], $data['value2_id']);
+            return;
+        }
+        foreach ($data as &$row) {
+            if (is_array($row)) {
+                unset($row['value1_id'], $row['value2_id']);
+            }
+        }
     }
 
     public function beforeSave($options = array())
