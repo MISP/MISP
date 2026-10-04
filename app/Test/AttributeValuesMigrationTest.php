@@ -2,12 +2,14 @@
 /**
  * The attribute_values migration picks its collation from the server version
  * it runs against, so a dry run only ever shows one branch. These render all
- * of them, and the PostgreSQL half, without a database.
+ * of them, the PostgreSQL half, and the value table migrations' retries,
+ * without a database.
  */
 
 require_once __DIR__ . '/MigrationSchemaStubs.php';
 require_once APPLIBS . 'Migration/AbstractMigration.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261003_092429_create_attribute_values.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093106_create_value_ip_ranges.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +19,7 @@ if (!class_exists('AttributeValuesMigrationTestInspector', false)) {
         /** @var string */
         public $version = '';
 
-        /** @var array table => index names */
+        /** @var array table => index name => array('column' => ..., 'unique' => ...) */
         public $existing = array();
 
         public function hasTable($table)
@@ -30,7 +32,7 @@ if (!class_exists('AttributeValuesMigrationTestInspector', false)) {
             if (!isset($this->existing[$table])) {
                 return array();
             }
-            return array_fill_keys($this->existing[$table], array('column' => 'value', 'unique' => 0));
+            return $this->existing[$table];
         }
 
         protected function fetchRows($sql)
@@ -47,18 +49,20 @@ class AttributeValuesMigrationTest extends TestCase
 {
     const MIGRATION = 'Migration_20261003_092429_create_attribute_values';
 
+    const IP_RANGES = 'Migration_20261004_093106_create_value_ip_ranges';
+
     /**
      * @param DboSource $db
      * @param string $version
      * @param array $existing
+     * @param string $class
      * @return array
      */
-    private function render(DboSource $db, $version = '', array $existing = array())
+    private function render(DboSource $db, $version = '', array $existing = array(), $class = self::MIGRATION)
     {
         $inspector = new AttributeValuesMigrationTestInspector($db);
         $inspector->version = $version;
         $inspector->existing = $existing;
-        $class = self::MIGRATION;
         $migration = new $class();
         $migration->setSchemaInspector($inspector);
         $schema = new SchemaBuilder(AbstractGrammar::forDataSource($db));
@@ -130,20 +134,80 @@ class AttributeValuesMigrationTest extends TestCase
         $this->assertSame(
             array('ALTER TABLE `attribute_values` ADD FULLTEXT INDEX `value_search` (`value`);'),
             $this->render(new MigrationTestMysqlExtended(), '10.11.14-MariaDB', array(
-                'attribute_values' => array('PRIMARY', 'hash', 'value'),
+                'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value')),
             ))
         );
         $this->assertSame(array(), $this->render(new MigrationTestMysqlExtended(), '10.11.14-MariaDB', array(
-            'attribute_values' => array('PRIMARY', 'hash', 'value', 'value_search'),
+            'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value', 'value_search')),
         )));
         $this->assertSame(array(), $this->render(new MigrationTestPostgres(), '', array(
-            'attribute_values' => array(
-                'attribute_values_pkey',
+            'attribute_values' => self::indexes(array(
+                'PRIMARY',
                 'idx_attribute_values_hash',
                 'idx_attribute_values_value',
                 'idx_attribute_values_value_search',
-            ),
+            )),
         )));
+    }
+
+    /**
+     * @param array $names
+     * @return array Index definitions the migrations only look up by name.
+     */
+    private static function indexes(array $names)
+    {
+        return array_fill_keys($names, array('column' => 'value', 'unique' => 0));
+    }
+
+    public function testTheIpRangesRendering()
+    {
+        $this->assertSame(array(
+            "CREATE TABLE `value_ip_ranges` (\n" .
+            "    `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
+            "    `value_id` bigint(20) UNSIGNED NOT NULL,\n" .
+            "    `ip_start` varbinary(16) NOT NULL,\n" .
+            "    `ip_end` varbinary(16) NOT NULL,\n" .
+            "    `prefix` tinyint(4) UNSIGNED NOT NULL,\n" .
+            "    PRIMARY KEY (`id`),\n" .
+            "    UNIQUE INDEX `value_id` (`value_id`),\n" .
+            "    INDEX `start_end` (`ip_start`, `ip_end`, `value_id`)\n" .
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+        ), $this->render(new MigrationTestMysqlExtended(), '10.11.14-MariaDB', array(), self::IP_RANGES));
+        $this->assertSame(array(
+            "CREATE TABLE \"value_ip_ranges\" (\n" .
+            "    \"id\" bigserial NOT NULL,\n" .
+            "    \"value_id\" bigint NOT NULL,\n" .
+            "    \"ip_start\" bytea NOT NULL,\n" .
+            "    \"ip_end\" bytea NOT NULL,\n" .
+            "    \"prefix\" smallint NOT NULL,\n" .
+            "    PRIMARY KEY (\"id\")\n" .
+            ");",
+            'CREATE UNIQUE INDEX "idx_value_ip_ranges_value_id" ON "value_ip_ranges" ("value_id");',
+            'CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");',
+        ), $this->render(new MigrationTestPostgres(), '', array(), self::IP_RANGES));
+    }
+
+    public function testAnIpRangesRetryDeclaresOnlyWhatIsMissing()
+    {
+        $primary = array('PRIMARY' => array('column' => 'id', 'unique' => 1));
+        $valueId = array('idx_value_ip_ranges_value_id' => array('column' => 'value_id', 'unique' => 1));
+        $startEnd = array('idx_value_ip_ranges_start_end' => array('column' => array('ip_start', 'ip_end', 'value_id'), 'unique' => 0));
+
+        $this->assertSame(
+            array(
+                'CREATE UNIQUE INDEX "idx_value_ip_ranges_value_id" ON "value_ip_ranges" ("value_id");',
+                'CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");',
+            ),
+            $this->render(new MigrationTestPostgres(), '', array('value_ip_ranges' => $primary), self::IP_RANGES)
+        );
+        $this->assertSame(
+            array('CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");'),
+            $this->render(new MigrationTestPostgres(), '', array('value_ip_ranges' => $primary + $valueId), self::IP_RANGES)
+        );
+        $this->assertSame(
+            array(),
+            $this->render(new MigrationTestPostgres(), '', array('value_ip_ranges' => $primary + $valueId + $startEnd), self::IP_RANGES)
+        );
     }
 
     public function testPgTrgmPrecheck()
