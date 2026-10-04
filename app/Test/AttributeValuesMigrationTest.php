@@ -10,6 +10,7 @@ require_once __DIR__ . '/MigrationSchemaStubs.php';
 require_once APPLIBS . 'Migration/AbstractMigration.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261003_092429_create_attribute_values.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093106_create_value_ip_ranges.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093749_attribute_value_ids.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -22,9 +23,17 @@ if (!class_exists('AttributeValuesMigrationTestInspector', false)) {
         /** @var array table => index name => array('column' => ..., 'unique' => ...) */
         public $existing = array();
 
+        /** @var array table => column names */
+        public $columns = array();
+
         public function hasTable($table)
         {
             return isset($this->existing[$table]);
+        }
+
+        public function hasColumn($table, $column)
+        {
+            return isset($this->columns[$table]) && in_array($column, $this->columns[$table], true);
         }
 
         public function indexes($table)
@@ -51,6 +60,8 @@ class AttributeValuesMigrationTest extends TestCase
 
     const IP_RANGES = 'Migration_20261004_093106_create_value_ip_ranges';
 
+    const VALUE_IDS = 'Migration_20261004_093749_attribute_value_ids';
+
     /**
      * @param DboSource $db
      * @param string $version
@@ -58,11 +69,12 @@ class AttributeValuesMigrationTest extends TestCase
      * @param string $class
      * @return array
      */
-    private function render(DboSource $db, $version = '', array $existing = array(), $class = self::MIGRATION)
+    private function render(DboSource $db, $version = '', array $existing = array(), $class = self::MIGRATION, array $columns = array())
     {
         $inspector = new AttributeValuesMigrationTestInspector($db);
         $inspector->version = $version;
         $inspector->existing = $existing;
+        $inspector->columns = $columns;
         $migration = new $class();
         $migration->setSchemaInspector($inspector);
         $schema = new SchemaBuilder(AbstractGrammar::forDataSource($db));
@@ -226,5 +238,75 @@ class AttributeValuesMigrationTest extends TestCase
         $migration = new $class();
         $migration->setSchemaInspector($inspector);
         $this->assertTrue($migration->beforeUp());
+    }
+
+    public function testTheValueIdsRendering()
+    {
+        $indexes = array(
+            '`idx_attr_vid_combo` (`value1_id`, `value2_id`)',
+            '`idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+            '`idx_vid1_target` (`value1_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+            '`idx_vid2_source` (`event_id`, `value2_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+            '`idx_vid2_target` (`value2_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+        );
+        $expected = array(
+            'ALTER TABLE `attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
+            'ALTER TABLE `attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
+            'ALTER TABLE `shadow_attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
+            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
+            'ALTER TABLE `shadow_attributes` ADD INDEX `value1_id` (`value1_id`);',
+            'ALTER TABLE `shadow_attributes` ADD INDEX `value2_id` (`value2_id`);',
+        );
+        foreach ($indexes as $index) {
+            $expected[] = 'ALTER TABLE `attributes` ADD INDEX ' . $index . ';';
+        }
+        $this->assertSame($expected, $this->render(new MigrationTestMysqlExtended(), '', array(), self::VALUE_IDS));
+
+        $pgsql = $this->render(new MigrationTestPostgres(), '', array(), self::VALUE_IDS);
+        $this->assertSame('ALTER TABLE "attributes" ADD "value1_id" bigint DEFAULT NULL;', $pgsql[0]);
+        $this->assertSame('CREATE INDEX "idx_shadow_attributes_value1_id" ON "shadow_attributes" ("value1_id");', $pgsql[4]);
+        $this->assertSame('CREATE INDEX "idx_vid2_target" ON "attributes" ("value2_id", "event_id", "deleted", "disable_correlation", "type", "id");', $pgsql[10]);
+        $this->assertCount(11, $pgsql);
+    }
+
+    public function testAValueIdsRetryDeclaresOnlyWhatIsMissing()
+    {
+        $columns = array(
+            'attributes' => array('value1_id', 'value2_id'),
+            'shadow_attributes' => array('value1_id'),
+        );
+        $existing = array(
+            'attributes' => array(
+                'idx_attr_vid_combo' => array('column' => array('value1_id', 'value2_id'), 'unique' => 0),
+                'idx_vid1_source' => array('column' => array('event_id', 'value1_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
+                'idx_vid1_target' => array('column' => array('value1_id', 'event_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
+                'idx_vid2_source' => array('column' => array('event_id', 'value2_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
+                'idx_vid2_target' => array('column' => array('value2_id', 'event_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
+            ),
+            'shadow_attributes' => array(
+                'value1_id' => array('column' => 'value1_id', 'unique' => 0),
+            ),
+        );
+        $this->assertSame(array(
+            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
+            'ALTER TABLE `shadow_attributes` ADD INDEX `value2_id` (`value2_id`);',
+        ), $this->render(new MigrationTestMysqlExtended(), '', $existing, self::VALUE_IDS, $columns));
+
+        $columns['shadow_attributes'][] = 'value2_id';
+        $existing['shadow_attributes']['value2_id'] = array('column' => 'value2_id', 'unique' => 0);
+        $this->assertSame(array(), $this->render(new MigrationTestMysqlExtended(), '', $existing, self::VALUE_IDS, $columns));
+    }
+
+    public function testTheTextPrefixPackDoesNotSatisfyTheIdIndexes()
+    {
+        $existing = array('attributes' => array(
+            'idx_val1_source' => array('column' => array('event_id', 'value1', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
+        ));
+        $columns = array('attributes' => array('value1_id', 'value2_id'), 'shadow_attributes' => array('value1_id', 'value2_id'));
+        $sql = $this->render(new MigrationTestMysqlExtended(), '', $existing, self::VALUE_IDS, $columns);
+        $this->assertContains(
+            'ALTER TABLE `attributes` ADD INDEX `idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`);',
+            $sql
+        );
     }
 }
