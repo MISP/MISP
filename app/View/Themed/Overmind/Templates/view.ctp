@@ -25,7 +25,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/template_elements/index/%s', h($template['Template']['id']))
+                        'ajax' => sprintf('%s/template_elements/index/%s', $baseurl, h($template['Template']['id']))
                     ]
                 ],
             ]

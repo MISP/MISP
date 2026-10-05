@@ -36,7 +36,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/cerebrates/preview_orgs/%s', h($data['Cerebrate']['id']))
+                        'ajax' => sprintf('%s/cerebrates/preview_orgs/%s', $baseurl, h($data['Cerebrate']['id']))
                     ]
                 ],
             ],
@@ -50,7 +50,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/cerebrates/preview_sharing_groups/%s', h($data['Cerebrate']['id']))
+                        'ajax' => sprintf('%s/cerebrates/preview_sharing_groups/%s', $baseurl, h($data['Cerebrate']['id']))
                     ]
                 ],
             ]
