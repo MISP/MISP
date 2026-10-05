@@ -20,7 +20,7 @@
                 'id' => 'elements',
                 'title' => __('Elements'),
                 'icon' => 'fas fa-file-code',
-                'count' => $tag_count ?? 0,
+                'count' => count($template['TemplateElement'] ?? []),
 
                 // Content
                 'left' => [
