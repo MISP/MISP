@@ -841,6 +841,17 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedItems.delete(id);
         }
 
+        // The scaffold draws every row twice (table and card view): keep the
+        // twin box in step, or a selection looks lost after a view switch.
+        if (id) {
+            const scope = checkbox.closest('.index-results') || document;
+            scope.querySelectorAll('.item-checkbox').forEach(twin => {
+                if (twin !== checkbox && twin.dataset.itemId === id) {
+                    twin.checked = checkbox.checked;
+                }
+            });
+        }
+
         updateMultiSelectToolbar();
     });
 });

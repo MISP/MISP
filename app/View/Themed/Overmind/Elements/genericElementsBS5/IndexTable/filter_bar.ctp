@@ -768,31 +768,5 @@ var filterBarConfig = <?= json_encode([
         });
     });
 
-<?php if ($hasMassActions): ?>
-    // Guard so reloading an ajax index does not stack duplicate change listeners.
-    if (!window.__mispMassActionChangeWired) {
-        window.__mispMassActionChangeWired = true;
-        document.addEventListener('change', function(e) {
-            if (!e.target.classList.contains('item-checkbox')) return;
-
-            const checkbox  = e.target;
-            const id        = checkbox.dataset.itemId;
-            const canDelete = checkbox.dataset.canDelete == "1";
-            const publish   = checkbox.dataset.publish;
-            const enable    = checkbox.dataset.enable;
-            const require   = checkbox.dataset.require;
-            const highlight = checkbox.dataset.highlight;
-
-            if (checkbox.checked) {
-                selectedItems.set(id, { id, canDelete, publish, enable, require, highlight });
-            } else {
-                selectedItems.delete(id);
-            }
-
-            updateMultiSelectToolbar();
-        });
-    }
-<?php endif; ?>
-
 })();
 </script>
