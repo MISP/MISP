@@ -957,6 +957,10 @@ class MispObject extends AppModel
                             }
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
+                        if (isset($request_item['distribution'])) {
+                            $v['distribution'] = $request_item['distribution'];
+                            $v['sharing_group_id'] = $request_item['sharing_group_id'] ?? 0;
+                        }
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {

@@ -332,6 +332,24 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                             ) ?>
                         <?php endif; ?>
 
+                    <?php elseif ($action['type'] === 'modal'): ?>
+                        <?php
+                        $classes = 'dropdown-item ' . ($action['class'] ?? '');
+                        $onclick = sprintf(
+                            "event.preventDefault(); openModal('%s', '%s');",
+                            $url,
+                            $action['size'] ?? 'xl'
+                        );
+                        ?>
+                        <a class="<?= h(trim($classes)) ?>"
+                        href="<?= h($url) ?>"
+                        onclick="<?= h($onclick) ?>">
+                            <div>
+                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
                     <?php elseif ($action['type'] === 'ajax'): ?>
                         <?php
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');

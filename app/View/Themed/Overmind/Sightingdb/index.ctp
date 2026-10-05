@@ -32,7 +32,6 @@ $fields = [
         'sort' => 'Sightingdb.id',
         'data_path' => 'Sightingdb.id',
         'element' => 'id',
-        'url' => '',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -94,17 +93,38 @@ $fields = [
     ],
     [
         'name' => __('Org restrictions'),
-        'data_path' => 'Sightingdb.org_id',
-        'element' => 'organisation',
-        'url' => $baseurl . '/organisations/view/%id%',
+        'data_path' => 'Sightingdb.Organisation',
+        'element' => 'org_list',
         'card_section' => 'meta',
         'display_in' => ['table','card']
+    ],
+    [
+        'name' => __('Test'),
+        'data_path' => 'Sightingdb.id',
+        'element' => 'on_demand',
+        'url' => $baseurl . '/sightingdb/requestStatus/%id%.json',
+        'button' => __('Run'),
+        'icon' => 'plug',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Quick Search'),
+        'data_path' => 'Sightingdb.id',
+        'element' => 'on_demand',
+        'url' => $baseurl . '/sightingdb/search/%id%.json',
+        'button' => '',
+        'title' => __('Search'),
+        'icon' => 'magnifying-glass',
+        'text_input' => true,
+        'placeholder' => __('Value'),
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Sightingdb.id',
-        'active_path' => 'Sightingdb.active',
         'card_section' => 'extra',
         'actions' => [
             [

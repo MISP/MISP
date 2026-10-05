@@ -9,17 +9,17 @@ $corrCount = (int)Hash::get($event, 'correlation_count', 0);
 <div class="d-flex flex-column flex-wrap gap-2">
 
     <?php if ($attrCount !== 0): ?>
-        <div class="d-inline-flex align-items-center fw-bold text-nowrap text-attribute">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-attribute" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-attributes">
             <span class="misp-icon misp-icon-attribute misp-simple misp-icon-md me-1"></span>
             <span><?= h($attrCount) ?> <?= $attrCount > 1 ? __('Attributes') : __('Attribute') ?></span>
-        </div>
+        </a>
     <?php endif; ?>
 
     <?php if ($objCount !== 0): ?>
-        <div class="d-inline-flex align-items-center fw-bold text-nowrap text-object">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-object" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-objects">
             <span class="misp-icon misp-icon-object misp-simple misp-icon-md me-1"></span>
             <span><?= h($objCount) ?> <?= $objCount > 1 ? __('Objects') : __('Object') ?></span>
-        </div>
+        </a>
     <?php endif; ?>
 
     <?php if ($corrCount !== 0): ?>

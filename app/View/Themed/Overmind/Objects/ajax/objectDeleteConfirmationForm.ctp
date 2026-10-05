@@ -76,6 +76,13 @@ $iconClass = $hard ? 'fa-trash-alt text-danger' : 'fa-trash text-warning';
                 var item = document.querySelector('.accordion-item[data-primary-id="' + objectId + '"]');
                 if (item) item.remove();
 
+                /* The row is taken out in place rather than by reloading the
+                   fragment, so the tab's count has to be told. */
+                if (typeof getTabCount === 'function') {
+                    var n = getTabCount('objects');
+                    if (n !== null) { setTabCount('objects', Math.max(0, n - 1)); }
+                }
+
                 var modalEl = document.getElementById('mainModal');
                 if (modalEl) {
                     var bsModal = bootstrap.Modal.getInstance(modalEl);

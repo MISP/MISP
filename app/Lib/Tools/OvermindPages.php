@@ -70,7 +70,7 @@ class OvermindPages
         // Workflows
         'workflows' => array(
             'index', 'triggers', 'adhoc', 'add', 'edit', 'executeWorkflow',
-            'moduleIndex', 'massToggleTrigger',
+            'moduleIndex', 'moduleView', 'massToggleTrigger',
             'massToggleModule', 'toggleDebugMode'
         ),
         'workflowBlueprints' => array(
@@ -124,7 +124,7 @@ class OvermindPages
         ),
         'cerebrates' => array(
             'index', 'add', 'edit', 'delete', 'view', 'pull_sgs',
-            'pull_orgs'
+            'pull_orgs', 'preview_orgs', 'preview_sharing_groups'
         ),
         'communities' => array('index', 'view', 'requestAccess'),
         'sightingdb' => array('index', 'add', 'edit', 'delete'),

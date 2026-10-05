@@ -28,10 +28,16 @@ $options = [
 echo $this->Form->create('Cerebrate', [
     'id' => 'cerebrateForm',
     'novalidate' => true,
+    'data-required-guard' => true,
 ]);
+
+$fieldError = function ($field) {
+    return $this->Form->error($field, null, ['class' => 'ov-field-error']);
+};
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'primary',
     'eyebrow' => __('Cerebrates'),
     'title' => $isEdit ? __('Edit Cerebrate') : __('Add Cerebrate'),
     'description' => __('A Cerebrate node this instance queries for organisation and sharing-group metadata.'),
@@ -43,71 +49,62 @@ echo $this->Form->create('Cerebrate', [
 
     <div class="d-flex flex-column gap-4">
 
-        <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Name') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Name'),
+                'required' => true,
+                'for' => 'CerebrateName',
+            ]) ?>
             <?= $this->Form->text('name', [
                 'id' => 'CerebrateName',
-                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
-                    . ' outline:none;',
+                'class' => 'ov-form-line fs-5',
                 'placeholder' => __('e.g. Community Cerebrate'),
                 'autocomplete' => 'off',
+                'required' => true,
+                'data-required-msg' => __('Please provide a name for the node.'),
+                'error' => false,
             ]) ?>
+            <?= $fieldError('name') ?>
         </div>
 
-        <!-- ── CONNECTION ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Connection') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Connection'),
+                'required' => true,
+            ]) ?>
 
-            <label class="form-label text-muted mb-1" for="CerebrateUrl"
-                   style="font-size:.75rem;">
+            <label class="form-label text-muted mb-1 small" for="CerebrateUrl">
                 <?= __('Base URL') ?>
             </label>
             <div class="input-group">
-                <span class="input-group-text bg-transparent"
-                      style="border-color:#d8dde3;">
-                    <i class="fas fa-link text-muted" style="font-size:.8rem;"></i>
+                <span class="input-group-text bg-transparent">
+                    <i class="fas fa-link text-muted small"></i>
                 </span>
                 <?= $this->Form->text('url', [
                     'id' => 'CerebrateUrl',
                     'class' => 'form-control font-monospace',
-                    'style' => 'border-color:#d8dde3;',
                     'placeholder' => 'https://cerebrate.example.org',
                     'autocomplete' => 'off',
+                    'required' => true,
+                    'data-required-msg' => __('Please provide the base URL of the node.'),
+                    'error' => false,
                 ]) ?>
             </div>
+            <?= $fieldError('url') ?>
 
-            <label class="form-label text-muted mb-1 mt-3" for="CerebrateAuthkey"
-                   style="font-size:.75rem;">
+            <label class="form-label text-muted mb-1 mt-3 small" for="CerebrateAuthkey">
                 <?= __('Authentication key') ?>
             </label>
             <div class="input-group">
-                <span class="input-group-text bg-transparent"
-                      style="border-color:#d8dde3;">
-                    <i class="fas fa-key text-muted" style="font-size:.8rem;"></i>
+                <span class="input-group-text bg-transparent">
+                    <i class="fas fa-key text-muted small"></i>
                 </span>
                 <?= $this->Form->text('authkey', [
                     'id' => 'CerebrateAuthkey',
                     'type' => 'password',
                     'class' => 'form-control font-monospace',
-                    'style' => 'border-color:#d8dde3;',
                     'placeholder' => __('The API key of a Cerebrate user'),
                     'autocomplete' => 'new-password',
                 ]) ?>
@@ -147,7 +144,6 @@ echo $this->Form->create('Cerebrate', [
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
-                'style' => 'border-color:#d8dde3;',
                 'placeholder' => __('What this node is used for…'),
             ]) ?>
         </div>
@@ -196,6 +192,7 @@ echo $this->Form->create('Cerebrate', [
     </div>
 
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'primary',
         'isEdit' => $isEdit,
         'meta' => $isEdit && !empty($id) ? [['label' => __('Cerebrate'), 'id' => $id]] : [],
         'hint' => __('Organisations and sharing groups are previewed before anything is pulled.'),
@@ -208,14 +205,6 @@ echo $this->Form->create('Cerebrate', [
 
 <script>
 (function () {
-    var L = {
-        nameRequired: <?= json_encode(__('Please provide a name for the node.')) ?>,
-        urlRequired: <?= json_encode(__('Please provide the base URL of the node.')) ?>,
-        urlScheme: <?= json_encode(__('The URL has to start with http:// or https://')) ?>
-    };
-
-    function el(id) { return document.getElementById(id); }
-
     /* Option cards take their accent from the card itself */
     function paintCard(card) {
         var box = card.querySelector('input[type="checkbox"]');
@@ -229,68 +218,6 @@ echo $this->Form->create('Cerebrate', [
         var box = card.querySelector('input[type="checkbox"]');
         if (box) { box.addEventListener('change', function () { paintCard(card); }); }
         paintCard(card);
-    });
-
-    var nameEl = el('CerebrateName');
-    var urlEl = el('CerebrateUrl');
-    var form = el('cerebrateForm');
-    if (!form) { return; }
-
-    function fieldError(target, message, underlined) {
-        var errorId = target.id + 'Error';
-        var existing = el(errorId);
-        var property = underlined ? 'border-bottom-color' : 'border-color';
-        if (!message) {
-            target.style.setProperty(property, '#d8dde3', 'important');
-            if (existing) { existing.remove(); }
-            return;
-        }
-        target.style.setProperty(property, '#dc3545', 'important');
-        if (existing) {
-            existing.lastChild.textContent = message;
-            return;
-        }
-        var msg = document.createElement('div');
-        msg.id = errorId;
-        msg.className = 'text-danger d-flex align-items-center gap-1';
-        msg.style.fontSize = '.75rem';
-        msg.style.marginTop = '.35rem';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        msg.appendChild(icon);
-        msg.appendChild(document.createTextNode(message));
-        var anchor = target.closest('.input-group') || target;
-        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
-    }
-
-    form.addEventListener('submit', function (e) {
-        var problems = [];
-        if (nameEl && !nameEl.value.trim()) {
-            fieldError(nameEl, L.nameRequired, true);
-            problems.push(nameEl);
-        }
-        if (urlEl) {
-            var url = urlEl.value.trim();
-            if (!url) {
-                fieldError(urlEl, L.urlRequired, false);
-                problems.push(urlEl);
-            } else if (!/^https?:\/\//i.test(url)) {
-                fieldError(urlEl, L.urlScheme, false);
-                problems.push(urlEl);
-            }
-        }
-        if (problems.length) {
-            e.preventDefault();
-            e.stopPropagation();
-            problems[0].focus();
-        }
-    });
-
-    [[nameEl, true], [urlEl, false]].forEach(function (pair) {
-        if (!pair[0]) { return; }
-        pair[0].addEventListener('input', function () {
-            if (pair[0].value.trim()) { fieldError(pair[0], null, pair[1]); }
-        });
     });
 })();
 </script>

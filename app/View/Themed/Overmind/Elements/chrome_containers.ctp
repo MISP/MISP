@@ -53,7 +53,7 @@ $legacy = !empty($legacy);
 <div id="mainToastContainer" class="main-toast-container"></div>
 <div id="api-tooltip" class="api-tooltip"></div>
 <?php endif; ?>
-<div class="loading">
+<div class="loading ov-loading-overlay">
     <div class="spinner"></div>
     <div class="loadingText"><?= __('Loading') ?></div>
 </div>
