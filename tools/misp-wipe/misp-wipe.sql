@@ -45,7 +45,6 @@ TRUNCATE `threads`;
 TRUNCATE `bruteforces`;
 TRUNCATE `news`;
 TRUNCATE `template_tags`;
-TRUNCATE `allowedlist`;
 TRUNCATE `event_locks`;
 TRUNCATE `fuzzy_correlate_ssdeep`;
 TRUNCATE `tasks`;

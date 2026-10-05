@@ -59,7 +59,6 @@ class OvermindPages
         'warninglists' => array('index', 'view', 'add', 'edit'),
         'noticelists' => array('index', 'view'),
         'regexp' => array('admin_index', 'index', 'admin_add'),
-        'allowedlists' => array('admin_index', 'index', 'admin_add'),
         'correlations' => array('top', 'overCorrelations'),
         'correlation_exclusions' => array('index', 'add'),
         'correlationRules' => array(

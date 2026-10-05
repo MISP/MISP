@@ -285,16 +285,6 @@ if (!empty($me)) {
                             'requirement' => !$isAclRegexp
                         ),
                         array(
-                            'html' => '<i class="fas fa-check-circle fa-fw"></i> ' . __('Signature Allowedlist'),
-                            'url' => $baseurl . '/admin/allowedlists/index',
-                            'requirement' => $isAclRegexp
-                        ),
-                        array(
-                            'html' => '<i class="fas fa-check-circle fa-fw"></i> ' . __('Signature Allowedlist'),
-                            'url' => $baseurl . '/allowedlists/index',
-                            'requirement' => !$isAclRegexp
-                        ),
-                        array(
                             'html' => '<i class="fas fa-filter fa-fw"></i> ' . __('Correlation Exclusions'),
                             'url' => $baseurl . '/correlation_exclusions/index',
                             'requirement' => $this->Acl->canAccess('correlation_exclusions', 'index'),

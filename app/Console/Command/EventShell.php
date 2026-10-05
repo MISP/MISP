@@ -14,7 +14,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {

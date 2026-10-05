@@ -1111,14 +1111,6 @@ class ACLComponent extends Component
             'update' => [],
             'view' => [],
         ],
-        'allowedlists' => array(
-            'admin_add' => array('perm_regexp_access'),
-            'admin_delete' => array('perm_regexp_access'),
-            'admin_deleteSelection' => ['AND'=> ['perm_regexp_access', 'theming_enabled']],
-            'admin_edit' => array('perm_regexp_access'),
-            'admin_index' => array('perm_regexp_access'),
-            'index' => array('*'),
-        ),
         'eventGraph' => array(
             'view' => array('*'),
             'viewPicture' => array('*'),
