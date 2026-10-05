@@ -85,7 +85,8 @@ ui-test/
     builder/builder.md      build a template
   user-workflow/
     creation.md             creation and encoding workflows (event, object, attribute, tags, reports, populate, enrich, publish)
-    search.md               Events list filters, sort, export of selected events, event from template
+    search.md               Events list filters, sort, export of selected events, event from template, attribute search, quick search, correlations
+    collaboration.md        proposals between organisations (accept, discard, new attribute)
   use-case/                 end-to-end analyst scenarios (Operation Fake-Parcel), one file per use case
     01-phishing-triage.md … 08-close-incident.md
   tools/

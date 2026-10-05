@@ -27,6 +27,8 @@ Roles:
 | 12 | [Populate from freetext import](#wf-populate-freetext) | |
 | 13 | [Enrich event](#wf-enrich) | |
 | 14 | [Publish event](#wf-publish) | |
+| 15 | [Batch import of attributes](#wf-batch-import) | |
+| 16 | [Delete and restore an attribute](#wf-delete-restore) | |
 
 ---
 
@@ -300,3 +302,44 @@ Publishing an event
 **Expected:**
 - The URL is `/events/view2/<id>`.
 - The event is shown as **Published**.
+
+### Batch import of attributes
+<a id="wf-batch-import"></a>
+
+Adding several attributes of the same type at once
+
+- **Role:** `user` of the organisation `ADMIN`
+- **Test data (before):** event `QA wf batch {timestamp}` created through the API
+- **Cleanup (after):** delete the event
+
+1. Open the event page of `QA wf batch {timestamp}`.
+2. Click the **button** "Add attribute".
+3. Tick the **checkbox** "Batch Import".
+4. Choose `Network activity` in the **combobox** "Category" and `ip-dst` in the **combobox** "Type".
+5. Type `203.0.113.70`, `203.0.113.71` and `203.0.113.72` in the **textbox** "Value", one per line.
+6. Click the **button** "Add Attribute".
+
+**Expected:**
+- The **tab** "Attributes" shows the 3 rows `203.0.113.70`, `203.0.113.71` and `203.0.113.72`, each with type `ip-dst`.
+- There are exactly **3** new attributes (no empty attribute for an empty line).
+
+### Delete and restore an attribute
+<a id="wf-delete-restore"></a>
+
+Removing a wrong attribute, then bringing it back
+
+- **Role:** `user` of the organisation `ADMIN`
+- **Test data (before):** event `QA wf restore {timestamp}` with the attributes `203.0.113.73` and `203.0.113.74` (`ip-dst`), created through the API
+- **Cleanup (after):** delete the event
+
+1. Open the event page of `QA wf restore {timestamp}` and the **tab** "Attributes".
+2. Click **Delete** on `203.0.113.73`, choose the soft delete and confirm.
+3. Check that the **row** `203.0.113.73` is **not** visible and `203.0.113.74` is still visible.
+4. Click the **button** "Deleted".
+5. Check that the **row** `203.0.113.73` is visible and marked as deleted.
+6. Click **Restore** on `203.0.113.73` and confirm.
+7. Click the **button** "Deleted" again to go back to the normal list.
+
+**Expected:**
+- After step 6, `203.0.113.73` is active again and visible in the normal list.
+- `203.0.113.74` was never changed.

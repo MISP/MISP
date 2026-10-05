@@ -51,7 +51,7 @@ Write the markdown in **English**. Talk to the user in their own language.
        account/   keys/auth-keys.md, password/password.md, login/login.md
        analyst-data/ notes/notes.md
        general/   emoji/emoji.md, ui/ui.md, limits/limits.md (checks across the whole UI)
-       user-workflow/ creation.md, search.md (one test per everyday workflow)
+       user-workflow/ creation.md, search.md, collaboration.md (one test per everyday workflow)
        use-case/  01-phishing-triage.md … 08-close-incident.md (end-to-end analyst scenarios, story Operation Fake-Parcel; steps grouped in **Phase N – …** lines, numbering continues across phases, "Check that …" steps for checks along the way, and a **Known bugs on the way:** line)
        event-template/ index/templates.md, form/instantiate.md, builder/builder.md
      ```

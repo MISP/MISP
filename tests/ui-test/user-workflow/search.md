@@ -19,6 +19,9 @@ Roles:
 | 4 | [Events list – sort by a column](#wf-sort) | |
 | 5 | [Export several selected events](#wf-export-selected) | |
 | 6 | [Create an event from a template](#wf-template) | |
+| 7 | [Search an attribute by value](#wf-attribute-search) | |
+| 8 | [Quick search of an event](#wf-quick-search) | |
+| 9 | [Navigate through correlations](#wf-correlation-navigation) | |
 
 ---
 
@@ -135,3 +138,58 @@ Creating an event with the guided event template form
 - A new event `Suspicious domain — qa-wf-template.example` is created.
 - It contains the domain `qa-wf-template.example` and the tag `tlp:green`.
 - The URL is `/events/view2/<id>`.
+
+### Search an attribute by value
+<a id="wf-attribute-search"></a>
+
+Finding in which events a value is already known
+
+- **Role:** `user` of the organisation `ADMIN`
+- **Test data (before):** two events `QA wf known 1 {timestamp}` and `QA wf known 2 {timestamp}`, both with the attribute `203.0.113.80` (`ip-dst`), and a third event `QA wf other value {timestamp}` with `203.0.113.81`, created through the API
+- **Cleanup (after):** delete the three events
+
+1. Open `/attributes/index`.
+2. Type `203.0.113.80` in the **textbox** "Filter by attribute value".
+3. Press Enter.
+
+**Expected:**
+- Exactly **2** rows are listed, both with the value `203.0.113.80`.
+- Their **Event ID** column points to `QA wf known 1 {timestamp}` and `QA wf known 2 {timestamp}`.
+- `203.0.113.81` is **not** listed.
+
+### Quick search of an event
+<a id="wf-quick-search"></a>
+
+Finding an event by a part of its name
+
+- **Role:** `user` of the organisation `ADMIN`
+- **Test data (before):** two events `QA wf quick alpha {timestamp}` and `QA wf quick beta {timestamp}`, created through the API
+- **Cleanup (after):** delete both events
+
+1. Open `/events/index`.
+2. Type `quick alpha {timestamp}` in the **textbox** "Search by info, ID or UUID".
+3. Press Enter.
+
+**Expected:**
+- The **row** `QA wf quick alpha {timestamp}` is visible.
+- The **row** `QA wf quick beta {timestamp}` is **not** visible.
+- The list stays on `/events/index` (with the search in the URL).
+
+### Navigate through correlations
+<a id="wf-correlation-navigation"></a>
+
+Going from one event to a related event through a shared value
+
+- **Role:** `user` of the organisation `ADMIN`
+- **Test data (before):** two events `QA wf correl 1 {timestamp}` and `QA wf correl 2 {timestamp}`, both with the attribute `qa-wf-correl.example` (`domain`), created through the API
+- **Cleanup (after):** delete both events
+
+1. Open the event page of `QA wf correl 1 {timestamp}`.
+2. Open the **tab** "Correlation".
+3. Check that `QA wf correl 2 {timestamp}` is listed.
+4. Click the **link** `QA wf correl 2 {timestamp}`.
+
+**Expected:**
+- The page of `QA wf correl 2 {timestamp}` opens at `/events/view2/<id>`.
+- Its **tab** "Correlation" lists `QA wf correl 1 {timestamp}`.
+- In its **tab** "Attributes", `qa-wf-correl.example` shows a correlation.
