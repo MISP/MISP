@@ -51,6 +51,7 @@ Write the markdown in **English**. Talk to the user in their own language.
        account/   keys/auth-keys.md, password/password.md, login/login.md
        analyst-data/ notes/notes.md
        general/   emoji/emoji.md, ui/ui.md, limits/limits.md (checks across the whole UI)
+       use-case/  01-phishing-triage.md … 08-close-incident.md (end-to-end analyst scenarios, story Operation Fake-Parcel; steps grouped in **Phase N – …** lines, numbering continues across phases, "Check that …" steps for checks along the way, and a **Known bugs on the way:** line)
        event-template/ index/templates.md, form/instantiate.md, builder/builder.md
      ```
      Put a new test in the file matching its page and topic. If none fits, create a new topic file (or a new feature folder like `attribute/index/…`) with template 0a. Numbering restarts at 1 in each file.

@@ -83,6 +83,8 @@ ui-test/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
     builder/builder.md      build a template
+  use-case/                 end-to-end analyst scenarios (Operation Fake-Parcel), one file per use case
+    01-phishing-triage.md … 08-close-incident.md
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
     check_list_selection.js checks Bugs 7 and 27 on list pages in a headless browser (Playwright)
