@@ -83,6 +83,9 @@ ui-test/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template
     builder/builder.md      build a template
+  user-workflow/
+    creation.md             creation and encoding workflows (event, object, attribute, tags, reports, populate, enrich, publish)
+    search.md               Events list filters, sort, export of selected events, event from template
   use-case/                 end-to-end analyst scenarios (Operation Fake-Parcel), one file per use case
     01-phishing-triage.md … 08-close-incident.md
   tools/
