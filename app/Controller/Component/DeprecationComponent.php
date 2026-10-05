@@ -32,9 +32,6 @@ class DeprecationComponent extends Component
             'templates' => array(
                 'add' => false,
                 'populateEventFromTemplate' => false
-            ),
-            'allowedlists' => array(
-                'admin_add' => false
             )
         );
     }

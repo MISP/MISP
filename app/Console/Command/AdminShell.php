@@ -28,7 +28,6 @@ class AdminShell extends AppShell
         'Job',
         'User',
         'Task',
-        'Allowedlist',
         'Server',
         'Organisation',
         'AdminSetting',
