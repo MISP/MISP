@@ -3770,7 +3770,9 @@ function installRequiredFieldGuard() {
     requiredFieldGuardInstalled = true;
 
     function anchorOf(field) {
-        return field.closest('.input-group') || field;
+        return field.closest('.input-group')
+            || (field.tomselect && field.tomselect.wrapper)
+            || field;
     }
 
     function errorOf(field) {
@@ -3780,12 +3782,14 @@ function installRequiredFieldGuard() {
 
     function clear(field) {
         field.classList.remove('is-invalid');
+        anchorOf(field).classList.remove('is-invalid');
         var msg = errorOf(field);
         if (msg) { msg.remove(); }
     }
 
     function flag(field) {
         field.classList.add('is-invalid');
+        if (field.tomselect) { field.tomselect.wrapper.classList.add('is-invalid'); }
         if (errorOf(field)) { return; }
         var msg = document.createElement('div');
         msg.className = 'ov-field-error';
@@ -3826,7 +3830,7 @@ function installRequiredFieldGuard() {
         });
         if (first) {
             e.preventDefault();
-            first.focus();
+            (first.tomselect || first).focus();
         }
     }, true);
 }
