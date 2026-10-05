@@ -1,7 +1,9 @@
 <?php
 
 $presetUserId = $this->request->data['UserSetting']['user_id'] ?? null;
-$userDisabled = count($users) === 1;
+$ownOnly = count($users) === 1;
+// A user passed in the URL (Edit, or Add from a profile) is the one posted, whatever the select says
+$userDisabled = $ownOnly || !empty($presetUserId);
 $settingDisabled = (bool)$setting;
 $settingDescriptions = $settingDescriptions ?? [];
 
@@ -74,7 +76,9 @@ echo $this->Form->create('UserSetting', [
                 <?php if ($userDisabled): ?>
                     <?= $this->element('genericElementsBS5/Forms/field_hint', [
                         'icon' => 'fas fa-lock mt-1',
-                        'text' => __('You may only manage your own settings.'),
+                        'text' => $ownOnly
+                            ? __('You may only manage your own settings.')
+                            : __('The setting is stored for this user.'),
                     ]) ?>
                 <?php endif; ?>
             </div>

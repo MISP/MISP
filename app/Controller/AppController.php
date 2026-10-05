@@ -42,7 +42,7 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '231';
+    private $__queryVersion = '232';
     public $pyMispVersion = '2.5.34.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';

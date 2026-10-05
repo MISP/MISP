@@ -12,6 +12,8 @@ $this->set('headerActions', [
 ]);
 
 $settingDescriptions = $settingDescriptions ?? [];
+// Set when the index is the Settings tab of a user's profile: one user, no scope buttons
+$scopedUserId = $scopedUserId ?? null;
 
 // Internal settings are refused by setSetting() and deleteSelection() outright, so they get no action menu at all.
 $settingIsManageable = function (array $row) {
@@ -51,6 +53,7 @@ $fields = [
                 . '<span class="fw-semibold">' . h($email) . '</span>'
                 . '</span>';
         },
+        'requirement' => empty($scopedUserId),
         'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ],
@@ -59,6 +62,7 @@ $fields = [
         'sort' => 'User.org_id',
         'data_path' => 'User.Organisation',
         'element' => 'organisation',
+        'requirement' => empty($scopedUserId),
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
     ],
@@ -142,6 +146,32 @@ foreach (['user_id', 'quickFilter', 'setting'] as $namedParam) {
 ?>
 
 <?php
+$filterChildren = [
+    [
+        'type' => 'search',
+        'button' => __('Search'),
+        'placeholder' => __('Search a setting'),
+        'name'        => 'quickFilter',
+        'mode'        => 'quickFilter',
+    ],
+];
+if (empty($scopedUserId)) {
+    $filterChildren[] = [
+        'type' => 'button',
+        'label' => __('My settings'),
+        'icon' => 'misp-icon misp-icon-user1 misp-simple',
+        'class' => 'btn btn-primary',
+        'url' => $baseurl . '/user_settings/index/user_id:me'
+    ];
+    $filterChildren[] = [
+        'type' => 'button',
+        'label' => __('Org settings'),
+        'icon' => 'misp-icon misp-icon-organisation misp-simple',
+        'class' => 'btn btn-primary',
+        'url' => $baseurl . '/user_settings/index/user_id:org'
+    ];
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -150,29 +180,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'paginatorOptions' => ['url' => $paginatorUrl],
             'filter_bar' => [
                 'pull' => 'right',
-                'children' => [
-                    [
-                        'type' => 'search',
-                        'button' => __('Search'),
-                        'placeholder' => __('Search a setting'),
-                        'name'        => 'quickFilter',
-                        'mode'        => 'quickFilter',
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('My settings'),
-                        'icon' => 'misp-icon misp-icon-user1 misp-simple',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/user_settings/index/user_id:me'
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('Org settings'),
-                        'icon' => 'misp-icon misp-icon-organisation misp-simple',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/user_settings/index/user_id:org'
-                    ]
-                ],
+                'children' => $filterChildren,
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
