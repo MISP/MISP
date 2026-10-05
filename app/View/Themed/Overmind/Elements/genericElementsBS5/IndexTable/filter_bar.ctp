@@ -395,6 +395,7 @@ $activeTotal = count(array_diff_key(
                 ? urldecode($currentFilters[$sub['name']]) : '',
             'col' => $sub['col'] ?? 3,
             'help' => $sub['help'] ?? null,
+            'placeholder' => $sub['placeholder'] ?? null,
         ];
     }
     ?>
