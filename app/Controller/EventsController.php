@@ -800,7 +800,7 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'galaxy', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended', 'include_event_tags_fingerprint');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended', 'include_event_tags_fingerprint');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
 
@@ -5499,7 +5499,11 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'view', $id));
+                    if ($this->theme === "Overmind"){
+                        $this->redirect(array('action' => 'view2', $id));
+                    } else {
+                        $this->redirect(array('action' => 'view', $id));
+                    }
                 }
             } else {
                 throw new MethodNotAllowedException('Could not unpublish event.');
