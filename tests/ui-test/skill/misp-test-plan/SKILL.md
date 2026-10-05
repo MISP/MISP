@@ -12,14 +12,14 @@ Write the markdown in **English**. Talk to the user in their own language.
 ## Hard rules (never break them)
 
 1. **Follow the templates below exactly.** Same heading levels (`#`, `###`, `####`), same order, same bold labels, same punctuation (`**Expected result**:` for bugs, `**Expected:**` for tests), same `<a id>` placement (on the line right **after** the `###` heading).
-2. **Add nothing** (except the optional `**Seeded data:**` line when you created the test data yourself — then always add it): no extra sections, no extra fields, no emojis, no image placeholders, no "Back to top" link, no Playwright section, no comments. Only exception: if the user gives an image URL, put `![](URL)` on its own line right after the line it illustrates.
+2. **Add nothing** (except the optional `**Seeded data:**` line when you created the test data yourself — then always add it): no extra sections, no extra fields, no emojis, no image placeholders, no "Back to top" link, no separate Playwright code section, no comments. Only exception: if the user gives an image URL, put `![](URL)` on its own line right after the line it illustrates.
 3. **Forget nothing**: every field of the template is present. If information is missing:
    - Bug `Status` → `Open` (unless told otherwise). `Owner` → leave the cell empty. `Version` → the MISP version from Environment; if unknown, ask the user.
    - `Notes` → `None`.
    - `Likely cause` → only what was actually investigated (logs, code, repro). Otherwise write `Unknown`. Never guess.
    - Do not invent error text, versions or values.
-4. **Roles** are only: `user`, `site-admin`, `org-admin`. Put the role in backticks in the login step (`Log in to MISP as \`site-admin\`.`). When the organisation matters (cross-organisation tests), add it: `Log in to MISP as \`user\` of the organisation \`QA-Org-B\`.` Test organisations: `ADMIN` (default) and `QA-Org-B`; accounts are listed in the README (never write passwords or keys in the repo).
-5. **Steps**: short plain sentences, one action per line, numbered. UI buttons/links in **bold** with their visible label. URLs/paths in backticks. Use concrete values when the user gives them.
+4. **Roles** are only: `user`, `site-admin`, `org-admin`. In tests, write them in the **Role:** line (`- **Role:** \`site-admin\``), with the organisation when it matters (`\`user\` of the organisation \`QA-Org-B\``); in bug steps, "Log in as a user with the `User` role" is fine. Test organisations: `ADMIN` (default) and `QA-Org-B`; accounts are listed in the README (never write passwords or keys in the repo).
+5. **Steps**: short plain sentences, one action per line, numbered. In tests, follow rule 11 (element type + exact label in double quotes); in bugs, UI buttons/links in **bold** with their visible label. URLs/paths in backticks. Use concrete values when the user gives them.
 6. **Numbering**: bugs are numbered `1, 2, 3…`; anchor = `bug-N`. Tests are numbered too; anchor = short kebab-case slug of the test name (`event-add`, `attribute-delete`). If the next number is unknown, ask the user or read it from what they pasted.
 7. **What to produce depends on what the user gives:**
    - **The user reports a bug** → produce **BOTH**: the bug (template 1) **AND** an E2E test that reproduces it (template 2). The test's steps follow the bug's steps with concrete values, and its **Expected:** is the correct behaviour (the bug's Expected result).
@@ -71,6 +71,14 @@ Write the markdown in **English**. Talk to the user in their own language.
    - If the user pastes a newer version of a file, overwrite that file with it first, then add.
 9. Fix typos in what you write (e.g. `side-admin` → `site-admin`), but never change the meaning and never touch existing content of the file.
 10. **Seeded data**: when a tricky test needs data on a local instance, add it to `tools/seed_events.py` with the tag `qa:<test-slug>` (same as the test anchor), then run `seed_events.py --reports-only` so every seeded event gets an Event Report `Test – <test name>` (GitHub link to the test + description + steps + expected + seeded data).
+11. **Playwright-ready tests** (every new or rewritten test; the tests are later turned into Playwright `.spec.js` files):
+   - **Name each element by its ARIA role and exact visible label**, as Playwright's `getByRole(role, { name })` finds it: **button**, **link**, **tab**, **textbox**, **combobox** (dropdown / tom-select), **checkbox**, **radio**, **menu item**, **row**, **dialog** (window). Write the label in double quotes exactly as on screen: Click the **button** "Create Event Entry". Use the placeholder only when a field has no label (the **textbox** with placeholder "Search by info, ID or UUID"). Never give CSS selectors, coordinates or "the 3rd button".
+   - **One action per step**, with exact values in backticks. Say in which window the action happens when a modal is open ("In the **Add Note** window, …").
+   - **Expected = a list of checkable facts**, one per line: URL (`toHaveURL`), visible or not visible text (`toBeVisible` / `not.toBeVisible`), element count (`toHaveCount`), field value, checkbox state, enabled/disabled. Never "it works", "no problem", "correctly".
+   - **Wait for something precise**, never for time or for "the page to load" (MISP pages keep polling and never become idle): "wait until the text "Note added." is visible".
+   - **Isolation**: each test creates its own data in **Test data (before)** (through the API, unique names with `{timestamp}`) and removes it in **Cleanup (after)**. No test depends on another test, no "create it first if it does not exist", no "see the previous test". Find data by its name, never by an instance ID.
+   - **Login** is not a step: the role (and organisation) goes in **Role:**; Playwright logs in once per role and reuses the session.
+   - **Overmind specifics**: tom-select dropdowns (object template, tags, galaxies…) need "type `<text>` in the **combobox** "<label>" and choose `<option>`"; actions inside a **⋮** or dropdown menu need "open the **⋮** menu of `<row>`, click the **menu item** "<label>""; forms often open in a **dialog**; say whether a list starts in table or card view when it matters; dates in exact format (`2026-09-01 10:00`).
 
 ## Template 0a – Test file (e.g. `event/add/fields.md`), only when creating it
 
@@ -165,14 +173,18 @@ Roles:
 
 <One-line description of the flow>
 
-1. Log in to MISP as `<role>`.
-2. Go to <path>.
-3. Click **<button label>** button
-4. <action>
-5. <action>
-6. Submit
+- **Role:** `<role>` (of the organisation `<org>` when it matters)
+- **Test data (before):** <what must exist, created through the API before the test, with unique names: e.g. event `QA <name> {timestamp}`>, or `None`
+- **Cleanup (after):** <what to delete at the end>, or `None`
 
-**Expected:** <one sentence: what happens and which page opens>
+1. Open <page: an URL in backticks, or "the event page of `QA <name> {timestamp}`">.
+2. Click the **button** "<exact visible label>".
+3. In the **<window title>** window, type `<value>` in the **textbox** "<label>".
+4. Choose `<value>` in the **combobox** "<label>".
+5. Click the **button** "<label>".
+
+**Expected:**
+- <one checkable fact per line: the URL is `/events/view2/<id>`, the text "…" is visible, the text "…" is **not** visible, the **row** `…` is shown, there are **N** rows, the **checkbox** "…" is checked, the **button** "…" is disabled…>
 ````
 
 Optional, only when the test data was created on a local instance (e.g. by `tools/seed_events.py`), one line right after **Expected:**:
@@ -221,20 +233,25 @@ Bug row: `| 1 | [CSRF error when creating an event with a future date](#bug-1) |
 - **Likely cause**: The date is stored in a hidden form field that CakePHP locks. When the date picker changes its value, MISP rejects the form as tampered and shows a misleading CSRF error.
 ```
 
-Test row: `| 1 | [Event add](#event-add) | |`
+Test row: `| 1 | [Note – add without text](#analyst-note-add-empty) | |`
 
 ```markdown
-### Event add
-<a id="event-add"></a>
+### Note – add without text
+<a id="analyst-note-add-empty"></a>
 
-Simple Event creation flow with custom date
+A note without text is refused (regression test for Bug 12)
 
-1. Log in to MISP as `site-admin`.
-2. Go to /events/index.
-3. Click **Create an event** button
-4. Pick a title
-5. Change the date to before than today
-6. Submit
+- **Role:** `site-admin`
+- **Test data (before):** event `QA note empty {timestamp}` created through the API
+- **Cleanup (after):** delete the event
 
-**Expected:** the event is created and its events/view page opens.
+1. Open the event page of `QA note empty {timestamp}`.
+2. Click the **button** "Add note".
+3. In the **Add Note** window, leave the **textbox** "Note" empty.
+4. Click the **button** "Create Note".
+
+**Expected:**
+- The text "Note added." is **not** visible.
+- A message under the **textbox** "Note" is visible.
+- The event has **0** notes.
 ```

@@ -103,10 +103,10 @@ New feature (e.g. attributes)? Create `attribute/<page>/<topic>.md` with the sam
 ## Rules
 
 - Write in **English**, short plain sentences, **one action per step**.
-- UI buttons, links and fields in **bold** with their visible label (`**Add Event**`, `**Event Info**`).
+- In tests, name each element by its type and exact label (Click the **button** "Add Event"), see "Writing tests for Playwright" below.
 - URLs and values in `backticks` (`/events/index`, `QA minimal event`).
-- Roles are only `user`, `site-admin`, `org-admin`. When the organisation matters, the login step says it:
-  ``Log in to MISP as `user` of the organisation `QA-Org-B`.``
+- Roles are only `user`, `site-admin`, `org-admin`. In a test they go in the **Role:** line, with the organisation when it matters:
+  ``- **Role:** `user` of the organisation `QA-Org-B` ``
 - Every test ends with one `**Expected:**` line that can be checked (what is shown, which page opens).
 - Never mention `tools/seed_events.py` (or any tool) inside a test: describe the data to create
   instead (e.g. "create an event with 2,000 `ip-dst` attributes").
@@ -163,14 +163,31 @@ Section at the end of the file (`<test-slug>` = short kebab-case name, unique in
 
 <One-line description of the flow>
 
-1. Log in to MISP as `site-admin`.
-2. Go to `/events/index`.
-3. Click **Add Event** button
-4. <action>
-5. <action>
+- **Role:** `site-admin`
+- **Test data (before):** event `QA <name> {timestamp}` created through the API (or `None`)
+- **Cleanup (after):** delete the event (or `None`)
 
-**Expected:** <one sentence: what happens and which page opens>
+1. Open the event page of `QA <name> {timestamp}`.
+2. Click the **button** "Add note".
+3. In the **Add Note** window, type `QA text` in the **textbox** "Note".
+4. Click the **button** "Create Note".
+
+**Expected:**
+- The text "Note added." is visible.
+- The note `QA text` is shown under **Analyst data**.
 ```
+
+### Writing tests for Playwright
+
+The tests are written so that they can be turned into [Playwright](https://playwright.dev/) tests (`.spec.js`) almost line by line:
+
+- **Elements by role and exact label**, as `getByRole(role, { name })` finds them: **button**, **link**, **tab**, **textbox**, **combobox**, **checkbox**, **radio**, **menu item**, **row**, **dialog**. Write the label in double quotes exactly as on screen. Use the placeholder only for a field without label. No CSS selectors, coordinates or "the 3rd button".
+- **One action per step**, exact values in backticks; say in which window the action happens when a modal is open.
+- **Expected is a list of checkable facts**: URL, text visible / **not** visible, number of rows, field value, checkbox state, enabled / disabled. Never "it works" or "correctly".
+- **Wait for something precise** (a text, an element), never for a delay or "the page to load": MISP pages keep polling and never become idle.
+- **Each test is independent**: it creates its own data (**Test data (before)**, through the API, unique names with `{timestamp}`), removes it (**Cleanup (after)**), and finds data by name, never by an instance ID.
+- **Login is not a step**: the role goes in **Role:**; Playwright logs in once per role and reuses the session.
+- **Overmind specifics**: tom-select dropdowns need "type `<text>` in the **combobox** "<label>" and choose `<option>`"; actions in a **⋮** menu need "open the **⋮** menu of `<row>`, click the **menu item** "<label>""; forms often open in a **dialog**; say whether a list starts in table or card view; dates in exact format (`2026-09-01 10:00`).
 
 Optional, only when the test data was created on a local instance, one line right after **Expected:**:
 
