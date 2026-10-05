@@ -436,14 +436,6 @@ $foldChildren = empty($objects) ? [] : [
                                                 'field' => ['data_path' => 'Attribute'],
                                             ]
                                         ); ?>
-                                        <?php if (!empty($attr['warnings'])): ?>
-                                            <i class="fas fa-exclamation-triangle
-                                                       text-warning ms-1"
-                                               title="<?= h(implode(', ', array_column(
-                                                   $attr['warnings'],
-                                                   'warninglist_name'
-                                               ))) ?>"></i>
-                                        <?php endif; ?>
                                     </td>
 
                                     <!-- Category + Relation (merged) -->
