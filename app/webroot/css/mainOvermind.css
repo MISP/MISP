@@ -4778,3 +4778,14 @@ tr.evt-extension-row td:first-child {
 [data-bs-theme="dark"] .ov-obj-rel-badge {
     background: rgba(var(--bs-object-rgb), .28);
 }
+
+/* Click-to-copy target: a bordered box that tints on hover and reveals its copy glyph */
+.ov-setting-value { max-width: 28rem; }
+.ov-setting-value pre, .ov-copy-target pre { max-height: 16rem; }
+.ov-copy-target { cursor: pointer; }
+.ov-copy-target:is(:hover, :focus-visible) {
+    border-color: rgba(var(--bs-primary-rgb), .5) !important;
+    background-color: rgba(var(--bs-primary-rgb), .06) !important;
+}
+.ov-copy-target:not(:hover, :focus-visible) .fa-copy { opacity: 0; }
+.ov-copy-target:is(:hover, :focus-visible) .fa-copy { color: var(--bs-primary) !important; }

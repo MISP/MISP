@@ -24,9 +24,12 @@ class UserSettingsController extends AppController
         ),
         'contain' => array(
             'User' => array(
-                'fields' => array('id', 'email', 'org_id'),
+                'fields' => array('id', 'email', 'org_id', 'role_id'),
                 'Organisation' => array(
                     'fields' => array('id', 'name', 'uuid')
+                ),
+                'Role' => array(
+                    'fields' => array('id', 'name')
                 )
             )
         )
@@ -162,6 +165,7 @@ class UserSettingsController extends AppController
                 );
             }
             $this->set('data', $data);
+            $this->set('settingDescriptions', $this->UserSetting->settingDescriptions());
             $this->set('context', empty($context) ? 'null' : $context);
         }
     }
@@ -282,6 +286,7 @@ class UserSettingsController extends AppController
         $this->set('setting', $setting);
         $this->set('users', $users);
         $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
+        $this->set('settingDescriptions', $this->UserSetting->settingDescriptions());
         $this->set('title_for_layout', __('Set User Setting'));
         if ($this->theme === 'Overmind') {
             $this->layout = false;

@@ -11,6 +11,8 @@ $this->set('headerActions', [
     ],
 ]);
 
+$settingDescriptions = $settingDescriptions ?? [];
+
 // Internal settings are refused by setSetting() and deleteSelection() outright, so they get no action menu at all.
 $settingIsManageable = function (array $row) {
     return !empty($row['UserSetting']['_canDelete']);
@@ -40,8 +42,12 @@ $fields = [
             if ($email === '') {
                 return '<span class="text-muted">&mdash;</span>';
             }
+            $roleBadge = $this->element('genericElementsBS5/IndexTable/Fields/role', [
+                'row' => $row,
+                'field' => ['data_path' => 'User.Role', 'icon_only' => true],
+            ]);
             return '<span class="d-inline-flex align-items-center gap-2">'
-                . '<i class="misp-icon misp-icon-user1 misp-simple text-muted"></i>'
+                . $roleBadge
                 . '<span class="fw-semibold">' . h($email) . '</span>'
                 . '</span>';
         },
@@ -60,17 +66,32 @@ $fields = [
         'name' => __('Setting'),
         'sort' => 'UserSetting.setting',
         'element' => 'custom',
-        'function' => function (array $row) {
+        'function' => function (array $row) use ($settingDescriptions) {
             $setting = $row['UserSetting']['setting'] ?? '';
-            return '<code class="text-primary">' . h($setting) . '</code>';
+            $description = $settingDescriptions[$setting] ?? '';
+            $nameClass = 'font-monospace small text-primary text-nowrap';
+            if ($description === '') {
+                return '<span class="' . $nameClass . '">' . h($setting) . '</span>';
+            }
+            return '<span class="d-inline-flex align-items-center gap-2 rounded-1 focus-ring ' . $nameClass . '"'
+                . ' tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top"'
+                . ' title="' . h($description) . '">'
+                . '<span class="text-decoration-none link-underline-primary'
+                . ' link-underline-opacity-50 link-offset-1">' . h($setting) . '</span>'
+                . '<i class="fas fa-circle-info text-body-secondary" aria-hidden="true"></i>'
+                . '</span>';
         },
         'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Value'),
-        'data_path' => 'UserSetting.value',
-        'element' => 'json',
+        'element' => 'custom',
+        'function' => function (array $row) {
+            return $this->element('UserSettings/setting_value', [
+                'value' => $row['UserSetting']['value'] ?? null,
+            ]);
+        },
         'card_section' => 'links',
         'display_in' => ['table', 'card'],
     ],
