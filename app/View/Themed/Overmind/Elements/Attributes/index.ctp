@@ -265,6 +265,80 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'divider',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/attributes/edit/%id%',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Restore'),
+                'icon' => 'rotate-left',
+                'url' => $baseurl . '/attributes/restore/%id%',
+                'class' => 'text-success',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%',
+                'class' => 'text-danger',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled, $_cortexEnabled) {
+                    return $_rowMayModify($row) && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich'),
+                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled) {
+                    return $_rowMayModify($row) && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich (Cortex)'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
+                'requirement' => function($row) use ($_rowMayModify, $_cortexEnabled) {
+                    return $_rowMayModify($row) && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canPropose) {
+                    return $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Propose change'),
+                'icon' => 'comment-dots',
+                'url' => $baseurl . '/shadow_attributes/edit/%id%',
+                'requirement' => function($row) use ($_canPropose) {
+                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
+            ],
+            [
+                'type' => 'divider',
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
                     return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
                 }
@@ -297,74 +371,6 @@ $fields = array_merge($fields, [
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
                     return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'divider',
-                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled, $_cortexEnabled) {
-                    return $_rowMayModify($row) && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Enrich'),
-                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
-                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
-                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled) {
-                    return $_rowMayModify($row) && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Enrich (Cortex)'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
-                'requirement' => function($row) use ($_rowMayModify, $_cortexEnabled) {
-                    return $_rowMayModify($row) && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Propose change'),
-                'icon' => 'comment-dots',
-                'url' => $baseurl . '/shadow_attributes/edit/%id%',
-                'requirement' => function($row) use ($_canPropose) {
-                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
-                }
-            ],
-            [
-                'type' => 'divider',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/attributes/edit/%id%',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Restore'),
-                'icon' => 'rotate-left',
-                'url' => $baseurl . '/attributes/restore/%id%',
-                'class' => 'text-success',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%',
-                'class' => 'text-danger',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ]
         ]

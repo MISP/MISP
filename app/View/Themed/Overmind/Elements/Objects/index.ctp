@@ -589,6 +589,7 @@ $foldChildren = empty($objects) ? [] : [
                                                 'canEdit' => $objCanEdit,
                                                 'enrichmentEnabled' => $_enrichmentEnabled,
                                                 'cortexEnabled' => $_cortexEnabled,
+                                                'showView' => false,
                                             ]) ?>
                                         </div>
                                     </td>
