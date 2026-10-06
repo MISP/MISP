@@ -25,7 +25,7 @@ module.exports = defineConfig({
     locale: 'en-GB',
     timezoneId: 'UTC',
     trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
     video: 'retain-on-failure',
     launchOptions: { slowMo: Number(process.env.SLOWMO || 0) },
   },

@@ -116,6 +116,8 @@ status and message of the refused request, or the error shown in the UI), never 
 | `user-workflow/creation`               | Event, object, attribute, tags, report, attachment, populate, enrich, publish, batch, restore | Bug 4 (object add/edit), Bug 10 (report); Enrich skipped without an enabled module |
 | `user-workflow/search`                 | Events list filters, sort, export of a selection, template, attribute search, quick search, correlations | Bug 9 (template) |
 | `user-workflow/collaboration`          | Proposals between organisations: accept, discard, new attribute | proposals black-holed; no "propose attribute" button |
+| `event/add/fields`                     | Add Event: dates, defaults, every field, distribution levels, extends, HTML and line breaks in Event Info | — |
+| `event/add/validation`                 | Add Event refusals: empty or blank Event Info, invalid date, unknown Extends ID, Event Info too long | Bug 8 (too long); unknown Extends ID loses the form |
 
 ## Writing a new test
 
@@ -148,11 +150,17 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
   rather than `--no-deps`, or the stored logins may have expired.
 - **Shared helpers** (fixtures, assertions) go in `helpers.js`.
 
-## Visual baselines
+## Screenshots
 
-`expectScreen(locator, 'name.png', { hide: [ts] })` compares one element (never the whole
-page) with its baseline in `__screenshots__/`. Use it only for screens whose look matters
-(the event header, a modal, a result list), after the functional checks.
+- **Every test** keeps a screenshot of its last state (`screenshot: 'on'`), and a failed test
+  also keeps its video and trace: all of them are in the HTML report (`npm run test:e2e:report`).
+- **Visual baselines**: `expectScreen(locator, 'name.png')` compares one element with its
+  committed baseline in `__screenshots__/`. For a dialog only its content is compared (the page
+  behind it changes with the data), and IDs (`#123`), dates, times and date fields are masked.
+  Baselines today: the Add Event, Add Attribute, Add Object (template step), Edit Tags,
+  Populate from, Freetext review, Publish, Add Sharing Group and Download as windows, and a
+  rendered event report. Add one only after the functional checks of a test, on a screen
+  whose look matters.
 
 When a change *intentionally* alters appearance, the relevant tests fail. Review the diff
 (`npm run test:e2e:report`), confirm the new look is correct, then:

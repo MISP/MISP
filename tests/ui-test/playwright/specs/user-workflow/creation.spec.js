@@ -1,6 +1,6 @@
 // ../../../user-workflow/creation.md
 const {
-  test, expect, expectNoErrorPage, expectDialogSaved, knownBug, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
+  test, expect, expectNoErrorPage, expectDialogSaved, expectScreen, knownBug, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
   expectAfterReload, freetextImport, freetextResults,
 } = require('../../helpers');
 
@@ -39,6 +39,7 @@ test('Add object – IDS and correlation on one attribute, and a relationship', 
 
   await openEvent(page, event.id);
   await page.getByRole('link', { name: 'Add Object' }).click();
+  await expectScreen(dialog(page), 'add-object-template-step.png');
   await pick(dialog(page).getByRole('combobox', { name: /Template/ }), 'domain-ip', 'Domain-ip');
   await dialog(page).getByRole('button', { name: 'Next' }).click();
 
@@ -87,6 +88,7 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
   await openEvent(page, event.id);
   await page.getByRole('link', { name: 'Add Attribute' }).click();
   const form = dialog(page);
+  await expectScreen(form, 'add-attribute-form.png');
   await pick(form.locator('#AttributeCategory + .ts-wrapper').getByRole('combobox'), 'Network activity');
   await pick(form.locator('#AttributeType + .ts-wrapper').getByRole('combobox'), 'domain');
   await form.getByRole('textbox', { name: /Enter the indicator value/ }).fill('qa-wf-attribute.example');
@@ -109,6 +111,7 @@ test('Add tag and galaxy cluster on the event', async ({ page, apiAs, api, ts, c
 
   await openEvent(page, event.id);
   await page.getByRole('button', { name: 'Edit Tags' }).click();
+  await expectScreen(dialog(page), 'edit-tags-dialog.png');
   await pick(dialog(page).getByRole('combobox', { name: 'Search tags to add…' }).first(), 'tlp:green');
   await dialog(page).getByRole('button', { name: 'Save Tags' }).click();
   await expect(page.getByText('Tags updated.')).toBeVisible();
@@ -242,6 +245,8 @@ test('Add event report', async ({ page, apiAs, api, ts, cleanup }) => {
   await report.getByRole('link', { name: /^#\d+$/ }).first().click();
   await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'First finding' })).toBeVisible();
+  const rendered = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Summary' }) });
+  await expectScreen(rendered.last(), 'event-report-view.png');
   await expectNoErrorPage(page);
 });
 
@@ -282,6 +287,7 @@ test('Populate from MISP JSON', async ({ page, apiAs, api, ts, cleanup }) => {
   await openEvent(page, event.id);
   await page.getByRole('link', { name: 'Populate from' }).click();
   const form = dialog(page);
+  await expectScreen(form, 'populate-from-dialog.png');
   await form.getByRole('button', { name: /^MISP JSON/ }).click();
   await form.getByRole('textbox', { name: 'MISP Event JSON' }).fill(JSON.stringify({
     Event: { Attribute: [{ type: 'domain', category: 'Network activity', value: 'qa-wf-json.example', to_ids: true }] },
@@ -309,6 +315,7 @@ test('Populate from freetext import', async ({ page, apiAs, api, ts, cleanup }) 
     ['http://qa-wf-freetext.example/login', 'url'],
     ['203.0.113.64', 'ip-dst'],
   ]);
+  await expectScreen(results, 'freetext-review.png');
   await results.getByRole('button', { name: 'Create attributes' }).click();
   await expect(dialog(page)).toHaveCount(0);
 
@@ -355,6 +362,7 @@ test.describe('with the publish permission', () => {
     await page.getByRole('link', { name: 'Publish Event' }).click();
     const confirm = dialog(page);
     await expect(confirm.getByRole('switch', { name: 'Send notification email' })).not.toBeChecked();
+    await expectScreen(confirm, 'publish-dialog.png');
     await confirm.getByRole('button', { name: 'Publish', exact: true }).click();
 
     await expect(page).toHaveURL(/\/events\/view2\/\d+/);

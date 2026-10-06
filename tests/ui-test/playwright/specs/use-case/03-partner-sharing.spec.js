@@ -1,6 +1,6 @@
 // ../../../use-case/03-partner-sharing.md
 const {
-  test, expect, expectServerOk, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
+  test, expect, expectServerOk, expectScreen, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
 } = require('../../helpers');
 
 test.use({ role: 'orgAdminA' });
@@ -22,6 +22,7 @@ test('Use case 3 – Share with a partner CERT', async ({ page, pageAs, apiAs, a
     await page.goto('/sharing_groups/index');
     await page.getByRole('link', { name: 'Add SharingGroups' }).click();
     const form = dialog(page);
+    await expectScreen(form, 'add-sharing-group-dialog.png');
     await form.getByRole('textbox', { name: 'e.g. Multinational sharing group' }).fill(group);
     await form.getByRole('textbox', { name: /e\.g\. Community1/ }).fill('QA');
     await form.getByRole('button', { name: '2 Organisations' }).click();

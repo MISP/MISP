@@ -1,6 +1,8 @@
 // ../../../use-case/06-defence-export.md
 const fs = require('fs');
-const { test, expect, knownBug, openEvent, dialog } = require('../../helpers');
+const {
+  test, expect, knownBug, expectScreen, openEvent, dialog,
+} = require('../../helpers');
 
 test.use({ role: 'siteAdmin' });
 
@@ -8,6 +10,7 @@ test.use({ role: 'siteAdmin' });
 async function exportAs(page, name, testInfo) {
   await page.getByRole('link', { name: 'Download as' }).click();
   const box = dialog(page);
+  await expectScreen(box, 'download-as-dialog.png');
   const link = box.getByRole('link', { name });
   await expect(box.getByRole('checkbox', { name: 'Include non-IDS marked attributes' }).first())
     .not.toBeChecked();

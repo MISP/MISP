@@ -96,20 +96,20 @@ async function expectServerOk(target, path) {
   return body;
 }
 
-// Parts of a MISP page that change on every run (ids, uuids, dates, timestamped names).
-const DYNAMIC = [
-  '[data-dynamic]',
-  'time',
-  '.timestamp',
-  '.uuid',
-  '[class*="uuid"]',
-  '[class*="date"]',
-];
+// Parts of a MISP page that change on every run: masked in the baselines.
+function dynamicParts(page) {
+  return [
+    page.locator('time, .timestamp, .uuid, [data-dynamic]'),
+    page.getByText(/^#\d+$/),
+    page.getByText(/\b\d{4}-\d{2}-\d{2}\b/),
+    page.locator('input[placeholder^="DD/MM/YYYY"]'),
+  ];
+}
 
 /**
- * Compares one element with its committed baseline in __screenshots__/.
- * `mask` adds locators to hide on top of the always-masked dynamic parts;
- * `hide` replaces given text (e.g. the {timestamp} suffix) before the shot.
+ * Compares one element (a dialog, a panel) with its committed baseline in
+ * __screenshots__/. `hide` replaces given text (e.g. the {timestamp} suffix)
+ * by "{ts}" first; `mask` adds locators to hide on top of dynamicParts().
  */
 async function expectScreen(locator, name, { mask = [], hide = [] } = {}) {
   const page = locator.page();
@@ -124,9 +124,12 @@ async function expectScreen(locator, name, { mask = [], hide = [] } = {}) {
       }
     }, hide);
   }
-  await expect(locator).toHaveScreenshot(name, {
-    mask: [...DYNAMIC.map((s) => page.locator(s)), ...mask],
-  });
+  // For a dialog, only its content: the page behind it changes with the data.
+  const content = locator.locator('.modal-content').first();
+  const isDialog = (await locator.getAttribute('role')) === 'dialog';
+  if (isDialog) await expect(content).toBeVisible();
+  const target = isDialog ? content : locator;
+  await expect(target).toHaveScreenshot(name, { mask: [...dynamicParts(page), ...mask] });
 }
 
 // Fills the Add Event form; returns once the new event page is open.
@@ -217,6 +220,8 @@ async function pick(combobox, search, option = search) {
   const active = page.locator('[role=option].active').filter({ visible: true });
   const activeName = async () => ((await active.count())
     ? (await active.first().innerText()).replace(/\s+/g, ' ').trim() : '');
+  // tom-select highlights the first match itself once the list is refreshed.
+  await active.first().waitFor({ timeout: 3_000 }).catch(() => {});
   for (let i = 0; i < 50 && !re.test(await activeName()); i++) await combobox.press('ArrowDown');
   expect(await activeName(), `option matching ${re} in the list`).toMatch(re);
   await combobox.press('Enter');
