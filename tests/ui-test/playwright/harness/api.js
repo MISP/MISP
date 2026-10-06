@@ -154,11 +154,42 @@ class MispApi {
     }
   }
 
+  async findTag(name) {
+    const found = await this.post('/tags/search', { tag: name });
+    return (Array.isArray(found) ? found : []).map((x) => x.Tag || x).find((t) => t.name === name);
+  }
+
+  // Makes a hidden tag visible; returns a function that hides it again.
+  async showTag(name) {
+    const tag = await this.findTag(name);
+    if (!tag) throw new Error(`No tag ${name}`);
+    if (!tag.hide_tag) return async () => {};
+    await this.post(`/tags/edit/${tag.id}`, { Tag: { hide_tag: false } });
+    return async () => this.post(`/tags/edit/${tag.id}`, { Tag: { hide_tag: true } });
+  }
+
   async deleteEventsByTag(tag) {
     const { response } = await this.post('/events/restSearch', {
       tags: [tag], metadata: true, returnFormat: 'json',
     });
     for (const { Event } of response || []) await this.post(`/events/delete/${Event.id}`);
+  }
+
+  // Enables a taxonomy; returns a function that puts it back as it was.
+  async enableTaxonomy(namespace) {
+    const taxonomy = (await this.get('/taxonomies/index'))
+      .map((t) => t.Taxonomy).find((t) => t.namespace === namespace);
+    if (!taxonomy) throw new Error(`No taxonomy ${namespace}`);
+    if (taxonomy.enabled) return async () => {};
+    await this.post(`/taxonomies/enable/${taxonomy.id}`);
+    return async () => this.post(`/taxonomies/disable/${taxonomy.id}`);
+  }
+
+  async deleteTagCollection(name) {
+    const list = await this.get('/tag_collections/index');
+    for (const c of list.map((x) => x.TagCollection || x).filter((x) => x.name === name)) {
+      await this.post(`/tag_collections/delete/${c.id}`);
+    }
   }
 
   async findSharingGroup(name) {

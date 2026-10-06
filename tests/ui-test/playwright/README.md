@@ -132,6 +132,10 @@ status and message of the refused request, or the error shown in the UI), never 
 | `attribute-attachment`                 | Attachment upload and download, malware sample (hashes, encrypted zip), upload without a file | upload without a file shows no message |
 | `attribute-view`                       | Edit (invalid value, IDS), soft delete / restore, delete removes the correlation, filter, correlation icon, selection | Bug 11 (icon not updated) |
 | `attribute-index-search`               | Attributes list: by value, by type, special characters | — |
+| `tag-index`                            | Add (custom, empty, duplicate, too long, colour), search, rename and delete used tags, hidden, not exportable, favourites | Bug 19, Bug 20; a duplicate is refused with no message; an invalid colour is silently replaced |
+| `tag-local`                            | Local tags, local-only tags (global, local, several events), filter by a local tag | a local-only tag is never offered; no tag action on several events |
+| `tag-collections`                      | Tag collections: empty name, tags and cluster, emoji, apply, exclusive tags, download, delete | Bug 5; exclusive taxonomies are not enforced |
+| `tag-roles-permissions`                | Global and local tags on another organisation's event, tag restricted to an organisation, User role | no way to add a local tag on another organisation's event |
 
 ## Writing a new test
 
