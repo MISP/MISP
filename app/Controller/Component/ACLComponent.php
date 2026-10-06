@@ -769,6 +769,7 @@ class ACLComponent extends Component
             'removeOrphanedCorrelations' => array(),
             'restartDeadWorkers' => array(),
             'restartWorkers' => array(),
+            'serverDiagnostic' => ['AND' => ['perm_site_admin', 'theming_enabled']],
             'serverSettings' => array(),
             'serverSettingsEdit' => array(),
             'serverSettingsReloadSetting' => array(),

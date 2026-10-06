@@ -2136,28 +2136,236 @@ tr.evt-extension-row td:first-child {
    Scoped under .ss-scope so nothing leaks into other pages.
    ============================================================ */
 
-/* ---- overall health cards (same treatment as the workflow hub cards) ---- */
-.ss-scope .ss-health-card {
-    --ss-accent: var(--bs-secondary);
+/* ---- navigation ---- */
+.ss-scope .ss-layout { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+.ss-scope .ss-layout-nav { flex: 1 1 100%; min-width: 0; }
+.ss-scope .ss-layout-main { flex: 1 1 100%; min-width: 0; }
+/* The column itself sticks: with align-items: flex-start it is only as tall
+   as the nav, so a sticky child inside it would have no room to move. */
+@media (min-width: 992px) {
+    .ss-scope .ss-layout { flex-wrap: nowrap; }
+    .ss-scope .ss-layout-nav { flex: 0 0 16.5rem; position: sticky; top: 72px; }
+    /* Full viewport height under the navbar (56px + 16px gaps); the card scrolls inside. */
+    .ss-scope .ss-nav-sticky { height: calc(100vh - 88px); display: flex; flex-direction: column; }
+    .ss-scope .ss-nav-sticky > .ss-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+}
+.ss-scope .ss-eyebrow,
+#ssSearchModal .ss-eyebrow {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bs-secondary-color);
+}
+.ss-scope .ss-nav-search {
+    display: flex; align-items: center; gap: .5rem; width: 100%;
+    padding: .6rem .8rem; font-size: .85rem; color: var(--bs-secondary-color);
+    background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius);
+}
+.ss-scope .ss-nav-search:hover,
+.ss-scope .ss-nav-search:focus-visible { border-color: var(--primary); color: var(--primary); }
+.ss-scope .ss-nav-search kbd,
+#ssSearchModal kbd {
+    margin-left: auto; font-size: .66rem; padding: .05rem .35rem;
+    color: var(--bs-secondary-color); background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color); box-shadow: none;
+}
+#ssSearchModal kbd { margin-left: 0; }
+.ss-scope .ss-nav-item {
+    display: flex; align-items: center; gap: .6rem; flex: 1 1 auto; min-width: 0;
+    padding: .38rem .6rem; border-radius: var(--bs-border-radius);
+    font-size: .86rem; color: var(--bs-body-color); text-decoration: none;
+}
+.ss-scope .ss-nav-item > .fa-fw { color: var(--bs-secondary-color); }
+.ss-scope .ss-nav-item:hover { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+.ss-scope .ss-nav-item.active {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary); font-weight: 600;
+}
+.ss-scope .ss-nav-item.active > .fa-fw { color: var(--primary); }
+.ss-scope .ss-nav-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ss-scope .ss-nav-children { padding-left: 1.4rem; }
+.ss-scope .ss-nav-children .ss-nav-item { font-size: .8rem; padding: .28rem .6rem; }
+.ss-scope .ss-nav-expand {
+    flex: 0 0 auto; border: 0; background: none; padding: .3rem .45rem;
+    color: var(--bs-secondary-color); border-radius: var(--bs-border-radius);
+}
+.ss-scope .ss-nav-expand:hover { background: var(--bs-tertiary-bg); }
+.ss-scope .ss-nav-expand i { transition: transform .2s ease-in-out; font-size: .7rem; }
+.ss-scope .ss-nav-expand.collapsed i { transform: rotate(-90deg); }
+.ss-scope .ss-nav-badge {
+    flex: 0 0 auto; min-width: 1.35rem; padding: 0 .4rem; border-radius: 999px;
+    font-size: .66rem; font-weight: 700; line-height: 1.3rem; text-align: center;
+}
+.ss-scope .ss-nav-badge-critical { background: var(--bs-danger); color: #fff; }
+.ss-scope .ss-nav-badge-warning { background: var(--bs-warning); color: #3d2e00; }
+.ss-scope .ss-nav-badge-neutral { background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); font-weight: 600; }
+
+/* status dot: health verdicts in the navigation and the filter toggles */
+.ss-scope .ss-dot {
+    flex: 0 0 auto; display: inline-block; width: .5rem; height: .5rem; border-radius: 50%;
+    background: var(--bs-border-color);
+}
+.ss-scope .ss-dot-0 { background: var(--bs-danger); }
+.ss-scope .ss-dot-1 { background: var(--bs-warning); }
+.ss-scope .ss-dot-2 { background: var(--bs-success); }
+.ss-scope .ss-dot-modified { background: var(--primary); }
+
+/* ---- filter chips ---- */
+.ss-scope .ss-toggle {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .2rem .7rem; border-radius: 999px; font-size: .78rem;
+    color: var(--bs-body-color); background: var(--bs-body-bg);
     border: 1px solid var(--bs-border-color);
-    border-top: 3px solid var(--ss-accent);
+}
+.ss-scope .ss-toggle:hover { border-color: var(--primary); }
+.ss-scope .ss-toggle.active {
+    border-color: var(--primary); color: var(--primary); font-weight: 600;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.ss-scope .ss-advanced-bar {
+    text-align: center; border-top: 1px dashed var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+}
+.ss-scope .ss-group-heading { font-weight: 700; margin: 1.5rem 0 .6rem; }
+.ss-scope .ss-content.ss-busy { opacity: .55; pointer-events: none; transition: opacity .15s; }
+.ss-scope .ss-skeleton {
+    display: block; height: .7rem; border-radius: .35rem;
+    background: linear-gradient(90deg, var(--bs-tertiary-bg), var(--bs-secondary-bg), var(--bs-tertiary-bg));
+    background-size: 200% 100%; animation: ss-shimmer 1.2s linear infinite;
+}
+@keyframes ss-shimmer { to { background-position: -200% 0; } }
+
+/* ---- row flags ---- */
+.ss-scope .ss-flag-modified {
+    color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.ss-scope .ss-flag-advanced {
+    color: var(--galaxy); background: color-mix(in srgb, var(--galaxy) 12%, transparent);
+}
+.ss-scope .ss-flag-deprecated { color: var(--bs-secondary-color); background: var(--bs-tertiary-bg); }
+.ss-scope .ss-dest-link { font-size: .74rem; text-decoration: none; }
+.ss-scope .ss-dest-link:hover { text-decoration: underline; }
+.ss-scope tr.ss-row-flash > td { animation: ss-flash 2.4s ease-out; }
+@keyframes ss-flash {
+    0%, 30% { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+    100% { background: transparent; }
+}
+.ss-scope .ss-essentials .ss-col-setting { width: 55%; }
+/* Align the cells with the card header instead of the table edge. */
+.ss-scope .ss-essentials td:first-child { padding-left: 1rem; }
+.ss-scope .ss-essentials td:last-child { padding-right: 1rem; }
+@media (min-width: 1200px) {
+    .ss-scope .ss-essentials-first { border-right: 1px solid var(--bs-border-color); }
+}
+
+/* ---- overview ---- */
+.ss-scope .ss-count {
+    display: inline-flex; align-items: baseline; gap: .35rem;
+    padding: .25rem .65rem; border-radius: var(--bs-border-radius); font-size: .78rem; font-weight: 600;
+}
+.ss-scope .ss-count b { font-size: 1.1rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ss-scope .ss-count-0 { color: var(--bs-danger-text-emphasis); background: var(--bs-danger-bg-subtle); }
+.ss-scope .ss-count-1 { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); }
+.ss-scope .ss-count-2 { color: var(--bs-success-text-emphasis); background: var(--bs-success-bg-subtle); }
+.ss-scope .ss-tiles {
+    display: grid; gap: .75rem;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+.ss-scope .ss-tile {
+    --ss-tile-ink: var(--bs-secondary-color);
+    display: flex; align-items: flex-start; gap: .65rem; padding: .75rem;
+    border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-lg);
+    color: var(--bs-body-color); text-decoration: none; background: var(--bs-body-bg);
+    transition: border-color .15s, box-shadow .15s;
+}
+.ss-scope .ss-tile:hover { border-color: var(--primary); box-shadow: 0 .2rem .6rem rgba(0, 0, 0, .08); color: var(--bs-body-color); }
+.ss-scope .ss-tile-lvl-0 { --ss-tile-ink: var(--bs-danger); }
+.ss-scope .ss-tile-lvl-1 { --ss-tile-ink: var(--bs-warning); }
+.ss-scope .ss-tile-lvl-2 { --ss-tile-ink: var(--bs-success); }
+.ss-scope .ss-tile-icon {
+    flex: 0 0 auto; width: 2.1rem; height: 2.1rem; border-radius: .5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ss-tile-ink); background: color-mix(in srgb, var(--ss-tile-ink) 14%, transparent);
+}
+.ss-scope .ss-tile-body { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.ss-scope .ss-tile-title {
+    font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ss-scope .ss-tile-label { font-size: .86rem; font-weight: 600; }
+.ss-scope .ss-tile-summary,
+.ss-scope .ss-tile-age { font-size: .74rem; color: var(--bs-secondary-color); overflow-wrap: anywhere; }
+.ss-scope .ss-tile-spinner { display: none; flex: 0 0 auto; color: var(--bs-secondary-color); }
+.ss-scope .ss-tile-loading .ss-tile-spinner { display: inline-block; }
+.ss-scope .ss-tile-loading .ss-tile-label,
+.ss-scope .ss-tile-loading .ss-tile-summary { opacity: .5; }
+.ss-scope .ss-tile-failed .ss-tile-label { color: var(--bs-danger); }
+
+/* ---- integrations & module grid ---- */
+.ss-scope .ss-hub-card {
+    --ss-accent: var(--bs-secondary);
+    border: 1px solid var(--bs-border-color); border-top: 3px solid var(--ss-accent);
     transition: box-shadow .15s ease-in-out;
 }
-.ss-scope .ss-health-card:hover { box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .09); }
-.ss-scope .ss-health-icon {
-    flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: .6rem;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; color: var(--ss-accent);
-    background: var(--bs-tertiary-bg);
-    background: color-mix(in srgb, var(--ss-accent) 13%, transparent);
+.ss-scope .ss-hub-card:hover { box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .09); }
+.ss-scope .ss-module-grid {
+    display: grid; gap: .75rem;
+    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
 }
-.ss-scope .ss-health-eyebrow {
-    font-size: .64rem; font-weight: 700; letter-spacing: .09em;
-    text-transform: uppercase; color: var(--ss-accent);
+.ss-scope .ss-module {
+    display: flex; flex-direction: column; gap: .4rem; padding: .7rem .8rem;
+    border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-body-bg); cursor: pointer;
 }
-.ss-scope .ss-health-value {
-    font-size: 1.75rem; font-weight: 700; line-height: 1;
-    font-variant-numeric: tabular-nums;
+.ss-scope .ss-module:hover { border-color: var(--primary); }
+.ss-scope .ss-module-selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 .15rem color-mix(in srgb, var(--primary) 25%, transparent);
+}
+.ss-scope .ss-module-off { background: var(--bs-tertiary-bg); }
+.ss-scope .ss-module-off .ss-module-name { color: var(--bs-secondary-color) !important; }
+.ss-scope .ss-module-name { font-weight: 700; font-size: .86rem; overflow-wrap: anywhere; }
+.ss-scope .ss-module-desc {
+    font-size: .75rem; color: var(--bs-secondary-color);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ss-scope .ss-module-warn {
+    font-size: .68rem; font-weight: 700; padding: .05rem .5rem; border-radius: 999px;
+    color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle);
+}
+@media (min-width: 1200px) {
+    .ss-scope .ss-module-panels { position: sticky; top: 72px; }
+}
+
+/* ---- health probes ---- */
+.ss-scope .ss-probe.ss-probe-busy { opacity: .6; }
+.ss-scope .ss-probe-age:empty { display: none; }
+
+/* ---- global settings search (the modal sits outside .ss-scope) ---- */
+#ssSearchModal .ss-search-input { font-size: 1rem; }
+#ssSearchModal .ss-search-result {
+    display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left;
+    padding: .45rem .55rem; border: 0; border-radius: var(--bs-border-radius);
+    background: none; color: var(--bs-body-color);
+}
+#ssSearchModal .ss-search-result:hover,
+#ssSearchModal .ss-search-result.active { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+#ssSearchModal .ss-setting-name { font-family: var(--bs-font-monospace); font-size: .8rem; overflow-wrap: anywhere; }
+#ssSearchModal .ss-search-tier {
+    flex: 0 0 5.5rem; text-align: center; font-size: .64rem; font-weight: 700;
+    padding: .1rem .3rem; border-radius: 999px; border: 1px solid currentColor;
+}
+#ssSearchModal .ss-tier-essential { color: var(--primary); }
+#ssSearchModal .ss-tier-standard { color: var(--bs-secondary-color); }
+#ssSearchModal .ss-tier-advanced { color: var(--galaxy); }
+#ssSearchModal .ss-tier-deprecated { color: var(--bs-tertiary-color); }
+#ssSearchModal .ss-prio {
+    display: inline-flex; white-space: nowrap; font-size: .66rem; font-weight: 700;
+    padding: .1rem .45rem; border-radius: 999px; border: 1px solid currentColor;
+}
+#ssSearchModal .ss-prio.ss-lvl-0 { color: var(--bs-danger); }
+#ssSearchModal .ss-prio.ss-lvl-1 { color: #b8860b; }
+#ssSearchModal .ss-prio.ss-lvl-2 { color: var(--bs-success); }
+@media (min-width: 992px) {
+    #ssSearchModal .ss-search-dialog { margin-top: 5rem; }
 }
 
 /* ---- section cards ---- */
@@ -2210,7 +2418,6 @@ tr.evt-extension-row td:first-child {
 .ss-scope .ss-col-priority { width: 8.5rem; }
 .ss-scope .ss-col-setting  { width: 20rem; }
 .ss-scope .ss-col-value    { width: 16rem; }
-.ss-scope .ss-col-error    { width: 11rem; }
 
 .ss-scope .ss-row-error.ss-lvl-0 > td { background: color-mix(in srgb, var(--bs-danger) 7%, transparent); }
 .ss-scope .ss-row-error.ss-lvl-1 > td { background: color-mix(in srgb, var(--bs-warning) 10%, transparent); }
@@ -2220,7 +2427,7 @@ tr.evt-extension-row td:first-child {
     font-family: var(--bs-font-monospace); font-size: .78rem; overflow-wrap: anywhere;
 }
 .ss-scope .ss-posture { font-size: .6rem; vertical-align: middle; }
-.ss-scope .ss-error-msg { color: var(--bs-danger); font-size: .75rem; }
+.ss-scope .ss-error-msg { color: var(--bs-danger); font-size: .75rem; margin-top: .15rem; }
 .ss-scope .ss-col-description { font-size: .76rem; }
 
 /* ---- priority pill ---- */
