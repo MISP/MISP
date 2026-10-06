@@ -1,8 +1,8 @@
-// ../../../use-case/06-defence-export.md
+// ../../use-case/06-defence-export.md
 const fs = require('fs');
 const {
   test, expect, knownBug, expectScreen, openEvent, dialog,
-} = require('../../helpers');
+} = require('../helpers');
 
 test.use({ role: 'siteAdmin' });
 

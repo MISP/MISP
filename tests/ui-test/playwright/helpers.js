@@ -1,6 +1,6 @@
 const base = require('@playwright/test');
-const { storageState } = require('./lib/env');
-const { adminApi, roleApi, DIST } = require('./lib/api');
+const { storageState } = require('./harness/env');
+const { adminApi, roleApi, DIST } = require('./harness/api');
 
 const { expect } = base;
 
@@ -96,41 +96,61 @@ async function expectServerOk(target, path) {
   return body;
 }
 
-// Parts of a MISP page that change on every run: masked in the baselines.
-function dynamicParts(page) {
-  return [
-    page.locator('time, .timestamp, .uuid, [data-dynamic]'),
-    page.getByText(/^#\d+$/),
-    page.getByText(/\b\d{4}-\d{2}-\d{2}\b/),
-    page.locator('input[placeholder^="DD/MM/YYYY"]'),
-  ];
+// Replaces what changes on every run by fixed values, so a baseline looks like
+// the real page with nothing masked: IDs, UUIDs, the {timestamp} suffix of the
+// test data, today's date and the times of day. A date the test typed itself
+// (2030-06-15) is kept: it is what the screenshot has to show.
+async function freezeDynamicText(page, hide) {
+  await page.evaluate((needles) => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const [y, m, d] = [now.getUTCFullYear(), pad(now.getUTCMonth() + 1), pad(now.getUTCDate())];
+    const longDay = new RegExp(`\\w+, (${+d} \\w+|\\w+ ${+d}),? ${y}`, 'g');
+    const rules = [
+      [/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        '00000000-0000-0000-0000-000000000000'],
+      [/\b1\d{12}\b/g, '{ts}'],
+      [/#\d+/g, '#1'],
+      [new RegExp(`${y}-${m}-${d}`, 'g'), '2026-01-01'],
+      [new RegExp(`${d}/${m}/${y}`, 'g'), '01/01/2026'],
+      [longDay, 'Thursday, 1 January 2026'],
+      [/\b\d{1,2}:\d{2}(:\d{2})?( [AP]M)?\b/g, '12:00'],
+      ...needles.map((s) => [new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '{ts}']),
+    ];
+    const fix = (text) => rules.reduce((t, [re, to]) => t.replace(re, to), text);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) n.nodeValue = fix(n.nodeValue);
+    for (const input of document.querySelectorAll('input, textarea')) {
+      if (input.value) input.value = fix(input.value);
+    }
+  }, hide);
 }
 
 /**
  * Compares one element (a dialog, a panel) with its committed baseline in
- * __screenshots__/. `hide` replaces given text (e.g. the {timestamp} suffix)
- * by "{ts}" first; `mask` adds locators to hide on top of dynamicParts().
+ * __screenshots__/. Dynamic text is replaced first (see freezeDynamicText);
+ * `hide` lists extra strings to replace by "{ts}", such as the test's timestamp.
  */
-async function expectScreen(locator, name, { mask = [], hide = [] } = {}) {
+async function expectScreen(locator, name, { hide = [] } = {}) {
   const page = locator.page();
   await page.evaluate(() => document.fonts.ready);
-  if (hide.length) {
-    await page.evaluate((needles) => {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-        for (const s of needles) {
-          if (n.nodeValue.includes(s)) n.nodeValue = n.nodeValue.split(s).join('{ts}');
-        }
-      }
-    }, hide);
-  }
   // For a dialog, only its content: the page behind it changes with the data.
   const content = locator.locator('.modal-content').first();
   const isDialog = (await locator.getAttribute('role')) === 'dialog';
   if (isDialog) await expect(content).toBeVisible();
   const target = isDialog ? content : locator;
-  await expect(target).toHaveScreenshot(name, { mask: [...dynamicParts(page), ...mask] });
+  await freezeDynamicText(page, hide);
+  // The dialog edges are transparent: hide the page behind it during the shot.
+  const style = isDialog ? 'body > :not(.modal) { visibility: hidden !important; }' : undefined;
+  await expect(target).toHaveScreenshot(name, { style });
 }
+
+// Blocks of the General tab of an event page, used as the final screenshot of a
+// test: the summary (identifiers, distribution, publication, analysis, threat
+// level), or one of the side cards by name (tags, galaxy, attachment,
+// analyst-data, sightings, related, warninglist).
+const eventSummary = (page) => page.getByRole('tabpanel').locator('.col-lg-9 > .card').first();
+const eventCard = (page, name) => page.locator(`#${name}-card`);
 
 // Fills the Add Event form; returns once the new event page is open.
 async function addEvent(page, { info, distribution = 'This community only' }) {
@@ -235,5 +255,5 @@ const dialog = (page) => page.getByRole('dialog').filter({ visible: true });
 module.exports = {
   test, expect, knownBug, blockedBy, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
   addEvent, freetextImport, freetextResults,
-  openEvent, openTab, row, rowAction, expectAfterReload, chooseSlider, pick, dialog, escapeRe,
+  openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
 };

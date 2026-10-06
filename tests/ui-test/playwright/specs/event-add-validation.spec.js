@@ -1,5 +1,7 @@
-// ../../../../event/add/validation.md
-const { test, expect, expectNoErrorPage, blockedBy } = require('../../../helpers');
+// ../../event/add/validation.md
+const {
+  test, expect, expectNoErrorPage, blockedBy, expectScreen,
+} = require('../helpers');
 
 test.use({ role: 'siteAdmin' });
 
@@ -22,6 +24,7 @@ test('Event add – empty Event Info', async ({ page, api }) => {
   const form = await openAddEvent(page);
   await form.getByRole('button', { name: 'Create Event Entry' }).click();
   await expectRefused(page, form, api, '', 'Please provide a name for the event.');
+  await expectScreen(form, 'event-add-empty-info.png');
 });
 
 test('Event add – Event Info with only spaces', async ({ page, api }) => {
@@ -30,6 +33,7 @@ test('Event add – Event Info with only spaces', async ({ page, api }) => {
   await info.fill('     ');
   await form.getByRole('button', { name: 'Create Event Entry' }).click();
   await expectRefused(page, form, api, '', 'Please provide a name for the event.');
+  await expectScreen(form, 'event-add-spaces-info.png');
 });
 
 test('Event add – invalid date', async ({ page, api, ts }) => {
@@ -39,6 +43,7 @@ test('Event add – invalid date', async ({ page, api, ts }) => {
   await form.getByRole('textbox', { name: /Event Date/ }).fill('31/02/2026');
   await form.getByRole('button', { name: 'Create Event Entry' }).click();
   await expectRefused(page, form, api, info, 'Enter the event date as DD/MM/YYYY.');
+  await expectScreen(form, 'event-add-invalid-date.png');
 });
 
 test('Event add – extends an unknown event ID', async ({ page, api, ts, cleanup }) => {
@@ -52,6 +57,7 @@ test('Event add – extends an unknown event ID', async ({ page, api, ts, cleanu
   cleanup(() => api.deleteEventsByInfo(info));
   await expectRefused(page, form, api, info, 'Invalid event ID provided.');
   await expect(form.getByRole('textbox', { name: /Event Info/ })).toHaveValue(info);
+  await expectScreen(form, 'event-add-extends-unknown-id.png');
 });
 
 test('Event add – Event Info over the database limit', async ({ page }) => {
@@ -62,4 +68,5 @@ test('Event add – Event Info over the database limit', async ({ page }) => {
   await expectNoErrorPage(page);
   await expect(form.getByText(/too long|maximum|characters/i).first()).toBeVisible();
   await expect(page).not.toHaveURL(/\/events\/view2\//);
+  await expectScreen(form, 'event-add-info-too-long.png');
 });

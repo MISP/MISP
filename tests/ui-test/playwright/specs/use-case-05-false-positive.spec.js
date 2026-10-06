@@ -1,7 +1,8 @@
-// ../../../use-case/05-false-positive.md
+// ../../use-case/05-false-positive.md
 const {
   test, expect, expectServerOk, blockedBy, openEvent, openTab, row, rowAction, dialog,
-} = require('../../helpers');
+  expectScreen,
+} = require('../helpers');
 
 test.use({ role: 'siteAdmin' });
 
@@ -57,4 +58,5 @@ test('Use case 5 – Handle a false positive', async ({ page, api, ts, cleanup }
     await dialog(page).getByRole('button', { name: 'Add Exclusion' }).click();
     await expect(row(page.getByRole('main'), '8.8.8.8')).toBeVisible();
   });
+  await expectScreen(row(page.getByRole('main'), '8.8.8.8'), 'use-case-5-exclusion.png');
 });

@@ -1,8 +1,10 @@
-// ../../../user-workflow/creation.md
+// ../../user-workflow/creation.md
 const {
   test, expect, expectNoErrorPage, expectDialogSaved, expectScreen, knownBug, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
   expectAfterReload, freetextImport, freetextResults,
-} = require('../../helpers');
+  eventSummary,
+  eventCard,
+} = require('../helpers');
 
 test.use({ role: 'userA' });
 
@@ -24,6 +26,7 @@ test('Event creation – info, date, distribution', async ({ page, api, ts, clea
   await expect(main.getByText('2026-09-15', { exact: true })).toBeVisible();
   await expect(main.getByText('This community only', { exact: true })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(eventSummary(page), 'wf-event-create.png');
 });
 
 test('Add object – IDS and correlation on one attribute, and a relationship', async ({
@@ -78,6 +81,7 @@ test('Add object – IDS and correlation on one attribute, and a relationship', 
   expect(domain.disable_correlation).toBe(false);
   await openTab(page, 'Objects');
   await expect(page.getByRole('tabpanel').filter({ visible: true }).getByText('related-to').first()).toBeVisible();
+  await expectScreen(page.getByRole('tabpanel').filter({ visible: true }), 'wf-object-add.png');
 });
 
 test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -102,6 +106,7 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(r.getByRole('cell', { name: 'domain', exact: true })).toBeVisible();
   await expect(r.getByRole('button', { name: /^IDS active/ })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(r, 'wf-attribute-add.png');
 });
 
 test('Add tag and galaxy cluster on the event', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -128,6 +133,8 @@ test('Add tag and galaxy cluster on the event', async ({ page, apiAs, api, ts, c
   await expect(main.getByText('tlp:green').first()).toBeVisible();
   await expect(main.getByText('Phishing - T1566').first()).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(eventCard(page, 'tags'), 'wf-event-tags.png');
+    await expectScreen(eventCard(page, 'galaxy'), 'wf-event-galaxy.png');
 });
 
 test('Add tag and galaxy cluster on an attribute', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -159,6 +166,7 @@ test('Add tag and galaxy cluster on an attribute', async ({ page, apiAs, api, ts
   const saved = await apiAs('userA').getEvent(event.id);
   expect((saved.Tag || []).map((t) => t.name)).not.toContain('tlp:amber');
   await expectNoErrorPage(page);
+  await expectScreen(r, 'wf-attribute-tag-cluster.png');
 });
 
 test('Edit event distribution', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -174,6 +182,7 @@ test('Edit event distribution', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(page).toHaveURL(/\/events\/view2\/\d+/);
   await expect(page.getByRole('main').getByText('All communities', { exact: true })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(eventSummary(page), 'wf-event-distribution.png');
 });
 
 test('Edit object comment', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -202,6 +211,7 @@ test('Edit object comment', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(page.getByText('Object saved.')).toBeVisible();
   await expect(page.getByRole('main').getByText(comment).first()).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(page.getByRole('tabpanel').filter({ visible: true }), 'wf-object-comment.png');
 });
 
 test('Edit attribute IDS state', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -221,6 +231,7 @@ test('Edit attribute IDS state', async ({ page, apiAs, api, ts, cleanup }) => {
   const r = row(page.getByRole('tabpanel').filter({ visible: true }), '203.0.113.63');
   await expect(r.getByRole('button', { name: /^IDS inactive/ })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(r, 'wf-attribute-ids.png');
 });
 
 test('Add event report', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -277,6 +288,8 @@ test('Add a small attachment', async ({ page, apiAs, api, ts, cleanup }, testInf
   await (await download).saveAs(file);
   expect(require('fs').readFileSync(file, 'utf8')).toBe(`QA attachment ${ts}`);
   await expectNoErrorPage(page);
+  await openEvent(page, event.id);
+    await expectScreen(eventCard(page, 'attachment'), 'wf-attachment.png');
 });
 
 test('Populate from MISP JSON', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -300,6 +313,7 @@ test('Populate from MISP JSON', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(r.getByRole('button', { name: /^IDS active/ })).toBeVisible();
   expect(await api.findEvents(info)).toHaveLength(1);
   await expectNoErrorPage(page);
+  await expectScreen(r, 'wf-populate-json.png');
 });
 
 test('Populate from freetext import', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -323,6 +337,7 @@ test('Populate from freetext import', async ({ page, apiAs, api, ts, cleanup }) 
   await expect(row(attributes, 'http://qa-wf-freetext.example/login')).toBeVisible();
   await expect(row(attributes, '203.0.113.64')).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(attributes.getByRole('table'), 'wf-populate-freetext.png');
 });
 
 test('Enrich event', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -345,6 +360,7 @@ test('Enrich event', async ({ page, apiAs, api, ts, cleanup }) => {
   await form.getByRole('button', { name: /Enrich|Run|Submit/ }).click();
   await expect(page.getByText(/Enrichment runs as a background job|Enrichment results/)).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(page.getByRole('main'), 'wf-enrich.png');
 });
 
 test.describe('with the publish permission', () => {
@@ -369,6 +385,7 @@ test.describe('with the publish permission', () => {
     await expect(page.getByText('Job queued')).toBeVisible();
     await expectAfterReload(page, () => expect(page.getByRole('main')).toContainText(/Publication\s*Published/));
     await expectNoErrorPage(page);
+    await expectScreen(eventSummary(page), 'wf-publish.png');
   });
 });
 
@@ -393,6 +410,7 @@ test('Batch import of attributes', async ({ page, apiAs, api, ts, cleanup }) => 
   }
   expect((await apiAs('userA').getEvent(event.id)).Attribute).toHaveLength(3);
   await expectNoErrorPage(page);
+  await expectScreen(attributes.getByRole('table'), 'wf-batch-import.png');
 });
 
 test('Delete and restore an attribute', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -424,4 +442,5 @@ test('Delete and restore an attribute', async ({ page, apiAs, api, ts, cleanup }
   const saved = await apiAs('userA').getEvent(event.id);
   expect(saved.Attribute.find((a) => a.value === '203.0.113.73').deleted).toBe(false);
   await expectNoErrorPage(page);
+  await expectScreen(attributes.getByRole('table'), 'wf-delete-restore.png');
 });

@@ -1,9 +1,11 @@
-// ../../../use-case/04-attachment-analysis.md
+// ../../use-case/04-attachment-analysis.md
 const crypto = require('crypto');
 const fs = require('fs');
 const {
   test, expect, expectDialogSaved, blockedBy, openEvent, openTab, row, pick, dialog,
-} = require('../../helpers');
+  expectScreen,
+  eventCard,
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -72,4 +74,6 @@ test('Use case 4 – Analyse the email attachment', async ({ page, apiAs, api, t
   const saved = await api.getEvent(event.id);
   const object = saved.Object.find((o) => o.name === 'domain-ip');
   expect(object.comment).toBe('C2 contacted by Delivery_Note.txt');
+  await openEvent(page, event.id);
+    await expectScreen(eventCard(page, 'attachment'), 'use-case-4-attachments.png');
 });

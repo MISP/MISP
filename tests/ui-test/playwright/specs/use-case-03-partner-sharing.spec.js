@@ -1,7 +1,7 @@
-// ../../../use-case/03-partner-sharing.md
+// ../../use-case/03-partner-sharing.md
 const {
   test, expect, expectServerOk, expectScreen, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
-} = require('../../helpers');
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -73,4 +73,6 @@ test('Use case 3 – Share with a partner CERT', async ({ page, pageAs, apiAs, a
 
   const saved = await api.getEvent(event.id);
   expect(saved.Attribute.map((a) => a.value)).toEqual(['203.0.113.47']);
+  await openEvent(page, event.id);
+    await expectScreen(row(await openTab(page, 'Attributes'), '203.0.113.47'), 'use-case-3-accepted-proposal.png');
 });

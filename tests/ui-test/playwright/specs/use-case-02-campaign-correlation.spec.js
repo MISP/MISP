@@ -1,8 +1,10 @@
-// ../../../use-case/02-campaign-correlation.md
+// ../../use-case/02-campaign-correlation.md
 const {
   test, expect, expectServerOk, blockedBy, addEvent, freetextImport,
   openEvent, openTab, row, dialog,
-} = require('../../helpers');
+  expectScreen,
+  eventCard,
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -64,4 +66,5 @@ test('Use case 2 – Discover a campaign', async ({ page, apiAs, api, ts, cleanu
   const ip = event.Attribute.find((a) => a.value === '203.0.113.45');
   const sightings = await api.post(`/sightings/listSightings/${ip.id}/attribute`);
   expect(sightings.filter((s) => s.Sighting.type === '0')).toHaveLength(1);
+  await expectScreen(eventCard(page, 'related'), 'use-case-2-related-events.png');
 });

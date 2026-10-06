@@ -1,8 +1,10 @@
-// ../../../use-case/01-phishing-triage.md
+// ../../use-case/01-phishing-triage.md
 const {
   test, expect, expectNoErrorPage, expectDialogSaved, blockedBy, addEvent, freetextImport, freetextResults,
   openTab, row, pick, chooseSlider, dialog, expectAfterReload,
-} = require('../../helpers');
+  expectScreen,
+  eventSummary,
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -87,4 +89,5 @@ test('Use case 1 – Triage a phishing email', async ({ page, api, ts, cleanup }
   expect(JSON.stringify(event.Galaxy)).toContain('Phishing - T1566');
   expect((event.Object || []).map((o) => o.name)).toContain('email');
   await expectNoErrorPage(page);
+  await expectScreen(eventSummary(page), 'use-case-1-published-event.png');
 });

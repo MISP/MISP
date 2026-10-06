@@ -1,7 +1,7 @@
 // Logs in once per role; every test reuses the saved session.
 const fs = require('fs');
 const { test: setup, expect } = require('@playwright/test');
-const { ROLES, AUTH_DIR, credentials, storageState } = require('../lib/env');
+const { ROLES, AUTH_DIR, credentials, storageState } = require('./env');
 
 fs.mkdirSync(AUTH_DIR, { recursive: true });
 

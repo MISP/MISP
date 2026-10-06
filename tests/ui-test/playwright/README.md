@@ -19,6 +19,7 @@ cp .env.example .env         # then fill in the passwords and API keys
 npm run test:e2e             # run every spec
 npm run test:e2e:use-case    # only the analyst scenarios (use-case/)
 npm run test:e2e:workflow    # only the user workflows (user-workflow/)
+npm run test:e2e:event       # only the event plans (event/)
 npm run test:e2e:update      # re-generate the visual baselines
 npm run test:e2e:ui          # interactive Playwright UI runner
 npm run test:e2e:report      # open the HTML report (trace / screenshot / diff gallery)
@@ -49,19 +50,21 @@ SLOWMO=600 npm run test:e2e:headed   # watch a real browser drive MISP live
 
 ```
 tests/ui-test/playwright/
-├─ setup/
-│  └─ auth.setup.js        # logs in once per role, sessions saved in .auth/
-├─ lib/
-│  ├─ env.js               # .env loading, roles, paths
-│  └─ api.js               # MISP API client for the test data (before) and cleanup (after)
-├─ specs/
-│  ├─ use-case/            # one spec per ../use-case/*.md (Operation Fake-Parcel)
-│  └─ user-workflow/       # one spec per ../user-workflow/*.md
-├─ helpers.js              # test fixtures (role pages, API, cleanup) + assertion helpers
-└─ __screenshots__/        # committed baseline PNGs (one folder per spec)
+├─ harness/
+│  ├─ env.js            # .env loading, roles, paths
+│  ├─ api.js            # MISP API client: test data (before) and cleanup (after)
+│  └─ auth.setup.js     # logs in once per role, sessions saved in .auth/
+├─ specs/               # one spec per Markdown file, named after its path:
+│                       #   use-case-01-phishing-triage, user-workflow-creation, event-add-fields…
+├─ helpers.js           # fixtures (role pages, API, cleanup) + assertion and screenshot helpers
+├─ __screenshots__/     # committed baseline PNGs, one folder per spec
+├─ .results/            # traces, videos, actual/diff images of the last run (not committed)
+└─ .report/             # HTML report of the last run (not committed)
 ```
 
-Every test is built the same way as its Markdown test:
+Every test is built the same way as its Markdown test, and **ends with a screenshot of its
+final state** (`expectScreen`), compared with its baseline: the test passes only if the
+functional checks pass *and* the screen looks like the committed baseline.
 
 | Markdown                    | Spec                                                                  |
 | --------------------------- | --------------------------------------------------------------------- |
@@ -71,7 +74,7 @@ Every test is built the same way as its Markdown test:
 | **Cleanup (after):**        | `cleanup(() => api.deleteEventsByInfo(name))` — runs even if the test fails |
 | **Known bugs on the way:**  | `knownBug('Bug 4 …')` — shown as an annotation in the report           |
 | numbered steps / phases     | `test.step('Phase 1 – …')`, one Playwright action per Markdown step    |
-| **Expected:**               | `expect(...)` assertions at the end of the test                        |
+| **Expected:**               | `expect(...)` assertions, then the final screenshot (`expectScreen`)   |
 
 Elements are found the way the Markdown names them — by role and exact label
 (`getByRole('button', { name: 'Add Event' })`) — never by CSS position. MISP pages keep
@@ -90,7 +93,7 @@ The roles (`siteAdmin`, `userA`, `orgAdminA`, `userB`, `orgAdminB`) log in once 
 | Two tests touching global state | single worker, tests run one after the other                      |
 | Colour scheme               | `colorScheme: 'light'`                                                |
 | Dates and time zone         | `timezoneId: 'UTC'`, `locale: 'en-GB'`                                 |
-| Viewport size               | pinned to 1280×800 in `playwright.config.js`                           |
+| Viewport size               | pinned to 1280×1024 in `playwright.config.js` (tall enough for the Add Event window) |
 | Web fonts                   | `await document.fonts.ready` before a screenshot                      |
 | Browser engine              | Chromium only                                                         |
 | IDs, UUIDs, dates, timestamped names | masked or replaced by `expectScreen()` before a screenshot   |
@@ -141,7 +144,7 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
 
 - **Write the Markdown test first** (`../README.md`, or the `misp-test-plan` skill), then
   the spec: the test name is the Markdown `###` title, so a failure points to its plan.
-- **Data before / after** goes through `lib/api.js`; add a method there rather than
+- **Data before / after** goes through `harness/api.js`; add a method there rather than
   calling the API from a spec.
 - **A known bug** that stops the test: `blockedBy('Bug N …')`, and check the server's answer to
   the refused action with `expectServerOk(button, '/controller/action/')` or
@@ -152,15 +155,18 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
 
 ## Screenshots
 
-- **Every test** keeps a screenshot of its last state (`screenshot: 'on'`), and a failed test
-  also keeps its video and trace: all of them are in the HTML report (`npm run test:e2e:report`).
-- **Visual baselines**: `expectScreen(locator, 'name.png')` compares one element with its
-  committed baseline in `__screenshots__/`. For a dialog only its content is compared (the page
-  behind it changes with the data), and IDs (`#123`), dates, times and date fields are masked.
-  Baselines today: the Add Event, Add Attribute, Add Object (template step), Edit Tags,
-  Populate from, Freetext review, Publish, Add Sharing Group and Download as windows, and a
-  rendered event report. Add one only after the functional checks of a test, on a screen
-  whose look matters.
+- **The final screenshot decides, with the checks, whether a test passes.** Each test ends with
+  `expectScreen(element, 'name.png')` on the element that shows its result (the event summary,
+  a row, a card, the dialog with its error message), never the whole page: the rest of the
+  page shows other data of the instance. A few tests also compare a window on the way.
+- **Nothing is masked.** Before the shot, `expectScreen` replaces what changes on every run by
+  fixed values: IDs (`#1`), UUIDs, the `{timestamp}` of the test data (`{ts}`), today's date and
+  the times of day. A date the test typed itself (`2030-06-15`) is kept. For a dialog only its
+  content is compared, with the page behind it hidden.
+- **Every test** also keeps a screenshot of its last state in the HTML report
+  (`screenshot: 'on'`), and a failed test keeps its video and trace.
+- A test stopped by a known bug never reaches its final screenshot: its baseline is created
+  the first run after the fix.
 
 When a change *intentionally* alters appearance, the relevant tests fail. Review the diff
 (`npm run test:e2e:report`), confirm the new look is correct, then:

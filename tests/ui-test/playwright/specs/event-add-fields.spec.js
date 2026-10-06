@@ -1,7 +1,8 @@
-// ../../../../event/add/fields.md
+// ../../event/add/fields.md
 const {
   test, expect, expectNoErrorPage, expectScreen, chooseSlider, openTab, row,
-} = require('../../../helpers');
+  eventSummary,
+} = require('../helpers');
 
 test.use({ role: 'siteAdmin' });
 
@@ -38,6 +39,7 @@ test('Event add', async ({ page, api, ts, cleanup }) => {
 
   await expectEventPage(page, info);
   await expect(main(page).getByText('2026-09-01', { exact: true })).toBeVisible();
+  await expectScreen(eventSummary(page), 'event-add.png');
 });
 
 test('Event add – minimal fields', async ({ page, api, ts, cleanup }) => {
@@ -52,6 +54,7 @@ test('Event add – minimal fields', async ({ page, api, ts, cleanup }) => {
   const event = await api.getEvent(id);
   expect([event.date, event.distribution, event.analysis, event.published])
     .toEqual([today, '1', '0', false]);
+  await expectScreen(eventSummary(page), 'event-add-minimal.png');
 });
 
 test('Event add – future date', async ({ page, api, ts, cleanup }) => {
@@ -64,6 +67,7 @@ test('Event add – future date', async ({ page, api, ts, cleanup }) => {
 
   await expectEventPage(page, info);
   await expect(main(page).getByText('2030-06-15', { exact: true })).toBeVisible();
+  await expectScreen(eventSummary(page), 'event-add-future-date.png');
 });
 
 test('Event add – all fields set', async ({ page, api, ts, cleanup }) => {
@@ -84,6 +88,7 @@ test('Event add – all fields set', async ({ page, api, ts, cleanup }) => {
   const event = await api.getEvent(id);
   expect([event.distribution, event.analysis, event.threat_level_id, event.date])
     .toEqual(['3', '2', '1', '2026-09-01']);
+  await expectScreen(eventSummary(page), 'event-add-all-fields.png');
 });
 
 test('Event add – distribution levels', async ({ page, api, ts, cleanup }) => {
@@ -104,6 +109,7 @@ test('Event add – distribution levels', async ({ page, api, ts, cleanup }) => 
 
   await expectEventPage(page, info);
   await expect(main(page).getByText('This community only', { exact: true })).toBeVisible();
+  await expectScreen(eventSummary(page), 'event-add-distribution.png');
 });
 
 test('Event add – extends an existing event', async ({ page, api, ts, cleanup }) => {
@@ -121,6 +127,7 @@ test('Event add – extends an existing event', async ({ page, api, ts, cleanup 
   // The extended event is listed in the "More details" part of the event summary.
   await main(page).getByRole('button', { name: 'More details' }).click();
   await expect(main(page).getByText(parent.info).first()).toBeVisible();
+  await expectScreen(eventSummary(page), 'event-add-extends.png');
 });
 
 test('Event add – HTML in Event Info', async ({ page, api, ts, cleanup }) => {
@@ -136,6 +143,7 @@ test('Event add – HTML in Event Info', async ({ page, api, ts, cleanup }) => {
   await expect(row(main(page), info)).toBeVisible();
   expect(dialogs, 'no alert pops up').toEqual([]);
   await expect(page.locator('main b', { hasText: /^QA$/ })).toHaveCount(0);
+  await expectScreen(row(main(page), info), 'event-add-html-row.png');
 });
 
 test('Event add – extends an unknown UUID', async ({ page, api, ts, cleanup }) => {
@@ -153,6 +161,7 @@ test('Event add – extends an unknown UUID', async ({ page, api, ts, cleanup })
   } else {
     await expect(form.locator('.invalid-feedback').filter({ visible: true })).not.toHaveCount(0);
   }
+  await expectScreen(eventSummary(page), 'event-add-extends-unknown-uuid.png');
 });
 
 test('Event add – Event Info with line breaks', async ({ page, api, ts, cleanup }) => {
@@ -172,6 +181,7 @@ test('Event add – Event Info with line breaks', async ({ page, api, ts, cleanu
   await page.goto('/events/index');
   await expect(main(page).getByRole('row').filter({ hasText: `QA line 1 ${ts}` })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(main(page).getByRole('row').filter({ hasText: `QA line 1 ${ts}` }), 'event-add-multiline-row.png');
 });
 
 test('Event add – extreme dates', async ({ page, api, ts, cleanup }) => {
@@ -192,4 +202,5 @@ test('Event add – extreme dates', async ({ page, api, ts, cleanup }) => {
       }
     });
   }
+  await expectScreen(eventSummary(page), 'event-add-extreme-dates.png');
 });

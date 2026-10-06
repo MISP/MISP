@@ -1,7 +1,9 @@
-// ../../../user-workflow/search.md
+// ../../user-workflow/search.md
 const {
   test, expect, expectNoErrorPage, blockedBy, openEvent, openTab, row, pick, dialog,
-} = require('../../helpers');
+  expectScreen,
+  eventSummary,
+} = require('../helpers');
 
 test.use({ role: 'userA' });
 
@@ -31,6 +33,7 @@ test('Events list – search by tag', async ({ page, apiAs, api, ts, cleanup }) 
   await expect(eventRow(page, tagged)).toBeVisible();
   await expect(eventRow(page, untagged)).toHaveCount(0);
   await expectNoErrorPage(page);
+  await expectScreen(eventRow(page, tagged), 'wf-search-tag-row.png');
 });
 
 test('Events list – My events', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -47,6 +50,7 @@ test('Events list – My events', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(eventRow(page, mine)).toBeVisible();
   await expect(eventRow(page, other)).toHaveCount(0);
   await expectNoErrorPage(page);
+  await expectScreen(eventRow(page, mine), 'wf-my-events-row.png');
 });
 
 test('Events list – Org events', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -65,6 +69,7 @@ test('Events list – Org events', async ({ page, apiAs, api, ts, cleanup }) => 
   await expect(eventRow(page, orgA)).toBeVisible();
   await expect(eventRow(page, orgB)).toHaveCount(0);
   await expectNoErrorPage(page);
+  await expectScreen(eventRow(page, orgA), 'wf-org-events-row.png');
 });
 
 test('Events list – sort by a column', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -89,6 +94,7 @@ test('Events list – sort by a column', async ({ page, apiAs, api, ts, cleanup 
   const text = await page.getByRole('main').getByRole('table').innerText();
   expect(text.indexOf(names[2])).toBeLessThan(text.indexOf(names[0]));
   await expectNoErrorPage(page);
+  await expectScreen(page.getByRole('main').getByRole('table').getByRole('row').first(), 'wf-sort-desc-header.png');
 });
 
 test('Export several selected events', async ({ page, apiAs, api, ts, cleanup }, testInfo) => {
@@ -144,6 +150,7 @@ test('Create an event from a template', async ({ page, api, cleanup }) => {
   const event = await api.getEvent(created.id);
   expect(event.Attribute.map((a) => a.value)).toContain('qa-wf-template.example');
   expect(event.Tag.map((t) => t.name)).toContain('tlp:green');
+  await expectScreen(eventSummary(page), 'wf-template.png');
 });
 
 test('Search an attribute by value', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -172,6 +179,7 @@ test('Search an attribute by value', async ({ page, apiAs, api, ts, cleanup }) =
   await expect(rows).toHaveCount(2);
   await expect(page.getByRole('main').getByText('203.0.113.81')).toHaveCount(0);
   await expectNoErrorPage(page);
+  await expectScreen(page.getByRole('main').getByRole('table'), 'wf-attribute-search.png');
 });
 
 test('Quick search of an event', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -191,6 +199,7 @@ test('Quick search of an event', async ({ page, apiAs, api, ts, cleanup }) => {
   await expect(eventRow(page, beta)).toHaveCount(0);
   await expect(page).toHaveURL(/\/events\/index/);
   await expectNoErrorPage(page);
+  await expectScreen(eventRow(page, alpha), 'wf-quick-search-row.png');
 });
 
 test('Navigate through correlations', async ({ page, apiAs, api, ts, cleanup }) => {
@@ -217,4 +226,5 @@ test('Navigate through correlations', async ({ page, apiAs, api, ts, cleanup }) 
   await expect(row(attributes, 'qa-wf-correl.example')
     .getByRole('link', { name: `#${e1.id}`, exact: true })).toBeVisible();
   await expectNoErrorPage(page);
+  await expectScreen(row(attributes, 'qa-wf-correl.example'), 'wf-correlation-row.png');
 });

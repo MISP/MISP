@@ -1,7 +1,9 @@
-// ../../../use-case/07-report-attribution.md
+// ../../use-case/07-report-attribution.md
 const {
   test, expect, expectNoErrorPage, knownBug, openEvent, openTab, row, pick, dialog,
-} = require('../../helpers');
+  expectScreen,
+  eventCard,
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -76,4 +78,5 @@ test('Use case 7 – Write the report and the attribution', async ({
   expect(JSON.stringify(saved.Galaxy)).toContain('APT28');
   expect(saved.Note.map((n) => n.note)).toEqual(['Attribution based on infrastructure only, to be confirmed']);
   expect(saved.Opinion.map((o) => [o.opinion, o.comment])).toEqual([['50', 'Not enough evidence yet']]);
+  await expectScreen(eventCard(lead, 'analyst-data'), 'use-case-7-analyst-data.png');
 });

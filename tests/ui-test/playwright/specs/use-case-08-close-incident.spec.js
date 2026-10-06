@@ -1,8 +1,10 @@
-// ../../../use-case/08-close-incident.md
+// ../../use-case/08-close-incident.md
 const {
   test, expect, expectNoErrorPage, knownBug, openEvent, openTab, row, rowAction, chooseSlider,
   dialog, expectAfterReload,
-} = require('../../helpers');
+  expectScreen,
+  eventSummary,
+} = require('../helpers');
 
 test.use({ role: 'orgAdminA' });
 
@@ -67,4 +69,6 @@ test('Use case 8 – Close the incident', async ({ page, apiAs, api, ts, cleanup
   const ip = (await api.post('/attributes/restSearch', { eventid: event.id, deleted: 1 }))
     .response.Attribute.find((a) => a.value === '203.0.113.99');
   expect(ip.deleted).toBe(true);
+  await openEvent(page, event.id);
+    await expectScreen(eventSummary(page), 'use-case-8-closed-event.png');
 });

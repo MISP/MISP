@@ -1,7 +1,8 @@
-// ../../../user-workflow/collaboration.md
+// ../../user-workflow/collaboration.md
 const {
   test, expect, expectNoErrorPage, expectServerOk, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
-} = require('../../helpers');
+  expectScreen,
+} = require('../helpers');
 
 test.use({ role: 'userB' });
 
@@ -59,6 +60,7 @@ test('Propose a change and accept it', async ({ page, pageAs, apiAs, api, ts, cl
   await expect(row(attributes, '203.0.113.91')).toBeVisible();
   await expect(row(attributes, '203.0.113.90')).toHaveCount(0);
   await expect(attributes.getByRole('link', { name: /^Proposals/ })).not.toContainText(/\(\d+\)/);
+  await expectScreen(row(attributes, '203.0.113.91'), 'wf-proposal-accept.png');
 });
 
 test('Propose a change and discard it', async ({ page, pageAs, apiAs, api, ts, cleanup }) => {
@@ -86,6 +88,7 @@ test('Propose a change and discard it', async ({ page, pageAs, apiAs, api, ts, c
   await expect(row(attributes, '203.0.113.92')).toBeVisible();
   await expect(attributes.getByRole('link', { name: /^Proposals/ })).not.toContainText(/\(\d+\)/);
   await expectNoErrorPage(owner);
+  await expectScreen(row(attributes, '203.0.113.92'), 'wf-proposal-discard.png');
 });
 
 test('Propose a new attribute', async ({ page, pageAs, apiAs, api, ts, cleanup }) => {
@@ -119,4 +122,5 @@ test('Propose a new attribute', async ({ page, pageAs, apiAs, api, ts, cleanup }
   await openEvent(owner, event.id);
   attributes = await openTab(owner, 'Attributes');
   await expect(row(attributes, 'qa-wf-proposed.example')).toBeVisible();
+  await expectScreen(row(attributes, 'qa-wf-proposed.example'), 'wf-proposal-new-attribute.png');
 });
