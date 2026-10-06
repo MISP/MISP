@@ -6274,6 +6274,7 @@ class Server extends AppModel
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'cli_only' => true,
                 ),
                 'osuser' => array(
                     'level' => 0,
@@ -7036,7 +7037,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ),
                 'redis_port' => array(
                     'level' => 0,
@@ -8319,6 +8321,7 @@ class Server extends AppModel
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => true,
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_redis_port' => array(
@@ -9047,7 +9050,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ],
                 'redis_port' => [
                     'level' => self::SETTING_CRITICAL,
