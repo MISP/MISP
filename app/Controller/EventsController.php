@@ -82,15 +82,6 @@ class EventsController extends AppController
             'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric',
         ]);
 
-        // if not admin or own org, check private as well..
-        if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
-            $conditions = $this->Event->createEventConditions($this->Auth->user());
-            if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
-                $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
-            }
-            $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
-        }
-
         if (in_array($this->request->action, ['checkLocks', 'getDistributionGraph'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
@@ -726,6 +717,15 @@ class EventsController extends AppController
 
     public function index()
     {
+
+        // if not admin or own org, check private as well..
+        if (!$this->_isSiteAdmin()) {
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
+            if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
+                $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
+            }
+            $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
         // list the events
         $urlparams = "";
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended', 'include_event_tags_fingerprint');
@@ -6165,6 +6165,15 @@ class EventsController extends AppController
                 ),
             )
         );
+        // if not admin or own org, check private as well..
+        if (!$this->_isSiteAdmin()) {
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
+            if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
+                $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
+            }
+            $this->paginate['AND'][] = $conditions;
+            $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
         $events = $this->paginate();
         $orgIds = array();
         foreach ($events as $k => $event) {
