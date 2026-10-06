@@ -1,0 +1,17 @@
+{
+  "name": "misp-ui-e2e",
+  "private": true,
+  "description": "Playwright E2E tests for the MISP web UI (Overmind)",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:use-case": "playwright test specs/use-case/",
+    "test:e2e:workflow": "playwright test specs/user-workflow/",
+    "test:e2e:update": "playwright test --update-snapshots",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed --workers=1",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

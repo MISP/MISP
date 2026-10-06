@@ -88,6 +88,7 @@ ui-test/
     search.md               Events list filters, sort, export of selected events, event from template, attribute search, quick search, correlations
     collaboration.md        proposals between organisations (accept, discard, new attribute)
   use-case/                 end-to-end analyst scenarios (Operation Fake-Parcel), one file per use case
+  playwright/               Playwright specs replaying use-case/ and user-workflow/ (see playwright/README.md)
     01-phishing-triage.md … 08-close-incident.md
   tools/
     seed_events.py          resets a LOCAL instance and creates the events used by the tests
