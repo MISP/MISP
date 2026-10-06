@@ -20,12 +20,12 @@
                 'id' => 'elements',
                 'title' => __('Elements'),
                 'icon' => 'fas fa-file-code',
-                'count' => $tag_count ?? 0,
+                'count' => count($template['TemplateElement'] ?? []),
 
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/template_elements/index/%s', h($template['Template']['id']))
+                        'ajax' => sprintf('%s/template_elements/index/%s', $baseurl, h($template['Template']['id']))
                     ]
                 ],
             ]

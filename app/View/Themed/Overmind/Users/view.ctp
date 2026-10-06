@@ -4,8 +4,7 @@
     $isOwnPermAuth  = !empty($me['Role']['perm_auth']);
     $isOwnSiteAdmin = !empty($me['Role']['perm_site_admin']);
 
-    // Page title
-    $this->set('headerTitle', __('User %s', h($email)));
+    $this->set('headerTitle', h($this->UserName->convertEmailToName($email)));
 
     $tabs = [
         [
@@ -42,7 +41,7 @@
             'icon'  => 'fas fa-gauge-high',
             'left'  => [
                 ['ajax' => sprintf(
-                    '%s/benchmarks/index/scope:user/average:1/aggregate:1/key:%s',
+                    '%s/benchmarks/index/scope:user/average:1/key:%s',
                     $baseurl,
                     h($uid)
                 )],

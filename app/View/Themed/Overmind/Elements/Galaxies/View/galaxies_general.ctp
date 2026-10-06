@@ -4,6 +4,8 @@ $iconClass = !empty($data['icon']) ? $this->FontAwesome->getClass($data['icon'])
 
 $palette = $this->GalaxyColour->palette($data['name'] ?? '');
 
+$connectorPrefix = 'misp-galaxy:' . ($data['type'] ?? '') . '=';
+
 $killChain = '';
 if (isset($data['kill_chain_order']) && !empty($data['kill_chain_order'])) {
     $killChain = json_encode($data['kill_chain_order'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -97,6 +99,41 @@ $this->set('headerDescription', $headerDescription);
                         <i class="fas fa-copy"></i>
                     </button>
 
+                </div>
+            </div>
+
+            <!-- TYPE -->
+            <div class="col-md-4">
+                <div class="text-muted small text-uppercase fw-bold mb-1">
+                    <?= __('Type') ?>
+                </div>
+
+                <div class="bg-light rounded px-2 py-1 d-inline-block font-monospace">
+                    <?= h($data['type'] ?? '') ?>
+                </div>
+            </div>
+
+            <!-- CONNECTOR TAG -->
+            <div class="col-md-8">
+                <div class="text-muted small text-uppercase fw-bold mb-1">
+                    <?= __('Connector tag') ?>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-light rounded px-2 py-1 font-monospace text-break"
+                         title="<?= __('Clusters of this galaxy are attached as tags of this form') ?>">
+                        <?= h($connectorPrefix) ?><span class="text-muted">"&hellip;"</span>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="text-muted border-0 bg-white"
+                        onclick="copyToClipboard(this, '<?= h(h($connectorPrefix)) ?>')"
+                        data-bs-toggle="tooltip"
+                        title="<?= __('Copy connector') ?>"
+                        aria-label="<?= __('Copy connector') ?>">
+                        <i class="fas fa-copy"></i>
+                    </button>
                 </div>
             </div>
 

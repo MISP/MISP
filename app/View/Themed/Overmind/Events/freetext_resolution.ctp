@@ -497,7 +497,7 @@ $distFallback = $this->DistributionLevel->fallback();
             // Reload only on success
             .then(function (r) {
                 if (!r.ok) { throw new Error(r.status); }
-                window.location = baseurl + '/events/view2/' + EVENT_ID;
+                returnToEventView(EVENT_ID);
             })
             .catch(function () {
                 submitBtn.disabled = false;

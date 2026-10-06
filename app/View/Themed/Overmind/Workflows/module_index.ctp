@@ -108,12 +108,12 @@ $fields = array_merge($fields, [
                 'action_off' => '1',
                 'url' => $baseurl . '/workflows/toggleModule/%id%/%action%',
             ] : null,
-            // [
-            //     'type' => 'navigate',
-            //     'label' => __('Module details'),
-            //     'icon' => 'eye',
-            //     'url' => $baseurl . '/workflows/moduleView/%id%',
-            // ],
+            [
+                'type' => 'navigate',
+                'label' => __('Module details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
         ])),
     ],
 ]);
@@ -217,7 +217,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'id',
-            //'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
+            'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
         ]
     ],
     'item_url' => '/workflows'

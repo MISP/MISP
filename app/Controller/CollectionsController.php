@@ -333,6 +333,9 @@ class CollectionsController extends AppController
                 return $this->Collection->rearrangeCollection($collection, $user);
             }
         ];
+        if (!$this->IndexFilter->isRest()) {
+            $params['contain'][] = 'SharingGroup';
+        }
         $this->CRUD->view($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

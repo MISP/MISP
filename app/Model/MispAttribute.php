@@ -305,6 +305,9 @@ class MispAttribute extends AppModel
     ];
 
     // skip Correlation for the following types
+    // An attachment whose file name carries one of these is shown as a picture
+    const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
     const NON_CORRELATING_TYPES = [
         'comment',
         'http-method',
@@ -1138,7 +1141,7 @@ class MispAttribute extends AppModel
     public function isImage(array $attribute)
     {
         return $attribute['type'] === 'attachment' &&
-            Validation::extension($attribute['value'], ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            Validation::extension($attribute['value'], self::IMAGE_EXTENSIONS);
     }
 
     /**
@@ -1900,6 +1903,116 @@ class MispAttribute extends AppModel
             $attribute['type'] = $element['type'];
         }
         return $attribute;
+    }
+
+    /**
+     * Condition keeping the attributes that carry (or, with $has false, do
+     * not carry) a note, an opinion or a relationship the user can see — the
+     * same set the analyst data column counts. $objectType and $uuidField
+     * point it at another kind of parent, an object for instance.
+     *
+     * @param array $user
+     * @param bool $has
+     * @param string $objectType the analyst data's object_type
+     * @param string|null $uuidField column holding that object's uuid
+     * @return string
+     */
+    public function analystDataCondition(array $user, $has, $objectType = 'Attribute', $uuidField = null)
+    {
+        $sgids = empty($user['Role']['perm_site_admin'])
+            ? $this->SharingGroup->authorizedIds($user)
+            : null;
+        $subQueries = [];
+        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
+            $Model = ClassRegistry::init($type);
+            $typeConditions = [$type . '.object_type' => $objectType];
+            if ($sgids !== null) {
+                $typeConditions['OR'] = [
+                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
+                    $type . '.org_uuid' => $user['Organisation']['uuid'],
+                    $type . '.distribution' => [1, 2, 3],
+                    'AND' => [
+                        $type . '.distribution' => 4,
+                        $type . '.sharing_group_id' => $sgids,
+                    ],
+                ];
+            }
+            $subQueries[] = $this->subQueryGenerator(
+                $Model,
+                [
+                    'fields' => [$type . '.object_uuid'],
+                    'conditions' => $typeConditions,
+                ],
+                $uuidField ?? $this->alias . '.uuid',
+                !$has
+            )[0];
+        }
+        return '(' . implode($has ? ' OR ' : ' AND ', $subQueries) . ')';
+    }
+
+    /**
+     * Condition keeping the attributes tagged with $tagNames (exact names) or,
+     * with $galaxyType, with any cluster of that galaxy.
+     *
+     * @param array|string|null $tagNames
+     * @param string|null $galaxyType
+     * @param array|null $eventIds scope of the attribute_tags lookup
+     * @return string
+     */
+    public function tagCondition($tagNames, $galaxyType = null, $eventIds = null)
+    {
+        $tagConditions = [];
+        if (!empty($tagNames)) {
+            $tagConditions['Tag.name'] = $tagNames;
+        }
+        if (!empty($galaxyType)) {
+            $tagConditions['Tag.name LIKE'] =
+                'misp-galaxy:' . $galaxyType . '="%';
+        }
+        if ($eventIds !== null) {
+            $tagConditions['AttributeTag.event_id'] = $eventIds;
+        }
+        return $this->subQueryGenerator(
+            $this->AttributeTag,
+            [
+                'fields' => ['AttributeTag.attribute_id'],
+                'conditions' => $tagConditions,
+                'joins' => [[
+                    'table' => 'tags',
+                    'alias' => 'Tag',
+                    'type' => 'INNER',
+                    'conditions' => ['Tag.id = AttributeTag.tag_id'],
+                ]],
+            ],
+            $this->alias . '.id'
+        )[0];
+    }
+
+    /**
+     * Option lists of the attribute indexes' "More filters" panel, shared by
+     * the global index and the event view so both offer the same choices.
+     *
+     * @return array view var name => [value => label], each led by ''
+     */
+    public function indexFilterOptions()
+    {
+        $categoryKeys = array_keys($this->categoryDefinitions);
+        $typeKeys = array_keys($this->typeDefinitions);
+        sort($typeKeys);
+        return [
+            'categoryOptions' => ['' => '']
+                + array_combine($categoryKeys, $categoryKeys),
+            'typeOptions' => ['' => ''] + array_combine($typeKeys, $typeKeys),
+            'tagOptions' => ['' => ''] + $this->AttributeTag->Tag->find('list', [
+                'fields' => ['Tag.name', 'Tag.name'],
+                'conditions' => ['Tag.is_galaxy' => 0],
+                'order' => ['Tag.name' => 'ASC'],
+            ]),
+            'galaxyOptions' => ['' => ''] + ClassRegistry::init('Galaxy')->find('list', [
+                'fields' => ['Galaxy.type', 'Galaxy.name'],
+                'order' => ['Galaxy.name' => 'ASC'],
+            ]),
+        ];
     }
 
     public function buildConditions($user)
@@ -3809,7 +3922,6 @@ class MispAttribute extends AppModel
      */
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
-        $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
@@ -3857,7 +3969,6 @@ class MispAttribute extends AppModel
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
-            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             foreach ($results as $attribute) {
                 $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
@@ -3929,8 +4040,6 @@ class MispAttribute extends AppModel
                 }
                 $conditions['AND'][] = $temp;
             }
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
-            $this->allowedlist = $this->Allowedlist->getBlockedValues();
             $instanceString = 'MISP';
             if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
                 $this->Event->Orgc->id = Configure::read('MISP.host_org_id');
@@ -3941,7 +4050,7 @@ class MispAttribute extends AppModel
             $mispTypes = $export->getMispTypes($type);
             foreach ($mispTypes as $mispType) {
                 $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->allowedlist, $instanceString, $enforceWarninglist));
+                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $instanceString, $enforceWarninglist));
             }
         }
         natsort($intel);
@@ -3952,7 +4061,7 @@ class MispAttribute extends AppModel
         return $intel;
     }
 
-    private function __bro($user, $conditions, $valueField, $export, $allowedlist, $instanceString, $enforceWarninglist)
+    private function __bro($user, $conditions, $valueField, $export, $instanceString, $enforceWarninglist)
     {
         $attributes = $this->fetchAttributes(
             $user,
@@ -3970,7 +4079,7 @@ class MispAttribute extends AppModel
         $orgs = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
+        return $export->export($attributes, $orgs, $valueField, $instanceString);
     }
 
     private function id_to_uuid($id, $scope = 'Attribute')
