@@ -158,7 +158,6 @@ function openModal(url, size = 'xl') {
             keepTabOnFormReturn(container);
             initPgpKeyLookup(container);
             initCollectionForm(container);
-            initTemplateElementForm(container);
             initServerForm(container);
             initSharingGroupForm(container);
             initObjectForm(container);
@@ -1619,127 +1618,6 @@ function initPgpKeyLookup(container) {
             notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
         });
     });
-}
-
-
-/*******************************
- * Template Element Add
- *******************************/
-function initTemplateElementForm(container) {
-    const form = container.querySelector('#templateElementAddForm');
-    if (!form) return;
-
-    const configDataNode = container.querySelector('#templateElementFormConfig');
-    if (!configDataNode) return;
-
-    let configData = {};
-    try {
-        configData = JSON.parse(configDataNode.textContent);
-    } catch (e) {
-        console.error("Erreur de parsing JSON pour le template element form", e);
-        return;
-    }
-
-    const typeSelectorEl = container.querySelector('#ElementTypeSelector');
-    const categoryEl = container.querySelector('#DynamicCategory');
-    const typeEl = container.querySelector('#DynamicType');
-
-    const typeSelectorTs = typeSelectorEl ? typeSelectorEl.tomselect : null;
-    const categoryTs = categoryEl ? categoryEl.tomselect : null;
-    const typeTs = typeEl ? typeEl.tomselect : null;
-
-    const dynamicFormFields = container.querySelector('#dynamicFormFields');
-    const checkComplex = container.querySelector('#checkComplex');
-
-    function toggleGroups(selectedType) {
-        if (!selectedType) {
-            dynamicFormFields.classList.add('d-none');
-            return;
-        }
-
-        dynamicFormFields.classList.remove('d-none');
-        container.querySelectorAll('.element-group-attr, .element-group-file').forEach(el => el.classList.add('d-none'));
-
-        if (selectedType === 'attribute') {
-            container.querySelectorAll('.element-group-attr').forEach(el => el.classList.remove('d-none'));
-            populateCategoryDropdown('attribute');
-        } else if (selectedType === 'file') {
-            container.querySelectorAll('.element-group-file').forEach(el => el.classList.remove('d-none'));
-            populateCategoryDropdown('file');
-        }
-    }
-
-    function populateCategoryDropdown(mode) {
-        if (!categoryTs) return;
-
-        categoryTs.clear(true);
-        categoryTs.clearOptions();
-        categoryTs.addOption({value: '', text: 'Select Category...'});
-
-        const options = (mode === 'attribute') ? configData.categoriesAttr : configData.categoriesFile;
-
-        Object.keys(options).forEach(key => {
-            categoryTs.addOption({value: key, text: options[key]});
-        });
-        categoryTs.refreshOptions(false);
-
-        if (configData.preSelectedCategory) {
-            categoryTs.setValue(configData.preSelectedCategory, true);
-            if (mode === 'attribute') populateTypeDropdown();
-        }
-    }
-
-    function populateTypeDropdown() {
-        if (!typeTs || !categoryTs) return;
-
-        const category = categoryTs.getValue();
-        typeTs.clear(true);
-        typeTs.clearOptions();
-        typeTs.addOption({value: '', text: 'Select Type...'});
-
-        if (!category) return;
-
-        const isComplex = checkComplex && checkComplex.checked;
-        let typesList = [];
-
-        if (isComplex && configData.typeGroupCategoryMapping[category]) {
-            typesList = configData.typeGroupCategoryMapping[category];
-        } else if (!isComplex && configData.categoryTypesAttr[category]) {
-            typesList = configData.categoryTypesAttr[category];
-        }
-
-        typesList.forEach(val => {
-            typeTs.addOption({value: val, text: val});
-        });
-
-        typeTs.refreshOptions(false);
-
-        if (configData.preSelectedType) {
-            typeTs.setValue(configData.preSelectedType, true);
-        }
-    }
-
-    if (typeSelectorTs) {
-        typeSelectorTs.on('change', toggleGroups);
-    }
-
-    if (categoryTs) {
-        categoryTs.on('change', () => {
-            const elType = typeSelectorTs ? typeSelectorTs.getValue() : null;
-            if (elType === 'attribute') {
-                populateTypeDropdown();
-            }
-        });
-    }
-
-    if (checkComplex) {
-        checkComplex.addEventListener('change', populateTypeDropdown);
-    }
-
-    if (typeSelectorTs) {
-        const initialType = typeSelectorTs.getValue();
-        if (initialType) toggleGroups(initialType);
-    }
 }
 
 

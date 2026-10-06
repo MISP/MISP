@@ -57,7 +57,6 @@ class Tag extends AppModel
             'className' => 'EventTag',
             'dependent' => true
         ),
-        'TemplateTag',
         'FavouriteTag' => array(
             'dependent' => true
         ),

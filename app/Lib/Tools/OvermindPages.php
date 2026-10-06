@@ -45,8 +45,6 @@ class OvermindPages
             'export_for_misp_galaxy'
         ),
         'galaxy_cluster_relations' => array('index'),
-        'templates' => array('index', 'delete', 'add', 'view'),
-        'templateElements' => array('delete', 'addV2', 'editV2'),
         'objectTemplates' => array('index', 'delete', 'add', 'view'),
         'object_relationships' => array('index', 'delete', 'add', 'edit'),
         'event_templates' => array(

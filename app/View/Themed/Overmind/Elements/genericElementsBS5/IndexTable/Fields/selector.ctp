@@ -114,14 +114,6 @@ if ($field['data_path'] === 'Taxonomy.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Template.id') {
-    if (!isset($mayModify)){
-        $mayModify = $mayModify = $isSiteAdmin;
-    }
-    $checkboxAttrs['data-item-id'] = $id;
-    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
-}
-
 
 if ($field['data_path'] === 'ObjectTemplate.id') {
     if (!isset($mayModify)){

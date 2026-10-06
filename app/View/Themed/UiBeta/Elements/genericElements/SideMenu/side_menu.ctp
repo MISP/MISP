@@ -1267,32 +1267,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'templates':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/templates/index',
-                        'text' => __('List Templates')
-                    ));
-                    if ($this->Acl->canAccess('templates', 'add')) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/templates/add',
-                            'text' => __('Add Template')
-                        ));
-                    }
-                    if ($menuItem === 'view' || $menuItem === 'edit') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
-                            'url' => $baseurl . '/templates/view/' . h($id),
-                            'text' => __('View Template')
-                        ));
-                        if ($mayModify) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'edit',
-                                'url' => $baseurl . '/templates/edit/' . h($id),
-                                'text' => __('Edit Template')
-                            ));
-                        }
-                    }
-                    break;
                 case 'decayingModel':
                     if ($isAdmin) {
                         if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {

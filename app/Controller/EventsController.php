@@ -7155,12 +7155,6 @@ class EventsController extends AppController
                     'ajax' => true,
                     'target' => 'popover_form'
                 ),
-                'template' => array(
-                    'url' => $this->baseurl . '/templates/templateChoices/' . $id,
-                    'text' => __('Populate using a Template'),
-                    'ajax' => true,
-                    'target' => 'popover_form'
-                ),
                 'OpenIOC' => array(
                     'url' => $this->baseurl . '/events/addIOC/' . $id,
                     'text' => __('OpenIOC Import'),

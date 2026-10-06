@@ -897,7 +897,6 @@ class ACLComponent extends Component
             'tagStatistics' => array('*'),
             'view' => array('*'),
             'viewGraph' => array('*'),
-            'viewTag' => array('*'),
             'fastIndex' => array('*'),
         ),
         'tasks' => array(
@@ -953,30 +952,6 @@ class ACLComponent extends Component
             'getRoot' => ['perm_site_admin'],
             'getCollections' => ['perm_site_admin']
         ],
-        'templateElements' => array(
-            'add' => array('perm_template'),
-            'addV2' => array('AND' => ['perm_template', 'theming_enabled']),
-            'delete' => array('perm_template'),
-            'deleteSelection' => array('AND' => ['perm_template', 'theming_enabled']),
-            'edit' => array('perm_template'),
-            'editV2' => array('AND' => ['perm_template', 'theming_enabled']),
-            'index' => array('*'),
-            'templateElementAddChoices' => array('perm_template'),
-        ),
-        'templates' => array(
-            'add' => array('perm_template'),
-            'delete' => array('perm_template'),
-            'deleteSelection' => array('AND' => ['perm_template', 'theming_enabled']),
-            'deleteTemporaryFile' => array('perm_add'),
-            'edit' => array('perm_template'),
-            'index' => array('*'),
-            'populateEventFromTemplate' => array('perm_add'),
-            'saveElementSorting' => array('perm_template'),
-            'submitEventPopulation' => array('perm_add'),
-            'templateChoices' => array('*'),
-            'uploadFile' => array('perm_add'),
-            'view' => array('*'),
-        ),
         'threads' => array(
             'index' => array('discussion_enabled'),
             'view' => array('discussion_enabled'),

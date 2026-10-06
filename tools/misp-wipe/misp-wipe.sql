@@ -44,7 +44,6 @@ TRUNCATE `tags`;
 TRUNCATE `threads`;
 TRUNCATE `bruteforces`;
 TRUNCATE `news`;
-TRUNCATE `template_tags`;
 TRUNCATE `event_locks`;
 TRUNCATE `fuzzy_correlate_ssdeep`;
 TRUNCATE `tasks`;
@@ -73,11 +72,6 @@ TRUNCATE `feeds`;
 TRUNCATE `regexp`;
 TRUNCATE `roles`;
 TRUNCATE `threat_levels`;
-TRUNCATE `templates`;
-TRUNCATE `template_elements`;
-TRUNCATE `template_element_attributes`;
-TRUNCATE `template_element_files`;
-TRUNCATE `template_element_texts`;
 
 -- Remove entries from tables and reset index
 DELETE FROM `users` WHERE id > 1;

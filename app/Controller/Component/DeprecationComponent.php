@@ -28,10 +28,6 @@ class DeprecationComponent extends Component
             'posts' => array(
                 'add' => false,
                 'index' => false
-            ),
-            'templates' => array(
-                'add' => false,
-                'populateEventFromTemplate' => false
             )
         );
     }
