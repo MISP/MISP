@@ -150,6 +150,7 @@ test('Create an event from a template', async ({ page, api, cleanup }) => {
   const event = await api.getEvent(created.id);
   expect(event.Attribute.map((a) => a.value)).toContain('qa-wf-template.example');
   expect(event.Tag.map((t) => t.name)).toContain('tlp:green');
+  await openEvent(page, created.id);
   await expectScreen(eventSummary(page), 'wf-template.png');
 });
 

@@ -1,5 +1,5 @@
 const base = require('@playwright/test');
-const { storageState } = require('./harness/env');
+const { storageState, credentials } = require('./harness/env');
 const { adminApi, roleApi, DIST } = require('./harness/api');
 
 const { expect } = base;
@@ -145,6 +145,16 @@ async function expectScreen(locator, name, { hide = [] } = {}) {
   await expect(target).toHaveScreenshot(name, { style });
 }
 
+// Logs in through the login form (for a test that needs its own session).
+async function loginAs(page, role) {
+  const { email, password } = credentials(role);
+  await page.goto('/users/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page).not.toHaveURL(/\/users\/login/);
+}
+
 // Blocks of the General tab of an event page, used as the final screenshot of a
 // test: the summary (identifiers, distribution, publication, analysis, threat
 // level), or one of the side cards by name (tags, galaxy, attachment,
@@ -245,6 +255,8 @@ async function pick(combobox, search, option = search) {
   for (let i = 0; i < 50 && !re.test(await activeName()); i++) await combobox.press('ArrowDown');
   expect(await activeName(), `option matching ${re} in the list`).toMatch(re);
   await combobox.press('Enter');
+  // Leave the field, as a user moving on would: some panels redraw on blur.
+  await combobox.blur();
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -253,7 +265,7 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const dialog = (page) => page.getByRole('dialog').filter({ visible: true });
 
 module.exports = {
-  test, expect, knownBug, blockedBy, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
+  test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
   addEvent, freetextImport, freetextResults,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
 };

@@ -142,6 +142,25 @@ class MispApi {
     return async () => this.post('/warninglists/toggleEnable', { id: list.id, enabled: 0 });
   }
 
+  async createTag(name, colour = '#7c3aed') {
+    const { Tag } = await this.post('/tags/add', { Tag: { name, colour, exportable: true } });
+    return Tag;
+  }
+
+  async deleteTag(name) {
+    const found = await this.post('/tags/search', { tag: name });
+    for (const t of (Array.isArray(found) ? found : []).map((x) => x.Tag || x)) {
+      if (t.name === name) await this.post(`/tags/delete/${t.id}`);
+    }
+  }
+
+  async deleteEventsByTag(tag) {
+    const { response } = await this.post('/events/restSearch', {
+      tags: [tag], metadata: true, returnFormat: 'json',
+    });
+    for (const { Event } of response || []) await this.post(`/events/delete/${Event.id}`);
+  }
+
   async findSharingGroup(name) {
     const { response } = await this.get('/sharing_groups/index');
     return (response || []).find((sg) => sg.SharingGroup.name === name)?.SharingGroup;

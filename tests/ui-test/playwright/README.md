@@ -121,6 +121,12 @@ status and message of the refused request, or the error shown in the UI), never 
 | `user-workflow-collaboration`          | Proposals between organisations: accept, discard, new attribute | proposals black-holed; no "propose attribute" button |
 | `event-add-fields`                     | Add Event: dates, defaults, every field, distribution levels, extends, HTML and line breaks in Event Info | — |
 | `event-add-validation`                 | Add Event refusals: empty or blank Event Info, invalid date, unknown Extends ID, Event Info too long | Bug 8 (too long); unknown Extends ID loses the form |
+| `event-edit`                           | Edit Event: fields, future date, too long Info, extends itself, two tabs, deleted meanwhile, logged out, published event, empty Info | Bug 8; an event can extend itself; two tabs: the last save silently wins |
+| `event-index-filters`                  | Events list: galaxy, tag, reversed dates, special characters, page out of range, single match, combined filters, filter kept on page 2 | Bug 1 (galaxy filter) |
+| `event-index-selection`                | Selection kept when switching view or sorting, delete selected events | Bug 7, Bug 27 |
+| `event-roles-permissions`              | Visibility and edit/publish rights per role and organisation | — |
+| `event-view-actions`                   | Publish / unpublish, publish an empty event, delete, delete an extended event, tags and clusters, unknown event, open by UUID, extends cycle | Bug 9 (unpublish) |
+| `event-view-performance`               | An event with 2,000 attributes: shown in less than 5 s, next page, search | — |
 
 ## Writing a new test
 
