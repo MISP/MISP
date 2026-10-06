@@ -24,6 +24,8 @@ class AttributeValue extends AppModel
     // Must match the case-insensitive index the dictionary migration creates
     const CI_PREFIX = 128;
 
+    const DEADLOCK_ATTEMPTS = 5;
+
     public $useTable = 'attribute_values';
 
     public $recursive = -1;
@@ -52,7 +54,9 @@ class AttributeValue extends AppModel
      *
      * Existing values are selected first, so only the missing ones are
      * inserted and no auto-increment ids are spent on collisions. Every row
-     * read back is checked against the input byte for byte.
+     * read back is checked against the input byte for byte. Outside a
+     * transaction a deadlock is retried; inside one it reaches the caller,
+     * whose transaction the database has already rolled back.
      *
      * @param array $values Scalars; repeats are collapsed.
      * @return array [value => id]. PHP turns numeric-string keys into ints.
@@ -63,17 +67,39 @@ class AttributeValue extends AppModel
     public function internMany(array $values)
     {
         $byHash = $this->hashValues($values);
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return $this->internHashed($byHash);
+            } catch (PDOException $e) {
+                if ($attempt >= self::DEADLOCK_ATTEMPTS || !$this->isDeadlock($e) || $this->inTransaction()) {
+                    throw $e;
+                }
+                usleep(mt_rand(1000, 10000) * $attempt);
+            }
+        }
+    }
+
+    /**
+     * @param array $byHash [hex hash => value]
+     * @return array [value => id]
+     */
+    private function internHashed(array $byHash)
+    {
         $ids = [];
-        $missing = $this->lookup($byHash, $ids, false);
+        $missing = $this->lookup($byHash, $ids);
         if (empty($missing)) {
             return $ids;
         }
-        // The same order in every process keeps concurrent inserts from deadlocking
+        // The same order in every process makes deadlocks between concurrent inserts rare
         ksort($missing, SORT_STRING);
         foreach ($this->chunks($missing) as $chunk) {
             $this->insertChunk($chunk);
         }
-        $missing = $this->lookup($missing, $ids, true);
+        $missing = $this->lookup($missing, $ids);
+        if (!empty($missing) && $this->inTransaction()) {
+            // Committed by another session after this transaction's snapshot was taken
+            $missing = $this->lookupCurrent($missing, $ids);
+        }
         if (!empty($missing)) {
             throw new RuntimeException(sprintf(
                 '%d attribute values were neither found nor inserted.',
@@ -268,51 +294,88 @@ class AttributeValue extends AppModel
      *
      * @param array $byHash [hex hash => value]
      * @param array $ids [value => id], added to.
-     * @param bool $current Read past a REPEATABLE READ snapshot.
      * @return array [hex hash => value] not found.
      */
-    private function lookup(array $byHash, array &$ids, $current)
+    private function lookup(array $byHash, array &$ids)
     {
-        $db = $this->getDataSource();
         $dialect = $this->getSqlDialect();
         foreach (array_chunk($byHash, self::CHUNK, true) as $chunk) {
             $literals = [];
             foreach (array_keys($chunk) as $hash) {
                 $literals[] = $dialect->binaryLiteral(hex2bin($hash));
             }
-            $sql = sprintf(
-                'SELECT %s, %s, %s FROM %s WHERE %s IN (%s)',
-                $db->name('id'),
-                $db->name('value'),
-                $db->name('hash'),
-                $this->quotedTable(),
-                $db->name('hash'),
-                implode(', ', $literals)
-            );
-            if ($current) {
-                $sql = $dialect->currentRead($sql);
-            }
-            foreach ($this->fetchRows($sql) as $row) {
-                $value = (string)$row['value'];
-                $stored = is_resource($row['hash']) ? stream_get_contents($row['hash']) : (string)$row['hash'];
-                if ($this->hashOf($value) !== $stored) {
-                    throw new RuntimeException(sprintf(
-                        'Attribute value %d does not match its stored hash.',
-                        $row['id']
-                    ));
-                }
-                $hash = bin2hex($stored);
-                if (!isset($byHash[$hash]) || $byHash[$hash] !== $value) {
-                    throw new RuntimeException(sprintf(
-                        'Attribute value %d collides with an input value.',
-                        $row['id']
-                    ));
-                }
-                $ids[$value] = (int)$row['id'];
-                unset($byHash[$hash]);
-            }
+            $this->collect($this->selectByHash('IN (' . implode(', ', $literals) . ')'), $byHash, $ids);
         }
         return $byHash;
+    }
+
+    /**
+     * lookup() past a REPEATABLE READ snapshot, as one locking read per
+     * value: MariaDB can answer a long IN list on a small table with a full
+     * index scan, which as a locking read would lock every row.
+     *
+     * @param array $byHash [hex hash => value]
+     * @param array $ids [value => id], added to.
+     * @return array [hex hash => value] not found.
+     */
+    private function lookupCurrent(array $byHash, array &$ids)
+    {
+        $dialect = $this->getSqlDialect();
+        foreach (array_keys($byHash) as $hash) {
+            $sql = $this->selectByHash('= ' . $dialect->binaryLiteral(hex2bin($hash)));
+            $this->collect($dialect->currentRead($sql), $byHash, $ids);
+        }
+        return $byHash;
+    }
+
+    /**
+     * @param string $condition On the hash column.
+     * @return string
+     */
+    private function selectByHash($condition)
+    {
+        $db = $this->getDataSource();
+        return sprintf(
+            'SELECT %s, %s, %s FROM %s WHERE %s %s',
+            $db->name('id'),
+            $db->name('value'),
+            $db->name('hash'),
+            $this->quotedTable(),
+            $db->name('hash'),
+            $condition
+        );
+    }
+
+    /**
+     * Check each row read back against its hash and the input, and record
+     * its id.
+     *
+     * @param string $sql
+     * @param array $byHash [hex hash => value], the found ones are removed.
+     * @param array $ids [value => id], added to.
+     * @return void
+     */
+    private function collect($sql, array &$byHash, array &$ids)
+    {
+        foreach ($this->fetchRows($sql) as $row) {
+            $value = (string)$row['value'];
+            $stored = is_resource($row['hash']) ? stream_get_contents($row['hash']) : (string)$row['hash'];
+            if ($this->hashOf($value) !== $stored) {
+                throw new RuntimeException(sprintf(
+                    'Attribute value %d does not match its stored hash.',
+                    $row['id']
+                ));
+            }
+            $hash = bin2hex($stored);
+            if (!isset($byHash[$hash]) || $byHash[$hash] !== $value) {
+                throw new RuntimeException(sprintf(
+                    'Attribute value %d collides with an input value.',
+                    $row['id']
+                ));
+            }
+            $ids[$value] = (int)$row['id'];
+            unset($byHash[$hash]);
+        }
     }
 
     /**
@@ -434,6 +497,26 @@ class AttributeValue extends AppModel
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         $statement->closeCursor();
         return $rows;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function inTransaction()
+    {
+        return $this->getDataSource()->getConnection()->inTransaction();
+    }
+
+    /**
+     * MySQL reports a deadlock as SQLSTATE 40001, PostgreSQL as 40P01.
+     *
+     * @param PDOException $e
+     * @return bool
+     */
+    private function isDeadlock(PDOException $e)
+    {
+        $state = is_array($e->errorInfo) ? $e->errorInfo[0] : $e->getCode();
+        return $state === '40001' || $state === '40P01';
     }
 
     /**

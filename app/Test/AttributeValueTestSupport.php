@@ -49,6 +49,12 @@ trait AttributeValueFakeDictionary
     /** @var bool */
     public $dropInserts = false;
 
+    /** @var array hex hash => true, rows only a locking read sees */
+    public $hidden = [];
+
+    /** @var PDOException[] Thrown by the next INSERTs, one each */
+    public $insertErrors = [];
+
     /** @var callable|null Answers any other SELECT. */
     public $responder;
 
@@ -58,6 +64,9 @@ trait AttributeValueFakeDictionary
     {
         $this->statements[] = $sql;
         if (strpos($sql, 'INSERT INTO') === 0) {
+            if (!empty($this->insertErrors)) {
+                throw array_shift($this->insertErrors);
+            }
             foreach ($this->hashesIn($sql) as $hash) {
                 if (!$this->dropInserts && !isset($this->rows[$hash])) {
                     $this->rows[$hash] = ['id' => $this->nextId++, 'value' => $this->known[$hash]];
@@ -65,10 +74,11 @@ trait AttributeValueFakeDictionary
             }
             return true;
         }
-        if (preg_match('/WHERE \W?hash\W? IN/', $sql)) {
+        if (preg_match('/WHERE \W?hash\W? (IN|=)/', $sql)) {
+            $locking = strpos($sql, 'LOCK IN SHARE MODE') !== false;
             $out = [];
             foreach ($this->hashesIn($sql) as $hash) {
-                if (isset($this->rows[$hash])) {
+                if (isset($this->rows[$hash]) && ($locking || !isset($this->hidden[$hash]))) {
                     $out[] = [
                         'id' => (string)$this->rows[$hash]['id'],
                         'value' => $this->rows[$hash]['value'],
@@ -137,6 +147,9 @@ class TestAttributeValue extends AttributeValue
     /** @var array value => the value whose hash it is given */
     public $collisions = [];
 
+    /** @var bool */
+    public $transaction = false;
+
     private $fakeDb;
 
     private $fakeDialect;
@@ -160,5 +173,10 @@ class TestAttributeValue extends AttributeValue
     public function hashOf($value)
     {
         return parent::hashOf(isset($this->collisions[$value]) ? $this->collisions[$value] : $value);
+    }
+
+    protected function inTransaction()
+    {
+        return $this->transaction;
     }
 }

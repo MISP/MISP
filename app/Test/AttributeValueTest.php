@@ -66,8 +66,106 @@ class AttributeValueTest extends TestCase
         $this->assertStringContainsString(sprintf("('b', X'%s')", self::hex('b')), $insert);
         $this->assertStringContainsString(sprintf("('c', X'%s')", self::hex('c')), $insert);
 
-        $this->assertStringEndsWith(' LOCK IN SHARE MODE', $reselect);
+        $this->assertStringStartsWith('SELECT `id`, `value`, `hash` FROM `attribute_values` WHERE `hash` IN (', $reselect);
+        $this->assertStringNotContainsString('LOCK IN SHARE MODE', $reselect);
         $this->assertStringNotContainsString(self::hex('a'), $reselect);
+    }
+
+    /**
+     * Inside a REPEATABLE READ transaction a plain read finds the
+     * transaction's own rows, but not one another session committed after
+     * the snapshot.
+     */
+    public function testInsideATransactionALateValueGetsALockingReadOfItsOwn()
+    {
+        $late = $this->mysql->store('late');
+        $this->mysql->hidden[self::hex('late')] = true;
+        $this->mysql->allow(['late', 'own']);
+        $model = $this->model($this->mysql);
+        $model->transaction = true;
+
+        $ids = $model->internMany(['own', 'late']);
+
+        $this->assertSame($late, $ids['late']);
+        $this->assertCount(4, $this->mysql->statements);
+        $this->assertStringNotContainsString('LOCK IN SHARE MODE', $this->mysql->statements[2]);
+        $this->assertSame(
+            sprintf("SELECT `id`, `value`, `hash` FROM `attribute_values` WHERE `hash` = X'%s' LOCK IN SHARE MODE", self::hex('late')),
+            $this->mysql->statements[3]
+        );
+    }
+
+    public function testOutsideATransactionNoReadLocks()
+    {
+        $this->mysql->store('late');
+        $this->mysql->hidden[self::hex('late')] = true;
+        $this->mysql->allow(['late']);
+
+        try {
+            $this->model($this->mysql)->internMany(['late']);
+            $this->fail('A plain read outside a transaction sees every committed row.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('1 attribute values were neither found nor inserted.', $e->getMessage());
+        }
+        $this->assertSame([], $this->mysql->statementsLike('/LOCK IN SHARE MODE/'));
+    }
+
+    private static function deadlock($sqlstate = '40001', $code = 1213)
+    {
+        $e = new PDOException("SQLSTATE[$sqlstate]: deadlock");
+        $e->errorInfo = [$sqlstate, $code, 'deadlock'];
+        return $e;
+    }
+
+    public function testADeadlockOutsideATransactionIsRetried()
+    {
+        foreach ([$this->mysql, $this->pgsql] as $db) {
+            $db->allow(['a']);
+            $db->insertErrors = [$db === $this->mysql ? self::deadlock() : self::deadlock('40P01', 7)];
+
+            $ids = $this->model($db)->internMany(['a']);
+
+            $this->assertSame(['a'], array_keys($ids));
+            $this->assertCount(2, $db->statementsLike('/^INSERT/'));
+        }
+    }
+
+    public function testADeadlockInsideATransactionReachesTheCaller()
+    {
+        $this->mysql->allow(['a']);
+        $this->mysql->insertErrors = [self::deadlock()];
+        $model = $this->model($this->mysql);
+        $model->transaction = true;
+
+        try {
+            $model->internMany(['a']);
+            $this->fail('The rolled-back transaction cannot be retried from here.');
+        } catch (PDOException $e) {
+            $this->assertSame('40001', $e->errorInfo[0]);
+        }
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT/'));
+    }
+
+    public function testOnlyDeadlocksAreRetriedAndOnlyFiveTimes()
+    {
+        $this->mysql->allow(['a']);
+        $this->mysql->insertErrors = [self::deadlock('HY000', 1205)];
+        try {
+            $this->model($this->mysql)->internMany(['a']);
+            $this->fail('A lock wait timeout is not a deadlock.');
+        } catch (PDOException $e) {
+            $this->assertSame(1205, $e->errorInfo[1]);
+        }
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT/'));
+
+        $this->mysql->insertErrors = array_fill(0, AttributeValue::DEADLOCK_ATTEMPTS, self::deadlock());
+        try {
+            $this->model($this->mysql)->internMany(['a']);
+            $this->fail('The last deadlock should reach the caller.');
+        } catch (PDOException $e) {
+            $this->assertSame(1213, $e->errorInfo[1]);
+        }
+        $this->assertCount(1 + AttributeValue::DEADLOCK_ATTEMPTS, $this->mysql->statementsLike('/^INSERT/'));
     }
 
     public function testInternManyOnPostgres()
@@ -133,7 +231,7 @@ class AttributeValueTest extends TestCase
             $this->assertLessThanOrEqual(1000, preg_match_all("/X'/", $sql));
         }
         $this->assertCount(3, $this->mysql->statementsLike('/^INSERT/'));
-        $this->assertCount(3, $this->mysql->statementsLike('/LOCK IN SHARE MODE$/'));
+        $this->assertCount(6, $this->mysql->statementsLike('/^SELECT/'));
     }
 
     public function testInsertsAreSplitToStayUnderTheStatementBudget()
@@ -176,7 +274,7 @@ class AttributeValueTest extends TestCase
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('collides with an input value', $e->getMessage());
         }
-        $this->assertCount(1, $this->mysql->statementsLike('/LOCK IN SHARE MODE$/'));
+        $this->assertCount(2, $this->mysql->statementsLike('/^SELECT/'));
     }
 
     public function testTwoInputValuesSharingAHashAreRefusedBeforeAnySql()
