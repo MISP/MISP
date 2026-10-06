@@ -1937,7 +1937,9 @@ class AdminShell extends AppShell
             $this->out("Table `$tableName`:");
             foreach ($diagnostics as $diagnostic) {
                 $this->out(' - ' . $diagnostic['description']);
-                $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
+                if (!empty($diagnostic['expected'])) {
+                    $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
+                }
                 if (!empty($diagnostic['actual'])) {
                     $this->out('   Actual:   ' . implode(' ', $diagnostic['actual']));
                 }
