@@ -56,6 +56,8 @@ ALLOW = [
      'frozen 2.x upgrade corpus; runs only against the old schema'),
     ('app/Lib/Migration/Migrations/*', '*',
      'migrations convert the text columns'),
+    ('app/Lib/Tools/AttributeValueBackfillTool.php', '*',
+     'the backfill sets the value ids from the text columns'),
     ('app/Test/BaselineGeneratorTest.php', '*',
      'schema tooling fixtures; no attribute query'),
     ('app/Test/MigrationGrammarTest.php', '*',

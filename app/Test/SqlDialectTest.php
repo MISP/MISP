@@ -212,6 +212,41 @@ class SqlDialectTest extends TestCase
         $this->assertSame("X''", $this->mysql->binaryLiteral(''));
     }
 
+    public function testBytesOf()
+    {
+        $this->assertSame('CAST(v.value AS BINARY)', $this->mysql->bytesOf('v.value'));
+        $this->assertSame("convert_to(v.value, 'UTF8')", $this->pgsql->bytesOf('v.value'));
+    }
+
+    /**
+     * The same bytes PHP's substr(hash('sha256', $v, true), 0, 16) gives:
+     * MySQL's SHA2() returns hex, two characters per byte.
+     */
+    public function testSha256Prefix()
+    {
+        $this->assertSame('UNHEX(LEFT(SHA2(a.value1, 256), 32))', $this->mysql->sha256Prefix('a.value1', 16));
+        $this->assertSame(
+            "substring(sha256(convert_to(a.value1, 'UTF8')) from 1 for 16)",
+            $this->pgsql->sha256Prefix('a.value1', 16)
+        );
+        $this->assertSame('UNHEX(LEFT(SHA2(x, 256), 64))', $this->mysql->sha256Prefix('x', 32));
+        $this->assertSame("substring(sha256(convert_to(x, 'UTF8')) from 1 for 1)", $this->pgsql->sha256Prefix('x', 1));
+    }
+
+    public function testSha256PrefixRefusesALengthSha256DoesNotHave()
+    {
+        foreach (array(0, 33) as $length) {
+            foreach (array($this->mysql, $this->pgsql) as $dialect) {
+                try {
+                    $dialect->sha256Prefix('x', $length);
+                    $this->fail("Length $length was accepted.");
+                } catch (InvalidArgumentException $e) {
+                    $this->assertStringContainsString('1 to 32', $e->getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * MariaDB has no `FOR SHARE`, and PostgreSQL's READ COMMITTED needs no lock
      * to see what other sessions committed.
@@ -241,6 +276,8 @@ class SqlDialectTest extends TestCase
             $this->pgsql->formatYearMonth('created'),
             $this->pgsql->regexpMatch('col', 'x'),
             $this->pgsql->binaryLiteral('x'),
+            $this->pgsql->bytesOf('x'),
+            $this->pgsql->sha256Prefix('x', 16),
             $this->pgsql->currentRead('SELECT 1;'),
         );
         foreach ($expressions as $expression) {

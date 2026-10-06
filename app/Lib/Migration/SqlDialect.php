@@ -44,9 +44,10 @@ App::uses('ConnectionManager', 'Model');
  * The methods split into two kinds, and the return values say which is which:
  *
  * - **Expression methods** (dateOf, unixTimestamp, fromUnixtime,
- *   formatYearMonth, regexpMatch, binaryLiteral) return a fragment with no
- *   trailing semicolon, to be embedded in a larger query or in a `fields`
- *   array. currentRead returns a whole SELECT, also without one.
+ *   formatYearMonth, regexpMatch, binaryLiteral, bytesOf, sha256Prefix)
+ *   return a fragment with no trailing semicolon, to be embedded in a larger
+ *   query or in a `fields` array. currentRead returns a whole SELECT, also
+ *   without one.
  * - **Statement methods** (optimizeTable, upsert, insertIgnore,
  *   resetSequence) return a complete statement ending in a semicolon,
  *   matching what the grammars produce. resetSequence returns null where the
@@ -224,6 +225,46 @@ class SqlDialect
             return sprintf("X'%s'", $hex);
         }
         return sprintf("decode('%s', 'hex')", $hex);
+    }
+
+    /**
+     * The bytes of a text expression, so that comparing two of them is exact:
+     * on the text itself, a case- or accent-insensitive collation or MySQL's
+     * PAD SPACE equates strings that differ.
+     *
+     * MySQL gives the bytes of the expression's character set, which is UTF-8
+     * for utf8mb3 and utf8mb4 columns.
+     *
+     * @param string $expr An SQL expression, already quoted by the caller.
+     * @return string
+     */
+    public function bytesOf($expr)
+    {
+        if ($this->isMysql()) {
+            return sprintf('CAST(%s AS BINARY)', $expr);
+        }
+        return sprintf("convert_to(%s, 'UTF8')", $expr);
+    }
+
+    /**
+     * The first bytes of the SHA-256 of a UTF-8 text expression, as a binary
+     * string: what PHP computes as substr(hash('sha256', $v, true), 0, $length).
+     *
+     * @param string $expr An SQL expression, already quoted by the caller.
+     * @param int $length Bytes to keep, 1 to 32.
+     * @return string
+     * @throws InvalidArgumentException For a length outside 1 to 32.
+     */
+    public function sha256Prefix($expr, $length)
+    {
+        $length = (int)$length;
+        if ($length < 1 || $length > 32) {
+            throw new InvalidArgumentException('A SHA-256 prefix is 1 to 32 bytes long.');
+        }
+        if ($this->isMysql()) {
+            return sprintf('UNHEX(LEFT(SHA2(%s, 256), %d))', $expr, $length * 2);
+        }
+        return sprintf('substring(sha256(%s) from 1 for %d)', $this->bytesOf($expr), $length);
     }
 
     /**

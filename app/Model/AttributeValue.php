@@ -26,6 +26,9 @@ class AttributeValue extends AppModel
 
     const DEADLOCK_ATTEMPTS = 5;
 
+    // The hash column holds this many leading bytes of SHA-256
+    const HASH_BYTES = 16;
+
     public $useTable = 'attribute_values';
 
     public $recursive = -1;
@@ -36,7 +39,7 @@ class AttributeValue extends AppModel
      */
     public function hashOf($value)
     {
-        return substr(hash('sha256', $value, true), 0, 16);
+        return substr(hash('sha256', $value, true), 0, self::HASH_BYTES);
     }
 
     /**
