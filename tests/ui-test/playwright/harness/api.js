@@ -192,6 +192,41 @@ class MispApi {
     }
   }
 
+  async createGalaxy(name, namespace = 'qa') {
+    const { Galaxy } = await this.post('/galaxies/add', {
+      Galaxy: { name, namespace, description: 'QA test data', distribution: 0 },
+    });
+    return Galaxy;
+  }
+
+  async findGalaxy(name) {
+    const { response } = await this.post('/galaxies/index', { value: name }).catch(() => ({}));
+    const list = response || await this.get('/galaxies/index');
+    return list.map((g) => g.Galaxy || g).find((g) => g.name === name);
+  }
+
+  async deleteGalaxyByName(name) {
+    const galaxy = await this.findGalaxy(name);
+    if (galaxy) await this.post(`/galaxies/delete/${galaxy.id}`);
+  }
+
+  async createCluster(galaxyId, value, extra = {}) {
+    const { GalaxyCluster } = await this.post(`/galaxy_clusters/add/${galaxyId}`, {
+      GalaxyCluster: { value, description: 'QA test data', distribution: 0, authors: [], ...extra },
+    });
+    return GalaxyCluster;
+  }
+
+  async getCluster(id) {
+    return (await this.get(`/galaxy_clusters/view/${id}`)).GalaxyCluster;
+  }
+
+  // The cluster `value` of the galaxy type `type` (e.g. 'threat-actor', 'APT28').
+  async findCluster(type, value) {
+    const { response } = await this.post('/galaxy_clusters/restSearch', { value });
+    return (response || []).map((c) => c.GalaxyCluster).find((c) => c.type === type && c.value === value);
+  }
+
   async findSharingGroup(name) {
     const { response } = await this.get('/sharing_groups/index');
     return (response || []).find((sg) => sg.SharingGroup.name === name)?.SharingGroup;

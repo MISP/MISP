@@ -136,6 +136,9 @@ status and message of the refused request, or the error shown in the UI), never 
 | `tag-local`                            | Local tags, local-only tags (global, local, several events), filter by a local tag | a local-only tag is never offered; no tag action on several events |
 | `tag-collections`                      | Tag collections: empty name, tags and cluster, emoji, apply, exclusive tags, download, delete | Bug 5; exclusive taxonomies are not enforced |
 | `tag-roles-permissions`                | Global and local tags on another organisation's event, tag restricted to an organisation, User role | no way to add a local tag on another organisation's event |
+| `galaxy-index`                         | Custom galaxy (empty name, create, kill chain), disable a galaxy, delete a used galaxy, import (invalid JSON, no cluster) | clusters of a disabled galaxy are still offered; unpublished clusters are not offered (to confirm) |
+| `galaxy-clusters`                      | Clusters: empty name, elements, fork, rename and soft delete while used, hard delete and re-import, publish | deleting a cluster is black-holed; unpublished clusters are not offered (to confirm) |
+| `galaxy-relations`                     | Relations between clusters (by UUID): add, without type, to itself, target deleted | deleting a cluster is black-holed |
 
 ## Writing a new test
 

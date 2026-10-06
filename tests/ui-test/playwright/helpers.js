@@ -304,7 +304,8 @@ async function pick(combobox, search, option = search) {
   }
   await combobox.press('Enter');
   // Leave the field, as a user moving on would: some panels redraw on blur.
-  await combobox.blur();
+  // (The combobox may be named by a placeholder that is gone once filled.)
+  await combobox.page().evaluate(() => document.activeElement?.blur());
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
