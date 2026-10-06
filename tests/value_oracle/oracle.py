@@ -10,14 +10,17 @@ Usage:
                       [--current LABEL] [--save LABEL] [--case GLOB]
     oracle.py timings SUITE[,SUITE...] --baseline LABEL [--current LABEL]
                       [--case GLOB]
-    oracle.py restore [--yes]
+    oracle.py restore [--yes] [--no-refill]
+    oracle.py standby status|refill [--background] [--force]
     oracle.py selftest
 
 Without --current, compare runs the cases live. The config (JSON: url,
 users {name: api key}, store, optional verify_tls and timeout) comes from
 --config or $VALUE_ORACLE_CONFIG; see config.example.json. Exit status is
 non-zero when anything differs, is missing or fails. restore resets the
-instance to the configured dump and needs the config's "restore" section.
+instance to the configured dump and needs the config's "restore" section;
+with restore.standby_database set it swaps in the pre-loaded standby and
+refills it in the background (--no-refill leaves that to "standby refill").
 timings lists how long recorded cases took, which compare never looks at.
 """
 
@@ -38,12 +41,16 @@ import restore  # noqa: E402
 import suites  # noqa: E402
 
 
-def load_config(args):
+def config_path(args):
     path = args.config or os.environ.get('VALUE_ORACLE_CONFIG')
     if not path:
         raise core.OracleError(
             'no config: pass --config or set VALUE_ORACLE_CONFIG')
-    return core.Config.load(os.path.expanduser(path))
+    return os.path.abspath(os.path.expanduser(path))
+
+
+def load_config(args):
+    return core.Config.load(config_path(args))
 
 
 def suite_names():
@@ -198,7 +205,8 @@ def timing_cell(meta):
 
 def cmd_restore(args):
     config = load_config(args)
-    restorer = restore.Restorer(config.restore)
+    restorer = restore.Restorer(config.restore,
+                                config_path=config_path(args))
     target = config.restore['database']
     if not args.yes:
         answer = input('Overwrite database %s and its Redis state? [y/N] '
@@ -206,7 +214,24 @@ def cmd_restore(args):
         if answer.strip().lower() != 'y':
             print('aborted')
             return 1
-    restorer.run()
+    restorer.run(refill=not args.no_refill)
+    return 0
+
+
+def cmd_standby(args):
+    config = load_config(args)
+    standby = restore.Restorer(config.restore).standby
+    if standby is None:
+        raise core.OracleError('config has no restore.standby_database')
+    if args.action == 'status':
+        ready, reason = standby.status()
+        print('%s: %s%s' % (standby.db, reason,
+                            '; a load is running' if standby.busy() else ''))
+        return 0 if ready else 1
+    if args.background:
+        print(standby.spawn_refill(config_path(args)))
+    else:
+        print(standby.refill(force=args.force))
     return 0
 
 
@@ -247,7 +272,14 @@ def main(argv=None):
 
     p = sub.add_parser('restore')
     p.add_argument('--yes', action='store_true')
+    p.add_argument('--no-refill', action='store_true')
     p.set_defaults(func=cmd_restore)
+
+    p = sub.add_parser('standby')
+    p.add_argument('action', choices=('status', 'refill'))
+    p.add_argument('--background', action='store_true')
+    p.add_argument('--force', action='store_true')
+    p.set_defaults(func=cmd_standby)
 
     sub.add_parser('selftest').set_defaults(func=cmd_selftest)
 
