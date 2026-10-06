@@ -56,9 +56,9 @@ A colleague reports a fake parcel-delivery email. The analyst records it in MISP
 16. Paste this text in the **textbox** of the **Freetext Import** window:
     `Dear customer, track your parcel at hxxp://parcel-tracking[.]example/track?id=48213 . Our server 203.0.113[.]45 will keep it 48h.`
 17. Click the **button** "Run Freetext Import".
-18. Check that the list shows `http://parcel-tracking.example/track?id=48213` (type `url`), `parcel-tracking.example` (type `domain`) and `203.0.113.45` (type `ip-dst`).
+18. Check that the list shows `http://parcel-tracking.example/track?id=48213` (type `url`) and `203.0.113.45` (type `ip-dst`). The bare `.example` domain is not offered as a `domain`: MISP only accepts known top-level domains.
 19. Click the **button** "Create attributes".
-20. Open the **tab** "Attributes" and check that the 3 values are listed.
+20. Open the **tab** "Attributes" and check that the 2 values are listed.
 
 **Phase 4 – Classify**
 
@@ -74,6 +74,6 @@ A colleague reports a fake parcel-delivery email. The analyst records it in MISP
 **Expected:**
 - The event `Fake-Parcel phishing {timestamp}` exists with the distribution **This community only**, threat level **Medium**, and is **Published**.
 - It contains the object `email` (from `delivery@parcel-tracking.example`, subject `Your parcel could not be delivered`).
-- It contains the attributes `http://parcel-tracking.example/track?id=48213` (`url`), `parcel-tracking.example` (`domain`) and `203.0.113.45` (`ip-dst`).
+- It contains the attributes `http://parcel-tracking.example/track?id=48213` (`url`) and `203.0.113.45` (`ip-dst`).
 - It has the tag `tlp:amber` and the galaxy cluster `Phishing - T1566`.
 - No "An Internal Error Has Occurred." or CSRF page is shown at any step.

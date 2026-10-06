@@ -121,6 +121,27 @@ class MispApi {
     };
   }
 
+  async deleteCorrelationExclusion(value) {
+    const list = await this.get('/correlation_exclusions/index');
+    for (const e of list.map((x) => x.CorrelationExclusion || x).filter((x) => x.value === value)) {
+      await this.post(`/correlation_exclusions/delete/${e.id}`);
+    }
+  }
+
+  async findWarninglist(name) {
+    const { Warninglists } = await this.post('/warninglists/index', { value: name });
+    return Warninglists.map((w) => w.Warninglist).find((w) => w.name === name);
+  }
+
+  // Enables a warninglist; returns a function that puts it back as it was.
+  async enableWarninglist(name) {
+    const list = await this.findWarninglist(name);
+    if (!list) throw new Error(`No warninglist ${name}`);
+    if (list.enabled) return async () => {};
+    await this.post('/warninglists/toggleEnable', { id: list.id, enabled: 1 });
+    return async () => this.post('/warninglists/toggleEnable', { id: list.id, enabled: 0 });
+  }
+
   async findSharingGroup(name) {
     const { response } = await this.get('/sharing_groups/index');
     return (response || []).find((sg) => sg.SharingGroup.name === name)?.SharingGroup;

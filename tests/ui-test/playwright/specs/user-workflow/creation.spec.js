@@ -1,7 +1,7 @@
 // ../../../user-workflow/creation.md
 const {
-  test, expect, expectNoErrorPage, knownBug, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
-  expectAfterReload,
+  test, expect, expectNoErrorPage, expectDialogSaved, knownBug, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
+  expectAfterReload, freetextImport, freetextResults,
 } = require('../../helpers');
 
 test.use({ role: 'userA' });
@@ -53,7 +53,7 @@ test('Add object – IDS and correlation on one attribute, and a relationship', 
   await ipRow.getByText('Correlate', { exact: true }).click();
   await form.getByRole('button', { name: 'Review', exact: true }).filter({ visible: true }).first().click();
   await form.getByRole('button', { name: 'Add Object' }).click();
-  await expectNoErrorPage(page);
+  await expectDialogSaved(page);
 
   const objects = await openTab(page, 'Objects');
   await expect(objects.getByText('qa-wf-object.example').first()).toBeVisible();
@@ -194,6 +194,7 @@ test('Edit object comment', async ({ page, apiAs, api, ts, cleanup }) => {
   await form.getByRole('textbox', { name: 'Comment', exact: true }).fill(comment);
   await form.getByRole('button', { name: 'Review', exact: true }).filter({ visible: true }).first().click();
   await form.getByRole('button', { name: 'Save Changes' }).click();
+  await expectDialogSaved(page);
 
   await expect(page.getByText('Object saved.')).toBeVisible();
   await expect(page.getByRole('main').getByText(comment).first()).toBeVisible();
@@ -295,30 +296,15 @@ test('Populate from MISP JSON', async ({ page, apiAs, api, ts, cleanup }) => {
   await expectNoErrorPage(page);
 });
 
-// [value, type] of each line of the Freetext Import review window.
-async function freetextResults(results) {
-  return results.locator('.ft-value').evaluateAll((inputs) => inputs.map((input) => [
-    input.value,
-    input.closest('.card, .list-group-item, .row, div').parentElement
-      .querySelector('select.ft-type')?.value,
-  ]));
-}
-
 test('Populate from freetext import', async ({ page, apiAs, api, ts, cleanup }) => {
   const info = `QA wf freetext ${ts}`;
   const event = await apiAs('userA').createEvent({ info });
   cleanup(() => api.deleteEventsByInfo(info));
 
   await openEvent(page, event.id);
-  await page.getByRole('link', { name: 'Populate from' }).click();
-  const form = dialog(page);
-  await form.getByRole('button', { name: /^Freetext Import/ }).click();
-  await form.getByRole('textbox', { name: 'IOCs' })
-    .fill('Seen: hxxp://qa-wf-freetext[.]example/login and 203.0.113[.]64');
-  await form.getByRole('button', { name: 'Run Freetext Import' }).click();
-
-  const results = dialog(page);
-  await expect(results.getByRole('heading', { name: /^Review detected attributes/ })).toBeVisible();
+  const results = await freetextImport(
+    page, 'Seen: hxxp://qa-wf-freetext[.]example/login and 203.0.113[.]64',
+  );
   expect(await freetextResults(results)).toEqual([
     ['http://qa-wf-freetext.example/login', 'url'],
     ['203.0.113.64', 'ip-dst'],

@@ -72,6 +72,30 @@ async function expectNoErrorPage(page) {
   await expect(visible('Request failed — please try again.')).toHaveCount(0);
 }
 
+// After a modal form is submitted: fails with MISP's own error message when the
+// save is refused, so a report names the MISP error rather than a timeout.
+async function expectDialogSaved(page) {
+  const failed = page.getByText('Request failed — please try again.').filter({ visible: true });
+  const open = page.getByRole('dialog').filter({ visible: true });
+  await Promise.race([open.first().waitFor({ state: 'hidden' }), failed.first().waitFor()]);
+  await expect(failed, 'MISP answered "Request failed — please try again."').toHaveCount(0);
+  await expect(open).toHaveCount(0);
+  await expectNoErrorPage(page);
+}
+
+// Clicks `target` and checks MISP's answer to the request it sends to `path`,
+// so a refused action fails on the server's own status and message.
+async function expectServerOk(target, path) {
+  const page = target.page();
+  const [response] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes(path) && r.request().method() !== 'GET'),
+    target.click(),
+  ]);
+  const body = await response.text();
+  expect(response.status(), `POST ${path} answered: ${body.slice(0, 200)}`).toBeLessThan(400);
+  return body;
+}
+
 // Parts of a MISP page that change on every run (ids, uuids, dates, timestamped names).
 const DYNAMIC = [
   '[data-dynamic]',
@@ -103,6 +127,37 @@ async function expectScreen(locator, name, { mask = [], hide = [] } = {}) {
   await expect(locator).toHaveScreenshot(name, {
     mask: [...DYNAMIC.map((s) => page.locator(s)), ...mask],
   });
+}
+
+// Fills the Add Event form; returns once the new event page is open.
+async function addEvent(page, { info, distribution = 'This community only' }) {
+  await page.goto('/events/index');
+  await page.getByRole('link', { name: 'Add Event' }).click();
+  const form = page.getByRole('dialog');
+  await form.getByRole('textbox', { name: /Event Info/ }).fill(info);
+  await form.getByRole('radio', { name: new RegExp(`^${distribution}`) }).check();
+  return form;
+}
+
+// Populate from… > Freetext Import, up to the review window.
+async function freetextImport(page, text) {
+  await page.getByRole('link', { name: 'Populate from' }).click();
+  const form = page.getByRole('dialog').filter({ visible: true });
+  await form.getByRole('button', { name: /^Freetext Import/ }).click();
+  await form.getByRole('textbox', { name: 'IOCs' }).fill(text);
+  await form.getByRole('button', { name: 'Run Freetext Import' }).click();
+  const review = page.getByRole('dialog').filter({ visible: true });
+  await expect(review.getByRole('heading', { name: /^Review detected attributes/ })).toBeVisible();
+  return review;
+}
+
+// [value, type] of each line of the Freetext Import review window.
+async function freetextResults(review) {
+  return review.locator('.ft-value').evaluateAll((inputs) => inputs.map((input) => {
+    let box = input.parentElement;
+    while (box && !box.querySelector('select.ft-type')) box = box.parentElement;
+    return [input.value, box?.querySelector('select.ft-type')?.value];
+  }));
 }
 
 // --- Navigation on an event page -------------------------------------------
@@ -156,12 +211,14 @@ async function pick(combobox, search, option = search) {
   await expect(combobox).toBeFocused();
   await combobox.page().keyboard.type(search, { delay: 20 });
   const re = option instanceof RegExp ? option : new RegExp(`^${escapeRe(option)}(\\s|$)`);
-  const choice = combobox.page().getByRole('option', { name: re }).filter({ visible: true }).first();
-  // Hovering makes it the active option; Enter then selects it the way tom-select expects.
-  await expect(async () => {
-    await choice.hover();
-    await expect(choice).toHaveClass(/\bactive\b/, { timeout: 1_000 });
-  }).toPass();
+  const page = combobox.page();
+  await expect(page.getByRole('option', { name: re }).filter({ visible: true }).first()).toBeVisible();
+  // Walk the list with the keyboard to the wanted option, then select it with Enter.
+  const active = page.locator('[role=option].active').filter({ visible: true });
+  const activeName = async () => ((await active.count())
+    ? (await active.first().innerText()).replace(/\s+/g, ' ').trim() : '');
+  for (let i = 0; i < 50 && !re.test(await activeName()); i++) await combobox.press('ArrowDown');
+  expect(await activeName(), `option matching ${re} in the list`).toMatch(re);
   await combobox.press('Enter');
 }
 
@@ -171,6 +228,7 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const dialog = (page) => page.getByRole('dialog').filter({ visible: true });
 
 module.exports = {
-  test, expect, knownBug, blockedBy, expectNoErrorPage, expectScreen, DIST,
+  test, expect, knownBug, blockedBy, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
+  addEvent, freetextImport, freetextResults,
   openEvent, openTab, row, rowAction, expectAfterReload, chooseSlider, pick, dialog, escapeRe,
 };

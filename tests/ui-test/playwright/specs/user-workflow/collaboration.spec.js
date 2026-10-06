@@ -1,6 +1,6 @@
 // ../../../user-workflow/collaboration.md
 const {
-  test, expect, expectNoErrorPage, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
+  test, expect, expectNoErrorPage, expectServerOk, blockedBy, openEvent, openTab, row, rowAction, pick, dialog,
 } = require('../../helpers');
 
 test.use({ role: 'userB' });
@@ -49,9 +49,9 @@ test('Propose a change and accept it', async ({ page, pageAs, apiAs, api, ts, cl
     await expect(row(owner.getByRole('main'), '203.0.113.91').filter({ hasText: info }))
       .toContainText('QA-Org-B');
     const proposals = await openProposals(owner, event.id);
-    await proposals.getByRole('button', { name: 'Accept proposal' }).click();
-    await expectNoErrorPage(owner);
-    await expect(owner.getByText('Could not accept the proposal.')).toHaveCount(0);
+    await expectServerOk(
+      proposals.getByRole('button', { name: 'Accept proposal' }), '/shadow_attributes/accept/',
+    );
   });
 
   await openEvent(owner, event.id);
@@ -76,7 +76,9 @@ test('Propose a change and discard it', async ({ page, pageAs, apiAs, api, ts, c
   const owner = await pageAs('orgAdminA');
   const proposals = await openProposals(owner, event.id);
   await proposals.getByRole('button', { name: 'Discard proposal' }).click();
-  await dialog(owner).getByRole('button', { name: 'Discard', exact: true }).click();
+  await expectServerOk(
+    dialog(owner).getByRole('button', { name: 'Discard', exact: true }), '/shadow_attributes/discard/',
+  );
 
   await expect(owner.getByText('Proposal discarded.')).toBeVisible();
   await openEvent(owner, event.id);
@@ -110,8 +112,9 @@ test('Propose a new attribute', async ({ page, pageAs, apiAs, api, ts, cleanup }
 
   const owner = await pageAs('orgAdminA');
   const proposals = await openProposals(owner, event.id);
-  await proposals.getByRole('button', { name: 'Accept proposal' }).click();
-  await expect(owner.getByText('Could not accept the proposal.')).toHaveCount(0);
+  await expectServerOk(
+    proposals.getByRole('button', { name: 'Accept proposal' }), '/shadow_attributes/accept/',
+  );
 
   await openEvent(owner, event.id);
   attributes = await openTab(owner, 'Attributes');

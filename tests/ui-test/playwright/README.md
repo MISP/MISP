@@ -98,19 +98,24 @@ The roles (`siteAdmin`, `userA`, `orgAdminA`, `userB`, `orgAdminB`) log in once 
 
 ## Coverage
 
-| Spec                                   | Markdown                              | What it checks |
-| -------------------------------------- | ------------------------------------- | -------------- |
-| `use-case/01-phishing-triage`          | `../use-case/01-phishing-triage.md`   | Create an event, email object, freetext import, tag + galaxy, publish |
-| `use-case/02-campaign-correlation`     | `../use-case/02-campaign-correlation.md` | Correlation with an earlier wave, extends, sighting |
-| `use-case/03-partner-sharing`          | `../use-case/03-partner-sharing.md`   | Sharing group, partner sighting + proposal, accept |
-| `use-case/04-attachment-analysis`      | `../use-case/04-attachment-analysis.md` | Malware sample upload, hashes, `domain-ip` object, protected download |
-| `use-case/05-false-positive`           | `../use-case/05-false-positive.md`    | Warninglist hit, false positive sighting, IDS off, correlation exclusion |
-| `use-case/06-defence-export`           | `../use-case/06-defence-export.md`    | Text and CSV export without the non-IDS value |
-| `use-case/07-report-attribution`       | `../use-case/07-report-attribution.md` | Event report, threat actor cluster, note + opinion |
-| `use-case/08-close-incident`           | `../use-case/08-close-incident.md`    | Soft delete / restore, analysis change, republish, history |
-| `user-workflow/creation`               | `../user-workflow/creation.md`        | Event, object, attribute, tags, report, attachment, populate, enrich, publish, batch, restore |
-| `user-workflow/search`                 | `../user-workflow/search.md`          | Events list filters, sort, export of a selection, template, attribute search, quick search, correlations |
-| `user-workflow/collaboration`          | `../user-workflow/collaboration.md`   | Proposals between organisations: accept, discard, new attribute |
+A test stopped by a known MISP bug is marked with `blockedBy('Bug N …')`: Playwright counts it as
+an *expected failure*, stops at the bug, and reports an *unexpected pass* once the bug is fixed —
+the signal to remove the marker. The check that fails is always MISP's own answer (the HTTP
+status and message of the refused request, or the error shown in the UI), never a timeout.
+
+| Spec                                   | What it checks | Stopped today by |
+| -------------------------------------- | -------------- | ---------------- |
+| `use-case/01-phishing-triage`          | Create an event, email object, freetext import, tag + galaxy, publish | Bug 4 (object add) |
+| `use-case/02-campaign-correlation`     | Correlation with an earlier wave, extends, sighting | Bug 3 (sighting) |
+| `use-case/03-partner-sharing`          | Sharing group, partner sighting + proposal, accept | Bug 3, proposals black-holed |
+| `use-case/04-attachment-analysis`      | Malware sample upload, hashes, protected zip download, `domain-ip` object | Bug 4 (object add) |
+| `use-case/05-false-positive`           | Warninglist hit, false positive sighting, IDS off, correlation exclusion | Bug 3 (false positive) |
+| `use-case/06-defence-export`           | Text and CSV export without the non-IDS value | — |
+| `use-case/07-report-attribution`       | Event report, threat actor cluster, note + opinion | — |
+| `use-case/08-close-incident`           | Soft delete / restore, analysis change, republish, history | — |
+| `user-workflow/creation`               | Event, object, attribute, tags, report, attachment, populate, enrich, publish, batch, restore | Bug 4 (object add/edit), Bug 10 (report); Enrich skipped without an enabled module |
+| `user-workflow/search`                 | Events list filters, sort, export of a selection, template, attribute search, quick search, correlations | Bug 9 (template) |
+| `user-workflow/collaboration`          | Proposals between organisations: accept, discard, new attribute | proposals black-holed; no "propose attribute" button |
 
 ## Writing a new test
 
@@ -136,6 +141,11 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
   the spec: the test name is the Markdown `###` title, so a failure points to its plan.
 - **Data before / after** goes through `lib/api.js`; add a method there rather than
   calling the API from a spec.
+- **A known bug** that stops the test: `blockedBy('Bug N …')`, and check the server's answer to
+  the refused action with `expectServerOk(button, '/controller/action/')` or
+  `expectDialogSaved(page)`, so the report names the MISP error.
+- **Sessions last 60 minutes** on a default instance: run with the `setup` project (the default)
+  rather than `--no-deps`, or the stored logins may have expired.
 - **Shared helpers** (fixtures, assertions) go in `helpers.js`.
 
 ## Visual baselines
