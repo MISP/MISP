@@ -127,6 +127,11 @@ status and message of the refused request, or the error shown in the UI), never 
 | `event-roles-permissions`              | Visibility and edit/publish rights per role and organisation | — |
 | `event-view-actions`                   | Publish / unpublish, publish an empty event, delete, delete an extended event, tags and clusters, unknown event, open by UUID, extends cycle | Bug 9 (unpublish) |
 | `event-view-performance`               | An event with 2,000 attributes: shown in less than 5 s, next page, search | — |
+| `attribute-add`                        | Add Attribute: valid values, refused values (IP, md5, port, duplicates), normalisation, IDN, First/Last Seen, types per category, published event, warninglist, no correlation, emoji | refused values lose the form and the reason; Bug 5 (emoji) |
+| `attribute-batch`                      | Batch import: valid, partly invalid, blank lines, duplicates | — |
+| `attribute-attachment`                 | Attachment upload and download, malware sample (hashes, encrypted zip), upload without a file | upload without a file shows no message |
+| `attribute-view`                       | Edit (invalid value, IDS), soft delete / restore, delete removes the correlation, filter, correlation icon, selection | Bug 11 (icon not updated) |
+| `attribute-index-search`               | Attributes list: by value, by type, special characters | — |
 
 ## Writing a new test
 

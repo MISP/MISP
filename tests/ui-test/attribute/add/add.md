@@ -224,10 +224,11 @@ A value present in an enabled warninglist shows a warning
 5. Create an event `QA attribute warninglist` with **Add Event** and stay on its detail page.
 6. Click **Add Attribute**.
 7. In **Category** select `Network activity`, in **Type** select `ip-dst`, and type `8.8.8.8` in **Value**.
-8. Click **Add Attribute** to save.
-9. Go to `/warninglists/index` and click **Disable** on `List of known IPv4 public DNS resolvers`.
+8. Tick **For IDS** (MISP only checks the warninglists for attributes flagged for IDS).
+9. Click **Add Attribute** to save.
+10. Go to `/warninglists/index` and click **Disable** on `List of known IPv4 public DNS resolvers`.
 
-**Expected:** the attribute is saved and is marked with a warninglist hit naming `List of known IPv4 public DNS resolvers`.
+**Expected:** the attribute is saved and the **Warning Lists** panel of the event names `List of known IPv4 public DNS resolvers`.
 
 ### Attribute add – correlation disabled
 <a id="attribute-add-no-correlation"></a>

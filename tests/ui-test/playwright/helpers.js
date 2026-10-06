@@ -155,6 +155,31 @@ async function loginAs(page, role) {
   await expect(page).not.toHaveURL(/\/users\/login/);
 }
 
+// Opens Add Attribute on an event page and fills the form; returns the form.
+// `firstSeen` / `lastSeen` use the form's own format, DD/MM/YYYY HH:MM:SS.
+async function fillAttribute(page, {
+  category, type, value, comment, ids, disableCorrelation, batch, firstSeen, lastSeen,
+}) {
+  await page.getByRole('link', { name: 'Add Attribute' }).click();
+  const form = page.getByRole('dialog').filter({ visible: true });
+  if (batch) await form.getByRole('checkbox', { name: /^Batch Import/ }).check();
+  await pick(form.locator('#AttributeCategory + .ts-wrapper').getByRole('combobox'), category);
+  // The Type list is rebuilt for the chosen category: wait for it before typing.
+  await expect(form.locator(`#AttributeType option[value="${type}"]`)).toHaveCount(1);
+  await pick(form.locator('#AttributeType + .ts-wrapper').getByRole('combobox'), type);
+  await form.getByRole('textbox', { name: /Enter the indicator value/ }).fill(value);
+  if (comment) await form.getByRole('textbox', { name: 'Add a contextual comment…' }).fill(comment);
+  if (ids) await form.getByRole('checkbox', { name: /^For IDS/ }).check();
+  if (disableCorrelation) await form.getByRole('checkbox', { name: /^Disable Correlation/ }).check();
+  if (firstSeen) await form.getByRole('textbox', { name: 'First Seen (UTC)' }).fill(firstSeen);
+  if (lastSeen) await form.getByRole('textbox', { name: 'Last Seen (UTC)' }).fill(lastSeen);
+  return form;
+}
+
+async function submitAttribute(form) {
+  await form.getByRole('button', { name: 'Add Attribute' }).click();
+}
+
 // Blocks of the General tab of an event page, used as the final screenshot of a
 // test: the summary (identifiers, distribution, publication, analysis, threat
 // level), or one of the side cards by name (tags, galaxy, attachment,
@@ -240,9 +265,18 @@ async function rowAction(tableRow, name) {
 // text starts with `option` (defaults to `search`).
 async function pick(combobox, search, option = search) {
   // A single-value field hides its input once it has a value: click the control.
-  await combobox.locator('xpath=ancestor::*[contains(@class,"ts-control")][1]').click();
-  await expect(combobox).toBeFocused();
-  await combobox.page().keyboard.type(search, { delay: 20 });
+  // A field that is still rebuilding (Type after Category) can take the focus
+  // back while we type, so check the text landed and type it again if not.
+  await expect(async () => {
+    await combobox.locator('xpath=ancestor::*[contains(@class,"ts-control")][1]').click();
+    await expect(combobox).toBeFocused({ timeout: 1_000 });
+    await combobox.fill('');
+    // Keep the mouse off the list: hovering an option makes it the active one.
+    await combobox.page().mouse.move(0, 0);
+    await combobox.page().keyboard.type(search, { delay: 20 });
+    await expect(combobox).toBeFocused({ timeout: 500 });
+    await expect(combobox).toHaveValue(search, { timeout: 500 });
+  }).toPass({ timeout: 15_000 });
   const re = option instanceof RegExp ? option : new RegExp(`^${escapeRe(option)}(\\s|$)`);
   const page = combobox.page();
   await expect(page.getByRole('option', { name: re }).filter({ visible: true }).first()).toBeVisible();
@@ -252,8 +286,22 @@ async function pick(combobox, search, option = search) {
     ? (await active.first().innerText()).replace(/\s+/g, ' ').trim() : '');
   // tom-select highlights the first match itself once the list is refreshed.
   await active.first().waitFor({ timeout: 3_000 }).catch(() => {});
+  // Walk up to the top of the list first, then down to the wanted option.
+  for (let i = 0; i < 50 && !re.test(await activeName()); i++) {
+    const before = await activeName();
+    await combobox.press('ArrowUp');
+    if ((await activeName()) === before) break;
+  }
   for (let i = 0; i < 50 && !re.test(await activeName()); i++) await combobox.press('ArrowDown');
-  expect(await activeName(), `option matching ${re} in the list`).toMatch(re);
+  if (!re.test(await activeName())) {
+    const state = await page.evaluate(() => ({
+      focus: document.activeElement?.id,
+      options: [...document.querySelectorAll('.ts-dropdown [role=option]')]
+        .filter((o) => o.offsetParent).slice(0, 6)
+        .map((o) => o.textContent.trim() + (o.classList.contains('active') ? ' (active)' : '')),
+    }));
+    expect(await activeName(), `option matching ${re} in the list ${JSON.stringify(state)}`).toMatch(re);
+  }
   await combobox.press('Enter');
   // Leave the field, as a user moving on would: some panels redraw on blur.
   await combobox.blur();
@@ -266,6 +314,6 @@ const dialog = (page) => page.getByRole('dialog').filter({ visible: true });
 
 module.exports = {
   test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
-  addEvent, freetextImport, freetextResults,
+  addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
 };
