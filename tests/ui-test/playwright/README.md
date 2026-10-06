@@ -108,19 +108,19 @@ status and message of the refused request, or the error shown in the UI), never 
 
 | Spec                                   | What it checks | Stopped today by |
 | -------------------------------------- | -------------- | ---------------- |
-| `use-case/01-phishing-triage`          | Create an event, email object, freetext import, tag + galaxy, publish | Bug 4 (object add) |
-| `use-case/02-campaign-correlation`     | Correlation with an earlier wave, extends, sighting | Bug 3 (sighting) |
-| `use-case/03-partner-sharing`          | Sharing group, partner sighting + proposal, accept | Bug 3, proposals black-holed |
-| `use-case/04-attachment-analysis`      | Malware sample upload, hashes, protected zip download, `domain-ip` object | Bug 4 (object add) |
-| `use-case/05-false-positive`           | Warninglist hit, false positive sighting, IDS off, correlation exclusion | Bug 3 (false positive) |
-| `use-case/06-defence-export`           | Text and CSV export without the non-IDS value | — |
-| `use-case/07-report-attribution`       | Event report, threat actor cluster, note + opinion | — |
-| `use-case/08-close-incident`           | Soft delete / restore, analysis change, republish, history | — |
-| `user-workflow/creation`               | Event, object, attribute, tags, report, attachment, populate, enrich, publish, batch, restore | Bug 4 (object add/edit), Bug 10 (report); Enrich skipped without an enabled module |
-| `user-workflow/search`                 | Events list filters, sort, export of a selection, template, attribute search, quick search, correlations | Bug 9 (template) |
-| `user-workflow/collaboration`          | Proposals between organisations: accept, discard, new attribute | proposals black-holed; no "propose attribute" button |
-| `event/add/fields`                     | Add Event: dates, defaults, every field, distribution levels, extends, HTML and line breaks in Event Info | — |
-| `event/add/validation`                 | Add Event refusals: empty or blank Event Info, invalid date, unknown Extends ID, Event Info too long | Bug 8 (too long); unknown Extends ID loses the form |
+| `use-case-01-phishing-triage`          | Create an event, email object, freetext import, tag + galaxy, publish | Bug 4 (object add) |
+| `use-case-02-campaign-correlation`     | Correlation with an earlier wave, extends, sighting | Bug 3 (sighting) |
+| `use-case-03-partner-sharing`          | Sharing group, partner sighting + proposal, accept | Bug 3, proposals black-holed |
+| `use-case-04-attachment-analysis`      | Malware sample upload, hashes, protected zip download, `domain-ip` object | Bug 4 (object add) |
+| `use-case-05-false-positive`           | Warninglist hit, false positive sighting, IDS off, correlation exclusion | Bug 3 (false positive) |
+| `use-case-06-defence-export`           | Text and CSV export without the non-IDS value | — |
+| `use-case-07-report-attribution`       | Event report, threat actor cluster, note + opinion | — |
+| `use-case-08-close-incident`           | Soft delete / restore, analysis change, republish, history | — |
+| `user-workflow-creation`               | Event, object, attribute, tags, report, attachment, populate, enrich, publish, batch, restore | Bug 4 (object add/edit), Bug 10 (report); Enrich skipped without an enabled module |
+| `user-workflow-search`                 | Events list filters, sort, export of a selection, template, attribute search, quick search, correlations | Bug 9 (template) |
+| `user-workflow-collaboration`          | Proposals between organisations: accept, discard, new attribute | proposals black-holed; no "propose attribute" button |
+| `event-add-fields`                     | Add Event: dates, defaults, every field, distribution levels, extends, HTML and line breaks in Event Info | — |
+| `event-add-validation`                 | Add Event refusals: empty or blank Event Info, invalid date, unknown Extends ID, Event Info too long | Bug 8 (too long); unknown Extends ID loses the form |
 
 ## Writing a new test
 
