@@ -121,6 +121,12 @@ class MispApi {
     };
   }
 
+  // Note attached to an event, note or opinion (`objectType` is its model name).
+  async addNote(objectUuid, objectType, note) {
+    const res = await this.post(`/analystData/add/Note/${objectUuid}/${objectType}`, { note });
+    return res.Note || res;
+  }
+
   async addCorrelationExclusion(value, comment = '') {
     return this.post('/correlation_exclusions/add', { value, comment });
   }

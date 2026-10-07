@@ -85,9 +85,7 @@ test('Correlation exclusion – same value twice', async ({ page, api, ts, clean
   const value = uniqueIp(ts);
   cleanup(() => api.deleteCorrelationExclusion(value));
   await api.addCorrelationExclusion(value, 'QA exclusion');
-  blockedBy('New bug: a correlation exclusion already in the list is refused by replacing the '
-    + 'whole page with an unstyled bare form, without the reason "Value is already in the '
-    + 'exclusion list."');
+  blockedBy('Bug 18 (a refused exclusion opens an unstyled page without the reason)');
 
   const form = await openExclusionForm(page);
   await form.getByRole('textbox', { name: '8.8.8.8' }).fill(value);

@@ -150,7 +150,8 @@ status and message of the refused request, or the error shown in the UI), never 
 | `sharing-group-index`                  | Create with two organisations, emoji in the name, delete while used, member cannot edit | Bug 5; deleting a used sharing group gives no reason |
 | `sharing-group-visibility`             | Event in a sharing group seen by a non-member and a member, non-member cannot use it, organisation removed | — |
 | `warninglist-index`                    | Default and Enabled filters of the Warninglists list | Bug 21 |
-| `correlation-correlations`             | Same value in two events, exclusion and clean up, same exclusion twice, empty exclusion, top correlations | a duplicate exclusion replaces the page with a bare form, without the reason |
+| `correlation-correlations`             | Same value in two events, exclusion and clean up, same exclusion twice, empty exclusion, top correlations | Bug 18 |
+| `analyst-data-notes`                   | Note without text, edited to an empty text, with text, four nested levels, counters with nested notes and opinions | Bug 12; Bug 16 |
 
 ## Writing a new test
 
