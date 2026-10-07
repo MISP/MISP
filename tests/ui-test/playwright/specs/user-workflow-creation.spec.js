@@ -32,7 +32,7 @@ test('Event creation – info, date, distribution', async ({ page, api, ts, clea
 test('Add object – IDS and correlation on one attribute, and a relationship', async ({
   page, apiAs, api, ts, cleanup,
 }) => {
-  blockedBy('Bug 4 (submitting a new object shows "Request failed" – CSRF black-hole)');
+  blockedBy('Bug 4 (saving an object is black-holed when the user can see no sharing group: the empty Sharing group field breaks the form token)');
   const info = `QA wf object ${ts}`;
   const event = await apiAs('userA').createEvent({
     info,
@@ -186,7 +186,7 @@ test('Edit event distribution', async ({ page, apiAs, api, ts, cleanup }) => {
 });
 
 test('Edit object comment', async ({ page, apiAs, api, ts, cleanup }) => {
-  blockedBy('Bug 4 (saving an object, even unchanged, shows "Request failed" – CSRF black-hole)');
+  blockedBy('Bug 4 (saving an object is black-holed when the user can see no sharing group: the empty Sharing group field breaks the form token)');
   const info = `QA wf object comment ${ts}`;
   const comment = `QA comment ${ts}`;
   const event = await apiAs('userA').createEvent({

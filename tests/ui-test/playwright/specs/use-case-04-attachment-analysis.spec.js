@@ -10,7 +10,7 @@ const {
 test.use({ role: 'orgAdminA' });
 
 test('Use case 4 – Analyse the email attachment', async ({ page, apiAs, api, ts, cleanup }, testInfo) => {
-  blockedBy('Bug 4 (adding the domain-ip object shows "Request failed" – CSRF black-hole)');
+  blockedBy('Bug 4 (saving an object is black-holed when the user can see no sharing group: the empty Sharing group field breaks the form token)');
   const info = `Fake-Parcel attachment ${ts}`;
   const event = await apiAs('orgAdminA').createEvent({ info });
   cleanup(() => api.deleteEventsByInfo(info));

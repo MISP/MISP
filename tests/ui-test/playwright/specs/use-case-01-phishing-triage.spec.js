@@ -9,7 +9,7 @@ const {
 test.use({ role: 'orgAdminA' });
 
 test('Use case 1 – Triage a phishing email', async ({ page, api, ts, cleanup }) => {
-  blockedBy('Bug 4 (adding the email object shows "Request failed" – CSRF black-hole)');
+  blockedBy('Bug 4 (saving an object is black-holed when the user can see no sharing group: the empty Sharing group field breaks the form token)');
   const info = `Fake-Parcel phishing ${ts}`;
   cleanup(() => api.deleteEventsByInfo(info));
 
