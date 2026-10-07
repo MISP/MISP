@@ -156,8 +156,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             ?>
         </header>
         <?php if ($useBootstrap5 && !$isAuthPage && Configure::read('debug') > 0): ?>
-            <!-- Debug strip. mispOvermind.js moves Cake's .cake-error blocks
-                 in here and badges the count. -->
+            <!-- Debug strip, filled by initDebugStrip() in mispOvermind.js -->
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
                     <h2 class="accordion-header" id="debugHeading">
@@ -173,8 +172,12 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                                     <i class="fas fa-bug me-2"></i>
                                     <?= __('Debug Mode Enabled') ?>
                                 </span>
-                                <span id="debugErrorBadge" class="badge bg-success ms-3">
-                                    0 error
+                                <span class="d-flex gap-2 ms-3">
+                                    <span id="debugSqlBadge" class="badge bg-dark d-none"></span>
+                                    <span id="debugInfoBadge" class="badge bg-info text-dark d-none"></span>
+                                    <span id="debugErrorBadge" class="badge bg-success">
+                                        <?= __('0 errors') ?>
+                                    </span>
                                 </span>
                             </div>
                         </button>
@@ -184,9 +187,20 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         aria-labelledby="debugHeading"
                         data-bs-parent="#debugAccordionWrapper">
                         <div id="debugAccordionContent"
-                            class="accordion-body bg-dark text-light small"
-                            style="max-height:500px; overflow:auto;">
-                            <!-- Errors are injected here -->
+                            class="accordion-body bg-dark text-light small p-0 overflow-auto"
+                            style="max-height:500px;">
+                            <div class="d-flex justify-content-end px-3 pt-2">
+                                <button type="button" id="debugClear"
+                                        class="btn btn-sm btn-outline-secondary py-0">
+                                    <i class="fas fa-eraser me-1"></i><?= __('Clear') ?>
+                                </button>
+                            </div>
+                            <div id="debugEntries" class="px-3 py-2">
+                                <div id="debugEmpty" class="fst-italic opacity-75">
+                                    <?= __('No debug output so far.') ?>
+                                </div>
+                            </div>
+                            <div id="debugSqlLog" class="px-3 pb-3 d-none"></div>
                         </div>
                     </div>
                 </div>

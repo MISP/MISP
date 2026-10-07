@@ -5717,25 +5717,370 @@ function initFlashAutoDismiss() {
     }, 5000);
 }
 
-/**
- * Move Cake's debug output into the collapsible debug strip and badge the
- * error count. No-op unless the layout emitted the strip (debug > 0).
+/* ==========================================================================
+ * Debug strip
+ * ==========================================================================
+ *
+ * With debug > 0 the layout draws a strip under the navbar, and everything
+ * Cake prints (`.cake-error` notices, `debug()` dumps, the SQL log) is moved
+ * into it, wherever it lands and whenever it arrives:
+ *
+ *  - in the page, at load;
+ *  - in anything inserted later (modal bodies, lazy tabs, index swaps), via a
+ *    MutationObserver;
+ *  - in a fetch() response the page never inserts (JSON, a 500, a DOMParser'd
+ *    form), via a fetch wrapper that reads a clone before the caller does;
+ *  - inside a <script>, <textarea>, <select> or an attribute, where the parser
+ *    builds no element at all, via an XPath sweep that reports where it leaked.
+ *
+ * A block seen in a response is remembered by signature, so when the caller
+ * then inserts it, the DOM copy is dropped rather than listed twice.
  */
+const DEBUG_BLOCK_SELECTOR = '.cake-error, .cake-debug-output';
+
+const debugStrip = {
+    root: null,
+    entries: null,
+    errors: 0,
+    dumps: 0,
+    swept: false,
+    pending: new Map(),
+
+    init() {
+        if (this.root !== null) return Boolean(this.root);
+        this.root = document.getElementById('debugAccordionWrapper') || false;
+        if (!this.root) return false;
+        this.entries = document.getElementById('debugEntries');
+        const clear = document.getElementById('debugClear');
+        if (clear) clear.addEventListener('click', () => this.clear());
+        return true;
+    },
+
+    clear() {
+        this.entries.querySelectorAll('.ov-debug-entry').forEach(el => el.remove());
+        this.errors = 0;
+        this.dumps = 0;
+        this.refresh(false);
+    },
+
+    /** Top-level debug blocks under root, root included. */
+    blocksIn(root) {
+        const found = [];
+        if (root.matches && root.matches(DEBUG_BLOCK_SELECTOR)) found.push(root);
+        if (root.querySelectorAll) {
+            root.querySelectorAll(DEBUG_BLOCK_SELECTOR).forEach(el => {
+                const parent = el.parentElement;
+                if (!parent || !parent.closest(DEBUG_BLOCK_SELECTOR)) found.push(el);
+            });
+        }
+        return found;
+    },
+
+    signature(block) {
+        const trace = block.querySelector('[id$="-trace"]');
+        if (trace) return trace.id;
+        return block.textContent.replace(/\s+/g, ' ').trim().slice(0, 500);
+    },
+
+    severity(block) {
+        if (!block.classList.contains('cake-error')) return 'info';
+        const label = (block.querySelector('b') || block).textContent;
+        return /notice|deprecated|strict/i.test(label) ? 'warning' : 'danger';
+    },
+
+    /** A block found in the live DOM: move it in, unless a response already listed it. */
+    adoptNode(block) {
+        const sig = this.signature(block);
+        const seen = this.pending.get(sig);
+        if (seen) {
+            if (seen > 1) this.pending.set(sig, seen - 1); else this.pending.delete(sig);
+            block.remove();
+            return;
+        }
+        this.add(block, this.originOf(block));
+    },
+
+    /** A block parsed out of a response body, not (yet) in the page. */
+    adoptParsed(block, origin) {
+        const sig = this.signature(block);
+        this.pending.set(sig, (this.pending.get(sig) || 0) + 1);
+        this.add(document.importNode(block, true), origin);
+    },
+
+    originOf(node) {
+        const tab = node.closest('.ajax-tab-content[data-url]');
+        if (tab) return 'Tab · ' + this.path(tab.dataset.url);
+        if (node.closest('.modal')) return 'Modal';
+        return 'Page';
+    },
+
+    path(url) {
+        try {
+            const u = new URL(url, window.location.href);
+            return u.pathname + u.search;
+        } catch (e) {
+            return String(url);
+        }
+    },
+
+    /**
+     * @param {Node} content  what to show
+     * @param {string} origin where it came from
+     * @param {string} [severity] danger|warning|info, read off content otherwise
+     * @param {string} [note] one line shown above the content
+     */
+    add(content, origin, severity, note) {
+        severity = severity || (content.classList ? this.severity(content) : 'danger');
+        if (severity === 'info') this.dumps++; else this.errors++;
+
+        const entry = document.createElement('div');
+        entry.className = 'ov-debug-entry border-start border-3 ps-2 py-1 mb-2 border-' + severity;
+        const head = document.createElement('div');
+        head.className = 'ov-debug-origin opacity-75';
+        head.textContent = origin + (note ? ' — ' + note : '');
+        entry.append(head, content);
+        this.entries.appendChild(entry);
+        this.refresh(this.swept);
+    },
+
+    refresh(notify) {
+        const empty = document.getElementById('debugEmpty');
+        if (empty) empty.classList.toggle('d-none', this.errors + this.dumps > 0);
+
+        const badge = document.getElementById('debugErrorBadge');
+        if (badge) {
+            badge.textContent = this.errors + ' error' + (this.errors === 1 ? '' : 's');
+            badge.classList.toggle('bg-danger', this.errors > 0);
+            badge.classList.toggle('bg-success', this.errors === 0);
+        }
+        const info = document.getElementById('debugInfoBadge');
+        if (info) {
+            info.textContent = this.dumps + ' debug()';
+            info.classList.toggle('d-none', this.dumps === 0);
+        }
+        if (notify) {
+            const button = this.root.querySelector('.accordion-button');
+            button.classList.remove('ov-debug-pulse');
+            void button.offsetWidth;
+            button.classList.add('ov-debug-pulse');
+        }
+    },
+
+    /**
+     * Debug output the parser could not turn into elements: inside a raw-text
+     * element, an <option>, or an attribute (whose quotes it also broke).
+     */
+    reportLeaks(doc, origin) {
+        // Markup, not the bare word: a script may well mention the selector.
+        const markup = '(contains(., \'class="cake-error\') or contains(., \'class="cake-debug-output\')'
+            + ' or contains(., \'class=\\"cake-error\') or contains(., \'class=\\"cake-debug-output\'))';
+        const hits = doc.evaluate(
+            '//script[' + markup + '] | //textarea[' + markup + '] | //title[' + markup + ']'
+            + ' | //select//text()[contains(., ", line ")]'
+            + ' | //@*[contains(name(), "cake-") or (' + markup + ' and name() != "class")]',
+            doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+        );
+        // One broken tag yields many hits (each word of the error becomes an attribute).
+        const reported = new Set();
+        for (let i = 0; i < hits.snapshotLength; i++) {
+            const node = hits.snapshotItem(i);
+            const owner = node.nodeType === Node.ATTRIBUTE_NODE ? node.ownerElement
+                : node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+            if (!owner || reported.has(owner)) continue;
+            if (owner.closest('#debugAccordionWrapper, ' + DEBUG_BLOCK_SELECTOR)) continue;
+
+            let where = '<' + owner.tagName.toLowerCase() + (owner.id ? '#' + owner.id : '')
+                + (owner.getAttribute('name') ? ' name="' + owner.getAttribute('name') + '"' : '') + '>';
+            if (node.nodeType === Node.ATTRIBUTE_NODE) where = 'an attribute of ' + where;
+            if (node.nodeType === Node.TEXT_NODE && !/\b\w+ \(\d+\)\s*:/.test(node.data)) continue;
+            reported.add(owner);
+
+            const raw = (node.nodeType === Node.ATTRIBUTE_NODE ? node.value : node.textContent)
+                .replace(/\\(["'\/])/g, '$1');
+            const tpl = document.createElement('template');
+            tpl.innerHTML = raw;
+            const blocks = this.blocksIn(tpl.content);
+            const salvaged = node.nodeType === Node.ATTRIBUTE_NODE ? this.salvageAfter(owner) : null;
+            if (salvaged) {
+                this.add(salvaged, origin, null, 'leaked inside ' + where);
+            } else if (blocks.length) {
+                blocks.forEach(b => this.add(b, origin, null, 'leaked inside ' + where));
+            } else {
+                const pre = document.createElement('pre');
+                pre.className = 'mb-0';
+                pre.textContent = raw.trim().slice(0, 2000)
+                    || '(the output broke the markup here, see the page source)';
+                this.add(pre, origin, 'danger', 'leaked inside ' + where);
+            }
+        }
+    },
+
+    /**
+     * The quote that ends a broken attribute also ends its tag, so the rest of
+     * the error is parsed as loose siblings: the toggle link through the trace.
+     */
+    salvageAfter(owner) {
+        let node = owner.nextSibling;
+        if (!node || node.nodeType !== Node.ELEMENT_NODE || !node.matches('a[onclick*="cakeErr"]')) {
+            return null;
+        }
+        const pre = document.createElement('pre');
+        pre.className = 'cake-error';
+        for (let i = 0; node && i < 50; i++) {
+            const next = node.nextSibling;
+            pre.appendChild(node);
+            if (node.nodeType === Node.ELEMENT_NODE && node.matches('.cake-stack-trace')) break;
+            node = next;
+        }
+        return pre;
+    },
+
+    /** Everything in a response body that is not the page's to see. */
+    scanResponse(text, response, origin) {
+        const type = response.headers.get('Content-Type') || '';
+        const html = /html/.test(type) || /^\s*</.test(text);
+
+        if (!response.ok && response.status >= 500) {
+            this.reportHttpError(text, response, origin, html);
+        }
+        if (text.indexOf('cake-') === -1) return;
+
+        if (/json/.test(type)) {
+            try {
+                this.scanJsonStrings(JSON.parse(text), origin);
+                return;
+            } catch (e) {
+                // A notice printed before the JSON: parse it as HTML below.
+            }
+        }
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        this.blocksIn(doc.body).forEach(b => this.adoptParsed(b, origin));
+        this.reportLeaks(doc, origin);
+    },
+
+    scanJsonStrings(value, origin) {
+        if (typeof value === 'string') {
+            if (value.indexOf('cake-') === -1) return;
+            const tpl = document.createElement('template');
+            tpl.innerHTML = value;
+            this.blocksIn(tpl.content).forEach(b => this.adoptParsed(b, origin));
+        } else if (value && typeof value === 'object') {
+            Object.values(value).forEach(v => this.scanJsonStrings(v, origin));
+        }
+    },
+
+    reportHttpError(text, response, origin, html) {
+        const box = document.createElement('div');
+        let message = '';
+        if (html) {
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            const heading = Array.from(doc.querySelectorAll('h2'))
+                .find(h => !h.closest('#debugAccordionWrapper'));
+            message = [heading, doc.querySelector('p.error')]
+                .filter(Boolean).map(el => el.textContent.trim()).join(' — ');
+            const trace = doc.querySelector('ul.cake-stack-trace');
+            if (trace) {
+                const details = document.createElement('details');
+                const summary = document.createElement('summary');
+                summary.textContent = 'Stack trace';
+                details.append(summary, document.importNode(trace, true));
+                box.appendChild(details);
+            }
+        } else {
+            try {
+                const json = JSON.parse(text);
+                message = json.message || json.name || JSON.stringify(json.errors || json);
+            } catch (e) {
+                message = text;
+            }
+        }
+        const line = document.createElement('div');
+        line.className = 'fw-semibold';
+        line.textContent = (message || response.statusText || '').trim().slice(0, 500);
+        box.prepend(line);
+        this.add(box, origin, 'danger', 'HTTP ' + response.status);
+    },
+
+    observe() {
+        new MutationObserver(records => {
+            records.forEach(record => {
+                record.addedNodes.forEach(node => {
+                    if (node.nodeType !== Node.ELEMENT_NODE || this.root.contains(node)) return;
+                    this.guard(() => this.blocksIn(node).forEach(b => this.adoptNode(b)));
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+    },
+
+    /** The strip must never be what breaks the page it is debugging. */
+    guard(fn) {
+        try {
+            fn();
+        } catch (e) {
+            console.warn('[debug strip]', e);
+        }
+    },
+
+    collectSqlLog() {
+        const tables = document.querySelectorAll('table.cake-sql-log');
+        const box = document.getElementById('debugSqlLog');
+        if (!tables.length || !box) return;
+
+        let queries = 0, took = 0;
+        tables.forEach(table => {
+            const m = /(\d+) quer(?:y|ies) took (\d+) ms/.exec(table.caption ? table.caption.textContent : '');
+            if (m) { queries += +m[1]; took += +m[2]; }
+            table.classList.add('table', 'table-sm', 'mb-0');
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.className = 'fw-semibold py-1';
+            summary.textContent = table.caption ? table.caption.textContent : 'SQL log';
+            details.append(summary, table);
+            box.appendChild(details);
+        });
+        box.classList.remove('d-none');
+
+        const badge = document.getElementById('debugSqlBadge');
+        if (badge) {
+            badge.textContent = queries + ' SQL · ' + took + ' ms';
+            badge.classList.remove('d-none');
+        }
+    },
+};
+
+/*
+ * Installed as soon as this file runs rather than on DOMContentLoaded: a view's
+ * inline script may already be fetching by then. Responses are read in full
+ * before the caller gets them, so the strip has seen a block before the caller
+ * can insert it. Binary bodies (downloads) are passed through untouched.
+ */
+(function watchFetchForDebugOutput() {
+    if (!debugStrip.init() || typeof window.fetch !== 'function') return;
+    const nativeFetch = window.fetch;
+    window.fetch = function (input, init) {
+        const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+        const url = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
+        return nativeFetch.apply(this, arguments).then(response => {
+            const type = response.headers.get('Content-Type') || '';
+            const textual = type === '' || /text|json|xml|javascript/.test(type);
+            if (!textual || response.type === 'opaque' || response.status === 204) return response;
+            return response.clone().text().then(text => {
+                debugStrip.guard(() => debugStrip.scanResponse(text, response, method + ' ' + debugStrip.path(url)));
+                return response;
+            }, () => response);
+        });
+    };
+})();
+
 function initDebugStrip() {
-    const container = document.getElementById('debugAccordionContent');
-    if (!container) return;
-
-    const cakeErrors = document.querySelectorAll('.cake-error');
-    const count = cakeErrors.length;
-    const badge = document.getElementById('debugErrorBadge');
-
-    if (badge) {
-        badge.textContent = count + ' error' + (count > 1 ? 's' : '');
-        badge.classList.remove(count > 0 ? 'bg-success' : 'bg-danger');
-        badge.classList.add(count > 0 ? 'bg-danger' : 'bg-success');
-    }
-
-    cakeErrors.forEach(error => container.appendChild(error));
+    if (!debugStrip.init()) return;
+    debugStrip.observe();
+    debugStrip.guard(() => debugStrip.blocksIn(document.body).forEach(b => {
+        if (!debugStrip.root.contains(b)) debugStrip.adoptNode(b);
+    }));
+    debugStrip.guard(() => debugStrip.reportLeaks(document, 'Page'));
+    debugStrip.guard(() => debugStrip.collectSqlLog());
+    debugStrip.swept = true;
 }
 
 /**

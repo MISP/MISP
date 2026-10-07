@@ -5002,3 +5002,46 @@ tr.evt-extension-row td:first-child {
 }
 .ov-copy-target:not(:hover, :focus-visible) .fa-copy { opacity: 0; }
 .ov-copy-target:is(:hover, :focus-visible) .fa-copy { color: var(--bs-primary) !important; }
+
+/* =======================================================
+   Debug strip (Cake's raw debug markup carries no classes of ours)
+======================================================= */
+#debugAccordionContent pre {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: inherit;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#debugAccordionContent a {
+    color: inherit;
+    text-decoration: underline dotted;
+}
+#debugAccordionContent .cake-stack-trace,
+#debugAccordionContent .cake-code-dump,
+#debugAccordionContent .cake-context {
+    margin-top: .25rem;
+    padding: .5rem;
+    background: rgba(127, 127, 127, .15);
+    border-radius: .25rem;
+}
+#debugAccordionContent .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: inherit;
+}
+#debugAccordionContent .table td:nth-child(2) {
+    font-family: var(--bs-font-monospace);
+    word-break: break-word;
+}
+.ov-debug-origin {
+    font-size: .75rem;
+}
+.ov-debug-pulse {
+    animation: ov-debug-pulse .6s ease-in-out 2;
+}
+@keyframes ov-debug-pulse {
+    50% { filter: brightness(.8); }
+}
