@@ -203,6 +203,31 @@ async function objectItem(tab, value) {
     + 'contains(concat(" ", @class, " ")," card ")][1]');
 }
 
+const PROPOSAL_BUG = 'New bug: "Accept proposal" / "Discard proposal" on the event page are '
+  + 'black-holed (HTTP 400, "\'_Token\' was not found in request data")';
+
+// Propose change on the attribute `from`: fills `value` / `comment`, or asks for its
+// deletion; submits and returns the form.
+async function proposeChange(page, eventId, from, { value, comment, deletion } = {}) {
+  await openEvent(page, eventId);
+  await rowAction(row(await openTab(page, 'Attributes'), from), 'Propose change');
+  const form = dialog(page);
+  await expect(form.getByRole('heading', { name: 'Propose a change' })).toBeVisible();
+  if (deletion) await form.getByRole('checkbox', { name: /^Propose deletion of this attribute/ }).check();
+  if (value !== undefined) await form.locator('#ShadowAttributeValue').fill(value);
+  if (comment !== undefined) await form.getByRole('textbox', { name: 'Add a contextual comment…' }).fill(comment);
+  await form.getByRole('button', { name: /^Submit (deletion )?proposal$/ }).click();
+  return form;
+}
+
+// The owner's view of the proposals of one event (Attributes tab > Proposals).
+async function openProposals(page, eventId) {
+  await openEvent(page, eventId);
+  const attributes = await openTab(page, 'Attributes');
+  await attributes.getByRole('link', { name: /^Proposals/ }).click();
+  return page.getByRole('tabpanel').filter({ visible: true });
+}
+
 // An IP only this run uses, so data left by other runs cannot interfere.
 function uniqueIp(ts) {
   const n = Number(String(ts).slice(-6));
@@ -459,5 +484,5 @@ module.exports = {
   addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute, offeredTags, taxonomyRow, taxonomyAction,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
   throwawayUser, submitLogin, skipTour, loginThrowaway, uniqueIp, reviewObject, openObjects,
-  objectItem,
+  objectItem, PROPOSAL_BUG, proposeChange, openProposals,
 };

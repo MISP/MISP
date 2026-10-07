@@ -166,6 +166,10 @@ status and message of the refused request, or the error shown in the UI), never 
 | `object-view`                          | Edit a value, remove the required attributes, soft and permanent delete, delete selected, filter, correlation, add an attribute, card attribute menu | Bug 22; deleting selected objects is black-holed |
 | `object-templates`                     | Deactivate a template, template already used, update, search in Add Object | — |
 | `object-relationships`                 | Remove highlight for selected rows, highlight selected rows | Bug 26 |
+| `proposal-add`                         | Change a value, propose a deletion, invalid value, no change, emoji in the comment | Bug 5; an invalid proposal loses the reason and the value |
+| `proposal-index`                       | My organisation's proposals, search, View Event, events with proposals: actions menu and selection | Bug 23; Bug 24 |
+| `proposal-review`                      | Accept a value or a deletion, discard, accept twice, attribute deleted meanwhile, accept several | Accept / Discard are black-holed; no "Accept all" |
+| `proposal-cross-org`                   | Proposal from another organisation, listed for the event organisation, proposer / User cannot accept, discard, event not visible | Discard is black-holed |
 
 ## Writing a new test
 
@@ -233,5 +237,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The remaining test plans** of `../` (proposal): same
-  pattern, one spec per Markdown file.
+- **Baselines of the newest specs**: run `npm run test:e2e:update` once to create their
+  screenshots, check them, then commit `__screenshots__/`.

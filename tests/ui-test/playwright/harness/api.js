@@ -148,6 +148,18 @@ class MispApi {
     return res.ShadowAttribute || res;
   }
 
+  // Pending proposals of an event (on its attributes, and new attributes).
+  async proposalsOf(eventId) {
+    const event = await this.getEvent(eventId);
+    return [...(event.ShadowAttribute || []),
+      ...(event.Attribute || []).flatMap((a) => a.ShadowAttribute || [])];
+  }
+
+  // Value proposal on an existing attribute.
+  async proposeEdit(attributeId, value) {
+    return this.post(`/shadow_attributes/edit/${attributeId}`, { ShadowAttribute: { value } });
+  }
+
   async addCorrelationExclusion(value, comment = '') {
     return this.post('/correlation_exclusions/add', { value, comment });
   }
