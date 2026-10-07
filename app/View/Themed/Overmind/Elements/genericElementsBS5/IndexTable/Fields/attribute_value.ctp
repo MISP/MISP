@@ -92,6 +92,15 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
             </p>
         <?php endif; ?>
 
+        <?php if (!empty($attribute['warnings'])): ?>
+            <i class="fas fa-exclamation-triangle
+                        text-warning"
+                title="<?= h(implode(', ', array_column(
+                    $attribute['warnings'],
+                    'warninglist_name'
+                ))) ?>"></i>
+        <?php endif; ?>
+
         <?php if ($isProposalRow): ?>
             <?php if (!empty($attribute['proposal_org_name'])): ?>
                 <span class="text-muted small"><?= __('by %s', h($attribute['proposal_org_name'])) ?></span>

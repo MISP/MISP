@@ -185,7 +185,7 @@ if ($canToggle) {
                     <?= __(
                         'Check that %s is enabled in the %s and that the service is up.',
                         '<code>Plugin.Action_services_enable</code>',
-                        sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/Plugin', __('plugin settings'))
+                        sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/workflow', __('plugin settings'))
                     ) ?>
                 </div>
             </div>

@@ -1864,6 +1864,7 @@ class Server extends AppModel
                 $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
             }
 
+            $leafValue['modified'] = $setting !== '' && $setting != ($leafValue['value'] ?? null);
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }

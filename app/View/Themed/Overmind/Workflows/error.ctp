@@ -39,7 +39,7 @@ $this->set('headerCountText', '');
                 <?php endforeach; ?>
             </ul>
 
-            <a href="<?= $baseurl ?>/servers/serverSettings/Plugin"
+            <a href="<?= $baseurl ?>/servers/serverSettings/workflow"
                class="btn btn-outline-primary btn-sm fw-semibold mt-3">
                 <i class="fas fa-gears me-1"></i><?= __('Open plugin settings') ?>
             </a>

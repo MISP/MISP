@@ -148,7 +148,7 @@ $massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
                     class="btn btn-sighting btn-sm d-none"
                     title="<?= __('Sightings display for selected attributes') ?>"
                     aria-label="<?= __('Sightings display for selected attributes') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="openSelectedSightings()">
                 <span class="misp-icon misp-icon-sighting misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Sightings') ?></span>
             </button>

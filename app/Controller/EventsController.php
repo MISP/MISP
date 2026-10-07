@@ -578,6 +578,37 @@ class EventsController extends AppController
 
                     $v = $filterString;
                     break;
+                case 'galaxy':
+                    if ($v === '' || !Configure::read('MISP.tagging')) {
+                        continue 2;
+                    }
+                    $include = [];
+                    $block = [];
+                    foreach (is_array($v) ? $v : explode('|', $v) as $piece) {
+                        if ($piece === '' || $piece === '!') {
+                            continue;
+                        }
+                        if ($piece[0] === '!') {
+                            $block[] = substr($piece, 1);
+                        } else {
+                            $include[] = $piece;
+                        }
+                    }
+                    if (!empty($block)) {
+                        $blockIds = $this->__eventIdsTaggedWithGalaxy($block);
+                        if (!empty($blockIds)) {
+                            $this->paginate['conditions']['AND'][] = ['NOT' => ['Event.id' => $blockIds]];
+                        }
+                    }
+                    if (!empty($include)) {
+                        $includeIds = $this->__eventIdsTaggedWithGalaxy($include);
+                        if (!empty($includeIds)) {
+                            $this->paginate['conditions']['AND'][] = ['Event.id' => $includeIds];
+                        } else {
+                            $nothing = true;
+                        }
+                    }
+                    break;
                 case 'email':
                     if ($v == "") {
                         continue 2;
@@ -725,6 +756,47 @@ class EventsController extends AppController
             $passedArgsArray[$searchTerm] = $v;
         }
         return $passedArgsArray;
+    }
+
+    /**
+     * IDs of the events carrying, on the event or on one of its attributes,
+     * a cluster of one of the named galaxies.
+     *
+     * @param array $galaxyNames
+     * @return array
+     */
+    private function __eventIdsTaggedWithGalaxy(array $galaxyNames)
+    {
+        $tagIds = $this->Event->EventTag->Tag->find('column', [
+            'fields' => ['Tag.id'],
+            'joins' => [
+                [
+                    'table' => 'galaxy_clusters',
+                    'alias' => 'GalaxyCluster',
+                    'type' => 'INNER',
+                    'conditions' => ['GalaxyCluster.tag_name = Tag.name'],
+                ],
+                [
+                    'table' => 'galaxies',
+                    'alias' => 'Galaxy',
+                    'type' => 'INNER',
+                    'conditions' => ['Galaxy.id = GalaxyCluster.galaxy_id'],
+                ],
+            ],
+            'conditions' => ['Galaxy.name' => $galaxyNames],
+        ]);
+        if (empty($tagIds)) {
+            return [];
+        }
+        $eventIds = $this->Event->EventTag->find('column', [
+            'conditions' => ['EventTag.tag_id' => $tagIds],
+            'fields' => ['EventTag.event_id'],
+        ]);
+        $attributeEventIds = ClassRegistry::init('AttributeTag')->find('column', [
+            'conditions' => ['AttributeTag.tag_id' => $tagIds],
+            'fields' => ['AttributeTag.event_id'],
+        ]);
+        return array_values(array_unique(array_merge($eventIds, $attributeEventIds)));
     }
 
     public function index()
@@ -3890,20 +3962,29 @@ class EventsController extends AppController
         );
 
         $data     = $stats['data']['all'] ?? [];
-        $positive = (int)(isset($data['sighting']['count'])
-            ? $data['sighting']['count'] : 0);
-        $negative = (int)(isset($data['false-positive']['count'])
-            ? $data['false-positive']['count'] : 0);
+        $counts   = [];
+        $own      = 0;
+        $orgName  = $user['Organisation']['name'];
+        foreach (['sighting', 'false-positive', 'expiration'] as $type) {
+            $counts[$type] = (int)($data[$type]['count'] ?? 0);
+            $own += (int)($data[$type]['orgs'][$orgName]['count'] ?? 0);
+        }
+        $positive = $counts['sighting'];
+        $negative = $counts['false-positive'];
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(
                 ['positive' => $positive,
-                 'negative' => $negative],
+                 'negative' => $negative,
+                 'expiration' => $counts['expiration'],
+                 'own' => $own],
                 'json'
             );
         }
         $this->set('positive', $positive);
         $this->set('negative', $negative);
+        $this->set('expiration', $counts['expiration']);
+        $this->set('own', $own);
         $this->set('event', $event);
         $this->layout = false;
     }
@@ -5431,7 +5512,11 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'view', $id));
+                    if ($this->theme === "Overmind"){
+                        $this->redirect(array('action' => 'view2', $id));
+                    } else {
+                        $this->redirect(array('action' => 'view', $id));
+                    }
                 }
             } else {
                 throw new MethodNotAllowedException('Could not unpublish event.');

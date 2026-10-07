@@ -57,7 +57,7 @@ foreach ($fields as $i => $f) {
                 <label class="form-label small fw-semibold mb-1"><?= h($f['label'] ?? $name) ?></label>
 
                 <?php if ($type === 'select'): ?>
-                    <select <?= $attrs ?> data-placeholder="<?= h($f['options'][''] ?? __('Any')) ?>">
+                    <select <?= $attrs ?> data-placeholder="<?= h(($f['placeholder'] ?? '') ?: (($f['options'][''] ?? '') ?: __('Any'))) ?>">
                         <?php foreach (($f['options'] ?? []) as $optVal => $optLabel): ?>
                             <option value="<?= h($optVal) ?>" <?= ((string)$optVal === $val) ? 'selected' : '' ?>>
                                 <?= h($optLabel) ?>
