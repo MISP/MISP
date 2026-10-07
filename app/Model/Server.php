@@ -7985,6 +7985,48 @@ class Server extends AppModel
             ),
             'Plugin' => array(
                 'branch' => 1,
+                # Multiple Sharing Group Distribution Plugin settings
+                # See more: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+                'MsgdPlug_enabled' => array(
+                    'level' => 1,
+                    'description' => 'Enable or disable plugin.',
+                    'value' => false, # For now, this plugin only works in the original MISP UI.
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'MsgdPlug_use_ids' => array(
+                    'level' => 2,
+                    'description' => 'Use IDs instead of UUIDs in blueprint rules to identify sharing groups.',
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'MsgdPlug_debug' => array(
+                    'level' => 2,
+                    'description' => 'Enable or disable debug logs.',
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'MsgdPlug_controller_whitelist' => array(
+                    'level' => 2,
+                    'description' => 'Comma-separated list of controllers where MsgdPlug is injected. Use * for global, none to disable.',
+                    'value' => '*',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'MsgdPlug_user_permissions_whitelist' => array(
+                    'level' => 0,
+                    'description' => 'Allowlist of users without [perm_sharing_group] permission authorized to generate blueprints (* = all, none = nobody, or email list).',
+                    'value' => 'none',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
                 'Geolocation_enabled' => array(
                     'level' => 1,
                     'description' => __('When enabled, geolocation objects will display a map icon that shows the coordinates on an interactive map.'),

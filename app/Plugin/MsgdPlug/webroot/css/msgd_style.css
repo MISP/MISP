@@ -1,0 +1,566 @@
+/**
+ * Custom CSS styles and layout overrides for the plugin interface.
+ *
+ * @package    MsgdPlug
+ * @subpackage MsgdPlug.webroot.css
+ *
+ * @author    TETRAPI SA, Lino Pacheco
+ * @license   AGPL-3.0
+ */
+
+[id*="SharingGroupId"] {
+    display: none !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+.msgd-index-view-btn {
+    float: left !important;
+    margin: 0 8px 0 0 !important;
+    padding: 3px 10px !important;
+    font-size: 12px !important;
+}
+
+:root {
+    --msgd-bg-primary: #ffffff;
+    --msgd-bg-secondary: #f8f9fa;
+    --msgd-bg-hover: #ebf5fa;
+    --msgd-bg-disabled: #80b3d6;
+    --msgd-bg-row-main: #c1e9f6;
+    --msgd-bg-error: #f2dede;
+    --msgd-border-color: #3a87ad;
+    --msgd-border-light: #dcdcdc;
+    --msgd-text-main: #333333;
+    --msgd-text-muted: #777777;
+    --msgd-text-error: #b94a48;
+    --msgd-text-link: #376b80;
+    --msgd-text-row-main: #2b6d8a;
+    --msgd-header-bg: #3a87ad;
+    --msgd-header-text: #ffffff;
+    --msgd-scrollbar-thumb: #b0c4de;
+    --msgd-shadow: rgba(0, 0, 0, 0.18);
+}
+
+.msgd-disabled {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--msgd-bg-disabled);
+}
+
+.msgd-user-select-none {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.msgd-button-wrapper {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    z-index: 1;
+}
+
+#msgdBlueprintModal,
+#msgdViewModal,
+.msgd-modal {
+    width: 700px;
+    max-width: 92vw;
+    margin-left: -350px;
+    z-index: 1045;
+}
+
+.msgd-modal-expanded {
+    width: 740px !important;
+    margin-left: -425px !important;
+}
+
+.msgd-modal-body {
+    max-height: 520px;
+    overflow-y: auto;
+    padding: 20px 30px;
+}
+
+@media (max-width: 768px) {
+    .msgd-modal-expanded {
+        width: 92vw !important;
+        margin-left: 0 !important;
+    }
+}
+
+.msgd-advanced-container {
+    display: none;
+    margin-top: 15px;
+}
+
+.msgd-advanced-toggle-btn {
+    display: inline-block;
+    margin-bottom: 8px;
+    color: var(--msgd-text-link);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.msgd-advanced-toggle-btn:hover,
+.msgd-advanced-toggle-btn:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
+
+.msgd-control-group {
+    margin-bottom: 0;
+}
+
+.msgd-control-group-name {
+    display: none;
+    margin-top: 20px;
+}
+
+.msgd-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.msgd-col-checkbox input[type="checkbox"],
+.msgd-checkbox-input,
+.group-checkbox-msgd {
+    margin: 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.msgd-info-groups-container {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 12px);
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid var(--msgd-border-color);
+    border-radius: 4px;
+    background: var(--msgd-bg-primary);
+    width: 280px;
+    box-shadow: 0 4px 12px var(--msgd-shadow);
+    scrollbar-width: thin;
+    scrollbar-color: var(--msgd-scrollbar-thumb) transparent;
+}
+
+.msgd-info-groups-container:empty {
+    display: none;
+}
+
+.msgd-info-groups-container.msgd-drag-active .msgd-info-table thead {
+    cursor: grab;
+}
+
+.msgd-info-groups-container.msgd-drag-active .msgd-info-table thead:active {
+    cursor: grabbing;
+}
+
+body.modal-open .msgd-info-groups-container {
+    z-index: 1;
+}
+
+#msgdViewInfoGroupsContainer {
+    position: static;
+    left: auto;
+    top: auto;
+    width: auto;
+    max-width: calc(100% - 130px);
+    min-width: 280px;
+    display: inline-block;
+    margin: 0;
+    box-shadow: none;
+    border: 1px solid var(--msgd-border-color);
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.msgd-info-table,
+.msgd-operation-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.msgd-info-table thead {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.msgd-info-table th {
+    background-color: var(--msgd-header-bg);
+    color: var(--msgd-header-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 10px;
+    line-height: 1.2;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.msgd-operation-table th {
+    background-color: var(--msgd-bg-secondary);
+    color: var(--msgd-text-main);
+    border-bottom: 2px solid var(--msgd-border-light);
+    box-sizing: border-box;
+    padding: 8px 10px;
+    line-height: 1.2;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    vertical-align: middle;
+}
+
+.msgd-info-table td,
+.msgd-operation-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--msgd-text-main);
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.msgd-info-table tbody tr:nth-child(even) td {
+    background-color: var(--msgd-bg-secondary);
+}
+
+.msgd-info-table tbody tr:hover td {
+    background-color: var(--msgd-bg-hover);
+}
+
+.msgd-info-table .msgd-col-idx {
+    width: 52px;
+    padding-left: 4px;
+    padding-right: 4px;
+    text-align: center;
+    font-weight: bold;
+    white-space: nowrap;
+    word-break: normal;
+    vertical-align: middle;
+}
+
+.msgd-info-table .msgd-col-name > span {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1.2;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.msgd-info-table tbody tr.msgd-row-main td {
+    background-color: var(--msgd-bg-row-main);
+    font-weight: 600;
+}
+
+.msgd-info-table tbody tr.msgd-row-main .msgd-col-idx {
+    color: var(--msgd-text-row-main);
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.msgd-col-checkbox {
+    width: 35px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.msgd-info-table .msgd-col-name {
+    text-align: left;
+    word-break: break-word;
+    vertical-align: middle;
+}
+
+.msgd-info-table td.msgd-col-name {
+    position: relative;
+}
+
+.msgd-header-actions {
+    float: right;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.msgd-drag-toggle-btn,
+.msgd-collapse-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--msgd-header-text);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.msgd-drag-toggle-btn:hover,
+.msgd-collapse-toggle-btn:hover,
+.msgd-drag-toggle-btn:focus-visible,
+.msgd-collapse-toggle-btn:focus-visible {
+    opacity: 1;
+    transform: scale(1.15);
+    outline: none;
+}
+
+.msgd-info-table .msgd-toggle-icon {
+    font-style: normal;
+    transition: transform 0.2s ease-in-out;
+    display: inline-block;
+    line-height: 1;
+}
+
+.msgd-info-table.msgd-collapsed tbody {
+    display: none;
+}
+
+.msgd-info-table.msgd-collapsed .msgd-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.msgd-sg-info-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    color: var(--msgd-text-main);
+    opacity: 0.85;
+    transition: opacity 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+}
+
+.msgd-sg-info-btn:hover,
+.msgd-sg-info-btn:focus-visible {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.15);
+    outline: none;
+}
+
+.msgd-sg-info-btn i,
+.msgd-info-table i,
+.msgd-operation-table i {
+    font-size: 13px;
+    line-height: 1;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+.msgd-operation-wrapper {
+    border: 1px solid var(--msgd-border-light);
+    border-radius: 4px;
+    background: var(--msgd-bg-primary);
+    overflow: hidden;
+}
+
+.msgd-operation-toolbar {
+    padding: 10px;
+    background-color: var(--msgd-bg-secondary);
+    border-bottom: 1px solid var(--msgd-border-light);
+    display: flex;
+    flex-direction: column;
+}
+
+.msgd-search-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.msgd-search-input {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.msgd-btn-reset {
+    margin-bottom: 10px;
+    white-space: nowrap;
+}
+
+.msgd-toolbar-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.msgd-toggle-label {
+    font-size: 12px;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.msgd-operation-container {
+    max-height: 210px;
+    overflow-y: auto;
+    background: var(--msgd-bg-primary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--msgd-scrollbar-thumb) transparent;
+}
+
+.msgd-info-groups-container::-webkit-scrollbar,
+.msgd-operation-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.msgd-info-groups-container::-webkit-scrollbar-thumb,
+.msgd-operation-container::-webkit-scrollbar-thumb {
+    background-color: var(--msgd-scrollbar-thumb);
+    border-radius: 3px;
+}
+
+.msgd-feedback-loading,
+.msgd-feedback-empty {
+    text-align: center;
+    color: var(--msgd-text-muted);
+    padding: 20px;
+    background: var(--msgd-bg-secondary);
+}
+
+.msgd-feedback-error {
+    color: var(--msgd-text-error);
+    text-align: center;
+    padding: 20px;
+    background: var(--msgd-bg-error);
+}
+
+.msgd-modal-footer {
+    position: relative;
+}
+
+.msgd-selection-status {
+    position: absolute;
+    left: 15px;
+    bottom: 10px;
+    display: none;
+    z-index: 20;
+}
+
+.msgd-selection-status-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #f0ad4e;
+    font-size: 18px;
+    cursor: pointer;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.msgd-selection-status-btn:hover,
+.msgd-selection-status-btn:focus {
+    color: #ec971f;
+    outline: none;
+    transform: scale(1.08);
+}
+
+.msgd-selection-status-message {
+    position: absolute;
+    left: 0;
+    bottom: 38px;
+    width: 300px;
+    padding: 10px 12px;
+    border: 1px solid #f0ad4e;
+    border-radius: 4px;
+    background: #fff8e5;
+    color: #8a6d3b;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    display: none;
+}
+
+.msgd-selection-status-message::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    bottom: -7px;
+    width: 12px;
+    height: 12px;
+    background: #fff8e5;
+    border-right: 1px solid #f0ad4e;
+    border-bottom: 1px solid #f0ad4e;
+    transform: rotate(45deg);
+}
+
+.msgd-selection-status.msgd-status-visible {
+    display: block;
+}
+
+.msgd-selection-status.msgd-status-open .msgd-selection-status-message {
+    display: block;
+}
+
+.msgd-selection-status.msgd-type-error .msgd-selection-status-btn {
+    color: #d9534f;
+}
+
+.msgd-selection-status.msgd-type-error .msgd-selection-status-btn:hover,
+.msgd-selection-status.msgd-type-error .msgd-selection-status-btn:focus {
+    color: #c9302c;
+}
+
+.msgd-selection-status.msgd-type-error .msgd-selection-status-message {
+    border-color: #d9534f;
+    background: #f2dede;
+    color: #a94442;
+}
+
+.msgd-selection-status.msgd-type-error .msgd-selection-status-message::after {
+    background: #f2dede;
+    border-color: #d9534f;
+}
+
+.msgd-selection-status.msgd-type-success .msgd-selection-status-btn {
+    color: #5cb85c;
+}
+
+.msgd-selection-status.msgd-type-success .msgd-selection-status-btn:hover,
+.msgd-selection-status.msgd-type-success .msgd-selection-status-btn:focus {
+    color: #449d44;
+}
+
+.msgd-selection-status.msgd-type-success .msgd-selection-status-message {
+    border-color: #5cb85c;
+    background: #dff0d8;
+    color: #3c763d;
+}
+
+.msgd-selection-status.msgd-type-success .msgd-selection-status-message::after {
+    background: #dff0d8;
+    border-color: #5cb85c;
+}
+
+@media (max-width: 768px) {
+    .msgd-selection-status-message {
+        width: 240px;
+    }
+}
