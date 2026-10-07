@@ -155,6 +155,10 @@ status and message of the refused request, or the error shown in the UI), never 
 | `account-login`                        | Wrong password (same message for an unknown email), brute force lock, logout (lock expiry with `QA_SLOW=1`) | — |
 | `account-password`                     | Too short, long without complexity, wrong confirmation | Recommendation 3 |
 | `account-auth-keys`                    | Read-only key, allowed IPs, invalid IP range, expiration in the past, only my keys | Recommendation 3 |
+| `admin-users`                          | Add user: email already used, upper case, invalid, empty form; disable a user; role Read Only | Bug 13 |
+| `admin-org-admin`                      | Org admin: users list of their organisation, user of another organisation | — |
+| `admin-organisations`                  | Delete an organisation still used, emoji in the name | Bug 5 |
+| `admin-settings`                       | Invalid value for a list setting, text with emoji on the login page, diagnostics, admin pages | default_event_distribution accepts 9 |
 
 ## Writing a new test
 
@@ -222,5 +226,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The remaining test plans** of `../` (admin, object, proposal, sighting, general): same
+- **The remaining test plans** of `../` (object, proposal, sighting, general): same
   pattern, one spec per Markdown file.

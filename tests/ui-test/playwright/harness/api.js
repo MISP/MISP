@@ -326,11 +326,52 @@ class MispApi {
     }
   }
 
+  // New key for a user; returns the key in clear (only given once).
+  async createAuthKey(userId, comment = '') {
+    const res = await this.post(`/auth_keys/add/${userId}`, { comment });
+    return (res.AuthKey || res).authkey_raw;
+  }
+
+  async findUser(email) {
+    const users = await this.get('/admin/users/index');
+    return users.map((x) => x.User || x).find((x) => x.email.toLowerCase() === email.toLowerCase());
+  }
+
   async deleteAuthKeysByComment(comment) {
     const keys = await this.get('/auth_keys/index');
     for (const k of keys.map((x) => x.AuthKey || x).filter((x) => x.comment === comment)) {
       await this.post(`/auth_keys/delete/${k.id}`);
     }
+  }
+
+  async createOrg(name) {
+    const res = await this.post('/admin/organisations/add', { name, local: 1 });
+    return res.Organisation || res;
+  }
+
+  async deleteOrgByName(name) {
+    const orgs = await this.get('/organisations/index/scope:all');
+    for (const o of orgs.map((x) => x.Organisation).filter((x) => x.name === name)) {
+      await this.post(`/admin/organisations/delete/${o.id}`);
+    }
+  }
+
+  async getSetting(name) {
+    return (await this.get(`/servers/getSetting/${name}`)).value;
+  }
+
+  // `force` skips the setting's own check (e.g. an empty value).
+  async setSetting(name, value, force = false) {
+    return this.raw('POST', `/servers/serverSettingsEdit/${name}`, { value: `${value}`, force });
+  }
+
+  // Restore function for the current value of a setting.
+  async keepSetting(name) {
+    const value = await this.getSetting(name);
+    return async () => {
+      const res = await this.setSetting(name, value ?? '', true);
+      if (res.status >= 400) throw new Error(`Could not restore ${name}: ${res.text.slice(0, 200)}`);
+    };
   }
 
   async dispose() {
