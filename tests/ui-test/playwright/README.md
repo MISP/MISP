@@ -160,6 +160,8 @@ status and message of the refused request, or the error shown in the UI), never 
 | `admin-organisations`                  | Delete an organisation still used, emoji in the name | Bug 5 |
 | `admin-settings`                       | Invalid value for a list setting, text with emoji on the login page, diagnostics, admin pages | default_event_distribution accepts 9 |
 | `sighting-sightings`                   | Add, false positive, by value, from another organisation, future date, delete, full list button, Advanced sightings empty | Bug 3; Bug 25; deleting a sighting is black-holed |
+| `general-forms`                        | Emoji in every text field, too long text in add forms, too long correlation exclusion, too long search | Bug 5; Bug 17 |
+| `general-ui`                           | No JavaScript error, phone width, dark mode on the main pages; refused forms keep their style; documentation pages | Bug 18; Bug 14; pagination bar too wide at phone width |
 
 ## Writing a new test
 
@@ -227,5 +229,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The remaining test plans** of `../` (object, proposal, general): same
+- **The remaining test plans** of `../` (object, proposal): same
   pattern, one spec per Markdown file.

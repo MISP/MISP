@@ -127,6 +127,14 @@ class MispApi {
     return res.Note || res;
   }
 
+  // Proposal (shadow attribute) on an event of another organisation.
+  async proposeAttribute(eventId, { type, value, category = 'Network activity', comment = '' }) {
+    const res = await this.post(`/shadow_attributes/add/${eventId}`, {
+      ShadowAttribute: { type, value, category, comment, to_ids: 0 },
+    });
+    return res.ShadowAttribute || res;
+  }
+
   async addCorrelationExclusion(value, comment = '') {
     return this.post('/correlation_exclusions/add', { value, comment });
   }
@@ -372,6 +380,19 @@ class MispApi {
       const res = await this.setSetting(name, value ?? '', true);
       if (res.status >= 400) throw new Error(`Could not restore ${name}: ${res.text.slice(0, 200)}`);
     };
+  }
+
+  // Deletes the rows of an index whose `field` passes `match` (a string is a prefix).
+  async deleteWhere(listUrl, model, field, match, deleteUrl) {
+    const test = typeof match === 'string' ? (v) => `${v}`.startsWith(match) : match;
+    const list = await this.get(listUrl);
+    for (const item of list.map((x) => x[model] || x).filter((x) => test(x[field] ?? ''))) {
+      await this.post(`${deleteUrl}/${item.id}`);
+    }
+  }
+
+  async listOf(listUrl, model) {
+    return (await this.get(listUrl)).map((x) => x[model] || x);
   }
 
   async dispose() {
