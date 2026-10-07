@@ -175,6 +175,24 @@ class MispApi {
     for (const { Event } of response || []) await this.post(`/events/delete/${Event.id}`);
   }
 
+  async findTaxonomy(namespace) {
+    return (await this.get('/taxonomies/index')).map((t) => t.Taxonomy).find((t) => t.namespace === namespace);
+  }
+
+  // Remembers the enabled/required state of a taxonomy; returns a function that restores it.
+  async keepTaxonomyState(namespace) {
+    const before = await this.findTaxonomy(namespace);
+    return async () => {
+      const now = await this.findTaxonomy(namespace);
+      if (now.enabled !== before.enabled) {
+        await this.post(`/taxonomies/${before.enabled ? 'enable' : 'disable'}/${before.id}`);
+      }
+      if (now.required !== before.required) {
+        await this.post(`/taxonomies/toggleRequired/${before.id}`, { Taxonomy: { required: before.required ? 1 : 0 } });
+      }
+    };
+  }
+
   // Enables a taxonomy; returns a function that puts it back as it was.
   async enableTaxonomy(namespace) {
     const taxonomy = (await this.get('/taxonomies/index'))

@@ -140,8 +140,11 @@ async function expectScreen(locator, name, { hide = [] } = {}) {
   if (isDialog) await expect(content).toBeVisible();
   const target = isDialog ? content : locator;
   await freezeDynamicText(page, hide);
-  // The dialog edges are transparent: hide the page behind it during the shot.
-  const style = isDialog ? 'body > :not(.modal) { visibility: hidden !important; }' : undefined;
+  // No scrollbar: whether the page is long enough to show one would change the
+  // width of the element by 15 px. The dialog edges are transparent: hide the
+  // page behind a dialog.
+  const style = 'html { scrollbar-width: none !important; } ::-webkit-scrollbar { display: none !important; }'
+    + (isDialog ? ' body > :not(.modal) { visibility: hidden !important; }' : '');
   await expect(target).toHaveScreenshot(name, { style });
 }
 
@@ -178,6 +181,45 @@ async function fillAttribute(page, {
 
 async function submitAttribute(form) {
   await form.getByRole('button', { name: 'Add Attribute' }).click();
+}
+
+// Row of a taxonomy in /taxonomies/index (its name and description share one cell).
+async function taxonomyRow(page, namespace) {
+  await page.goto('/taxonomies/index');
+  const box = page.getByRole('textbox', { name: 'Search by taxonomies name' });
+  await box.fill(namespace);
+  await box.press('Enter');
+  return page.getByRole('main').getByRole('row')
+    .filter({ hasText: new RegExp(`^\\s*#\\d+\\s+${namespace}\\b`) });
+}
+
+// Row menu action of a taxonomy (Enable, Disable, Require, Optional…): waits for
+// the server, confirming first when MISP asks.
+async function taxonomyAction(page, namespace, action) {
+  const taxonomyRowLocator = await taxonomyRow(page, namespace);
+  await taxonomyRowLocator.getByRole('button').last().click();
+  const done = page.waitForResponse((r) => r.request().method() === 'POST'
+    && /\/taxonomies\/(toggleEnable|enable|disable|toggleRequired)/.test(r.url()));
+  await page.locator('.dropdown-menu.show').getByRole('link', { name: action, exact: true }).click();
+  const confirm = page.getByRole('dialog').filter({ visible: true })
+    .getByRole('button', { name: new RegExp(`^${action}`) });
+  await Promise.race([done, confirm.waitFor()]);
+  if (await confirm.isVisible()) await confirm.click();
+  expect((await done).status()).toBeLessThan(400);
+}
+
+// Names of the options offered in Edit Tags (global section) for `text`.
+async function offeredTags(page, eventId, text) {
+  await openEvent(page, eventId);
+  await page.getByRole('button', { name: 'Edit Tags' }).click();
+  const box = page.getByRole('dialog').filter({ visible: true })
+    .getByRole('combobox', { name: 'Search tags to add…' }).first();
+  await box.click();
+  await page.keyboard.type(text);
+  await page.waitForTimeout(1_500);
+  const names = await page.getByRole('option').filter({ visible: true }).allInnerTexts();
+  await page.keyboard.press('Escape');
+  return names.map((n) => n.replace(/\s+/g, ' ').trim());
 }
 
 // Blocks of the General tab of an event page, used as the final screenshot of a
@@ -294,6 +336,14 @@ async function pick(combobox, search, option = search) {
   }
   for (let i = 0; i < 50 && !re.test(await activeName()); i++) await combobox.press('ArrowDown');
   if (!re.test(await activeName())) {
+    // Fallback: hovering an option makes it the active one.
+    const choice = page.getByRole('option', { name: re }).filter({ visible: true }).first();
+    await expect(async () => {
+      await choice.hover();
+      expect(await activeName()).toMatch(re);
+    }).toPass({ timeout: 5_000 }).catch(() => {});
+  }
+  if (!re.test(await activeName())) {
     const state = await page.evaluate(() => ({
       focus: document.activeElement?.id,
       options: [...document.querySelectorAll('.ts-dropdown [role=option]')]
@@ -315,6 +365,6 @@ const dialog = (page) => page.getByRole('dialog').filter({ visible: true });
 
 module.exports = {
   test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
-  addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute,
+  addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute, offeredTags, taxonomyRow, taxonomyAction,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
 };
