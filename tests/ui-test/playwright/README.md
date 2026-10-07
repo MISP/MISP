@@ -142,6 +142,8 @@ status and message of the refused request, or the error shown in the UI), never 
 | `taxonomy-index`                       | Enable / disable, required taxonomy and publish (with / without notification, tagged), disabled taxonomy on an event, update, disabled taxonomy and galaxy everywhere | re-enabled taxonomy tags stay hidden (to confirm); clusters of a disabled galaxy still offered |
 | `taxonomy-view`                        | Enable all tags, disable one tag | — |
 | `taxonomy-exclusive`                   | Two tlp values on one event, replace a value, event and attribute | exclusive taxonomies are not enforced |
+| `event-report-add`                     | Reports: Markdown, HTML and scripts shown as text, HTML and emoji in the name, 3 MB report, attribute reference, delete and restore, page after creating | Bug 10; deleted reports cannot be shown or restored |
+| `event-report-extract`                 | Extract indicators, reviewed replacements, import from URL off, PDF, old rendered view | only AI extraction is offered; viewRendered gives an internal error; PDF skipped without the convert_markdown_to_pdf module |
 
 ## Writing a new test
 

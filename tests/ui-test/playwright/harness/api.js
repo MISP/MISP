@@ -245,6 +245,13 @@ class MispApi {
     return (response || []).map((c) => c.GalaxyCluster).find((c) => c.type === type && c.value === value);
   }
 
+  async createReport(eventId, name, content = '') {
+    const { EventReport } = await this.post(`/eventReports/add/${eventId}`, {
+      EventReport: { name, content, distribution: 5 },
+    });
+    return EventReport;
+  }
+
   async findSharingGroup(name) {
     const { response } = await this.get('/sharing_groups/index');
     return (response || []).find((sg) => sg.SharingGroup.name === name)?.SharingGroup;
