@@ -358,9 +358,10 @@ test('Enrich event', async ({ page, apiAs, api, ts, cleanup }) => {
   );
   await form.getByRole('checkbox').first().check();
   await form.getByRole('button', { name: /Enrich|Run|Submit/ }).click();
-  await expect(page.getByText(/Enrichment runs as a background job|Enrichment results/)).toBeVisible();
+  const queued = page.getByText(/Enrichment task queued for background processing|Enrichment results/);
+  await expect(queued).toBeVisible();
+  await expectScreen(queued, 'wf-enrich.png');
   await expectNoErrorPage(page);
-  await expectScreen(page.getByRole('main'), 'wf-enrich.png');
 });
 
 test.describe('with the publish permission', () => {
