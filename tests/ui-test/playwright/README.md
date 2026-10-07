@@ -144,6 +144,9 @@ status and message of the refused request, or the error shown in the UI), never 
 | `taxonomy-exclusive`                   | Two tlp values on one event, replace a value, event and attribute | exclusive taxonomies are not enforced |
 | `event-report-add`                     | Reports: Markdown, HTML and scripts shown as text, HTML and emoji in the name, 3 MB report, attribute reference, delete and restore, page after creating | Bug 10; deleted reports cannot be shown or restored |
 | `event-report-extract`                 | Extract indicators, reviewed replacements, import from URL off, PDF, old rendered view | only AI extraction is offered; viewRendered gives an internal error; PDF skipped without the convert_markdown_to_pdf module |
+| `import-export-freetext`               | Freetext: defanged, punctuation and duplicates, types, nothing found, bulk changes, proposals | — |
+| `import-export-import`                 | Import Event: MISP JSON, event already present, invalid text, take ownership, STIX 2 | invalid text does nothing (no message); no "Take ownership" option |
+| `import-export-export`                 | Download as MISP JSON, CSV formulas, STIX 2; several events; cached exports | Bug 2 |
 
 ## Writing a new test
 
