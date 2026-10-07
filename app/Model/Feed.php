@@ -1715,8 +1715,9 @@ class Feed extends AppModel
             try {
                 $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
             } catch (Exception $e) {
-                $this->logException("Could not get and parse event '$uuid' for feed $feedId.", $e);
-                return false;
+                $this->logException("Could not get and parse event '$uuid' for feed $feedId, ignoring event.", $e);
+                # In case of missing event file, we ignore and pass to the next event.
+                continue;
             }
 
             if (!empty($event['Event']['Attribute'])) {
