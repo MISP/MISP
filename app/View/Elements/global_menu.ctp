@@ -351,20 +351,6 @@ if (!empty($me)) {
                     'text' => __('Statistics'),
                     'url' => $baseurl . '/users/statistics'
                 ),
-                array(
-                    'type' => 'separator',
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                ),
-                array(
-                    'text' => __('List Discussions'),
-                    'url' => $baseurl . '/threads/index',
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                ),
-                array(
-                    'text' => __('Start Discussion'),
-                    'url' => $baseurl . '/posts/add',
-                    'requirement' => $this->Acl->canAccess('posts', 'add'),
-                )
             )
         ),
         array(

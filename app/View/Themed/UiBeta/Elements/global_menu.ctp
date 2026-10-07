@@ -634,28 +634,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/news'
                 ),
                 array(
-                    'type' => 'separator',
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                ),
-                // Discussions Group
-                array(
-                    'type' => 'group',
-                    'html' => '<i class="fas fa-comments fa-fw"></i> ' . __('Discussions'),
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                    'children' => array(
-                        array(
-                            'html' => '<i class="fas fa-comments fa-fw"></i> ' . __('List Discussions'),
-                            'url' => $baseurl . '/threads/index',
-                            'requirement' => $this->Acl->canAccess('threads', 'index'),
-                        ),
-                        array(
-                            'html' => '<i class="fas fa-comment-medical fa-fw"></i> ' . __('Start Discussion'),
-                            'url' => $baseurl . '/posts/add',
-                            'requirement' => $this->Acl->canAccess('posts', 'add'),
-                        ),
-                    )
-                ),
-                array(
                     'type' => 'separator'
                 ),
                 // Documentation Group

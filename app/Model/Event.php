@@ -773,38 +773,6 @@ class Event extends AppModel
         return $events;
     }
 
-    public function attachDiscussionsCountToEvents($user, $events)
-    {
-        $eventIds = array_column(array_column($events, 'Event'), 'id');
-        $this->Thread = ClassRegistry::init('Thread');
-        $threads = $this->Thread->find('list', array(
-            'conditions' => array('Thread.event_id' => $eventIds),
-            'fields' => array('Thread.event_id', 'Thread.id')
-        ));
-        $posts = $this->Thread->Post->find('all', array(
-            'conditions' => array('Post.thread_id' => $threads),
-            'recursive' => -1,
-            'fields' => array('Count(id) AS post_count', 'thread_id', 'max(date_modified) as last_post'),
-            'group' => array('Post.thread_id')
-        ));
-        $event_threads = array();
-        foreach ($posts as $k => $v) {
-            foreach ($threads as $k2 => $v2) {
-                if ($v2 == $v['Post']['thread_id']) {
-                    $event_threads[$k2] = array(
-                        'post_count' => $v[0]['post_count'],
-                        'last_post' => strtotime($v[0]['last_post'])
-                    );
-                }
-            }
-        }
-        foreach ($events as $k => $v) {
-            $events[$k]['Event']['post_count'] = !empty($event_threads[$events[$k]['Event']['id']]) ? $event_threads[$events[$k]['Event']['id']]['post_count'] : 0;
-            $events[$k]['Event']['last_post'] = !empty($event_threads[$events[$k]['Event']['id']]) ? $event_threads[$events[$k]['Event']['id']]['last_post'] : 0;
-        }
-        return $events;
-    }
-
     /**
      * @param array $user
      * @param int $eventId
@@ -1418,13 +1386,6 @@ class Event extends AppModel
     public function quickDelete(array $event)
     {
         $id = (int)$event['Event']['id'];
-        $this->Thread = ClassRegistry::init('Thread');
-        $thread = $this->Thread->find('first', array(
-            'conditions' => array('Thread.event_id' => $id),
-            'fields' => array('Thread.id'),
-            'recursive' => -1
-        ));
-        $thread_id = !empty($thread) ? (int)$thread['Thread']['id'] : false;
         $relations = array(
             array(
                 'table' => 'attributes',
@@ -1443,11 +1404,6 @@ class Event extends AppModel
             ),
             array(
                 'table' => 'attribute_tags',
-                'foreign_key' => 'event_id',
-                'value' => $id
-            ),
-            array(
-                'table' => 'threads',
                 'foreign_key' => 'event_id',
                 'value' => $id
             ),
@@ -1492,13 +1448,6 @@ class Event extends AppModel
                 'value' => $id
             )
         );
-        if ($thread_id) {
-            $relations[] =  array(
-                'table' => 'posts',
-                'foreign_key' => 'thread_id',
-                'value' => $thread_id
-            );
-        }
         if (!Configure::read('MISP.completely_disable_correlation')) {
             $correlationTableName = $this->Attribute->Correlation->getTableName();
             array_push(

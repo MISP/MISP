@@ -219,7 +219,6 @@ class UserSetting extends AppModel
                 'report_count',
                 'sightings',
                 'proposals',
-                'discussion',
                 'creator_user',
                 'timestamp',
                 'publish_timestamp'

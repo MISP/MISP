@@ -706,63 +706,6 @@ dd {
     font-weight:bold !important;
 }
 
-.discussionBox {
-    border-collapse: separate;
-    box-shadow: 5px 5px 5px #888888;
-    width:100%;
-    max-width:900px;
-}
-
-.discussionBoxTD {
-    padding-right: 8px;
-    padding-left: 8px;
-    border-style: solid;
-    border-width: 0px;
-
-}
-
-.discussionBoxTDtop {
-    color: #ffffff;
-    background-color: #cccccc;
-}
-
-.discussionBoxTDbottom {
-    background-color: #eeeeee;
-    padding-left: 8px;
-    padding-bottom: 4px;
-    padding-top: 4px;
-}
-
-.discussionBoxTDMid {
-    padding-top: 8px;
-    height: 100px;
-    vertical-align: top;
-}
-
-.discussionBoxTDMidLeft {
-    background-color: #eeeeee;
-    width: 80px;
-    text-align:center;
-}
-
-.discussionBoxTDMidRight {
-}
-
-.whitelink {
-    color:#ffffff;
-}
-
-.quote {
-    margin: 0 10px;
-    margin-bottom: 10px;
-    background: #f2f6f8 none;
-    border-radius: 0;
-    border: 1px solid #417394;
-    position: relative;
-    top: 0;
-    padding: 4px;
-}
-
 .loading {
     display: none;
     position: fixed;

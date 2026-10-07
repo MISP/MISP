@@ -373,36 +373,6 @@ function submitPasswordReset(id) {
     });
 }
 
-function submitMessageForm(url) {
-    if (!$('#PostMessage').val()) {
-        showMessage("fail", "Cannot submit empty message.");
-    } else {
-        var message = $('#PostMessage').val()
-        fetchFormDataAjax(url, function (formData) {
-            var $formData = $(formData);
-            $formData.find('#PostMessage').val(message);
-            $.ajax({
-                data: $formData.find('form').serialize(),
-                beforeSend: function () {
-                    $(".loading").show();
-                },
-                success: function (data) {
-                    showMessage("success", "Message added.");
-                    $('#top').html(data);
-                },
-                error: function () {
-                    showMessage('fail', 'Could not add message.');
-                },
-                complete: function () {
-                    $(".loading").hide();
-                },
-                type: "post",
-                url: $formData.find('form').attr('action')
-            });
-        });
-    }
-}
-
 function acceptObject(type, id) {
     var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();

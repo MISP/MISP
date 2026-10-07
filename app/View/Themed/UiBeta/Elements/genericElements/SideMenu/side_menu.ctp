@@ -1162,44 +1162,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'threads':
-                    if ($menuItem === 'add' || $menuItem === 'view') {
-                        if (!(empty($thread_id) && empty($target_type))) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => $baseurl . '/threads/view/' . h($thread_id),
-                                'text' => __('View Thread')
-                            ));
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'add_post',
-                                'url' => $baseurl . '/posts/add/thread/' . h($thread_id),
-                                'text' => __('Add Post')
-                            ));
-                            echo $divider;
-                        }
-                    }
-                    if ($menuItem === 'edit') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
-                            'url' => $baseurl . '/threads/view/' . h($thread_id),
-                            'text' => __('View Thread')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'edit',
-                            'url' => $baseurl . '/threads/view/' . h($id),
-                            'text' => __('Edit Post')
-                        ));
-                        echo $divider;
-                    }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/threads/index',
-                        'text' => __('List Threads')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/posts/add',
-                        'text' => __('New Thread')
-                    ));
-                    break;
-
                 case 'tags':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexfav',

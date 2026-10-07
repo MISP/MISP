@@ -14,7 +14,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {
@@ -371,38 +371,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
         $this->Job->saveStatus($jobId, $result);
-    }
-
-    public function postsemail()
-    {
-        if (
-            empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4])
-        ) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email']);
-        }
-
-        $userId = intval($this->args[0]);
-        $postId = intval($this->args[1]);
-        $eventId = intval($this->args[2]);
-        $mailContent = $this->getBackgroundJobsTool()->fetchDataFile($this->args[3]);
-        $this->Job->id = intval($this->args[4]);
-
-        $result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $mailContent['title'], $mailContent['message']);
-
-        if ($result) {
-            $this->Job->save([
-                'progress' => 100,
-                'message' => 'Emails sent.',
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_COMPLETED
-            ]);
-        } else {
-            $this->Job->save([
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_FAILED
-            ]);
-        }
     }
 
     public function enqueueCaching()

@@ -23,7 +23,6 @@ class AdminShell extends AppShell
 {
     public $uses = [
         'Event',
-        'Post',
         'MispAttribute',
         'Job',
         'User',

@@ -25,10 +25,6 @@ class DeprecationComponent extends Component
                 'stix2' => __('Use /events/restSearch to export in STIX2 format.'),
                 'xml' => __('Use /events/restSearch to export in XML format. It is highly recommended to use JSON whenever possible.')
             ),
-            'posts' => array(
-                'add' => false,
-                'index' => false
-            )
         );
     }
 
