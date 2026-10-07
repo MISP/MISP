@@ -26,6 +26,172 @@ import core  # noqa: E402
 import restore  # noqa: E402
 
 LIVE = 'deleted = 0'
+# What a saved attribute correlates with on 2.x (MispAttribute constants).
+NON_CORRELATING = ("'comment', 'http-method', 'aba-rtn', 'gender', "
+                   "'counter', 'integer', 'float', 'port', 'nationality', "
+                   "'cortex', 'boolean', 'anonymised'")
+CORRELATING = f"""a.deleted = 0 AND a.disable_correlation = 0
+          AND e.disable_correlation = 0
+          AND a.type NOT IN ({NON_CORRELATING})"""
+SINGLE = 'COUNT(DISTINCT BINARY a.value1) = 1'
+# Correlation fixture: a domain stored three to eight times, once in an
+# org-only event of another org than the lesser user's.
+RESTRICTED_TARGET = f"""
+        SELECT MIN(BINARY a.value1) FROM attributes a
+        JOIN events e ON e.id = a.event_id
+        WHERE a.type = 'domain' AND {CORRELATING}
+        GROUP BY a.value1
+        HAVING COUNT(*) BETWEEN 3 AND 8 AND COUNT(DISTINCT a.event_id) >= 3
+           AND {SINGLE}
+           AND SUM(e.distribution = 0 AND e.org_id <> LESSER_ORG
+                   AND e.orgc_id <> LESSER_ORG) = 1
+           AND SUM(e.distribution = 3 AND a.distribution IN (3, 5)) >= 2
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1"""
+
+
+def correlation_fixture_queries():
+    """Stored values a scratch attribute matches, or deliberately misses,
+    when it is saved (suites/correlation_fixture.py). Counts stay well under
+    MISP.correlation_limit unless over-correlation is the point."""
+    def grouped(where, having, order='COUNT(*) DESC, 1', offset=0):
+        return f"""
+        SELECT MIN(BINARY a.value1) FROM attributes a
+        JOIN events e ON e.id = a.event_id
+        WHERE {where}
+        GROUP BY a.value1 HAVING {having}
+        ORDER BY {order} LIMIT 1{' OFFSET %d' % offset if offset else ''}"""
+
+    domain = f"a.type = 'domain' AND {CORRELATING}"
+    small = (f'COUNT(*) BETWEEN 3 AND 5 AND COUNT(DISTINCT a.event_id) >= 3 '
+             f'AND MIN(e.distribution) = 3 AND {SINGLE}')
+    filename = (f"a.type = 'filename' AND {CORRELATING} "
+                "AND a.value1 REGEXP '^[a-z0-9_]+[.](exe|dll)$'")
+    exclusion_hits = """(
+            SELECT COUNT(*) FROM attributes a
+            WHERE a.value1 = CONVERT(x.value USING utf8mb3)
+                  COLLATE utf8mb3_unicode_ci
+              AND a.deleted = 0 AND a.disable_correlation = 0)"""
+    return {
+        'cf_exact': grouped(domain, small),
+        'cf_disabled_source': grouped(domain, small, offset=1),
+        'cf_case': grouped(
+            f"a.type IN ('filename', 'text') AND {CORRELATING}",
+            'COUNT(DISTINCT BINARY a.value1) > 1 '
+            'AND COUNT(DISTINCT CAST(LOWER(a.value1) AS BINARY)) = 1 '
+            'AND COUNT(*) BETWEEN 3 AND 10 '
+            'AND COUNT(DISTINCT a.event_id) >= 3'),
+        'cf_accent': grouped(
+            f"a.type IN ('email-subject', 'text', 'filename') "
+            f"AND {CORRELATING} AND LENGTH(a.value1) < 60 "
+            "AND HEX(a.value1) REGEXP '^(..)*C3[AB][0-9A-F]'",
+            f'COUNT(*) BETWEEN 2 AND 6 AND COUNT(DISTINCT a.event_id) >= 2 '
+            f'AND {SINGLE}'),
+        # The spelling with a no-break space, of a value also stored with a
+        # plain one.
+        'cf_nbsp': f"""
+        SELECT MAX(IF(INSTR(CAST(a.value1 AS BINARY), X'C2A0') > 0,
+                      CAST(a.value1 AS BINARY), NULL))
+        FROM attributes a JOIN events e ON e.id = a.event_id
+        WHERE {CORRELATING} AND LENGTH(a.value1) < 40
+        GROUP BY a.value1
+        HAVING SUM(INSTR(CAST(a.value1 AS BINARY), X'C2A0') > 0) > 0
+           AND SUM(INSTR(CAST(a.value1 AS BINARY), X'C2A0') = 0) > 0
+           AND COUNT(*) BETWEEN 2 AND 6
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1""",
+        # One of several distinct values sharing their first 128 characters.
+        'cf_long_prefix': f"""
+        SELECT MIN(BINARY a.value1) FROM attributes a
+        JOIN events e ON e.id = a.event_id
+        WHERE {CORRELATING} AND LENGTH(a.value1) BETWEEN 129 AND 191
+        GROUP BY LEFT(a.value1, 128)
+        HAVING COUNT(DISTINCT BINARY a.value1) BETWEEN 3 AND 8
+           AND COUNT(*) <= 12
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1""",
+        # Longer than the 191 characters correlation_values keeps.
+        'cf_long_191': grouped(
+            f"a.type = 'text' AND {CORRELATING} "
+            'AND CHAR_LENGTH(a.value1) BETWEEN 200 AND 400',
+            f'COUNT(*) BETWEEN 2 AND 5 AND COUNT(DISTINCT a.event_id) >= 2 '
+            f'AND {SINGLE}'),
+        # 2.x stores a 4-byte character as '?': a stored value holding one.
+        'cf_four_byte': grouped(
+            f"a.type = 'url' AND {CORRELATING} AND LENGTH(a.value1) < 80 "
+            "AND a.value1 LIKE '%?%'",
+            f'COUNT(*) BETWEEN 2 AND 6 AND COUNT(DISTINCT a.event_id) >= 2 '
+            f'AND {SINGLE}'),
+        'cf_cidr_v4': """
+        SELECT CONCAT(SUBSTRING_INDEX(a.value1, '.', 3), '.0/24')
+        FROM attributes a
+        WHERE a.type IN ('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port')
+          AND a.deleted = 0 AND a.disable_correlation = 0
+          AND a.value1 REGEXP '^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$'
+        GROUP BY SUBSTRING_INDEX(a.value1, '.', 3)
+        HAVING COUNT(DISTINCT a.value1) BETWEEN 2 AND 3
+           AND COUNT(*) BETWEEN 3 AND 6 AND COUNT(DISTINCT a.event_id) >= 2
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1""",
+        'cf_cidr_v6': """
+        SELECT CONCAT(INET6_NTOA(CONCAT(LEFT(INET6_ATON(a.value1), 8),
+                                        UNHEX('0000000000000000'))), '/64')
+        FROM attributes a
+        WHERE a.type IN ('ip-src', 'ip-dst') AND a.deleted = 0
+          AND a.disable_correlation = 0 AND a.value1 LIKE '%:%'
+          AND a.value1 NOT LIKE '%/%' AND INET6_ATON(a.value1) IS NOT NULL
+        GROUP BY LEFT(INET6_ATON(a.value1), 8)
+        HAVING COUNT(DISTINCT a.value1) BETWEEN 2 AND 4
+           AND COUNT(DISTINCT a.event_id) >= 2 AND COUNT(*) <= 6
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1""",
+        'cf_excluded': f"""
+        SELECT x.value FROM correlation_exclusions x
+        WHERE x.value NOT LIKE '%\\%%'
+          AND {exclusion_hits} BETWEEN 2 AND 15
+        ORDER BY x.value LIMIT 1""",
+        'cf_excluded_case': f"""
+        SELECT x.value FROM correlation_exclusions x
+        WHERE x.value NOT LIKE '%\\%%' AND x.value REGEXP '[a-zA-Z]'
+          AND {exclusion_hits} BETWEEN 2 AND 15
+        ORDER BY x.value LIMIT 1""",
+        'cf_excluded_wildcard': """
+        SELECT a.value1 FROM correlation_exclusions x
+        JOIN attributes a ON a.value1 LIKE CONVERT(x.value USING utf8mb3)
+                                         COLLATE utf8mb3_unicode_ci
+        WHERE x.value LIKE '%\\%' AND x.value NOT LIKE '\\%%'
+          AND a.deleted = 0 AND a.disable_correlation = 0
+        GROUP BY a.value1 HAVING COUNT(*) BETWEEN 2 AND 15
+        ORDER BY COUNT(*) DESC, 1 LIMIT 1""",
+        # Stored with correlation disabled in one event, enabled in others.
+        'cf_disabled_target': grouped(
+            "a.type IN ('filename', 'text') AND a.deleted = 0 "
+            "AND e.disable_correlation = 0",
+            'SUM(a.disable_correlation = 0) BETWEEN 2 AND 5 '
+            'AND SUM(a.disable_correlation = 1) BETWEEN 1 AND 3 '
+            'AND COUNT(DISTINCT IF(a.disable_correlation = 0, a.event_id, '
+            'NULL)) >= 2 AND COUNT(DISTINCT a.event_id) > COUNT(DISTINCT '
+            f'IF(a.disable_correlation = 0, a.event_id, NULL)) AND {SINGLE}'),
+        'cf_over_blocked': grouped(
+            domain,
+            'COUNT(*) BETWEEN 25 AND 100 '
+            'AND MIN(a.value1) IN (SELECT value FROM over_correlating_values)',
+            order='COUNT(*), 1'),
+        'cf_over_new': grouped(
+            f"a.type IN ('url', 'filename', 'text') AND {CORRELATING}",
+            'COUNT(*) BETWEEN 25 AND 80 AND COUNT(DISTINCT a.event_id) >= 5 '
+            f'AND {SINGLE} AND MIN(a.value1) NOT IN '
+            '(SELECT value FROM over_correlating_values) '
+            'AND MIN(a.value1) NOT IN '
+            '(SELECT value FROM correlation_exclusions)',
+            order='COUNT(*), 1'),
+        # A port-sized number stored as a correlating value1.
+        'cf_primary_number': grouped(
+            f"{CORRELATING} AND a.value1 REGEXP '^[1-9][0-9]{{3}}$'",
+            'COUNT(*) BETWEEN 2 AND 5 AND COUNT(DISTINCT a.event_id) >= 2'),
+        'cf_trailing': grouped(
+            filename, f'COUNT(*) BETWEEN 3 AND 5 '
+            f'AND COUNT(DISTINCT a.event_id) >= 3 AND {SINGLE}'),
+        'cf_trailing_alt': grouped(
+            filename, f'COUNT(*) BETWEEN 3 AND 5 '
+            f'AND COUNT(DISTINCT a.event_id) >= 3 AND {SINGLE}', offset=1),
+    }
+
 
 QUERIES = {
     'ip_common': f"""
@@ -252,6 +418,16 @@ def first_value(db, sql):
     return bytes.fromhex(rows[0]).decode('utf-8')
 
 
+def lesser_org(config):
+    if 'lesser' not in config.users:
+        return None
+    response = core.Client(config).request('GET', '/users/view/me',
+                                           user='lesser')
+    if response.status != 200:
+        return None
+    return int(response.json()['User']['org_id'])
+
+
 def derive(found):
     domain = found.get('domain_common')
     if domain:
@@ -286,7 +462,13 @@ def main(argv=None):
     if os.path.exists(out) and not args.refresh:
         with open(out) as f:
             found = json.load(f)
-    for name, sql in QUERIES.items():
+    queries = dict(QUERIES, **correlation_fixture_queries())
+    if 'cf_restricted' not in found:
+        org = lesser_org(config)
+        if org is not None:
+            queries['cf_restricted'] = RESTRICTED_TARGET.replace(
+                'LESSER_ORG', str(org))
+    for name, sql in queries.items():
         if name in found:
             continue
         found[name] = first_value(db, sql)

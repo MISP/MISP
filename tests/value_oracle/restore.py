@@ -461,6 +461,9 @@ class Restorer:
             ['redis-cli', '-n', str(self.s['redis_db'])] + args,
             input=payload, capture_output=True, check=True).stdout
 
+    def redis(self, *args):
+        return self._redis(list(args))
+
     def clear_redis(self):
         removed = 0
         for prefix in REDIS_PREFIXES:
