@@ -218,7 +218,9 @@ class ShadowAttribute extends AppModel
                 return false;
             }
         }
-        $this->Attribute->loadAttributeValue()->assignIds($this->data['ShadowAttribute'], $this->whitelist);
+        $attributeValue = $this->Attribute->loadAttributeValue();
+        $attributeValue->assignIds($this->data['ShadowAttribute'], $this->whitelist);
+        $this->whitelist = $attributeValue->withIdFields($this->whitelist);
         return true;
     }
 

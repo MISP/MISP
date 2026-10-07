@@ -609,7 +609,9 @@ class MispAttribute extends AppModel
                 $attribute['value2'] = '';
             }
         }
-        $this->loadAttributeValue()->assignIds($attribute, $this->whitelist);
+        $attributeValue = $this->loadAttributeValue();
+        $attributeValue->assignIds($attribute, $this->whitelist);
+        $this->whitelist = $attributeValue->withIdFields($this->whitelist);
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
         // always return true after a beforeSave()

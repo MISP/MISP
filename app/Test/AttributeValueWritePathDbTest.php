@@ -100,6 +100,23 @@ class AttributeValueWritePathDbTest extends TestCase
         }, $values);
     }
 
+    private function stored($id, array $columns)
+    {
+        $statement = $this->db->rawQuery(sprintf(
+            'SELECT %s FROM attributes WHERE id = %d',
+            implode(', ', $columns),
+            $id
+        ));
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        $statement->closeCursor();
+        return $row;
+    }
+
+    private function user()
+    {
+        return ClassRegistry::init('User')->getAuthUser(1);
+    }
+
     private function dictionaryHas($value)
     {
         $hash = bin2hex($this->attribute->loadAttributeValue()->hashOf($value));
@@ -265,6 +282,172 @@ class AttributeValueWritePathDbTest extends TestCase
         $this->assertNotFalse($saved);
         $this->assertSame($before, $this->storedIds('attributes', $id));
         $this->assertFalse($this->dictionaryHas($unwritten));
+    }
+
+    public function testCaptureAttributeKeepsTheIds()
+    {
+        $host = "{$this->token}.example.org";
+
+        $this->attribute->captureAttribute([
+            'type' => 'hostname|port',
+            'category' => 'Network activity',
+            'value' => "$host|8443",
+            'distribution' => 5,
+        ] + self::FORGED, $this->event['id'], $this->user());
+
+        $this->assertNotEmpty($this->attribute->id, json_encode($this->attribute->validationErrors));
+        $this->assertSame($this->dictionaryIds([$host, '8443']), $this->storedIds('attributes', (int)$this->attribute->id));
+    }
+
+    public function testTheEditFieldListKeepsTheIds()
+    {
+        $id = $this->create(['type' => 'hostname|port', 'value' => "{$this->token}.example.org|8443"]);
+        $edited = "edited-{$this->token}.example.org";
+
+        $saved = $this->attribute->save(['Attribute' => [
+            'id' => $id,
+            'event_id' => $this->event['id'],
+            'type' => 'hostname|port',
+            'category' => 'Network activity',
+            'value' => "$edited|9443",
+        ] + self::FORGED], ['fieldList' => MispAttribute::EDITABLE_FIELDS]);
+
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame($this->dictionaryIds([$edited, '9443']), $this->storedIds('attributes', $id));
+    }
+
+    public function testEditAttributeBulkKeepsTheIdsOfTheRowsItSaves()
+    {
+        $user = $this->user();
+        $event = $this->attribute->Event->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.id' => $this->event['id']],
+        ]);
+        $hostId = $this->create(['type' => 'hostname|port', 'value' => "{$this->token}.example.org|8443"]);
+        $domainId = $this->create(['type' => 'domain', 'value' => "{$this->token}.example.net"]);
+        $culledId = $this->create(['type' => 'ip-dst', 'value' => '192.0.2.' . random_int(1, 254)]);
+        $culledBefore = $this->storedIds('attributes', $culledId);
+        $rows = [];
+        foreach ([
+            $hostId => ['hostname|port', "edited-{$this->token}.example.org|9443"],
+            $domainId => ['domain', "edited-{$this->token}.example.net"],
+            $culledId => ['ip-dst', "invalid-{$this->token}"],
+        ] as $id => list($type, $value)) {
+            $rows[] = [
+                'id' => $id,
+                'uuid' => $this->stored($id, ['uuid'])['uuid'],
+                'event_id' => $this->event['id'],
+                'object_id' => 0,
+                'type' => $type,
+                'category' => 'Network activity',
+                'value' => $value,
+                'to_ids' => 0,
+                'distribution' => 5,
+                'sharing_group_id' => 0,
+                'timestamp' => time() + 1,
+            ] + self::FORGED;
+        }
+
+        $this->attribute->editAttributeBulk($rows, $event, $user);
+
+        $this->assertSame(
+            $this->dictionaryIds(["edited-{$this->token}.example.org", '9443']),
+            $this->storedIds('attributes', $hostId)
+        );
+        $this->assertSame(
+            [$this->dictionaryIds(["edited-{$this->token}.example.net"])[0], null],
+            $this->storedIds('attributes', $domainId)
+        );
+        $this->assertSame($culledBefore, $this->storedIds('attributes', $culledId));
+        $this->assertFalse($this->dictionaryHas("invalid-{$this->token}"));
+    }
+
+    public function testAPerAliasFieldListKeepsTheIds()
+    {
+        // The list saveAssociated hands the attributes of an OpenIOC import
+        $fieldList = [
+            'Event' => ['published', 'timestamp'],
+            'Attribute' => [
+                'event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid',
+                'distribution', 'timestamp', 'comment', 'sharing_group_id',
+            ],
+        ];
+        $host = "{$this->token}.example.org";
+
+        $saved = $this->attribute->saveMany([[
+            'event_id' => $this->event['id'],
+            'type' => 'hostname|port',
+            'category' => 'Network activity',
+            'value' => "$host|8443",
+            'to_ids' => 0,
+            'distribution' => 5,
+            'sharing_group_id' => 0,
+        ] + self::FORGED], ['atomic' => false, 'validate' => true, 'fieldList' => $fieldList]);
+
+        $this->assertSame([true], $saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame($this->dictionaryIds([$host, '8443']), $this->storedIds('attributes', (int)$this->attribute->id));
+    }
+
+    public function testAFieldListLastsOneSave()
+    {
+        $id = $this->create(['type' => 'domain', 'value' => "{$this->token}.example.org"]);
+        $row = [
+            'id' => $id,
+            'event_id' => $this->event['id'],
+            'type' => 'domain',
+            'category' => 'Network activity',
+        ];
+
+        $first = "first-{$this->token}.example.org";
+        $saved = $this->attribute->save(['Attribute' => $row + ['value' => $first]], true, ['value1', 'value2']);
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame([], $this->attribute->whitelist);
+        $this->assertSame([$this->dictionaryIds([$first])[0], null], $this->storedIds('attributes', $id));
+
+        $unwritten = "unwritten-{$this->token}.example.org";
+        $saved = $this->attribute->save(
+            ['Attribute' => $row + ['value' => $unwritten, 'comment' => $this->token]],
+            ['fieldList' => ['comment']]
+        );
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame([], $this->attribute->whitelist);
+        $this->assertSame([$this->dictionaryIds([$first])[0], null], $this->storedIds('attributes', $id));
+        $this->assertSame(['value1' => $first, 'comment' => $this->token], $this->stored($id, ['value1', 'comment']));
+        $this->assertFalse($this->dictionaryHas($unwritten));
+
+        $last = "last-{$this->token}.example.org";
+        $saved = $this->attribute->save(['Attribute' => $row + ['value' => $last, 'to_ids' => 1]]);
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame([$this->dictionaryIds([$last])[0], null], $this->storedIds('attributes', $id));
+        $this->assertSame(['value1' => $last, 'to_ids' => '1'], $this->stored($id, ['value1', 'to_ids']));
+    }
+
+    public function testAProposalFieldListKeepsTheIds()
+    {
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        $row = [
+            'event_id' => $this->event['id'],
+            'event_uuid' => $this->event['uuid'],
+            'event_org_id' => $this->event['orgc_id'],
+            'org_id' => $this->event['orgc_id'],
+            'old_id' => 0,
+            'type' => 'domain',
+            'category' => 'Network activity',
+        ];
+        $proposal->create();
+        $saved = $proposal->save(['ShadowAttribute' => $row + ['value' => "{$this->token}.example.org"]]);
+        $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+        $id = (int)$proposal->id;
+        $edited = "edited-{$this->token}.example.org";
+
+        $saved = $proposal->save(
+            ['ShadowAttribute' => $row + ['id' => $id, 'value' => $edited] + self::FORGED],
+            ['fieldList' => ['value1', 'value2']]
+        );
+
+        $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+        $this->assertSame([$this->dictionaryIds([$edited])[0], null], $this->storedIds('shadow_attributes', $id));
+        $this->assertSame([], $proposal->whitelist);
     }
 
     public function testTheSyslogChangeLeavesTheIdsOut()

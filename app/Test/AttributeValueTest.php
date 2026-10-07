@@ -602,6 +602,21 @@ class AttributeValueTest extends TestCase
         $this->assertSame($this->mysql->rows[self::hex('evil.com')]['id'], $first['value1_id']);
     }
 
+    public function testWithIdFieldsAddsTheIdOfEachValueColumnOnTheList()
+    {
+        $model = $this->model($this->mysql);
+
+        $this->assertSame([], $model->withIdFields([]));
+        $this->assertSame(['timestamp'], $model->withIdFields(['timestamp']));
+        $this->assertSame(['comment', 'value1_id'], $model->withIdFields(['comment', 'value1_id']));
+        $this->assertSame(
+            ['value', 'value1', 'value2', 'value1_id', 'value2_id'],
+            $model->withIdFields(['value', 'value1', 'value2'])
+        );
+        $this->assertSame(['value2', 'value2_id'], $model->withIdFields(['value2', 'value2_id']));
+        $this->assertSame([], $this->mysql->statements);
+    }
+
     public function testAssignIdsRefusesAValueTheDictionaryCannotHold()
     {
         $row = ['value1' => str_repeat('A', AttributeValue::MAX_BYTES + 1), 'value2' => ''];

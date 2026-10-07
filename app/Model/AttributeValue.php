@@ -296,6 +296,23 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * A save's field list with the id of every value column it writes, so
+     * the ids assignIds() set are not dropped. An empty list stays empty.
+     *
+     * @param array $fields
+     * @return array
+     */
+    public function withIdFields(array $fields)
+    {
+        foreach (['value1', 'value2'] as $column) {
+            if (in_array($column, $fields, true) && !in_array($column . '_id', $fields, true)) {
+                $fields[] = $column . '_id';
+            }
+        }
+        return $fields;
+    }
+
+    /**
      * @param array $values
      * @return array [hex hash => value]
      */
