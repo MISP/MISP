@@ -83,6 +83,19 @@ class MispApi {
     return t.ObjectTemplate.id;
   }
 
+  async objectTemplates() {
+    return (await this.get('/object_templates/index/all')).map((t) => t.ObjectTemplate);
+  }
+
+  // Restore function for the active state of an object template.
+  async keepObjectTemplateActive(name) {
+    const find = async () => (await this.objectTemplates()).find((t) => t.name === name);
+    const { id, active } = await find();
+    return async () => {
+      if ((await find()).active !== active) await this.post(`/objectTemplates/toggleActive/${id}`);
+    };
+  }
+
   async getEvent(id) {
     return (await this.get(`/events/view/${id}`)).Event;
   }

@@ -162,6 +162,47 @@ async function loginAs(page, role) {
   await expect(page).not.toHaveURL(/\/users\/login/);
 }
 
+const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Add Object: template -> Next -> fill `values` ({ relation: value }) -> Review;
+// returns the form, ready for its "Add Object" button.
+async function reviewObject(page, eventId, template, values = {}, { firstSeen, lastSeen } = {}) {
+  await openEvent(page, eventId);
+  await page.getByRole('link', { name: 'Add Object' }).click();
+  await pick(dialog(page).getByRole('combobox', { name: /Template/ }), template, capitalise(template));
+  await dialog(page).getByRole('button', { name: 'Next' }).click();
+  const form = dialog(page);
+  for (const [relation, value] of Object.entries(values)) {
+    const fieldRow = form.locator(`.attribute_row[data-object-relation="${relation}"]`);
+    if (!await fieldRow.count()) {
+      await form.getByRole('button', { name: new RegExp(`^${escapeRe(capitalise(relation))} `) }).click();
+    }
+    await fieldRow.locator('.Attribute_value').fill(value);
+  }
+  if (firstSeen) await form.locator('#ObjectFirstSeenDisplay').fill(firstSeen);
+  if (lastSeen) await form.locator('#ObjectLastSeenDisplay').fill(lastSeen);
+  await form.getByRole('button', { name: 'Review', exact: true }).filter({ visible: true }).first().click();
+  return form;
+}
+
+// The Objects tab of an event, once its objects are loaded.
+async function openObjects(page, eventId) {
+  await openEvent(page, eventId);
+  const tab = await openTab(page, 'Objects');
+  await expect(tab.getByRole('textbox', { name: 'Filter objects…' })).toBeVisible();
+  return tab;
+}
+
+// The object showing `value` (accordion item, or card in card view), expanded.
+async function objectItem(tab, value) {
+  const header = tab.getByRole('heading').getByRole('button', { name: new RegExp(escapeRe(value)) })
+    .first();
+  if (await header.getAttribute('aria-expanded') !== 'true') await header.click();
+  await expect(header).toHaveAttribute('aria-expanded', 'true');
+  return header.locator('xpath=ancestor::*[contains(@class,"accordion-item") or '
+    + 'contains(concat(" ", @class, " ")," card ")][1]');
+}
+
 // An IP only this run uses, so data left by other runs cannot interfere.
 function uniqueIp(ts) {
   const n = Number(String(ts).slice(-6));
@@ -417,5 +458,6 @@ module.exports = {
   test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
   addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute, offeredTags, taxonomyRow, taxonomyAction,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
-  throwawayUser, submitLogin, skipTour, loginThrowaway, uniqueIp,
+  throwawayUser, submitLogin, skipTour, loginThrowaway, uniqueIp, reviewObject, openObjects,
+  objectItem,
 };

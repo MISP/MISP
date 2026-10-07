@@ -162,6 +162,10 @@ status and message of the refused request, or the error shown in the UI), never 
 | `sighting-sightings`                   | Add, false positive, by value, from another organisation, future date, delete, full list button, Advanced sightings empty | Bug 3; Bug 25; deleting a sighting is black-holed |
 | `general-forms`                        | Emoji in every text field, too long text in add forms, too long correlation exclusion, too long search | Bug 5; Bug 17 |
 | `general-ui`                           | No JavaScript error, phone width, dark mode on the main pages; refused forms keep their style; documentation pages | Bug 18; Bug 14; pagination bar too wide at phone width |
+| `object-add`                           | domain-ip, no attribute, required one of, required attribute, invalid value, first seen after last seen, same object twice, published event, review then submit | — |
+| `object-view`                          | Edit a value, remove the required attributes, soft and permanent delete, delete selected, filter, correlation, add an attribute, card attribute menu | Bug 22; deleting selected objects is black-holed |
+| `object-templates`                     | Deactivate a template, template already used, update, search in Add Object | — |
+| `object-relationships`                 | Remove highlight for selected rows, highlight selected rows | Bug 26 |
 
 ## Writing a new test
 
@@ -229,5 +233,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The remaining test plans** of `../` (object, proposal): same
+- **The remaining test plans** of `../` (proposal): same
   pattern, one spec per Markdown file.
