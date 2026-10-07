@@ -144,7 +144,9 @@ test('Event edit – logged out before saving', async ({ browser, api, ts, clean
   await expect(page).toHaveURL(/\/users\/login/);
   await expectNoErrorPage(page);
   expect((await api.getEvent(event.id)).info).toBe(event.info);
-  await expectScreen(page.getByRole('main'), 'event-edit-logged-out.png');
+  // The login page itself keeps moving: capture its sign-in form only.
+  await expectScreen(page.locator('form').filter({ has: page.getByRole('button', { name: 'Login' }) }),
+    'event-edit-logged-out.png');
 });
 
 test('Event edit – published event', async ({ page, api, ts, cleanup }) => {

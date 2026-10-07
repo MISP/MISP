@@ -138,7 +138,11 @@ async function expectScreen(locator, name, { hide = [] } = {}) {
   const content = locator.locator('.modal-content').first();
   const isDialog = (await locator.getAttribute('role')) === 'dialog';
   if (isDialog) await expect(content).toBeVisible();
-  const target = isDialog ? content : locator;
+  // Pin the element first: it is often found by a text (a name with the test
+  // timestamp) that freezeDynamicText is about to replace.
+  const mark = `shot-${Date.now()}`;
+  await (isDialog ? content : locator.first()).evaluate((el, id) => el.setAttribute('data-qa-shot', id), mark);
+  const target = page.locator(`[data-qa-shot="${mark}"]`);
   await freezeDynamicText(page, hide);
   // No scrollbar: whether the page is long enough to show one would change the
   // width of the element by 15 px. The dialog edges are transparent: hide the
@@ -169,7 +173,13 @@ async function fillAttribute(page, {
   await pick(form.locator('#AttributeCategory + .ts-wrapper').getByRole('combobox'), category);
   // The Type list is rebuilt for the chosen category: wait for it before typing.
   await expect(form.locator(`#AttributeType option[value="${type}"]`)).toHaveCount(1);
-  await pick(form.locator('#AttributeType + .ts-wrapper').getByRole('combobox'), type);
+  // Check the value really chosen (domain and domain|ip start alike) and pick again if not.
+  await expect(async () => {
+    if ((await form.locator('#AttributeType').inputValue()) !== type) {
+      await pick(form.locator('#AttributeType + .ts-wrapper').getByRole('combobox'), type);
+    }
+    expect(await form.locator('#AttributeType').inputValue()).toBe(type);
+  }).toPass({ timeout: 30_000 });
   await form.getByRole('textbox', { name: /Enter the indicator value/ }).fill(value);
   if (comment) await form.getByRole('textbox', { name: 'Add a contextual comment…' }).fill(comment);
   if (ids) await form.getByRole('checkbox', { name: /^For IDS/ }).check();
