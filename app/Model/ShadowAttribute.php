@@ -27,7 +27,8 @@ class ShadowAttribute extends AppModel
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
-            'change' => 'full'),
+            'change' => 'full',
+            'ignore' => ['value1_id', 'value2_id']),
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value', 'value2')),
@@ -169,6 +170,8 @@ class ShadowAttribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        // The before-save workflow must not see ids sent in
+        unset($this->data['ShadowAttribute']['value1_id'], $this->data['ShadowAttribute']['value2_id']);
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
         if (!empty($this->data['ShadowAttribute']['type'])) {
@@ -215,6 +218,7 @@ class ShadowAttribute extends AppModel
                 return false;
             }
         }
+        $this->Attribute->loadAttributeValue()->assignIds($this->data['ShadowAttribute'], $this->whitelist);
         return true;
     }
 
@@ -308,10 +312,12 @@ class ShadowAttribute extends AppModel
         */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
-            $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+            $proposal = $this->data;
+            unset($proposal['ShadowAttribute']['value1_id'], $proposal['ShadowAttribute']['value2_id']);
+            $this->publishKafkaNotification('shadow_attribute', $proposal, $action);
             $isTriggerCallable = $this->isTriggerCallable('shadow-attribute-after-save');
             if ($isTriggerCallable) {
-                $shadowAttr = $this->data['ShadowAttribute'];
+                $shadowAttr = $proposal['ShadowAttribute'];
                 $workflowErrors = [];
                 $logging = [
                     'model' => 'ShadowAttribute',

@@ -34,7 +34,8 @@ class MispAttribute extends AppModel
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
-            'change' => 'full'),
+            'change' => 'full',
+            'ignore' => ['value1_id', 'value2_id']),
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value')),
@@ -566,6 +567,17 @@ class MispAttribute extends AppModel
         }
     }
 
+    /**
+     * @return AttributeValue
+     */
+    public function loadAttributeValue()
+    {
+        if (!isset($this->AttributeValue)) {
+            $this->AttributeValue = ClassRegistry::init('AttributeValue');
+        }
+        return $this->AttributeValue;
+    }
+
     public function beforeSave($options = array())
     {
         $attribute = &$this->data['Attribute'];
@@ -597,6 +609,7 @@ class MispAttribute extends AppModel
                 $attribute['value2'] = '';
             }
         }
+        $this->loadAttributeValue()->assignIds($attribute, $this->whitelist);
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
         // always return true after a beforeSave()

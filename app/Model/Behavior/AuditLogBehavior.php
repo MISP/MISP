@@ -32,6 +32,8 @@ class AuditLogBehavior extends ModelBehavior
         'enable_password' => true,
         'confirm_password' => true,
         'totp' => true,
+        'value1_id' => true, // Attribute, ShadowAttribute
+        'value2_id' => true, // Attribute, ShadowAttribute
     ];
 
     private $modelInfo = [

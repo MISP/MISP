@@ -263,6 +263,39 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * Point value1_id and value2_id at the dictionary rows of the value
+     * columns a save writes. Ids the caller sent are always dropped.
+     *
+     * An empty value2 has no row, by byte length: a value2 of spaces gets
+     * one. A value column the save does not write leaves its id alone.
+     *
+     * @param array $row The row being saved, after the composite split.
+     * @param array $fields The save's field list, empty when it writes every
+     *   column.
+     * @return void
+     */
+    public function assignIds(array &$row, array $fields = [])
+    {
+        unset($row['value1_id'], $row['value2_id']);
+        $parts = [];
+        foreach (['value1', 'value2'] as $column) {
+            if (array_key_exists($column, $row) && (empty($fields) || in_array($column, $fields, true))) {
+                $parts[$column] = $row[$column] === null ? '' : $this->toValueString($row[$column]);
+            }
+        }
+        $wanted = [];
+        foreach ($parts as $column => $value) {
+            if ($column === 'value1' || $value !== '') {
+                $wanted[] = $value;
+            }
+        }
+        $ids = empty($wanted) ? [] : $this->internMany($wanted);
+        foreach ($parts as $column => $value) {
+            $row[$column . '_id'] = $column === 'value2' && $value === '' ? null : $ids[$value];
+        }
+    }
+
+    /**
      * @param array $values
      * @return array [hex hash => value]
      */

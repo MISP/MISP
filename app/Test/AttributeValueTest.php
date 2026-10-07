@@ -521,4 +521,92 @@ class AttributeValueTest extends TestCase
         $this->assertSame([['Attribute' => ['id' => 1, 'value1' => 'a', 'value2' => '']]], $rows);
         $this->assertSame([], $this->mysql->statements);
     }
+
+    public function testAssignIdsIgnoresTheIdsSentIn()
+    {
+        $stored = $this->mysql->store('evil.com');
+        $this->mysql->allow(['8443']);
+        $row = [
+            'value1' => 'evil.com',
+            'value2' => '8443',
+            'value1_id' => 9000000001,
+            'value2_id' => '9000000002',
+        ];
+
+        $this->model($this->mysql)->assignIds($row);
+
+        $this->assertSame($stored, $row['value1_id']);
+        $this->assertSame($this->mysql->rows[self::hex('8443')]['id'], $row['value2_id']);
+        $this->assertNotSame($stored, $row['value2_id']);
+    }
+
+    public function testAssignIdsDropsTheIdsSentInWhenNoValueIsWritten()
+    {
+        $row = ['id' => 5, 'comment' => 'x', 'value1_id' => 1, 'value2_id' => 2];
+
+        $this->model($this->mysql)->assignIds($row);
+
+        $this->assertSame(['id' => 5, 'comment' => 'x'], $row);
+        $this->assertSame([], $this->mysql->statements);
+    }
+
+    public function testAssignIdsGivesAnEmptyValue2NoRowButSpacesOne()
+    {
+        $this->pgsql->allow(['a.exe', '  ']);
+        $empty = ['value1' => 'a.exe', 'value2' => ''];
+        $spaces = ['value1' => 'a.exe', 'value2' => '  '];
+
+        $this->model($this->pgsql)->assignIds($empty);
+        $this->model($this->pgsql)->assignIds($spaces);
+
+        $this->assertNull($empty['value2_id']);
+        $this->assertSame($empty['value1_id'], $spaces['value1_id']);
+        $this->assertSame($this->pgsql->rows[self::hex('  ')]['id'], $spaces['value2_id']);
+        $this->assertArrayNotHasKey(self::hex(''), $this->pgsql->rows);
+    }
+
+    public function testAssignIdsGivesAnEmptyValue1ItsRow()
+    {
+        $this->mysql->allow(['']);
+        $row = ['value1' => null, 'value2' => ''];
+
+        $this->model($this->mysql)->assignIds($row);
+
+        $this->assertSame($this->mysql->rows[self::hex('')]['id'], $row['value1_id']);
+        $this->assertNull($row['value2_id']);
+    }
+
+    public function testAssignIdsInternsEqualPartsOnce()
+    {
+        $this->mysql->allow(['53']);
+        $row = ['value1' => '53', 'value2' => 53];
+
+        $this->model($this->mysql)->assignIds($row);
+
+        $this->assertSame($row['value1_id'], $row['value2_id']);
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT/'));
+    }
+
+    public function testAssignIdsOnlyCoversTheColumnsTheFieldListWrites()
+    {
+        $this->mysql->allow(['evil.com']);
+        $touch = ['value1' => 'evil.com', 'value2' => '', 'value1_id' => 1, 'value2_id' => 2];
+        $first = ['value1' => 'evil.com', 'value2' => 'x', 'value2_id' => 2];
+
+        $this->model($this->mysql)->assignIds($touch, ['timestamp']);
+        $this->assertSame(['value1' => 'evil.com', 'value2' => ''], $touch);
+        $this->assertSame([], $this->mysql->statements);
+
+        $this->model($this->mysql)->assignIds($first, ['value1', 'comment']);
+        $this->assertSame(['value1', 'value2', 'value1_id'], array_keys($first));
+        $this->assertSame($this->mysql->rows[self::hex('evil.com')]['id'], $first['value1_id']);
+    }
+
+    public function testAssignIdsRefusesAValueTheDictionaryCannotHold()
+    {
+        $row = ['value1' => str_repeat('A', AttributeValue::MAX_BYTES + 1), 'value2' => ''];
+
+        $this->expectException('InvalidArgumentException');
+        $this->model($this->mysql)->assignIds($row);
+    }
 }
