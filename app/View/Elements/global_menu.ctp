@@ -198,16 +198,6 @@ if (!empty($me)) {
                     'requirement' => !$isAclRegexp
                 ),
                 array(
-                    'text' => __('Signature Allowedlist'),
-                    'url' => $baseurl . '/admin/allowedlists/index',
-                    'requirement' => $isAclRegexp
-                ),
-                array(
-                    'text' => __('Signature Allowedlist'),
-                    'url' => $baseurl . '/allowedlists/index',
-                    'requirement' => !$isAclRegexp
-                ),
-                array(
                     'text' => __('Warninglists'),
                     'url' => $baseurl . '/warninglists/index'
                 ),

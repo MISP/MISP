@@ -34,7 +34,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/taxii_servers/collectionsIndex/%s', h($data['TaxiiServer']['id']))
+                        'ajax' => sprintf('%s/taxii_servers/collectionsIndex/%s', $baseurl, h($data['TaxiiServer']['id']))
                     ]
                 ],
             ],

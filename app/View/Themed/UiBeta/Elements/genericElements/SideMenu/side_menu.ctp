@@ -633,35 +633,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'allowedlist':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => sprintf(
-                            '%s%s/allowedlists/index',
-                            $baseurl,
-                            $isSiteAdmin ? '/admin' : ''
-                        ),
-                        'text' => __('List Allowedlist')
-                    ));
-                    if ($isSiteAdmin) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/add',
-                            'text' => __('New Allowedlist')
-                        ));
-                    }
-                    if ($menuItem == 'edit') {
-                        echo $divider;
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/edit/' . h($id),
-                            'element_id' => 'edit',
-                            'text' => __('Edit Allowedlist')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/delete/' . h($id),
-                            'text' => __('Delete Allowedlist'),
-                            'message' => __('Are you sure you want to delete #%s?', h($id))
-                        ));
-                    }
-                    break;
 
                 case 'globalActions':
                     if ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw') {
