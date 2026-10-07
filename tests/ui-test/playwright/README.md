@@ -147,11 +147,14 @@ status and message of the refused request, or the error shown in the UI), never 
 | `import-export-freetext`               | Freetext: defanged, punctuation and duplicates, types, nothing found, bulk changes, proposals | — |
 | `import-export-import`                 | Import Event: MISP JSON, event already present, invalid text, take ownership, STIX 2 | invalid text does nothing (no message); no "Take ownership" option |
 | `import-export-export`                 | Download as MISP JSON, CSV formulas, STIX 2; several events; cached exports | Bug 2 |
-| `sharing-group-index`                  | Create with two organisations, emoji in the name, delete while used, member cannot edit | Bug 5; deleting a used sharing group gives no reason |
+| `sharing-group-index`                  | Create with two organisations, emoji in the name, delete while used, member cannot edit | Bug 5; Recommendation 3 |
 | `sharing-group-visibility`             | Event in a sharing group seen by a non-member and a member, non-member cannot use it, organisation removed | — |
 | `warninglist-index`                    | Default and Enabled filters of the Warninglists list | Bug 21 |
 | `correlation-correlations`             | Same value in two events, exclusion and clean up, same exclusion twice, empty exclusion, top correlations | Bug 18 |
 | `analyst-data-notes`                   | Note without text, edited to an empty text, with text, four nested levels, counters with nested notes and opinions | Bug 12; Bug 16 |
+| `account-login`                        | Wrong password (same message for an unknown email), brute force lock, logout (lock expiry with `QA_SLOW=1`) | — |
+| `account-password`                     | Too short, long without complexity, wrong confirmation | Recommendation 3 |
+| `account-auth-keys`                    | Read-only key, allowed IPs, invalid IP range, expiration in the past, only my keys | Recommendation 3 |
 
 ## Writing a new test
 
@@ -182,6 +185,11 @@ test('Add attribute', async ({ page, apiAs, api, ts, cleanup }) => {
   `expectDialogSaved(page)`, so the report names the MISP error.
 - **Sessions last 60 minutes** on a default instance: run with the `setup` project (the default)
   rather than `--no-deps`, or the stored logins may have expired.
+- **Never change a QA account in a test** (log out, fail logins, change the password, add or
+  delete an auth key): MISP renews the session id, so the saved session of that role stops
+  working for the next tests. Use `throwawayUser()` + `loginThrowaway()` instead (the
+  account tests do), and `test.use({ storageState: { cookies: [], origins: [] } })`.
+- **Slow tests** (e.g. the 5-minute brute force lock) are skipped unless `QA_SLOW=1`.
 - **Shared helpers** (fixtures, assertions) go in `helpers.js`.
 
 ## Screenshots
@@ -214,5 +222,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The other test plans** of `../` (event, attribute, tag, …): same pattern, one spec
-  folder per Markdown folder.
+- **The remaining test plans** of `../` (admin, object, proposal, sighting, general): same
+  pattern, one spec per Markdown file.

@@ -301,6 +301,38 @@ class MispApi {
     return org.Organisation;
   }
 
+  // Raw request: { status, text } without throwing on an error status.
+  async raw(method, url, data) {
+    const res = await (await this.ctx()).fetch(url, { method, data });
+    return { status: res.status(), text: await res.text() };
+  }
+
+  // Throwaway user, so login and password tests leave the QA accounts alone.
+  async createUser({ email, password, orgName = 'ADMIN', roleName = 'User' }) {
+    const org = await this.findOrg(orgName);
+    const roles = (await this.get('/roles/index')).map((r) => r.Role || r);
+    const role = roles.find((r) => r.name === roleName);
+    if (!role) throw new Error(`No role ${roleName} on the instance`);
+    const { User } = await this.post('/admin/users/add', {
+      email, password, org_id: org.id, role_id: role.id, change_pw: 0, termsaccepted: 1,
+    });
+    return User;
+  }
+
+  async deleteUserByEmail(email) {
+    const users = await this.get('/admin/users/index');
+    for (const u of users.map((x) => x.User || x).filter((x) => x.email === email)) {
+      await this.post(`/admin/users/delete/${u.id}`);
+    }
+  }
+
+  async deleteAuthKeysByComment(comment) {
+    const keys = await this.get('/auth_keys/index');
+    for (const k of keys.map((x) => x.AuthKey || x).filter((x) => x.comment === comment)) {
+      await this.post(`/auth_keys/delete/${k.id}`);
+    }
+  }
+
   async dispose() {
     await this._ctx?.dispose();
   }

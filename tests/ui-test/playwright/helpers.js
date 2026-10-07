@@ -162,6 +162,40 @@ async function loginAs(page, role) {
   await expect(page).not.toHaveURL(/\/users\/login/);
 }
 
+// Throwaway account for the tests that lock, log out or change the account:
+// the QA accounts' stored sessions would not survive them (changing a key or
+// the profile renews the session id).
+const THROWAWAY_PASSWORD = 'QaThrowawayPassword-2026!';
+
+async function throwawayUser(api, cleanup, prefix, options = {}) {
+  const email = `${prefix}-${Date.now()}@admin.test`;
+  cleanup(() => api.deleteUserByEmail(email));
+  await api.createUser({ email, password: THROWAWAY_PASSWORD, ...options });
+  return { email, password: THROWAWAY_PASSWORD };
+}
+
+async function submitLogin(page, email, password) {
+  await page.goto('/users/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+}
+
+// New accounts open on the "Getting around" tour, which covers the page.
+async function skipTour(page) {
+  const skip = page.getByText('Skip tutorial', { exact: true });
+  await skip.waitFor({ timeout: 5_000 }).catch(() => {});
+  if (await skip.isVisible()) await skip.click();
+  await expect(skip).toBeHidden();
+}
+
+// Logs a throwaway account in and closes its tour.
+async function loginThrowaway(page, { email, password }) {
+  await submitLogin(page, email, password);
+  await expect(page).not.toHaveURL(/\/users\/login/);
+  await skipTour(page);
+}
+
 // Opens Add Attribute on an event page and fills the form; returns the form.
 // `firstSeen` / `lastSeen` use the form's own format, DD/MM/YYYY HH:MM:SS.
 async function fillAttribute(page, {
@@ -377,4 +411,5 @@ module.exports = {
   test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
   addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute, offeredTags, taxonomyRow, taxonomyAction,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
+  throwawayUser, submitLogin, skipTour, loginThrowaway,
 };

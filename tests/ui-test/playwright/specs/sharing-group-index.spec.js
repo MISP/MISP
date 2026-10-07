@@ -47,8 +47,8 @@ test.describe('as site admin', () => {
   });
 
   test('Sharing group – delete while used', async ({ page, api, ts, cleanup }) => {
-    blockedBy('New bug: deleting a sharing group used by an event is refused with only "SharingGroup '
-      + 'was not deleted." – the reason is not given');
+    blockedBy('Recommendation 3 (deleting a used sharing group only says "SharingGroup was not '
+      + 'deleted.")');
     const sg = await api.createSharingGroup(`QA SG org A only ${ts}`, ['ADMIN']);
     cleanup(() => api.deleteSharingGroupByName(sg.name));
     const event = await api.createEvent({ info: `QA SG event org A only ${ts}`, distribution: 'sharingGroup', sharingGroupId: sg.id });
