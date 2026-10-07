@@ -252,6 +252,23 @@ class MispApi {
     return EventReport;
   }
 
+  // A sharing group with the organisations `orgNames` (by name).
+  async createSharingGroup(name, orgNames) {
+    const { SharingGroup } = await this.post('/sharing_groups/add', {
+      SharingGroup: { name, releasability: 'QA', description: 'QA test data', active: 1 },
+    });
+    for (const orgName of orgNames) {
+      const org = await this.findOrg(orgName);
+      await this.post(`/sharing_groups/addOrg/${SharingGroup.id}/${org.id}`);
+    }
+    return SharingGroup;
+  }
+
+  async deleteWarninglistByName(name) {
+    const list = await this.findWarninglist(name);
+    if (list) await this.post(`/warninglists/delete/${list.id}`);
+  }
+
   async findSharingGroup(name) {
     const { response } = await this.get('/sharing_groups/index');
     return (response || []).find((sg) => sg.SharingGroup.name === name)?.SharingGroup;

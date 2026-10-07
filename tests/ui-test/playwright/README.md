@@ -147,6 +147,9 @@ status and message of the refused request, or the error shown in the UI), never 
 | `import-export-freetext`               | Freetext: defanged, punctuation and duplicates, types, nothing found, bulk changes, proposals | — |
 | `import-export-import`                 | Import Event: MISP JSON, event already present, invalid text, take ownership, STIX 2 | invalid text does nothing (no message); no "Take ownership" option |
 | `import-export-export`                 | Download as MISP JSON, CSV formulas, STIX 2; several events; cached exports | Bug 2 |
+| `sharing-group-index`                  | Create with two organisations, emoji in the name, delete while used, member cannot edit | Bug 5; deleting a used sharing group gives no reason |
+| `sharing-group-visibility`             | Event in a sharing group seen by a non-member and a member, non-member cannot use it, organisation removed | — |
+| `warninglist-index`                    | Default and Enabled filters of the Warninglists list | Bug 21 |
 
 ## Writing a new test
 
