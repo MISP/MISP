@@ -168,6 +168,15 @@ if (Configure::read('ShibbAuth') || Configure::read('ApacheShibbAuth')) {
 }
 
 /**
+ * Multiple Sharing Group Distribution Plugin
+ *
+ * @see: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+ */
+if (Configure::read('Plugin.MsgdPlug_enabled')) {
+    CakePlugin::load('MsgdPlug', array('bootstrap' => true, 'routes' => true));
+}
+
+/**
  * You can attach event listeners to the request lifecycle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
  * - AssetDispatcher filter will serve your asset files (css, images, js, etc) from your themes and plugins
