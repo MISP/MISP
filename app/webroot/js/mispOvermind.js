@@ -692,7 +692,7 @@ function updateMultiSelectToolbar() {
     localclusterButton?.classList.toggle('d-none', isHidden);
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
-    sightingButton?.classList.toggle('d-none', isHidden);
+    sightingButton?.classList.remove('d-none');
 
     fetchButton?.classList.toggle('d-none', !allEnabled);
 
@@ -2905,53 +2905,102 @@ function initSharingGroupForm(container) {
 })();
 
 /*******************************
- * Sighting cells — add-sighting buttons
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Sightings
+ * The cell actions of Fields/sightings.ctp (add on the attribute, add on every
+ * attribute holding the value, details) and the mass "Sightings" button. A
+ * change is announced as `misp:sighting-change` on the document, which the
+ * event view's Sightings card listens for.
  *******************************/
-(function () {
-    document.addEventListener('click', async function (e) {
-        var btn = e.target.closest('.add-sighting-btn');
-        if (!btn) return;
-        e.preventDefault();
+function postSighting(url, body) {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': getCsrfToken(),
+        },
+        body: body,
+    }).then(function (r) {
+        return r.json().catch(function () {
+            return { saved: false, errors: r.status + ' ' + r.statusText };
+        });
+    });
+}
 
-        var attrId = btn.dataset.attributeId;
-        var type   = btn.dataset.type;
-        var i18n   = window._sightingI18n || {};
+function notifySightingChange(detail) {
+    document.dispatchEvent(new CustomEvent('misp:sighting-change', { detail: detail || {} }));
+}
 
-        btn.disabled = true;
-        try {
-            var response = await fetch(baseurl + '/sightings/add/' + attrId, {
-                method:  'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type':     'application/x-www-form-urlencoded',
-                    'Accept':           'application/json',
-                    'X-CSRF-Token':     getCsrfToken(),
-                },
-                body: 'data[Sighting][type]=' + encodeURIComponent(type)
-                    + '&data[Sighting][id]='  + encodeURIComponent(attrId),
-            });
+function openSightingDetails(ids, context) {
+    openModal(baseurl + '/sightings/advanced/' + ids + '/' + (context || 'attribute'), 'xl');
+}
 
-            var data = await response.json();
+function openSelectedSightings() {
+    if (typeof selectedItems === 'undefined' || selectedItems.size === 0) return;
+    openSightingDetails(Array.from(selectedItems.keys()).join('|'));
+}
 
-            if (response.ok && !data.errors) {
-                var countEl = document.querySelector(
-                    '#sightings_' + attrId + ' .sighting-' + (type === '0' ? 's' : 'f')
-                );
-                if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
-                showToast(type === '0'
-                    ? (i18n.addedSighting || 'Sighting added')
-                    : (i18n.addedFP       || 'Marked as false positive'),
-                    'success');
-            } else {
-                showToast(i18n.failed    || 'Failed to add sighting', 'danger');
-            }
-        } catch (_e) {
-            showToast(i18n.reqFailed || 'Request failed — please try again', 'danger');
-        } finally {
-            btn.disabled = false;
+(function installSightingActions() {
+    document.addEventListener('click', function (e) {
+        var more = e.target.closest('.sighting-more');
+        if (more) {
+            e.preventDefault();
+            bootstrap.Dropdown.getOrCreateInstance(more, {
+                popperConfig: { strategy: 'fixed' }
+            }).toggle();
+            return;
         }
+
+        var details = e.target.closest('[data-sighting-details]');
+        if (details) {
+            e.preventDefault();
+            var pop = bootstrap.Popover.getInstance(details);
+            if (pop) pop.hide();
+            openSightingDetails(details.dataset.sightingDetails);
+            return;
+        }
+
+        var onValue = e.target.closest('[data-sighting-value]');
+        if (onValue) {
+            e.preventDefault();
+            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
+                + '/' + onValue.dataset.type + '/1', 'md');
+            return;
+        }
+
+        var btn = e.target.closest('.sighting-add');
+        if (!btn || btn.disabled) return;
+        e.preventDefault();
+        var attrId = btn.dataset.attributeId;
+        var type = btn.dataset.type;
+        btn.disabled = true;
+        postSighting(baseurl + '/sightings/add/' + attrId,
+            'data[Sighting][type]=' + encodeURIComponent(type))
+            .then(function (data) {
+                if (!data.saved) {
+                    showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
+                    return;
+                }
+                var countEl = document.querySelector('#sightings_' + attrId
+                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
+                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                showToast(data.success || 'Sighting added.', 'success');
+                notifySightingChange({ attributeId: attrId, type: type });
+            })
+            .catch(function () {
+                showToast('Request failed, please try again.', 'danger');
+            })
+            .finally(function () {
+                btn.disabled = false;
+            });
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
+        if (!details) return;
+        e.preventDefault();
+        details.click();
     });
 })();
 

@@ -515,6 +515,12 @@ body[data-controller="users"][data-action="change_pw"] {
    single cell can't blow out the auto table-layout and force horizontal
    scrolling. `anywhere` (not `break-word`) is required: it also shrinks the
    min-content size that table-layout:auto uses to compute column widths.*/
+/* An index rendered inside a modal pane sizes to its rows; the pane scrolls. */
+.ov-modal-index .table-scroll {
+    height: auto;
+    max-height: 60vh;
+}
+
 .table-scroll td {
     overflow-wrap:break-word;
     word-break: break-word; /* legacy WebKit/Safari fallback */

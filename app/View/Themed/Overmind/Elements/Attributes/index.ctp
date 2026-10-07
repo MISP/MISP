@@ -518,6 +518,10 @@ if ($inEventView && !$showingDeleted) {
     }
 }
 
+if (!$showingDeleted) {
+    $massActions['mass_sighting'] = true;
+}
+
 if (!$inEventView) {
     $filterBar['transport'] = 'query';
     $queryFilters = array_diff_key(
