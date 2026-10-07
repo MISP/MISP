@@ -139,6 +139,9 @@ status and message of the refused request, or the error shown in the UI), never 
 | `galaxy-index`                         | Custom galaxy (empty name, create, kill chain), disable a galaxy, delete a used galaxy, import (invalid JSON, no cluster) | clusters of a disabled galaxy are still offered; unpublished clusters are not offered (to confirm) |
 | `galaxy-clusters`                      | Clusters: empty name, elements, fork, rename and soft delete while used, hard delete and re-import, publish | deleting a cluster is black-holed; unpublished clusters are not offered (to confirm) |
 | `galaxy-relations`                     | Relations between clusters (by UUID): add, without type, to itself, target deleted | deleting a cluster is black-holed |
+| `taxonomy-index`                       | Enable / disable, required taxonomy and publish (with / without notification, tagged), disabled taxonomy on an event, update, disabled taxonomy and galaxy everywhere | re-enabled taxonomy tags stay hidden (to confirm); clusters of a disabled galaxy still offered |
+| `taxonomy-view`                        | Enable all tags, disable one tag | — |
+| `taxonomy-exclusive`                   | Two tlp values on one event, replace a value, event and attribute | exclusive taxonomies are not enforced |
 
 ## Writing a new test
 
