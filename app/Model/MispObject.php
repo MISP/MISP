@@ -1272,6 +1272,24 @@ class MispObject extends AppModel
     }
 
     /**
+     * @param array $objects Objects, flat or under the Object key
+     * @return array Their attributes, flat
+     */
+    public function objectAttributes(array $objects)
+    {
+        $attributes = [];
+        foreach ($objects as $object) {
+            $object = $object['Object'] ?? $object;
+            if (!empty($object['Attribute']) && is_array($object['Attribute'])) {
+                foreach ($object['Attribute'] as $attribute) {
+                    $attributes[] = $attribute;
+                }
+            }
+        }
+        return $attributes;
+    }
+
+    /**
      * @param array $object
      * @param int $eventId
      * @param array $user
@@ -1318,11 +1336,16 @@ class MispObject extends AppModel
         }
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
-            foreach ($object['Object']['Attribute'] as $attribute) {
-                if (!empty($object['Object']['deleted'])) {
-                    $attribute['deleted'] = 1;
+            $primed = $this->Attribute->primeValues($object['Object']['Attribute']);
+            try {
+                foreach ($object['Object']['Attribute'] as $attribute) {
+                    if (!empty($object['Object']['deleted'])) {
+                        $attribute['deleted'] = 1;
+                    }
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
                 }
-                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
+            } finally {
+                $this->Attribute->releaseValues($primed);
             }
         }
         if (empty($object['Object']['uuid'])) {

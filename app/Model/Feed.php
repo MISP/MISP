@@ -1518,8 +1518,7 @@ class Feed extends AppModel
             $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
             $uniqueValues[$value['value']] = true;
         }
-        $chunks = array_chunk($data, 100);
-        foreach ($chunks as $k => $chunk) {
+        foreach ($this->Event->Attribute->primedChunks($data, 100) as $k => $chunk) {
             $this->Event->Attribute->saveMany($chunk, ['validate' => true, 'parentEvent' => $event]);
             $this->jobProgress($jobId, null, 50 + round(($k * 100 + 1) / count($data) * 50));
         }

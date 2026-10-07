@@ -97,6 +97,11 @@ class EventTemplateInstantiator
 
         $eventModel = ClassRegistry::init('Event');
         $db = $eventModel->getDataSource();
+        // _add() saves inside this transaction, so its values are interned first
+        $primed = $eventModel->Attribute->primeValues(array_merge(
+            $eventData['Event']['Attribute'] ?? [],
+            $eventModel->Object->objectAttributes($eventData['Event']['Object'] ?? [])
+        ));
         $transactionBegun = $db->begin();
 
         try {
@@ -216,6 +221,8 @@ class EventTemplateInstantiator
                 $db->rollback();
             }
             throw $e;
+        } finally {
+            $eventModel->Attribute->releaseValues($primed);
         }
     }
 

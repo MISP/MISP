@@ -6812,14 +6812,16 @@ class Event extends AppModel
 
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
-                foreach ($data['Event']['Attribute'] as $attribute) {
-                    if (!empty($attribute['deleted'])) {
-                        $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
-                    } else {
-                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                            $attributeHashes[$attributeHash] = true;
+                foreach ($this->Attribute->primedChunks($data['Event']['Attribute']) as $attributes) {
+                    foreach ($attributes as $attribute) {
+                        if (!empty($attribute['deleted'])) {
                             $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        } else {
+                            $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                            if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                                $attributeHashes[$attributeHash] = true;
+                                $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                            }
                         }
                     }
                 }
@@ -6828,13 +6830,20 @@ class Event extends AppModel
 
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
-                foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
-                    if (isset($object['ObjectReference'])) {
-                        foreach ($object['ObjectReference'] as $objectRef) {
-                            $objectRef['source_uuid'] = $object['uuid'];
-                            $referencesToCapture[] = $objectRef;
+                foreach (array_chunk($data['Event']['Object'], MispAttribute::PRIME_CHUNK) as $objects) {
+                    $primed = $this->Attribute->primeValues($this->Object->objectAttributes($objects));
+                    try {
+                        foreach ($objects as $object) {
+                            $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
+                            if (isset($object['ObjectReference'])) {
+                                foreach ($object['ObjectReference'] as $objectRef) {
+                                    $objectRef['source_uuid'] = $object['uuid'];
+                                    $referencesToCapture[] = $objectRef;
+                                }
+                            }
                         }
+                    } finally {
+                        $this->Attribute->releaseValues($primed);
                     }
                 }
                 foreach ($referencesToCapture as $referenceToCapture) {
@@ -11072,7 +11081,13 @@ class Event extends AppModel
                 'disable_correlation' => true
             )
         );
-        if (!$this->Attribute->saveMany($attributes)) {
+        $primed = $this->Attribute->primeValues($attributes);
+        try {
+            $saved = $this->Attribute->saveMany($attributes);
+        } finally {
+            $this->Attribute->releaseValues($primed);
+        }
+        if (!$saved) {
             throw new Exception("Could not save attributes for original file because of validation errors:" . json_encode($this->Attribute->validationErrors));
         }
         return true;

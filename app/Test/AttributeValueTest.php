@@ -602,6 +602,95 @@ class AttributeValueTest extends TestCase
         $this->assertSame($this->mysql->rows[self::hex('evil.com')]['id'], $first['value1_id']);
     }
 
+    public function testPrimedValuesCostTheirSavesNoQuery()
+    {
+        $this->mysql->allow(['evil.com', '8443']);
+        $model = $this->model($this->mysql);
+
+        $previous = $model->prime(['evil.com', '8443', 'evil.com']);
+        $primed = count($this->mysql->statements);
+        $row = ['value1' => 'evil.com', 'value2' => '8443'];
+        $model->assignIds($row);
+
+        $this->assertSame([], $previous);
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT/'));
+        $this->assertCount($primed, $this->mysql->statements);
+        $this->assertSame($this->mysql->rows[self::hex('evil.com')]['id'], $row['value1_id']);
+        $this->assertSame($this->mysql->rows[self::hex('8443')]['id'], $row['value2_id']);
+    }
+
+    public function testPrimingAgainQueriesOnlyTheNewValues()
+    {
+        $this->mysql->allow(['a', 'b']);
+        $model = $this->model($this->mysql);
+        $model->prime(['a']);
+        $before = count($this->mysql->statements);
+
+        $model->prime(['a']);
+        $this->assertCount($before, $this->mysql->statements);
+
+        $model->prime(['a', 'b']);
+        $sent = implode("\n", array_slice($this->mysql->statements, $before));
+        $this->assertStringNotContainsString(self::hex('a'), $sent);
+        $this->assertStringContainsString(self::hex('b'), $sent);
+    }
+
+    public function testReleaseRestoresTheEnclosingMap()
+    {
+        $this->mysql->allow(['outer', 'inner']);
+        $model = $this->model($this->mysql);
+        $outer = $model->prime(['outer']);
+        $inner = $model->prime(['inner']);
+        $model->release($inner);
+        $before = count($this->mysql->statements);
+
+        $kept = ['value1' => 'outer'];
+        $model->assignIds($kept);
+        $this->assertCount($before, $this->mysql->statements);
+
+        $released = ['value1' => 'inner'];
+        $model->assignIds($released);
+        $this->assertCount($before + 1, $this->mysql->statements);
+
+        $model->release($outer);
+        $again = ['value1' => 'outer'];
+        $model->assignIds($again);
+        $this->assertCount($before + 2, $this->mysql->statements);
+    }
+
+    public function testPrimingInsideATransactionOnlyLooksUp()
+    {
+        $stored = $this->mysql->store('known.example');
+        $this->mysql->allow(['new.example']);
+        $model = $this->model($this->mysql);
+        $model->transaction = true;
+
+        $model->prime(['known.example', 'new.example']);
+        $this->assertSame([], $this->mysql->statementsLike('/^INSERT/'));
+
+        $before = count($this->mysql->statements);
+        $row = ['value1' => 'known.example', 'value2' => 'new.example'];
+        $model->assignIds($row);
+        $this->assertSame($stored, $row['value1_id']);
+        $this->assertSame($this->mysql->rows[self::hex('new.example')]['id'], $row['value2_id']);
+        $sent = implode("\n", array_slice($this->mysql->statements, $before));
+        $this->assertStringNotContainsString(self::hex('known.example'), $sent);
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT/'));
+    }
+
+    public function testPrimeLeavesAValueTheDictionaryCannotHoldToTheSave()
+    {
+        $long = str_repeat('A', AttributeValue::MAX_BYTES + 1);
+        $model = $this->model($this->mysql);
+
+        $model->prime([$long]);
+        $this->assertSame([], $this->mysql->statements);
+
+        $row = ['value1' => $long, 'value2' => ''];
+        $this->expectException('InvalidArgumentException');
+        $model->assignIds($row);
+    }
+
     public function testWithIdFieldsAddsTheIdOfEachValueColumnOnTheList()
     {
         $model = $this->model($this->mysql);

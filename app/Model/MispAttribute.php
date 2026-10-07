@@ -327,6 +327,9 @@ class MispAttribute extends AppModel
         'hostname|port',
     );
 
+    // Rows per pre-pass of a bulk save, see primeValues()
+    const PRIME_CHUNK = 1000;
+
     const CAPTURE_FIELDS = array(
         'event_id',
         'category',
@@ -563,6 +566,111 @@ class MispAttribute extends AppModel
         foreach ($data as &$row) {
             if (is_array($row)) {
                 unset($row['value1_id'], $row['value2_id']);
+            }
+        }
+    }
+
+    /**
+     * The value as beforeValidate shapes it, before the import regexps run.
+     *
+     * @param string $type
+     * @param string|null $value
+     * @return string
+     */
+    public function massageValue($type, $value)
+    {
+        $value = ComplexTypeTool::refangValue(trim($value), $type);
+        return AttributeValidationTool::modifyBeforeValidation($type, $value);
+    }
+
+    /**
+     * The value1 and non-empty value2 that beforeSave splits a value into,
+     * none when a composite value does not split in two.
+     *
+     * @param string $type
+     * @param string $value
+     * @return string[]
+     */
+    public function valueParts($type, $value)
+    {
+        if (!in_array($type, $this->getCompositeTypes(), true)) {
+            return [$value];
+        }
+        $pieces = explode('|', $value);
+        if (count($pieces) !== 2) {
+            return [];
+        }
+        return $pieces[1] === '' ? [$pieces[0]] : $pieces;
+    }
+
+    /**
+     * Interns the values that saving $rows will write, ahead of the saves and
+     * of any transaction around them. Hand the result to releaseValues() once
+     * they are done.
+     *
+     * @param array $rows Flat attribute rows
+     * @param bool $massaged True when beforeValidate already ran on the rows
+     *   and their saves skip validation
+     * @return array
+     */
+    public function primeValues(array $rows, $massaged = false)
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            if (empty($row['type']) || !isset($this->typeDefinitions[$row['type']])) {
+                continue;
+            }
+            $type = $row['type'];
+            $value = $row['value'] ?? null;
+            if (empty($value)) {
+                if (!empty($row['value1']) && !empty($row['value2'])) {
+                    $value = "{$row['value1']}|{$row['value2']}";
+                } else if (!empty($row['value1'])) {
+                    $value = $row['value1'];
+                }
+            }
+            if (!is_scalar($value)) {
+                continue;
+            }
+            $value = (string)$value;
+            if (!$massaged) {
+                $value = $this->massageValue($type, $value);
+                if (!$this->fast_update) {
+                    $value = $this->runRegexp($type, $value);
+                    if ($value === false) {
+                        continue;
+                    }
+                }
+            }
+            array_push($values, ...$this->valueParts($type, $value));
+        }
+        return $this->loadAttributeValue()->prime($values);
+    }
+
+    /**
+     * @param array $previous What primeValues() returned
+     * @return void
+     */
+    public function releaseValues(array $previous)
+    {
+        $this->loadAttributeValue()->release($previous);
+    }
+
+    /**
+     * $rows in chunks, each primed while the caller saves it.
+     *
+     * @param array $rows Flat attribute rows
+     * @param int $size
+     * @return Generator
+     */
+    public function primedChunks(array $rows, $size = self::PRIME_CHUNK)
+    {
+        foreach (array_chunk($rows, $size) as $key => $chunk) {
+            $previous = $this->primeValues($chunk);
+            try {
+                yield $key => $chunk;
+            } finally {
+                $this->releaseValues($previous);
             }
         }
     }
@@ -899,10 +1007,7 @@ class MispAttribute extends AppModel
             }
         }
 
-        // remove leading and trailing blanks and refang value and
-        $attribute['value'] = ComplexTypeTool::refangValue(trim($attribute['value']), $type);
-        // make some changes to the inserted value
-        $attribute['value'] = AttributeValidationTool::modifyBeforeValidation($type, $attribute['value']);
+        $attribute['value'] = $this->massageValue($type, $attribute['value']);
         // Run user defined regexp to attribute value
         if (!$this->fast_update) {
             $result = $this->runRegexp($type, $attribute['value']);
@@ -2936,21 +3041,26 @@ class MispAttribute extends AppModel
     {
         $defaultDistribution = $this->defaultDistribution();
         $saveResult = true;
-        foreach ($attributes as $attribute) {
-            if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
-                $attribute = $this->onDemandEncrypt($attribute);
+        $primed = $this->primeValues($attributes);
+        try {
+            foreach ($attributes as $attribute) {
+                if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
+                    $attribute = $this->onDemandEncrypt($attribute);
+                }
+                if (!isset($attribute['distribution'])) {
+                    $attribute['distribution'] = $defaultDistribution;
+                }
+                unset($attribute['Attachment'], $attribute[$this->alias]);
+                $this->create();
+                $currentSave = $this->save($attribute);
+                $saveResult = $saveResult && $currentSave;
+                if ($currentSave) {
+                    $attribute['id'] = $this->id;
+                    $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
+                }
             }
-            if (!isset($attribute['distribution'])) {
-                $attribute['distribution'] = $defaultDistribution;
-            }
-            unset($attribute['Attachment'], $attribute[$this->alias]);
-            $this->create();
-            $currentSave = $this->save($attribute);
-            $saveResult = $saveResult && $currentSave;
-            if ($currentSave) {
-                $attribute['id'] = $this->id;
-                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
-            }
+        } finally {
+            $this->releaseValues($primed);
         }
         return $saveResult;
     }
@@ -3408,7 +3518,12 @@ class MispAttribute extends AppModel
         $saveOptions['validate'] = false;
         // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
         if (!empty($attributes)) {
-            $this->saveMany($attributes, $saveOptions);
+            $primed = $this->primeValues($attributes, true);
+            try {
+                $this->saveMany($attributes, $saveOptions);
+            } finally {
+                $this->releaseValues($primed);
+            }
         }
         return $this->editAttributePostProcessing($attributes, $event, $user, $server);
     }

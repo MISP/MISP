@@ -457,6 +457,26 @@ class ShadowAttribute extends AppModel
         return $this->Attribute->maxTextLength($fields);
     }
 
+    /**
+     * MispAttribute::primeValues() for proposals, which skip the import
+     * regexps. Hand the result to $this->Attribute->releaseValues().
+     *
+     * @param array $rows Flat proposal rows
+     * @return array
+     */
+    public function primeValues(array $rows)
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            if (empty($row['type']) || !isset($row['value']) || !is_scalar($row['value'])) {
+                continue;
+            }
+            $value = $this->Attribute->massageValue($row['type'], (string)$row['value']);
+            array_push($values, ...$this->Attribute->valueParts($row['type'], $value));
+        }
+        return $this->Attribute->loadAttributeValue()->prime($values);
+    }
+
     public function getCompositeTypes()
     {
         return $this->Attribute->getCompositeTypes();
@@ -779,11 +799,16 @@ class ShadowAttribute extends AppModel
             if ($returnSize === 0) {
                 return $fetchedCount;
             }
-            foreach ($data as $proposal) {
-                $result = $this->capture($proposal['ShadowAttribute'], $user);
-                if ($result) {
-                    $fetchedCount++;
+            $primed = $this->primeValues(array_column($data, 'ShadowAttribute'));
+            try {
+                foreach ($data as $proposal) {
+                    $result = $this->capture($proposal['ShadowAttribute'], $user);
+                    if ($result) {
+                        $fetchedCount++;
+                    }
                 }
+            } finally {
+                $this->Attribute->releaseValues($primed);
             }
             if ($returnSize < $chunkSize) {
                 return $fetchedCount;

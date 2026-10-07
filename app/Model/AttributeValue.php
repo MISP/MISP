@@ -33,6 +33,9 @@ class AttributeValue extends AppModel
 
     public $recursive = -1;
 
+    /** @var array [value => id] from prime(), read by assignIds() */
+    private $primed = [];
+
     /**
      * @param string $value
      * @return string 16 raw bytes
@@ -289,10 +292,65 @@ class AttributeValue extends AppModel
                 $wanted[] = $value;
             }
         }
-        $ids = empty($wanted) ? [] : $this->internMany($wanted);
+        $ids = [];
+        $missing = [];
+        foreach ($wanted as $value) {
+            if (isset($this->primed[$value])) {
+                $ids[$value] = $this->primed[$value];
+            } else {
+                $missing[] = $value;
+            }
+        }
+        if (!empty($missing)) {
+            $ids += $this->internMany($missing);
+        }
         foreach ($parts as $column => $value) {
             $row[$column . '_id'] = $column === 'value2' && $value === '' ? null : $ids[$value];
         }
+    }
+
+    /**
+     * Interns the values a run of saves will write before the saves and any
+     * transaction around them, so each save finds its ids without a query.
+     * Inside a transaction it only looks them up: the map never holds an id
+     * that a rollback could take back.
+     *
+     * Values already primed cost nothing. A value the dictionary cannot hold
+     * is left to the save that refuses it.
+     *
+     * @param array $values
+     * @return array The map before this call, for release().
+     */
+    public function prime(array $values)
+    {
+        $previous = $this->primed;
+        $wanted = [];
+        foreach ($values as $value) {
+            $value = $this->toValueString($value);
+            if (!isset($this->primed[$value]) && strlen($value) <= self::MAX_BYTES) {
+                $wanted[] = $value;
+            }
+        }
+        if (empty($wanted)) {
+            return $previous;
+        }
+        if ($this->inTransaction()) {
+            $ids = [];
+            $this->lookup($this->hashValues($wanted), $ids);
+        } else {
+            $ids = $this->internMany($wanted);
+        }
+        $this->primed = $ids + $this->primed;
+        return $previous;
+    }
+
+    /**
+     * @param array $previous What prime() returned.
+     * @return void
+     */
+    public function release(array $previous)
+    {
+        $this->primed = $previous;
     }
 
     /**

@@ -1829,9 +1829,19 @@ class AttributesController extends AppController
                     $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
                     $shadowAttributes[] = $shadowAttribute;
                 }
-                $saveSuccess = $this->MispAttribute->Event->ShadowAttribute->saveMany($shadowAttributes);
+                $primed = $this->MispAttribute->Event->ShadowAttribute->primeValues(array_column($shadowAttributes, 'ShadowAttribute'));
+                try {
+                    $saveSuccess = $this->MispAttribute->Event->ShadowAttribute->saveMany($shadowAttributes);
+                } finally {
+                    $this->MispAttribute->releaseValues($primed);
+                }
             } else {
-                $saveSuccess = $this->MispAttribute->saveMany($attributes);
+                $primed = $this->MispAttribute->primeValues(array_column($attributes, 'Attribute'));
+                try {
+                    $saveSuccess = $this->MispAttribute->saveMany($attributes);
+                } finally {
+                    $this->MispAttribute->releaseValues($primed);
+                }
             }
             if ($saveSuccess) {
                 if (!$this->_isRest()) {
