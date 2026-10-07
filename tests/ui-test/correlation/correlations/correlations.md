@@ -49,7 +49,7 @@ An exclusion only removes the existing correlations after Clean up correlations
 5. Go back to `/correlation_exclusions/index` and click **Clean up correlations**.
 6. Open `QA correlation A` again.
 
-**Expected:** before the clean up `QA correlation B` is still related (as the page says: "Existing correlations are dropped by \"Clean up correlations\"."); after it, `QA correlation B` is no longer related through `198.51.100.160`.
+**Expected:** the event page hides correlations on an excluded value at once, so `QA correlation B` is no longer shown from step 4. The stored correlation is only dropped by the clean up (as the page says: "Existing correlations are dropped by \"Clean up correlations\"."): through the API, A still lists B in its related events before the clean up, and no longer after it.
 
 **Seeded data:** The exclusion `198.51.100.160` was added through the API; without clean up, A still listed B as related.
 

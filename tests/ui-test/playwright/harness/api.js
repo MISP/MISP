@@ -121,6 +121,15 @@ class MispApi {
     };
   }
 
+  async addCorrelationExclusion(value, comment = '') {
+    return this.post('/correlation_exclusions/add', { value, comment });
+  }
+
+  async correlationExclusions() {
+    const list = await this.get('/correlation_exclusions/index');
+    return list.map((x) => x.CorrelationExclusion || x);
+  }
+
   async deleteCorrelationExclusion(value) {
     const list = await this.get('/correlation_exclusions/index');
     for (const e of list.map((x) => x.CorrelationExclusion || x).filter((x) => x.value === value)) {
