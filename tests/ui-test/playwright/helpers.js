@@ -162,6 +162,12 @@ async function loginAs(page, role) {
   await expect(page).not.toHaveURL(/\/users\/login/);
 }
 
+// An IP only this run uses, so data left by other runs cannot interfere.
+function uniqueIp(ts) {
+  const n = Number(String(ts).slice(-6));
+  return `10.${(n >> 16) & 255}.${(n >> 8) & 255}.${n & 255}`;
+}
+
 // Throwaway account for the tests that lock, log out or change the account:
 // the QA accounts' stored sessions would not survive them (changing a key or
 // the profile renews the session id).
@@ -411,5 +417,5 @@ module.exports = {
   test, expect, knownBug, blockedBy, loginAs, expectNoErrorPage, expectDialogSaved, expectServerOk, expectScreen, DIST,
   addEvent, freetextImport, freetextResults, fillAttribute, submitAttribute, offeredTags, taxonomyRow, taxonomyAction,
   openEvent, openTab, row, rowAction, expectAfterReload, eventSummary, eventCard, chooseSlider, pick, dialog, escapeRe,
-  throwawayUser, submitLogin, skipTour, loginThrowaway,
+  throwawayUser, submitLogin, skipTour, loginThrowaway, uniqueIp,
 };

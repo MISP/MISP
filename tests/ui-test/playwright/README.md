@@ -159,6 +159,7 @@ status and message of the refused request, or the error shown in the UI), never 
 | `admin-org-admin`                      | Org admin: users list of their organisation, user of another organisation | — |
 | `admin-organisations`                  | Delete an organisation still used, emoji in the name | Bug 5 |
 | `admin-settings`                       | Invalid value for a list setting, text with emoji on the login page, diagnostics, admin pages | default_event_distribution accepts 9 |
+| `sighting-sightings`                   | Add, false positive, by value, from another organisation, future date, delete, full list button, Advanced sightings empty | Bug 3; Bug 25; deleting a sighting is black-holed |
 
 ## Writing a new test
 
@@ -226,5 +227,5 @@ the tests run on.
 
 - **CI workflow.** The tests need a MISP instance with the test accounts; a CI job would
   start misp-docker, create the accounts, then run `npm run test:e2e`.
-- **The remaining test plans** of `../` (object, proposal, sighting, general): same
+- **The remaining test plans** of `../` (object, proposal, general): same
   pattern, one spec per Markdown file.

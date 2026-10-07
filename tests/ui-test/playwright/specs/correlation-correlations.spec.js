@@ -1,16 +1,10 @@
 // ../../correlation/correlations/correlations.md
 const {
   test, expect, expectNoErrorPage, blockedBy, expectScreen,
-  openEvent, openTab, row, dialog, expectAfterReload,
+  openEvent, openTab, row, dialog, expectAfterReload, uniqueIp,
 } = require('../helpers');
 
 test.use({ role: 'siteAdmin' });
-
-// A value only this run uses, so exclusions left by other runs cannot hide it.
-function uniqueIp(ts) {
-  const n = Number(String(ts).slice(-6));
-  return `10.${(n >> 16) & 255}.${(n >> 8) & 255}.${n & 255}`;
-}
 
 async function correlatedEvents(api, cleanup, ts, value, count = 2) {
   const events = [];
