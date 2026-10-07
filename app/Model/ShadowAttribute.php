@@ -107,9 +107,20 @@ class ShadowAttribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
             ),
+            'stringControlCharacters' => array(
+                'rule' => array('stringNotControlCharacters'),
+                'message' => 'Value provided consists purely of control characters and is therefore considered to be empty.',
+            ),
+            'validComposite' => array(
+                'rule' => array('validComposite'),
+                'message' => 'Composite type found but the value not in the composite (value1|value2) format.',
+            ),
             'userdefined' => array(
                 'rule' => array('validateAttributeValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
+            ),
+            'maxTextLength' => array(
+                'rule' => array('maxTextLength'),
             ),
         ),
         'to_ids' => array(
@@ -428,6 +439,22 @@ class ShadowAttribute extends AppModel
     {
         $value = $fields['value'];
         return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
+    }
+
+    public function stringNotControlCharacters($fields)
+    {
+        $proposal = $this->data['ShadowAttribute'];
+        return $this->Attribute->notOnlyControlCharacters($proposal['type'], $proposal['value']);
+    }
+
+    public function validComposite($fields)
+    {
+        return $this->Attribute->compositeValueIsValid($this->data['ShadowAttribute']['type'], $fields['value']);
+    }
+
+    public function maxTextLength($fields)
+    {
+        return $this->Attribute->maxTextLength($fields);
     }
 
     public function getCompositeTypes()

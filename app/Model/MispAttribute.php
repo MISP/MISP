@@ -964,8 +964,18 @@ class MispAttribute extends AppModel
 
     public function validComposite($fields)
     {
-        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-            if (substr_count($fields['value'], '|') !== 1) {
+        return $this->compositeValueIsValid($this->data['Attribute']['type'], $fields['value']);
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool
+     */
+    public function compositeValueIsValid($type, $value)
+    {
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            if (substr_count($value, '|') !== 1) {
                 return false;
             }
         }
@@ -974,11 +984,21 @@ class MispAttribute extends AppModel
 
     public function stringNotControlCharacters($fields)
     {
-        if (ctype_cntrl($this->data['Attribute']['value'])) {
+        return $this->notOnlyControlCharacters($this->data['Attribute']['type'], $this->data['Attribute']['value']);
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool False when the value, or a part of a composite, is only control characters
+     */
+    public function notOnlyControlCharacters($type, $value)
+    {
+        if (ctype_cntrl($value)) {
             return false;
         }
-        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-            $values = explode('|', $this->data['Attribute']['value']);
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            $values = explode('|', $value);
             if (ctype_cntrl($values[0])) {
                 return false;
             }
