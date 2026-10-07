@@ -79,6 +79,7 @@ ui-test/
   general/emoji/emoji.md       emoji in every text field (Bug 5)
   general/ui/ui.md             JavaScript errors, phone width, dark mode on the main pages
   general/limits/limits.md     too long text in forms and searches (Bug 17)
+  general/onboarding/onboarding.md  onboarding tutorial: first login, sections per role, every step
   event-template/
     index/templates.md      active/inactive, duplicate, delete, library update, import/export
     form/instantiate.md     create an event from a template

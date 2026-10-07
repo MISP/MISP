@@ -162,6 +162,7 @@ status and message of the refused request, or the error shown in the UI), never 
 | `sighting-sightings`                   | Add, false positive, by value, from another organisation, future date, delete, full list button, Advanced sightings empty | Bug 3; Bug 25; deleting a sighting is black-holed |
 | `general-forms`                        | Emoji in every text field, too long text in add forms, too long correlation exclusion, too long search | Bug 5; Bug 17 |
 | `general-ui`                           | No JavaScript error, phone width, dark mode on the main pages; refused forms keep their style; documentation pages | Bug 18; Bug 14; pagination bar too wide at phone width |
+| `general-onboarding`                   | Tutorial: shown once to a new account, sections per role, every step of every section highlights its element, Back / reload / skip | the "Filters" step highlights nothing |
 | `object-add`                           | domain-ip, no attribute, required one of, required attribute, invalid value, first seen after last seen, same object twice, published event, review then submit | — |
 | `object-view`                          | Edit a value, remove the required attributes, soft and permanent delete, delete selected, filter, correlation, add an attribute, card attribute menu | Bug 22; deleting selected objects is black-holed |
 | `object-templates`                     | Deactivate a template, template already used, update, search in Add Object | — |
