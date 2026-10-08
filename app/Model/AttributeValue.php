@@ -395,6 +395,23 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * A schema with a text column for each value column whose id it holds,
+     * so that loggers keep recording the text once the text columns are gone.
+     *
+     * @param array $schema As Model::schema() returns it.
+     * @return array
+     */
+    public static function withValueColumns(array $schema)
+    {
+        foreach (['value1', 'value2'] as $column) {
+            if (!isset($schema[$column]) && isset($schema[$column . '_id'])) {
+                $schema[$column] = ['type' => 'text', 'null' => false];
+            }
+        }
+        return $schema;
+    }
+
+    /**
      * @param array $values
      * @return array [hex hash => value]
      */

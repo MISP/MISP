@@ -731,6 +731,27 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
     }
 
+    public function testWithValueColumnsNamesTheTextOfEachIdTheSchemaHolds()
+    {
+        $text = ['type' => 'text', 'null' => false];
+        $id = ['type' => 'biginteger', 'null' => true];
+        $stored = ['type' => 'text', 'null' => false, 'collate' => 'utf8mb3_unicode_ci'];
+
+        $this->assertSame(
+            ['value1_id' => $id, 'value2_id' => $id, 'value1' => $text, 'value2' => $text],
+            AttributeValue::withValueColumns(['value1_id' => $id, 'value2_id' => $id])
+        );
+        $this->assertSame(
+            ['value1' => $stored, 'value2' => $stored, 'value1_id' => $id, 'value2_id' => $id],
+            AttributeValue::withValueColumns(['value1' => $stored, 'value2' => $stored, 'value1_id' => $id, 'value2_id' => $id])
+        );
+        $this->assertSame(
+            ['value1_id' => $id, 'value1' => $text],
+            AttributeValue::withValueColumns(['value1_id' => $id])
+        );
+        $this->assertSame(['name' => $text], AttributeValue::withValueColumns(['name' => $text]));
+    }
+
     public function testAssignIdsRefusesAValueTheDictionaryCannotHold()
     {
         $row = ['value1' => str_repeat('A', AttributeValue::MAX_BYTES + 1), 'value2' => ''];

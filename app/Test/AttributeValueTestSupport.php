@@ -1,19 +1,10 @@
 <?php
 /**
- * Fakes for AttributeValueTest. Not a test file.
- *
- * Required from setUp rather than at load time: by then PHPUnit has loaded
- * every test file, so an AppModel stub another file declares wins, and the
- * empty one below only applies when AttributeValueTest runs alone.
+ * Fakes for AttributeValueTest. Not a test file. Required from setUp, see
+ * AttributeValueClassSupport.php.
  */
 
-if (!class_exists('AppModel', false)) {
-    class AppModel
-    {
-    }
-}
-
-require_once __DIR__ . '/../Model/AttributeValue.php';
+require_once __DIR__ . '/AttributeValueClassSupport.php';
 
 class AttributeValueFakeStatement
 {
