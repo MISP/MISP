@@ -549,7 +549,7 @@ class Feed extends AppModel
                     'Attribute.value2' => $values,
                 ),
             ),
-            'fields' => array('Attribute.event_id', 'Attribute.value1', 'Attribute.value2'),
+            'fields' => array('Attribute.event_id', 'Attribute.value1_id', 'Attribute.value2_id'),
         ));
         $correlations = array();
         foreach ($correlatingAttributes as $correlatingAttribute) {

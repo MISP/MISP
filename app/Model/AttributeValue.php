@@ -39,12 +39,12 @@ class AttributeValue extends AppModel
 
     /**
      * Whether a value condition that cannot be moved to the ids throws,
-     * rather than being logged and left on the text columns. Tests switch
-     * it on.
+     * rather than being logged and left on the text columns. Null follows
+     * the debug level (strict above 0); tests switch it on.
      *
-     * @var bool
+     * @var bool|null
      */
-    public static $strictConditions = false;
+    public static $strictConditions = null;
 
     /** @var array [value => id] from prime(), read by assignIds() */
     private $primed = [];
@@ -330,11 +330,37 @@ class AttributeValue extends AppModel
      */
     public function rewriteConditions($conditions, $alias, $bounded = false)
     {
-        $rewriter = new ValueConditionRewriter($this, $alias, [
-            'strict' => self::$strictConditions,
-            'bounded' => $bounded,
-        ]);
+        $rewriter = new ValueConditionRewriter($this, $alias, $this->rewriterOptions(['bounded' => $bounded]));
         return $rewriter->rewrite($conditions);
+    }
+
+    /**
+     * A rewriter for many finds by known terms, such as one find per row of
+     * a batch: the terms are resolved here in one statement, and the
+     * rewrites reuse them.
+     *
+     * @param string $alias
+     * @param array $terms
+     * @return ValueConditionRewriter
+     */
+    public function batchRewriter($alias, array $terms)
+    {
+        $rewriter = new ValueConditionRewriter($this, $alias, $this->rewriterOptions([]));
+        $rewriter->prime($terms);
+        return $rewriter;
+    }
+
+    /**
+     * @param array $options
+     * @return array
+     */
+    private function rewriterOptions(array $options)
+    {
+        // Left out, the rewriter follows the debug level
+        if (self::$strictConditions !== null) {
+            $options['strict'] = self::$strictConditions;
+        }
+        return $options;
     }
 
     /**

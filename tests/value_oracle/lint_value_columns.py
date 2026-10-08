@@ -73,6 +73,18 @@ ALLOW = [
      'public filter names, not columns'),
     ('app/Model/MispAttribute.php', 'MispAttribute::set_filter_tags',
      'filter names that rank selectivity, not columns'),
+    ('app/Model/AttributeValue.php', '*',
+     'the value dictionary: maps the value columns to their ids'),
+    ('app/Lib/Tools/ValueConditionRewriter.php', '*',
+     'moves conditions on the value columns to the ids'),
+    ('app/Lib/Tools/ValueFieldTranslator.php', '*',
+     'moves the value field of field lists and orders to the ids'),
+    ('app/Test/AttributeValue*Test.php', '*',
+     'value table tests: the text columns are their reference or data'),
+    ('app/Test/ValueConditionRewriter*.php', '*',
+     'rewriter tests: the 2.x conditions are their reference'),
+    ('app/Test/ValueFieldTranslatorTest.php', '*',
+     'translator tests: the value field is their input'),
 ]
 
 ATTRIBUTE_ALIASES = {'Attribute', 'ShadowAttribute', 'ReferencedAttribute',

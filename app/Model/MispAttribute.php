@@ -1389,6 +1389,8 @@ class MispAttribute extends AppModel
         }
 
         $composeTypes = $this->getCompositeTypes();
+        $ors = [];
+        $terms = [];
         foreach ($resultArray as $key => $result) {
             if (in_array($result['default_type'], $composeTypes, true)) {
                 $pieces = explode('|', $result['value']);
@@ -1400,21 +1402,34 @@ class MispAttribute extends AppModel
             } else {
                 $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
             }
+            $ors[$key] = $or;
+            array_push($terms, ...(array)$or['Attribute.value1']);
+        }
+        // One dictionary read for the terms of every row, one for the values found
+        $attributeValue = $this->loadAttributeValue();
+        $rewriter = $attributeValue->batchRewriter($this->alias, $terms);
+        $related = [];
+        foreach ($ors as $key => $or) {
             $options = array(
-                'conditions' => [
+                'conditions' => $rewriter->rewrite([
                     'OR' => $or,
                     'NOT' => [
                         'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
-                ],
+                ]),
                 'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
                 'contain' => ['AttributeTag' => false],
+                'valueText' => false,
             );
-            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
+            $related[$key] = $this->fetchAttributes($user, $options);
+        }
+        $attributeValue->attachNested($related);
+        foreach ($related as $key => $rows) {
+            $resultArray[$key]['related'] = $rows;
         }
     }
 
@@ -2463,9 +2478,9 @@ class MispAttribute extends AppModel
                             'foreignKey' => 'old_id',
                             'conditions' => ['ShadowAttribute.deleted' => 0],
                             'fields'     => [
-                                'id','old_id','event_id','type','category','value1','value2',
+                                'id','old_id','event_id','type','category','value1_id','value2_id',
                                 'to_ids','uuid','org_id','event_org_id','comment','timestamp',
-                                'proposal_to_delete','disable_correlation','value1_id','value2_id'
+                                'proposal_to_delete','disable_correlation'
                             ]
                         ]
                     ]
@@ -2477,6 +2492,8 @@ class MispAttribute extends AppModel
             if (isset($options['page']))   $params['page']   = $options['page'];
             if (isset($options['limit']))  $params['limit']  = $options['limit'];
             if (isset($options['offset'])) $params['offset'] = $options['offset'];
+            // False leaves the value ids for the caller to fill in, with those of other fetches
+            if (isset($options['valueText'])) $params['valueText'] = $options['valueText'];
         
             if (!empty($options['order'])) {
                 $params['order'] = $this->findOrder(

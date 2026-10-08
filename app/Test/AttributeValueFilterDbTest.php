@@ -8,7 +8,10 @@
  * function, a proposal search checking its pattern per row, and the attribute
  * fetch, which resolves its conditions once and reads the values of its
  * correlations at once. Proposal finds check their patterns per row; the
- * event's paginated lists and the event index filters match on the ids.
+ * event's paginated lists and the event index filters match on the ids. The
+ * freetext related attributes and sightings by value resolve their values in
+ * one statement; freetext feed correlations, the instance cache, similar
+ * objects and fetched proposals read the values from the dictionary.
  * The tests hide the value virtual field and the text columns from every
  * attribute model (and from the proposal models where a test adds proposals)
  * and point the stored text away from the dictionary, so a condition left on
@@ -321,7 +324,16 @@ class AttributeValueFilterDbTest extends TestCase
         App::uses('EventsController', 'Controller');
         $controller = new EventsController(new CakeRequest(null, false), new CakeResponse());
         $controller->Event = $this->event;
-        $controller->Auth = new class($this->user) {
+        $controller->Auth = $this->auth();
+        return $controller;
+    }
+
+    /**
+     * @return object An Auth component with the test's user signed in.
+     */
+    private function auth()
+    {
+        return new class($this->user) {
             private $user;
 
             public function __construct(array $user)
@@ -334,7 +346,6 @@ class AttributeValueFilterDbTest extends TestCase
                 return $key === null ? $this->user : $this->user[$key];
             }
         };
-        return $controller;
     }
 
     private function ids(...$names)
@@ -1023,6 +1034,16 @@ class AttributeValueFilterDbTest extends TestCase
             $this->assertSame([['Event.id' => [(string)$eventId]]], $controller->paginate['conditions']['AND'], $value);
             $assertOnIds();
         }
+
+        // A scalar that is not text searches its text, as Cake rendered it on the 2.x columns
+        $found = [];
+        foreach ([true, '1'] as $value) {
+            $controller->paginate = [];
+            $urlparams = '';
+            $method->invokeArgs($controller, [['searchvalue' => $value], &$urlparams]);
+            $found[] = $controller->paginate['conditions']['AND'];
+        }
+        $this->assertSame($found[1], $found[0]);
     }
 
     public function testTheIndexReadsTheValuesOfItsCorrelationsAtOnce()
@@ -1050,5 +1071,175 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(["$this->token.example.org", "{$this->token}a.example|192.0.2.7"], array_column($other, 'value'));
         $this->assertSame(['192.0.2.7'], array_values(array_filter(array_column($other, 'value2'))));
         $this->assertArrayNotHasKey('value1_id', $other[0]);
+    }
+
+    public function testTheFreetextRelatedAttributesResolveAndFillOnce()
+    {
+        $t = $this->token;
+        $this->exec(sprintf('UPDATE attributes SET disable_correlation = 0 WHERE id IN (%s)', implode(', ', $this->ids)));
+        $resultArray = [
+            ['value' => strtoupper("$t.example.org"), 'default_type' => 'domain'],
+            ['value' => "{$t}a.example|$t-ip", 'default_type' => 'domain|ip'],
+            // Port types correlate on their first part only
+            ['value' => "{$t}rv-data|80", 'default_type' => 'hostname|port'],
+            ['value' => "$t-two.example.org", 'default_type' => 'domain'],
+            ['value' => "$t-none.example", 'default_type' => 'domain'],
+        ];
+        $expected = ['domain', 'composite', 'regkey', 'other', null];
+
+        $this->clearLog();
+        $this->attribute->fetchRelated($this->user, $resultArray);
+        $this->assertCount(1, $this->statements('/SELECT 0 AS `term`, `id` FROM `attribute_values`/'));
+        $this->assertCount(1, $this->statements('/FROM `attribute_values` WHERE `id` IN/'));
+        $this->assertCount(2, $this->statements('/`attribute_values`/'));
+
+        $fields = ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'];
+        foreach ($expected as $key => $name) {
+            if ($name === null) {
+                $this->assertSame([], $resultArray[$key]['related']);
+                continue;
+            }
+            // As a fetch of that attribute gives it, with the values filled in per find
+            $this->assertSame(
+                $this->attribute->fetchAttributes($this->user, [
+                    'conditions' => ['Attribute.id' => $this->ids[$name]],
+                    'fields' => $fields,
+                    'flatten' => 1,
+                ]),
+                $resultArray[$key]['related'],
+                $name
+            );
+        }
+        $this->assertSame("{$t}a.example|192.0.2.7", $resultArray[1]['related'][0]['Attribute']['value']);
+    }
+
+    public function testSightingsByValueResolveTheirValuesOnce()
+    {
+        $t = $this->token;
+        $this->clearLog();
+        $added = ClassRegistry::init('Sighting')->saveSightings(
+            false,
+            // Only text can match a value: the others are left out, not refused
+            ['x' => strtoupper("$t.example.org"), "{$t}rv-data", "$t-none.example", true, ["{$t}a.example"], "{$t}a.example"],
+            time(),
+            $this->user,
+            0
+        );
+
+        $this->assertSame(3, $added);
+        $this->assertCount(1, $this->statements('/SELECT 0 AS `term`, `id` FROM `attribute_values`/'));
+        $sighted = array_map('intval', array_column($this->exec(sprintf(
+            'SELECT attribute_id FROM sightings WHERE attribute_id IN (%s) ORDER BY attribute_id',
+            implode(', ', $this->ids)
+        )), 'attribute_id'));
+        $this->assertSame($this->ids('domain', 'composite', 'regkey'), $sighted);
+    }
+
+    public function testFreetextFeedCorrelationsReadTheValuesFromTheDictionary()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $data = [
+            ['value' => "$t.example.org"],
+            ['value' => "{$t}rv-data"],
+            ['value' => strtoupper("$t-two.example.org")],
+            ['value' => "{$t}a.example"],
+        ];
+
+        $this->clearLog();
+        $result = ClassRegistry::init('Feed')->getFreetextFeedCorrelations($data, 0, $this->user);
+
+        $this->assertEquals([$first], $result[0]['correlations']);
+        $this->assertEquals([$second], $result[1]['correlations']);
+        // Matched on the exact text, as in 2.x
+        $this->assertArrayNotHasKey('correlations', $result[2]);
+        $this->assertEquals([$first], $result[3]['correlations']);
+        $this->assertSame([], $this->statements('/`Attribute`\.`value[12]`(?!_id)/'));
+    }
+
+    public function testTheInstanceCacheHashesTheDictionaryValues()
+    {
+        $t = $this->token;
+        // A value2 of spaces is empty, as 2.x compared it to ''
+        $spaces = ClassRegistry::init('AttributeValue')->intern('   ');
+        $this->exec(sprintf('UPDATE attributes SET value2_id = %d WHERE id = %d', $spaces, $this->ids['regkey']));
+        $uuids = array_column($this->exec(sprintf('SELECT id, uuid FROM events WHERE id IN (%s)', implode(', ', $this->events))), 'uuid', 'id');
+        list($first, $second) = $this->events;
+        $values = [
+            'domain' => [$first, "$t.example.org"],
+            'composite' => [$first, "{$t}a.example", '192.0.2.7'],
+            'tick' => [$first, "{$t}`tick"],
+            'object' => [$first, "{$t}obj.example.org"],
+            'other' => [$second, "$t-two.example.org"],
+            'regkey' => [$second, "HKLM\\Software\\$t"],
+        ];
+        $expected = [];
+        foreach ($this->ids(...array_keys($values)) as $id) {
+            $parts = $values[array_search($id, $this->ids, true)];
+            foreach (array_slice($parts, 1) as $value) {
+                $expected[] = md5($value) . ',' . $uuids[$parts[0]];
+            }
+        }
+
+        App::uses('AttributesController', 'Controller');
+        $controller = new AttributesController(new CakeRequest(null, false), new CakeResponse());
+        // Cake maps virtual fields back through the instance registered under the alias
+        $attribute = ClassRegistry::getObject('Attribute');
+        $controller->MispAttribute = $attribute;
+        $controller->Auth = $this->auth();
+        $controller->RestResponse = new class {
+            public $data;
+
+            public function viewData($data, ...$options)
+            {
+                return $this->data = $data;
+            }
+        };
+        $virtualFields = $attribute->virtualFields;
+        $controller->getInstanceCache(min($this->ids) - 1);
+
+        $this->assertSame($expected, explode("\n", trim($controller->RestResponse->data)));
+        $this->assertSame($virtualFields, $attribute->virtualFields);
+    }
+
+    public function testSimilarObjectsMatchTheValuesOnTheIds()
+    {
+        $t = $this->token;
+        list($first) = $this->events;
+        $objects = $this->createObjects();
+        $template = $this->exec(sprintf('SELECT template_uuid FROM objects WHERE id = %d', $objects[0]))[0]['template_uuid'];
+
+        $this->clearLog();
+        list($count, $similar) = $this->event->Object->findSimilarObjects(
+            $this->user,
+            $first,
+            [['value' => strtoupper("{$t}obj.example.org"), 'object_relation' => 'domain', 'type' => 'domain']],
+            ['ObjectTemplate' => ['uuid' => $template]]
+        );
+
+        $this->assertSame(1, $count);
+        $this->assertSame([$objects[0]], array_map('intval', array_column(array_column($similar, 'Object'), 'id')));
+        $this->assertNotEmpty($this->statements('/`Attribute`\.`value1_id` IN/'));
+    }
+
+    public function testFetchedProposalsReadTheirValuesFromTheDictionary()
+    {
+        $proposal = $this->addProposals(['domain' => ['domain', "{$this->token}-proposed.example"]])['domain'];
+        $this->exec(sprintf('UPDATE shadow_attributes SET old_id = %d WHERE id = %d', $this->ids['domain'], $proposal));
+
+        $this->clearLog();
+        $found = $this->attribute->fetchAttributes($this->user, [
+            'conditions' => ['Attribute.id' => $this->ids['domain']],
+            'includeProposals' => true,
+            'flatten' => 1,
+        ]);
+
+        $row = $found[0]['ShadowAttribute'][0];
+        $this->assertSame(
+            ['id', 'old_id', 'event_id', 'type', 'category', 'value1', 'value2', 'to_ids', 'uuid', 'org_id', 'event_org_id', 'comment', 'timestamp', 'proposal_to_delete', 'disable_correlation', 'value'],
+            array_keys($row)
+        );
+        $this->assertSame(["{$this->token}-proposed.example", '', "{$this->token}-proposed.example"], [$row['value1'], $row['value2'], $row['value']]);
+        $this->assertSame([], $this->statements('/`ShadowAttribute`\.`value[12]`(?!_id)/'));
     }
 }

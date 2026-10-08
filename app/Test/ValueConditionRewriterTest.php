@@ -258,6 +258,33 @@ class ValueConditionRewriterTest extends TestCase
         $this->assertContains($added, $rewritten[0]['Attribute.value1_id IN']);
     }
 
+    public function testAPrimedRewriterResolvesTheTermsOfABatchOnce()
+    {
+        $batch = [
+            ['OR' => ['Attribute.value1' => 'a', 'Attribute.value2' => 'a'], 'Attribute.type' => 'domain'],
+            ['OR' => ['Attribute.value1' => ['b', '', 7], 'Attribute.value2' => ['b', '', 7]]],
+            ['NOT' => ['Attribute.value2' => 'evil.com']],
+            ['Attribute.value1' => 'c'],
+        ];
+        $expected = [];
+        foreach ($batch as $conditions) {
+            $expected[] = $this->rewriter()->rewrite($conditions);
+        }
+        $this->dictionary->calls = ['resolveCi' => [], 'resolveLike' => [], 'matchesEmpty' => []];
+
+        $rewriter = $this->rewriter();
+        $rewriter->prime(['a', 'b', '', 7, 'evil.com', 'a']);
+        $rewritten = [];
+        foreach ($batch as $conditions) {
+            $rewritten[] = $rewriter->rewrite($conditions);
+        }
+
+        $this->assertSame($expected, $rewritten);
+        // 'c' was not primed: resolved by the rewrite that needed it
+        $this->assertSame([['a', 'b', '', '7', 'evil.com'], ['c']], $this->dictionary->calls['resolveCi']);
+        $this->assertSame([[['a', 'b', '', '7', 'evil.com'], false]], $this->dictionary->calls['matchesEmpty']);
+    }
+
     public function testNullAndEmptyFormsKeepTheirMeaning()
     {
         $rewriter = $this->rewriter();

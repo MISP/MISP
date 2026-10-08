@@ -909,13 +909,14 @@ class Sighting extends AppModel
                 $values = array($values);
             }
             if (empty($filters)) {
-                foreach ($values as $value) {
-                    foreach (array('value1', 'value2') as $field) {
-                        $conditions['OR'][] = array(
-                            'Attribute.' . $field => $value
-                        );
-                    }
-                }
+                // Lists rather than a condition per value, resolved in one statement
+                $terms = array_values(array_filter($values, function ($value) {
+                    return is_string($value) || is_int($value) || is_float($value);
+                }));
+                $conditions['OR'] = array(
+                    'Attribute.value1' => $terms,
+                    'Attribute.value2' => $terms,
+                );
             }
         }
         $attributes = [];

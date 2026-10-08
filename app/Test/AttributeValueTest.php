@@ -861,10 +861,8 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
     }
 
-    public function testRewriteConditionsThrowsOnlyWithStrictConditions()
+    public function testRewriteConditionsThrowsWithStrictConditions()
     {
-        $this->assertFalse((new ReflectionClass('AttributeValue'))->getDefaultProperties()['strictConditions']);
-
         AttributeValue::$strictConditions = true;
         try {
             $this->model($this->mysql)->rewriteConditions(['LOWER(Attribute.value1) LIKE' => 'x'], 'Attribute');
@@ -872,9 +870,53 @@ class AttributeValueTest extends TestCase
         } catch (ValueConditionException $e) {
             $this->assertStringContainsString('LOWER(Attribute.value1) LIKE', $e->getMessage());
         } finally {
-            AttributeValue::$strictConditions = false;
+            AttributeValue::$strictConditions = null;
         }
         $this->assertSame([], $this->mysql->statements);
+    }
+
+    public function testStrictConditionsFollowTheDebugLevelUnlessSet()
+    {
+        $this->assertNull((new ReflectionClass('AttributeValue'))->getDefaultProperties()['strictConditions']);
+        $strict = new ReflectionProperty('ValueConditionRewriter', 'strict');
+        $strict->setAccessible(true);
+        $debug = Configure::read('debug');
+        try {
+            foreach ([[null, 0, false], [null, 1, true], [null, 2, true], [true, 0, true], [false, 1, false]] as list($setting, $level, $expected)) {
+                AttributeValue::$strictConditions = $setting;
+                Configure::write('debug', $level);
+                $rewriter = $this->model($this->mysql)->batchRewriter('Attribute', []);
+                $this->assertSame($expected, $strict->getValue($rewriter), json_encode([$setting, $level]));
+            }
+            AttributeValue::$strictConditions = null;
+            Configure::write('debug', 1);
+            $this->expectException('ValueConditionException');
+            $this->model($this->mysql)->rewriteConditions(['IS_IPV6(value1)'], 'Attribute');
+        } finally {
+            AttributeValue::$strictConditions = null;
+            Configure::write('debug', $debug);
+        }
+    }
+
+    public function testABatchRewriterResolvesItsTermsInOneStatement()
+    {
+        $this->mysql->responder = function ($sql) {
+            return [['term' => '0', 'id' => '7'], ['term' => '0', 'id' => '3'], ['term' => '1', 'id' => '5']];
+        };
+
+        $rewriter = $this->model($this->mysql)->batchRewriter('Attribute', ['Evil.com', 'b.example', 'Evil.com']);
+
+        $this->assertSame(
+            ["SELECT 0 AS `term`, `id` FROM `attribute_values` WHERE `value` = 'Evil.com'"
+                . " UNION ALL SELECT 1 AS `term`, `id` FROM `attribute_values` WHERE `value` = 'b.example'"],
+            $this->mysql->statements
+        );
+        $this->assertSame([['Attribute.value1_id IN' => [3, 7]]], $rewriter->rewrite(['Attribute.value1' => 'Evil.com']));
+        $this->assertSame(
+            ['OR' => [['Attribute.value1_id IN' => [3, 5, 7]], ['Attribute.value2_id IN' => [3, 5, 7]]]],
+            $rewriter->rewrite(['OR' => ['Attribute.value1' => ['b.example', 'Evil.com'], 'Attribute.value2' => ['b.example', 'Evil.com']]])
+        );
+        $this->assertCount(1, $this->mysql->statements);
     }
 
     public function testAttachNestedRefusesADanglingId()

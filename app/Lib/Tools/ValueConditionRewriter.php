@@ -56,6 +56,9 @@ class ValueConditionRewriter
     /** @var array ['=' => [term => bool], 'LIKE' => [pattern => bool]] */
     private $empty = ['=' => [], 'LIKE' => []];
 
+    /** @var bool Whether rewrites keep what they resolve, since prime() */
+    private $primed = false;
+
     /**
      * @param AttributeValue $dictionary
      * @param string $alias
@@ -79,9 +82,11 @@ class ValueConditionRewriter
      */
     public function rewrite($conditions)
     {
-        $this->ci = [];
-        $this->likes = [];
-        $this->empty = ['=' => [], 'LIKE' => []];
+        if (!$this->primed) {
+            $this->ci = [];
+            $this->likes = [];
+            $this->empty = ['=' => [], 'LIKE' => []];
+        }
         if (is_string($conditions)) {
             $this->checkRaw($conditions);
             return $conditions;
@@ -91,6 +96,23 @@ class ValueConditionRewriter
         }
         $this->bounded = $this->alwaysBounded || $this->isBounded($conditions);
         return $this->walk($conditions, false);
+    }
+
+    /**
+     * Resolves the terms of a batch of finds in one statement, rather than
+     * one per find. From then on, rewrites keep what they resolve.
+     *
+     * @param array $terms
+     * @return void
+     */
+    public function prime(array $terms)
+    {
+        $this->primed = true;
+        $terms = array_values(array_unique(array_map('strval', $terms)));
+        if (!empty($terms)) {
+            $this->resolve($terms);
+            $this->emptyEquals($terms);
+        }
     }
 
     /**

@@ -2681,7 +2681,7 @@ class AttributesController extends AppController
             $attributes = $this->MispAttribute->fetchAttributes(
                 $this->Auth->user(),
                 array(
-                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Event.info'),
                     'conditions' => array(
                         'AND' => array(
                             $searchConditions,
@@ -4042,13 +4042,32 @@ class AttributesController extends AppController
         }
         $conditions['AND'][] = $this->MispAttribute->buildConditions($this->Auth->user());
 
-        $this->MispAttribute->virtualFields['md5_value1'] = 'MD5(Attribute.value1)';
-        $this->MispAttribute->virtualFields['md5_value2'] = "MD5(NULLIF(Attribute.value2, ''))";
+        $db = $this->MispAttribute->getDataSource();
+        $value1 = $db->name('Value1.value');
+        $value2 = $db->name('Value2.value');
+        $this->MispAttribute->virtualFields['md5_value1'] = "MD5($value1)";
+        // A value2 of spaces is empty, as 2.x compared it to ''
+        $this->MispAttribute->virtualFields['md5_value2'] = "CASE WHEN LENGTH(TRIM(TRAILING ' ' FROM $value2)) = 0 THEN NULL ELSE MD5($value2) END";
+        $valueTable = $this->MispAttribute->loadAttributeValue()->useTable;
 
         $rows = $this->MispAttribute->find('all', [
             'conditions' => $conditions,
             'recursive'  => -1,
             'contain'    => ['Event', 'Object.distribution', 'Object.sharing_group_id'],
+            'joins'      => [
+                [
+                    'table' => $valueTable,
+                    'alias' => 'Value1',
+                    'type' => 'LEFT',
+                    'conditions' => ['Value1.id = Attribute.value1_id'],
+                ],
+                [
+                    'table' => $valueTable,
+                    'alias' => 'Value2',
+                    'type' => 'LEFT',
+                    'conditions' => ['Value2.id = Attribute.value2_id'],
+                ],
+            ],
             'fields'     => [
                 'Attribute.id',
                 'Attribute.md5_value1',
