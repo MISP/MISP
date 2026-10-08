@@ -126,6 +126,7 @@ class Event extends AppModel
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('text', 'TextExport', 'txt'),
+        'xlsx' => array('xlsx', 'XlsxExport', 'xlsx'),
         'xml' => array('xml', 'XmlExport', 'xml'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json')
@@ -514,7 +515,19 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
-        $this->__beforeSaveData = $this->data['Event'];
+        // remember the stored distribution/SG so afterSave can tell whether
+        // this save actually changed them and refresh the correlations if so
+        $this->__beforeSaveData = null;
+        if (!empty($this->data['Event']['id'])) {
+            $stored = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Event.id' => $this->data['Event']['id']],
+                'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+            ]);
+            if (!empty($stored)) {
+                $this->__beforeSaveData = $stored['Event'];
+            }
+        }
 
         $trigger_id = 'event-before-save';
         if ($this->isTriggerCallable($trigger_id)) {
@@ -679,13 +692,15 @@ class Event extends AppModel
      * Gets the logged in user + an array of events, attaches the correlation count to each
      * @param array $user
      * @param array $events
+     * @param bool $excludeNonCorrelating Count only the related events that the
+     *      event view can actually show a correlation for
      * @return array
      */
-    public function attachCorrelationCountToEvents(array $user, array $events)
+    public function attachCorrelationCountToEvents(array $user, array $events, bool $excludeNonCorrelating = false)
     {
         $sgids = $this->SharingGroup->authorizedIds($user);
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids);
+            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids, $excludeNonCorrelating);
         }
         return $events;
     }
@@ -790,12 +805,21 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount(array $user, $eventId, $sgids)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param bool $excludeNonCorrelating Count only the related events that
+     *      getRelatedAttributes() can actually return a correlation for - see
+     *      Correlation::getRelatedEventIds()
+     * @return int
+     */
+    public function getRelatedEventCount(array $user, $eventId, $sgids, bool $excludeNonCorrelating = false)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        return count($this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids));
+        return count($this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids, $excludeNonCorrelating));
     }
 
     private function getRelatedEvents($user, $eventId, $sgids)
@@ -808,12 +832,14 @@ class Event extends AppModel
             return [];
         }
         // now look up the event data for these attributes
+        // the correlation row's distribution columns are a snapshot and carry no
+        // published flag, so scope the events themselves
+        $conditions = $this->createEventConditions($user);
+        $conditions['Event.id'] = $relatedEventIds;
         $relatedEvents =  $this->find(
             'all',
             [
-                'conditions' => [
-                    'Event.id' => $relatedEventIds
-                ],
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'order' => 'date DESC',
                 'fields' => [
@@ -945,6 +971,7 @@ class Event extends AppModel
         if (!isset($server['Server']['internal'])) {
             throw new InvalidArgumentException('Invalid Server array provided.');
         }
+        $this->Server = ClassRegistry::init('Server');
 
         // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
         // But keep it here just for sure
@@ -1183,14 +1210,14 @@ class Event extends AppModel
                 $data['EventReport'][$key] = $this->__updateEventReportForSync($report, $server);
                 if (empty($data['EventReport'][$key])) {
                     unset($data['EventReport'][$key]);
+                } else {
+                    $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
                 }
             }
             $data['EventReport'] = array_values($data['EventReport']);
         }
         if (isset($data['EventReport']) && empty($data['EventReport'])) {
             unset($data['EventReport']);
-        } else {
-            $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
         }
         return $data;
     }
@@ -1448,6 +1475,21 @@ class Event extends AppModel
                 'table' => 'event_reports',
                 'foreign_key' => 'event_id',
                 'value' => $id
+            ),
+            array(
+                'table' => 'event_graph',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => 'event_id',
+                'value' => $id
+            ),
+            array(
+                'table' => 'shadow_attribute_correlations',
+                'foreign_key' => '1_event_id',
+                'value' => $id
             )
         );
         if ($thread_id) {
@@ -1474,8 +1516,36 @@ class Event extends AppModel
             );
         }
 
+        // rows keyed by the event's reports or attributes rather than the event itself,
+        // looked up before the raw deletes below remove their parents
+        $reportIds = $this->EventReport->find('column', [
+            'conditions' => ['EventReport.event_id' => $id],
+            'fields' => ['EventReport.id'],
+        ]);
+        $AttachmentScan = $this->loadAttachmentScan();
+        $scanTypes = ['attachment', 'malware-sample'];
+        $scannedIds = [
+            AttachmentScan::TYPE_ATTRIBUTE => $this->Attribute->find('column', [
+                'conditions' => ['Attribute.event_id' => $id, 'Attribute.type' => $scanTypes],
+                'fields' => ['Attribute.id'],
+            ]),
+            AttachmentScan::TYPE_SHADOW_ATTRIBUTE => $this->ShadowAttribute->find('column', [
+                'conditions' => ['ShadowAttribute.event_id' => $id, 'ShadowAttribute.type' => $scanTypes],
+                'fields' => ['ShadowAttribute.id'],
+            ]),
+        ];
+
         $db = $this->getDataSource();
         $db->begin();
+        if (!empty($reportIds)) {
+            $this->EventReport->EventReportTag->deleteAll(['EventReportTag.event_report_id' => $reportIds], false);
+        }
+        foreach ($scannedIds as $type => $ids) {
+            if (!empty($ids)) {
+                $AttachmentScan->deleteAll(['AttachmentScan.type' => $type, 'AttachmentScan.attribute_id' => $ids], false);
+            }
+        }
+        ClassRegistry::init('FuzzyCorrelateSsdeep')->purge($id);
         $connection = $db->getConnection();
         foreach ($relations as $relation) {
             $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
@@ -1972,6 +2042,17 @@ class Event extends AppModel
         } else {
             $conditions['Attribute.deleted'] = 0;
         }
+        if ($deleted !== 0 && !$user['Role']['perm_sync']) {
+            // soft-deleted data is only shown to the event owner, as in fetchEvent()
+            $ownDeleted = [
+                'Attribute.deleted' => 1,
+                $this->eventOwnerSubquery('Attribute') . ' = ' . (int)$user['org_id'],
+            ];
+            unset($conditions['Attribute.deleted']);
+            $conditions[] = $deleted === 1
+                ? ['OR' => ['Attribute.deleted' => 0, 'AND' => $ownDeleted]]
+                : $ownDeleted;
+        }
 
         // Optional filters
         if (!empty($options['category'])) {
@@ -2003,20 +2084,7 @@ class Event extends AppModel
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (!$isSiteAdmin) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -2026,8 +2094,41 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
+            if (!empty($options['flatten'])) {
+                // object attributes are only in the list when flattening, and
+                // they still have to pass the object's own distribution ACL
+                $objectCondSelect = $this->eventOwnerSubquery('Object');
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    [
+                        'fields' => ['Object.id'],
+                        'recursive' => -1,
+                        'conditions' => [
+                            'Object.event_id' => $eventIds,
+                            'OR' => [
+                                ['AND' => [
+                                    'Object.distribution >' => 0,
+                                    'Object.distribution !=' => 4,
+                                ]],
+                                ['AND' => [
+                                    'Object.distribution' => 4,
+                                    'Object.sharing_group_id' => $sgids,
+                                ]],
+                                $objectCondSelect . ' = ' . (int)$user['org_id'],
+                            ],
+                        ],
+                    ],
+                    'Attribute.object_id'
+                );
+                $conditions['AND'][] = [
+                    'OR' => [
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ],
+                ];
+            }
         }
 
         // Warninglist filter. Kept last so the hit set is resolved against the
@@ -2081,7 +2182,12 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $fields,
             'recursive' => -1,
-            'order' => ['Attribute.' . $sort => $direction],
+            // The id as a tiebreaker: attributes saved in the same second
+            // share a timestamp, and without it PostgreSQL returns them in
+            // whatever physical order they happen to have - which changes
+            // when a row is updated - where MySQL happens to keep insertion
+            // order. Callers and tests read attributes[0] as "the first one".
+            'order' => ['Attribute.' . $sort => $direction, 'Attribute.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2613,20 +2719,7 @@ class Event extends AppModel
         // Object distribution ACL for non-site-admins
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
-            $objectCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Object.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $objectCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Object"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
             $conditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Object.distribution >' => 0,
@@ -2636,7 +2729,7 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 ]],
-                $objectCondSelect => $user['org_id'],
+                $objectCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2689,7 +2782,7 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => $objectFields,
             'recursive' => -1,
-            'order' => ['Object.' . $sort => $direction],
+            'order' => ['Object.' . $sort => $direction, 'Object.id' => 'ASC'],
             'limit' => $limit,
             'offset' => ($page - 1) * $limit,
         ]);
@@ -2713,6 +2806,10 @@ class Event extends AppModel
             $flat[$obj['id']] = $obj;
         }
 
+        $fieldOrder = $this->Object->fieldOrderByTemplate(
+            array_column($flat, 'template_uuid')
+        );
+
         // Fetch attributes for these objects with ACL, in the deleted scope
         // settled above.
         $attrConditions = [
@@ -2721,20 +2818,7 @@ class Event extends AppModel
             'Attribute.deleted' => $attrDeleted,
         ];
         if (!$isSiteAdmin) {
-            $attributeCondSelect =
-                '(SELECT events.org_id FROM events'
-                . ' WHERE events.id = Attribute.event_id)';
-            if (!$this->isMysql()) {
-                $schema = $this->getDataSource()
-                    ->config['schema'];
-                $attributeCondSelect = sprintf(
-                    '(SELECT "%s"."events"."org_id"'
-                    . ' FROM "%s"."events"'
-                    . ' WHERE "%s"."events"."id"'
-                    . ' = "Attribute"."event_id")',
-                    $schema, $schema, $schema
-                );
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
             $attrConditions['AND'][0]['OR'] = [
                 ['AND' => [
                     'Attribute.distribution >' => 0,
@@ -2744,7 +2828,7 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 ]],
-                $attributeCondSelect => $user['org_id'],
+                $attributeCondSelect . ' = ' . (int)$user['org_id'],
             ];
         }
 
@@ -2772,7 +2856,7 @@ class Event extends AppModel
             'conditions' => $attrConditions,
             'fields' => $attrFields,
             'recursive' => -1,
-            'order' => ['Attribute.object_relation' => 'ASC'],
+            'order' => ['Attribute.object_relation' => 'ASC', 'Attribute.id' => 'ASC'],
         ]);
 
         // Collect attribute IDs and group by object
@@ -2876,6 +2960,17 @@ class Event extends AppModel
                         $proposalsByAttr[$attr['id']] ?? [];
                 }
                 unset($attr);
+                // Highest ui-priority first else keeps the alphabetical order
+                $rank = $fieldOrder[$obj['template_uuid']] ?? [];
+                if (!empty($rank)) {
+                    usort(
+                        $attrsByObject[$objId],
+                        function ($a, $b) use ($rank) {
+                            return ($rank[$a['object_relation']] ?? PHP_INT_MAX)
+                                <=> ($rank[$b['object_relation']] ?? PHP_INT_MAX);
+                        }
+                    );
+                }
                 $obj['Attribute'] = $attrsByObject[$objId];
             }
         }
@@ -3196,6 +3291,971 @@ class Event extends AppModel
         return $event;
     }
 
+    /**
+     * An event as the AI module receives it: the REST representation of
+     * /events/view, as the given user sees it.
+     *
+     * @param array $user
+     * @param int $id
+     * @return array|null ['Event' => ...], or null when the event does not
+     *         exist or is not visible to the user
+     */
+    public function fetchEventForAi(array $user, $id)
+    {
+        // Correlations are noise for a language model and can be large.
+        $events = $this->fetchEvent($user, [
+            'eventid' => (int)$id,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => false,
+        ]);
+        if (empty($events[0])) {
+            return null;
+        }
+        App::uses('JSONConverterTool', 'Tools');
+        return JSONConverterTool::convert($events[0], !empty($user['Role']['perm_site_admin']), true);
+    }
+
+    /**
+     * Whether the user may modify the event. Mirror of
+     * ACLComponent::canModifyEvent() for model and worker code, where the
+     * component is not available.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding orgc_id and user_id
+     * @return bool
+     */
+    public function userCanModifyEvent(array $user, array $event)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        if (!empty($user['Role']['perm_modify_org']) && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!empty($user['Role']['perm_modify']) && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Split the tag names of a module answer (results.Tag) into the two
+     * ai-computer-assisted provenance names (Module::AI_PROVENANCE_TAGS,
+     * matched case-insensitively, returned in their canonical spelling) and
+     * the rest, in the module's order, blanks and duplicates dropped.
+     *
+     * @param array $tags [{name}, ...] or [name, ...]
+     * @return array {provenance: [names], other: [names]}
+     */
+    public static function splitAiTagNames(array $tags)
+    {
+        App::uses('Module', 'Model');
+        $canonical = [];
+        foreach (Module::AI_PROVENANCE_TAGS as $name) {
+            $canonical[mb_strtolower($name)] = $name;
+        }
+        $split = ['provenance' => [], 'other' => []];
+        $seen = [];
+        foreach ($tags as $tag) {
+            $name = is_array($tag) ? ($tag['name'] ?? null) : $tag;
+            if (!is_string($name) || trim($name) === '') {
+                continue;
+            }
+            $name = trim($name);
+            $key = mb_strtolower($name);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            if (isset($canonical[$key])) {
+                $split['provenance'][] = $canonical[$key];
+            } else {
+                $split['other'][] = $name;
+            }
+        }
+        return $split;
+    }
+
+    /**
+     * The sentence a summary message ends with when the run also tagged the
+     * event, empty otherwise.
+     *
+     * @param array $result an aiSummarize() result
+     * @return string
+     */
+    public static function aiTagsNote(array $result)
+    {
+        if (empty($result['tags']['attached']) && empty($result['tags']['replaced'])) {
+            return '';
+        }
+        $note = ' ' . __('Event tagged %s.', implode(', ', $result['tags']['attached']));
+        if (!empty($result['tags']['replaced'])) {
+            $note .= ' ' . __('Replaced %s.', implode(', ', $result['tags']['replaced']));
+        }
+        return $note;
+    }
+
+    /**
+     * The lower-cased `namespace:predicate=` prefix of a machine tag, or
+     * null for a tag without a value. Two tags sharing the prefix are values
+     * of the same predicate.
+     *
+     * @param string $name
+     * @return string|null
+     */
+    public static function aiTagPredicatePrefix($name)
+    {
+        $equals = strpos($name, '=');
+        $colon = strpos($name, ':');
+        if ($equals === false || $colon === false || $colon > $equals) {
+            return null;
+        }
+        return mb_strtolower(substr($name, 0, $equals + 1));
+    }
+
+    /**
+     * Attach the tags of a module answer (results.Tag) to the event.
+     *
+     * The two provenance names go through Tag::captureAiProvenanceTags()
+     * (rows guaranteed, no tag-editor permission needed). Both predicates of
+     * the ai-computer-assisted taxonomy are exclusive and a fresh AI write
+     * makes the event's AI content unreviewed again, so a sibling value
+     * already on the event (say review-level="human-reviewed") is replaced,
+     * not kept next to the new one. Any other name follows the normal rules:
+     * captureTag() (creation needs perm_tag_editor, reserved tags refused)
+     * and the taxonomy exclusivity check, as an accepted A3 suggestion does.
+     * Idempotent: a tag already on the event is skipped. Does not unpublish;
+     * the caller's write already did, or decides.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $results the module's results block
+     * @param bool $local attach (and replace) as local tags
+     * @return array {attached: [names], replaced: [names], skipped: [names], failed: {name: reason}}
+     */
+    public function aiAttachResultTags(array $user, $eventId, array $results, $local = false)
+    {
+        $eventId = (int)$eventId;
+        $local = (bool)$local;
+        $outcome = ['attached' => [], 'replaced' => [], 'skipped' => [], 'failed' => []];
+        $split = self::splitAiTagNames(isset($results['Tag']) && is_array($results['Tag']) ? $results['Tag'] : []);
+        if (empty($split['provenance']) && empty($split['other'])) {
+            return $outcome;
+        }
+        $Tag = $this->EventTag->Tag;
+        $ids = [];
+        if (!empty($split['provenance'])) {
+            foreach ($Tag->captureAiProvenanceTags($user) as $name => $id) {
+                if (in_array($name, $split['provenance'], true)) {
+                    $ids[$name] = $id;
+                }
+            }
+        }
+        foreach ($split['other'] as $name) {
+            $ids[$name] = $Tag->captureTag(['name' => $name], $user);
+        }
+        $current = $this->EventTag->find('all', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => ['Tag' => ['fields' => ['Tag.id', 'Tag.name']]],
+            'fields' => ['EventTag.id', 'EventTag.tag_id', 'EventTag.local'],
+            'recursive' => -1,
+        ]);
+        $eventTagNames = [];
+        foreach ($current as $row) {
+            if (!empty($row['Tag']['name'])) {
+                $eventTagNames[] = $row['Tag']['name'];
+            }
+        }
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $log = $this->loadLog();
+        foreach ($ids as $name => $tagId) {
+            if (!$tagId) {
+                $outcome['failed'][$name] = __('the tag does not exist or is reserved for another organisation or user');
+                continue;
+            }
+            if (in_array($name, $split['provenance'], true)) {
+                $prefix = self::aiTagPredicatePrefix($name);
+                foreach ($current as $row) {
+                    $rowName = isset($row['Tag']['name']) ? $row['Tag']['name'] : '';
+                    if ((int)$row['EventTag']['tag_id'] === (int)$tagId || (bool)$row['EventTag']['local'] !== $local) {
+                        continue;
+                    }
+                    if ($prefix === null || self::aiTagPredicatePrefix($rowName) !== $prefix) {
+                        continue;
+                    }
+                    if ($this->EventTag->detachTagFromEvent($eventId, $row['EventTag']['tag_id'], $local)) {
+                        $outcome['replaced'][] = $rowName;
+                        $eventTagNames = array_values(array_diff($eventTagNames, [$rowName]));
+                        $log->createLogEntry(
+                            $user,
+                            'tag',
+                            'Event',
+                            $eventId,
+                            sprintf('Removed%s tag (%s) "%s" from event (%s)', $local ? ' local' : '', $row['EventTag']['tag_id'], $rowName, $eventId),
+                            sprintf('Replaced by the AI provenance tag "%s"', $name)
+                        );
+                    }
+                }
+            } elseif (!$Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $eventTagNames)) {
+                $outcome['failed'][$name] = __('refused by taxonomy exclusivity against the event\'s tags');
+                continue;
+            }
+            $nothingToChange = false;
+            if (!$this->EventTag->attachTagToEvent($eventId, ['id' => $tagId, 'local' => $local], $nothingToChange)) {
+                $outcome['failed'][$name] = __('the tag could not be attached');
+                continue;
+            }
+            if ($nothingToChange) {
+                $outcome['skipped'][] = $name;
+                continue;
+            }
+            $outcome['attached'][] = $name;
+            $eventTagNames[] = $name;
+            $log->createLogEntry(
+                $user,
+                'tag',
+                'Event',
+                $eventId,
+                sprintf('Attached%s tag (%s) "%s" to event (%s)', $local ? ' local' : '', $tagId, $name, $eventId),
+                sprintf('Event (%s) tagged as Tag (%s)%s by the AI module', $eventId, $tagId, $local ? ' locally' : '')
+            );
+        }
+        return $outcome;
+    }
+
+    /**
+     * A4 — ask the AI module for the indicators it reads out of the event's
+     * reports (use-case infoextraction) and hand back what MISP would save:
+     * the module's new attributes and objects, MISP core format, normalised
+     * like any misp_standard import (handleMispFormatFromModuleResult(): the
+     * module's comment, to_ids and Tag[] kept, category and distribution
+     * filled). The two provenance tag rows are guaranteed here so the tags
+     * on every element survive the save whoever the user is. Only
+     * results.Attribute and results.Object are read; results.Event is the
+     * module's processed copy and is ignored. Nothing is written.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array|null $onlyReportUuids send only these reports (the workflow node's
+     *        loop guard); null sends every report the user may read
+     * @return array {Event: {...}, Attribute: [...], Object: [...], rejected: [{type, value, reason}], metadata: [...]}
+     * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception with a user-facing message
+     */
+    public function aiExtractIndicators(array $user, $eventId, array $onlyReportUuids = null)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->userCanModifyEvent($user, $event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $reports = 0;
+        $kept = [];
+        foreach (isset($data['Event']['EventReport']) ? $data['Event']['EventReport'] : [] as $report) {
+            if (!empty($report['deleted'])) {
+                continue;
+            }
+            if ($onlyReportUuids !== null && !in_array($report['uuid'] ?? '', $onlyReportUuids, true)) {
+                continue;
+            }
+            $kept[] = $report;
+            $reports++;
+        }
+        $data['Event']['EventReport'] = $kept;
+        if ($reports === 0) {
+            // The module would answer nothing and still burn an LLM call.
+            throw new MethodNotAllowedException(__('The event has no report to extract indicators from.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $metadata = [];
+        $results = $this->Module->queryAI('infoextraction', $data, null, $metadata);
+        $answer = ['results' => [
+            'Attribute' => isset($results['Attribute']) && is_array($results['Attribute']) ? $results['Attribute'] : [],
+            'Object' => isset($results['Object']) && is_array($results['Object']) ? $results['Object'] : [],
+        ]];
+        $resolved = $this->handleMispFormatFromModuleResult($answer);
+        $resolved['Event'] = $event['Event'];
+        $resolved['Attribute'] = isset($resolved['Attribute']) ? $resolved['Attribute'] : [];
+        $resolved['Object'] = isset($resolved['Object']) ? $resolved['Object'] : [];
+        $resolved['rejected'] = isset($metadata['rejected']) && is_array($metadata['rejected']) ? array_values($metadata['rejected']) : [];
+        $resolved['metadata'] = $metadata;
+        if (!empty($resolved['Attribute']) || !empty($resolved['Object'])) {
+            $this->EventTag->Tag->captureAiProvenanceTags($user);
+        }
+        return $resolved;
+    }
+
+    /**
+     * A4 — save an extraction (what aiExtractIndicators() returned, or the
+     * subset a review kept) onto the event through the module-result path
+     * every import module uses: tags captured per element, an element already
+     * on the event recovered rather than duplicated, one unpublish.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $resolved {Attribute, Object, rejected?}
+     * @return array {message: the saver's report, attributes, objects, rejected}
+     */
+    public function aiApplyExtraction(array $user, $eventId, array $resolved)
+    {
+        $counts = self::aiExtractionCounts($resolved);
+        $message = $this->processModuleResultsData(
+            $user,
+            [
+                'Attribute' => isset($resolved['Attribute']) ? $resolved['Attribute'] : [],
+                'Object' => isset($resolved['Object']) ? $resolved['Object'] : [],
+            ],
+            (int)$eventId,
+            'extracted by ai_connector'
+        );
+        return ['message' => (string)$message] + $counts;
+    }
+
+    /**
+     * A4 — direct apply: query and save in one go (worker, workflow node,
+     * REST). An empty answer writes nothing.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array|null $onlyReportUuids see aiExtractIndicators()
+     * @return array {message, attributes, objects, rejected}
+     */
+    public function aiExtractAndApply(array $user, $eventId, array $onlyReportUuids = null)
+    {
+        $resolved = $this->aiExtractIndicators($user, $eventId, $onlyReportUuids);
+        if (empty($resolved['Attribute']) && empty($resolved['Object'])) {
+            return ['message' => '', 'attributes' => 0, 'objects' => 0, 'rejected' => count($resolved['rejected'])];
+        }
+        return $this->aiApplyExtraction($user, $eventId, $resolved);
+    }
+
+    /**
+     * A4 — background job when MISP.background_jobs is on (cake Event
+     * aiSummarize <user> extract <event> <job>), inline otherwise.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array {job_id} or the result of aiExtractAndApply()
+     */
+    public function aiExtractIndicatorsRouter(array $user, $eventId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_extract_indicators',
+                'Event: ' . (int)$eventId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'extract', (int)$eventId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->aiExtractAndApply($user, $eventId);
+    }
+
+    /**
+     * The report uuids named in extraction comments ("extracted by
+     * ai_connector from EventReport <uuid>[, <uuid>]…", whatever follows).
+     * Pure.
+     *
+     * @param array $comments attribute comments
+     * @return array unique uuids, lower-cased
+     */
+    public static function aiParseExtractedReportUuids(array $comments)
+    {
+        $uuids = [];
+        foreach ($comments as $comment) {
+            if (!is_string($comment) || stripos($comment, 'extracted by ai_connector from EventReport') !== 0) {
+                continue;
+            }
+            if (preg_match_all('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i', $comment, $matches)) {
+                foreach ($matches[0] as $uuid) {
+                    $uuids[strtolower($uuid)] = true;
+                }
+            }
+        }
+        return array_keys($uuids);
+    }
+
+    /**
+     * The reports of an event an extraction already ran on: every uuid an
+     * attribute comment of the event cites (the workflow node's loop guard).
+     *
+     * @param int $eventId
+     * @return array uuids
+     */
+    public function aiExtractedReportUuids($eventId)
+    {
+        $comments = $this->Attribute->find('column', [
+            'conditions' => [
+                'Attribute.event_id' => (int)$eventId,
+                'Attribute.deleted' => 0,
+                'Attribute.comment LIKE' => 'extracted by ai_connector from EventReport %',
+            ],
+            'fields' => ['Attribute.comment'],
+        ]);
+        return self::aiParseExtractedReportUuids($comments);
+    }
+
+    /**
+     * Counts of an extraction: attributes (plain and inside objects), objects
+     * and the candidates the module rejected. Pure.
+     *
+     * @param array $resolved {Attribute, Object, rejected}
+     * @return array {attributes, objects, rejected}
+     */
+    public static function aiExtractionCounts(array $resolved)
+    {
+        $attributes = isset($resolved['Attribute']) && is_array($resolved['Attribute']) ? count($resolved['Attribute']) : 0;
+        $objects = isset($resolved['Object']) && is_array($resolved['Object']) ? $resolved['Object'] : [];
+        foreach ($objects as $object) {
+            $attributes += isset($object['Attribute']) && is_array($object['Attribute']) ? count($object['Attribute']) : 0;
+        }
+        return [
+            'attributes' => $attributes,
+            'objects' => count($objects),
+            'rejected' => isset($resolved['rejected']) && is_array($resolved['rejected']) ? count($resolved['rejected']) : 0,
+        ];
+    }
+
+    /**
+     * The sentence a direct apply answers with: what the module added, what
+     * it dropped, and the saver's own report when something went wrong.
+     *
+     * @param array $result of aiExtractAndApply()
+     * @return string
+     */
+    public static function aiExtractionMessage(array $result)
+    {
+        $attributes = (int)($result['attributes'] ?? 0);
+        $objects = (int)($result['objects'] ?? 0);
+        $rejected = (int)($result['rejected'] ?? 0);
+        if ($attributes === 0 && $objects === 0) {
+            $message = __('The AI module found no new indicator in the event\'s reports.');
+        } else {
+            $message = __n('%s indicator added by the AI module', '%s indicators added by the AI module', $attributes, $attributes);
+            if ($objects) {
+                $message .= ' ' . __n('(%s object)', '(%s objects)', $objects, $objects);
+            }
+            $message .= '.';
+        }
+        if ($rejected) {
+            $message .= ' ' . __n('%s candidate rejected by the module.', '%s candidates rejected by the module.', $rejected, $rejected);
+        }
+        $saver = isset($result['message']) ? trim((string)$result['message']) : '';
+        if ($saver !== '' && stripos($saver, 'could not be saved') !== false) {
+            $message .= ' ' . $saver;
+        }
+        return $message;
+    }
+
+    /**
+     * Summarise an event with the AI module: queued as a background job, or
+     * run at once when background jobs are off.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array ['job_id' => int] when queued, else what aiSummarize() returns
+     * @throws Exception see aiSummarize()
+     */
+    public function aiSummarizeRouter(array $user, $eventId)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'ai_summarize_event',
+                'Event: ' . (int)$eventId,
+                __('Waiting for the AI module.')
+            );
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['aiSummarize', $user['id'], 'event', (int)$eventId, $jobId],
+                true,
+                $jobId
+            );
+            return ['job_id' => $jobId];
+        }
+        return $this->aiSummarize($user, $eventId);
+    }
+
+    /**
+     * Summarise an event with the AI module and attach the answer as a new
+     * event report, as the given user: the read and edit checks are applied
+     * here again so that a worker writes with the requesting user's rights,
+     * and the report is added the way the UI adds one (the event is
+     * unpublished).
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array ['report_id' => int, 'name' => string]
+     * @throws NotFoundException|ForbiddenException|Exception with a user-facing message
+     */
+    public function aiSummarize(array $user, $eventId)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->userCanModifyEvent($user, $event)) {
+            throw new ForbiddenException(__('You do not have permission to modify this event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $results = $this->Module->queryAI('summarization_on_event', $data);
+        $answer = isset($results['EventReport']) && is_array($results['EventReport']) ? $results['EventReport'] : [];
+        if (empty($answer['content']) || !is_string($answer['content'])) {
+            throw new Exception(__('The AI module returned no report.'));
+        }
+        $name = isset($answer['name']) && is_string($answer['name']) ? trim($answer['name']) : '';
+        if ($name === '') {
+            $name = __('AI summary of event %s', $eventId);
+        }
+        $name = mb_substr($name, 0, 255);
+        $errors = $this->EventReport->addReport($user, [
+            'name' => $name,
+            'content' => $answer['content'],
+            'distribution' => 5,
+        ], $eventId);
+        if (!empty($errors)) {
+            throw new Exception(__('The AI summary could not be saved as a report: %s', json_encode($errors)));
+        }
+        // The module marks what it produced (the two ai-computer-assisted
+        // tags for the event); the report save above already unpublished.
+        $tags = $this->aiAttachResultTags($user, $eventId, $results);
+        return ['report_id' => (int)$this->EventReport->id, 'name' => $name, 'tags' => $tags];
+    }
+
+    /**
+     * Status of one AI tag suggestion (aiRecommendTags): why a row can or
+     * cannot be accepted. Only AI_TAG_OK rows are attachable.
+     */
+    const AI_TAG_OK = 'ok',
+        AI_TAG_PRESENT = 'present',
+        AI_TAG_NEEDS_TAG_EDITOR = 'needs_tag_editor',
+        AI_TAG_UNKNOWN_CLUSTER = 'unknown_cluster',
+        AI_TAG_RESTRICTED = 'restricted',
+        AI_TAG_LOCAL_ONLY = 'local_only',
+        AI_TAG_EXCLUSIVE = 'exclusive';
+
+    /**
+     * User-facing reason for a suggestion status.
+     *
+     * @param string $status one of the AI_TAG_* constants
+     * @return string
+     */
+    public static function aiTagStatusText($status)
+    {
+        switch ($status) {
+            case self::AI_TAG_OK:
+                return '';
+            case self::AI_TAG_PRESENT:
+                return __('already on the event');
+            case self::AI_TAG_NEEDS_TAG_EDITOR:
+                return __('unknown tag, creating it needs the tag editor permission');
+            case self::AI_TAG_UNKNOWN_CLUSTER:
+                return __('no galaxy cluster with this name');
+            case self::AI_TAG_RESTRICTED:
+                return __('tag reserved for another organisation or user');
+            case self::AI_TAG_LOCAL_ONLY:
+                return __('tag can only be attached as a local tag');
+            case self::AI_TAG_EXCLUSIVE:
+                return __('not allowed by taxonomy exclusivity');
+        }
+        return (string)$status;
+    }
+
+    /**
+     * Pure classification of the AI module's tag suggestions against what the
+     * instance holds: one row per distinct name (case-insensitive, first
+     * spelling kept), in the module's order. No lookups happen here; the
+     * caller supplies what it found.
+     *
+     * A galaxy-cluster name (`misp-galaxy:…`) is bound through its cluster:
+     * with a cluster it is attachable even without a tag row (the attach
+     * creates the tag from the cluster), without a cluster and without a tag
+     * row it is refused rather than created as a bare galaxy-looking tag.
+     *
+     * @param array $names the suggested names, in order
+     * @param array $tags existing tags keyed by lower-cased name:
+     *        [id, name, colour, is_galaxy, local_only, usable]
+     * @param array $clusters visible galaxy clusters keyed by lower-cased
+     *        tag_name: [id, local_only]
+     * @param array $eventTagNames names of the tags already on the event
+     * @param bool $canCreate whether unknown tags may be created (perm_tag_editor)
+     * @param bool $local whether the attach will be local
+     * @param callable|null $exclusive fn(string $name, array $eventTagNames): bool,
+     *        the taxonomy exclusivity check; null skips it
+     * @return array rows: name, colour (null when unknown), exists, is_galaxy,
+     *         cluster_id, tag_id, status, selectable, reason
+     */
+    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, callable $exclusive = null)
+    {
+        App::uses('Tag', 'Model');
+        $present = [];
+        foreach ($eventTagNames as $eventTagName) {
+            $present[mb_strtolower($eventTagName)] = true;
+        }
+        $rows = [];
+        $seen = [];
+        foreach ($names as $name) {
+            if (!is_string($name)) {
+                continue;
+            }
+            $name = trim($name);
+            if ($name === '') {
+                continue;
+            }
+            $key = mb_strtolower($name);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $tag = $tags[$key] ?? null;
+            $cluster = $clusters[$key] ?? null;
+            $row = [
+                'name' => $tag ? $tag['name'] : $name,
+                'colour' => $tag ? $tag['colour'] : null,
+                'exists' => (bool)$tag,
+                'is_galaxy' => $tag ? !empty($tag['is_galaxy']) : (bool)preg_match(Tag::RE_GALAXY, $name),
+                'cluster_id' => $cluster ? (int)$cluster['id'] : null,
+                'tag_id' => $tag ? (int)$tag['id'] : null,
+                'status' => self::AI_TAG_OK,
+            ];
+            if (isset($present[$key])) {
+                $row['status'] = self::AI_TAG_PRESENT;
+            } elseif ($tag) {
+                if (empty($tag['usable'])) {
+                    $row['status'] = self::AI_TAG_RESTRICTED;
+                } elseif (!empty($tag['local_only']) && !$local) {
+                    $row['status'] = self::AI_TAG_LOCAL_ONLY;
+                }
+            } elseif ($cluster) {
+                if (!empty($cluster['local_only']) && !$local) {
+                    $row['status'] = self::AI_TAG_LOCAL_ONLY;
+                }
+            } elseif ($row['is_galaxy']) {
+                $row['status'] = self::AI_TAG_UNKNOWN_CLUSTER;
+            } elseif (!$canCreate) {
+                $row['status'] = self::AI_TAG_NEEDS_TAG_EDITOR;
+            }
+            if ($row['status'] === self::AI_TAG_OK && $exclusive !== null && !$exclusive($row['name'], $eventTagNames)) {
+                $row['status'] = self::AI_TAG_EXCLUSIVE;
+            }
+            $row['selectable'] = $row['status'] === self::AI_TAG_OK;
+            $row['reason'] = self::aiTagStatusText($row['status']);
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
+    /**
+     * The counts of an aiAttachTags() run as one sentence.
+     *
+     * @param array $result what aiAttachTags() returned
+     * @return string
+     */
+    public static function aiTagResultMessage(array $result)
+    {
+        $attached = (int)($result['attached'] ?? 0);
+        $created = (int)($result['created'] ?? 0);
+        $skipped = (int)($result['skipped'] ?? 0);
+        $failed = (int)($result['failed'] ?? 0);
+        $parts = [];
+        $first = __n('%s tag attached', '%s tags attached', $attached, $attached);
+        if ($created) {
+            $first .= ' (' . __n('%s created', '%s created', $created, $created) . ')';
+        }
+        $parts[] = $first;
+        if ($skipped) {
+            $parts[] = __n('%s skipped (already present)', '%s skipped (already present)', $skipped, $skipped);
+        }
+        if ($failed) {
+            $parts[] = __n('%s failed', '%s failed', $failed, $failed);
+        }
+        $message = implode(', ', $parts) . '.';
+        if (!empty($result['local']) && $attached) {
+            $message .= ' ' . __('Attached as local tags: you cannot modify this event.');
+        }
+        if (!empty($result['provenance']['attached'])) {
+            $message .= ' ' . __('The event is marked ai-computer-assisted.');
+        }
+        if (!empty($result['provenance']['replaced'])) {
+            $message .= ' ' . __('Replaced %s.', implode(', ', $result['provenance']['replaced']));
+        }
+        return $message;
+    }
+
+    /**
+     * Classify tag names for an event as the given user: looks up the tag
+     * rows, the galaxy clusters the user can see, the tags already on the
+     * event and the taxonomy exclusivity, then hands over to
+     * classifyAiTagSuggestions(). Colours of unknown tags are the ones a
+     * quickAdd() would give them.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding the id
+     * @param array $names
+     * @param bool $local whether the attach will be local
+     * @return array see classifyAiTagSuggestions()
+     */
+    public function aiClassifyTagNames(array $user, array $event, array $names, $local)
+    {
+        $eventId = (int)$event['Event']['id'];
+        $Tag = $this->EventTag->Tag; // loads the Tag class for the regex below
+        $keys = [];
+        $galaxyKeys = [];
+        foreach ($names as $name) {
+            if (!is_string($name) || trim($name) === '') {
+                continue;
+            }
+            $key = mb_strtolower(trim($name));
+            $keys[$key] = true;
+            if (preg_match(Tag::RE_GALAXY, $name)) {
+                $galaxyKeys[$key] = true;
+            }
+        }
+        $tags = [];
+        if (!empty($keys)) {
+            $found = $Tag->find('all', [
+                'conditions' => ['LOWER(Tag.name)' => array_keys($keys)],
+                'recursive' => -1,
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy', 'Tag.local_only', 'Tag.org_id', 'Tag.user_id'],
+            ]);
+            foreach ($found as $tag) {
+                $tag = $tag['Tag'];
+                $tag['usable'] = !empty($user['Role']['perm_site_admin']) || (
+                    in_array((int)$tag['org_id'], [0, (int)$user['org_id']], true) &&
+                    in_array((int)$tag['user_id'], [0, (int)$user['id']], true)
+                );
+                $tags[mb_strtolower($tag['name'])] = $tag;
+            }
+        }
+        $clusters = [];
+        if (!empty($galaxyKeys)) {
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $found = $GalaxyCluster->fetchGalaxyClusters($user, [
+                'conditions' => ['LOWER(GalaxyCluster.tag_name)' => array_keys($galaxyKeys)],
+                'fields' => ['GalaxyCluster.id', 'GalaxyCluster.tag_name', 'Galaxy.local_only'],
+                'contain' => ['Galaxy'],
+            ]);
+            foreach ($found as $cluster) {
+                $clusters[mb_strtolower($cluster['GalaxyCluster']['tag_name'])] = [
+                    'id' => (int)$cluster['GalaxyCluster']['id'],
+                    'local_only' => !empty($cluster['Galaxy']['local_only']),
+                ];
+            }
+        }
+        $eventTagNames = $this->EventTag->find('column', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => 'Tag',
+            'fields' => ['Tag.name'],
+            'recursive' => -1,
+        ]);
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $exclusive = function ($name, array $tagNames) use ($Taxonomy) {
+            return $Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $tagNames);
+        };
+        $rows = self::classifyAiTagSuggestions(
+            $names,
+            $tags,
+            $clusters,
+            $eventTagNames,
+            !empty($user['Role']['perm_tag_editor']),
+            (bool)$local,
+            $exclusive
+        );
+        foreach ($rows as $k => $row) {
+            if ($row['colour'] === null) {
+                $rows[$k]['colour'] = $Tag->tagColor($row['name']);
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * Ask the AI module for tags for an event and classify its answer
+     * (A3, synchronous: the suggestions are previewed, nothing is saved).
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param bool $local whether an accept would attach local tags
+     * @return array {Tag: rows of classifyAiTagSuggestions(), provenance: the
+     *         ai-computer-assisted names the module sent along}
+     * @throws NotFoundException|Exception with a user-facing message
+     */
+    public function aiRecommendTags(array $user, $eventId, $local)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $data = $this->fetchEventForAi($user, $eventId);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->Module = ClassRegistry::init('Module');
+        $results = $this->Module->queryAI('tag_suggest', $data);
+        // The two ai-computer-assisted names the module appends to a
+        // non-empty answer are provenance, not suggestions: they are not
+        // offered as rows; aiAttachTags() puts them on when a suggestion
+        // is accepted.
+        $split = self::splitAiTagNames(isset($results['Tag']) && is_array($results['Tag']) ? $results['Tag'] : []);
+        return [
+            'Tag' => $this->aiClassifyTagNames($user, $event, $split['other'], $local),
+            'provenance' => $split['provenance'],
+        ];
+    }
+
+    /**
+     * Attach accepted AI tag suggestions to an event as the given user. The
+     * names are classified again here, so what the client sends is bound by
+     * the same rules as what it was shown: tags already on the event are
+     * skipped, unknown tags are created (perm_tag_editor), galaxy-cluster
+     * names are attached through their cluster, and a global attach
+     * unpublishes the event once. The caller decides the local flag and the
+     * tagging permission.
+     *
+     * @param array $user
+     * @param array $event with an Event key holding the id
+     * @param array $names accepted tag names
+     * @param bool $local attach as local tags
+     * @return array attached, created, skipped, failed, errors (name => reason), local
+     * @throws Exception
+     */
+    public function aiAttachTags(array $user, array $event, array $names, $local)
+    {
+        $eventId = (int)$event['Event']['id'];
+        $local = (bool)$local;
+        $provenance = ['attached' => [], 'replaced' => [], 'skipped' => [], 'failed' => []];
+        $result = ['attached' => 0, 'created' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => [], 'local' => $local, 'provenance' => $provenance];
+        // The provenance names are never suggestions (a client cannot pick
+        // them); they go on below, once a suggestion is attached.
+        $names = self::splitAiTagNames($names)['other'];
+        $rows = $this->aiClassifyTagNames($user, $event, $names, $local);
+        if (empty($rows)) {
+            return $result;
+        }
+        $Tag = $this->EventTag->Tag;
+        $Taxonomy = ClassRegistry::init('Taxonomy');
+        $Galaxy = null;
+        $log = $this->loadLog();
+        $eventTagNames = $this->EventTag->find('column', [
+            'conditions' => ['EventTag.event_id' => $eventId],
+            'contain' => 'Tag',
+            'fields' => ['Tag.name'],
+            'recursive' => -1,
+        ]);
+        $unpublish = false;
+        foreach ($rows as $row) {
+            $name = $row['name'];
+            if ($row['status'] === self::AI_TAG_PRESENT) {
+                $result['skipped']++;
+                continue;
+            }
+            if ($row['status'] !== self::AI_TAG_OK) {
+                $result['failed']++;
+                $result['errors'][$name] = $row['reason'];
+                continue;
+            }
+            // Tags accepted together are bound by exclusivity too.
+            if (!$Taxonomy->checkIfNewTagIsAllowedByTaxonomy($name, $eventTagNames)) {
+                $result['failed']++;
+                $result['errors'][$name] = self::aiTagStatusText(self::AI_TAG_EXCLUSIVE);
+                continue;
+            }
+            if ($row['cluster_id'] !== null) {
+                if ($Galaxy === null) {
+                    $Galaxy = ClassRegistry::init('Galaxy');
+                }
+                try {
+                    $outcome = $Galaxy->attachCluster($user, 'event', $event, $row['cluster_id'], $local);
+                } catch (Exception $e) {
+                    $result['failed']++;
+                    $result['errors'][$name] = $e->getMessage();
+                    continue;
+                }
+                if ($outcome === 'Cluster attached.') {
+                    $result['attached']++;
+                    if (!$row['exists']) {
+                        $result['created']++;
+                    }
+                    $eventTagNames[] = $name;
+                } elseif ($outcome === 'Cluster already attached.') {
+                    $result['skipped']++;
+                } else {
+                    $result['failed']++;
+                    $result['errors'][$name] = $outcome;
+                }
+                continue;
+            }
+            $tagId = $row['tag_id'];
+            $created = false;
+            if ($tagId === null) {
+                $tagId = $Tag->quickAdd($name);
+                if (!$tagId) {
+                    $result['failed']++;
+                    $result['errors'][$name] = __('the tag could not be created: %s', json_encode($Tag->validationErrors));
+                    continue;
+                }
+                $created = true;
+            }
+            $nothingToChange = false;
+            if (!$this->EventTag->attachTagToEvent($eventId, ['id' => $tagId, 'local' => $local], $nothingToChange)) {
+                $result['failed']++;
+                $result['errors'][$name] = __('the tag could not be attached');
+                continue;
+            }
+            if ($nothingToChange) {
+                $result['skipped']++;
+                continue;
+            }
+            $result['attached']++;
+            if ($created) {
+                $result['created']++;
+            }
+            $eventTagNames[] = $name;
+            if (!$local) {
+                $unpublish = true;
+            }
+            $log->createLogEntry(
+                $user,
+                'tag',
+                'Event',
+                $eventId,
+                sprintf('Attached%s tag (%s) "%s" to event (%s)', $local ? ' local' : '', $tagId, $name, $eventId),
+                sprintf('Event (%s) tagged as Tag (%s)%s', $eventId, $tagId, $local ? ' locally' : '')
+            );
+        }
+        if ($result['attached'] > 0) {
+            // What the analyst accepted was AI-suggested: mark the event
+            // (Module::AI_PROVENANCE_TAGS, same locality as the suggestions).
+            App::uses('Module', 'Model');
+            $result['provenance'] = $this->aiAttachResultTags($user, $eventId, ['Tag' => Module::AI_PROVENANCE_TAGS], $local);
+        }
+        if ($unpublish) {
+            $this->unpublishEvent($event);
+        }
+        return $result;
+    }
+
     //Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
     // Possible options:
     // eventid: single event ID
@@ -3205,6 +4265,28 @@ class Event extends AppModel
     // to: date string (YYYY-MM-DD)
     // includeAllTags: true will include the tags that are marked as non-exportable
     // includeAttachments: true will attach the attachments to the attributes in the data field
+    /**
+     * The order an event's children are fetched in: none on MySQL, by id on
+     * anything else.
+     *
+     * The containment below deliberately asks for no order, and on MySQL
+     * that has always meant insertion order anyway: InnoDB answers a
+     * `WHERE event_id IN (...)` off the event_id index, which holds the rows
+     * of one event in primary-key order, and an updated row stays where it
+     * was. PostgreSQL returns a heap in physical order, which is insertion
+     * order until a row is updated and then moves that row to the end - so
+     * attributes[0] stops meaning "the first one" the moment any of them is
+     * edited. Asking PostgreSQL for the id order gives what MySQL gives for
+     * free; asking MySQL for it would add a sort it does not need.
+     *
+     * @param string $alias
+     * @return string|false
+     */
+    private function childOrder($alias)
+    {
+        return $this->isMysql() ? false : $alias . '.id ASC';
+    }
+
     public function fetchEvent($user, $options = array(), $useCache = false)
     {
         if (!isset($user['org_id'])) {
@@ -3283,15 +4365,9 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
-            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
-            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if (!$this->isMysql()) {
-                $schemaName = $this->getDataSource()->config['schema'];
-                $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
-                $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
-                $eventReportCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "EventReport"."event_id")', $schemaName, $schemaName, $schemaName);
-            }
+            $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
+            $objectCondSelect = $this->eventOwnerSubquery('Object');
+            $eventReportCondSelect = $this->eventOwnerSubquery('EventReport');
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
                     'Attribute.distribution >' => 0,
@@ -3301,10 +4377,10 @@ class Event extends AppModel
                     'Attribute.distribution' => 4,
                     'Attribute.sharing_group_id' => $sgids,
                 )),
-                $attributeCondSelect => $user['org_id']
+                $attributeCondSelect . ' = ' . (int)$user['org_id']
             );
 
-            $conditionsObjects['AND'][0]['OR'] = array(
+            $objectAclCondition = array('OR' => array(
                 array('AND' => array(
                     'Object.distribution >' => 0,
                     'Object.distribution !=' => 4,
@@ -3313,8 +4389,9 @@ class Event extends AppModel
                     'Object.distribution' => 4,
                     'Object.sharing_group_id' => $sgids,
                 )),
-                $objectCondSelect => $user['org_id']
-            );
+                $objectCondSelect . ' = ' . (int)$user['org_id']
+            ));
+            $conditionsObjects['AND'][0] = $objectAclCondition;
 
             $conditionsEventReport['AND'][0]['OR'] = array(
                 array('AND' => array(
@@ -3325,7 +4402,7 @@ class Event extends AppModel
                     'EventReport.distribution' => 4,
                     'EventReport.sharing_group_id' => $sgids,
                 )),
-                $eventReportCondSelect => $user['org_id']
+                $eventReportCondSelect . ' = ' . (int)$user['org_id']
             );
         }
         if (isset($options['distribution'])) {
@@ -3399,7 +4476,7 @@ class Event extends AppModel
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
                             'AND' => array(
-                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                $this->eventOwnerSubquery($softDeletable) . ' = ' . (int)$user['org_id'],
                                 "$softDeletable.deleted" => $options['deleted'],
                             ),
                             $deletion_subconditions
@@ -3427,7 +4504,7 @@ class Event extends AppModel
             if ($isSiteAdmin) {
                 $proposal_conditions = array('OR' => array('ShadowAttribute.deleted' => 1));
             } else {
-                $proposal_conditions['OR'][] = array('(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']);
+                $proposal_conditions['OR'][] = $this->eventOwnerSubquery('ShadowAttribute') . ' = ' . (int)$user['org_id'];
             }
         }
         if ($options['idList'] && !$options['tags']) {
@@ -3465,24 +4542,24 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false
+                    'order' => $this->childOrder('Attribute'),
                 ),
                 'Object' => array(
                     'conditions' => $conditionsObjects,
-                    'order' => false,
+                    'order' => $this->childOrder('Object'),
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
                     'conditions' => $proposal_conditions,
                     'Org' => array('fields' => $fieldsOrg),
-                    'order' => false
+                    'order' => $this->childOrder('ShadowAttribute'),
                 ),
                 'EventTag' => array(
-                    'order' => false
+                    'order' => $this->childOrder('EventTag'),
                 ),
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
-                    'order' => false,
+                    'order' => $this->childOrder('EventReport'),
                     'EventReportTag',
                 ),
                 'CryptographicKey'
@@ -3494,6 +4571,30 @@ class Event extends AppModel
             );
         }
         if ($flatten) {
+            if (!$isSiteAdmin) {
+                // flattened object attributes still have to pass the object ACL that the
+                // dropped Object contain would have enforced - that condition only. The
+                // rest of the contain (soft-delete state, the distribution filters) says
+                // which objects are listed, not which attributes may be seen.
+                $objectAcl = $this->subQueryGenerator(
+                    $this->Object,
+                    array(
+                        'fields' => array('Object.id'),
+                        'recursive' => -1,
+                        'conditions' => array(
+                            'Object.id = Attribute.object_id',
+                            $objectAclCondition,
+                        ),
+                    ),
+                    'Attribute.object_id'
+                );
+                $params['contain']['Attribute']['conditions']['AND'][] = array(
+                    'OR' => array(
+                        'Attribute.object_id' => 0,
+                        $objectAcl[0],
+                    ),
+                );
+            }
             unset($params['contain']['Object']);
         }
         if ($options['noEventReports']) {
@@ -3522,6 +4623,12 @@ class Event extends AppModel
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
             );
+        } else {
+            // No order asked for. MySQL answers an id lookup in id order off
+            // the primary key; PostgreSQL answers in heap order, which an
+            // UPDATE reshuffles - the same gap childOrder() closes for the
+            // event's children.
+            $params['order'] = $this->childOrder('Event');
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -4648,7 +5755,8 @@ class Event extends AppModel
                   $operand === 'NOT'
                 );
                 // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                     $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -4678,7 +5786,8 @@ class Event extends AppModel
                       $lookup_field
                     );
                     // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
+                    if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
                         $subQuery[0] = explode('WHERE', $subQuery[0]);
                         $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                         $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -4689,6 +5798,25 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * A correlated subquery reading the owning event's org_id, spelled for this
+     * connection.
+     *
+     * Four call sites used to carry this twice - once bare for MySQL and once
+     * quoted and schema-qualified for PostgreSQL. name() spells the quoting on
+     * either engine, so the only thing left to decide is whether the connection
+     * names a schema at all, which is a configuration question rather than an
+     * engine one. The qualification is needed because the driver does not reach
+     * inside a hand-written condition string to add it.
+     *
+     * @param string $alias The model alias whose event_id is being joined on.
+     * @return string
+     */
+    private function eventOwnerSubquery($alias)
+    {
+        return $this->correlatedLookup('events', 'org_id', $alias, 'event_id');
     }
 
     public function set_filter_object_name(&$params, $conditions, $options) {
@@ -5352,7 +6480,15 @@ class Event extends AppModel
 
         if ($isXml) {
             App::uses('Xml', 'Utility');
-            $dataArray = Xml::toArray(Xml::build($data));
+            // The uploaded file's *content* is a document, never a locator.
+            // Xml::build() would otherwise treat a body of `/etc/passwd` or
+            // `http://10.0.0.1/` as something to read or fetch and then import,
+            // and its readFile guard does not cover the https branch (operator
+            // precedence). Refuse anything that is not a document first.
+            if (strpos($data, '<') === false) {
+                throw new Exception("File does not contain an XML document");
+            }
+            $dataArray = Xml::toArray(Xml::build($data, ['readFile' => false]));
         } else {
             $dataArray = $this->jsonDecode($data);
             if (isset($dataArray['response'][0])) {
@@ -5657,6 +6793,7 @@ class Event extends AppModel
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
                 foreach ($data['Event']['EventTag'] as $et) {
+                    unset($et['id'], $et[$this->EventTag->alias]);
                     $et['event_id'] = $this->id;
                     $toSave[] = $et;
                 }
@@ -7738,6 +8875,11 @@ class Event extends AppModel
                 if (isset($r['tags']) && !is_array($r['tags'])) {
                     $r['tags'] = array($r['tags']);
                 }
+                // Tags the module asks to strip from the attributes already in the
+                // event that carry the same type/value as this result row.
+                if (isset($r['remove_tags']) && !is_array($r['remove_tags'])) {
+                    $r['remove_tags'] = array($r['remove_tags']);
+                }
                 foreach ($r['values'] as &$value) {
                     if (!is_array($r['values']) || !isset($r['values'][0])) {
                         $r['values'] = array($r['values']);
@@ -7783,7 +8925,8 @@ class Event extends AppModel
                             'comment' => isset($r['comment']) ? $r['comment'] : false,
                             'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
                             'value' => $value,
-                            'tags' => isset($r['tags']) ? $r['tags'] : false
+                            'tags' => isset($r['tags']) ? $r['tags'] : false,
+                            'remove_tags' => isset($r['remove_tags']) ? $r['remove_tags'] : false
                     );
                     if (isset($r['categories'])) {
                         $temp['categories'] = $r['categories'];
@@ -8086,6 +9229,12 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
+            if ($distribution == 4) {
+                // The legacy STIX 1 script takes no sharing group;
+                // set it here so _add() and _edit() both see it.
+                // The STIX 2 script already carries the same value.
+                $data['Event']['sharing_group_id'] = $sharingGroupId;
+            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -8200,7 +9349,7 @@ class Event extends AppModel
                 ProcessTool::pythonBin(),
                 $scriptFile,
                 $file,
-                Configure::read('MISP.default_event_distribution'),
+                $distribution,
                 Configure::read('MISP.default_attribute_distribution'),
                 $this->__getTagNamesFromSynonyms($scriptDir)
             ];
@@ -8257,16 +9406,23 @@ class Event extends AppModel
             if (!isset($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             }
-            $clusters = $this->GalaxyCluster->find('all', array(
+            // The latest version of every cluster, by tag name. This used to
+            // be a GROUP BY tag_name that also selected value and id, which
+            // MySQL tolerates (and answers with an arbitrary row per group)
+            // and PostgreSQL rejects. Ascending by version and letting the
+            // later row overwrite the earlier one is the same question asked
+            // portably, and it is what the old query was assumed to answer.
+            $clusters = array();
+            $allClusters = $this->GalaxyCluster->find('all', array(
                 'recursive' => -1,
-                'fields' => array(
-                    'GalaxyCluster.value',
-                    'MAX(GalaxyCluster.version)',
-                    'GalaxyCluster.tag_name',
-                    'GalaxyCluster.id'
-                ),
-                'group' => array('GalaxyCluster.tag_name')
+                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
             ));
+            foreach ($allClusters as $cluster) {
+                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
+            }
+            unset($allClusters);
+            $clusters = array_values($clusters);
             $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
                 'recursive' => -1,
                 'fields' => array('galaxy_cluster_id', 'value'),
@@ -8292,8 +9448,6 @@ class Event extends AppModel
 
     public function enrichmentRouter($options)
     {
-        $result = $this->enrichment($options);
-        return __('#' . $result . ' attributes have been created during the enrichment process.');
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
@@ -8322,12 +9476,17 @@ class Event extends AppModel
 
             return true;
         } else {
-            $result = $this->enrichment($options);
-            return __('#' . $result . ' attributes have been created during the enrichment process.');
+            $tagsRemoved = 0;
+            $result = $this->enrichment($options, $tagsRemoved);
+            $message = __('#' . $result . ' attributes have been created during the enrichment process.');
+            if ($tagsRemoved) {
+                $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $tagsRemoved, $tagsRemoved);
+            }
+            return $message;
         }
     }
 
-    public function enrichment(array $params)
+    public function enrichment(array $params, &$tagsRemoved = 0)
     {
         $option_fields = array('user', 'event_id', 'modules');
         foreach ($option_fields as $option_field) {
@@ -8375,6 +9534,7 @@ class Event extends AppModel
         }
 
         $attributes_added = 0;
+        $tagsRemoved = 0;
         $initial_objects = array();
         $event_id = $event[0]['Event']['id'];
         foreach ($event[0]['Attribute'] as $attribute) {
@@ -8417,6 +9577,18 @@ class Event extends AppModel
                         } else {
                             $attributes = $this->handleModuleResult($result, $event_id);
                             foreach ($attributes as $a) {
+                                $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                                // The row may ask for tags to come off the attribute the
+                                // event already holds for this value. When it does hold
+                                // one, the row changes that attribute's tags instead of
+                                // creating anything.
+                                if (!empty($a['remove_tags'])) {
+                                    $removal = $this->applyModuleTagChanges($params['user'], $event_id, $a['type'], $a['value'], $a['remove_tags'], empty($a['tags']) ? array() : $a['tags']);
+                                    $tagsRemoved += $removal['removed'];
+                                    if ($removal['matched']) {
+                                        continue;
+                                    }
+                                }
                                 $this->Attribute->create();
                                 $a['distribution'] = $attribute['distribution'];
                                 $a['sharing_group_id'] = $attribute['sharing_group_id'];
@@ -8426,7 +9598,6 @@ class Event extends AppModel
                                 } else {
                                     $a['comment'] = $comment;
                                 }
-                                $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
                                 $result = $this->Attribute->save($a);
                                 if ($result) {
                                     $attributes_added++;
@@ -8553,6 +9724,8 @@ class Event extends AppModel
         }
         $saved = 0;
         $failed = 0;
+        $removedTags = 0;
+        $removedGlobalTag = false;
         $attributeSources = array('attributes', 'ontheflyattributes');
         $ontheflyattributes = array();
         $i = 0;
@@ -8594,6 +9767,18 @@ class Event extends AppModel
                     $types = array($attribute['type']);
                 }
                 foreach ($types as $type) {
+                    // A result row can carry tags to strip from the attribute it points
+                    // at (`remove_tags` in a module result). When that attribute is
+                    // already in the event the row only changes its tags - creating it
+                    // again would just fail as a duplicate.
+                    if ($objectType === 'Attribute' && !empty($attribute['remove_tags'])) {
+                        $removal = $this->applyModuleTagChanges($user, $event['Event']['id'], $type, $attribute['value'], $attribute['remove_tags'], isset($attribute['tags']) ? $attribute['tags'] : array());
+                        $removedTags += $removal['removed'];
+                        $removedGlobalTag = $removedGlobalTag || $removal['global'];
+                        if ($removal['matched']) {
+                            continue;
+                        }
+                    }
                     $model->create();
                     // Freetext import only ever creates new attributes. A client-supplied id
                     // (this data can be raw JSON via saveFreeText) would redirect save() onto
@@ -8622,6 +9807,7 @@ class Event extends AppModel
                             }
                         }
                     }
+                    unset($attribute[$model->alias]);
                     $saved_attribute = $model->save($attribute, ['parentEvent' => $event]);
                     if ($saved_attribute) {
                         $results[] = $saved_attribute;
@@ -8652,7 +9838,7 @@ class Event extends AppModel
         }
         $emailResult = '';
         $messageScope = $objectType === 'ShadowAttribute' ? 'proposals' : 'attributes';
-        if ($saved > 0) {
+        if ($saved > 0 || $removedGlobalTag) {
             if ($objectType !== 'ShadowAttribute') {
                 $this->unpublishEvent($id);
             } else {
@@ -8672,6 +9858,9 @@ class Event extends AppModel
         } else {
             $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
+        if ($removedTags > 0) {
+            $message .= ' ' . __n('%s tag removed.', '%s tags removed.', $removedTags, $removedTags);
+        }
         if ($jobId) {
             $eventLock->deleteBackgroundJobLock($event['Event']['id'], $jobId);
             $this->Job->saveStatus($jobId, true, __('Processing complete. %s', $message));
@@ -8680,6 +9869,131 @@ class Event extends AppModel
             return $results;
         }
         return $message;
+    }
+
+    /**
+     * Apply the tag changes a module result asks for to the attributes of an event
+     * that carry a type/value.
+     *
+     * This is how an enrichment module retracts a verdict: a result row carrying
+     * `remove_tags` names tags that should no longer sit on the attribute the row
+     * points at. Only tags that are actually attached are taken off, and the tag has
+     * to exist already - a removal never creates one. The row's own `tags` are
+     * attached to the same attribute, so that one row can swap one verdict for
+     * another on an attribute the event already holds.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param string $type Attribute type of the row
+     * @param string $value Attribute value of the row
+     * @param array|string $removeTags Tag names to detach, as a list or a comma separated string
+     * @param array|string $addTags Tag names to attach, in the same two spellings
+     * @return array ['matched' => bool, 'removed' => int, 'global' => bool] - whether the
+     *      event holds a matching attribute, how many tags came off, and whether any
+     *      global (that is, synchronised) tag was touched.
+     */
+    public function applyModuleTagChanges(array $user, $eventId, $type, $value, $removeTags, $addTags = array())
+    {
+        $result = array('matched' => false, 'removed' => 0, 'global' => false);
+        if (empty($user['Role']['perm_site_admin']) && empty($user['Role']['perm_tagger'])) {
+            return $result;
+        }
+        $removeTagNames = $this->__moduleResultTagNames($removeTags);
+        $addTagNames = $this->__moduleResultTagNames($addTags);
+        $removeTagIds = array();
+        foreach ($removeTagNames as $tagName) {
+            $tagId = $this->Attribute->AttributeTag->Tag->lookupTagIdFromName($tagName);
+            if ($tagId != -1) {
+                $removeTagIds[$tagName] = $tagId;
+            }
+        }
+        $attributes = $this->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.id'),
+            'conditions' => array(
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted' => 0,
+                'Attribute.type' => $type,
+                'Attribute.value' => $value,
+            ),
+        ));
+        if (empty($attributes)) {
+            return $result;
+        }
+        // The row describes an attribute the event already holds, whether or not any
+        // of the named tags turn out to be attached to it.
+        $result['matched'] = true;
+        $log = $this->loadLog();
+        foreach ($attributes as $attribute) {
+            $attributeId = $attribute['Attribute']['id'];
+            foreach ($removeTagIds as $tagName => $tagId) {
+                $attributeTag = $this->Attribute->AttributeTag->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('AttributeTag.id', 'AttributeTag.local'),
+                    'conditions' => array(
+                        'AttributeTag.attribute_id' => $attributeId,
+                        'AttributeTag.tag_id' => $tagId,
+                    ),
+                ));
+                if (empty($attributeTag)) {
+                    continue;
+                }
+                if (!$this->Attribute->AttributeTag->detachTagFromAttribute($attributeId, $eventId, $tagId, null)) {
+                    continue;
+                }
+                $result['removed']++;
+                if (empty($attributeTag['AttributeTag']['local'])) {
+                    $result['global'] = true;
+                    $this->Attribute->touch($attributeId);
+                }
+                $log->createLogEntry(
+                    $user,
+                    'tag',
+                    'Attribute',
+                    $attributeId,
+                    'Removed tag (' . $tagId . ') "' . $tagName . '" from attribute (' . $attributeId . ')',
+                    'Attribute (' . $attributeId . ') untagged of Tag (' . $tagId . ')'
+                );
+            }
+            foreach ($addTagNames as $tagName) {
+                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => $tagName), $user);
+                if ($tagId === false) {
+                    continue; // the user is not allowed to use that tag
+                }
+                $nothingToChange = false;
+                $this->Attribute->AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false, false, $nothingToChange);
+                if (!$nothingToChange) {
+                    $result['global'] = true;
+                    $this->Attribute->touch($attributeId);
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * The tag names of a module result key, which a module may spell as a list and the
+     * resolution screen posts back as one comma separated string.
+     *
+     * @param array|string|false $tagNames
+     * @return array
+     */
+    private function __moduleResultTagNames($tagNames)
+    {
+        if (empty($tagNames)) {
+            return array();
+        }
+        if (!is_array($tagNames)) {
+            $tagNames = explode(',', (string)$tagNames);
+        }
+        $names = array();
+        foreach ($tagNames as $tagName) {
+            $tagName = trim($tagName);
+            if ($tagName !== '') {
+                $names[] = $tagName;
+            }
+        }
+        return $names;
     }
 
     /**
@@ -8752,6 +10066,7 @@ class Event extends AppModel
                     $attribute = $this->Attribute->onDemandEncrypt($attribute);
                 }
                 $attribute['event_id'] = $id;
+                unset($attribute[$this->Attribute->alias]);
                 if ($this->Attribute->save($attribute)) {
                     $saved_attributes++;
                     if (!empty($attribute['Tag'])) {
@@ -8868,6 +10183,7 @@ class Event extends AppModel
                             // initialObject matching, never to target this save) so it cannot
                             // redirect save() onto an arbitrary object row in another event.
                             unset($object['id']);
+                            unset($object[$this->Object->alias]);
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
@@ -8891,6 +10207,7 @@ class Event extends AppModel
                         // New object only; strip any client id so it cannot redirect save()
                         // onto an arbitrary object row (no fieldList here).
                         unset($object['id']);
+                        unset($object[$this->Object->alias]);
                         if ($this->Object->save($object)) {
                             $object_id = $this->Object->id;
                             $saved_objects++;
@@ -8967,7 +10284,13 @@ class Event extends AppModel
             $total_reports = count($resolved_data['EventReport']);
             foreach ($resolved_data['EventReport'] as $i => $report) {
                 $this->EventReport->create();
+                // Module-result import only creates reports; strip any client id so a
+                // supplied existing report id cannot redirect save() onto another event's
+                // report row and reparent/overwrite it (no fieldList here, create() does
+                // not strip it) - matching the attribute and object loops above.
+                unset($report['id']);
                 $report['event_id'] = $id;
+                unset($report[$this->EventReport->alias]);
                 if ($this->EventReport->save($report)) {
                     $saved_reports++;
                 } else {
@@ -9161,6 +10484,7 @@ class Event extends AppModel
         // cannot redirect save() onto an arbitrary attribute (object_id/event_id are forced
         // above, but the primary key is not, and there is no fieldList here).
         unset($attribute['id']);
+        unset($attribute[$this->Attribute->alias]);
         $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {

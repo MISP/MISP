@@ -40,7 +40,8 @@ echo $this->Form->create('Attribute', [
 ]) ?>
 
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex flex-column gap-4">
+
+    <div class="d-flex flex-column gap-4 px-2">
 
         <?= $this->Form->hidden('event_id', ['value' => $eventId]) ?>
 
@@ -109,33 +110,14 @@ echo $this->Form->create('Attribute', [
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100">
-            <div class="fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em; color:<?= $amber ?>;">
-                <?= __('Distribution') ?>
-            </div>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $distributionLevels, [
-                        'id'    => 'AttributeDistribution',
-                        'class' => 'form-select',
-                        'value' => $currentDist,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill"
-                     id="SGContainer"
-                     style="<?= $currentDist !== 4 ? 'display:none;' : '' ?>">
-                    <?php if (!empty($sharingGroups)): ?>
-                        <?= $this->Form->select('sharing_group_id', $sharingGroups, [
-                            'id'    => 'AttributeSharingGroupId',
-                            'empty' => __('Select a sharing group…'),
-                            'class' => 'form-select',
-                        ]) ?>
-                    <?php endif; ?>
-                </div>
-
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'accent' => 'attribute',
+                'value' => $currentDistribution,
+                'showSg' => true,
+                'id' => 'AttributeDistribution',
+                'sgId' => 'AttributeSharingGroupId',
+                'sgEmpty' => __('Select a sharing group…'),
+            ]) ?>
         </div>
 
 

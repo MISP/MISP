@@ -7,12 +7,41 @@ App::uses('Mysql', 'Model/Datasource/Database');
  */
 class MysqlExtended extends Mysql
 {
+    /**
+     * What this driver can be asked to do, read through
+     * AppModel::checkDbSupport().
+     *
+     * The probe is for constructs a driver either has or has not: a query
+     * planner hint, a storage engine, an index kind. A driver that declares
+     * nothing answers false to all of them, so the caller skips the construct
+     * and its query still runs. Cake's unmodified Database/Mysql is that
+     * baseline by design - a legacy instance still on it gets correct results
+     * and whatever the planner chooses on its own - and every driver MISP adds
+     * declares what it can do on top of that.
+     *
+     * It is deliberately not the place for anything both engines can express
+     * and merely spell differently; that belongs in SqlDialect, which renders
+     * both rather than making the caller choose. `upsert` is the case worth
+     * naming, because it looks like it belongs here and does not: PostgreSQL
+     * has ON CONFLICT, so a probe reading false there would push a caller into
+     * a slower read-then-write with a race in it.
+     *
+     * - indexHints / ignoreIndexHints  USE INDEX, FORCE INDEX, IGNORE INDEX
+     * - reverseJoin / straightJoin     join-order control
+     * - insertMulti                    multi-row INSERT ... VALUES
+     * - temporaryMemoryTable           CREATE TEMPORARY TABLE ... ENGINE=MEMORY
+     * - fulltextIndex                  FULLTEXT indexes and MATCH ... AGAINST
+     *
+     * @var array
+     */
     public $supports = [
         'indexHints' => true,
         'ignoreIndexHints' => true,
         'reverseJoin' => true,
         'straightJoin' => true,
         'insertMulti' => true,
+        'temporaryMemoryTable' => true,
+        'fulltextIndex' => true,
     ];
 
     const PDO_MAP = [

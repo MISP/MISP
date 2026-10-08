@@ -17,9 +17,18 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label fw-semibold" for="flattenJsonData"><?= __('JSON') ?></label>
-        <textarea id="flattenJsonData" class="form-control font-monospace bg-light" rows="12"
-                  placeholder='{ "synonyms": [ "..." ], "refs": [ "https://..." ] }'></textarea>
+        <?= $this->element('genericElementsBS5/Forms/json_field', [
+            'field' => false,
+            'accent' => 'galaxy',
+            'label' => __('JSON'),
+            'shape' => 'object',
+            'required' => true,
+            'id' => 'flattenJsonData',
+            'rows' => 12,
+            'minHeight' => '240px',
+            'placeholder' => "{\n    \"synonyms\": [\"…\"],\n    \"refs\": [\"https://…\"]\n}",
+            'hint' => __('Every leaf of the document becomes one key/value element.'),
+        ]) ?>
     </div>
 
     <div class="d-flex justify-content-end gap-3">
@@ -44,8 +53,11 @@
     var msgErr  = <?= json_encode(__('Request failed — please try again.')) ?>;
 
     btn.addEventListener('click', async function () {
+        /* The box has already said what is wrong with the document, and
+           nothing leaves until it parses. */
+        var api = field.jsonField;
+        if (api && !api.check()) { field.focus(); return; }
         var json = field.value.trim();
-        if (!json) { field.focus(); return; }
         btn.disabled = true;
         try {
             var body = 'data[GalaxyElement][jsonData]=' + encodeURIComponent(json);

@@ -5,21 +5,8 @@ if (empty($role['name'])) {
     return;
 }
 
-if ($role['name'] === 'admin') {
-    $color = 'danger';    $icon = 'fa-shield-halved';
-} elseif ($role['name'] === 'Org Admin') {
-    $color = 'primary';   $icon = 'fa-user-shield';
-} elseif ($role['name'] === 'Publisher') {
-    $color = 'success';   $icon = 'fa-upload';
-} elseif ($role['name'] === 'Sync user') {
-    $color = 'warning';   $icon = 'fa-arrows-rotate';
-} elseif ($role['name'] === 'Read Only') {
-    $color = 'galaxy';    $icon = 'fa-book-open-reader';
-} elseif ($role['name'] === 'User') {
-    $color = 'secondary'; $icon = 'fa-user';
-} else {
-    $color = 'dark';      $icon = 'fa-user-pen';
-}
+// Glyph and colour come from app/Lib/Tools/RoleGlyph.php
+$glyph = $this->RoleGlyph->get($role);
 
 // Optional larger variant (e.g. when the chip is reused as a page header title).
 $size = $field['size'] ?? 'sm';
@@ -32,12 +19,15 @@ if ($size === 'lg') {
 }
 
 $chip = sprintf(
-    '<span class="d-inline-flex align-items-center justify-content-center rounded-2 text-bg-%s text-white flex-shrink-0" '
-        . 'style="%s"><i class="fas %s" style="%s"></i></span>'
+    '<span class="d-inline-flex align-items-center justify-content-center rounded-2 flex-shrink-0" '
+        . 'style="%s background-color:%s; color:%s; border:1px solid %s33;">'
+        . '<i class="%s" style="%s"></i></span>'
         . '<span class="fw-semibold text-body">%s</span>',
-    $color,
     $boxStyle,
-    $icon,
+    h($glyph['tint']),
+    h($glyph['colour']),
+    h($glyph['colour']),
+    h($glyph['icon']),
     $iconStyle,
     h($role['name'])
 );

@@ -51,12 +51,15 @@ class Bruteforce extends AppModel
     public function clean()
     {
         $expire = date('Y-m-d H:i:s', time());
-        if ($this->isMysql()) {
-            $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
-        } else {
-            $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
-        }
-        $this->query($sql);
+        // Two branches used to differ only in how they spelled a backtick and a
+        // quote. The datasource already knows both.
+        $db = $this->getDataSource();
+        $this->query(sprintf(
+            'DELETE FROM %s WHERE %s <= %s;',
+            $db->name('bruteforces'),
+            $db->name('expire'),
+            $db->value($expire, 'string')
+        ));
     }
 
     public function isBlocklisted($username)

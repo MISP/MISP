@@ -91,7 +91,11 @@ class BackgroundJob implements JsonSerializable
 
         $this->pool($process, $pipes, $runningCallback);
 
-        if ($this->returnCode === 0 && empty($this->error)) {
+        // Success is decided by the exit code alone. stderr is not a failure
+        // signal: a job process writes there on success through the syslog
+        // LOG_PERROR echo, CakeLog::debug() and logged-but-handled exceptions.
+        // The captured stderr stays in $this->error for the job log viewer.
+        if ($this->returnCode === 0) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             $this->setProgress(100);
         } else {

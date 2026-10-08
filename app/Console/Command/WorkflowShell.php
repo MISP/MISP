@@ -10,7 +10,7 @@ class WorkflowShell extends AppShell {
     public function executeWorkflowForTrigger()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die(__('Invalid number of arguments.'));
+            $this->error(__('Invalid number of arguments.'));
         }
 
         $trigger_id = $this->args[0];
@@ -42,7 +42,7 @@ class WorkflowShell extends AppShell {
     public function executeAdHocWorkflow()
     {
         if (empty($this->args[0])) {
-            die(__('Invalid number of arguments.'));
+            $this->error(__('Invalid number of arguments.'));
         }
 
         $workflow_id = $this->args[0];
@@ -80,7 +80,7 @@ class WorkflowShell extends AppShell {
     public function walkGraph()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die(__('Invalid number of arguments.'));
+            $this->error(__('Invalid number of arguments.'));
         }
 
         $workflow_id = (int)$this->args[0];

@@ -60,7 +60,7 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
         <?php endif; ?>
 
         <?php if ($hoverEnrichId && !$hoverClickOnly): ?>
-            <p class="mb-0 om-hover-enrichment"
+            <p class="fw-semibold mb-0 om-hover-enrichment"
                data-hover-enrichment-id="<?= $hoverEnrichId ?>"
                data-hover-trigger="hover"
                style="cursor:help;"
@@ -68,7 +68,7 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
                 <?= h($attribute['value']); ?>
             </p>
         <?php elseif ($hoverEnrichId && $hoverClickOnly): ?>
-            <p class="mb-0">
+            <p class="fw-semibold mb-0">
                 <?= h($attribute['value']); ?>
                 <i class="fas fa-magnifying-glass-plus text-muted ms-1 om-hover-enrichment"
                    role="button" tabindex="0"
@@ -78,7 +78,7 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
                    title="<?= __('Look up enrichment') ?>"></i>
             </p>
         <?php else: ?>
-            <p class="mb-0">
+            <p class="fw-semibold mb-0">
                 <?= h($attribute['value']); ?>
             </p>
         <?php endif; ?>

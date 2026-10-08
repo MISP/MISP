@@ -10,7 +10,7 @@ App::uses('ACLComponent', 'Controller/Component');
 /**
  * Takes an event-template definition + user-submitted field values and
  * creates a fully-populated MISP event (attributes, MISP objects, object
- * references, event-level tags, synthetic galaxy-cluster tags) inside a
+ * references, event-level tags, galaxy-cluster tags) inside a
  * single transaction. Rolls back atomically on any failure.
  *
  * See PRD §§5.2 F2.8-F2.10 for the contract.
@@ -55,6 +55,9 @@ class EventTemplateInstantiator
     /** @var array<string,array> key "uuid@version" -> {meta_category, relations} (lazy) */
     private $objectTemplateSpec = array();
 
+    /** @var array<string,string> galaxy input -> resolved tag name, per instantiate() call */
+    private $galaxyTagNameCache = array();
+
     /**
      * @param array $definition template definition (decoded JSON)
      * @param array $userInput  map: element id -> value | array of values
@@ -73,6 +76,7 @@ class EventTemplateInstantiator
     public function instantiate(array $definition, array $userInput, array $user, array $options = array())
     {
         EventTemplateDependencies::requireAll();
+        $this->galaxyTagNameCache = array();
 
         $validator = new EventTemplateValidator();
         $errs = $validator->validate($definition);
@@ -158,7 +162,7 @@ class EventTemplateInstantiator
             ));
             $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
-            // Attach event-level tags (defaults + synthesised galaxy tags +
+            // Attach event-level tags (defaults + galaxy-cluster tags +
             // user-picked tag/galaxy fields) via the canonical helper. Doing
             // this here rather than via a nested array in $eventData is
             // deliberate — _add()'s handling of nested tag arrays is
@@ -174,7 +178,7 @@ class EventTemplateInstantiator
             // uses, and a refusal rolls the whole instantiation back rather
             // than committing an event that is missing the markings its
             // template mandates.
-            $tagNames = $this->collectEventTagNames($definition, $userInput);
+            $tagNames = $this->collectEventTagNames($definition, $userInput, $user);
             if (!empty($tagNames)) {
                 $errs = $this->attachEventTags($eventModel, $eventRow, $tagNames, $user);
                 if (!empty($errs)) {
@@ -192,7 +196,7 @@ class EventTemplateInstantiator
                 $db->commit();
             }
 
-            $autoLinkMap = $this->buildAutoLinkMap($definition, $userInput, $newId);
+            $autoLinkMap = $this->buildAutoLinkMap($definition, $userInput, $newId, $user);
             $this->saveEventReports($definition, $userInput, $user, $newId, $autoLinkMap);
             $this->writeInstantiationSummaryReport(
                 $newId, (string)$eventUuid, $definition, $userInput, $user, $options, $autoLinkMap
@@ -348,8 +352,7 @@ class EventTemplateInstantiator
         }
         $rows = $eventModel->EventTag->Tag->find('all', array(
             'recursive' => -1,
-            'conditions' => array(
-                'LOWER(Tag.name)' => array_values(array_unique($lowered)),
+            'conditions' => $eventModel->EventTag->Tag->nameCondition(array_values(array_unique($lowered))) + array(
                 'Tag.local_only' => 1,
             ),
             'fields' => array('Tag.name'),
@@ -607,8 +610,9 @@ class EventTemplateInstantiator
      *      Marker: @[tag](<name>).
      *
      *   3. galaxy_field user input — link by raw value, but the marker
-     *      uses the synthesised tag_name (`misp-galaxy:<type>="<value>"`)
-     *      since that is what is actually attached to the event.
+     *      uses the tag name of the cluster it resolves to (see
+     *      resolveGalaxyTagName()), since that is what is actually
+     *      attached to the event.
      *
      * Object references and synonym matches are deferred to v2 — there
      * is no clean value-to-marker mapping for misp-objects (the user
@@ -617,7 +621,7 @@ class EventTemplateInstantiator
      * every galaxy cluster in the DB, which would dominate
      * instantiation latency.
      */
-    private function buildAutoLinkMap(array $definition, array $userInput, $eventId)
+    private function buildAutoLinkMap(array $definition, array $userInput, $eventId, array $user)
     {
         $map = array();
         $structure = isset($definition['structure']) && is_array($definition['structure'])
@@ -655,12 +659,11 @@ class EventTemplateInstantiator
                 continue;
             }
             $values = is_array($userInput[$id]) ? $userInput[$id] : array($userInput[$id]);
-            $galaxyType = null;
+            $galaxyTypes = array();
             if ($type === 'galaxy_field') {
-                $restrict = isset($el['restrict_galaxy_types']) && is_array($el['restrict_galaxy_types'])
+                $galaxyTypes = isset($el['restrict_galaxy_types']) && is_array($el['restrict_galaxy_types'])
                     ? $el['restrict_galaxy_types']
                     : array();
-                $galaxyType = $restrict ? (string)reset($restrict) : 'unknown';
             }
             foreach ($values as $v) {
                 if (!is_string($v)) {
@@ -673,7 +676,10 @@ class EventTemplateInstantiator
                 if ($type === 'tag_field') {
                     $map[$v] = sprintf('@[tag](%s)', $v);
                 } else {
-                    $map[$v] = sprintf('@[tag](misp-galaxy:%s="%s")', $galaxyType, $v);
+                    $map[$v] = sprintf(
+                        '@[tag](%s)',
+                        $this->resolveGalaxyTagName($v, $galaxyTypes, $user)
+                    );
                 }
             }
         }
@@ -1159,15 +1165,15 @@ class EventTemplateInstantiator
     /**
      * Collects every tag name that should be attached to the event:
      *   - event_defaults.tags (plain tag names)
-     *   - event_defaults.galaxy_clusters (synthesised as misp-galaxy: tags)
+     *   - event_defaults.galaxy_clusters (resolved to the cluster's tag name)
      *   - tag_field user input
-     *   - galaxy_field user input (synthesised as misp-galaxy: tags, using
-     *     the field's first restrict_galaxy_types entry)
+     *   - galaxy_field user input (resolved to the cluster's tag name,
+     *     looked up within the field's restrict_galaxy_types)
      *
      * Returns a deduplicated list<string>. Attachment happens post-_add()
      * via Event::attachTagsToEventAndTouch().
      */
-    private function collectEventTagNames(array $definition, array $userInput)
+    private function collectEventTagNames(array $definition, array $userInput, array $user)
     {
         $defaults = isset($definition['event_defaults']) && is_array($definition['event_defaults'])
             ? $definition['event_defaults']
@@ -1184,10 +1190,10 @@ class EventTemplateInstantiator
         if (isset($defaults['galaxy_clusters']) && is_array($defaults['galaxy_clusters'])) {
             foreach ($defaults['galaxy_clusters'] as $gc) {
                 if (is_array($gc) && isset($gc['galaxy_type'], $gc['value'])) {
-                    $tags[] = sprintf(
-                        'misp-galaxy:%s="%s"',
-                        (string)$gc['galaxy_type'],
-                        (string)$gc['value']
+                    $tags[] = $this->resolveGalaxyTagName(
+                        (string)$gc['value'],
+                        array((string)$gc['galaxy_type']),
+                        $user
                     );
                 }
             }
@@ -1208,9 +1214,8 @@ class EventTemplateInstantiator
                 $galaxyTypes = isset($el['restrict_galaxy_types']) && is_array($el['restrict_galaxy_types'])
                     ? $el['restrict_galaxy_types']
                     : array();
-                $galaxyType = $galaxyTypes ? (string)reset($galaxyTypes) : 'unknown';
                 foreach ($this->normaliseScalarInstances($userInput[$id]) as $val) {
-                    $tags[] = sprintf('misp-galaxy:%s="%s"', $galaxyType, (string)$val);
+                    $tags[] = $this->resolveGalaxyTagName((string)$val, $galaxyTypes, $user);
                 }
             }
         }
@@ -1227,6 +1232,112 @@ class EventTemplateInstantiator
     }
 
     // --- Helpers ------------------------------------------------------------
+
+    /**
+     * Resolves a galaxy_field value, or an event_defaults.galaxy_clusters
+     * entry, to the tag name of the cluster it designates.
+     *
+     * A cluster's tag is `GalaxyCluster.tag_name`, and the two kinds of
+     * cluster spell it differently: library clusters are named by value
+     * (misp-galaxy:threat-actor="APT28"), custom clusters by uuid
+     * (misp-galaxy:threat-actor="<uuid>"). Synthesising the name from the
+     * value therefore attached a tag no cluster owns whenever the pick was
+     * a custom cluster, so the event never showed the galaxy. The cluster
+     * row is the source of truth; the synthesised form is only the fallback
+     * for a free-text value that matches nothing.
+     *
+     * Accepts the three spellings the pickers and template authors
+     * produce: a cluster value, a cluster uuid, or a complete tag name
+     * (the Overmind picker submits those, and wrapping one a second time
+     * produced misp-galaxy:x="misp-galaxy:x=..."). Value lookups are
+     * restricted to $galaxyTypes when the field declares any; a uuid or a
+     * tag name already pins the cluster down. Visibility follows the
+     * picker search: only clusters $user may see resolve.
+     *
+     * @param string $value
+     * @param array $galaxyTypes the field's restrict_galaxy_types (may be empty)
+     * @param array $user
+     * @return string
+     */
+    private function resolveGalaxyTagName($value, array $galaxyTypes, array $user)
+    {
+        $value = trim((string)$value);
+        $cacheKey = implode(',', $galaxyTypes) . "\0" . $value;
+        if (isset($this->galaxyTagNameCache[$cacheKey])) {
+            return $this->galaxyTagNameCache[$cacheKey];
+        }
+        $isTagName = stripos($value, 'misp-galaxy:') === 0;
+        if ($isTagName) {
+            $field = 'GalaxyCluster.tag_name';
+            $lookupTypes = array();
+        } elseif (preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i', $value)) {
+            $field = 'GalaxyCluster.uuid';
+            $lookupTypes = array();
+        } else {
+            $field = 'GalaxyCluster.value';
+            $lookupTypes = $galaxyTypes;
+        }
+        $tagName = $this->findGalaxyClusterTagName($field, $value, $lookupTypes, $user);
+        if ($tagName === null) {
+            $tagName = $isTagName
+                ? $value
+                : sprintf(
+                    'misp-galaxy:%s="%s"',
+                    $galaxyTypes ? (string)reset($galaxyTypes) : 'unknown',
+                    $value
+                );
+        }
+        $this->galaxyTagNameCache[$cacheKey] = $tagName;
+        return $tagName;
+    }
+
+    /**
+     * tag_name of the first visible, non-deleted cluster whose $field is
+     * $value. Matched exactly first (index-friendly, and MySQL's collation
+     * is case-insensitive already), then case-insensitively so PostgreSQL
+     * agrees with MySQL on hand-typed values. A library cluster wins over
+     * a custom cluster of the same value, then the oldest row.
+     *
+     * Protected so tests can stand in for the database.
+     *
+     * @param string $field
+     * @param string $value
+     * @param array $galaxyTypes GalaxyCluster.type restriction, empty for none
+     * @param array $user
+     * @return string|null null when no cluster matches
+     */
+    protected function findGalaxyClusterTagName($field, $value, array $galaxyTypes, array $user)
+    {
+        /** @var GalaxyCluster $clusterModel */
+        $clusterModel = ClassRegistry::init('GalaxyCluster');
+        $base = array('GalaxyCluster.deleted' => false);
+        if (!empty($galaxyTypes)) {
+            $base['GalaxyCluster.type'] = array_values($galaxyTypes);
+        }
+        $acl = $clusterModel->buildConditions($user);
+        if (!empty($acl)) {
+            $base['AND'][] = $acl;
+        }
+        $matches = array(
+            array($field => $value),
+            array('LOWER(' . $field . ')' => mb_strtolower($value)),
+        );
+        foreach ($matches as $match) {
+            $row = $clusterModel->find('first', array(
+                'recursive' => -1,
+                'conditions' => $base + $match,
+                'fields' => array('GalaxyCluster.tag_name'),
+                'order' => array(
+                    'GalaxyCluster.default' => 'DESC',
+                    'GalaxyCluster.id' => 'ASC',
+                ),
+            ));
+            if (!empty($row['GalaxyCluster']['tag_name'])) {
+                return (string)$row['GalaxyCluster']['tag_name'];
+            }
+        }
+        return null;
+    }
 
     /**
      * Input can be a scalar, or a list of scalars (repeatable). Return a list.

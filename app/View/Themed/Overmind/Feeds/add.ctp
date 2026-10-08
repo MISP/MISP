@@ -10,7 +10,6 @@ $entityFeed = $entity['Feed'] ?? [];
 
 $distSelected = $reqFeed['distribution'] ?? 3;
 $orgcSelected = $reqFeed['orgc_id'] ?? ($isEdit ? null : ($me['org_id'] ?? null));
-$sgSelected = $reqFeed['sharing_group_id'] ?? null;
 $tagSelected = $reqFeed['tag_id'] ?? '0';
 $tagCollSelected = $reqFeed['tag_collection_id'] ?? '0';
 $fixedSelected = $reqFeed['fixed_event'] ?? 0;
@@ -20,17 +19,13 @@ $delimiterVal = $reqFeed['settings']['csv']['delimiter'] ?? ',';
 $csvValueVal = $reqFeed['settings']['csv']['value'] ?? '';
 $excludeRegexVal = $reqFeed['settings']['common']['excluderegex'] ?? '';
 
-// Initial pull_rules JSON, pretty-printed; the reading of it is built client
-// side so it follows what is being typed.
+// Initial pull_rules JSON; json_field pretty-prints it, and the reading of it
+// is built client side so it follows what is being typed.
 if ($isEdit) {
     $rulesRaw = $reqFeed['pull_rules'] ?? ($entityFeed['rules'] ?? '');
 } else {
     $rulesRaw = $defaultPullRules ?? '';
 }
-$rulesDecoded = !empty($rulesRaw) ? json_decode($rulesRaw, true) : null;
-$rulesPretty = is_array($rulesDecoded)
-    ? json_encode($rulesDecoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-    : (string)$rulesRaw;
 
 // What each source format and input source means, shown live under the picker.
 $formatMeta = [
@@ -133,7 +128,7 @@ echo $this->Form->create('Feed', [
 
 <div class="container-fluid px-4 py-4">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-4 px-2">
 
         <?php if ($localFeedDisabled): ?>
             <div class="alert alert-warning d-flex align-items-start gap-2 mb-0"
@@ -146,7 +141,7 @@ echo $this->Form->create('Feed', [
         <?php endif; ?>
 
         <!-- ── NAME ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center gap-2 text-primary fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
@@ -167,7 +162,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── SOURCE ──────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center gap-2 text-primary fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
@@ -245,7 +240,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── HEADERS (network only) ──────────────────────────── -->
-        <div class="w-100 px-2" id="HeadersDiv">
+        <div class="w-100 " id="HeadersDiv">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Request Headers'),
@@ -297,7 +292,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Options'),
@@ -341,7 +336,7 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── PARSING TARGET (freetext / csv) ─────────────────── -->
-        <div class="w-100 px-2 optionalField" id="TargetSection" style="display:none;">
+        <div class="w-100  optionalField" id="TargetSection" style="display:none;">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Parsing Target'),
@@ -435,30 +430,22 @@ echo $this->Form->create('Feed', [
             </div>
         </div>
 
-        <!-- ── DISTRIBUTION ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+        <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                 'accent' => 'primary',
-                'label' => __('Distribution / Sharing Group'),
+                'levels' => $dropdownData['distributionLevels'] ?? [],
+                'sharingGroups' => $dropdownData['sharingGroups'] ?? [],
+                'value' => $distSelected,
+                'showSg' => true,
+                'id' => 'distribution-select',
+                'sgId' => 'sharing-group-select',
+                'sgEmpty' => __('Select a sharing group…'),
             ]) ?>
-            <div class="d-flex gap-3">
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $dropdownData['distributionLevels'], [
-                        'class' => 'form-select',
-                        'id' => 'FeedDistribution',
-                        'value' => $distSelected,
-                        'empty' => false,
-                    ]) ?>
-                </div>
-                <div class="flex-fill" id="SGContainer" style="display:none;">
-                    <?= $this->Form->select('sharing_group_id', $dropdownData['sharingGroups'], [
-                        'class' => 'form-select tom-select',
-                        'value' => $sgSelected,
-                        'empty' => true,
-                    ]) ?>
-                </div>
-            </div>
+        </div>
 
+        <!-- ── DEFAULT TAG / COLLECTION ───────────────────────── -->
+        <div class="w-100 ">
             <div class="row g-3 mt-1">
                 <div class="col-md-6">
                     <label class="form-label text-muted mb-1" style="font-size:.75rem;">
@@ -489,50 +476,20 @@ echo $this->Form->create('Feed', [
         </div>
 
         <!-- ── PULL FILTER RULES ───────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'accent' => 'primary',
-                    'label' => __('Pull Filter Rules'),
-                    'class' => '',
-                ]) ?>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="feedRulesStatus" class="badge bg-secondary"
-                          style="font-size:.65rem;"></span>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            id="feedRulesFormatBtn"
-                            style="font-size:.7rem; padding:.15rem .5rem;">
-                        <i class="fas fa-wand-magic-sparkles me-1"></i><?= __('Format') ?>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            id="feedRulesResetBtn"
-                            style="font-size:.7rem; padding:.15rem .5rem;">
-                        <i class="fas fa-rotate-left me-1"></i><?= __('Reset') ?>
-                    </button>
-                </div>
-            </div>
-
-            <?= $this->Form->textarea('pull_rules', [
+        <div class="w-100 ">
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'pull_rules',
+                'label' => __('Pull Filter Rules'),
+                'shape' => 'object',
                 'id' => 'FeedPullRules',
-                'class' => 'w-100 rounded-2 p-3',
-                'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
-                    . ' outline:none; font-size:.85rem; min-height:150px;'
-                    . ' color:inherit; font-family:monospace;'
-                    . ' white-space:pre; overflow-x:auto;',
+                'value' => $rulesRaw,
+                'reset' => $defaultPullRules ?? '{}',
                 'rows' => 8,
-                'spellcheck' => 'false',
-                'value' => $rulesPretty,
+                'minHeight' => '150px',
+                'emptyLabel' => __('No filtering — everything is pulled'),
+                'preview' => true,
+                'previewLabel' => __('How these rules read'),
             ]) ?>
-            <div id="feedRulesError" class="d-none text-danger
-                        d-flex align-items-center gap-1 mt-1"
-                 style="font-size:.75rem;"></div>
-
-            <!-- Reading of the rules, rebuilt as they are typed -->
-            <div class="mt-2 d-none" id="feedRulesReadingWrap">
-                <div class="border rounded p-2" id="feedRulesReading"
-                     style="border-color:#d8dde3 !important; font-size:.78rem;"></div>
-            </div>
 
             <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-2 small"
                  style="background:rgba(24,146,177,.05);
@@ -571,8 +528,6 @@ echo $this->Form->create('Feed', [
         | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var SOURCE_META = <?= json_encode($sourceMeta, JSON_FORCE_OBJECT
         | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-    var DEFAULT_RULES = <?= json_encode($defaultPullRules ?? '{}',
-        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var L = {
         url: <?= json_encode(__('URL')) ?>,
         path: <?= json_encode(__('Path on this server')) ?>,
@@ -581,11 +536,6 @@ echo $this->Form->create('Feed', [
         nameRequired: <?= json_encode(__('Please provide a name for the feed.')) ?>,
         sourceRequired: <?= json_encode(__('Please provide the URL or path of the feed.')) ?>,
         providerRequired: <?= json_encode(__('Please provide the name of the provider.')) ?>,
-        rulesEmpty: <?= json_encode(__('No filtering — everything is pulled')) ?>,
-        rulesValid: <?= json_encode(__('Valid')) ?>,
-        rulesInvalid: <?= json_encode(__('Invalid JSON')) ?>,
-        rulesUnknown: <?= json_encode(__('Unknown key')) ?>,
-        objectExpected: <?= json_encode(__('The rules have to be a JSON object.')) ?>,
         unknownKey: <?= json_encode(__('"%s" is not one of tags, orgs or url_params.')) ?>,
         unknownBool: <?= json_encode(__('"%s" only takes OR and NOT.')) ?>,
         listExpected: <?= json_encode(__('%s has to be a list of names.')) ?>,
@@ -721,34 +671,9 @@ echo $this->Form->create('Feed', [
         });
     }
 
-    /* ── Pull rules: validity, reading, formatting ── */
+    /* ── Pull rules: the reading of them, and the vocabulary check ──
+       The field itself parses, reports, re-indents and resets. */
     var rulesEl = el('FeedPullRules');
-    var statusEl = el('feedRulesStatus');
-    var errorEl = el('feedRulesError');
-    var readingEl = el('feedRulesReading');
-    var readingWrap = el('feedRulesReadingWrap');
-
-    function setStatus(kind, text) {
-        if (!statusEl) { return; }
-        statusEl.className = 'badge bg-' + kind;
-        statusEl.style.fontSize = '.65rem';
-        statusEl.textContent = text;
-    }
-
-    function setError(message) {
-        if (!errorEl) { return; }
-        if (!message) {
-            errorEl.classList.add('d-none');
-            errorEl.textContent = '';
-            return;
-        }
-        errorEl.classList.remove('d-none');
-        errorEl.innerHTML = '';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        errorEl.appendChild(icon);
-        errorEl.appendChild(document.createTextNode(message));
-    }
 
     /* First thing Feed::checkEventAgainstRules() would not understand */
     function findProblem(rules) {
@@ -821,64 +746,22 @@ echo $this->Form->create('Feed', [
             row.appendChild(code);
             frag.appendChild(row);
         }
-        return any ? frag : null;
+        if (!any) { return null; }
+        var box = document.createElement('div');
+        box.className = 'p-2';
+        box.appendChild(frag);
+        return box;
     }
 
-    function refreshRules() {
-        if (!rulesEl) { return; }
-        var raw = rulesEl.value.trim();
-        if (readingWrap) { readingWrap.classList.add('d-none'); }
-        if (!raw) {
-            setStatus('secondary', L.rulesEmpty);
-            setError(null);
-            return;
-        }
-        var parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch (e) {
-            setStatus('danger', L.rulesInvalid);
-            setError(e.message);
-            return;
-        }
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            setStatus('danger', L.rulesInvalid);
-            setError(L.objectExpected);
-            return;
-        }
-        var problem = findProblem(parsed);
-        setStatus(problem ? 'warning' : 'success', problem ? L.rulesUnknown : L.rulesValid);
-        setError(problem);
-
-        var reading = buildReading(parsed);
-        if (reading && readingEl && readingWrap) {
-            readingEl.innerHTML = '';
-            readingEl.appendChild(reading);
-            readingWrap.classList.remove('d-none');
-        } else if (!problem) {
-            setStatus('secondary', L.rulesEmpty);
-        }
-    }
-
-    if (rulesEl) { rulesEl.addEventListener('input', refreshRules); }
-    var fmtBtn = el('feedRulesFormatBtn');
-    if (fmtBtn) {
-        fmtBtn.addEventListener('click', function () {
-            try {
-                rulesEl.value = JSON.stringify(JSON.parse(rulesEl.value), null, 4);
-            } catch (e) { /* refreshRules() reports it */ }
-            refreshRules();
-        });
-    }
-    var resetBtn = el('feedRulesResetBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function () {
-            try {
-                rulesEl.value = JSON.stringify(JSON.parse(DEFAULT_RULES), null, 4);
-            } catch (e) {
-                rulesEl.value = DEFAULT_RULES;
+    if (rulesEl) {
+        rulesEl.addEventListener('misp:json-change', function (e) {
+            var field = e.detail.field;
+            if (!e.detail.valid) {
+                field.setPreview(null);
+                return;
             }
-            refreshRules();
+            field.setProblem(findProblem(e.detail.parsed));
+            field.setPreview(buildReading(e.detail.parsed));
         });
     }
 
@@ -942,6 +825,5 @@ echo $this->Form->create('Feed', [
     }
 
     feedFormUpdate();
-    refreshRules();
 })();
 </script>

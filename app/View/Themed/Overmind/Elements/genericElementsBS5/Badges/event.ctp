@@ -85,7 +85,7 @@ if (!empty($org)) {
     </div>
     <div class="px-2 py-1 d-flex flex-column gap-2">
     <?php if (!empty($name)): ?>
-        <span class="small fw-bold"><?= h($name) ?></span>
+        <span class="small fw-semibold"><?= h($name) ?></span>
     <?php endif; ?>
     </div>
 </div>

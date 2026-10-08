@@ -86,6 +86,16 @@ $divider = '<li class="divider"></li>';
                             ),
                             'text' => __('Populate from…')
                         ));
+                        if (Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiActions')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'aiActions',
+                                'onClick' => array(
+                                    'function' => 'genericPopup',
+                                    'params' => array($baseurl . '/events/aiActions/' . $eventId, '#confirmation_box')
+                                ),
+                                'text' => __('AI actions…')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
                                 'function' => 'genericPopup',

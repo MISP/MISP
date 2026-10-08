@@ -41,6 +41,12 @@ sudo -u postgres psql -U postgres
 postgres=# ALTER USER misp with password 'XXXXXXXXX';
 postgres=# \q
 
+# NOTE: INSTALL/POSTGRESQL-structure.sql and INSTALL/POSTGRESQL-data-initial.sql
+# no longer exist. They were 2019 pg_dump artefacts seeding db_version 11, which
+# no current MISP release can be upgraded from. A fresh PostgreSQL install loads
+# the single-file baseline INSTALL/POSTGRESQL.sql instead; see the install
+# notes in docs/ for the supported procedure. The two commands below are kept
+# only as a record of what this guide used to do.
 # after that, load the basic database structure
 psql -U misp -d misp -f /var/www/MISP/INSTALL/POSTGRESQL-structure.sql -h localhost -W
 

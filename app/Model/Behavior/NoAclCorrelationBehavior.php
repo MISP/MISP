@@ -473,10 +473,25 @@ class NoAclCorrelationBehavior extends ModelBehavior
      * @param array $user Not used
      * @param int $eventId
      * @param array $sgids Not used
+     * @param bool $excludeNonCorrelating Restrict the result to the events that
+     *      runGetAttributesRelatedToEvent() can actually show a correlation for
      * @return array
      */
-    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
+        if ($excludeNonCorrelating) {
+            // Same collector as runGetAttributesRelatedToEvent(), which alone
+            // skips the values in correlation_exclusions and in
+            // over_correlating_values.
+            $eventIds = [];
+            foreach ($this->__collectCorrelations($user, $eventId, false) as $correlation) {
+                $eventIds[$correlation['Correlation']['event_id']] = true;
+            }
+            foreach ($this->__collectCorrelations($user, $eventId, true) as $correlation) {
+                $eventIds[$correlation['Correlation']['1_event_id']] = true;
+            }
+            return array_keys($eventIds);
+        }
         $primaryEventIds = $this->__filterRelatedEvents($Model, $eventId, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $eventId, false);
         return array_unique(array_merge($primaryEventIds, $secondaryEventIds), SORT_REGULAR);

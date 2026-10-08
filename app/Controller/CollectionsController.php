@@ -40,9 +40,15 @@ class CollectionsController extends AppController
         $attachElementUuid = !empty($attachElementUuids) ? $attachElementUuids[0] : null;
         $params = [];
         $this->loadModel('Event');
-        if ($this->request->is('post')) {
+        // Accept PUT as well as POST: CRUDComponent::add() persists on either verb, so the
+        // sharing-group authorisation check and element capture below must run for both -
+        // otherwise a PUT reaches the save with an empty $params and skips the SG guard.
+        if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data;
             $params = [
+                'redirect' => $attachTarget === null
+                    ? ['action' => 'index']
+                    : $this->referer(['controller' => 'collections', 'action' => 'index'], true),
                 'beforeSave' => function (array $collection) use ($currentUser) {
                     if (isset($collection['Collection']['distribution']) && $collection['Collection']['distribution'] == 4) {
                         $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($currentUser, $this->_isRest(), $collection, 'Collection');
@@ -59,7 +65,8 @@ class CollectionsController extends AppController
                             $this->__attachElementToCollection(
                                 $collection['Collection']['id'],
                                 $attachTarget['type'],
-                                $attachElementUuid
+                                $attachElementUuid,
+                                $attachTarget['description'] ?? ''
                             );
                         }
                     }
@@ -78,7 +85,14 @@ class CollectionsController extends AppController
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
         $this->set('initialDistribution', Configure::read('MISP.default_event_distribution'));
-        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids'));
+        // Rendered inside the collection picker's modal rather than as a modal of
+        // its own: the view then drops the header strip and the attach banner the
+        // picker is already showing.
+        // GET only: a rejected save re-renders this view as a whole page, which
+        // needs its header back.
+        $this->set('embedded', $this->request->is('get') && (bool)$this->request->query('embedded'));
+        $attachElementDescription = $attachTarget['description'] ?? '';
+        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementDescription'));
         if($this->theme === "Overmind"){
             $this->layout = false;
         }
@@ -89,6 +103,7 @@ class CollectionsController extends AppController
     {
         $attachElementType = null;
         $attachElementUuids = [];
+        $attachElementDescription = '';
 
         if ($this->request->is('post')) {
             if (!empty($this->request->data['Collection']['_attach_element_type'])) {
@@ -96,6 +111,10 @@ class CollectionsController extends AppController
             }
             if (!empty($this->request->data['Collection']['_attach_element_uuid'])) {
                 $attachElementUuids = (array)$this->request->data['Collection']['_attach_element_uuid'];
+            }
+            if (isset($this->request->data['Collection']['_attach_element_description'])) {
+                $description = $this->request->data['Collection']['_attach_element_description'];
+                $attachElementDescription = is_scalar($description) ? trim((string)$description) : '';
             }
         }
 
@@ -139,10 +158,11 @@ class CollectionsController extends AppController
             'type' => $attachElementType,
             'uuid' => $attachElementUuids[0],
             'uuids' => $attachElementUuids,
+            'description' => $attachElementDescription,
         ];
     }
 
-    private function __attachElementToCollection($collectionId, $elementType, $elementUuid)
+    private function __attachElementToCollection($collectionId, $elementType, $elementUuid, $description = '')
     {
         if ($elementType === 'Event') {
             // Mirror CollectionElementsController::addElementToCollection()'s visibility
@@ -165,7 +185,7 @@ class CollectionsController extends AppController
                     'collection_id' => $collectionId,
                     'element_type' => $elementType,
                     'element_uuid' => $elementUuid,
-                    'description' => ''
+                    'description' => $description
                 ]
             ]);
         } catch (PDOException $e) {
@@ -400,7 +420,7 @@ class CollectionsController extends AppController
     {
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'index'));
         $params = [
-            'filters' => ['Collection.uuid', 'Collection.type', 'Collection.name'],
+            'filters' => ['Collection.uuid', 'Collection.type', 'type', 'Collection.name'],
             'quickFilters' => ['Collection.name'],
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
@@ -442,6 +462,9 @@ class CollectionsController extends AppController
         }
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
+        $this->set('dropdownData', [
+            'types' => array_combine($this->valid_types, $this->valid_types)
+        ]);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

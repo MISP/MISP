@@ -176,6 +176,37 @@ class Tag extends AppModel
     }
 
     /**
+     * The condition matching tag names the way the unique index does.
+     *
+     * tags.name is case-insensitive. On MySQL that is the column's collation
+     * (utf8mb4_unicode_ci), so a plain equality matches every casing straight
+     * off the unique key, and wrapping the column in LOWER() would throw that
+     * key away and scan the table per lookup (#11114). PostgreSQL has no
+     * collation that does this; there the uniqueness is a unique index over
+     * lower(name), and the comparison is spelled through LOWER() so the
+     * planner takes that index instead.
+     *
+     * @param string|array $names One name, or a list of them for an IN.
+     * @param string|null $operator An operator to append CakePHP-style, such
+     *   as 'LIKE'; a pattern is lower-cased with the column on PostgreSQL.
+     * @return array One condition, keyed on the field expression.
+     */
+    public function nameCondition($names, $operator = null)
+    {
+        $field = 'Tag.name';
+        if (!$this->isMysql()) {
+            $field = 'LOWER(Tag.name)';
+            $names = is_array($names)
+                ? array_map('mb_strtolower', $names)
+                : mb_strtolower((string)$names);
+        }
+        if ($operator !== null) {
+            $field .= ' ' . $operator;
+        }
+        return array($field => $names);
+    }
+
+    /**
      * @param array $user
      * @param string $tagName
      * @return mixed|null
@@ -183,7 +214,7 @@ class Tag extends AppModel
     public function lookupTagIdForUser(array $user, $tagName)
     {
         $conditions = $this->createConditions($user);
-        $conditions['LOWER(Tag.name)'] = mb_strtolower($tagName);
+        $conditions = array_merge($conditions, $this->nameCondition($tagName));
 
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
@@ -204,7 +235,7 @@ class Tag extends AppModel
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('LOWER(Tag.name)' => mb_strtolower($tagName)),
+            'conditions' => $this->nameCondition($tagName),
             'recursive' => -1,
             'fields' => array('Tag.id'),
             'callbacks' => false,
@@ -329,9 +360,11 @@ class Tag extends AppModel
      */
     public function captureTag(array $tag, array $user, $force=false)
     {
+        // Every casing of the name matches, off the unique index - see
+        // nameCondition() for how each engine spells that.
         $existingTag = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
+            'conditions' => $this->nameCondition($tag['name']),
             'fields' => ['id', 'org_id', 'user_id'],
             'callbacks' => false,
         ));
@@ -372,6 +405,49 @@ class Tag extends AppModel
             return false;
         }
         return $existingTag['Tag']['id'];
+    }
+
+    /**
+     * The two ai-computer-assisted provenance tags the AI module puts on
+     * everything it produces (Module::AI_PROVENANCE_TAGS), guaranteed to
+     * exist before an AI write: a name the taxonomy knows is enabled through
+     * the Taxonomy model (its colour, linked to the taxonomy, the taxonomy
+     * itself left as it is); a name it does not know (taxonomy not loaded,
+     * or an older version) is created as a plain tag. No perm_tag_editor is
+     * needed for these two names. An existing row reserved for another
+     * organisation or user stays unusable and comes back as false.
+     *
+     * @param array $user
+     * @return array tag name => tag id, or false when the tag cannot be used
+     */
+    public function captureAiProvenanceTags(array $user)
+    {
+        App::uses('Module', 'Model');
+        $names = Module::AI_PROVENANCE_TAGS;
+        // Every casing matches, off the unique index - see nameCondition().
+        $existing = $this->find('list', array(
+            'conditions' => $this->nameCondition($names),
+            'fields' => array('Tag.name', 'Tag.id'),
+            'recursive' => -1,
+        ));
+        $existingLower = array_map('mb_strtolower', array_keys($existing));
+        $missing = array();
+        foreach ($names as $name) {
+            if (!in_array(mb_strtolower($name), $existingLower, true)) {
+                $missing[] = $name;
+            }
+        }
+        if (!empty($missing)) {
+            // Creates only the listed names the taxonomy knows; false when
+            // the taxonomy is not loaded. captureTag() below covers the rest.
+            $Taxonomy = ClassRegistry::init('Taxonomy');
+            $Taxonomy->addTags(Module::AI_PROVENANCE_TAXONOMY, $missing);
+        }
+        $ids = array();
+        foreach ($names as $name) {
+            $ids[$name] = $this->captureTag(array('name' => $name), $user, true);
+        }
+        return $ids;
     }
 
     /**

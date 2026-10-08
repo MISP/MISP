@@ -51,7 +51,8 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 ]) ?>
 
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex flex-column gap-4">
+
+    <div class="d-flex flex-column gap-4 px-2">
 
         <!-- ── CATEGORY + TYPE ─────────────────────────────────── -->
         <div class="row g-3">
@@ -137,34 +138,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             ]) ?>
         </div>
 
-
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                 'accent' => 'attribute',
-                'label' => __('Distribution'),
+                'value' => $currentDistribution,
+                'id' => 'AttributeDistribution',
+                'showSg' => true,
+                'sgId' => 'AttributeSharingGroupId',
+                'sgEmpty' => __('Select a sharing group…'),
             ]) ?>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $distributionLevels, [
-                        'id'    => 'AttributeDistribution',
-                        'class' => 'form-select',
-                        'value' => $currentDist,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill"
-                     id="attr-sg-container"
-                     style="<?= $currentDist !== 4 ? 'display:none;' : '' ?>">
-                    <?= $this->Form->select('sharing_group_id', $sharingGroups, [
-                        'id'    => 'AttributeSharingGroupId',
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select',
-                    ]) ?>
-                </div>
-
-            </div>
         </div>
 
 

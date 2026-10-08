@@ -406,11 +406,21 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 ]
             ];
         }
+        $conditions = ['Attribute.id' => $correlatedAttributeIds];
+        if (empty($user['Role']['perm_site_admin'])) {
+            // the correlation row's distribution columns are a snapshot and carry
+            // no published flag, so check the attributes against the live rows
+            $conditions = [
+                'AND' => [$conditions, $Model->Attribute->buildConditions($user)],
+            ];
+            if (!isset($contain['Event'])) {
+                $contain['Event'] = ['fields' => ['Event.id']];
+            }
+            $contain['Object'] = ['fields' => ['Object.id']];
+        }
         $relatedAttributes = $Model->Attribute->find('all', [
             'recursive' => -1,
-            'conditions' => [
-                'Attribute.id' => $correlatedAttributeIds
-            ],
+            'conditions' => $conditions,
             'fields' => $fields,
             'contain' => $contain
         ]);
@@ -423,6 +433,9 @@ class DefaultCorrelationBehavior extends ModelBehavior
             }
             return $results;
         } else {
+            foreach ($relatedAttributes as &$attribute) {
+                unset($attribute['Event'], $attribute['Object']);
+            }
             return $relatedAttributes;
         }
     }
@@ -590,8 +603,24 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return $result;
     }
 
-    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
+        if ($excludeNonCorrelating) {
+            // Run the very collector getAttributesRelatedToEvent() runs, so the
+            // list of related events and the correlations rendered for them are
+            // one set: __collectCorrelations() drops the values held in
+            // correlation_exclusions and over_correlating_values, which the
+            // plain path below does not, and an event related only through such
+            // a value has no correlation anyone can be shown.
+            $eventIds = [];
+            foreach ($this->__collectCorrelations($user, $eventId, $sgids, false) as $correlation) {
+                $eventIds[$correlation['Correlation']['event_id']] = true;
+            }
+            foreach ($this->__collectCorrelations($user, $eventId, $sgids, true) as $correlation) {
+                $eventIds[$correlation['Correlation']['1_event_id']] = true;
+            }
+            return $this->__filterVisibleEventIds($Model, $user, array_keys($eventIds));
+        }
         // search the correlation table for the event ids of the related events
         // Rules:
         // 1. Event is owned by the user (org_id matches)
@@ -605,7 +634,37 @@ class DefaultCorrelationBehavior extends ModelBehavior
         //        iii. Attribute has a sharing group that the user is accessible to view
         $primaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
-        return array_unique(array_merge($primaryEventIds,$secondaryEventIds), SORT_REGULAR);
+        return $this->__filterVisibleEventIds(
+            $Model,
+            $user,
+            array_unique(array_merge($primaryEventIds,$secondaryEventIds), SORT_REGULAR)
+        );
+    }
+
+    /**
+     * The correlation row's distribution columns are a snapshot and carry no
+     * published flag, so scope the related events against the live rows.
+     *
+     * @param Model $Model
+     * @param array $user
+     * @param array $eventIds
+     * @return array
+     */
+    private function __filterVisibleEventIds(Model $Model, array $user, array $eventIds)
+    {
+        if (empty($eventIds) || !empty($user['Role']['perm_site_admin'])) {
+            return $eventIds;
+        }
+        $conditions = $Model->Event->createEventConditions($user);
+        $conditions['Event.id'] = $eventIds;
+        $visible = $Model->Event->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Event.id'],
+        ]);
+        $visible = array_flip($visible);
+        return array_filter($eventIds, function ($id) use ($visible) {
+            return isset($visible[$id]);
+        });
     }
 
     /**

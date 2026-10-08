@@ -560,6 +560,12 @@ class OrganisationsController extends AppController
 
         $logo = $this->request->data['Organisation']['logo'];
         if ($logo['size'] > 0 && $logo['error'] == 0) {
+            // Only a genuine PHP upload may reach the filesystem probes below.
+            // A forged tmp_name would otherwise leak file existence and image
+            // type through the distinct validation messages that follow.
+            if (empty($logo['tmp_name']) || !is_uploaded_file($logo['tmp_name'])) {
+                return false;
+            }
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
 

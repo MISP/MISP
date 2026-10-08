@@ -2,9 +2,54 @@
 
 $reportData  = $data['EventReport'] ?? [];
 $reportId    = (int)($reportData['id'] ?? 0);
+$eventId     = (int)($reportData['event_id'] ?? ($data['Event']['id'] ?? 0));
 $content     = $reportData['content'] ?? '';
 $editable    = !empty($canEdit);
 $pdfModule   = !empty($isDownloadAsPDFModuleAvailable);
+
+/*
+ * The rendering rules, in the order the menu lists them. The keys are the ones
+ * MispReportMarkdown knows (RENDERING_RULES in js/misp-report-markdown.js) —
+ * a key with no counterpart there is a switch that toggles nothing.
+ */
+$renderingRules = [
+    ['key' => 'attribute',        'icon' => 'misp-icon misp-icon-attribute misp-simple', 'label' => __('Attribute')],
+    ['key' => 'attribute-picture', 'icon' => 'fas fa-images',                            'label' => __('Attribute picture')],
+    ['key' => 'object',           'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object')],
+    ['key' => 'object-attribute', 'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object Attribute')],
+    ['key' => 'tag',              'icon' => 'misp-icon misp-icon-tag misp-simple',       'label' => __('Tag')],
+    ['key' => 'galaxymatrix',     'icon' => 'misp-icon misp-icon-galaxy misp-simple',    'label' => __('Galaxy matrix')],
+];
+
+/*
+ * The writing toolbar, the stock editor's #top-bar. The action names are
+ * MispReportMarkdown's (ACTIONS in bindSourceEditing) — the module owns what
+ * each one does to the text, this array only says how it is drawn.
+ */
+$toolbarGroups = [
+    [
+        ['action' => 'bold',          'icon' => 'fas fa-bold',          'label' => __('Bold'),          'keys' => 'Ctrl+B'],
+        ['action' => 'italic',        'icon' => 'fas fa-italic',        'label' => __('Italic'),        'keys' => 'Ctrl+I'],
+        ['action' => 'heading',       'icon' => 'fas fa-heading',       'label' => __('Heading'),       'keys' => 'Ctrl+H'],
+        ['action' => 'strikethrough', 'icon' => 'fas fa-strikethrough', 'label' => __('Strikethrough')],
+    ],
+    [
+        ['action' => 'list-ul', 'icon' => 'fas fa-list-ul', 'label' => __('Unordered list')],
+        ['action' => 'list-ol', 'icon' => 'fas fa-list-ol', 'label' => __('Ordered list')],
+    ],
+    [
+        ['action' => 'quote', 'icon' => 'fas fa-quote-left', 'label' => __('Quote')],
+        ['action' => 'code',  'icon' => 'fas fa-code',       'label' => __('Code')],
+        ['action' => 'table', 'icon' => 'fas fa-table',      'label' => __('Table')],
+    ],
+    [
+        ['action' => 'attribute',         'icon' => 'misp-icon misp-icon-attribute misp-simple', 'label' => __('Attribute'), 'keys' => 'Ctrl+M'],
+        ['action' => 'attribute-picture', 'icon' => 'fas fa-images',                             'label' => __('Attribute picture')],
+        ['action' => 'object',            'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object')],
+        ['action' => 'tag',               'icon' => 'misp-icon misp-icon-tag misp-simple',       'label' => __('Tag')],
+        ['action' => 'galaxymatrix',      'icon' => 'misp-icon misp-icon-galaxy misp-simple',    'label' => __('Galaxy matrix')],
+    ],
+];
 
 $menuItems = [
     // ── Download ──────────────────────────────────────────────────
@@ -60,71 +105,36 @@ $menuItems = [
     ],
     [
         'type'     => 'toggle',
-        'onclick'  => "erToggleRule('link', event)",
-        'icon'     => 'fas fa-link',
+        'onclick'  => "erToggleRule('misp', event)",
+        'icon'     => 'fas fa-fingerprint',
         'label'    => __('MISP Elements'),
         'badge_id' => 'er-rule-misp',
     ],
     // ── Rendering rules ─────────────────────────────────────────────
     ['type' => 'divider'],
     ['type' => 'header', 'icon' => 'fas fa-cog', 'label' => __('Markdown rendering rules')],
-    [
+];
+
+foreach ($renderingRules as $rule) {
+    $menuItems[] = [
         'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('attribute', event)",
-        'icon'     => 'misp-icon misp-icon-attribute misp-simple',
-        'label'    => __('Attribute'),
-        'badge_id' => 'er-render-attribute',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('attribute-picture', event)",
-        'icon'     => 'fas fa-images',
-        'label'    => __('Attribute picture'),
-        'badge_id' => 'er-render-attribute-picture',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('object', event)",
-        'icon'     => 'misp-icon misp-icon-object misp-simple',
-        'label'    => __('Object'),
-        'badge_id' => 'er-render-object',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('object-attribute', event)",
-        'icon'     => 'misp-icon misp-icon-object misp-simple',
-        'label'    => __('Object Attribute'),
-        'badge_id' => 'er-render-object-attribute',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('tag', event)",
-        'icon'     => 'misp-icon misp-icon-tag misp-simple',
-        'label'    => __('Tag'),
-        'badge_id' => 'er-render-tag',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('galaxymatrix', event)",
-        'icon'     => 'fas fa-book-atlas',
-        'label'    => __('Galaxy matrix'),
-        'badge_id' => 'er-render-galaxymatrix',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('suggestion', event)",
-        'icon'     => 'fas fa-wand-magic-sparkles',
-        'label'    => __('Suggestion'),
-        'badge_id' => 'er-render-suggestion',
-    ],
+        'onclick'  => sprintf("erToggleRenderingRule('%s', event)", $rule['key']),
+        'icon'     => $rule['icon'],
+        'label'    => $rule['label'],
+        'badge_id' => 'er-render-' . $rule['key'],
+    ];
+}
+
+$menuItems = array_merge($menuItems, [
     // ── Templating ─────────────────────────────────────────────
     ['type' => 'divider'],
     ['type' => 'header', 'icon' => 'fas fa-screwdriver-wrench', 'label' => __('Templating')],
     [
-        'type'    => 'item',
-        'url'     => $baseurl . '/EventReportTemplateVariables/index/',
-        'icon'    => 'fas fa-screwdriver',
-        'label'   => __('Configure Template variables'),
+        'type'   => 'item',
+        'url'    => $baseurl . '/EventReportTemplateVariables/index/',
+        'target' => '_blank',
+        'icon'   => 'fas fa-screwdriver',
+        'label'  => __('Configure Template variables'),
     ],
     // ── LLM ─────────────────────────────────────────────
     ['type' => 'divider'],
@@ -135,7 +145,50 @@ $menuItems = [
         'icon'    => 'fas fa-robot',
         'label'   => __('Send report to LLM'),
     ],
-];
+]);
+
+// ── AI ─────────────────────────────────────────────────────────
+// A1 from the report page: the AI module puts its summary on top of the
+// report (a previous AI summary is replaced). Offered while the AI services
+// are on and the user may edit the report and run the tools.
+$aiSummarizeUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiSummarize'))
+    ? $baseurl . '/eventReports/aiSummarize/' . $reportId
+    : null;
+// A4 from the report page: only this report is sent, the answer is
+// reviewed in the modal before it is added to the event.
+$aiExtractUrl = ($editable
+    && empty($reportData['deleted'])
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canAccess('eventReports', 'aiExtractIndicators'))
+    ? $baseurl . '/eventReports/aiExtractIndicators/' . $reportId
+    : null;
+if ($aiSummarizeUrl !== null || $aiExtractUrl !== null) {
+    $menuItems[] = ['type' => 'divider'];
+    $menuItems[] = ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('AI')];
+}
+if ($aiSummarizeUrl !== null) {
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiSummarizeUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiSummarizeUrl . "', 'md');",
+        'icon'    => 'fas fa-file-lines',
+        'label'   => __('Summarise report'),
+        'title'   => __('The AI module puts its summary on top of the report; a previous AI summary is replaced'),
+    ];
+}
+if ($aiExtractUrl !== null) {
+    $menuItems[] = [
+        'type'    => 'item',
+        'url'     => $aiExtractUrl,
+        'onclick' => "event.preventDefault(); openModal('" . $aiExtractUrl . "', 'md');",
+        'icon'    => 'fas fa-magnifying-glass',
+        'label'   => __('Extract indicators'),
+        'title'   => __('The AI module reads this report and proposes attributes and objects, reviewed before they are added'),
+    ];
+}
 
 ?>
 
@@ -150,9 +203,28 @@ $menuItems = [
                   style="display:none; font-size:0.7rem;">
                 <?= __('Unsaved changes') ?>
             </span>
+
+            <?php if ($editable): ?>
+            <!-- WRITING TOOLBAR -->
+            <div id="er-toolbar" class="ov-md-toolbar" role="toolbar"
+                 aria-label="<?= __('Formatting') ?>">
+                <?php foreach ($toolbarGroups as $i => $group): ?>
+                    <?php if ($i): ?><span class="ov-md-tool-sep"></span><?php endif; ?>
+                    <?php foreach ($group as $tool): ?>
+                        <button type="button"
+                                class="ov-md-tool"
+                                data-md-action="<?= h($tool['action']) ?>"
+                                title="<?= h($tool['label'] . (empty($tool['keys']) ? '' : ' (' . $tool['keys'] . ')')) ?>"
+                                aria-label="<?= h($tool['label']) ?>">
+                            <i class="<?= h($tool['icon']) ?>"></i>
+                        </button>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3">
 
             <?php if ($editable): ?>
             <!-- SAVE -->
@@ -164,6 +236,15 @@ $menuItems = [
                 <i class="fas fa-save me-1"></i><?= __('Save') ?>
             </button>
             <?php endif; ?>
+
+            <!-- HELP -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#er-help-modal"
+                    title="<?= __('Markdown help') ?>">
+                <i class="fas fa-circle-question me-1"></i><?= __('Help') ?>
+            </button>
 
             <!-- MENU DROPDOWN -->
             <div class="dropdown">
@@ -191,6 +272,7 @@ $menuItems = [
                             <li>
                                 <a class="dropdown-item <?= !empty($item['disabled']) ? 'disabled text-muted' : '' ?>"
                                    href="<?= !empty($item['url']) && empty($item['disabled']) ? h($item['url']) : '#' ?>"
+                                   <?= !empty($item['target']) ? 'target="' . h($item['target']) . '"' : '' ?>
                                    <?= !empty($item['title']) ? 'title="' . h($item['title']) . '"' : '' ?>
                                    <?= !empty($item['onclick']) ? 'onclick="' . h($item['onclick']) . '"' : '' ?>>
                                     <i class="<?= h($item['icon']) ?> me-2"></i>
@@ -210,7 +292,7 @@ $menuItems = [
                                     <i class="<?= h($item['icon']) ?>"></i>
                                     <?= h($item['label'] ?? '') ?>
                                     <span id="<?= h($item['badge_id']) ?>"
-                                          class="badge bg-success">
+                                          class="badge bg-success ms-auto">
                                         <?= __('enabled') ?>
                                     </span>
                                 </a>
@@ -232,13 +314,17 @@ $menuItems = [
             <div class="px-2 py-1 border-bottom bg-body-tertiary small text-muted fw-semibold">
                 <i class="fas fa-pen me-1"></i><?= __('Edit') ?>
             </div>
-            <textarea
-                id="er-editor"
-                class="form-control border-0 rounded-0 font-monospace flex-grow-1"
-                style="height:100%; min-height:68vh; font-size:0.875rem; resize:none;"
-                spellcheck="false"
-                <?= $editable ? '' : 'readonly' ?>
-            ><?= h($content) ?></textarea>
+            <!-- The colours are a <pre> under a textarea whose own text is
+                 transparent; both are filled by MispReportMarkdown. -->
+            <div class="ov-raw-wrap">
+                <pre id="er-editor-layer" class="ov-raw-layer" aria-hidden="true"></pre>
+                <textarea
+                    id="er-editor"
+                    class="ov-raw-input"
+                    spellcheck="false"
+                    <?= $editable ? '' : 'readonly' ?>
+                ><?= h($content) ?></textarea>
+            </div>
         </div>
 
         <!-- LIVE PREVIEW -->
@@ -254,6 +340,8 @@ $menuItems = [
     </div>
 
 </div>
+
+<?= $this->element('EventReports/View/eventReport_help_modal') ?>
 
 <!-- ─── LLM CONFIRMATION MODAL ───────────────────────────────── -->
 <div class="modal fade"
@@ -306,68 +394,67 @@ $menuItems = [
     </div>
 </div>
 
-<style>
-    .markdown-preview-body h1,
-    .markdown-preview-body h2,
-    .markdown-preview-body h3,
-    .markdown-preview-body h4 { margin-top:1.2rem; margin-bottom:.4rem; font-weight:600; }
-    .markdown-preview-body p  { margin-bottom:.75rem; }
-    .markdown-preview-body pre { background:var(--bs-tertiary-bg); padding:.75rem 1rem; border-radius:.375rem; overflow-x:auto; }
-    .markdown-preview-body code { font-size:.85em; }
-    .markdown-preview-body blockquote { border-left:4px solid var(--bs-border-color); padding:.25rem .75rem; color:var(--bs-secondary-color); margin:.5rem 0; }
-    .markdown-preview-body table { width:100%; border-collapse:collapse; margin-bottom:1rem; }
-    .markdown-preview-body th,
-    .markdown-preview-body td  { border:1px solid var(--bs-border-color); padding:.4rem .6rem; }
-    .markdown-preview-body th  { background:var(--bs-tertiary-bg); font-weight:600; }
-    .markdown-preview-body img { max-width:100%; height:auto; }
-    .markdown-preview-body a   { color:var(--bs-link-color); }
-    .markdown-preview-body hr  { border-color:var(--bs-border-color); }
-</style>
-
 <script>
 (function () {
     'use strict';
 
     /* ── Constants ───────────────────────────────────────────── */
-    var erReportId       = <?= json_encode($reportId) ?>;
-    var erEditable       = <?= $editable ? 'true' : 'false' ?>;
+    var erReportId        = <?= json_encode($reportId) ?>;
+    var erEventId         = <?= json_encode($eventId) ?>;
+    var erEditable        = <?= $editable ? 'true' : 'false' ?>;
     var erOriginalContent = <?= json_encode($content) ?>;
-    var erMd             = null;
-    var erDisabledRules  = {};   /* rulename → true when disabled */
-    var erRenderingRules = {
-        'attribute':         true,
-        'attribute-picture': true,
-        'object':            true,
-        'object-attribute':  true,
-        'tag':               true,
-        'galaxymatrix':      true,
-        'suggestion':        true,
-    };
-    var erRenderTimer    = null;
+    /* {{ name }} substitutions — the renderer normalises MISP's row shape. */
+    var erTemplateVars    = <?= json_encode($templateVariables ?? []) ?>;
+    var erRenderer        = null;
+    var erRenderTimer     = null;
 
     /* ── Bootstrap ───────────────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', function () {
-        /* Init markdown-it */
-        if (window.markdownit) {
-            erMd = window.markdownit({ html: false, linkify: true, typographer: true });
+        var editor  = document.getElementById('er-editor');
+        var preview = document.getElementById('er-live-preview');
+        if (!editor) { return; }
+
+        editor.addEventListener('input', function () {
+            erUpdateUnsavedBadge();
+            erScheduleRender();
+        });
+        editor.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (erEditable) { erSaveContent(); }
+            }
+        });
+
+        if (!window.MispReportMarkdown) { return; }
+
+        var layer = document.getElementById('er-editor-layer');
+        if (layer) { window.MispReportMarkdown.bindSourceHighlight(editor, layer); }
+
+        if (!preview) { return; }
+        erRenderer = window.MispReportMarkdown.create({
+            reportId: erReportId,
+            eventId: erEventId,
+            templateVariables: erTemplateVars,
+            invalidMessage: <?= json_encode(__('invalid scope or id')) ?>,
+            onProxyError: function () {
+                showToast(
+                    <?= json_encode(__('Could not load the event\'s MISP elements: attributes, objects and tags will not be rendered.')) ?>,
+                    'warning'
+                );
+            }
+        });
+
+        // The shortcuts the Help modal lists, and the Ctrl+Space suggestion
+        if (erEditable) {
+            window.MispReportMarkdown.bindSourceEditing(
+                editor, erRenderer, document.getElementById('er-toolbar')
+            );
         }
 
-        var editor = document.getElementById('er-editor');
-        if (editor) {
-            editor.addEventListener('input', function () {
-                erUpdateUnsavedBadge();
-                erScheduleRender();
-            });
-            editor.addEventListener('keydown', function (e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    if (erEditable) { erSaveContent(); }
-                }
-            });
-        }
-
-        /* Initial render + sync all rule badges */
-        erRenderLivePreview();
+        erRenderer.ready.then(function () {
+            erRenderLivePreview();
+            erUpdateRuleUI();
+        });
         erUpdateRuleUI();
     });
 
@@ -388,65 +475,48 @@ $menuItems = [
     function erRenderLivePreview() {
         var editor  = document.getElementById('er-editor');
         var preview = document.getElementById('er-live-preview');
-        if (!editor || !preview) { return; }
-
-        if (erMd) {
-            preview.innerHTML = erMd.render(editor.value);
-        } else {
-            preview.innerHTML =
-                '<pre style="white-space:pre-wrap">' +
-                editor.value
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;') +
-                '</pre>';
-        }
+        if (!editor || !preview || !erRenderer) { return; }
+        erRenderer.render(editor.value, preview);
     }
 
     /* ── Parsing rules toggle ────────────────────────────────── */
     window.erToggleRule = function (rulename, e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (!erMd) { return; }
-
-        if (erDisabledRules[rulename]) {
-            erMd.enable([rulename]);
-            delete erDisabledRules[rulename];
-        } else {
-            erMd.disable([rulename]);
-            erDisabledRules[rulename] = true;
-        }
-
+        if (!erRenderer) { return; }
+        erRenderer.toggleParsingRule(rulename);
         erUpdateRuleUI();
         erRenderLivePreview();
     };
-
-    function erUpdateRuleUI() {
-        ['image', 'link'].forEach(function (rule) {
-            var badge = document.getElementById('er-rule-' + rule);
-            if (!badge) { return; }
-            var enabled = !erDisabledRules[rule];
-            badge.textContent = enabled ? '<?= __('enabled') ?>' : '<?= __('disabled') ?>';
-            badge.className   = 'badge ' + (enabled ? 'bg-success' : 'bg-secondary');
-        });
-
-        Object.keys(erRenderingRules).forEach(function (rule) {
-            var badge = document.getElementById('er-render-' + rule);
-            if (!badge) { return; }
-            var enabled = erRenderingRules[rule];
-            badge.textContent = enabled ? '<?= __('enabled') ?>' : '<?= __('disabled') ?>';
-            badge.className   = 'badge ' + (enabled ? 'bg-success' : 'bg-secondary');
-        });
-    }
 
     /* ── Rendering rules toggle ──────────────────────────────── */
     window.erToggleRenderingRule = function (rulename, e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (erRenderingRules[rulename] === undefined) { return; }
-
-        erRenderingRules[rulename] = !erRenderingRules[rulename];
+        if (!erRenderer) { return; }
+        if (!erRenderer.setRenderingRule(rulename, !erRenderer.getRenderingRule(rulename))) {
+            return;
+        }
         erUpdateRuleUI();
         erRenderLivePreview();
     };
+
+    function erSetBadge(id, enabled) {
+        var badge = document.getElementById(id);
+        if (!badge) { return; }
+        badge.textContent = enabled
+            ? <?= json_encode(__('enabled')) ?>
+            : <?= json_encode(__('disabled')) ?>;
+        badge.className = 'badge ms-auto ' + (enabled ? 'bg-success' : 'bg-secondary');
+    }
+
+    function erUpdateRuleUI() {
+        if (!erRenderer) { return; }
+        ['image', 'link', 'misp'].forEach(function (rule) {
+            erSetBadge('er-rule-' + rule, erRenderer.getParsingRule(rule));
+        });
+        erRenderer.renderingRuleNames().forEach(function (rule) {
+            erSetBadge('er-render-' + rule, erRenderer.getRenderingRule(rule));
+        });
+    }
 
     /* ── Download ────────────────────────────────────────────── */
     window.erDownloadMarkdown = function (type, e) {
@@ -454,27 +524,11 @@ $menuItems = [
 
         var editor = document.getElementById('er-editor');
         if (!editor) { return; }
-        var raw       = editor.value;
-        var timestamp = new Date().getTime();
-        var filename  = 'event-report-' + timestamp + '.md';
+        var raw      = editor.value;
+        var filename = 'event-report-' + new Date().getTime() + '.md';
 
         if (type === 'pdf-print') {
-            var rendered = erMd
-                ? erMd.render(raw)
-                : '<pre>' + raw.replace(/</g, '&lt;') + '</pre>';
-
-            var win = window.open('', '_blank', 'width=900,height=700');
-            win.document.write(
-                '<!DOCTYPE html><html><head>' +
-                '<meta charset="utf-8"><title>Event Report ' + erReportId + '</title>' +
-                '<style>body{font-family:sans-serif;padding:2rem;max-width:800px;margin:auto}' +
-                'pre{background:#f4f4f4;padding:1rem;border-radius:4px;overflow-x:auto}' +
-                'table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem .6rem}' +
-                '</style></head><body>' + rendered + '</body></html>'
-            );
-            win.document.close();
-            win.focus();
-            setTimeout(function () { win.print(); }, 400);
+            erPrintPreview();
             return;
         }
 
@@ -485,6 +539,9 @@ $menuItems = [
 
         /* text / text-gfm — Blob download */
         var fileContent = raw;
+        if (type === 'text-gfm' && erRenderer) {
+            fileContent = erRenderer.toGfm(raw);
+        }
         var blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
         var url  = URL.createObjectURL(blob);
         var a    = document.createElement('a');
@@ -495,6 +552,54 @@ $menuItems = [
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
+
+    /**
+     * Print window. The report's own stylesheets are linked rather 
+     * than re-declared
+     */
+    function erPrintPreview() {
+        var preview = document.getElementById('er-live-preview');
+        if (!preview) { return; }
+
+        var version = <?= json_encode($queryVersion ?? '') ?>;
+        var suffix  = version ? ('?v=' + encodeURIComponent(version)) : '';
+        var sheets  = ['bootstrap5-custom.min', 'mainOvermind', 'fontawesome7.min'];
+        var links   = sheets.map(function (name) {
+            return '<link rel="stylesheet" href="'
+                + baseurl + '/css/' + name + '.css' + suffix + '">';
+        }).join('');
+
+        var win = window.open('', '_blank', 'width=900,height=700');
+        if (!win) {
+            showToast(
+                <?= json_encode(__('The print window was blocked by the browser.')) ?>,
+                'danger'
+            );
+            return;
+        }
+        var printed = false;
+        function printOnce() {
+            if (printed) { return; }
+            printed = true;
+            win.focus();
+            win.print();
+        }
+        /* Listen before writing: document.close() can fire load right away,
+           and a stylesheet that never answers must not leave the window
+           sitting there unprinted either. */
+        win.addEventListener('load', printOnce);
+        win.document.write(
+            '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            + '<title>' + <?= json_encode(__('Event Report')) ?> + ' ' + erReportId + '</title>'
+            + links
+            + '<style>body{padding:2rem;max-width:900px;margin:auto;}</style>'
+            + '</head><body><div class="markdown-preview-body">'
+            + preview.innerHTML
+            + '</div></body></html>'
+        );
+        win.document.close();
+        setTimeout(printOnce, 1500);
+    }
 
     /* ── Save ────────────────────────────────────────────────── */
     window.erSaveContent = async function () {
@@ -536,11 +641,10 @@ $menuItems = [
                 showToast(result.message || '<?= __('Content saved') ?>', 'success');
                 erOriginalContent = editor.value;
                 erUpdateUnsavedBadge();
-                /* Sync the read-only preview in the General tab */
-                var readonlyPreview = document.getElementById('er-preview-readonly');
-                if (readonlyPreview && erMd) {
-                    readonlyPreview.innerHTML = erMd.render(editor.value);
-                }
+
+                document.dispatchEvent(new CustomEvent('misp:report-saved', {
+                    detail: { reportId: erReportId, content: editor.value }
+                }));
             } else {
                 showToast(result.message || '<?= __('Save failed') ?>', 'danger');
             }
@@ -550,72 +654,6 @@ $menuItems = [
         } finally {
             btn.disabled  = false;
             btn.innerHTML = '<i class="fas fa-save me-1"></i><?= __('Save') ?>';
-        }
-    };
-
-    /* ── Send to LLM ─────────────────────────────────────────── */
-
-    /* Step 1 — open the BS5 confirmation modal */
-    window.erSendToLLM = function (e) {
-        if (e) { e.preventDefault(); }
-        var modal = new bootstrap.Modal(document.getElementById('er-llm-modal'));
-        modal.show();
-    };
-
-    /* Step 2 — user clicked "Confirm" inside the modal */
-    window.erConfirmLLM = async function () {
-        /* Close the confirmation modal */
-        var modalEl = document.getElementById('er-llm-modal');
-        var modal   = bootstrap.Modal.getInstance(modalEl);
-        if (modal) { modal.hide(); }
-
-        var confirmBtn = document.getElementById('er-llm-confirm-btn');
-        if (confirmBtn) {
-            confirmBtn.disabled  = true;
-            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span><?= __('Sending…') ?>';
-        }
-
-        showToast('<?= __('Sending to LLM… please wait.') ?>', 'primary');
-
-        var url = baseurl + '/eventReports/sendToLLM/' + erReportId;
-
-        try {
-            /* GET the Overmind sendToLLM view to obtain the CSRF token */
-            var formResp = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!formResp.ok) { throw new Error('HTTP ' + formResp.status); }
-
-            var formHtml = await formResp.text();
-            var parser   = new DOMParser();
-            var doc      = parser.parseFromString(formHtml, 'text/html');
-            var form     = doc.querySelector('form');
-            if (!form) { throw new Error('<?= __('CSRF form not found in response') ?>'); }
-
-            /* POST back with CSRF tokens */
-            var postResp = await fetch(form.action || url, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new URLSearchParams(new FormData(form))
-            });
-
-            var result = await postResp.json();
-
-            if (result.saved !== false) {
-                showToast(result.message || '<?= __('Report sent to LLM successfully') ?>', 'success');
-                setTimeout(function () { window.location.reload(); }, 1500);
-            } else {
-                var errDetail = result.errors || result.message || '<?= __('Failed to send to LLM') ?>';
-                showToast(errDetail, 'danger');
-            }
-
-        } catch (err) {
-            showToast('<?= __('Failed to send to LLM') ?>: ' + err.message, 'danger');
-        } finally {
-            if (confirmBtn) {
-                confirmBtn.disabled  = false;
-                confirmBtn.innerHTML = '<i class="fas fa-robot me-1"></i><?= __('Confirm') ?>';
-            }
         }
     };
 

@@ -1303,7 +1303,11 @@ class ObjectsController extends AppController
                 }
             }
             file_put_contents(APP . 'files/scripts/tmp/object_recovery_' . time() . '.sql', implode("\n", $counterQueries));
-            $this->MispObject->query(implode("\n", $queries));
+            // One statement per call. MySQL's driver happens to accept several
+            // in one prepared string; PostgreSQL's refuses them outright.
+            foreach ($queries as $query) {
+                $this->MispObject->query($query);
+            }
             $message = '';
             $this->Flash->success(__('%s objects successfully reconstructed.', $success));
             $this->redirect('/objects/orphanedObjectDiagnostics');
@@ -1641,6 +1645,6 @@ class ObjectsController extends AppController
         $this->layout = null;
         $this->set('shortDist', $this->MispObject->Attribute->shortDist);
         $this->set('object', $object[0]['Object']);
-        $this->set('seed', $seed);
+        $this->set('seed', (int)$seed ?: mt_rand());
     }
 }

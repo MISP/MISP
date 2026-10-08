@@ -125,12 +125,17 @@ class EventEvolutionLineWidget
         $this->Event->virtualFields = [
             'published_date' => null
         ];
+        // Grouping by the formatted month alone: MONTH()/YEAR() were both
+        // MySQL-only and redundant, since the 'YYYY-MM' string already
+        // determines them. The expression rather than the `date` alias, because
+        // events has a column of that name and the two would be ambiguous.
+        $dialect = $this->Event->getSqlDialect();
+        $month = $dialect->formatYearMonth($dialect->fromUnixtime('Event.publish_timestamp'));
         $raw = $this->Event->find('all', [
             'recursive' => -1,
             'conditions' => $eparams['conditions'],
-            'fields' => ['DATE_FORMAT(FROM_UNIXTIME(Event.publish_timestamp), "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => ['MONTH(FROM_UNIXTIME(Event.publish_timestamp)), YEAR(FROM_UNIXTIME(Event.publish_timestamp))', 'DATE_FORMAT(FROM_UNIXTIME(Event.publish_timestamp), "%Y-%m")']
-            
+            'fields' => [$month . ' AS date', 'count(id) AS count'],
+            'group' => [$month]
         ]);
 
         usort($raw, [$this, 'sortByCreationDate']);

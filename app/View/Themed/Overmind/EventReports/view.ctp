@@ -1,5 +1,5 @@
 <?php
-    $headerTitle = __('Report #') . ($report['EventReport']['id'] ?? '');
+    $headerTitle = $report['EventReport']['name'] ?? '';
     $headerDescription = '';
     $headerActions = [];
 
@@ -8,7 +8,7 @@
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it']
+        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown']
     ]);
 
     echo $this->element('genericElementsBS5/Layout/view_layout',

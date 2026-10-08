@@ -181,8 +181,7 @@ class AccessLog extends AppModel
 
         $deleted = $this->getAffectedRows();
         if ($deleted > 100) {
-            $dataSource = $this->getDataSource();
-            $dataSource->query('OPTIMIZE TABLE ' . $dataSource->name($this->table));
+            $this->getDataSource()->query($this->getSqlDialect()->optimizeTable($this->table));
         }
         return $deleted;
     }

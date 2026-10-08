@@ -12,8 +12,6 @@ class UserInitShell extends AppShell {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
 		}
-		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-		$dataSource = $dataSourceConfig['datasource'];
 		$this->Role->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$this->User->Behaviors->unload('SysLogLogable.SysLogLogable');
 		// populate the DB with the first role (site admin) if it's empty
@@ -37,11 +35,8 @@ class UserInitShell extends AppShell {
 					'perm_template' => 1
 			));
 			$this->Role->save($siteAdmin);
-			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-			if ($dataSource == 'Database/Postgres') {
-				$sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-				$this->Role->query($sql);
-			}
+			// The id was set by force above, so the sequence has to catch up.
+			$this->Role->resetAutoIncrement();
 		}
 
 		if ($this->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
@@ -56,11 +51,8 @@ class UserInitShell extends AppShell {
 					'local' => 1
 			));
 			$this->Organisation->save($org);
-			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-			if ($dataSource == 'Database/Postgres') {
-				$sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
-				$this->Organisation->query($sql);
-			}
+			// The id was set by force above, so the sequence has to catch up.
+			$this->Organisation->resetAutoIncrement();
 			$org_id = $this->Organisation->id;
 		} else {
 			$hostOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org')), 'recursive' => -1));

@@ -466,26 +466,60 @@ foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $columns) {
 }
 $schemaTotal = $schemaDiffs + $indexDiffs;
 
+// The ledger figures. db_version is frozen, so the schema-version pair below
+// is the same on a healthy and on a stalled instance - these say whether
+// schema work is outstanding, and a failure outranks everything else because
+// the update run halts there.
+$migrationsPending = (int)($dbSchemaDiagnostics['migrations_pending'] ?? 0);
+$migrationsPendingIds = $dbSchemaDiagnostics['migrations_pending_ids'] ?? array();
+$migrationsFailed = (int)($dbSchemaDiagnostics['migrations_failed'] ?? 0);
+$migrationsFailedIds = $dbSchemaDiagnostics['migrations_failed_ids'] ?? array();
+$migrationsApplied = (int)($dbSchemaDiagnostics['migrations_applied'] ?? 0);
+
+if ($migrationsFailed > 0) {
+    $databaseBadge = array('level' => 0, 'label' => __('%s migration(s) failed', $migrationsFailed));
+} elseif ($migrationsPending > 0) {
+    $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
+} elseif ($schemaTotal) {
+    $databaseBadge = array('level' => 1, 'label' => __('%s schema difference(s)', $schemaTotal));
+} else {
+    $databaseBadge = array('level' => 2, 'label' => __('Schema matches'));
+}
+
 $openCard('database', '#0dcaf0', __('Database status'),
-    __('Disk usage per table and how the live schema compares to the expected one'),
-    $schemaTotal
-        ? array('level' => 1, 'label' => __('%s schema difference(s)', $schemaTotal))
-        : array('level' => 2, 'label' => __('Schema matches')));
+    __('Disk usage per table, outstanding migrations, and how the live schema compares to the expected one'),
+    $databaseBadge);
 ?>
     <div class="row g-3 mb-3">
-        <div class="col-sm-4">
+        <div class="col-sm-3">
             <div class="dg-stat-label"><?= __('Total size') ?></div>
             <div class="dg-version"><?= h($formatBytes($dbTotal)) ?></div>
             <div class="dg-figures text-muted"><?= __('across %s tables', count($tables)) ?></div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-3">
             <div class="dg-stat-label"><?= __('Reclaimable') ?></div>
             <div class="dg-version <?= $dbReclaimable > 0 ? 'text-warning-emphasis' : '' ?>">
                 <?= h($formatBytes($dbReclaimable)) ?>
             </div>
             <div class="dg-figures text-muted"><?= __('freed by an SQL optimize') ?></div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-3">
+            <div class="dg-stat-label"><?= __('Migrations') ?></div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="dg-version"><?= h($migrationsApplied) ?></span>
+                <?php
+                if ($migrationsFailed > 0) {
+                    echo $pill(0, __('%s failed', $migrationsFailed));
+                } elseif ($migrationsPending > 0) {
+                    echo $pill(1, __('%s pending', $migrationsPending));
+                } else {
+                    echo $pill(2, __('up to date'));
+                }
+                ?>
+            </div>
+            <div class="dg-figures text-muted"><?= __('applied, per the ledger') ?></div>
+        </div>
+        <div class="col-sm-3">
             <div class="dg-stat-label"><?= __('Schema version') ?></div>
             <div class="d-flex align-items-center gap-2">
                 <span class="dg-version"><?= h($dbSchemaDiagnostics['actual_db_version']) ?></span>
@@ -514,10 +548,47 @@ $openCard('database', '#0dcaf0', __('Database status'),
         </div>
     <?php endif; ?>
 
+    <?php foreach (($dbSchemaDiagnostics['warnings'] ?? array()) as $warning): ?>
+        <div class="alert alert-warning d-flex gap-2" role="alert">
+            <i class="fas fa-triangle-exclamation mt-1"></i>
+            <div><?= h($warning) ?></div>
+        </div>
+    <?php endforeach; ?>
+
     <?php if (!empty($dbSchemaDiagnostics['update_fail_number_reached'])): ?>
         <div class="alert alert-danger d-flex gap-2" role="alert">
             <i class="fas fa-triangle-exclamation mt-1"></i>
             <div><?= __('The maximum number of failed updates has been reached — updates are halted until the issue is resolved.') ?></div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($migrationsFailed > 0): ?>
+        <div class="alert alert-danger d-flex gap-2" role="alert">
+            <i class="fas fa-triangle-exclamation mt-1"></i>
+            <div>
+                <?= __('The update run halted on a failed migration. Nothing after it has been attempted; it is retried first on the next run, and the error is recorded in its ledger row.') ?>
+                <div class="mt-1"><code><?= h(implode(', ', $migrationsFailedIds)) ?></code></div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($migrationsPending > 0): ?>
+        <div class="alert alert-warning d-flex gap-2" role="alert">
+            <i class="fas fa-triangle-exclamation mt-1"></i>
+            <div>
+                <?= __('%s migration(s) pending, applied in this order by the next update run:', $migrationsPending) ?>
+                <a href="<?= $baseurl ?>/servers/updateProgress" class="ms-1"><?= __('View update progress') ?></a>
+                <ul class="mb-0 mt-1">
+                <?php foreach ($migrationsPendingIds as $migrationId): ?>
+                    <li>
+                        <code><?= h($migrationId) ?></code>
+                        <?php if (in_array($migrationId, $migrationsFailedIds, true)): ?>
+                            <?= $pill(0, __('failed')) ?>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+                </ul>
+            </div>
         </div>
     <?php endif; ?>
 

@@ -639,7 +639,7 @@ class EventGraph {
                     btn_plot.data('network-preview', preview);
                     btn_plot.popover({
                         container: 'body',
-                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                        content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                         placement: 'right',
                         trigger: 'hover',
                         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -1413,7 +1413,7 @@ class DataHandler {
         this.mapping_node_to_from_edges = {};
         this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
-        this.extended_event = $('#eventgraph_network').data('is_extended') == 1 ? true : false;
+        this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();
         this.scope_name;
     }
@@ -1482,6 +1482,7 @@ class DataHandler {
                 type: 'post',
                 contentType: 'application/json',
                 data: JSON.stringify( payload ),
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
                     if (updateOnly === undefined || updateOnly === false) {
@@ -1515,6 +1516,8 @@ class DataHandler {
                     }
                 },
                 error: function( jqXhr, textStatus, errorThrown ){
+                    eventGraph.network_loading(false, "");
+                    showMessage('fail', 'Could not fetch the event graph data');
                     console.log( errorThrown );
                 }
             });
@@ -2016,7 +2019,7 @@ function reset_graph_history() {
                 btn_plot.data('network-preview', preview);
                 btn_plot.popover({
                     container: 'body',
-                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                    content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                     placement: 'right',
                     trigger: 'hover',
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -2602,4 +2605,3 @@ function isPicture(filename) {
     var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
     return validExtensions.includes(extension)
 }
-

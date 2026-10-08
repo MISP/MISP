@@ -6,6 +6,20 @@
         <div class="alert alert-info"><?= __('Viewing reports in extending mode event view') ?></div>
     <?php endif; ?>
     <?php
+        // A1 per report row: the AI module writes its summary on top of the
+        // report. Only while the AI services are on and the user may run them.
+        $aiSummarizeReport = $canModify
+            && Configure::read('Plugin.AI_services_enable')
+            && $this->Acl->canAccess('eventReports', 'aiSummarize');
+        // A4 needs something to read: the button is offered only with a
+        // non-deleted report on the event.
+        $hasActiveReport = false;
+        foreach ($reports as $row) {
+            if (empty($row['EventReport']['deleted'])) {
+                $hasActiveReport = true;
+                break;
+            }
+        }
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'containerId' => 'eventreport',
             'data' => array(
@@ -40,6 +54,24 @@
                                     'fa-icon' => 'list-alt',
                                     'class' => 'modal-open',
                                     'requirement' => $canModify,
+                                ),
+                                array(
+                                    'url' => $baseurl . '/events/aiSummarize/' . h($event_id),
+                                    'active' => true,
+                                    'text' => __('Summarise with AI'),
+                                    'title' => __('The AI module writes a summary of the event into a new report'),
+                                    'fa-icon' => 'robot',
+                                    'class' => 'modal-open',
+                                    'requirement' => $canModify && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiSummarize'),
+                                ),
+                                array(
+                                    'url' => $baseurl . '/events/aiExtractIndicators/' . h($event_id),
+                                    'active' => true,
+                                    'text' => __('Extract indicators with AI'),
+                                    'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
+                                    'fa-icon' => 'magnifying-glass',
+                                    'class' => 'modal-open',
+                                    'requirement' => $canModify && $hasActiveReport && Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiExtractIndicators'),
                                 ),
                             )
                         ),
@@ -135,6 +167,15 @@
                         ),
                         'icon' => 'eye',
                         'dbclickAction' => true
+                    ),
+                    array(
+                        'title' => __('Summarise with AI'),
+                        'icon' => 'robot',
+                        'onclick' => 'openGenericModal(\'' . $baseurl . '/eventReports/aiSummarize/[onclick_params_data_path]\');',
+                        'onclick_params_data_path' => 'EventReport.id',
+                        'complex_requirement' => function (array $row) use ($aiSummarizeReport) {
+                            return $aiSummarizeReport && !$row['EventReport']['deleted'];
+                        },
                     ),
                     array(
                         'title' => __('Delete'),

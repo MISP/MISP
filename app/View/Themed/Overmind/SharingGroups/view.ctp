@@ -1,5 +1,8 @@
 <?php
-    echo $this->element('genericElementsBS5/Layout/view_layout',
+
+$this->set('headerTitle', $sg['SharingGroup']['name']);
+
+echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $sg,
         'tabs' => [

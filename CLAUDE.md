@@ -60,9 +60,15 @@ app/Console/cake Password resetPassword       # Reset password
 
 # Server configuration
 app/Console/cake Admin setSetting KEY VALUE   # Set configuration value
-app/Console/cake Admin runUpdates             # Run database migrations
+app/Console/cake Admin runUpdates             # Apply all outstanding DB updates
 app/Console/cake Admin schemaDiagnostics      # Check database schema
 app/Console/cake Admin live 1                 # Enable/disable MISP
+
+# Database migrations (see docs/dev/database-migrations.md)
+app/Console/cake Admin migrationStatus        # Applied / pending / failed
+app/Console/cake Admin migrationApply --dry-run   # Print the SQL, per engine
+app/Console/cake Admin migrationApply         # Apply pending migrations
+app/Console/cake Admin migrationCreate slug   # Scaffold a new migration
 
 # Event operations
 app/Console/cake Event publish                # Publish events
@@ -109,6 +115,16 @@ app/Console/cake StartWorker                  # Start background workers
 - **Python files**: Lowercase with underscores (`load_warninglists.py`)
 - **JavaScript files**: Lowercase with dashes (`bootstrap-colorpicker.js`)
 
+## Code Comments
+
+Keep comments minimal. Add one only where the code would be genuinely confusing in a vacuum, and
+keep it to a line or two — no large explanatory blocks justifying a change.
+
+**Never reference tracker or planning artefacts in code comments**: no finding ids (`V01`, `A01`),
+no task or phase numbers (`TaskA1`), no pointers to a PRD, handoff or progress tracker. That
+context belongs in the internal records, not in the tree. If a stale or misleading comment is what
+led someone astray, delete it rather than replacing it with a longer one.
+
 ## Commit Message Format
 
 Use gitchangelog prefixes for automatic changelog generation:
@@ -152,12 +168,47 @@ Recommended: gd, redis, openssl, apcu, ssdeep, bcmath
 
 When working with CakePHP (MISP), always verify query result structures before assuming array shapes. CakePHP find() returns vary by type (first/all/list) and version.
 
+### Database schema changes — migrations, never `DB_CHANGES`
+
+Any change to the database schema is a **migration** under `app/Lib/Migration/Migrations/`. Never add a case to `AppModel::DB_CHANGES` or to `LegacyMigrationsTrait`: that corpus is frozen at `db_version` 159, the freeze is enforced at runtime and by `LegacyCorpusFreezeTest`, and an added case fails the build.
+
+`docs/dev/database-migrations.md` is the full reference. The load-bearing parts:
+
+1. Scaffold with `app/Console/cake Admin migrationCreate <slug>` — never hand-name the file. A migration's id *is* its file name (class name minus the `Migration_` prefix), so the two cannot be allowed to disagree.
+2. Declare DDL in `up(SchemaBuilder $schema)` against the flavour-agnostic DSL, not as raw SQL. Raw SQL in a migration is raw MySQL.
+3. Data work goes in `afterUp()`, through models (`save()`/`updateAll()`), never as hand-written DML — and call `$Model->schema(true)` on any table the migration just altered, or writes to a new column are silently dropped.
+4. Always read `app/Console/cake Admin migrationApply --dry-run --id <id>` before applying. It renders **both** engines; the PostgreSQL half is the one nothing else will check, since a MISP host cannot connect to PostgreSQL at all.
+5. `rawSql()` is the escape hatch for things with no portable spelling (FULLTEXT, enum, version-gated statements). It requires a statement for every engine — a missing one is a hard error, not a skip.
+6. **Do not touch `db_schema.json`.** It is regenerated wholesale from a clean build before a release, not maintained per migration, so `schemaDiagnostics` reporting your change as a difference in the meantime is expected. Never run `dumpCurrentDatabaseSchema` against a working development instance and commit the result — it promotes that box's accumulated drift to canonical.
+7. Regenerating `INSTALL/MYSQL.sql` now also has to seed `schema_migrations` with the ids already baked into the dump, or fresh installs re-run every migration. Checklist in the doc's final section.
+
 ### Dashboard v2 — widget render kinds
 
 When adding a new widget render kind (any new value for `public $render` on a class under `app/Lib/Dashboard/`, or a new template under `app/View/Elements/dashboard/Widgets/`), you must also add a matching glyph to `app/webroot/js/dashboard/gallery/render-thumbs.mjs`. The Add Widget gallery uses these glyphs as fallback thumbnails for any widget that doesn't declare `$thumbnail`, so a new render kind without a glyph ships as a generic block in every gallery card that uses it. Steps:
 1. Add a `thumb<Name>()` builder following the existing pattern (single-color SVG, 80×45 viewBox, `currentColor` strokes/fills).
 2. Register it in the `REGISTRY` object at the bottom of the file under the exact `$render` string.
 3. The glyph should visually evoke the widget's output shape, not its data domain — a bar chart is bars regardless of whether it's counting events or orgs.
+
+## Performance — data scale and hardware spread
+
+When tuning a query or a hot path, reason about two independent axes and extrapolate; do **not**
+trust absolute timings from one machine.
+
+- **Event size.** Most events are small, **but not all** — a single event can exceed **1,000,000
+  attributes/objects** on operational instances, and that is more common in some communities than
+  rare. Judge any per-event work (per-row probes, PHP loops over the attribute/object set) at ~10^6
+  rows, not at a handful.
+- **Hardware spread.** MISP runs on everything from an **8 GB dual-core** box to **512 GB / 64-core**
+  community servers. Development often happens on a resource-constrained laptop, so extrapolation is
+  unavoidable — favour approaches whose cost scales predictably.
+- **The two axes can cross over.** A cost that scales with *event* size (e.g. a correlated per-row
+  subquery) and one that scales with *instance* size (e.g. an un-scoped `IN (SELECT …)` that the
+  planner materialises over the whole table) behave differently at the extremes and on different
+  hardware. Prefer the plan that stays bounded on the constrained end (event-scoped, O(1) extra
+  memory) over one that is faster only on a big box.
+- **Measure with portable signals, not wall-clock ms:** `EXPLAIN` / MariaDB `ANALYZE FORMAT=JSON`
+  (access type, actual rows, `MATERIALIZED` vs `unique_subquery`), rows examined, and temp-table
+  creation. These extrapolate across hardware; laptop milliseconds do not.
 
 ## Debugging
 

@@ -371,7 +371,7 @@ if (!empty($headerActions)) {
                 </h1>
                 <?php // headerCountText => '' is the opt-out for pages whose paginator counts something other than the page's subject ?>
                 <?php if ($countDisplay !== null && $countDisplay !== ''): ?>
-                    <span class="badge rounded-pill bg-primary fw-semibold px-3">
+                    <span class="badge rounded-pill bg-primary fw-semibold px-3" id="headerCountBadge">
                         <?= h($countDisplay) ?>
                     </span>
                 <?php endif; ?>

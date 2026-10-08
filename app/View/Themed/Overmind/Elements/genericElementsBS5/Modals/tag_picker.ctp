@@ -148,32 +148,9 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
-        /*
-         * No card hook (attribute context): reload whichever event-view index
-         * tab is currently shown. Each tab exposes { loadFn, buildFn } on window
-         * once rendered (view_attributes.ctp / Objects/index.ctp).
-         */
-        var tabs = [
-            { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: window.mispView.objects },
-            { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: window.mispView.attrs }
-        ];
-        function reload(api) {
-            if (api && typeof api.loadFn === 'function'
-                    && typeof api.buildFn === 'function') {
-                api.loadFn(api.buildFn());
-                return true;
-            }
-            return false;
-        }
-        /* Prefer the tab whose container is currently visible. */
-        for (var i = 0; i < tabs.length; i++) {
-            var cont = document.querySelector(tabs[i].sel);
-            if (cont && cont.offsetParent !== null && reload(tabs[i].api)) { return; }
-        }
-        /* Fallback: any exposed tab API. */
-        for (var j = 0; j < tabs.length; j++) {
-            if (reload(tabs[j].api)) { return; }
-        }
+        /* No card hook (attribute context): the change shows in the index
+           behind the modal. */
+        reloadEventViewIndexTab();
     }
 
     /* ─── Save ─── */

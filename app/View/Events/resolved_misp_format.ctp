@@ -1,5 +1,16 @@
 <div class="index">
     <h2><?php echo h($title); ?></h2>
+    <?php if (!empty($aiRejected)): ?>
+        <div class="alert alert-info" style="margin-bottom:10px;">
+            <strong><?= __n('%s candidate rejected by the AI module', '%s candidates rejected by the AI module', count($aiRejected), count($aiRejected)) ?></strong>
+            <?= __('(not in the source text, below the confidence threshold, or already on the event):') ?>
+            <ul style="margin:4px 0 0 18px;">
+            <?php foreach ($aiRejected as $candidate): ?>
+                <li><code><?= h(isset($candidate['type']) ? $candidate['type'] : '') ?></code> <?= h(isset($candidate['value']) ? $candidate['value'] : '') ?> — <?= h(isset($candidate['reason']) ? $candidate['reason'] : '') ?></li>
+            <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
     <?php
         $event_id = $event['Event']['id'];
         $url = $baseurl . '/events/handleModuleResults/' . $event_id;
@@ -30,7 +41,11 @@
             echo '<p>Results from the enrichment module for this attribute are empty.</p>';
         } else {
             $scope = implode(' and ', $objects_array);
-            echo '<p>Below you can see the ' . $scope . ' that are to be created from the results of the enrichment module.</p>';
+            if (isset($type) && $type === 'AI') {
+                echo '<p>' . __('Below you can see the %s the AI module read out of the event\'s reports. Untick anything wrong, then submit to add the rest to the event; every element carries the ai-computer-assisted tags.', $scope) . '</p>';
+            } else {
+                echo '<p>Below you can see the ' . $scope . ' that are to be created from the results of the enrichment module.</p>';
+            }
             $table_data = array(array('key' => __('Event ID'), 'value' => $event_id));
             $event_metadata = $event['Event'];
             if (!empty($event_metadata['uuid'])) {

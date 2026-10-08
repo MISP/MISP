@@ -137,9 +137,9 @@ $filterBar = [
                     'label' => __('Type'),
                     'name' => 'type',
                     'options' => [
+                        '' => __('All'),
                         'action' => __('Action'),
                         'logic' => __('Logic'),
-                        'all' => __('All'),
                         'custom' => __('Custom only'),
                     ],
                 ],

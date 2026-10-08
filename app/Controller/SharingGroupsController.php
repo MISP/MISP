@@ -171,20 +171,20 @@ class SharingGroupsController extends AppController
         $this->set('user', $this->Auth->user());
         $this->set('canModifyUuid', $canModifyUuid);
     }
-    
+
     public function edit($id = false)
     {
         if (empty($id)) {
             throw new NotFoundException('Invalid sharing group.');
         }
-        
+
         // check if the user is eligible to edit the SG (original creator or extend)
         $sharingGroup = $this->SharingGroup->find('first', array(
             'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
             'recursive' => -1,
             'contain' => array(
                 'SharingGroupOrg' => array(
-                    'Organisation' => array('name', 'local', 'id')
+                    'Organisation' => array('name', 'local', 'id', 'uuid')
                 ),
                 'SharingGroupServer' => array(
                     'Server' => array(

@@ -65,7 +65,8 @@ $mayModify = $this->Acl->canModifyEvent($data);
     </div>
 
     <!-- BODY -->
-    <div class="card-body p-0" id="<?= $uid ?>-body">
+    <div class="card-body p-0" id="<?= $uid ?>-body"
+         data-collapse-tall="400">
         <div class="text-center py-5 text-muted" id="<?= $uid ?>-spinner">
             <div class="spinner-border spinner-border-sm" role="status"></div>
         </div>

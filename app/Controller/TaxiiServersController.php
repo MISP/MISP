@@ -7,14 +7,11 @@ class TaxiiServersController extends AppController
 
     public function beforeFilter()
     {
-        // No need for CSRF tokens for a search
-        if ('getRoot' == $this->request->params['action'] || 'getCollections' == $this->request->params['action']) {
-            $this->Security->csrfCheck = false;
-        }
         if ($this->request->params['action'] === 'add' || $this->request->params['action'] === 'edit') {
             $this->Security->unlockedFields = ['api_root', 'collection'];
         }
         parent::beforeFilter();
+        $this->_csrfTokenHeaderOnly(['getRoot', 'getCollections']);
     }
 
     public $paginate = array(

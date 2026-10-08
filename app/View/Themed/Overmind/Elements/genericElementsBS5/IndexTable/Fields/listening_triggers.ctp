@@ -6,8 +6,8 @@ if (empty($triggers) || !is_array($triggers)) {
     echo sprintf('<span class="text-muted small">%s</span>', __('none'));
     return;
 }
-xdebug_break();
 ?>
+
 <div class="wf-scope d-flex flex-wrap gap-1">
     <?php foreach ($triggers as $trigger): ?>
         <?php
