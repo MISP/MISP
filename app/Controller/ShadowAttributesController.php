@@ -862,9 +862,7 @@ class ShadowAttributesController extends AppController
         }
         if (!empty($this->request['named']['searchall'])) {
             $term = '%' . strtolower(trim($this->request['named']['searchall'])) . '%';
-            $attributeValue = $this->ShadowAttribute->Attribute->loadAttributeValue();
-            // Proposals are few: the pattern is checked per row, not resolved
-            $conditions['AND'][] = $attributeValue->rewriteConditions(array('OR' => array(
+            $conditions['AND'][] = array('OR' => array(
                 'ShadowAttribute.value1 LIKE' => $term,
                 'ShadowAttribute.value2 LIKE' => $term,
                 'LOWER(ShadowAttribute.comment) LIKE' => $term,
@@ -873,7 +871,7 @@ class ShadowAttributesController extends AppController
                 'LOWER(Org.uuid) LIKE' => $term,
                 'LOWER(ShadowAttribute.uuid) LIKE' => $term,
                 'LOWER(Event.uuid) LIKE' => $term,
-            )), 'ShadowAttribute', true);
+            ));
         }
         if (isset($this->request['named']['deleted'])) {
             $conditions['AND'][] = array(

@@ -190,6 +190,8 @@ class ValueConditionRewriterTest extends TestCase
             ['Attribute.event_id >' => 3],
             ['Event.id' => 3],
             ['NOT' => ['Attribute.id' => 3]],
+            ['Attribute.object_id' => 0],
+            ['AND' => [['object_id' => ['0', 9]]]],
         ];
         foreach ($unbounded as $conditions) {
             $this->dictionary->calls['resolveLike'] = [];

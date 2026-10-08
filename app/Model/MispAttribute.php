@@ -326,6 +326,8 @@ class MispAttribute extends AppModel
     // Rows per pre-pass of a bulk save, see primeValues()
     const PRIME_CHUNK = 1000;
 
+    const RELATED_FIELDS = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
+
     const CAPTURE_FIELDS = array(
         'event_id',
         'category',
@@ -2675,17 +2677,19 @@ class MispAttribute extends AppModel
      * @param array $user
      * @param array $sgids
      * @param array $batch Rows as find('all') returns them.
+     * @param array $fields The related attributes' fields, [] for every column.
      * @return array
      */
-    private function relatedAttributesOf(array $user, array $sgids, array $batch)
+    public function relatedAttributesOf(array $user, array $sgids, array $batch, array $fields = self::RELATED_FIELDS)
     {
-        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
         $related = [];
         foreach ($batch as $row) {
             $related[$row['Attribute']['id']] =
                 $this->Correlation->getRelatedAttributes($user, $sgids, $row['Attribute'], $fields, true, false);
         }
-        $this->loadAttributeValue()->attachNested($related, ['value']);
+        // The value keys a find with these fields fills: every column brings all three
+        $keys = empty($fields) ? null : array_values(array_intersect(['value1', 'value2', 'value'], $fields));
+        $this->loadAttributeValue()->attachNested($related, $keys);
         return $related;
     }
 

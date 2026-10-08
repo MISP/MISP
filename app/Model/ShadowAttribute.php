@@ -404,7 +404,12 @@ class ShadowAttribute extends AppModel
 
     public function beforeFind($query)
     {
-        return $this->Attribute->loadAttributeValue()->prepareFind($query, $this->alias);
+        $attributeValue = $this->Attribute->loadAttributeValue();
+        if (!empty($query['conditions'])) {
+            // Proposals are few: a pattern is checked per row, not resolved
+            $query['conditions'] = $attributeValue->rewriteConditions($query['conditions'], $this->alias, true);
+        }
+        return $attributeValue->prepareFind($query, $this->alias);
     }
 
     public function afterFind($results, $primary = false)

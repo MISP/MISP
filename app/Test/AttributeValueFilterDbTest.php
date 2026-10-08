@@ -7,10 +7,12 @@
  * the value field in their conditions or wrapped a value column in a
  * function, a proposal search checking its pattern per row, and the attribute
  * fetch, which resolves its conditions once and reads the values of its
- * correlations at once.
+ * correlations at once. Proposal finds check their patterns per row; the
+ * event's paginated lists and the event index filters match on the ids.
  * The tests hide the value virtual field and the text columns from every
- * attribute model and point the stored text away from the dictionary, so a
- * condition left on either finds nothing or fails.
+ * attribute model (and from the proposal models where a test adds proposals)
+ * and point the stored text away from the dictionary, so a condition left on
+ * either finds nothing or fails.
  *
  * Every test runs in a transaction that is rolled back. Skipped unless
  * ATTRIBUTE_VALUE_DB_TESTS is set, and it boots the real application, so it
@@ -114,6 +116,9 @@ class AttributeValueFilterDbTest extends TestCase
                 $model->virtualFields = $this->virtualFields[$key];
             }
         }
+        foreach ($this->proposalModels() as $model) {
+            $model->schema(true);
+        }
         $this->db->rollback();
     }
 
@@ -215,6 +220,121 @@ class AttributeValueFilterDbTest extends TestCase
             implode(', ', $added)
         ));
         $this->hideTextColumnsAndValueField();
+    }
+
+    private function proposalModels()
+    {
+        $models = [];
+        foreach (ClassRegistry::keys() as $key) {
+            $object = ClassRegistry::getObject($key);
+            if ($object instanceof ShadowAttribute) {
+                $models[spl_object_id($object)] = $object;
+            }
+        }
+        return $models;
+    }
+
+    /**
+     * Proposals in the first event with the token as their comment, their
+     * stored text diverged and their text columns hidden.
+     *
+     * @param array $specs name => [type, value]
+     * @return array name => proposal id
+     */
+    private function addProposals(array $specs)
+    {
+        $event = $this->event->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.id' => $this->events[0]],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id'],
+        ])['Event'];
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        foreach ($this->proposalModels() as $model) {
+            $model->schema(true);
+        }
+        $ids = [];
+        foreach ($specs as $name => $spec) {
+            list($type, $value) = $spec;
+            $proposal->create();
+            $saved = $proposal->save(['ShadowAttribute' => [
+                'event_id' => $event['id'],
+                'event_uuid' => $event['uuid'],
+                'event_org_id' => $event['orgc_id'],
+                'org_id' => $event['orgc_id'],
+                'old_id' => 0,
+                'type' => $type,
+                'category' => $this->attribute->typeDefinitions[$type]['default_category'],
+                'value' => $value,
+                'comment' => $this->token,
+            ]]);
+            $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+            $ids[$name] = (int)$proposal->id;
+        }
+        $this->exec(sprintf(
+            "UPDATE shadow_attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
+            $this->token,
+            implode(', ', $ids)
+        ));
+        $property = new ReflectionProperty('Model', '_schema');
+        foreach ($this->proposalModels() as $model) {
+            $schema = $model->schema();
+            unset($schema['value1'], $schema['value2']);
+            $property->setValue($model, $schema);
+        }
+        return $ids;
+    }
+
+    /**
+     * A default correlation between two attributes, as the engine writes it.
+     *
+     * @param int $a
+     * @param int $b
+     * @return void
+     */
+    private function correlate($a, $b)
+    {
+        $rows = array_column($this->exec(sprintf(
+            'SELECT a.id, a.event_id, a.object_id, a.distribution, e.org_id, e.distribution AS event_distribution FROM attributes a JOIN events e ON e.id = a.event_id WHERE a.id IN (%d, %d)',
+            $a,
+            $b
+        )), null, 'id');
+        $columns = [];
+        $values = [];
+        foreach (['' => $rows[$a], '1_' => $rows[$b]] as $prefix => $row) {
+            foreach (['attribute_id' => 'id', 'object_id' => 'object_id', 'event_id' => 'event_id', 'org_id' => 'org_id', 'distribution' => 'distribution', 'object_distribution' => 'distribution', 'event_distribution' => 'event_distribution'] as $column => $source) {
+                $columns[] = '`' . $prefix . $column . '`';
+                $values[] = (int)$row[$source];
+            }
+        }
+        $this->exec(sprintf(
+            'INSERT INTO default_correlations (%s, value_id) VALUES (%s, 1)',
+            implode(', ', $columns),
+            implode(', ', $values)
+        ));
+    }
+
+    /**
+     * @return EventsController With the test's user signed in.
+     */
+    private function eventsController()
+    {
+        App::uses('EventsController', 'Controller');
+        $controller = new EventsController(new CakeRequest(null, false), new CakeResponse());
+        $controller->Event = $this->event;
+        $controller->Auth = new class($this->user) {
+            private $user;
+
+            public function __construct(array $user)
+            {
+                $this->user = $user;
+            }
+
+            public function user($key = null)
+            {
+                return $key === null ? $this->user : $this->user[$key];
+            }
+        };
+        return $controller;
     }
 
     private function ids(...$names)
@@ -539,28 +659,8 @@ class AttributeValueFilterDbTest extends TestCase
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
     {
         $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];
-        $rows = $this->exec(sprintf(
-            'SELECT a.id, a.event_id, a.object_id, a.distribution, e.org_id, e.distribution AS event_distribution FROM attributes a JOIN events e ON e.id = a.event_id WHERE a.id IN (%s)',
-            implode(', ', $sides)
-        ));
-        $rows = array_column($rows, null, 'id');
-        $correlate = function ($a, $b) use ($rows) {
-            $columns = [];
-            $values = [];
-            foreach (['' => $rows[$a], '1_' => $rows[$b]] as $prefix => $row) {
-                foreach (['attribute_id' => 'id', 'object_id' => 'object_id', 'event_id' => 'event_id', 'org_id' => 'org_id', 'distribution' => 'distribution', 'object_distribution' => 'distribution', 'event_distribution' => 'event_distribution'] as $column => $source) {
-                    $columns[] = '`' . $prefix . $column . '`';
-                    $values[] = (int)$row[$source];
-                }
-            }
-            $this->exec(sprintf(
-                'INSERT INTO default_correlations (%s, value_id) VALUES (%s, 1)',
-                implode(', ', $columns),
-                implode(', ', $values)
-            ));
-        };
-        $correlate($sides[0], $sides[1]);
-        $correlate($sides[2], $sides[1]);
+        $this->correlate($sides[0], $sides[1]);
+        $this->correlate($sides[2], $sides[1]);
 
         $this->clearLog();
         $found = $this->attribute->fetchAttributes($this->user, [
@@ -724,5 +824,196 @@ class AttributeValueFilterDbTest extends TestCase
         $this->clearLog();
         $this->assertSame([$ids[0], $ids[1]], $search(false));
         $this->assertSame(1, $this->resolvedPatterns());
+    }
+
+    public function testAProposalFindMatchesTheValueColumnsOnTheIds()
+    {
+        $t = $this->token;
+        $ids = $this->addProposals([
+            'text' => ['text', "{$t}Prop text"],
+            'regkey' => ['regkey|value', "HKLM\\Software\\x|{$t}prop-data"],
+            'other' => ['comment', "{$t}other"],
+        ]);
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        // Scoped by the comment: an id list would bound the find by itself
+        $select = function (array $conditions, $callbacks = true) use ($proposal, $t) {
+            $found = array_map('intval', $proposal->find('column', [
+                'conditions' => ['AND' => [['ShadowAttribute.comment' => $t], $conditions]],
+                'fields' => ['ShadowAttribute.id'],
+                'callbacks' => $callbacks,
+            ]));
+            sort($found);
+            return $found;
+        };
+
+        // Case-insensitive now, as for attributes
+        $this->assertSame([$ids['text']], $select(['ShadowAttribute.value1' => strtoupper("{$t}prop text")]));
+        $this->assertSame([$ids['regkey']], $select(['ShadowAttribute.value' => "HKLM\\Software\\x|{$t}prop-data"]));
+        $this->assertSame([$ids['text'], $ids['regkey']], $select(['ShadowAttribute.value1 !=' => "{$t}other"]));
+        $this->assertSame([$ids['text']], $select(['ShadowAttribute.value1' => "{$t}prop text"], 'before'));
+        $this->assertSame([], $select(['ShadowAttribute.value1' => "{$t}prop text"], false));
+
+        // Every proposal find is bounded: an unanchored pattern is checked per row
+        $this->clearLog();
+        $this->assertSame([$ids['regkey']], $select(['ShadowAttribute.value2 LIKE' => "%{$t}PROP%"]));
+        $this->assertSame(0, $this->resolvedPatterns());
+        $this->assertCount(1, $this->statements('/`shadow_attributes` AS `ShadowAttribute`.*IN \(SELECT `id` FROM `attribute_values` WHERE `value` LIKE/s'));
+        $this->clearLog();
+        $this->assertSame([$ids['text']], $select(['ShadowAttribute.value1 LIKE' => "{$t}prop%"]));
+        $this->assertSame(1, $this->resolvedPatterns());
+
+        // The proposal index's searchall
+        $term = '%' . strtolower("{$t}PROP") . '%';
+        $this->clearLog();
+        $found = $proposal->find('all', [
+            'conditions' => ['AND' => [['ShadowAttribute.comment' => $t], ['OR' => [
+                'ShadowAttribute.value1 LIKE' => $term,
+                'ShadowAttribute.value2 LIKE' => $term,
+                'LOWER(ShadowAttribute.comment) LIKE' => $term,
+                'LOWER(Event.info) LIKE' => $term,
+                'LOWER(Org.name) LIKE' => $term,
+                'LOWER(ShadowAttribute.uuid) LIKE' => $term,
+            ]]]],
+            'fields' => ['ShadowAttribute.id', 'ShadowAttribute.value'],
+            'contain' => ['Event' => ['fields' => ['id']], 'Org' => ['fields' => ['name']]],
+            'order' => ['ShadowAttribute.id' => 'ASC'],
+        ]);
+        $this->assertSame(
+            ["{$t}Prop text", "HKLM\\Software\\x|{$t}prop-data"],
+            array_column(array_column($found, 'ShadowAttribute'), 'value')
+        );
+        $this->assertSame(0, $this->resolvedPatterns());
+    }
+
+    public function testThePaginatedListsMatchTheirSearchOnTheIds()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        // value1 only, as in 2.x: the second proposal holds the term in value2
+        $ids = $this->addProposals([
+            'new' => ['text', "{$t}Prop new"],
+            'second' => ['regkey|value', "HKLM\\Software\\x|{$t}prop-data"],
+        ]);
+        $page = $this->event->fetchPaginatedAttributes($this->user, $first, ['proposal' => 1, 'searchFor' => "{$t}PROP"]);
+        $this->assertSame(1, $page['total']);
+        $this->assertSame([$ids['new']], array_map('intval', array_column($page['Attribute'], 'proposal_id')));
+        $this->assertSame(["{$t}Prop new"], array_column($page['Attribute'], 'value'));
+
+        $page = $this->event->fetchPaginatedAttributes($this->user, $first, ['searchFor' => "{$t}A.EXAMPLE|192"]);
+        $this->assertSame([(string)$this->ids['composite']], array_column($page['Attribute'], 'id'));
+
+        $objects = $this->createObjects();
+        $objectIds = function ($eventId, $searchFor) {
+            $page = $this->event->fetchPaginatedObjects($this->user, $eventId, ['searchFor' => $searchFor]);
+            return array_map('intval', array_column($page['Object'], 'id'));
+        };
+        $this->assertSame([$objects[0]], $objectIds($first, "{$t}OBJ"));
+        $this->assertSame([$objects[1]], $objectIds($second, $t));
+        // value1 only, as in 2.x
+        $this->assertSame([], $objectIds($second, "{$t}rv"));
+        $page = $this->event->fetchPaginatedObjects($this->user, $first, ['searchFor' => "{$t}obj"]);
+        $this->assertSame(["{$t}obj.example.org"], array_column($page['Object'][0]['Attribute'], 'value'));
+    }
+
+    public function testThePaginatedListsResolveTheirSearchOnce()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $objects = $this->createObjects();
+        // More events than a bound takes
+        $many = array_merge($this->events, range(2147480000, 2147480099));
+        foreach ([[[$first], 0], [$many, 1]] as $case) {
+            list($eventIds, $resolved) = $case;
+            $this->clearLog();
+            $page = $this->event->fetchPaginatedAttributes($this->user, $first, ['eventIds' => $eventIds, 'searchFor' => "{$t}a.example"]);
+            $this->assertSame([(string)$this->ids['composite']], array_column($page['Attribute'], 'id'));
+            $this->assertSame(1, $page['total']);
+            $this->assertSame($resolved, $this->resolvedPatterns(), count($eventIds) . ' events');
+
+            $this->clearLog();
+            $page = $this->event->fetchPaginatedObjects($this->user, $first, ['eventIds' => $eventIds, 'searchFor' => "{$t}obj"]);
+            $this->assertSame([$objects[0]], array_map('intval', array_column($page['Object'], 'id')));
+            $this->assertSame($resolved, $this->resolvedPatterns(), count($eventIds) . ' events');
+        }
+    }
+
+    public function testTheEventIndexValueFiltersMatchOnTheIds()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $this->exec(sprintf("UPDATE attributes SET comment = '%s-note' WHERE id = %d", $t, $this->ids['domain']));
+        $controller = $this->eventsController();
+        $call = function ($method, ...$args) use ($controller) {
+            $method = new ReflectionMethod($controller, $method);
+            $method->setAccessible(true);
+            return $method->invokeArgs($controller, $args);
+        };
+        $assertOnIds = function () {
+            $statements = $this->statements('/`attributes` AS `Attribute`/');
+            $this->assertNotEmpty($statements);
+            foreach ($statements as $sql) {
+                $this->assertStringContainsString('value1_id', $sql);
+                $this->assertNotRegExp('/value[12](?!_id)/', $sql);
+            }
+        };
+        $sorted = function (array $ids) {
+            $ids = array_values(array_map('intval', $ids));
+            sort($ids);
+            return $ids;
+        };
+
+        // searchattribute: each pattern resolved once, for value1 and value2 together
+        $this->clearLog();
+        list($include, $exclude) = $call('__filterOnAttributeValue', strtoupper("{$t}rv|!{$t}-two"));
+        $this->assertSame([[$second], [$second]], [$sorted($include), $sorted($exclude)]);
+        $this->assertSame(2, $this->resolvedPatterns());
+        $assertOnIds();
+
+        // searchall: the value conditions on the ids, the comment on its column
+        $this->clearLog();
+        $this->assertSame([$second], $sorted($call('__quickFilter', strtoupper("{$t}rv"))));
+        $this->assertSame(1, $this->resolvedPatterns());
+        $assertOnIds();
+        $this->assertSame([$first], $sorted($call('__quickFilter', "$t-note")));
+
+        // searchvalue: exact, on either part
+        foreach ([[strtoupper("$t.example.org"), $first], ["{$t}rv-data", $second]] as $case) {
+            list($value, $eventId) = $case;
+            $controller->paginate = [];
+            $urlparams = '';
+            $this->clearLog();
+            $method = new ReflectionMethod($controller, '__setIndexFilterConditions');
+            $method->setAccessible(true);
+            $method->invokeArgs($controller, [['searchvalue' => $value], &$urlparams]);
+            $this->assertSame([['Event.id' => [(string)$eventId]]], $controller->paginate['conditions']['AND'], $value);
+            $assertOnIds();
+        }
+    }
+
+    public function testTheIndexReadsTheValuesOfItsCorrelationsAtOnce()
+    {
+        $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];
+        $this->correlate($sides[0], $sides[1]);
+        $this->correlate($sides[2], $sides[1]);
+        $rows = $this->attribute->find('all', [
+            'conditions' => ['Attribute.id' => $sides],
+            'recursive' => -1,
+        ]);
+        $sgids = $this->attribute->SharingGroup->authorizedIds($this->user);
+
+        $this->clearLog();
+        $related = $this->attribute->relatedAttributesOf($this->user, $sgids, $rows, []);
+        $this->assertCount(1, $this->statements('/FROM `attribute_values` WHERE `id` IN/'));
+        foreach ($rows as $row) {
+            // As getRelatedAttributes() gives them with every column, filled in per find
+            $this->assertSame(
+                $this->attribute->Correlation->getRelatedAttributes($this->user, $sgids, $row['Attribute'], [], true),
+                $related[$row['Attribute']['id']]
+            );
+        }
+        $other = $related[$this->ids['other']];
+        $this->assertSame(["$this->token.example.org", "{$this->token}a.example|192.0.2.7"], array_column($other, 'value'));
+        $this->assertSame(['192.0.2.7'], array_values(array_filter(array_column($other, 'value2'))));
+        $this->assertArrayNotHasKey('value1_id', $other[0]);
     }
 }

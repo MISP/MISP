@@ -244,17 +244,12 @@ class AttributesController extends AppController
         ]);
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
         $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
+        $related = $this->MispAttribute->relatedAttributesOf($user, $sgids, $attributes, []);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
-            $temp = $this->MispAttribute->Correlation->getRelatedAttributes(
-                $user,
-                $sgids,
-                $attribute['Attribute'],
-                [],
-                true
-            );
+            $temp = $related[$attribute['Attribute']['id']];
             foreach ($temp as &$t) {
                 $t['info'] = $t['Event']['info'];
                 $t['org_id'] = $t['Event']['org_id'];

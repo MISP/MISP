@@ -2147,6 +2147,11 @@ class Event extends AppModel
             }
         }
 
+        // One resolve for the count, the page and the warninglist hits
+        $conditions = $this->Attribute->loadAttributeValue()->rewriteConditions(
+            $conditions, $this->Attribute->alias
+        );
+
         // Warninglist filter. Kept last so the hit set is resolved against the
         // fully built (and ACL-restricted) condition set.
         if (!empty($options['warninglist'])) {
@@ -2772,16 +2777,17 @@ class Event extends AppModel
         // We do this via a subquery on the object IDs.
         if (!empty($options['searchFor'])) {
             $db = $this->getDataSource();
+            // A built statement runs no attribute beforeFind
             $subQuery = $db->buildStatement([
                 'fields' => ['DISTINCT Attribute.object_id'],
                 'table' => 'attributes',
                 'alias' => 'Attribute',
-                'conditions' => [
+                'conditions' => $this->Attribute->loadAttributeValue()->rewriteConditions([
                     'Attribute.event_id' => $eventIds,
                     'Attribute.object_id !=' => 0,
                     'Attribute.value1 LIKE' =>
                         '%' . $options['searchFor'] . '%',
-                ],
+                ], 'Attribute'),
             ], $this->Attribute);
             $conditions[] =
                 'Object.id IN (' . $subQuery . ')';

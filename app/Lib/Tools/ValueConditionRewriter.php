@@ -657,6 +657,10 @@ class ValueConditionRewriter
                 continue;
             }
             if (is_scalar($value) || (is_array($value) && !empty($value) && count($value) <= self::BOUND)) {
+                // object_id 0 stands for every attribute outside an object
+                if (substr($parts[0], -9) === 'object_id' && in_array(0, (array)$value)) {
+                    continue;
+                }
                 return true;
             }
         }
