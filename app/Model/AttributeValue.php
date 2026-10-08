@@ -354,6 +354,30 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * The ids of the values the dictionary already holds, adding none.
+     *
+     * @param array $values
+     * @return array [value => id], without the values it does not hold.
+     */
+    public function idsOf(array $values)
+    {
+        $ids = [];
+        $wanted = [];
+        foreach ($values as $value) {
+            $value = $this->toValueString($value);
+            if (isset($this->primed[$value])) {
+                $ids[$value] = $this->primed[$value];
+            } else if (strlen($value) <= self::MAX_BYTES) {
+                $wanted[] = $value;
+            }
+        }
+        if (!empty($wanted)) {
+            $this->lookup($this->hashValues($wanted), $ids);
+        }
+        return $ids;
+    }
+
+    /**
      * A save's field list with the id of every value column it writes, so
      * the ids assignIds() set are not dropped. An empty list stays empty.
      *

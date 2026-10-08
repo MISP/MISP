@@ -620,31 +620,47 @@ class MispAttribute extends AppModel
             if (empty($row['type']) || !isset($this->typeDefinitions[$row['type']])) {
                 continue;
             }
-            $type = $row['type'];
-            $value = $row['value'] ?? null;
-            if (empty($value)) {
-                if (!empty($row['value1']) && !empty($row['value2'])) {
-                    $value = "{$row['value1']}|{$row['value2']}";
-                } else if (!empty($row['value1'])) {
-                    $value = $row['value1'];
-                }
+            $value = $this->shapedValue($row, $massaged);
+            if ($value !== null) {
+                array_push($values, ...$this->valueParts($row['type'], $value));
             }
-            if (!is_scalar($value)) {
-                continue;
-            }
-            $value = (string)$value;
-            if (!$massaged) {
-                $value = $this->massageValue($type, $value);
-                if (!$this->fast_update) {
-                    $value = $this->runRegexp($type, $value);
-                    if ($value === false) {
-                        continue;
-                    }
-                }
-            }
-            array_push($values, ...$this->valueParts($type, $value));
         }
         return $this->loadAttributeValue()->prime($values);
+    }
+
+    /**
+     * The value beforeValidate will leave in $row, or null when there is
+     * none or an import regexp blocks it.
+     *
+     * @param array $row A flat attribute row with a known type
+     * @param bool $massaged True when beforeValidate already ran on the row
+     * @return string|null
+     */
+    private function shapedValue(array $row, $massaged = false)
+    {
+        $type = $row['type'];
+        $value = $row['value'] ?? null;
+        if (empty($value)) {
+            if (!empty($row['value1']) && !empty($row['value2'])) {
+                $value = "{$row['value1']}|{$row['value2']}";
+            } else if (!empty($row['value1'])) {
+                $value = $row['value1'];
+            }
+        }
+        if (!is_scalar($value)) {
+            return null;
+        }
+        $value = (string)$value;
+        if (!$massaged) {
+            $value = $this->massageValue($type, $value);
+            if (!$this->fast_update) {
+                $value = $this->runRegexp($type, $value);
+                if ($value === false) {
+                    return null;
+                }
+            }
+        }
+        return $value;
     }
 
     /**
@@ -3369,7 +3385,9 @@ class MispAttribute extends AppModel
         // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
         if ($breakOnDuplicate === false) {
             unset($this->validate['value']['uniqueValue']);
-            $existingAttribute = $this->findAttributeByValue($attribute);
+            // Look the value up as the save will store it
+            $lookup = ['value' => $this->shapedValue($attribute)] + $attribute;
+            $existingAttribute = $lookup['value'] === null ? [] : $this->findAttributeByValue($lookup);
             if (!empty($existingAttribute)) {
                 $attribute['id'] = $existingAttribute['Attribute']['id'];
                 $attribute['uuid'] = $existingAttribute['Attribute']['uuid'];
@@ -4692,12 +4710,25 @@ class MispAttribute extends AppModel
 
     private function findAttributeByValue(array $attribute)
     {
+        if (!isset($attribute['value']) || !is_scalar($attribute['value'])) {
+            return [];
+        }
         $type = $attribute['type'];
+        $parts = $this->valueParts($type, (string)$attribute['value']);
+        if (empty($parts)) {
+            return [];
+        }
+        $ids = $this->loadAttributeValue()->idsOf($parts);
+        // A value the dictionary does not hold is stored on no attribute
+        if (count($ids) < count(array_unique($parts))) {
+            return [];
+        }
         $conditions = [
             'Attribute.event_id' => $attribute['event_id'],
             'Attribute.type' => $type,
             'Attribute.deleted' => 0,
             'Attribute.object_id' => 0,
+            'Attribute.value1_id' => $ids[$parts[0]],
         ];
 
         if (isset($attribute['category'])) {
@@ -4705,11 +4736,7 @@ class MispAttribute extends AppModel
         }
 
         if (in_array($type, $this->getCompositeTypes(), true)) {
-            $value = explode('|', $attribute['value']);
-            $conditions['Attribute.value1'] = $value[0];
-            $conditions['Attribute.value2'] = $value[1];
-        } else {
-            $conditions['Attribute.value1'] = $attribute['value'];
+            $conditions['Attribute.value2_id'] = isset($parts[1]) ? $ids[$parts[1]] : null;
         }
 
         if (isset($attribute['id'])) {

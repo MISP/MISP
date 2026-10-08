@@ -691,6 +691,31 @@ class AttributeValueTest extends TestCase
         $model->assignIds($row);
     }
 
+    public function testIdsOfLooksUpWithoutInserting()
+    {
+        $stored = $this->mysql->store('known.example');
+        $model = $this->model($this->mysql);
+
+        $ids = $model->idsOf(['known.example', 'unknown.example', 'known.example']);
+
+        $this->assertSame(['known.example' => $stored], $ids);
+        $this->assertCount(1, $this->mysql->statements);
+        $this->assertSame([], $this->mysql->statementsLike('/^INSERT/'));
+    }
+
+    public function testIdsOfReadsThePrimedMapAndSkipsValuesTooLongToStore()
+    {
+        $this->mysql->allow(['primed.example']);
+        $model = $this->model($this->mysql);
+        $model->prime(['primed.example']);
+        $before = count($this->mysql->statements);
+
+        $ids = $model->idsOf(['primed.example', str_repeat('A', AttributeValue::MAX_BYTES + 1)]);
+
+        $this->assertSame(['primed.example' => $this->mysql->rows[self::hex('primed.example')]['id']], $ids);
+        $this->assertCount($before, $this->mysql->statements);
+    }
+
     public function testWithIdFieldsAddsTheIdOfEachValueColumnOnTheList()
     {
         $model = $this->model($this->mysql);
