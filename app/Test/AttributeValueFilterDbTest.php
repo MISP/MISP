@@ -392,25 +392,27 @@ class AttributeValueFilterDbTest extends TestCase
 
     /**
      * Objects 0 and 2 in the first event, 1 in the second; object 2 has no
-     * attributes.
+     * attributes. Generated ids: an explicit one would move the table's
+     * AUTO_INCREMENT, which a rollback keeps.
      * @return int[]
      */
     private function createObjects()
     {
         list($first, $second) = $this->events;
-        $objects = [self::OBJECT_ID => $first, self::OBJECT_ID + 1 => $second, self::OBJECT_ID + 2 => $first];
-        foreach ($objects as $id => $eventId) {
+        $objects = [];
+        foreach ([$first, $second, $first] as $eventId) {
             $this->exec(sprintf(
-                "INSERT INTO objects (id, name, `meta-category`, template_uuid, template_version, event_id, uuid, timestamp, distribution, comment, deleted) VALUES (%d, 'domain-ip', 'network', '%s', 1, %d, '%s', %d, 5, '', 0)",
-                $id,
+                "INSERT INTO objects (name, `meta-category`, template_uuid, template_version, event_id, uuid, timestamp, distribution, comment, deleted) VALUES ('domain-ip', 'network', '%s', 1, %d, '%s', %d, 5, '', 0)",
                 CakeText::uuid(),
                 $eventId,
                 CakeText::uuid(),
                 time()
             ));
+            $objects[] = (int)$this->exec('SELECT LAST_INSERT_ID() AS id')[0]['id'];
         }
-        $this->exec(sprintf('UPDATE attributes SET object_id = %d WHERE id = %d', self::OBJECT_ID + 1, $this->ids['regkey']));
-        return array_keys($objects);
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d WHERE id = %d', $objects[0], $this->ids['object']));
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d WHERE id = %d', $objects[1], $this->ids['regkey']));
+        return $objects;
     }
 
     private function objectIds(array $params, array $objects)
@@ -732,8 +734,8 @@ class AttributeValueFilterDbTest extends TestCase
 
     public function testTheOriginalUuidOfAnObjectAttributeIsFoundOnTheIds()
     {
-        $this->createObjects();
-        $uuid = $this->exec(sprintf('SELECT uuid FROM objects WHERE id = %d', self::OBJECT_ID))[0]['uuid'];
+        $objects = $this->createObjects();
+        $uuid = $this->exec(sprintf('SELECT uuid FROM objects WHERE id = %d', $objects[0]))[0]['uuid'];
         list($first) = $this->events;
 
         $method = new ReflectionMethod('Event', '__findOriginalUUID');
