@@ -4,9 +4,10 @@
  * on the dictionary ids: conditions in a find (callbacks on or 'before'),
  * the attribute-, event- and object-scope value filters (a short eventid list
  * bounding them), the event- and object-scope wildcards, the finds that named
- * the value field in their conditions, and the attribute fetch, which
- * resolves its conditions once and reads the values of its correlations at
- * once.
+ * the value field in their conditions or wrapped a value column in a
+ * function, a proposal search checking its pattern per row, and the attribute
+ * fetch, which resolves its conditions once and reads the values of its
+ * correlations at once.
  * The tests hide the value virtual field and the text columns from every
  * attribute model and point the stored text away from the dictionary, so a
  * condition left on either finds nothing or fails.
@@ -155,7 +156,7 @@ class AttributeValueFilterDbTest extends TestCase
         $this->attribute->create();
         $saved = $this->attribute->save(['Attribute' => [
             'event_id' => $eventId,
-            'category' => $type === 'regkey|value' ? 'Persistence mechanism' : ($type === 'text' ? 'Other' : 'Network activity'),
+            'category' => $this->attribute->typeDefinitions[$type]['default_category'],
             'type' => $type,
             'value' => $value,
             'distribution' => 5,
@@ -191,6 +192,29 @@ class AttributeValueFilterDbTest extends TestCase
             unset($model->virtualFields['value']);
         }
         $this->db->cacheMethods = false;
+    }
+
+    /**
+     * Attributes for one test only, with their stored text diverged too.
+     *
+     * @param array $specs name => [event id, type, value]
+     * @return void
+     */
+    private function addFixtures(array $specs)
+    {
+        foreach ($this->attributeModels() as $model) {
+            $model->schema(true);
+        }
+        $added = [];
+        foreach ($specs as $name => $spec) {
+            $added[] = $this->ids[$name] = $this->create(...$spec);
+        }
+        $this->exec(sprintf(
+            "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
+            $this->token,
+            implode(', ', $added)
+        ));
+        $this->hideTextColumnsAndValueField();
     }
 
     private function ids(...$names)
@@ -604,5 +628,101 @@ class AttributeValueFilterDbTest extends TestCase
         AttributeValue::$strictConditions = true;
         $this->expectException('ValueConditionException');
         $this->select($condition);
+    }
+
+    public function testTheOriginalUuidOfAnObjectAttributeIsFoundOnTheIds()
+    {
+        $this->createObjects();
+        $uuid = $this->exec(sprintf('SELECT uuid FROM objects WHERE id = %d', self::OBJECT_ID))[0]['uuid'];
+        list($first) = $this->events;
+
+        $method = new ReflectionMethod('Event', '__findOriginalUUID');
+        $method->setAccessible(true);
+        $found = $method->invoke($this->event, 'domain', strtoupper("{$this->token}obj.example.org"), $first);
+        $this->assertSame(['uuid' => $uuid], $found);
+    }
+
+    public function testTheHashAndUrlSearchesMatchOnTheIds()
+    {
+        $t = $this->token;
+        $md5 = md5($t);
+        list($first) = $this->events;
+        $this->addFixtures([
+            'md5' => [$first, 'md5', $md5],
+            'file' => [$first, 'filename|md5', "$t.exe|$md5"],
+            'hxxp' => [$first, 'url', "http://$t.example/a"],
+            'dot' => [$first, 'url', "http://$t.example.org/"],
+        ]);
+        // A save refangs both, so these are rows stored before it did
+        $fanged = ['hxxp' => "hxxp://$t.example/a", 'dot' => "http://$t.example[.]org/"];
+        $ids = $this->attribute->loadAttributeValue()->internMany(array_values($fanged));
+        foreach ($fanged as $name => $value) {
+            $this->exec(sprintf('UPDATE attributes SET value1_id = %d WHERE id = %d', $ids[$value], $this->ids[$name]));
+        }
+
+        // downloadSample: every sample of a hash, then the samples alone
+        $this->assertSame($this->ids('md5', 'file'), $this->select(['OR' => [
+            'AND' => ['Attribute.value1 LIKE' => $md5, 'Attribute.value2' => ''],
+            'Attribute.value2 LIKE' => $md5,
+        ]]));
+        $this->assertSame($this->ids('file'), $this->select(['AND' => ['Attribute.value2 LIKE' => $md5]]));
+        // updateAttributeValues: url sanitisation
+        $this->assertSame($this->ids('hxxp'), $this->select(['Attribute.value1 LIKE' => 'HXXP%']));
+        $this->assertSame($this->ids('dot'), $this->select(['Attribute.value1 LIKE' => '%[.]%']));
+    }
+
+    public function testAProposalSearchDeclaredBoundedChecksItsPatternPerRow()
+    {
+        $t = $this->token;
+        list($first) = $this->events;
+        $event = $this->event->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.id' => $first],
+            'fields' => ['Event.uuid', 'Event.orgc_id'],
+        ])['Event'];
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        $ids = [];
+        foreach (['text' => "{$t}prop text", 'regkey|value' => "HKLM\\Software\\x|{$t}prop-data", 'comment' => "{$t}other"] as $type => $value) {
+            $proposal->create();
+            $saved = $proposal->save(['ShadowAttribute' => [
+                'event_id' => $first,
+                'event_uuid' => $event['uuid'],
+                'event_org_id' => $event['orgc_id'],
+                'org_id' => $event['orgc_id'],
+                'old_id' => 0,
+                'type' => $type,
+                'category' => $type === 'regkey|value' ? 'Persistence mechanism' : 'Other',
+                'value' => $value,
+                'comment' => $t,
+            ]]);
+            $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+            $ids[] = (int)$proposal->id;
+        }
+        $this->exec(sprintf(
+            "UPDATE shadow_attributes SET value1 = 'column', value2 = IF(value2 = '', '', 'column') WHERE id IN (%s)",
+            implode(', ', $ids)
+        ));
+        $search = function ($bounded) use ($proposal, $t) {
+            $conditions = $this->attribute->loadAttributeValue()->rewriteConditions(['OR' => [
+                'ShadowAttribute.value1 LIKE' => "%{$t}PROP%",
+                'ShadowAttribute.value2 LIKE' => "%{$t}PROP%",
+                'LOWER(ShadowAttribute.comment) LIKE' => '%nothing%',
+            ]], 'ShadowAttribute', $bounded);
+            $found = array_map('intval', $proposal->find('column', [
+                'conditions' => ['AND' => [$conditions, ['ShadowAttribute.comment' => $t]]],
+                'fields' => ['ShadowAttribute.id'],
+            ]));
+            sort($found);
+            return $found;
+        };
+
+        $this->clearLog();
+        $this->assertSame([$ids[0], $ids[1]], $search(true));
+        $this->assertSame(0, $this->resolvedPatterns());
+        $this->assertCount(1, $this->statements('/`shadow_attributes` AS `ShadowAttribute`.*IN \(SELECT `id` FROM `attribute_values` WHERE `value` LIKE/s'));
+
+        $this->clearLog();
+        $this->assertSame([$ids[0], $ids[1]], $search(false));
+        $this->assertSame(1, $this->resolvedPatterns());
     }
 }

@@ -15,6 +15,9 @@ use PHPUnit\Framework\TestCase;
 
 class ValueConditionRewriterDbTest extends TestCase
 {
+    // The 2.x value field, which the reference reads still need
+    const VALUE_2X = "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END";
+
     private static $booted = false;
 
     /** @var MispAttribute */
@@ -53,6 +56,7 @@ class ValueConditionRewriterDbTest extends TestCase
         if (!($this->db instanceof Mysql)) {
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
+        $this->attribute->virtualFields['value'] = self::VALUE_2X;
         $this->db->begin();
         $this->token = 'avcond' . bin2hex(random_bytes(4));
         $this->event = $this->attribute->Event->find('first', [
@@ -67,6 +71,9 @@ class ValueConditionRewriterDbTest extends TestCase
     {
         if ($this->db) {
             $this->db->rollback();
+        }
+        if ($this->attribute) {
+            unset($this->attribute->virtualFields['value']);
         }
     }
 

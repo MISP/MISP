@@ -53,10 +53,6 @@ class MispAttribute extends AppModel
     /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
     private $aclConditionsCache = [];
 
-    public $virtualFields = array(
-            'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
-    );
-
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),

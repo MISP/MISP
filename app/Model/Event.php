@@ -10480,16 +10480,18 @@ class Event extends AppModel
         if (!empty($original_uuid)) {
             return $original_uuid['Attribute'];
         }
+        // An Object find: its beforeFind leaves the joined attribute's value alone
+        $conditions = $this->Object->Attribute->loadAttributeValue()->rewriteConditions(array(
+            'Attribute.event_id' => $event_id,
+            'Attribute.deleted' => 0,
+            'Attribute.type' => $attribute_type,
+            'Attribute.value1' => $attribute_value,
+            'Object.event_id' => $event_id
+        ), 'Attribute');
         $original_uuid = $this->Object->find(
             'first',
             array(
-                'conditions' => array(
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.deleted' => 0,
-                    'Attribute.type' => $attribute_type,
-                    'Attribute.value1' => $attribute_value,
-                    'Object.event_id' => $event_id
-                ),
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => array('Object.uuid'),
                 'joins' => array(

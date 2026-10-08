@@ -44,6 +44,9 @@ class ValueConditionRewriter
     /** @var bool */
     private $bounded = false;
 
+    /** @var bool */
+    private $alwaysBounded;
+
     /** @var array term => int[] */
     private $ci = [];
 
@@ -57,7 +60,8 @@ class ValueConditionRewriter
      * @param AttributeValue $dictionary
      * @param string $alias
      * @param array $options 'strict': throw on a condition that cannot be
-     *   carried over (default: debug mode); 'overflow': LIKE match limit.
+     *   carried over (default: debug mode); 'overflow': LIKE match limit;
+     *   'bounded': the find reads few rows whatever its conditions say.
      */
     public function __construct(AttributeValue $dictionary, $alias, array $options = [])
     {
@@ -65,6 +69,7 @@ class ValueConditionRewriter
         $this->alias = $alias;
         $this->strict = isset($options['strict']) ? (bool)$options['strict'] : Configure::read('debug') > 0;
         $this->overflow = isset($options['overflow']) ? (int)$options['overflow'] : self::OVERFLOW;
+        $this->alwaysBounded = !empty($options['bounded']);
     }
 
     /**
@@ -84,7 +89,7 @@ class ValueConditionRewriter
         if (!is_array($conditions)) {
             return $conditions;
         }
-        $this->bounded = $this->isBounded($conditions);
+        $this->bounded = $this->alwaysBounded || $this->isBounded($conditions);
         return $this->walk($conditions, false);
     }
 

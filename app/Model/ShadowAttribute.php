@@ -59,10 +59,6 @@ class ShadowAttribute extends AppModel
 
     public $displayField = 'value';
 
-    public $virtualFields = array(
-            'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
-    ); // TODO hardcoded
-
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
@@ -590,16 +586,32 @@ class ShadowAttribute extends AppModel
 
     public function findOldProposal($sa)
     {
+        if (!isset($sa['value']) || !is_scalar($sa['value'])) {
+            return false;
+        }
+        $parts = $this->Attribute->valueParts($sa['type'], (string)$sa['value']);
+        if (empty($parts)) {
+            return false;
+        }
+        $ids = $this->Attribute->loadAttributeValue()->idsOf($parts);
+        // A value the dictionary does not hold is stored on no proposal
+        if (count($ids) < count(array_unique($parts))) {
+            return false;
+        }
+        $conditions = array(
+            'ShadowAttribute.event_uuid' => $sa['event_uuid'],
+            'ShadowAttribute.uuid' => $sa['uuid'],
+            'ShadowAttribute.value1_id' => $ids[$parts[0]],
+            'ShadowAttribute.type' => $sa['type'],
+            'ShadowAttribute.category' => $sa['category'],
+            'ShadowAttribute.to_ids' => $sa['to_ids'],
+            'ShadowAttribute.comment' => $sa['comment']
+        );
+        if (in_array($sa['type'], $this->getCompositeTypes(), true)) {
+            $conditions['ShadowAttribute.value2_id'] = isset($parts[1]) ? $ids[$parts[1]] : null;
+        }
         $oldsa = $this->find('first', array(
-            'conditions' => array(
-                'ShadowAttribute.event_uuid' => $sa['event_uuid'],
-                'ShadowAttribute.uuid' => $sa['uuid'],
-                'ShadowAttribute.value' => $sa['value'],
-                'ShadowAttribute.type' => $sa['type'],
-                'ShadowAttribute.category' => $sa['category'],
-                'ShadowAttribute.to_ids' => $sa['to_ids'],
-                'ShadowAttribute.comment' => $sa['comment']
-            ),
+            'conditions' => $conditions,
         ));
         if (empty($oldsa)) {
             return false;

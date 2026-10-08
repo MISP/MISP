@@ -171,6 +171,17 @@ class ValueConditionRewriterTest extends TestCase
         }
     }
 
+    public function testACallerCanDeclareTheFindBounded()
+    {
+        $rewritten = $this->rewriter(['bounded' => true], 'ShadowAttribute')->rewrite([
+            'ShadowAttribute.value1 LIKE' => '%evil%',
+            'ShadowAttribute.value2 LIKE' => 'evil%',
+        ]);
+
+        $this->assertSame('ShadowAttribute.value1_id IN (LIKE %evil%)', $rewritten[0][0]->value);
+        $this->assertSame([['evil%', ValueConditionRewriter::OVERFLOW]], $this->dictionary->calls['resolveLike']);
+    }
+
     public function testOnlyATopLevelFewIdsBoundTheFind()
     {
         $unbounded = [

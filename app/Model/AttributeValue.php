@@ -323,12 +323,17 @@ class AttributeValue extends AppModel
      *
      * @param mixed $conditions
      * @param string $alias
+     * @param bool $bounded The find reads few rows, so an unanchored pattern
+     *   is cheaper checked per row than resolved over the whole dictionary.
      * @return mixed
      * @throws ValueConditionException With strict conditions on.
      */
-    public function rewriteConditions($conditions, $alias)
+    public function rewriteConditions($conditions, $alias, $bounded = false)
     {
-        $rewriter = new ValueConditionRewriter($this, $alias, ['strict' => self::$strictConditions]);
+        $rewriter = new ValueConditionRewriter($this, $alias, [
+            'strict' => self::$strictConditions,
+            'bounded' => $bounded,
+        ]);
         return $rewriter->rewrite($conditions);
     }
 

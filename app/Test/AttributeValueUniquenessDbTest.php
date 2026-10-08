@@ -2,7 +2,8 @@
 /**
  * Duplicate detection on value ids against the configured MySQL/MariaDB
  * database: a value is a duplicate only when its bytes are identical, so
- * case and accent variants are distinct attributes.
+ * case and accent variants are distinct attributes, and a pulled proposal
+ * replaces only the proposal holding exactly its value.
  *
  * Every test runs in a transaction that is rolled back, which still spends
  * auto-increment ids. Skipped unless ATTRIBUTE_VALUE_DB_TESTS is set, and it
@@ -45,6 +46,7 @@ class AttributeValueUniquenessDbTest extends TestCase
             require_once __DIR__ . '/OracleBootstrap.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
+            App::uses('CakeText', 'Utility');
             AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
@@ -60,7 +62,7 @@ class AttributeValueUniquenessDbTest extends TestCase
         $this->event = $this->attribute->Event->find('first', [
             'recursive' => -1,
             'order' => ['Event.id' => 'ASC'],
-            'fields' => ['Event.id'],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id'],
         ])['Event'];
     }
 
@@ -127,6 +129,36 @@ class AttributeValueUniquenessDbTest extends TestCase
     private function user()
     {
         return ClassRegistry::init('User')->getAuthUser(1);
+    }
+
+    /**
+     * @return array The fields a pull compares, with the proposal's id.
+     */
+    private function proposal($type, $value)
+    {
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        $fields = [
+            'event_id' => $this->event['id'],
+            'event_uuid' => $this->event['uuid'],
+            'event_org_id' => $this->event['orgc_id'],
+            'org_id' => $this->event['orgc_id'],
+            'old_id' => 0,
+            'uuid' => CakeText::uuid(),
+            'type' => $type,
+            'category' => $this->attribute->typeDefinitions[$type]['default_category'],
+            'to_ids' => 0,
+            'comment' => $this->token,
+        ];
+        $proposal->create();
+        $saved = $proposal->save(['ShadowAttribute' => $fields + ['value' => $value]]);
+        $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+        return ['id' => (int)$proposal->id] + $fields;
+    }
+
+    private function oldProposal(array $proposal, $value)
+    {
+        $found = ClassRegistry::init('ShadowAttribute')->findOldProposal(['value' => $value] + $proposal);
+        return $found === false ? false : (int)$found['id'];
     }
 
     public function testAByteIdenticalValueIsADuplicate()
@@ -246,5 +278,48 @@ class AttributeValueUniquenessDbTest extends TestCase
         $this->assertEmpty($errors, json_encode($errors));
         $this->assertNotSame($id, (int)$this->attribute->id);
         $this->assertSame(2, $this->rowCount("value1 LIKE '%{$this->token}'"));
+    }
+
+    public function testAPulledProposalReplacesOnlyTheOneWithItsExactValue()
+    {
+        $proposal = $this->proposal('text', "Valué {$this->token}");
+        // Found by the ids, so the stored text is not what it compares
+        $this->db->rawQuery("UPDATE shadow_attributes SET value1 = 'column' WHERE id = {$proposal['id']}");
+
+        $this->assertSame($proposal['id'], $this->oldProposal($proposal, "Valué {$this->token}"));
+        foreach (["valué {$this->token}", "Value {$this->token}", "Valué {$this->token} "] as $variant) {
+            $this->assertFalse($this->oldProposal($proposal, $variant), $variant);
+        }
+    }
+
+    public function testAPulledCompositeProposalComparesBothParts()
+    {
+        $key = "HKLM\\Software\\{$this->token}";
+        $data = $this->proposal('regkey|value', "$key|Data");
+        $empty = $this->proposal('regkey|value', "$key|");
+        $this->db->rawQuery(sprintf(
+            "UPDATE shadow_attributes SET value1 = 'column', value2 = IF(value2 = '', '', 'column') WHERE id IN (%d, %d)",
+            $data['id'],
+            $empty['id']
+        ));
+
+        $this->assertSame($data['id'], $this->oldProposal($data, "$key|Data"));
+        $this->assertFalse($this->oldProposal($data, "$key|data"));
+        $this->assertFalse($this->oldProposal($data, "$key|"));
+        $this->assertSame($empty['id'], $this->oldProposal($empty, "$key|"));
+        $this->assertFalse($this->oldProposal($empty, "$key|Data"));
+        $this->assertFalse($this->oldProposal($data, $key));
+    }
+
+    public function testAPulledProposalValueTheDictionaryLacksMatchesNothingAndAddsNothing()
+    {
+        $proposal = $this->proposal('text', "kept {$this->token}");
+
+        $this->assertFalse($this->oldProposal($proposal, "never stored {$this->token}"));
+        $this->assertFalse($this->oldProposal($proposal, ['kept ' . $this->token]));
+        $this->assertFalse($this->dictionaryHas("never stored {$this->token}"));
+        // Nor a proposal the backfill has not reached yet
+        $this->db->rawQuery("UPDATE shadow_attributes SET value1_id = NULL WHERE id = {$proposal['id']}");
+        $this->assertFalse($this->oldProposal($proposal, "never stored {$this->token}"));
     }
 }

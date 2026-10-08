@@ -2654,10 +2654,10 @@ class AttributesController extends AppController
                         'conditions' => array(
                             'OR' => array(
                                 'AND' => array(
-                                    'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+                                    'Attribute.value1 LIKE' => strtolower($hash),
                                     'Attribute.value2' => '',
                                 ),
-                                'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+                                'Attribute.value2 LIKE' => strtolower($hash)
                             )
                         ),
                     ));
@@ -2673,7 +2673,7 @@ class AttributesController extends AppController
                     $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
                 }
                 if (empty($error)) {
-                    $searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
+                    $searchConditions = array('AND' => array('Attribute.value2 LIKE' => strtolower($hash)));
                 }
             }
         }
@@ -2766,7 +2766,7 @@ class AttributesController extends AppController
         switch ($script) {
             case 'urlSanitisation':
                 $replaceConditions = array(
-                    array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+                    array('search' => 'Attribute.value1 LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
                     array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
                 );
                 break;
@@ -4114,16 +4114,24 @@ class AttributesController extends AppController
         
         // Build efficient query conditions - search directly on indexed value1 column
         // Also check value2 for composite attributes (e.g., ip|port)
+        $valueConditions = [
+            "Attribute.value1" => $decodedValue,
+            "Attribute.value2" => $decodedValue,
+        ];
+        // value1|value2 as one string, split at each of its pipes
+        $offset = 0;
+        while (($pipe = strpos($decodedValue, '|', $offset)) !== false) {
+            $valueConditions[] = [
+                "Attribute.value1" => substr($decodedValue, 0, $pipe),
+                "Attribute.value2" => substr($decodedValue, $pipe + 1),
+            ];
+            $offset = $pipe + 1;
+        }
         $conditions = [
             "AND" => [
                 $this->MispAttribute->buildConditions($user),
                 "Attribute.deleted" => 0,
-                "OR" => [
-                    "Attribute.value1" => $decodedValue,
-                    "Attribute.value2" => $decodedValue,
-                    // For composite values like "ip|port", also search on the virtual value field
-                    "CONCAT(Attribute.value1, '|', Attribute.value2)" => $decodedValue
-                ]
+                "OR" => $valueConditions
             ]
         ];
         

@@ -845,6 +845,22 @@ class AttributeValueTest extends TestCase
         $this->assertSame(["SELECT 0 AS `term`, `id` FROM `attribute_values` WHERE `value` = 'Evil.com'"], $this->mysql->statements);
     }
 
+    public function testRewriteConditionsDeclaredBoundedReadsAnUnanchoredPatternInTheStatement()
+    {
+        $conditions = $this->model($this->mysql)->rewriteConditions(
+            ['ShadowAttribute.value1 LIKE' => '%evil%'],
+            'ShadowAttribute',
+            true
+        );
+
+        $this->assertSame('expression', $conditions[0][0]->type);
+        $this->assertSame(
+            "`ShadowAttribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%evil%')",
+            $conditions[0][0]->value
+        );
+        $this->assertSame([], $this->mysql->statements);
+    }
+
     public function testRewriteConditionsThrowsOnlyWithStrictConditions()
     {
         $this->assertFalse((new ReflectionClass('AttributeValue'))->getDefaultProperties()['strictConditions']);
